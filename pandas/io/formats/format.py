@@ -621,7 +621,7 @@ class DataFrameFormatter(TableFormatter):
         # expression has type "Optional[Sequence[str]]", variable has type "Index"
         self.columns = columns  # type: ignore[assignment]
 
-        self._chk_truncate()
+        self._truncate()
         self.adj = get_adjustment()
 
     @property
@@ -786,10 +786,9 @@ class DataFrameFormatter(TableFormatter):
     def is_truncated(self) -> bool:
         return bool(self.is_truncated_horizontally or self.is_truncated_vertically)
 
-    def _chk_truncate(self) -> None:
+    def _truncate(self) -> None:
         """
-        Checks whether the frame should be truncated. If so, slices
-        the frame up.
+        Check whether the frame should be truncated. If so, slice the frame up.
         """
         self.tr_frame = self.frame.copy()
 
@@ -1009,9 +1008,9 @@ class DataFrameFormatter(TableFormatter):
         max_cols_adj = max(max_cols_adj, 2)
         self._max_cols_adj = max_cols_adj
 
-        # Call again _chk_truncate to cut frame appropriately
+        # Call again _truncate to cut frame appropriately
         # and then generate string representation
-        self._chk_truncate()
+        self._truncate()
         strcols = self._to_str_columns()
         return self.adj.adjoin(1, *strcols)
 
