@@ -904,6 +904,12 @@ class DataFrameFormatter(TableFormatter):
         """
         strcols = self._get_strcols()
 
+        if self.is_truncated:
+            strcols = self._truncate_strcols(strcols)
+
+        return strcols
+
+    def _truncate_strcols(self, strcols):
         str_index = self._get_formatted_index(self.tr_frame)
 
         if self.is_truncated_horizontally:
