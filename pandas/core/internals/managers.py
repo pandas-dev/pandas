@@ -1232,6 +1232,26 @@ class BlockManager(PandasObject):
                 stacklevel=5,
             )
 
+    def append_block(self, items, values):
+        base, size = len(self.items), len(items)
+
+        new_axis = self.items.append(items)
+        block = make_block(
+            values=values, ndim=self.ndim, placement=slice(base, base + size)
+        )
+
+        blk_no = len(self.blocks)
+        self._blklocs = np.append(self.blklocs, range(size))
+        self._blknos = np.append(self.blknos, size * (blk_no,))
+
+        self.axes[0] = new_axis
+        self.blocks += (block,)
+
+        self._known_consolidated = False
+
+        if len(self.blocks) > 100:
+            self._consolidate_inplace()
+
     def reindex_axis(
         self,
         new_index,

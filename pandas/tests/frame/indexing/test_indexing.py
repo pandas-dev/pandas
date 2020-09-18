@@ -119,7 +119,7 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(float_frame["B"], data["A"], check_names=False)
         tm.assert_series_equal(float_frame["A"], data["B"], check_names=False)
 
-        msg = "Columns must be same length as key"
+        msg = "Key must be same length as columns or top level of MultiIndex"
         with pytest.raises(ValueError, match=msg):
             data[["A"]] = float_frame[["A", "B"]]
         newcolumndata = range(len(data.index) - 1)

@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
@@ -93,3 +94,102 @@ class TestMultiIndexBasic:
         result = df.loc[0].index
         tm.assert_index_equal(result, dti)
         assert result.freq == dti.freq
+
+    def test_multiindex_get_loc_list_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/35878
+        idx = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        msg = "unhashable type"
+        with pytest.raises(TypeError, match=msg):
+            idx.get_loc([])
+
+    def test_multiindex_frame_assign(self):
+        df0 = pd.DataFrame({"a": [0, 1, 2, 3], "b": [3, 4, 5, 6]})
+        df1 = pd.concat({"x": df0, "y": df0}, axis=1)
+        df2 = pd.concat({"q": df1, "r": df1}, axis=1)
+
+        # level one assign
+        result = df2.copy()
+        result["m"] = result["q"] + result["r"]
+        expected = pd.concat({"q": df1, "r": df1, "m": 2 * df1}, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        # level one assign - multiple
+        result = df2.copy()
+        result[["m", "n"]] = 2 * result[["q", "r"]]
+        expected = pd.concat({"q": df1, "r": df1, "m": 2 * df1, "n": 2 * df1}, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        # level two assign
+        result = df2.copy()
+        result["m", "x"] = df2["q", "x"] + df2["q", "y"]
+        expected = pd.concat(
+            {"q": df1, "r": df1, "m": pd.concat({"x": 2 * df0}, axis=1)}, axis=1
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # level two assign - multiple (seems like getitem is not caught up here)
+        result = df2.copy()
+        result[[("m", "x"), ("n", "y")]] = 2 * df2["q"]
+        expected = pd.concat(
+            {
+                "q": df1,
+                "r": df1,
+                "m": pd.concat({"x": 2 * df0}, axis=1),
+                "n": pd.concat({"y": 2 * df0}, axis=1),
+            },
+            axis=1,
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # level three assign
+        result = df2.copy()
+        result["m", "x", "a"] = df2["q", "x", "a"] + df2["q", "x", "b"]
+        expected = pd.concat(
+            {
+                "q": df1,
+                "r": df1,
+                "m": pd.concat(
+                    {"x": pd.concat({"a": df0["a"] + df0["b"]}, axis=1)}, axis=1
+                ),
+            },
+            axis=1,
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # level three assign - multiple
+        result = df2.copy()
+        result[[("m", "x", "a"), ("n", "y", "b")]] = 2 * df2["q", "x"]
+        expected = pd.concat(
+            {
+                "q": df1,
+                "r": df1,
+                "m": pd.concat({"x": pd.concat({"a": 2 * df0["a"]}, axis=1)}, axis=1),
+                "n": pd.concat({"y": pd.concat({"b": 2 * df0["b"]}, axis=1)}, axis=1),
+            },
+            axis=1,
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # invalid usage
+        msg = "Must pass key/value pair that conforms with number of column levels"
+        msg2 = "Wrong number of items passed 2, placement implies 1"
+
+        # too few levels at level one
+        with pytest.raises(ValueError, match=msg):
+            df2["m"] = df0
+
+        # too few levels at level two - this appears to be desired
+        # with pytest.raises(ValueError, match=msg):
+        #     df2["m", "x"] = df0["a"]
+
+        # too many levels at level one
+        with pytest.raises(ValueError, match=msg):
+            df2["m"] = df2
+
+        # too many levels at level two
+        with pytest.raises(ValueError, match=msg):
+            df2["m", "x"] = df1
+
+        # too many levels at level three
+        with pytest.raises(ValueError, match=msg2):
+            df2["m", "x", "a"] = df0

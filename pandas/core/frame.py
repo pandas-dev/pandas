@@ -3189,10 +3189,18 @@ class DataFrame(NDFrame, OpsMixin):
             self.iloc[indexer] = value
         else:
             if isinstance(value, DataFrame):
-                if len(value.columns) != len(key):
-                    raise ValueError("Columns must be same length as key")
-                for k1, k2 in zip(key, value.columns):
-                    self[k1] = value[k2]
+                columns = value.columns
+                if len(columns) == len(key):
+                    for k1, k2 in zip(key, columns):
+                        self[k1] = value[k2]
+                elif columns.nlevels > 1 and len(columns.levels[0]) == len(key):
+                    for k1, k2 in zip(key, columns.levels[0]):
+                        self[k1] = value[k2]
+                else:
+                    raise ValueError(
+                        "Key must be same length as columns or top level of "
+                        "MultiIndex"
+                    )
             else:
                 self.loc._ensure_listlike_indexer(key, axis=1, value=value)
                 indexer = self.loc._get_listlike_indexer(
@@ -3221,19 +3229,42 @@ class DataFrame(NDFrame, OpsMixin):
     def _set_item_frame_value(self, key, value: "DataFrame") -> None:
         self._ensure_valid_index(value)
 
-        # align right-hand-side columns if self.columns
-        # is multi-index and self[key] is a sub-frame
-        if isinstance(self.columns, MultiIndex) and key in self.columns:
-            loc = self.columns.get_loc(key)
-            if isinstance(loc, (slice, Series, np.ndarray, Index)):
-                cols = maybe_droplevels(self.columns[loc], key)
-                if len(cols) and not cols.equals(value.columns):
-                    value = value.reindex(cols, axis=1)
+        # standardized key info
+        key_tup = key if isinstance(key, tuple) else (key,)
+        key_len = len(key_tup)
 
-        # now align rows
-        value = _reindex_for_setitem(value, self.index)
-        value = value.T
-        self._set_item_mgr(key, value)
+        if key in self.columns or key_len == self.columns.nlevels:
+            # align right-hand-side columns if self.columns
+            # is multi-index and self[key] is a sub-frame
+            if isinstance(self.columns, MultiIndex) and key in self.columns:
+                loc = self.columns.get_loc(key)
+                if isinstance(loc, (slice, Series, np.ndarray, Index)):
+                    cols = maybe_droplevels(self.columns[loc], key)
+                    if len(cols) and not cols.equals(value.columns):
+                        value = value.reindex(cols, axis=1)
+
+            # now align rows
+            value = _reindex_for_setitem(value, self.index)
+            value = value.T
+            self._set_item_mgr(key, value)
+        else:
+            if key_len + value.columns.nlevels != self.columns.nlevels:
+                raise ValueError(
+                    "Must pass key/value pair that conforms with number of column "
+                    "levels"
+                )
+
+            # fill out keys as necessary
+            if value.columns.nlevels > 1:
+                key_list = [key_tup + i for i in value.columns]
+            else:
+                key_list = [key_tup + (i,) for i in value.columns]
+            items = MultiIndex.from_tuples(key_list)
+
+            # align and append block
+            value = _reindex_for_setitem(value, self.index)
+            value = value.T
+            self._mgr.append_block(items, value)
 
     def _iset_item_mgr(self, loc: int, value) -> None:
         self._mgr.iset(loc, value)
