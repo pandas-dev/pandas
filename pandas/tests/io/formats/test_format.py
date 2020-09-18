@@ -648,7 +648,7 @@ class TestDataFrameFormatting:
         assert isinstance(result, str)
 
     def test_to_string_utf8_columns(self):
-        n = "\u05d0".encode("utf-8")
+        n = "\u05d0".encode()
 
         with option_context("display.max_rows", 1):
             df = DataFrame([1, 2], columns=[n])
