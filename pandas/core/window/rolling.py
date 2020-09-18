@@ -244,6 +244,8 @@ class _Window(ShallowMixin, SelectionMixin):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
         if self.axis == 1:
+            # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
+            # to float to calculate the complete row at once
             obj = obj.astype("float64", copy=False)
             obj._mgr = obj._mgr.consolidate()
         return obj
