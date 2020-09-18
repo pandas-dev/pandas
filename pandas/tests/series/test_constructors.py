@@ -49,7 +49,7 @@ class TestSeriesConstructors:
             (lambda: Series({}), True),
             (lambda: Series(()), False),  # creates a RangeIndex
             (lambda: Series([]), False),  # creates a RangeIndex
-            (lambda: Series((_ for _ in [])), False),  # creates a RangeIndex
+            (lambda: Series(_ for _ in []), False),  # creates a RangeIndex
             (lambda: Series(data=None), True),
             (lambda: Series(data={}), True),
             (lambda: Series(data=()), False),  # creates a RangeIndex
