@@ -1681,7 +1681,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             label_axis_name = "column" if axis == 0 else "index"
             raise ValueError(
-                f"The {label_axis_name} label '{key}' " f"is not unique.{multi_message}"
+                f"The {label_axis_name} label '{key}' is not unique.{multi_message}"
             )
 
         return values
