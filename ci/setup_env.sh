@@ -42,8 +42,9 @@ else
 fi
 
 if [ "${TRAVIS_CPU_ARCH}" == "arm64" ]; then
+  sudo apt-get update
   sudo apt-get -y install xvfb
-  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.2-1/Miniforge3-4.8.2-1-Linux-aarch64.sh"
+  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.5-0/Miniforge3-4.8.5-0-Linux-aarch64.sh"
 else
   CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh"
 fi
