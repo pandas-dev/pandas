@@ -948,6 +948,18 @@ class DataFrameFormatter(TableFormatter):
         """
         Render a DataFrame to a console-friendly tabular output.
         """
+        text = self._get_string_representation()
+
+        buf.writelines(text)
+
+        if self.should_show_dimensions:
+            dim_str = (
+                f"\n\n[{len(self.frame)} rows x "
+                f"{len(self.frame.columns)} columns]"
+            )
+            buf.write(dim_str)
+
+    def _get_string_representation(self):
         from pandas import Series
 
         frame = self.frame
@@ -1000,10 +1012,7 @@ class DataFrameFormatter(TableFormatter):
                 self._chk_truncate()
                 strcols = self._to_str_columns()
                 text = self.adj.adjoin(1, *strcols)
-        buf.writelines(text)
-
-        if self.should_show_dimensions:
-            buf.write(f"\n\n[{len(frame)} rows x {len(frame.columns)} columns]")
+        return text
 
     def _join_multiline(self, *args) -> str:
         lwidth = self.line_width
