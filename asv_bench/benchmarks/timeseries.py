@@ -269,7 +269,7 @@ class ToDatetimeFromIntsFloats:
         self.ts_sec_float = self.ts_sec.astype("float64")
 
         self.ts_nanosec = 1_000_000 * self.ts_sec
-        self.ts_nanosec.float = self.ts_nanosec.astype("float64")
+        self.ts_nanosec_float = self.ts_nanosec.astype("float64")
 
     # speed of int64 and float64 paths should be comparable
 
