@@ -504,7 +504,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not self.is_unique:
             msg = """Index has duplicates."""
             duplicates = self._format_duplicate_message()
-            msg += "\n{}".format(duplicates)
+            msg += f"\n{duplicates}"
 
             raise DuplicateLabelError(msg)
 
@@ -3316,7 +3316,7 @@ class Index(IndexOpsMixin, PandasObject):
         ValueError if its a duplicate axis
         """
         # trying to reindex on an axis with duplicates
-        if not self.is_unique and len(indexer):
+        if not self._index_as_unique and len(indexer):
             raise ValueError("cannot reindex from a duplicate axis")
 
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
@@ -3360,8 +3360,7 @@ class Index(IndexOpsMixin, PandasObject):
             if self.equals(target):
                 indexer = None
             else:
-                # check is_overlapping for IntervalIndex compat
-                if self.is_unique and not getattr(self, "is_overlapping", False):
+                if self._index_as_unique:
                     indexer = self.get_indexer(
                         target, method=method, limit=limit, tolerance=tolerance
                     )
@@ -4318,10 +4317,8 @@ class Index(IndexOpsMixin, PandasObject):
         return (
             self.equals(other)
             and all(
-                (
-                    getattr(self, c, None) == getattr(other, c, None)
-                    for c in self._comparables
-                )
+                getattr(self, c, None) == getattr(other, c, None)
+                for c in self._comparables
             )
             and type(self) == type(other)
         )
@@ -4761,10 +4758,20 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray
             List of indices.
         """
-        if self.is_unique:
+        if self._index_as_unique:
             return self.get_indexer(target, **kwargs)
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
+
+    @property
+    def _index_as_unique(self):
+        """
+        Whether we should treat this as unique for the sake of
+        get_indexer vs get_indexer_non_unique.
+
+        For IntervalIndex compat.
+        """
+        return self.is_unique
 
     def _maybe_promote(self, other: "Index"):
         """

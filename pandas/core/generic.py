@@ -1693,10 +1693,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             label_axis_name = "column" if axis == 0 else "index"
             raise ValueError(
-                (
-                    f"The {label_axis_name} label '{key}' "
-                    f"is not unique.{multi_message}"
-                )
+                f"The {label_axis_name} label '{key}' is not unique.{multi_message}"
             )
 
         return values
@@ -1737,10 +1734,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         if invalid_keys:
             raise ValueError(
-                (
-                    "The following keys are not valid labels or "
-                    f"levels for axis {axis}: {invalid_keys}"
-                )
+                "The following keys are not valid labels or "
+                f"levels for axis {axis}: {invalid_keys}"
             )
 
         # Compute levels and labels to drop

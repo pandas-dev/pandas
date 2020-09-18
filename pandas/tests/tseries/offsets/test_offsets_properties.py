@@ -12,6 +12,7 @@ import warnings
 from hypothesis import assume, given, strategies as st
 from hypothesis.extra.dateutil import timezones as dateutil_timezones
 from hypothesis.extra.pytz import timezones as pytz_timezones
+import pytest
 
 import pandas as pd
 from pandas import Timestamp
@@ -84,6 +85,7 @@ gen_yqm_offset = st.one_of(
 # Offset-specific behaviour tests
 
 
+@pytest.mark.arm_slow
 @given(gen_random_datetime, gen_yqm_offset)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)

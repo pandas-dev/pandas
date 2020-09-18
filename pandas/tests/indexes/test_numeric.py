@@ -84,10 +84,14 @@ class Numeric(Base):
             expected = {ex_keys[0]: idx[[0, 5]], ex_keys[1]: idx[[1, 4]]}
             tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
-    def test_insert(self, nulls_fixture):
+    def test_insert_na(self, nulls_fixture):
         # GH 18295 (test missing)
         index = self.create_index()
-        expected = Float64Index([index[0], np.nan] + list(index[1:]))
+
+        if nulls_fixture is pd.NaT:
+            expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
+        else:
+            expected = Float64Index([index[0], np.nan] + list(index[1:]))
         result = index.insert(1, nulls_fixture)
         tm.assert_index_equal(result, expected)
 
@@ -695,9 +699,7 @@ class TestGetSliceBounds:
 
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
-    @pytest.mark.parametrize(
-        "bound, expected", [(-1, 0), (10, 6)],
-    )
+    @pytest.mark.parametrize("bound, expected", [(-1, 0), (10, 6)])
     def test_get_slice_bounds_outside(self, kind, side, expected, bound):
         index = Index(range(6))
         result = index.get_slice_bound(bound, kind=kind, side=side)
