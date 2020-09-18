@@ -32,7 +32,7 @@ dependencies:
   - google-cloud-bigquery>=1.27.2 # GH 36436
   - psycopg2
   - pyarrow>=0.15.0
-  - pymysql
+  - pymysql=0.7.11
   - pytables
   - python-snappy
   - python-dateutil
@@ -40,7 +40,7 @@ dependencies:
   - s3fs>=0.4.0
   - scikit-learn
   - scipy
-  - sqlalchemy
+  - sqlalchemy=1.3.0
   - statsmodels
   - xarray
   - xlrd
