@@ -894,7 +894,6 @@ class DataFrameFormatter(TableFormatter):
             strcols.insert(0, str_index)
 
         if self.is_truncated_horizontally:
-            col_num = self.tr_col_num
             strcols.insert(self.tr_col_num + 1, [" ..."] * (len(str_index)))
 
         if self.is_truncated_vertically:
@@ -905,14 +904,14 @@ class DataFrameFormatter(TableFormatter):
             row_num = cast(int, row_num)
             for ix, col in enumerate(strcols):
                 # infer from above row
-                cwidth = self.adj.len(strcols[ix][row_num])
+                cwidth = self.adj.len(col[row_num])
                 is_dot_col = False
                 if self.is_truncated_horizontally:
-                    is_dot_col = ix == col_num + 1
+                    is_dot_col = ix == self.tr_col_num + 1
                 if cwidth > 3 or is_dot_col:
-                    my_str = "..."
+                    dots = "..."
                 else:
-                    my_str = ".."
+                    dots = ".."
 
                 if ix == 0:
                     dot_mode = "left"
@@ -921,8 +920,8 @@ class DataFrameFormatter(TableFormatter):
                     dot_mode = "right"
                 else:
                     dot_mode = "right"
-                dot_str = self.adj.justify([my_str], cwidth, mode=dot_mode)[0]
-                strcols[ix].insert(row_num + n_header_rows, dot_str)
+                dot_str = self.adj.justify([dots], cwidth, mode=dot_mode)[0]
+                col.insert(row_num + n_header_rows, dot_str)
 
         return strcols
 
