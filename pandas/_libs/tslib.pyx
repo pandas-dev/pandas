@@ -249,10 +249,10 @@ def array_with_unit_to_datetime(
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
             if values.dtype.kind == "i":
-                result = (iresult * m).astype('M8[ns]')
+                result = (iresult * m).astype("M8[ns]")
 
             if values.dtype.kind == "f":
-                fresult = (values*m).astype("f8")
+                fresult = (values * m).astype("f8")
                 fresult[mask] = 0
                 if prec:
                     fresult = round(fresult, prec)
