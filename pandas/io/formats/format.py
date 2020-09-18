@@ -829,9 +829,11 @@ class DataFrameFormatter(TableFormatter):
         max_rows_adj = cast(int, self.max_rows_adj)
         row_num = max_rows_adj // 2
         if row_num >= 1:
-            self.tr_frame = concat(
-                (self.tr_frame.iloc[:row_num, :], self.tr_frame.iloc[-row_num:, :])
-            )
+            rows_to_keep = [
+                x for x in range(self.frame.shape[0])
+                if x < row_num or x >= len(self.frame) - row_num
+            ]
+            self.tr_frame = self.tr_frame.iloc[rows_to_keep, :]
         else:
             row_num = self.max_rows
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
