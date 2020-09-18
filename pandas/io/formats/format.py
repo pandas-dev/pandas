@@ -913,38 +913,44 @@ class DataFrameFormatter(TableFormatter):
 
     def _truncate_strcols(self, strcols):
         str_index = self._get_formatted_index(self.tr_frame)
+        index_length = len(str_index)
 
         if self.is_truncated_horizontally:
             strcols.insert(self.tr_col_num + 1, [" ..."] * (len(str_index)))
 
         if self.is_truncated_vertically:
-            n_header_rows = len(str_index) - len(self.tr_frame)
-            row_num = self.tr_row_num
-            for ix, col in enumerate(strcols):
-                # infer from above row
-                cwidth = self.adj.len(col[row_num])
+            strcols = self._insert_dot_separator_vertical(strcols, index_length)
 
-                if self.is_truncated_horizontally:
-                    is_dot_col = ix == self.tr_col_num + 1
-                else:
-                    is_dot_col = False
+        return strcols
 
-                if cwidth > 3 or is_dot_col:
-                    dots = "..."
-                else:
-                    dots = ".."
+    def _insert_dot_separator_vertical(
+        self, strcols: List[List[str]], index_length: int
+    ) -> List[List[str]]:
+        n_header_rows = index_length - len(self.tr_frame)
+        row_num = self.tr_row_num
+        for ix, col in enumerate(strcols):
+            cwidth = self.adj.len(col[row_num])
 
-                if ix == 0:
-                    dot_mode = "left"
-                elif is_dot_col:
-                    cwidth = 4
-                    dot_mode = "right"
-                else:
-                    dot_mode = "right"
+            if self.is_truncated_horizontally:
+                is_dot_col = ix == self.tr_col_num + 1
+            else:
+                is_dot_col = False
 
-                dot_str = self.adj.justify([dots], cwidth, mode=dot_mode)[0]
-                col.insert(row_num + n_header_rows, dot_str)
+            if cwidth > 3 or is_dot_col:
+                dots = "..."
+            else:
+                dots = ".."
 
+            if ix == 0:
+                dot_mode = "left"
+            elif is_dot_col:
+                cwidth = 4
+                dot_mode = "right"
+            else:
+                dot_mode = "right"
+
+            dot_str = self.adj.justify([dots], cwidth, mode=dot_mode)[0]
+            col.insert(row_num + n_header_rows, dot_str)
         return strcols
 
     def write_result(self, buf: IO[str]) -> None:
