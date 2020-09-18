@@ -265,17 +265,25 @@ class Lookup:
 
 class ToDatetimeFromIntsFloats:
     def setup(self):
-        self.timestamp_seconds_int = Series(
-            range(1521080307, 1521685107), dtype="int64"
-        )
-        self.timestamp_seconds_float = self.timestamp_seconds_int.astype("float64")
+        self.ts_sec = Series(range(1521080307, 1521685107), dtype="int64")
+        self.ts_sec_float = self.ts_sec.astype("float64")
 
-    def to_datetime_int(self):
-        to_datetime(self.timestamp_seconds_int, unit="s")
+        self.ts_nanosec = 1_000_000 * self.ts_sec
+        self.ts_nanosec.float = self.ts_nanosec.astype("float64")
 
-    # float64 should about the same as int64
-    def to_datetime_float(self):
-        to_datetime(self.timestamp_seconds_float, unit="s")
+    # speed of int64 and float64 paths should be comparable
+
+    def time_nanosec_int64(self):
+        to_datetime(self.ts_nanosec, unit="ns")
+
+    def time_nanosec_float64(self):
+        to_datetime(self.ts_nanosec_float, unit="ns")
+
+    def time_sec_int64(self):
+        to_datetime(self.ts_sec, unit="s")
+
+    def time_sec_float64(self):
+        to_datetime(self.ts_sec_float, unit="s")
 
 
 class ToDatetimeYYYYMMDD:
