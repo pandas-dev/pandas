@@ -62,8 +62,7 @@ def flatten(l):
     """
     for el in l:
         if iterable_not_string(el):
-            for s in flatten(el):
-                yield s
+            yield from flatten(el)
         else:
             yield el
 
@@ -434,10 +433,8 @@ def random_state(state=None):
         return np.random
     else:
         raise ValueError(
-            (
-                "random_state must be an integer, array-like, a BitGenerator, "
-                "a numpy RandomState, or None"
-            )
+            "random_state must be an integer, array-like, a BitGenerator, "
+            "a numpy RandomState, or None"
         )
 
 

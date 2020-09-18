@@ -398,7 +398,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
             if len(self) and (
                 (use_lhs and t1 < self[0] and t2 < self[0])
-                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
+                or (use_rhs and t1 > self[-1] and t2 > self[-1])
             ):
                 # we are out of range
                 raise KeyError

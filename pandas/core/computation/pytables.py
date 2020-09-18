@@ -554,7 +554,7 @@ class PyTablesExpr(expr.Expr):
                 else:
                     w = _validate_where(w)
                     where[idx] = w
-            _where = " & ".join((f"({w})" for w in com.flatten(where)))
+            _where = " & ".join(f"({w})" for w in com.flatten(where))
         else:
             _where = where
 

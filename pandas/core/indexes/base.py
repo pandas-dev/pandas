@@ -504,7 +504,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not self.is_unique:
             msg = """Index has duplicates."""
             duplicates = self._format_duplicate_message()
-            msg += "\n{}".format(duplicates)
+            msg += f"\n{duplicates}"
 
             raise DuplicateLabelError(msg)
 
@@ -4315,10 +4315,8 @@ class Index(IndexOpsMixin, PandasObject):
         return (
             self.equals(other)
             and all(
-                (
-                    getattr(self, c, None) == getattr(other, c, None)
-                    for c in self._comparables
-                )
+                getattr(self, c, None) == getattr(other, c, None)
+                for c in self._comparables
             )
             and type(self) == type(other)
         )
