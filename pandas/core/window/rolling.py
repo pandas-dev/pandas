@@ -244,7 +244,9 @@ class _Window(ShallowMixin, SelectionMixin):
         if self.on is not None and not isinstance(self.on, Index):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
-
+        if self.axis == 1:
+            obj = obj.astype("float", copy=False)
+            obj._mgr = obj._mgr.consolidate()
         return obj
 
     def _gotitem(self, key, ndim, subset=None):
@@ -491,9 +493,6 @@ class _Window(ShallowMixin, SelectionMixin):
             return self._apply_series(homogeneous_func)
 
         obj = self._create_data(self._selected_obj)
-        if self.axis == 1:
-            obj = obj.astype(infer_dtype_from(obj.values)[0], copy=False)
-            obj._mgr = obj._mgr.consolidate()
         mgr = obj._mgr
 
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
