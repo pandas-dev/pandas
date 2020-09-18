@@ -771,3 +771,17 @@ def test_rolling_numerical_too_large_numbers():
         index=dates,
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("index", "window"),
+    [([0, 1, 2, 3, 4], 2), (pd.date_range("2001-01-01", freq="D", periods=5), "2D")],
+)
+def test_rolling_corr_timedelta_index(index, window):
+    # GH: 31286
+    x = pd.Series(np.random.randn(5), index=index)
+    y = x.copy()
+    x[0:2] = 0.0
+    result = x.rolling(window).corr(y)
+    expected = pd.Series([np.nan, np.nan, 1, 1, 1], index=index)
+    tm.assert_almost_equal(result, expected)
