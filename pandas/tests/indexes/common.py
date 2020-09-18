@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.compat.numpy import is_numpy_dev
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
@@ -456,7 +455,7 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             getattr(index, method)(case)
 
-    def test_intersection_base(self, index, request):
+    def test_intersection_base(self, index):
         if isinstance(index, CategoricalIndex):
             return
 
@@ -473,15 +472,6 @@ class Base:
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
-            # https://github.com/pandas-dev/pandas/issues/35481
-            if (
-                is_numpy_dev
-                and isinstance(case, Series)
-                and isinstance(index, UInt64Index)
-            ):
-                mark = pytest.mark.xfail(reason="gh-35481")
-                request.node.add_marker(mark)
-
             result = first.intersection(case)
             assert tm.equalContents(result, second)
 
@@ -507,7 +497,11 @@ class Base:
         for case in cases:
             if not isinstance(index, CategoricalIndex):
                 result = first.union(case)
-                assert tm.equalContents(result, everything)
+                assert tm.equalContents(result, everything), (
+                    result,
+                    everything,
+                    type(case),
+                )
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -906,6 +900,7 @@ class Base:
         index_na_dup = index_na.insert(0, np.nan)
         assert index_na_dup.is_unique is False
 
+    @pytest.mark.arm_slow
     def test_engine_reference_cycle(self):
         # GH27585
         index = self.create_index()
