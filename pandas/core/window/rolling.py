@@ -244,7 +244,7 @@ class _Window(ShallowMixin, SelectionMixin):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
         if self.axis == 1:
-            obj = obj.astype("float", copy=False)
+            obj = obj.astype("float64", copy=False)
             obj._mgr = obj._mgr.consolidate()
         return obj
 
