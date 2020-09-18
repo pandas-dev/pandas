@@ -108,7 +108,7 @@ class TestDataFrameSetItem:
         df["now"] = Timestamp("20130101", tz="UTC")
 
         expected = DataFrame(
-            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"],
+            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
         )
         tm.assert_frame_equal(df, expected)
 
@@ -117,7 +117,10 @@ class TestDataFrameSetItem:
         cat = Categorical.from_codes([0, 1, 1, 0, 1, 2], ["a", "b", "c"])
         df = DataFrame(range(10), columns=["bar"])
 
-        msg = "Length of values does not match length of index"
+        msg = (
+            rf"Length of values \({len(cat)}\) "
+            rf"does not match length of index \({len(df)}\)"
+        )
         with pytest.raises(ValueError, match=msg):
             df["foo"] = cat
 
@@ -155,11 +158,7 @@ class TestDataFrameSetItem:
             }
         )
         for idx, b in enumerate([1, 2, 3]):
-            df.loc[df.shape[0]] = {
-                "a": int(idx),
-                "b": float(b),
-                "c": float(b),
-            }
+            df.loc[df.shape[0]] = {"a": int(idx), "b": float(b), "c": float(b)}
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(

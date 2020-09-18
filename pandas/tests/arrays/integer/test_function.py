@@ -133,6 +133,15 @@ def test_integer_array_numpy_sum(values, expected):
     assert result == expected
 
 
+@pytest.mark.parametrize("op", ["sum", "prod", "min", "max"])
+def test_dataframe_reductions(op):
+    # https://github.com/pandas-dev/pandas/pull/32867
+    # ensure the integers are not cast to float during reductions
+    df = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64")})
+    result = df.max()
+    assert isinstance(result["a"], np.int64)
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift

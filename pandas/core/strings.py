@@ -155,7 +155,7 @@ def _map_stringarray(
         an ndarray.
 
     """
-    from pandas.arrays import IntegerArray, StringArray, BooleanArray
+    from pandas.arrays import BooleanArray, IntegerArray, StringArray
 
     mask = isna(arr)
 
@@ -601,8 +601,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         - If False, treats the pattern as a literal string
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
           a callable.
-
-        .. versionadded:: 0.23.0
 
     Returns
     -------
@@ -2050,7 +2048,7 @@ def _pat_wrapper(
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper3(self, pat, na=np.nan):
         result = f(self._parent, pat, na=na)
-        return self._wrap_result(result, returns_string=returns_string)
+        return self._wrap_result(result, returns_string=returns_string, fill_value=na)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
 
@@ -2186,7 +2184,7 @@ class StringMethods(NoNewAttributesMixin):
         returns_string=True,
     ):
 
-        from pandas import Index, Series, MultiIndex
+        from pandas import Index, MultiIndex, Series
 
         # for category, we do the stuff on the categories, so blow it up
         # to the full series again
@@ -2292,7 +2290,7 @@ class StringMethods(NoNewAttributesMixin):
         list of Series
             Others transformed into list of Series.
         """
-        from pandas import Series, DataFrame
+        from pandas import DataFrame, Series
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index
@@ -2374,7 +2372,6 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-            .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
                 Changed default of `join` from None to `'left'`.
 

@@ -126,10 +126,10 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # String
         (["a", None], "string", StringArray._from_sequence(["a", None])),
-        (["a", None], pd.StringDtype(), StringArray._from_sequence(["a", None]),),
+        (["a", None], pd.StringDtype(), StringArray._from_sequence(["a", None])),
         # Boolean
         ([True, None], "boolean", BooleanArray._from_sequence([True, None])),
-        ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None]),),
+        ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None])),
         # Index
         (pd.Index([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # Series[EA] returns the EA
@@ -180,7 +180,7 @@ cet = pytz.timezone("CET")
             period_array(["2000", "2001"], freq="D"),
         ),
         # interval
-        ([pd.Interval(0, 1), pd.Interval(1, 2)], IntervalArray.from_breaks([0, 1, 2]),),
+        ([pd.Interval(0, 1), pd.Interval(1, 2)], IntervalArray.from_breaks([0, 1, 2])),
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],

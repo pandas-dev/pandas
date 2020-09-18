@@ -214,19 +214,12 @@ def union_indexes(indexes, sort=True) -> Index:
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
-                # GH 35092. Index.union expects sort=None instead of sort=True
-                # to signify that sort=True isn't fully implemented and
-                # legacy implementation sometimes might not sort (see GH 24959)
-                # In this case we currently sort in _get_combined_index
-                if sort:
-                    sort = None
-                result = result.union(other, sort=sort)
+                result = result.union(other)
             return result
     elif kind == "array":
         index = indexes[0]
-        for other in indexes[1:]:
-            if not index.equals(other):
-                return _unique_indices(indexes)
+        if not all(index.equals(other) for other in indexes[1:]):
+            index = _unique_indices(indexes)
 
         name = get_consensus_names(indexes)[0]
         if name != index.name:
@@ -304,15 +297,16 @@ def all_indexes_same(indexes):
 
     Parameters
     ----------
-    indexes : list of Index objects
+    indexes : iterable of Index objects
 
     Returns
     -------
     bool
         True if all indexes contain the same elements, False otherwise.
     """
-    first = indexes[0]
-    for index in indexes[1:]:
+    itr = iter(indexes)
+    first = next(itr)
+    for index in itr:
         if not first.equals(index):
             return False
     return True

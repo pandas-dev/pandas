@@ -1,11 +1,12 @@
 name: pandas-dev
 channels:
+  - defaults
   - conda-forge
 dependencies:
   - python=3.7.*
 
   # tools
-  - cython>=0.29.16
+  - cython>=0.29.21
   - pytest>=5.0.1
   - pytest-xdist>=1.21
   - pytest-asyncio
@@ -18,11 +19,12 @@ dependencies:
   - ipython
   - jinja2
   - lxml
-  - matplotlib
+  - matplotlib>=3.3.0
   - moto
+  - flask
   - nomkl
   - numexpr
-  - numpy
+  - numpy=1.16.*
   - openpyxl
   - pytables
   - python-dateutil
@@ -32,7 +34,4 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - pyarrow>=0.15
-  - pip
-  - pip:
-    - pyxlsb
+  - moto
