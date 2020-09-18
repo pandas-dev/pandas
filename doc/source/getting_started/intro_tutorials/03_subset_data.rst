@@ -1,6 +1,5 @@
 .. _10min_tut_03_subset:
 
-{{ header }}
 
 .. ipython:: python
 
