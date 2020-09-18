@@ -976,15 +976,15 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     """
     _check_isinstance(left, right, IntervalArray)
 
-    if left.left.dtype.kind in ["m", "M"]:
+    if left._left.dtype.kind in ["m", "M"]:
         # We have a DatetimeArray or Timed
         # TODO: `exact` keyword?
-        assert_equal(left.left, right.left, obj=f"{obj}.left", check_freq=False)
-        assert_equal(left.right, right.right, obj=f"{obj}.left", check_freq=False)
+        assert_equal(left._left, right._left, obj=f"{obj}.left", check_freq=False)
+        assert_equal(left._right, right._right, obj=f"{obj}.left", check_freq=False)
     else:
         # doesnt take check_freq
-        assert_equal(left.left, right.left, obj=f"{obj}.left")  # TODO: exact?
-        assert_equal(left.right, right.right, obj=f"{obj}.left")
+        assert_equal(left._left, right._left, obj=f"{obj}.left")  # TODO: exact?
+        assert_equal(left._right, right._right, obj=f"{obj}.left")
 
     assert_attr_equal("closed", left, right, obj=obj)
 

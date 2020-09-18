@@ -164,8 +164,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             data = data._values  # TODO: extract_array?
 
         if isinstance(data, cls):
-            left = data.left
-            right = data.right
+            left = data._left
+            right = data._right
             closed = closed or data.closed
         else:
 
@@ -488,18 +488,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if self.closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {self.closed}"
             raise ValueError(msg)
-        if len(self.left) != len(self.right):
+        if len(self._left) != len(self._right):
             msg = "left and right must have the same length"
             raise ValueError(msg)
-        left_mask = notna(self.left)
-        right_mask = notna(self.right)
+        left_mask = notna(self._left)
+        right_mask = notna(self._right)
         if not (left_mask == right_mask).all():
             msg = (
                 "missing values must be missing in the same "
                 "location both left and right sides"
             )
             raise ValueError(msg)
-        if not (self.left[left_mask] <= self.right[left_mask]).all():
+        if not (self._left[left_mask] <= self._right[left_mask]).all():
             msg = "left side of interval must be <= right side"
             raise ValueError(msg)
 
@@ -510,12 +510,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return iter(np.asarray(self))
 
     def __len__(self) -> int:
-        return len(self.left)
+        return len(self._left)
 
     def __getitem__(self, value):
         value = check_array_indexer(self, value)
-        left = self.left[value]
-        right = self.right[value]
+        left = self._left[value]
+        right = self._right[value]
 
         if not isinstance(left, (np.ndarray, ExtensionArray)):
             # scalar
@@ -551,7 +551,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # list-like of intervals
             try:
                 array = IntervalArray(value)
-                value_left, value_right = array.left, array.right
+                value_left, value_right = array._left, array.right
             except TypeError as err:
                 # wrong type: not interval or NA
                 msg = f"'value' should be an interval type, got {type(value)} instead."
@@ -594,7 +594,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if is_interval_dtype(other_dtype):
             if self.closed != other.closed:
                 return np.zeros(len(self), dtype=bool)
-            return (self.left == other.left) & (self.right == other.right)
+            return (self._left == other.left) & (self._right == other.right)
 
         # non-interval/non-object dtype -> no matches
         if not is_object_dtype(other_dtype):
@@ -607,8 +607,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if (
                 isinstance(obj, Interval)
                 and self.closed == obj.closed
-                and self.left[i] == obj.left
-                and self.right[i] == obj.right
+                and self._left[i] == obj.left
+                and self._right[i] == obj.right
             ):
                 result[i] = True
 
@@ -654,7 +654,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @property
     def dtype(self):
-        return IntervalDtype(self.left.dtype)
+        return IntervalDtype(self._left.dtype)
 
     def astype(self, dtype, copy=True):
         """
@@ -689,8 +689,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             try:
                 # We need to use Index rules for astype to prevent casting
                 #  np.nan entries to int subtypes
-                new_left = Index(self.left).astype(dtype.subtype)
-                new_right = Index(self.right).astype(dtype.subtype)
+                new_left = Index(self._left).astype(dtype.subtype)
+                new_right = Index(self._right).astype(dtype.subtype)
             except TypeError as err:
                 msg = (
                     f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
@@ -752,23 +752,23 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        left = self.left.copy()
-        right = self.right.copy()
+        left = self._left.copy()
+        right = self._right.copy()
         closed = self.closed
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
 
     def isna(self) -> np.ndarray:
-        return isna(self.left)
+        return isna(self._left)
 
     @property
     def nbytes(self) -> int:
-        return self.left.nbytes + self.right.nbytes
+        return self._left.nbytes + self._right.nbytes
 
     @property
     def size(self) -> int:
         # Avoid materializing self.values
-        return self.left.size
+        return self._left.size
 
     def shift(self, periods: int = 1, fill_value: object = None) -> "IntervalArray":
         if not len(self) or periods == 0:
@@ -786,7 +786,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isna(fill_value):
             from pandas import Index
 
-            fill_value = Index(self.left)._na_value
+            fill_value = Index(self._left)._na_value
             empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
         else:
             empty = self._from_sequence([fill_value] * empty_len)
@@ -852,10 +852,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             fill_left, fill_right = self._validate_fill_value(fill_value)
 
         left_take = take(
-            self.left, indices, allow_fill=allow_fill, fill_value=fill_left
+            self._left, indices, allow_fill=allow_fill, fill_value=fill_left
         )
         right_take = take(
-            self.right, indices, allow_fill=allow_fill, fill_value=fill_right
+            self._right, indices, allow_fill=allow_fill, fill_value=fill_right
         )
 
         return self._shallow_copy(left_take, right_take)
@@ -983,7 +983,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Return the left endpoints of each Interval in the IntervalArray as
         an Index.
         """
-        return self._left
+        from pandas import Index
+
+        return Index(self._left)
 
     @property
     def right(self):
@@ -991,7 +993,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Return the right endpoints of each Interval in the IntervalArray as
         an Index.
         """
-        return self._right
+        from pandas import Index
+
+        return Index(self._right)
 
     @property
     def closed(self):
@@ -1049,7 +1053,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError(msg)
 
         return type(self)._simple_new(
-            left=self.left, right=self.right, closed=closed, verify_integrity=False
+            left=self._left, right=self._right, closed=closed, verify_integrity=False
         )
 
     @property
@@ -1102,15 +1106,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # at a point when both sides of intervals are included
         if self.closed == "both":
             return bool(
-                (self.right[:-1] < self.left[1:]).all()
-                or (self.left[:-1] > self.right[1:]).all()
+                (self._right[:-1] < self._left[1:]).all()
+                or (self._left[:-1] > self._right[1:]).all()
             )
 
         # non-strict inequality when closed != 'both'; at least one side is
         # not included in the intervals, so equality does not imply overlapping
         return bool(
-            (self.right[:-1] <= self.left[1:]).all()
-            or (self.left[:-1] >= self.right[1:]).all()
+            (self._right[:-1] <= self._left[1:]).all()
+            or (self._left[:-1] >= self._right[1:]).all()
         )
 
     # Conversion
@@ -1119,8 +1123,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')
         """
-        left = self.left
-        right = self.right
+        left = self._left
+        right = self._right
         mask = self.isna()
         closed = self._closed
 
@@ -1150,8 +1154,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         interval_type = ArrowIntervalType(subtype, self.closed)
         storage_array = pyarrow.StructArray.from_arrays(
             [
-                pyarrow.array(self.left, type=subtype, from_pandas=True),
-                pyarrow.array(self.right, type=subtype, from_pandas=True),
+                pyarrow.array(self._left, type=subtype, from_pandas=True),
+                pyarrow.array(self._right, type=subtype, from_pandas=True),
             ],
             names=["left", "right"],
         )
@@ -1205,7 +1209,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         _interval_shared_docs["to_tuples"] % dict(return_type="ndarray", examples="")
     )
     def to_tuples(self, na_tuple=True):
-        tuples = com.asarray_tuplesafe(zip(self.left, self.right))
+        tuples = com.asarray_tuplesafe(zip(self._left, self._right))
         if not na_tuple:
             # GH 18756
             tuples = np.where(~self.isna(), tuples, np.nan)
@@ -1269,8 +1273,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isinstance(other, Interval):
             raise NotImplementedError("contains not implemented for two intervals")
 
-        return (self.left < other if self.open_left else self.left <= other) & (
-            other < self.right if self.open_right else other <= self.right
+        return (self._left < other if self.open_left else self._left <= other) & (
+            other < self._right if self.open_right else other <= self._right
         )
 
     _interval_shared_docs["overlaps"] = textwrap.dedent(
@@ -1345,7 +1349,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # overlaps is equivalent negation of two interval being disjoint:
         # disjoint = (A.left > B.right) or (B.left > A.right)
         # (simplifying the negation allows this to be done in less operations)
-        return op1(self.left, other.right) & op2(other.left, self.right)
+        return op1(self._left, other.right) & op2(other.left, self._right)
 
 
 def maybe_convert_platform_interval(values):
