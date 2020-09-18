@@ -623,7 +623,7 @@ class BaseGrouper:
         try:
             return self._aggregate_series_fast(obj, func)
         except ValueError as err:
-            if "Function does not reduce" in str(err):
+            if "Must produce aggregated value" in str(err):
                 # raised in libreduction
                 pass
             else:
@@ -659,15 +659,11 @@ class BaseGrouper:
 
         for label, group in splitter:
             res = func(group)
+            res = libreduction.extract_result(res)
 
             if result is None:
-                if isinstance(res, (Series, Index, np.ndarray)):
-                    if len(res) == 1:
-                        # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
-                        # FIXME: are we potentially losing important res.index info?
-                        res = res.item()
-                    else:
-                        raise ValueError("Function does not reduce")
+                # We only do this validation on the first iteration
+                libreduction.check_result_array(res, 0)
                 result = np.empty(ngroups, dtype="O")
 
             counts[label] = group.shape[0]
