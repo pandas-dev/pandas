@@ -763,7 +763,7 @@ class DataFrameFormatter(TableFormatter):
         prompt_row = 1
 
         if self.show_dimensions:
-            show_dimension_rows = 3
+            show_dimension_rows = len(self._dimensions_info.splitlines())
 
         if self.header:
             header_row = 1
@@ -953,11 +953,11 @@ class DataFrameFormatter(TableFormatter):
         buf.writelines(text)
 
         if self.should_show_dimensions:
-            dim_str = (
-                f"\n\n[{len(self.frame)} rows x "
-                f"{len(self.frame.columns)} columns]"
-            )
-            buf.write(dim_str)
+            buf.write(self._dimensions_info)
+
+    @property
+    def _dimensions_info(self):
+        return f"\n\n[{len(self.frame)} rows x {len(self.frame.columns)} columns]"
 
     def _get_string_representation(self):
         if self.frame.empty:
