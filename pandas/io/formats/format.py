@@ -847,13 +847,13 @@ class DataFrameFormatter(TableFormatter):
         # may include levels names also
 
         if not is_list_like(self.header) and not self.header:
-            stringified = []
+            strcols = []
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
                     fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj
                 )
-                stringified.append(fmt_values)
+                strcols.append(fmt_values)
         else:
             if is_list_like(self.header):
                 # cast here since can't be bool if is_list_like
@@ -871,7 +871,7 @@ class DataFrameFormatter(TableFormatter):
                 for x in str_columns:
                     x.append("")
 
-            stringified = []
+            strcols = []
             for i, c in enumerate(frame):
                 cheader = str_columns[i]
                 header_colwidth = max(
@@ -884,10 +884,9 @@ class DataFrameFormatter(TableFormatter):
 
                 max_len = max(max(self.adj.len(x) for x in fmt_values), header_colwidth)
                 cheader = self.adj.justify(cheader, max_len, mode=self.justify)
-                stringified.append(cheader + fmt_values)
+                strcols.append(cheader + fmt_values)
 
         str_index = self._get_formatted_index(frame)
-        strcols = stringified
         if self.index:
             strcols.insert(0, str_index)
 
