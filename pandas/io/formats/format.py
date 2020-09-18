@@ -805,9 +805,7 @@ class DataFrameFormatter(TableFormatter):
         # cast here since if is_truncated_horizontally is True
         # max_cols_adj is not None
         max_cols_adj = cast(int, self.max_cols_adj)
-        if max_cols_adj == 0:
-            col_num = len(self.tr_frame.columns)
-        elif max_cols_adj == 1:
+        if max_cols_adj == 1:
             max_cols = cast(int, self.max_cols)
             self.tr_frame = self.tr_frame.iloc[:, :max_cols]
             col_num = max_cols
