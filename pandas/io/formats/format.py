@@ -796,10 +796,9 @@ class DataFrameFormatter(TableFormatter):
 
         if self.is_truncated_horizontally:
             self._truncate_horizontally()
+
         if self.is_truncated_vertically:
             self._truncate_vertically()
-        else:
-            self.tr_row_num = None
 
     def _truncate_horizontally(self):
         # cast here since if is_truncated_horizontally is True
