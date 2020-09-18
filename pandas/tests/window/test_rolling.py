@@ -771,3 +771,18 @@ def test_rolling_numerical_too_large_numbers():
         index=dates,
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("func", "value"),
+    [("sum", 2.0), ("max", 1.0), ("min", 1.0), ("mean", 1.0), ("median", 1.0)],
+)
+def test_rolling_mixed_dtypes_axis_1(func, value):
+    # GH: 20649
+    df = pd.DataFrame(1, index=[1, 2], columns=["a", "b", "c"])
+    df["c"] = 1.0
+    result = getattr(df.rolling(window=2, min_periods=1, axis=1), func)()
+    expected = pd.DataFrame(
+        {"a": [1.0, 1.0], "b": [value, value], "c": [value, value]}, index=[1, 2]
+    )
+    tm.assert_frame_equal(result, expected)

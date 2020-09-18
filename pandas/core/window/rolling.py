@@ -25,6 +25,7 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import ArrayLike, Axis, FrameOrSeries, FrameOrSeriesUnion
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
+from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
@@ -490,6 +491,9 @@ class _Window(ShallowMixin, SelectionMixin):
             return self._apply_series(homogeneous_func)
 
         obj = self._create_data(self._selected_obj)
+        if self.axis == 1:
+            obj = obj.astype(infer_dtype_from(obj.values)[0], copy=False)
+            obj._mgr = obj._mgr.consolidate()
         mgr = obj._mgr
 
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
