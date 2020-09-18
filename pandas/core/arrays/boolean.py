@@ -605,7 +605,7 @@ class BooleanArray(BaseMaskedArray):
         def cmp_method(self, other):
             from pandas.arrays import FloatingArray, IntegerArray
 
-            if isinstance(other, IntegerArray, FloatingArray):
+            if isinstance(other, (IntegerArray, FloatingArray)):
                 return NotImplemented
 
             mask = None
