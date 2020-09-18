@@ -39,7 +39,7 @@ from pandas import (
     date_range,
     isna,
     to_datetime,
-    to_timedelta,
+    to_timedelta
 )
 import pandas._testing as tm
 
@@ -79,12 +79,12 @@ SQL_STRINGS = {
                 "PetalLength" DOUBLE PRECISION,
                 "PetalWidth" DOUBLE PRECISION,
                 "Name" VARCHAR(200)
-            )""",
+            )"""
     },
     "insert_iris": {
         "sqlite": """INSERT INTO iris VALUES(?, ?, ?, ?, ?)""",
         "mysql": """INSERT INTO iris VALUES(%s, %s, %s, %s, "%s");""",
-        "postgresql": """INSERT INTO iris VALUES(%s, %s, %s, %s, %s);""",
+        "postgresql": """INSERT INTO iris VALUES(%s, %s, %s, %s, %s);"""
     },
     "create_test_types": {
         "sqlite": """CREATE TABLE types_test_data (
@@ -120,7 +120,7 @@ SQL_STRINGS = {
                     "BoolCol" BOOLEAN,
                     "IntColWithNull" INTEGER,
                     "BoolColWithNull" BOOLEAN
-                )""",
+                )"""
     },
     "insert_test_types": {
         "sqlite": {
@@ -137,8 +137,8 @@ SQL_STRINGS = {
                 "IntCol",
                 "BoolCol",
                 "IntColWithNull",
-                "BoolColWithNull",
-            ),
+                "BoolColWithNull"
+            )
         },
         "mysql": {
             "query": """
@@ -154,8 +154,8 @@ SQL_STRINGS = {
                 "IntCol",
                 "BoolCol",
                 "IntColWithNull",
-                "BoolColWithNull",
-            ),
+                "BoolColWithNull"
+            )
         },
         "postgresql": {
             "query": """
@@ -172,14 +172,14 @@ SQL_STRINGS = {
                 "IntCol",
                 "BoolCol",
                 "IntColWithNull",
-                "BoolColWithNull",
-            ),
-        },
+                "BoolColWithNull"
+            )
+        }
     },
     "read_parameters": {
         "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
         "mysql": 'SELECT * FROM iris WHERE `Name`="%s" AND `SepalLength`=%s',
-        "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
+        "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s'
     },
     "read_named_parameters": {
         "sqlite": """
@@ -192,19 +192,19 @@ SQL_STRINGS = {
         "postgresql": """
                 SELECT * FROM iris WHERE
                 "Name"=%(name)s AND "SepalLength"=%(length)s
-                """,
+                """
     },
     "read_no_parameters_with_percent": {
         "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
         "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
-        "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
+        "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'"
     },
     "create_view": {
         "sqlite": """
                 CREATE VIEW iris_view AS
                 SELECT * FROM iris
                 """
-    },
+    }
 }
 
 
@@ -318,29 +318,29 @@ class PandasSQLTest:
                 0.980268513777,
                 3.68573087906,
                 -0.364216805298,
-                -1.15973806169,
+                -1.15973806169
             ),
             (
                 "2000-01-04 00:00:00",
                 1.04791624281,
                 -0.0412318367011,
                 -0.16181208307,
-                0.212549316967,
+                0.212549316967
             ),
             (
                 "2000-01-05 00:00:00",
                 0.498580885705,
                 0.731167677815,
                 -0.537677223318,
-                1.34627041952,
+                1.34627041952
             ),
             (
                 "2000-01-06 00:00:00",
                 1.12020151869,
                 1.56762092543,
                 0.00364077397681,
-                0.67525259227,
-            ),
+                0.67525259227
+            )
         ]
 
         self.test_frame1 = DataFrame(data, columns=columns)
@@ -352,7 +352,7 @@ class PandasSQLTest:
                 B=["asd", "gsq", "ylt", "jkl"],
                 C=[1.1, 3.1, 6.9, 5.3],
                 D=[False, True, True, False],
-                E=["1990-11-22", "1991-10-26", "1993-11-26", "1995-12-12"],
+                E=["1990-11-22", "1991-10-26", "1993-11-26", "1995-12-12"]
             )
         )
         df["E"] = to_datetime(df["E"])
@@ -365,7 +365,7 @@ class PandasSQLTest:
             ("2000-01-03 00:00:00", 2 ** 31 - 1, -1.987670),
             ("2000-01-04 00:00:00", -29, -0.0412318367011),
             ("2000-01-05 00:00:00", 20000, 0.731167677815),
-            ("2000-01-06 00:00:00", -290867, 1.56762092543),
+            ("2000-01-06 00:00:00", -290867, 1.56762092543)
         ]
 
         self.test_frame3 = DataFrame(data, columns=columns)
@@ -385,7 +385,7 @@ class PandasSQLTest:
                 "IntCol": 1,
                 "BoolCol": False,
                 "IntColWithNull": 1,
-                "BoolColWithNull": False,
+                "BoolColWithNull": False
             },
             {
                 "TextCol": "first",
@@ -397,8 +397,8 @@ class PandasSQLTest:
                 "IntCol": 1,
                 "BoolCol": False,
                 "IntColWithNull": None,
-                "BoolColWithNull": None,
-            },
+                "BoolColWithNull": None
+            }
         ]
 
         for d in data:
@@ -676,7 +676,7 @@ class _TestSQLApi(PandasSQLTest):
             "test_frame_roundtrip",
             con=self.conn,
             index=False,
-            chunksize=2,
+            chunksize=2
         )
         result = sql.read_sql_query("SELECT * FROM test_frame_roundtrip", con=self.conn)
         tm.assert_frame_equal(result, self.test_frame1)
@@ -699,18 +699,18 @@ class _TestSQLApi(PandasSQLTest):
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
         assert df.DateCol.tolist() == [
             pd.Timestamp(2000, 1, 3, 0, 0, 0),
-            pd.Timestamp(2000, 1, 4, 0, 0, 0),
+            pd.Timestamp(2000, 1, 4, 0, 0, 0)
         ]
 
         df = sql.read_sql_query(
             "SELECT * FROM types_test_data",
             self.conn,
-            parse_dates={"DateCol": "%Y-%m-%d %H:%M:%S"},
+            parse_dates={"DateCol": "%Y-%m-%d %H:%M:%S"}
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
         assert df.DateCol.tolist() == [
             pd.Timestamp(2000, 1, 3, 0, 0, 0),
-            pd.Timestamp(2000, 1, 4, 0, 0, 0),
+            pd.Timestamp(2000, 1, 4, 0, 0, 0)
         ]
 
         df = sql.read_sql_query(
@@ -719,7 +719,7 @@ class _TestSQLApi(PandasSQLTest):
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
             pd.Timestamp(1986, 12, 25, 0, 0, 0),
-            pd.Timestamp(2013, 1, 1, 0, 0, 0),
+            pd.Timestamp(2013, 1, 1, 0, 0, 0)
         ]
 
         df = sql.read_sql_query(
@@ -728,18 +728,18 @@ class _TestSQLApi(PandasSQLTest):
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
             pd.Timestamp(1986, 12, 25, 0, 0, 0),
-            pd.Timestamp(2013, 1, 1, 0, 0, 0),
+            pd.Timestamp(2013, 1, 1, 0, 0, 0)
         ]
 
         df = sql.read_sql_query(
             "SELECT * FROM types_test_data",
             self.conn,
-            parse_dates={"IntDateOnlyCol": "%Y%m%d"},
+            parse_dates={"IntDateOnlyCol": "%Y%m%d"}
         )
         assert issubclass(df.IntDateOnlyCol.dtype.type, np.datetime64)
         assert df.IntDateOnlyCol.tolist() == [
             pd.Timestamp("2010-10-10"),
-            pd.Timestamp("2010-12-12"),
+            pd.Timestamp("2010-12-12")
         ]
 
     def test_date_and_index(self):
@@ -749,7 +749,7 @@ class _TestSQLApi(PandasSQLTest):
             "SELECT * FROM types_test_data",
             self.conn,
             index_col="DateCol",
-            parse_dates=["DateCol", "IntDateCol"],
+            parse_dates=["DateCol", "IntDateCol"]
         )
 
         assert issubclass(df.index.dtype.type, np.datetime64)
@@ -784,8 +784,8 @@ class _TestSQLApi(PandasSQLTest):
             # index name is integer
             (0, None, "0"),
             # index name is None but index label is integer
-            (None, 0, "0"),
-        ],
+            (None, 0, "0")
+        ]
     )
     def test_to_sql_index_label(self, index_name, index_label, expected):
         temp_frame = DataFrame({"col1": range(4)})
@@ -813,7 +813,7 @@ class _TestSQLApi(PandasSQLTest):
             "test_index_label",
             self.conn,
             if_exists="replace",
-            index_label=["A", "B"],
+            index_label=["A", "B"]
         )
         frame = sql.read_sql_query("SELECT * FROM test_index_label", self.conn)
         assert frame.columns[:2].tolist() == ["A", "B"]
@@ -830,7 +830,7 @@ class _TestSQLApi(PandasSQLTest):
             "test_index_label",
             self.conn,
             if_exists="replace",
-            index_label=["C", "D"],
+            index_label=["C", "D"]
         )
         frame = sql.read_sql_query("SELECT * FROM test_index_label", self.conn)
         assert frame.columns[:2].tolist() == ["C", "D"]
@@ -842,14 +842,14 @@ class _TestSQLApi(PandasSQLTest):
                 "test_index_label",
                 self.conn,
                 if_exists="replace",
-                index_label="C",
+                index_label="C"
             )
 
     def test_multiindex_roundtrip(self):
         df = DataFrame.from_records(
             [(1, 2.1, "line1"), (2, 1.5, "line2")],
             columns=["A", "B", "C"],
-            index=["A", "B"],
+            index=["A", "B"]
         )
 
         df.to_sql("test_multiindex_roundtrip", self.conn)
@@ -1096,7 +1096,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
             sa.Column("SepalWidth", sa.REAL),
             sa.Column("PetalLength", sa.REAL),
             sa.Column("PetalWidth", sa.REAL),
-            sa.Column("Name", sa.TEXT),
+            sa.Column("Name", sa.TEXT)
         )
 
         return iris
@@ -1410,7 +1410,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 # GH 6415
                 expected_data = [
                     Timestamp("2000-01-01 08:00:00", tz="UTC"),
-                    Timestamp("2000-06-01 07:00:00", tz="UTC"),
+                    Timestamp("2000-06-01 07:00:00", tz="UTC")
                 ]
                 expected = Series(expected_data, name=col.name)
                 tm.assert_series_equal(col, expected)
@@ -1447,7 +1447,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                     "select * from types_test_data", self.conn, chunksize=1
                 )
             ),
-            ignore_index=True,
+        ignore_index = True
         )
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
@@ -1524,7 +1524,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = sql.read_sql_table(
             "types_test_data",
             self.conn,
-            parse_dates={"DateCol": {"format": "%Y-%m-%d %H:%M:%S"}},
+            parse_dates={"DateCol": {"format": "%Y-%m-%d %H:%M:%S"}}
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
@@ -1738,7 +1738,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             "Bool": Series([True, None]),
             "Date": Series([datetime(2012, 5, 1), None]),
             "Int": Series([1, None], dtype="object"),
-            "Float": Series([1.1, None]),
+            "Float": Series([1.1, None])
         }
         df = DataFrame(cols)
 
@@ -1768,7 +1768,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 "f64": Series([V], dtype="float64"),
                 "f64_as_f32": Series([V], dtype="float64"),
                 "i32": Series([5], dtype="int32"),
-                "i64": Series([5], dtype="int64"),
+                "i64": Series([5], dtype="int64")
             }
         )
 
@@ -1777,7 +1777,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             self.conn,
             index=False,
             if_exists="replace",
-            dtype={"f64_as_f32": sqlalchemy.Float(precision=23)},
+            dtype={"f64_as_f32": sqlalchemy.Float(precision=23)}
         )
         res = sql.read_sql_table("test_dtypes", self.conn)
 
@@ -1816,7 +1816,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     @pytest.mark.parametrize(
         "input",
-        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
+        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}]
     )
     def test_to_sql_with_negative_npinf(self, input):
         # GH 34431
@@ -1921,7 +1921,7 @@ class _TestMySQLAlchemy:
     def connect(cls):
         return sqlalchemy.create_engine(
             f"mysql+{cls.driver}://root@localhost/pandas_nosetest",
-            connect_args=cls.connect_args,
+            connect_args=cls.connect_args
         )
 
     @classmethod
@@ -2041,14 +2041,14 @@ class _TestPostgreSQLAlchemy:
             self.conn,
             schema="other",
             index=False,
-            if_exists="replace",
+            if_exists="replace"
         )
         df.to_sql(
             "test_schema_other",
             self.conn,
             schema="other",
             index=False,
-            if_exists="append",
+            if_exists="append"
         )
         res = sql.read_sql_table("test_schema_other", self.conn, schema="other")
         tm.assert_frame_equal(concat([df, df], ignore_index=True), res)
@@ -2232,7 +2232,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         ixs = sql.read_sql_query(
             "SELECT * FROM sqlite_master WHERE type = 'index' "
             + f"AND tbl_name = '{tbl_name}'",
-            self.conn,
+            self.conn
         )
         ix_cols = []
         for ix_name in ixs.name:
@@ -2283,7 +2283,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
             "Bool": Series([True, None]),
             "Date": Series([datetime(2012, 5, 1), None]),
             "Int": Series([1, None], dtype="object"),
-            "Float": Series([1.1, None]),
+            "Float": Series([1.1, None])
         }
         df = DataFrame(cols)
 
@@ -2314,7 +2314,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 '"_b.test_weird_name_01-30"',
                 "99beginswithnumber",
                 "12345",
-                "\xe9",
+                "\xe9"
             ]
         ):
             df.to_sql(weird_name, self.conn)
@@ -2344,7 +2344,7 @@ _formatters = {
     int: "{:d}".format,
     type(None): lambda x: "NULL",
     np.float64: "{:.10f}".format,
-    bool: "'{!s}'".format,
+    bool: "'{!s}'".format
 }
 
 
@@ -2538,7 +2538,7 @@ class TestXSQLite(SQLiteMixIn):
                 frame=df_if_exists_1,
                 con=self.conn,
                 name=table_name,
-                if_exists="notvalidvalue",
+                if_exists="notvalidvalue"
             )
         clean_up(table_name)
 
@@ -2557,7 +2557,7 @@ class TestXSQLite(SQLiteMixIn):
             con=self.conn,
             name=table_name,
             if_exists="replace",
-            index=False,
+            index=False
         )
         assert tquery(sql_select, con=self.conn) == [(1, "A"), (2, "B")]
         sql.to_sql(
@@ -2565,7 +2565,7 @@ class TestXSQLite(SQLiteMixIn):
             con=self.conn,
             name=table_name,
             if_exists="replace",
-            index=False,
+            index=False
         )
         assert tquery(sql_select, con=self.conn) == [(3, "C"), (4, "D"), (5, "E")]
         clean_up(table_name)
@@ -2576,7 +2576,7 @@ class TestXSQLite(SQLiteMixIn):
             con=self.conn,
             name=table_name,
             if_exists="fail",
-            index=False,
+            index=False
         )
         assert tquery(sql_select, con=self.conn) == [(1, "A"), (2, "B")]
         sql.to_sql(
@@ -2584,14 +2584,14 @@ class TestXSQLite(SQLiteMixIn):
             con=self.conn,
             name=table_name,
             if_exists="append",
-            index=False,
+            index=False
         )
         assert tquery(sql_select, con=self.conn) == [
             (1, "A"),
             (2, "B"),
             (3, "C"),
             (4, "D"),
-            (5, "E"),
+            (5, "E")
         ]
         clean_up(table_name)
 
@@ -2828,7 +2828,7 @@ class TestXMySQL(MySQLMixIn):
                 frame=df_if_exists_1,
                 con=self.conn,
                 name=table_name,
-                if_exists="notvalidvalue",
+                if_exists="notvalidvalue"
             )
         clean_up(table_name)
 
@@ -2838,7 +2838,7 @@ class TestXMySQL(MySQLMixIn):
             con=self.conn,
             name=table_name,
             if_exists="fail",
-            index=False,
+            index=False
         )
         with pytest.raises(ValueError, match="<insert message here>"):
             sql.to_sql(
@@ -2851,7 +2851,7 @@ class TestXMySQL(MySQLMixIn):
             con=self.conn,
             name=table_name,
             if_exists="replace",
-            index=False,
+            index=False
         )
         assert tquery(sql_select, con=self.conn) == [(1, "A"), (2, "B")]
         sql.to_sql(
@@ -2859,7 +2859,7 @@ class TestXMySQL(MySQLMixIn):
             con=self.conn,
             name=table_name,
             if_exists="replace",
-            index=False,
+            index=False
         )
         assert tquery(sql_select, con=self.conn) == [(3, "C"), (4, "D"), (5, "E")]
         clean_up(table_name)
@@ -2870,7 +2870,7 @@ class TestXMySQL(MySQLMixIn):
             con=self.conn,
             name=table_name,
             if_exists="fail",
-            index=False,
+            index=False
         )
         assert tquery(sql_select, con=self.conn) == [(1, "A"), (2, "B")]
         sql.to_sql(
@@ -2878,13 +2878,13 @@ class TestXMySQL(MySQLMixIn):
             con=self.conn,
             name=table_name,
             if_exists="append",
-            index=False,
+            index=False
         )
         assert tquery(sql_select, con=self.conn) == [
             (1, "A"),
             (2, "B"),
             (3, "C"),
             (4, "D"),
-            (5, "E"),
+            (5, "E")
         ]
         clean_up(table_name)
