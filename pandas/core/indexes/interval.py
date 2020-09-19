@@ -516,22 +516,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         # GH 23309
         return self._engine.is_overlapping
 
-    def _can_reindex(self, indexer: np.ndarray) -> None:
-        """
-        Check if we are allowing reindexing with this particular indexer.
-
-        Parameters
-        ----------
-        indexer : an integer indexer
-
-        Raises
-        ------
-        ValueError if its a duplicate axis
-        """
-        # trying to reindex on an axis with duplicates
-        if self.is_overlapping and len(indexer):
-            raise ValueError("cannot reindex from an overlapping axis")
-
     def _needs_i8_conversion(self, key) -> bool:
         """
         Check if a given key needs i8 conversion. Conversion is necessary for
@@ -839,21 +823,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    def get_indexer_for(self, target: AnyArrayLike, **kwargs) -> np.ndarray:
-        """
-        Guaranteed return of an indexer even when overlapping.
-
-        This dispatches to get_indexer or get_indexer_non_unique
-        as appropriate.
-
-        Returns
-        -------
-        numpy.ndarray
-            List of indices.
-        """
-        if self.is_overlapping:
-            return self.get_indexer_non_unique(target)[0]
-        return self.get_indexer(target, **kwargs)
+    @property
+    def _index_as_unique(self):
+        return not self.is_overlapping
 
     def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):

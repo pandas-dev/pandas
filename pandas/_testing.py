@@ -1960,8 +1960,7 @@ def index_subclass_makers_generator():
         makeCategoricalIndex,
         makeMultiIndex,
     ]
-    for make_index_func in make_index_funcs:
-        yield make_index_func
+    yield from make_index_funcs
 
 
 def all_timeseries_index_generator(k=10):
