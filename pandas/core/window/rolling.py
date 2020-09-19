@@ -1374,14 +1374,7 @@ class RollingAndExpandingMixin(RollingMixin):
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            cache_key = (func, "rolling_apply")
-            if cache_key in NUMBA_FUNC_CACHE:
-                # Return an already compiled version of roll_apply if available
-                apply_func = NUMBA_FUNC_CACHE[cache_key]
-            else:
-                apply_func = generate_numba_apply_func(
-                    args, kwargs, func, engine_kwargs
-                )
+            apply_func = generate_numba_apply_func(args, kwargs, func, engine_kwargs)
             center = self.center
         elif engine in ("cython", None):
             if engine_kwargs is not None:
@@ -1403,7 +1396,7 @@ class RollingAndExpandingMixin(RollingMixin):
             center=center,
             floor=0,
             name=func,
-            use_numba_cache=engine == "numba",
+            use_numba_cache=maybe_use_numba(engine),
             raw=raw,
             original_func=func,
             args=args,

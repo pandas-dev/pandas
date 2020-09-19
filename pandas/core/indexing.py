@@ -1257,7 +1257,7 @@ class _LocIndexer(_LocationIndexer):
             )
             return ax[indexer], indexer
 
-        if ax.is_unique and not getattr(ax, "is_overlapping", False):
+        if ax._index_as_unique:
             indexer = ax.get_indexer_for(keyarr)
             keyarr = ax.reindex(keyarr)[0]
         else:
