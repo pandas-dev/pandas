@@ -24,6 +24,12 @@ import pandas as pd
 from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
 import pandas._testing as tm
 
+try:
+    from contextlib import nullcontext
+except ImportError:
+    from contextlib import ExitStack as nullcontext  # Py3.6.
+
+
 now = pd.Timestamp.now()
 utcnow = pd.Timestamp.now("UTC")
 
@@ -388,7 +394,13 @@ def test_array_equivalent(dtype_equal):
 )
 def test_array_equivalent_series(val):
     arr = np.array([1, 2])
-    assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
+    cm = (
+        tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+        if isinstance(val, str)
+        else nullcontext()
+    )
+    with cm:
+        assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
 
 
 def test_array_equivalent_different_dtype_but_equal():

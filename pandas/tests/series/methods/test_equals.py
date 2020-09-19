@@ -1,7 +1,13 @@
+try:
+    from contextlib import nullcontext
+except ImportError:
+    from contextlib import ExitStack as nullcontext  # Py3.6.
+
 import numpy as np
 import pytest
 
 from pandas import MultiIndex, Series
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -35,7 +41,14 @@ def test_equals_list_array(val):
     assert s1.equals(s2)
 
     s1[1] = val
-    assert not s1.equals(s2)
+
+    cm = (
+        tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+        if isinstance(val, str)
+        else nullcontext()
+    )
+    with cm:
+        assert not s1.equals(s2)
 
 
 def test_equals_false_negative():
