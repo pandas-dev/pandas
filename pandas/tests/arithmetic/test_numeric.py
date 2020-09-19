@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Series, Timedelta, TimedeltaIndex, array
+from pandas import Index, Int64Index, Series, Timedelta, TimedeltaIndex, array
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -1316,16 +1316,21 @@ def test_integer_array_add_list_like(
     # GH22606 Verify operators with IntegerArray and list-likes
     arr = array(data, dtype="Int64")
     container = box_pandas_1d_array(arr)
-    left = np.array(container + box_1d_array(data))
-    right = np.array(box_1d_array(data) + container)
+    left = container + box_1d_array(data)
+    right = box_1d_array(data) + container
 
-    if Series in (box_pandas_1d_array, box_1d_array):
-        dtype = "object"
+    if Series == box_pandas_1d_array:
+        assert_function = tm.assert_series_equal
+        expected = Series(expected_data, dtype="Int64")
+    elif Series == box_1d_array:
+        assert_function = tm.assert_series_equal
+        expected = Series(expected_data, dtype="object")
     elif Index in (box_pandas_1d_array, box_1d_array):
-        dtype = "int64"
+        assert_function = tm.assert_index_equal
+        expected = Int64Index(expected_data)
     else:
-        dtype = "object"
+        assert_function = tm.assert_numpy_array_equal
+        expected = np.array(expected_data, dtype="object")
 
-    expected = np.array(expected_data, dtype=dtype)
-    tm.assert_numpy_array_equal(left, expected)
-    tm.assert_numpy_array_equal(right, expected)
+    assert_function(left, expected)
+    assert_function(right, expected)
