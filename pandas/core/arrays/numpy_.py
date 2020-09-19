@@ -412,15 +412,17 @@ class PandasArray(
 
     @classmethod
     def _create_arithmetic_method(cls, op):
+
+        pd_op = ops.get_array_op(op)
+
         @ops.unpack_zerodim_and_defer(op.__name__)
         def arithmetic_method(self, other):
             if isinstance(other, cls):
                 other = other._ndarray
 
-            with np.errstate(all="ignore"):
-                result = op(self._ndarray, other)
+            result = pd_op(self._ndarray, other)
 
-            if op is divmod:
+            if op is divmod or op is ops.rdivmod:
                 a, b = result
                 return cls(a), cls(b)
 
