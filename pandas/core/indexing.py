@@ -1256,7 +1256,7 @@ class _LocIndexer(_LocationIndexer):
             )
             return ax[indexer], indexer
 
-        if ax.is_unique and not getattr(ax, "is_overlapping", False):
+        if ax._index_as_unique:
             indexer = ax.get_indexer_for(keyarr)
             keyarr = ax.reindex(keyarr)[0]
         else:
@@ -1690,18 +1690,42 @@ class _iLocIndexer(_LocationIndexer):
                     sub_indexer = list(indexer)
                     multiindex_indexer = isinstance(labels, ABCMultiIndex)
                     # TODO: we are implicitly assuming value.columns is unique
+                    unique_cols = value.columns.is_unique
 
-                    for loc in ilocs:
-                        item = item_labels[loc]
-                        if item in value:
-                            sub_indexer[info_axis] = item
-                            v = self._align_series(
-                                tuple(sub_indexer), value[item], multiindex_indexer
-                            )
-                        else:
-                            v = np.nan
+                    if not unique_cols and value.columns.equals(self.obj.columns):
+                        # We assume we are already aligned, see
+                        # test_iloc_setitem_frame_duplicate_columns_multiple_blocks
+                        for loc in ilocs:
+                            item = item_labels[loc]
+                            if item in value:
+                                sub_indexer[info_axis] = item
+                                v = self._align_series(
+                                    tuple(sub_indexer),
+                                    value.iloc[:, loc],
+                                    multiindex_indexer,
+                                )
+                            else:
+                                v = np.nan
 
-                        self._setitem_single_column(loc, v, pi)
+                            self._setitem_single_column(loc, v, pi)
+
+                    elif not unique_cols:
+                        raise ValueError(
+                            "Setting with non-unique columns is not allowed."
+                        )
+
+                    else:
+                        for loc in ilocs:
+                            item = item_labels[loc]
+                            if item in value:
+                                sub_indexer[info_axis] = item
+                                v = self._align_series(
+                                    tuple(sub_indexer), value[item], multiindex_indexer
+                                )
+                            else:
+                                v = np.nan
+
+                            self._setitem_single_column(loc, v, pi)
 
                 # we have an equal len ndarray/convertible to our labels
                 # hasattr first, to avoid coercing to ndarray without reason.

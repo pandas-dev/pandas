@@ -211,29 +211,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return cls._simple_new(data, name=name)
 
-    def _create_from_codes(self, codes, dtype=None, name=None):
-        """
-        *this is an internal non-public method*
-
-        create the correct categorical from codes
-
-        Parameters
-        ----------
-        codes : new codes
-        dtype: CategoricalDtype, defaults to existing
-        name : optional name attribute, defaults to existing
-
-        Returns
-        -------
-        CategoricalIndex
-        """
-        if dtype is None:
-            dtype = self.dtype
-        if name is None:
-            name = self.name
-        cat = Categorical.from_codes(codes, dtype=dtype)
-        return CategoricalIndex(cat, name=name)
-
     @classmethod
     def _simple_new(cls, values: Categorical, name: Label = None):
         assert isinstance(values, Categorical), type(values)
@@ -403,8 +380,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
-        self._assert_can_do_op(value)
-        return CategoricalIndex(self._data.fillna(value), name=self.name)
+        value = self._validate_scalar(value)
+        cat = self._data.fillna(value)
+        return type(self)._simple_new(cat, name=self.name)
 
     @cache_readonly
     def _engine(self):
@@ -442,6 +420,17 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self._values, other)
         cat = Categorical(values, dtype=self.dtype)
+        return type(self)._simple_new(cat, name=self.name)
+
+    def putmask(self, mask, value):
+        try:
+            code_value = self._data._validate_where_value(value)
+        except (TypeError, ValueError):
+            return self.astype(object).putmask(mask, value)
+
+        codes = self._data._ndarray.copy()
+        np.putmask(codes, mask, code_value)
+        cat = self._data._from_backing_data(codes)
         return type(self)._simple_new(cat, name=self.name)
 
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
@@ -495,7 +484,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
                 codes = new_target.codes.copy()
                 codes[indexer == -1] = cats[missing]
-                new_target = self._create_from_codes(codes)
+                cat = self._data._from_backing_data(codes)
+                new_target = type(self)._simple_new(cat, name=self.name)
 
         # we always want to return an Index type here
         # to be consistent with .reindex for other index types (e.g. they don't
@@ -534,10 +524,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _maybe_cast_indexer(self, key):
-        code = self.categories.get_loc(key)
-        code = self.codes.dtype.type(code)
-        return code
+    def _maybe_cast_indexer(self, key) -> int:
+        return self._data._unbox_scalar(key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -593,10 +581,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         if self.categories._defer_to_indexing:
             return keyarr
 
-        return self._shallow_copy(keyarr)
-
-    @doc(Index._convert_index_indexer)
-    def _convert_index_indexer(self, keyarr):
         return self._shallow_copy(keyarr)
 
     @doc(Index._maybe_cast_slice_bound)
@@ -695,7 +679,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         -------
         new_index : Index
         """
-        return self._create_from_codes(np.delete(self.codes, loc))
+        codes = np.delete(self.codes, loc)
+        cat = self._data._from_backing_data(codes)
+        return type(self)._simple_new(cat, name=self.name)
 
     def insert(self, loc: int, item):
         """
@@ -720,15 +706,14 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         codes = self.codes
         codes = np.concatenate((codes[:loc], [code], codes[loc:]))
-        return self._create_from_codes(codes)
+        cat = self._data._from_backing_data(codes)
+        return type(self)._simple_new(cat, name=self.name)
 
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others
         codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
-        result = self._create_from_codes(codes, name=name)
-        # if name is None, _create_from_codes sets self.name
-        result.name = name
-        return result
+        cat = self._data._from_backing_data(codes)
+        return type(self)._simple_new(cat, name=name)
 
     def _delegate_method(self, name: str, *args, **kwargs):
         """ method delegation to the ._values """

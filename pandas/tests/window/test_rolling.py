@@ -696,3 +696,78 @@ def test_rolling_positional_argument(grouping, _index, raw):
     expected = DataFrame(data={"X": [0.0, 0.5, 1.0, 1.5, 2.0]}, index=_index)
     result = df.groupby(**grouping).rolling(1).apply(scaled_sum, raw=raw, args=(2,))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("add", [0.0, 2.0])
+def test_rolling_numerical_accuracy_kahan_mean(add):
+    # GH: 36031 implementing kahan summation
+    df = pd.DataFrame(
+        {"A": [3002399751580331.0 + add, -0.0, -0.0]},
+        index=[
+            pd.Timestamp("19700101 09:00:00"),
+            pd.Timestamp("19700101 09:00:03"),
+            pd.Timestamp("19700101 09:00:06"),
+        ],
+    )
+    result = (
+        df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
+    )
+    dates = pd.date_range("19700101 09:00:00", periods=7, freq="S")
+    expected = pd.DataFrame(
+        {
+            "A": [
+                np.nan,
+                np.nan,
+                np.nan,
+                3002399751580330.5,
+                2001599834386887.25,
+                1000799917193443.625,
+                0.0,
+            ]
+        },
+        index=dates,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_numerical_accuracy_kahan_sum():
+    # GH: 13254
+    df = pd.DataFrame([2.186, -1.647, 0.0, 0.0, 0.0, 0.0], columns=["x"])
+    result = df["x"].rolling(3).sum()
+    expected = pd.Series([np.nan, np.nan, 0.539, -1.647, 0.0, 0.0], name="x")
+    tm.assert_series_equal(result, expected)
+
+
+def test_rolling_numerical_accuracy_jump():
+    # GH: 32761
+    index = pd.date_range(start="2020-01-01", end="2020-01-02", freq="60s").append(
+        pd.DatetimeIndex(["2020-01-03"])
+    )
+    data = np.random.rand(len(index))
+
+    df = pd.DataFrame({"data": data}, index=index)
+    result = df.rolling("60s").mean()
+    tm.assert_frame_equal(result, df[["data"]])
+
+
+def test_rolling_numerical_accuracy_small_values():
+    # GH: 10319
+    s = Series(
+        data=[0.00012456, 0.0003, -0.0, -0.0],
+        index=date_range("1999-02-03", "1999-02-06"),
+    )
+    result = s.rolling(1).mean()
+    tm.assert_series_equal(result, s)
+
+
+def test_rolling_numerical_too_large_numbers():
+    # GH: 11645
+    dates = pd.date_range("2015-01-01", periods=10, freq="D")
+    ds = pd.Series(data=range(10), index=dates, dtype=np.float64)
+    ds[2] = -9e33
+    result = ds.rolling(5).mean()
+    expected = pd.Series(
+        [np.nan, np.nan, np.nan, np.nan, -1.8e33, -1.8e33, -1.8e33, 0.0, 6.0, 7.0],
+        index=dates,
+    )
+    tm.assert_series_equal(result, expected)

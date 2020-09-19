@@ -215,8 +215,6 @@ _pipe_template = """
 Apply a function `func` with arguments to this %(klass)s object and return
 the function's result.
 
-%(versionadded)s
-
 Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
@@ -709,7 +707,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @Substitution(
         klass="GroupBy",
-        versionadded=".. versionadded:: 0.21.0",
         examples="""\
 >>> df = pd.DataFrame({'A': 'a b a b'.split(), 'B': [1, 2, 3, 4]})
 >>> df
@@ -1074,16 +1071,15 @@ b  2""",
         sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
         starts, ends = lib.generate_slices(sorted_labels, n_groups)
-        cache_key = (func, "groupby_transform")
-        if cache_key in NUMBA_FUNC_CACHE:
-            numba_transform_func = NUMBA_FUNC_CACHE[cache_key]
-        else:
-            numba_transform_func = numba_.generate_numba_transform_func(
-                tuple(args), kwargs, func, engine_kwargs
-            )
+
+        numba_transform_func = numba_.generate_numba_transform_func(
+            tuple(args), kwargs, func, engine_kwargs
+        )
         result = numba_transform_func(
             sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
         )
+
+        cache_key = (func, "groupby_transform")
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_transform_func
 
@@ -1109,16 +1105,15 @@ b  2""",
         sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
         starts, ends = lib.generate_slices(sorted_labels, n_groups)
-        cache_key = (func, "groupby_agg")
-        if cache_key in NUMBA_FUNC_CACHE:
-            numba_agg_func = NUMBA_FUNC_CACHE[cache_key]
-        else:
-            numba_agg_func = numba_.generate_numba_agg_func(
-                tuple(args), kwargs, func, engine_kwargs
-            )
+
+        numba_agg_func = numba_.generate_numba_agg_func(
+            tuple(args), kwargs, func, engine_kwargs
+        )
         result = numba_agg_func(
             sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
         )
+
+        cache_key = (func, "groupby_agg")
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
 

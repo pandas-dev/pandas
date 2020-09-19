@@ -29,7 +29,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import lib, reduction as libreduction
 from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
 from pandas.util._decorators import Appender, Substitution, doc
 
@@ -74,12 +74,11 @@ from pandas.core.groupby.groupby import (
     get_groupby,
     group_selection_context,
 )
-from pandas.core.groupby.numba_ import generate_numba_func, split_for_numba
 from pandas.core.indexes.api import Index, MultiIndex, all_indexes_same
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import BlockManager
 from pandas.core.series import Series
-from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
+from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
 
@@ -472,12 +471,19 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
+        initialized = False
 
         for name, group in self:
-            group.name = name
+            # Each step of this loop corresponds to
+            #  libreduction._BaseGrouper._apply_to_group
+            group.name = name  # NB: libreduction does not pin name
+
             output = func(group, *args, **kwargs)
-            if isinstance(output, (Series, Index, np.ndarray)):
-                raise ValueError("Must produce aggregated value")
+            output = libreduction.extract_result(output)
+            if not initialized:
+                # We only do this validation on the first iteration
+                libreduction.check_result_array(output, 0)
+                initialized = True
             result[name] = output
 
         return result
@@ -518,29 +524,16 @@ class SeriesGroupBy(GroupBy[Series]):
             result = getattr(self, func)(*args, **kwargs)
         return self._transform_fast(result)
 
-    def _transform_general(
-        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
-    ):
+    def _transform_general(self, func, *args, **kwargs):
         """
         Transform with a non-str `func`.
         """
-        if maybe_use_numba(engine):
-            numba_func, cache_key = generate_numba_func(
-                func, engine_kwargs, kwargs, "groupby_transform"
-            )
-
         klass = type(self._selected_obj)
 
         results = []
         for name, group in self:
             object.__setattr__(group, "name", name)
-            if maybe_use_numba(engine):
-                values, index = split_for_numba(group)
-                res = numba_func(values, index, *args)
-                if cache_key not in NUMBA_FUNC_CACHE:
-                    NUMBA_FUNC_CACHE[cache_key] = numba_func
-            else:
-                res = func(group, *args, **kwargs)
+            res = func(group, *args, **kwargs)
 
             if isinstance(res, (ABCDataFrame, ABCSeries)):
                 res = res._values
@@ -1226,7 +1219,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return result
 
         else:
-            all_indexed_same = all_indexes_same((x.index for x in values))
+            all_indexed_same = all_indexes_same(x.index for x in values)
 
             # GH3596
             # provide a reduction (Frame -> Series) if groups are

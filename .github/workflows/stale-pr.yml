@@ -1,0 +1,21 @@
+name: "Stale PRs"
+on:
+  schedule:
+  # * is a special character in YAML so you have to quote this string
+  - cron: "0 */6 * * *"
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/stale@v3
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        stale-pr-message: "This pull request is stale because it has been open for thirty days with no activity."
+        skip-stale-pr-message: true
+        stale-pr-label: "Stale"
+        exempt-pr-labels: "Needs Review,Blocked,Needs Discussion"
+        days-before-stale: 30
+        days-before-close: -1
+        remove-stale-when-updated: true
+        debug-only: true
