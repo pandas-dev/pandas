@@ -18,7 +18,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.7.1 and above, and 3.8.
+Officially Python 3.7.1 and above, 3.8, and 3.9.
 
 Installing pandas
 -----------------
@@ -300,8 +300,6 @@ Optional dependencies for parsing HTML
 
 One of the following combinations of libraries is needed to use the
 top-level :func:`~pandas.read_html` function:
-
-.. versionchanged:: 0.23.0
 
 * `BeautifulSoup4`_ and `html5lib`_
 * `BeautifulSoup4`_ and `lxml`_

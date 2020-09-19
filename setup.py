@@ -34,7 +34,7 @@ def is_platform_mac():
 
 
 min_numpy_ver = "1.16.5"
-min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
+min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
     import Cython
@@ -99,7 +99,7 @@ class build_ext(_build_ext):
                 # if .pxi.in is not updated, no need to output .pxi
                 continue
 
-            with open(pxifile, "r") as f:
+            with open(pxifile) as f:
                 tmpl = f.read()
             pyxcontent = tempita.sub(tmpl)
 
@@ -199,6 +199,7 @@ CLASSIFIERS = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Cython",
     "Topic :: Scientific/Engineering",
 ]
