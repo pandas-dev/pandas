@@ -3,23 +3,19 @@ repos:
     rev: 19.10b0
     hooks:
     -   id: black
-        language_version: python3
 -   repo: https://gitlab.com/pycqa/flake8
     rev: 3.8.3
     hooks:
     -   id: flake8
-        language: python_venv
         additional_dependencies: [flake8-comprehensions>=3.1.0]
     -   id: flake8
         name: flake8-pyx
-        language: python_venv
         files: \.(pyx|pxd)$
         types:
           - file
         args: [--append-config=flake8/cython.cfg]
     -   id: flake8
         name: flake8-pxd
-        language: python_venv
         files: \.pxi\.in$
         types:
           - file
@@ -28,5 +24,9 @@ repos:
     rev: v5.2.2
     hooks:
     -   id: isort
-        language: python_venv
         exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.7.2
+    hooks:
+    -   id: pyupgrade
+        args: [--py37-plus]
