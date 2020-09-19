@@ -547,38 +547,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left, right)
 
     def __setitem__(self, key, value):
-        # na value: need special casing to set directly on numpy arrays
-        needs_float_conversion = False
-        if is_scalar(value) and isna(value):
-            if is_integer_dtype(self.dtype.subtype):
-                # can't set NaN on a numpy integer array
-                needs_float_conversion = True
-            elif is_datetime64_any_dtype(self.dtype.subtype):
-                # need proper NaT to set directly on the numpy array
-                value = np.datetime64("NaT")
-            elif is_timedelta64_dtype(self.dtype.subtype):
-                # need proper NaT to set directly on the numpy array
-                value = np.timedelta64("NaT")
-            value_left, value_right = value, value
-
-        # scalar interval
-        elif is_interval_dtype(value) or isinstance(value, Interval):
-            self._check_closed_matches(value, name="value")
-            value_left, value_right = value.left, value.right
-
-        else:
-            # list-like of intervals
-            try:
-                array = IntervalArray(value)
-                value_left, value_right = array.left, array.right
-            except TypeError as err:
-                # wrong type: not interval or NA
-                msg = f"'value' should be an interval type, got {type(value)} instead."
-                raise TypeError(msg) from err
-
-        if needs_float_conversion:
-            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
-
+        value_left, value_right = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
 
         # Need to ensure that left and right are updated atomically, so we're
@@ -897,6 +866,41 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 "can only insert Interval objects and NA into an IntervalIndex"
             )
         return left_insert, right_insert
+
+    def _validate_setitem_value(self, value):
+        needs_float_conversion = False
+
+        if is_scalar(value) and isna(value):
+            # na value: need special casing to set directly on numpy arrays
+            if is_integer_dtype(self.dtype.subtype):
+                # can't set NaN on a numpy integer array
+                needs_float_conversion = True
+            elif is_datetime64_any_dtype(self.dtype.subtype):
+                # need proper NaT to set directly on the numpy array
+                value = np.datetime64("NaT")
+            elif is_timedelta64_dtype(self.dtype.subtype):
+                # need proper NaT to set directly on the numpy array
+                value = np.timedelta64("NaT")
+            value_left, value_right = value, value
+
+        elif is_interval_dtype(value) or isinstance(value, Interval):
+            # scalar interval
+            self._check_closed_matches(value, name="value")
+            value_left, value_right = value.left, value.right
+
+        else:
+            try:
+                # list-like of intervals
+                array = IntervalArray(value)
+                value_left, value_right = array.left, array.right
+            except TypeError as err:
+                # wrong type: not interval or NA
+                msg = f"'value' should be an interval type, got {type(value)} instead."
+                raise TypeError(msg) from err
+
+        if needs_float_conversion:
+            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
+        return value_left, value_right
 
     def value_counts(self, dropna=True):
         """
