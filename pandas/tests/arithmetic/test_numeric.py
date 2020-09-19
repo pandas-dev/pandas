@@ -89,6 +89,26 @@ class TestNumericComparisons:
         b.name = pd.Timestamp("2000-01-01")
         tm.assert_series_equal(a / b, 1 / (b / a))
 
+    def test_numeric_cmp_string_numexpr_path(self, box):
+        # GH#36377, GH#35700
+        xbox = box if box is not pd.Index else np.ndarray
+
+        obj = pd.Series(np.random.randn(10 ** 5))
+        obj = tm.box_expected(obj, box, transpose=False)
+
+        result = obj == "a"
+
+        expected = pd.Series(np.zeros(10 ** 5, dtype=bool))
+        expected = tm.box_expected(expected, xbox, transpose=False)
+        tm.assert_equal(result, expected)
+
+        result = obj != "a"
+        tm.assert_equal(result, ~expected)
+
+        msg = "Invalid comparison between dtype=float64 and str"
+        with pytest.raises(TypeError, match=msg):
+            obj < "a"
+
 
 # ------------------------------------------------------------------
 # Numeric dtypes Arithmetic with Datetime/Timedelta Scalar
