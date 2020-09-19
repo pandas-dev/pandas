@@ -49,6 +49,7 @@ Bug fixes
 - Bug in :meth:`DataFrame.sort_values` raising an ``AttributeError`` when sorting on a key that casts column to categorical dtype (:issue:`36383`)
 - Bug in :meth:`DataFrame.stack` raising a ``ValueError`` when stacking :class:`MultiIndex` columns based on position when the levels had duplicate names (:issue:`36353`)
 - Bug in :meth:`Series.astype` showing too much precision when casting from ``np.float32`` to string dtype (:issue:`36451`)
+- Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` when using ``NaN`` and a row length above 1,000,000 (:issue:`22205`)
 
 .. ---------------------------------------------------------------------------
 

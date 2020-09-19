@@ -167,7 +167,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     def _formatter(self, boxed=False):
         if boxed:
-            return "Decimal: {0}".format
+            return "Decimal: {}".format
         return repr
 
     @classmethod
