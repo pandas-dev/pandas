@@ -7,7 +7,7 @@ from typing import Type
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import pandas_dtype, is_dtype_equal
+from pandas.core.dtypes.common import is_dtype_equal, pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import no_default, register_extension_dtype
