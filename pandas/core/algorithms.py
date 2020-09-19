@@ -7,7 +7,7 @@ from __future__ import annotations
 import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, cast
-from warnings import catch_warnings, simplefilter, warn
+from warnings import warn
 
 import numpy as np
 
