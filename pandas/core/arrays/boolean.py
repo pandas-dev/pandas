@@ -59,7 +59,7 @@ class BooleanDtype(BaseMaskedDtype):
     name = "boolean"
 
     @property
-    def type(self) -> Type[np.bool_]:
+    def type(self) -> Type:
         return np.bool_
 
     @property

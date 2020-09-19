@@ -46,10 +46,6 @@ class _IntegerDtype(BaseMaskedDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
-    name: str
-    base = None
-    type: Type
-
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
         return f"{sign}Int{8 * self.itemsize}Dtype()"
@@ -65,20 +61,6 @@ class _IntegerDtype(BaseMaskedDtype):
     @property
     def _is_numeric(self) -> bool:
         return True
-
-    @cache_readonly
-    def numpy_dtype(self) -> np.dtype:
-        """ Return an instance of our numpy dtype """
-        return np.dtype(self.type)
-
-    @cache_readonly
-    def kind(self) -> str:
-        return self.numpy_dtype.kind
-
-    @cache_readonly
-    def itemsize(self) -> int:
-        """ Return the number of bytes in this dtype """
-        return self.numpy_dtype.itemsize
 
     @classmethod
     def construct_array_type(cls) -> Type["IntegerArray"]:
