@@ -589,6 +589,9 @@ class DataFrameFormatter(TableFormatter):
         self.escape = escape
         self.columns = self._initialize_columns(columns)
 
+        self.max_cols_fitted = self._calc_max_cols_fitted()
+        self.max_rows_fitted = self._calc_max_rows_fitted()
+
         self._truncate()
         self.adj = get_adjustment()
 
@@ -654,27 +657,18 @@ class DataFrameFormatter(TableFormatter):
     def max_rows_displayed(self) -> int:
         return min(self.max_rows or len(self.frame), len(self.frame))
 
-    @property
-    def max_cols_fitted(self) -> Optional[int]:
+    def _calc_max_cols_fitted(self) -> Optional[int]:
         """Number of columns fitting the screen."""
-        self._max_cols_fitted: Optional[int]
-
-        if hasattr(self, "_max_cols_fitted"):
-            return self._max_cols_fitted
-
         if not self._is_in_terminal():
-            self._max_cols_fitted = self.max_cols
-            return self._max_cols_fitted
+            return self.max_cols
 
         width, _ = get_terminal_size()
         if self._is_screen_narrow(width):
-            self._max_cols_fitted = width
+            return width
         else:
-            self._max_cols_fitted = self.max_cols
-        return self._max_cols_fitted
+            return self.max_cols
 
-    @property
-    def max_rows_fitted(self) -> Optional[int]:
+    def _calc_max_rows_fitted(self) -> Optional[int]:
         """Number of rows with data fitting the screen."""
         if not self._is_in_terminal():
             return self.max_rows
@@ -971,7 +965,7 @@ class DataFrameFormatter(TableFormatter):
         max_cols_fitted = n_cols - self.index
         # GH-21180. Ensure that we print at least two.
         max_cols_fitted = max(max_cols_fitted, 2)
-        self._max_cols_fitted = max_cols_fitted
+        self.max_cols_fitted = max_cols_fitted
 
         # Call again _truncate to cut frame appropriately
         # and then generate string representation
