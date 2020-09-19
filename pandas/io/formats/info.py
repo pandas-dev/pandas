@@ -41,23 +41,6 @@ class CountConfigs(NamedTuple):
     count_temp: str
 
 
-class HeaderAndSpaceConfigs(NamedTuple):
-    """
-    Attributes
-    ----------
-    space_dtype : int
-        Number of spaces that `dtypes` column should occupy.
-    header : str
-        Header with extra columns (count and type) appended.
-    len_dtype : int
-        Length of dtype header.
-    """
-
-    space_dtype: int
-    header: str
-    len_dtype: int
-
-
 def _put_str(s: Union[str, Dtype], space: int) -> str:
     """
     Make string of specified length, padding to the right if necessary.
