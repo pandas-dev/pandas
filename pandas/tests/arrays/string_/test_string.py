@@ -340,6 +340,7 @@ def test_memory_usage():
 
 @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
 def test_astype_from_float_dtype(dtype):
+    # https://github.com/pandas-dev/pandas/issues/36451
     s = pd.Series([0.1], dtype=dtype)
     result = s.astype("string")
     expected = pd.Series(["0.1"], dtype="string")
