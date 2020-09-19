@@ -5,6 +5,7 @@ import pandas as pd
 from pandas import DataFrame, Index, Series
 import pandas.testing as tm
 
+
 class TestBasicComplexSupport:
     @pytest.mark.parametrize(
         "array,expected",
