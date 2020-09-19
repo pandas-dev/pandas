@@ -584,7 +584,7 @@ class DataFrameFormatter(TableFormatter):
         self.show_dimensions = show_dimensions
         self.table_id = table_id
         self.render_links = render_links
-        self.justify = justify  # type: ignore[assignment]
+        self.justify = self._initialize_justify(justify)
         self.bold_rows = bold_rows
         self.escape = escape
         self.columns = self._initialize_columns(columns)
@@ -610,16 +610,11 @@ class DataFrameFormatter(TableFormatter):
                 f"DataFrame number of columns({len(self.frame.columns)})"
             )
 
-    @property
-    def justify(self) -> str:
-        return self._justify
-
-    @justify.setter
-    def justify(self, justify: Optional[str]) -> None:
+    def _initialize_justify(self, justify: Optional[str]) -> str:
         if justify is None:
-            self._justify = get_option("display.colheader_justify")
+            return get_option("display.colheader_justify")
         else:
-            self._justify = justify
+            return justify
 
     def _initialize_columns(self, columns: Optional[Sequence[str]]) -> Index:
         if columns is not None:
