@@ -454,19 +454,12 @@ class TableFormatter:
 
     show_dimensions: Union[bool, str]
     formatters: FormattersType
+    columns: Index
 
     @property
     def is_truncated(self) -> bool:
         self._is_truncated: bool
         return self._is_truncated
-
-    @property
-    def columns(self) -> Index:
-        return self._columns
-
-    @columns.setter
-    def columns(self, columns: Index) -> None:
-        self._columns: Index = columns
 
     @property
     def should_show_dimensions(self) -> bool:
@@ -582,7 +575,6 @@ class DataFrameFormatter(TableFormatter):
         self.na_rep = na_rep
         self.decimal = decimal
         self.col_space = self._initialize_colspace(col_space)
-
         self.header = header
         self.index = index
         self.line_width = line_width
@@ -595,10 +587,7 @@ class DataFrameFormatter(TableFormatter):
         self.justify = justify  # type: ignore[assignment]
         self.bold_rows = bold_rows
         self.escape = escape
-
-        # Ignoring error:
-        # expression has type "Optional[Sequence[str]]", variable has type "Index"
-        self.columns = columns  # type: ignore[assignment]
+        self.columns = self._initialize_columns(columns)
 
         self._truncate()
         self.adj = get_adjustment()
@@ -632,18 +621,13 @@ class DataFrameFormatter(TableFormatter):
         else:
             self._justify = justify
 
-    @property
-    def columns(self) -> Index:
-        return self._columns
-
-    @columns.setter
-    def columns(self, columns: Optional[Sequence[str]]) -> None:
+    def _initialize_columns(self, columns: Optional[Sequence[str]]) -> Index:
         if columns is not None:
-            self._columns = ensure_index(columns)
-            self.frame = self.frame[self._columns]
+            cols = ensure_index(columns)
+            self.frame = self.frame[cols]
+            return cols
         else:
-            self._columns = self.frame.columns
-        assert self._columns is not None
+            return self.frame.columns
 
     def _initialize_colspace(
         self, col_space: Optional[ColspaceArgType]
