@@ -734,6 +734,9 @@ class DataFrameFormatter(TableFormatter):
     def _is_screen_narrow(self, max_width) -> bool:
         return bool(self.max_cols == 0 and len(self.frame.columns) > max_width)
 
+    def _is_screen_short(self, max_height) -> bool:
+        return bool(self.max_rows == 0 and len(self.frame) > max_height)
+
     @property
     def max_rows_adj(self) -> Optional[int]:
         """Number of rows fitting the screen."""
@@ -770,9 +773,6 @@ class DataFrameFormatter(TableFormatter):
             num_rows += 1
 
         return num_rows
-
-    def _is_screen_short(self, max_height) -> bool:
-        return bool(self.max_rows == 0 and len(self.frame) > max_height)
 
     @property
     def is_truncated_horizontally(self) -> bool:
