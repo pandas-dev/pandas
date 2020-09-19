@@ -49,7 +49,7 @@ class TestAstype:
                 values.astype(float, errors=errors)
 
     @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
-    def test_astype_from_float32_to_str(self, dtype):
+    def test_astype_from_float_to_str(self, dtype):
         # https://github.com/pandas-dev/pandas/issues/36451
         s = Series([0.1], dtype=dtype)
         result = s.astype(str)
