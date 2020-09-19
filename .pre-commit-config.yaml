@@ -20,8 +20,8 @@ repos:
         types:
           - file
         args: [--append-config=flake8/cython-template.cfg]
--   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.2.2
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.2.2
     hooks:
     -   id: isort
         exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$
