@@ -583,7 +583,7 @@ class DataFrameFormatter(TableFormatter):
     ):
         self.frame = frame
         self.show_index_names = index_names
-        self.sparsify = sparsify  # type: ignore[assignment]
+        self.sparsify = self._initialize_sparsify(sparsify)
         self.float_format = float_format
 
         # Ignoring error
@@ -623,16 +623,10 @@ class DataFrameFormatter(TableFormatter):
         self._truncate()
         self.adj = get_adjustment()
 
-    @property
-    def sparsify(self) -> bool:
-        return self._sparsify
-
-    @sparsify.setter
-    def sparsify(self, sparsify: Optional[bool]) -> None:
+    def _initialize_sparsify(self, sparsify: Optional[bool]) -> bool:
         if sparsify is None:
-            self._sparsify = get_option("display.multi_sparse")
-        else:
-            self._sparsify = sparsify
+            return get_option("display.multi_sparse")
+        return sparsify
 
     @property
     def formatters(self) -> FormattersType:
