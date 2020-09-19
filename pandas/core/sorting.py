@@ -9,7 +9,6 @@ from pandas._libs.hashtable import unique_label_indices
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_categorical_dtype,
     is_extension_array_dtype,
 )
 from pandas.core.dtypes.generic import ABCMultiIndex
@@ -227,13 +226,7 @@ def lexsort_indexer(
     keys = [ensure_key_mapped(k, key) for k in keys]
 
     for k, order in zip(keys, orders):
-        # we are already a Categorical
-        if is_categorical_dtype(k):
-            cat = k
-
-        # create the Categorical
-        else:
-            cat = Categorical(k, ordered=True)
+        cat = Categorical(k, ordered=True)
 
         if na_position not in ["last", "first"]:
             raise ValueError(f"invalid na_position: {na_position}")
