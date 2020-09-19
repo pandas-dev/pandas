@@ -655,27 +655,27 @@ class DataFrameFormatter(TableFormatter):
         return min(self.max_rows or len(self.frame), len(self.frame))
 
     @property
-    def max_cols_adj(self) -> Optional[int]:
+    def max_cols_fitted(self) -> Optional[int]:
         """Number of columns fitting the screen."""
-        self._max_cols_adj: Optional[int]
+        self._max_cols_fitted: Optional[int]
 
-        if hasattr(self, "_max_cols_adj"):
-            return self._max_cols_adj
+        if hasattr(self, "_max_cols_fitted"):
+            return self._max_cols_fitted
 
         if not self._is_in_terminal():
-            self._max_cols_adj = self.max_cols
-            return self._max_cols_adj
+            self._max_cols_fitted = self.max_cols
+            return self._max_cols_fitted
 
         width, _ = get_terminal_size()
         if self._is_screen_narrow(width):
-            self._max_cols_adj = width
+            self._max_cols_fitted = width
         else:
-            self._max_cols_adj = self.max_cols
-        return self._max_cols_adj
+            self._max_cols_fitted = self.max_cols
+        return self._max_cols_fitted
 
     @property
-    def max_rows_adj(self) -> Optional[int]:
-        """Number of rows fitting the screen."""
+    def max_rows_fitted(self) -> Optional[int]:
+        """Number of rows with data fitting the screen."""
         if not self._is_in_terminal():
             return self.max_rows
 
@@ -722,11 +722,11 @@ class DataFrameFormatter(TableFormatter):
 
     @property
     def is_truncated_horizontally(self) -> bool:
-        return bool(self.max_cols_adj and (len(self.columns) > self.max_cols_adj))
+        return bool(self.max_cols_fitted and (len(self.columns) > self.max_cols_fitted))
 
     @property
     def is_truncated_vertically(self) -> bool:
-        return bool(self.max_rows_adj and (len(self.frame) > self.max_rows_adj))
+        return bool(self.max_rows_fitted and (len(self.frame) > self.max_rows_fitted))
 
     @property
     def is_truncated(self) -> bool:
@@ -752,8 +752,8 @@ class DataFrameFormatter(TableFormatter):
             - formatters
             - tr_col_num
         """
-        assert self.max_cols_adj is not None
-        col_num = self.max_cols_adj // 2
+        assert self.max_cols_fitted is not None
+        col_num = self.max_cols_fitted // 2
         if col_num >= 1:
             cols_to_keep = [
                 x
@@ -778,8 +778,8 @@ class DataFrameFormatter(TableFormatter):
             - tr_frame
             - tr_row_num
         """
-        assert self.max_rows_adj is not None
-        row_num = self.max_rows_adj // 2
+        assert self.max_rows_fitted is not None
+        row_num = self.max_rows_fitted // 2
         if row_num >= 1:
             rows_to_keep = [
                 x
@@ -967,10 +967,10 @@ class DataFrameFormatter(TableFormatter):
             n_cols = len(col_lens)
 
         # subtract index column
-        max_cols_adj = n_cols - self.index
+        max_cols_fitted = n_cols - self.index
         # GH-21180. Ensure that we print at least two.
-        max_cols_adj = max(max_cols_adj, 2)
-        self._max_cols_adj = max_cols_adj
+        max_cols_fitted = max(max_cols_fitted, 2)
+        self._max_cols_fitted = max_cols_fitted
 
         # Call again _truncate to cut frame appropriately
         # and then generate string representation
@@ -996,8 +996,8 @@ class DataFrameFormatter(TableFormatter):
         nbins = len(col_bins)
 
         if self.is_truncated_vertically:
-            assert self.max_rows_adj is not None
-            nrows = self.max_rows_adj + 1
+            assert self.max_rows_fitted is not None
+            nrows = self.max_rows_fitted + 1
         else:
             nrows = len(self.frame)
 
