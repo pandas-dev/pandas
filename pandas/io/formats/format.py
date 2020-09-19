@@ -758,6 +758,7 @@ class DataFrameFormatter(TableFormatter):
         return max_rows
 
     def _get_number_of_auxillary_rows(self) -> int:
+        """Get number of rows occupied by prompt, dots and dimension info."""
         dot_row = 1
         prompt_row = 1
         num_rows = dot_row + prompt_row
