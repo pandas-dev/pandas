@@ -3,8 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, Series
-import pandas.util.testing as tm
-
+import pandas.testing as tm
 
 class TestBasicComplexSupport:
     @pytest.mark.parametrize(
@@ -36,7 +35,7 @@ class TestBasicComplexSupport:
     )
     def test_unique(self, array, expected):
         result = pd.unique(array)
-        tm.assert_numpy_array_equal(result, expected)
+        np.testing.assert_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "array,expected",
@@ -69,10 +68,10 @@ class TestBasicComplexSupport:
         labels, uniques = pd.factorize(array)
 
         expected_labels = np.array([0, 1, 2], dtype=np.intp)
-        tm.assert_numpy_array_equal(labels, expected_labels)
+        np.testing.assert_array_equal(labels, expected_labels)
 
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=np.complex64)
-        tm.assert_numpy_array_equal(uniques, expected_uniques)
+        np.testing.assert_array_equal(uniques, expected_uniques)
 
     @pytest.mark.parametrize(
         "frame,expected",
@@ -124,6 +123,6 @@ class TestBasicComplexSupport:
         ],
     )
     def test_multimode(self, array, expected):
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             result = Series(array).mode()
         tm.assert_series_equal(result, expected)
