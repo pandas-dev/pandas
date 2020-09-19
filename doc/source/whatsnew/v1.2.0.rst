@@ -236,7 +236,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 
-- Bug in :func:`pandas.dtypes.is_categorical_dtype` where sparse categorical dtypes would return ``False`` (:issue:`35793`)
+- Bug in :func:`pandas.api.types.is_categorical_dtype` where sparse categorical dtypes would return ``False`` (:issue:`35793`)
 -
 
 Datetimelike
