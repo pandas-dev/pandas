@@ -1314,7 +1314,6 @@ def test_integer_array_add_list_like(
     box_pandas_1d_array, box_1d_array, data, expected_data
 ):
     # GH22606 Verify operators with IntegerArray and list-likes
-
     arr = array(data, dtype="Int64")
     container = box_pandas_1d_array(arr)
     left = np.array(container + box_1d_array(data))
