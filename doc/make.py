@@ -286,7 +286,7 @@ def main():
 
     joined = ",".join(cmds)
     argparser = argparse.ArgumentParser(
-        description="pandas documentation builder", epilog=f"Commands: {joined}"
+        description="pandas documentation builder", epilog=f"Commands: {joined}",
     )
 
     joined = ", ".join(cmds)
