@@ -41,6 +41,7 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
     convert_datetime_to_tsobject,
     get_datetime64_nanos,
+    precision_from_unit,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -205,6 +206,7 @@ def array_with_unit_to_datetime(
     cdef:
         Py_ssize_t i, j, n=len(values)
         int64_t m
+        int prec = 0
         ndarray[float64_t] fvalues
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
@@ -217,38 +219,48 @@ def array_with_unit_to_datetime(
 
     assert is_ignore or is_coerce or is_raise
 
-    if unit == 'ns':
-        if issubclass(values.dtype.type, np.integer):
-            result = values.astype('M8[ns]')
+    if unit == "ns":
+        if issubclass(values.dtype.type, (np.integer, np.float_)):
+            result = values.astype("M8[ns]", copy=False)
         else:
             result, tz = array_to_datetime(values.astype(object), errors=errors)
         return result, tz
 
-    m = cast_from_unit(None, unit)
+    m, p = precision_from_unit(unit)
 
     if is_raise:
-
-        # try a quick conversion to i8
+        # try a quick conversion to i8/f8
         # if we have nulls that are not type-compat
         # then need to iterate
-        if values.dtype.kind == "i":
-            # Note: this condition makes the casting="same_kind" redundant
-            iresult = values.astype('i8', casting='same_kind', copy=False)
-            # fill by comparing to NPY_NAT constant
+
+        if values.dtype.kind == "i" or values.dtype.kind == "f":
+            iresult = values.astype("i8", copy=False)
+            # fill missing values by comparing to NPY_NAT
             mask = iresult == NPY_NAT
             iresult[mask] = 0
-            fvalues = iresult.astype('f8') * m
+            fvalues = iresult.astype("f8") * m
             need_to_iterate = False
 
-        # check the bounds
         if not need_to_iterate:
-
-            if ((fvalues < Timestamp.min.value).any()
-                    or (fvalues > Timestamp.max.value).any()):
+            # check the bounds
+            if (fvalues < Timestamp.min.value).any() or (
+                (fvalues > Timestamp.max.value).any()
+            ):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
-            result = (iresult * m).astype('M8[ns]')
-            iresult = result.view('i8')
+
+            if values.dtype.kind == "i":
+                result = (iresult * m).astype("M8[ns]")
+
+            elif values.dtype.kind == "f":
+                fresult = (values * m).astype("f8")
+                fresult[mask] = 0
+                if prec:
+                    fresult = round(fresult, prec)
+                result = fresult.astype("M8[ns]", copy=False)
+
+            iresult = result.view("i8")
             iresult[mask] = NPY_NAT
+
             return result, tz
 
     result = np.empty(n, dtype='M8[ns]')
