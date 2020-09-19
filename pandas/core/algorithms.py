@@ -262,7 +262,7 @@ def _get_values_for_rank(values):
     return values
 
 
-def _get_data_algo(values):
+def get_data_algo(values):
     values = _get_values_for_rank(values)
 
     ndtype = _check_object_for_strings(values)
@@ -440,7 +440,12 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     if len(comps) > 1_000_000 and not is_object_dtype(comps):
-        f = np.in1d
+        # If the the values include nan we need to check for nan explicitly
+        # since np.nan it not equal to np.nan
+        if np.isnan(values).any():
+            f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
+        else:
+            f = np.in1d
     elif is_integer_dtype(comps):
         try:
             values = values.astype("int64", copy=False)
@@ -462,7 +467,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     return f(comps, values)
 
 
-def _factorize_array(
+def factorize_array(
     values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -491,7 +496,7 @@ def _factorize_array(
     codes : ndarray
     uniques : ndarray
     """
-    hash_klass, values = _get_data_algo(values)
+    hash_klass, values = get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
@@ -671,7 +676,7 @@ def factorize(
         else:
             na_value = None
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
         )
 
@@ -1524,8 +1529,6 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     """
     Take elements from an array.
 
-    .. versionadded:: 0.23.0
-
     Parameters
     ----------
     arr : sequence
@@ -2086,7 +2089,7 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = _get_data_algo(values)
+        hash_klass, values = get_data_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))

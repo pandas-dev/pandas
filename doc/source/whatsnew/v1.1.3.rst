@@ -1,0 +1,67 @@
+.. _whatsnew_113:
+
+What's new in 1.1.3 (??)
+------------------------
+
+These are the changes in pandas 1.1.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+Enhancements
+~~~~~~~~~~~~
+
+Added support for new Python version
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas 1.1.3 now supports Python 3.9 (:issue:`36296`).
+
+Development Changes
+^^^^^^^^^^^^^^^^^^^
+
+- The minimum version of Cython is now the most recent bug-fix version (0.29.21) (:issue:`36296`).
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.agg`, :meth:`DataFrame.apply`, :meth:`Series.agg`, and :meth:`Series.apply` where internal suffix is exposed to the users when no relabelling is applied (:issue:`36189`)
+- Fixed regression in :class:`IntegerArray` unary plus and minus operations raising a ``TypeError`` (:issue:`36063`)
+- Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a tuple (:issue:`35534`)
+- Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a frozenset (:issue:`35747`)
+- Fixed regression in :meth:`read_excel` with ``engine="odf"`` caused ``UnboundLocalError`` in some cases where cells had nested child nodes (:issue:`36122`,:issue:`35802`)
+- Fixed regression in :class:`DataFrame` and :class:`Series` comparisons between numeric arrays and strings (:issue:`35700`,:issue:`36377`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :func:`read_spss` where passing a ``pathlib.Path`` as ``path`` would raise a ``TypeError`` (:issue:`33666`)
+- Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with ``category`` dtype not propagating ``na`` parameter (:issue:`36241`)
+- Bug in :class:`Series` constructor where integer overflow would occur for sufficiently large scalar inputs when an index was provided (:issue:`36291`)
+- Bug in :meth:`DataFrame.sort_values` raising an ``AttributeError`` when sorting on a key that casts column to categorical dtype (:issue:`36383`)
+- Bug in :meth:`DataFrame.stack` raising a ``ValueError`` when stacking :class:`MultiIndex` columns based on position when the levels had duplicate names (:issue:`36353`)
+- Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` when using ``NaN`` and a row length above 1,000,000 (:issue:`22205`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_113.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.2..v1.1.3|HEAD

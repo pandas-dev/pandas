@@ -581,14 +581,19 @@ class Block(PandasObject):
 
         # force the copy here
         if self.is_extension:
-            # TODO: Should we try/except this astype?
-            values = self.values.astype(dtype)
+            try:
+                values = self.values.astype(dtype)
+            except (ValueError, TypeError):
+                if errors == "ignore":
+                    values = self.values
+                else:
+                    raise
         else:
             if issubclass(dtype.type, str):
 
                 # use native type formatting for datetime/tz/timedelta
                 if self.is_datelike:
-                    values = self.to_native_types()
+                    values = self.to_native_types().values
 
                 # astype formatting
                 else:
@@ -679,7 +684,7 @@ class Block(PandasObject):
             values = np.array(values, dtype="object")
 
         values[mask] = na_rep
-        return values
+        return self.make_block(values)
 
     # block actions #
     def copy(self, deep: bool = True):
@@ -1673,7 +1678,7 @@ class ExtensionBlock(Block):
         if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
 
-        mask = _safe_reshape(mask, new_values.shape)
+        mask = safe_reshape(mask, new_values.shape)
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
@@ -1769,7 +1774,7 @@ class ExtensionBlock(Block):
 
         # TODO(EA2D): reshape not needed with 2D EAs
         # we are expected to return a 2-d ndarray
-        return values.reshape(1, len(values))
+        return self.make_block(values)
 
     def take_nd(
         self, indexer, axis: int = 0, new_mgr_locs=None, fill_value=lib.no_default
@@ -2016,7 +2021,7 @@ class FloatBlock(FloatOrComplexBlock):
                 values = np.array(values, dtype="object")
 
             values[mask] = na_rep
-            return values
+            return self.make_block(values)
 
         from pandas.io.formats.format import FloatArrayFormatter
 
@@ -2028,7 +2033,8 @@ class FloatBlock(FloatOrComplexBlock):
             quoting=quoting,
             fixed_width=False,
         )
-        return formatter.get_result_as_array()
+        res = formatter.get_result_as_array()
+        return self.make_block(res)
 
 
 class ComplexBlock(FloatOrComplexBlock):
@@ -2187,7 +2193,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         result = dta._format_native_types(
             na_rep=na_rep, date_format=date_format, **kwargs
         )
-        return np.atleast_2d(result)
+        return self.make_block(result)
 
     def set(self, locs, values):
         """
@@ -2403,7 +2409,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """
         tda = self.array_values()
-        return tda._format_native_types(na_rep, **kwargs)
+        res = tda._format_native_types(na_rep, **kwargs)
+        return self.make_block(res)
 
 
 class BoolBlock(NumericBlock):
@@ -2815,7 +2822,7 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     return values
 
 
-def _safe_reshape(arr, new_shape):
+def safe_reshape(arr, new_shape):
     """
     If possible, reshape `arr` to have shape `new_shape`,
     with a couple of exceptions (see gh-13012):

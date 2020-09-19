@@ -10,8 +10,8 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
     IntBlock,
     ObjectBlock,
     TimeDeltaBlock,
-    _safe_reshape,
     make_block,
+    safe_reshape,
 )
 from pandas.core.internals.concat import concatenate_block_managers
 from pandas.core.internals.managers import (
@@ -33,7 +33,7 @@ __all__ = [
     "IntBlock",
     "ObjectBlock",
     "TimeDeltaBlock",
-    "_safe_reshape",
+    "safe_reshape",
     "make_block",
     "BlockManager",
     "SingleBlockManager",

@@ -16,7 +16,7 @@ import numpy as np
 
 from pandas._libs import lib, tslibs
 from pandas._typing import AnyArrayLike, Scalar, T
-from pandas.compat.numpy import _np_version_under1p18
+from pandas.compat.numpy import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -62,8 +62,7 @@ def flatten(l):
     """
     for el in l:
         if iterable_not_string(el):
-            for s in flatten(el):
-                yield s
+            yield from flatten(el)
         else:
             yield el
 
@@ -425,7 +424,7 @@ def random_state(state=None):
     if (
         is_integer(state)
         or is_array_like(state)
-        or (not _np_version_under1p18 and isinstance(state, np.random.BitGenerator))
+        or (not np_version_under1p18 and isinstance(state, np.random.BitGenerator))
     ):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
@@ -434,10 +433,8 @@ def random_state(state=None):
         return np.random
     else:
         raise ValueError(
-            (
-                "random_state must be an integer, array-like, a BitGenerator, "
-                "a numpy RandomState, or None"
-            )
+            "random_state must be an integer, array-like, a BitGenerator, "
+            "a numpy RandomState, or None"
         )
 
 

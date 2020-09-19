@@ -1432,7 +1432,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     # TODO: look into _wrap_result
                     if len(self) != len(other):
                         raise AssertionError(
-                            (f"length mismatch: {len(self)} vs. {len(other)}")
+                            f"length mismatch: {len(self)} vs. {len(other)}"
                         )
                     if not isinstance(other, SparseArray):
                         dtype = getattr(other, "dtype", None)
@@ -1561,7 +1561,7 @@ def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy
     else:
         indices = mask.nonzero()[0].astype(np.int32)
 
-    index = _make_index(length, indices, kind)
+    index = make_sparse_index(length, indices, kind)
     sparsified_values = arr[mask]
     if dtype is not None:
         sparsified_values = astype_nansafe(sparsified_values, dtype=dtype)
@@ -1569,7 +1569,7 @@ def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy
     return sparsified_values, index, fill_value
 
 
-def _make_index(length, indices, kind):
+def make_sparse_index(length, indices, kind):
 
     if kind == "block" or isinstance(kind, BlockIndex):
         locs, lens = splib.get_blocks(indices)
