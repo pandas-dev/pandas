@@ -126,31 +126,19 @@ and :ref:`boolean <boolean>` data types.
 One example where the behaviour of ``np.nan`` and ``pd.NA`` is different is
 comparison operations:
 
-.. code-block:: python
+.. ipython:: python
 
   # the default numpy float64 dtype
-  >>> s1 = pd.Series([1.5, None])
-  >>> s1
-  0    1.5
-  1    NaN
-  dtype: float64
+  s1 = pd.Series([1.5, None])
+  s1
+  s1 > 1
 
-  >>> s1 > 1
-  0     True
-  1    False
-  dtype: bool
+.. ipython:: python
 
   # the new nullable float64 dtype
-  >>> s2 = pd.Series([1.5, None], dtype="Float64")
-  >>> s2
-  0    1.5
-  1   <NA>
-  dtype: Float64
-
-  >>> s2 > 1
-  0    True
-  1    <NA>
-  dtype: boolean
+  s2 = pd.Series([1.5, None], dtype="Float64")
+  s2
+  s2 > 1
 
 See the :ref:`missing_data.NA` doc section for more details on the behaviour
 when using the ``pd.NA`` missing value indicator.
