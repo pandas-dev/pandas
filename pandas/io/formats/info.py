@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import sys
-from typing import IO, TYPE_CHECKING, List, Optional, Tuple, Union, cast
+from typing import IO, TYPE_CHECKING, List, NamedTuple, Optional, Tuple, Union, cast
 
 from pandas._config import get_option
 
@@ -13,6 +13,49 @@ from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
     from pandas.core.series import Series  # noqa: F401
+
+
+class CountConfigs(NamedTuple):
+    """
+    Configs with which to display counts.
+
+    Attributes
+    ----------
+    counts : Series
+        Non-null count of Series (or of each column of DataFrame).
+    count_header : str
+        Header that will be printed out above non-null counts in output.
+    space_count : int
+        Number of spaces that count_header should occupy
+        (including space before `dtypes` column).
+    len_count : int
+        Length of count header.
+    count_temp : str
+        String that can be formatted to include non-null count.
+    """
+
+    counts: "Series"
+    count_header: str
+    space_count: int
+    len_count: int
+    count_temp: str
+
+
+class HeaderAndSpaceConfigs(NamedTuple):
+    """
+    Attributes
+    ----------
+    space_dtype : int
+        Number of spaces that `dtypes` column should occupy.
+    header : str
+        Header with extra columns (count and type) appended.
+    len_dtype : int
+        Length of dtype header.
+    """
+
+    space_dtype: int
+    header: str
+    len_dtype: int
 
 
 def _put_str(s: Union[str, Dtype], space: int) -> str:
@@ -74,7 +117,7 @@ def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
 
 def _get_count_configs(
     counts: "Series", col_space: int, show_counts: bool, col_count: Optional[int] = None
-) -> Tuple[str, int, int, str]:
+) -> CountConfigs:
     """
     Get configs for displaying counts, depending on the value of `show_counts`.
 
@@ -91,15 +134,7 @@ def _get_count_configs(
 
     Returns
     -------
-    count_header : str
-        Header that will be printed out above non-null counts in output.
-    space_count : int
-        Number of spaces that count_header should occupy
-        (including space before `dtypes` column).
-    len_count : int
-        Length of count header.
-    count_temp : str
-        String that can be formatted to include non-null count.
+    CountConfigs
     """
     if show_counts:
         if col_count is not None and col_count != len(counts):  # pragma: no cover
@@ -117,7 +152,7 @@ def _get_count_configs(
         space_count = len(count_header)
         len_count = space_count
         count_temp = "{count}"
-    return count_header, space_count, len_count, count_temp
+    return CountConfigs(counts, count_header, space_count, len_count, count_temp)
 
 
 def _display_counts_and_dtypes(
@@ -125,9 +160,7 @@ def _display_counts_and_dtypes(
     ids: "Index",
     dtypes: "Series",
     show_counts: bool,
-    counts: "Series",
-    count_temp: str,
-    space_count: int,
+    count_configs: CountConfigs,
     space_dtype: int,
     space: int = 0,
     space_num: int = 0,
@@ -145,13 +178,8 @@ def _display_counts_and_dtypes(
         Series dtype (or dtypes of DataFrame columns).
     show_counts : bool
         Whether to show non-null counts.
-    counts : Series
-        Non-null counts of Series (or of each of DataFrame's columns).
-    count_temp : str
-        String that can be formatted to include non-null count.
-    space_count : int
-        Number of spaces that count_header should occupy
-        (including space before `dtypes` column).
+    count_configs: CountConfigs
+        Configs with which to display counts.
     space_dtype : int
         Number of spaces that `dtypes` column should occupy.
     space : int = 0
@@ -168,12 +196,14 @@ def _display_counts_and_dtypes(
         line_no = _put_str(f" {i}", space_num)
         count = ""
         if show_counts:
-            count = counts[i]
+            count = count_configs.counts[i]
 
         lines.append(
             line_no
             + _put_str(col, space)
-            + _put_str(count_temp.format(count=count), space_count)
+            + _put_str(
+                count_configs.count_temp.format(count=count), count_configs.space_count
+            )
             + _put_str(dtype, space_dtype)
         )
 
@@ -439,20 +469,18 @@ class DataFrameInfo(BaseInfo):
 
         header = _put_str(id_head, space_num) + _put_str(column_head, space)
         counts = self.data.count()
-        count_header, space_count, len_count, count_temp = _get_count_configs(
-            counts, col_space, show_counts, col_count
-        )
+        count_configs = _get_count_configs(counts, col_space, show_counts, col_count)
 
         space_dtype, header, len_dtype = _get_header_and_spaces(
-            dtypes, space_count, count_header, header
+            dtypes, count_configs.space_count, count_configs.count_header, header
         )
 
         lines.append(header)
         lines.append(
             _put_str("-" * len_id, space_num)
             + _put_str("-" * len_column, space)
-            + _put_str("-" * len_count, space_count)
-            + _put_str("-" * len_dtype, space_dtype)
+            + _put_str("-" * count_configs.len_count, count_configs.space_count)
+            + _put_str("-" * len_dtype, space_dtype,)
         )
 
         _display_counts_and_dtypes(
@@ -460,9 +488,7 @@ class DataFrameInfo(BaseInfo):
             ids,
             dtypes,
             show_counts,
-            counts,
-            count_temp,
-            space_count,
+            count_configs,
             space_dtype,
             space,
             space_num,
@@ -489,29 +515,20 @@ class SeriesInfo(BaseInfo):
         id_space = 2
 
         counts = cast("Series", self.data._constructor(self.data.count()))
-        count_header, space_count, len_count, count_temp = _get_count_configs(
-            counts, id_space, show_counts
-        )
+        count_configs = _get_count_configs(counts, id_space, show_counts)
 
         space_dtype, header, len_dtype = _get_header_and_spaces(
-            dtypes, space_count, count_header
+            dtypes, count_configs.space_count, count_configs.count_header
         )
 
         lines.append(header)
         lines.append(
-            _put_str("-" * len_count, space_count)
+            _put_str("-" * count_configs.len_count, count_configs.space_count)
             + _put_str("-" * len_dtype, space_dtype)
         )
 
         _display_counts_and_dtypes(
-            lines,
-            ids,
-            dtypes,
-            show_counts,
-            counts,
-            count_temp,
-            space_count,
-            space_dtype,
+            lines, ids, dtypes, show_counts, count_configs, space_dtype,
         )
 
     def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
