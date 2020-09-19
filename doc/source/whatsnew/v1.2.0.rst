@@ -109,6 +109,66 @@ Beginning with this version, the default is now to use the more accurate parser 
 ``floating_precision="legacy"`` to use the legacy parser. The change to using the higher precision
 parser by default should have no impact on performance. (:issue:`17154`)
 
+.. _whatsnew_110.floating:
+
+Experimental nullable data types for float data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've added :class:`Float32Dtype` / :class:`Float64Dtype` and :class:`~arrays.FloatingArray`,
+an extension data type dedicated to floating point data that can hold the
+``pd.NA`` missing value indicator (:issue:`32265`, :issue:`34307`).
+
+While the default float data type already supports missing values using ``np.nan``,
+this new data type uses ``pd.NA`` (and its corresponding behaviour) as missing
+value indicator, in line with the already existing nullable :ref:`integer <integer_na>`
+and :ref:`boolean <boolean>` data types.
+
+One example where the behaviour of ``np.nan`` and ``pd.NA`` is different is
+comparison operations:
+
+.. code-block:: python
+
+  # the default numpy float64 dtype
+  >>> s1 = pd.Series([1.5, None])
+  >>> s1
+  0    1.5
+  1    NaN
+  dtype: float64
+
+  >>> s1 > 1
+  0     True
+  1    False
+  dtype: bool
+
+  # the new nullable float64 dtype
+  >>> s2 = pd.Series([1.5, None], dtype="Float64")
+  >>> s2
+  0    1.5
+  1   <NA>
+  dtype: Float64
+
+  >>> s2 > 1
+  0    True
+  1    <NA>
+  dtype: boolean
+
+See the :ref:`missing_data.NA` doc section for more details on the behaviour
+when using the ``pd.NA`` missing value indicator.
+
+As shown above, the dtype can be specified using the "Float64" or "Float32"
+string (capitalized to distinguish it from the default "float64" data type).
+Alternatively, you can also use the dtype object:
+
+.. ipython:: python
+
+   pd.Series([1.5, None], dtype=pd.Float32Dtype())
+
+.. warning::
+
+   Experimental: the new floating data types are currently experimental, and its
+   behaviour or API may still change without warning. Expecially the behaviour
+   regarding NaN (distinct from NA missing values) is subject to change.
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements

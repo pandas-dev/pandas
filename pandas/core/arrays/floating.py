@@ -224,7 +224,7 @@ class FloatingArray(BaseMaskedArray):
     """
     Array of floating (optional missing) values.
 
-    .. versionadded:: 1.1.0
+    .. versionadded:: 1.2.0
 
     .. warning::
 
