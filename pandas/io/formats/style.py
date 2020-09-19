@@ -18,7 +18,7 @@ from typing import (
     Tuple,
     Union,
 )
-from uuid import uuid1
+from uuid import uuid4
 
 import numpy as np
 
@@ -89,6 +89,12 @@ class Styler:
 
         .. versionadded:: 1.0.0
 
+    uuid_len : int, default 5
+        If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate
+        expressed in hex characters, in range [0, 32].
+
+        .. versionadded:: 1.2.0
+
     Attributes
     ----------
     env : Jinja2 jinja2.Environment
@@ -144,6 +150,7 @@ class Styler:
         table_attributes: Optional[str] = None,
         cell_ids: bool = True,
         na_rep: Optional[str] = None,
+        uuid_len: int = 5,
     ):
         self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
         self._todo: List[Tuple[Callable, Tuple, Dict]] = []
@@ -159,7 +166,10 @@ class Styler:
         self.index = data.index
         self.columns = data.columns
 
-        self.uuid = uuid
+        if not isinstance(uuid_len, int) or not uuid_len >= 0:
+            raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
+        self.uuid_len = min(32, uuid_len)
+        self.uuid = (uuid or uuid4().hex[: self.uuid_len]) + "_"
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
@@ -248,7 +258,7 @@ class Styler:
         precision = self.precision
         hidden_index = self.hidden_index
         hidden_columns = self.hidden_columns
-        uuid = self.uuid or str(uuid1()).replace("-", "_")
+        uuid = self.uuid
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"

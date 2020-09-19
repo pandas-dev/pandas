@@ -226,6 +226,7 @@ Performance improvements
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
 - Performance improvements when creating :meth:`pd.Series.map` from a huge dictionary (:issue:`34717`)
 - Performance improvement in :meth:`GroupBy.transform` with the ``numba`` engine (:issue:`36240`)
+- ``Styler`` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
 
 .. ---------------------------------------------------------------------------
 
