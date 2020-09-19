@@ -793,19 +793,16 @@ class DataFrameFormatter(TableFormatter):
         self.tr_row_num = row_num
 
     def _get_strcols_without_index(self) -> List[List[str]]:
-        # TODO check this comment validity
-        # this method is not used by to_html where self.col_space
-        # could be a string so safe to cast
-        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
-
-        frame = self.tr_frame
         strcols: List[List[str]] = []
 
         if not is_list_like(self.header) and not self.header:
-            for i, c in enumerate(frame):
+            for i, c in enumerate(self.tr_frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
-                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj
+                    strings=fmt_values,
+                    justify=self.justify,
+                    minimum=int(self.col_space.get(c, 0)),
+                    adj=self.adj,
                 )
                 strcols.append(fmt_values)
             return strcols
@@ -820,16 +817,16 @@ class DataFrameFormatter(TableFormatter):
                 )
             str_columns = [[label] for label in self.header]
         else:
-            str_columns = self._get_formatted_column_labels(frame)
+            str_columns = self._get_formatted_column_labels(self.tr_frame)
 
         if self.show_row_idx_names:
             for x in str_columns:
                 x.append("")
 
-        for i, c in enumerate(frame):
+        for i, c in enumerate(self.tr_frame):
             cheader = str_columns[i]
             header_colwidth = max(
-                col_space.get(c, 0), *(self.adj.len(x) for x in cheader)
+                int(self.col_space.get(c, 0)), *(self.adj.len(x) for x in cheader)
             )
             fmt_values = self._format_col(i)
             fmt_values = _make_fixed_width(
