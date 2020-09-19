@@ -46,10 +46,6 @@ Bug fixes
 - Bug in ``.groupby(..).rolling(..)`` where passing ``closed`` with column selection would raise a ``ValueError`` (:issue:`35549`)
 - Bug in :class:`DataFrame` constructor failing to raise ``ValueError`` in some cases when ``data`` and ``index`` have mismatched lengths (:issue:`33437`)
 
-**Reshaping**
-
-- Bug where :meth:`DataFrame.replace` and :meth:`Series.replace` would fail when replacement value was of a different dtype but equal to values in the original object (:issue:`34871`).
-
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_111.contributors:
