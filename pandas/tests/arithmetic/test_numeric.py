@@ -16,6 +16,14 @@ import pandas._testing as tm
 from pandas.core import ops
 
 
+@pytest.fixture(params=[Index, Series, tm.to_array])
+def box_pandas_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series and tm.to_array classes
+    """
+    return request.param
+
+
 def adjust_negative_zero(zero, expected):
     """
     Helper to adjust the expected result if we are dividing by -0.0
@@ -1299,24 +1307,26 @@ def test_dataframe_div_silenced():
         pdf1.div(pdf2, fill_value=0)
 
 
-@pytest.fixture(params=[Index, Series, tm.to_array])
-def box_pandas_1d_array(request):
-    """
-    Fixture to test behavior for Index, Series and tm.to_array classes
-    """
-    return request.param
-
-
 @pytest.mark.parametrize(
-    "data, expected", [([0, 1, 2], [0, 2, 4])],
+    "data, expected_data", [([0, 1, 2], [0, 2, 4])],
 )
-def test_integer_array_add_list_like(box_pandas_1d_array, box_1d_array, data, expected):
+def test_integer_array_add_list_like(
+    box_pandas_1d_array, box_1d_array, data, expected_data
+):
     # GH22606 Verify operators with IntegerArray and list-likes
 
     arr = array(data, dtype="Int64")
     container = box_pandas_1d_array(arr)
-    left = container + box_1d_array(data)
-    right = box_1d_array(data) + container
+    left = np.array(container + box_1d_array(data))
+    right = np.array(box_1d_array(data) + container)
 
-    assert left.tolist() == expected
-    assert right.tolist() == expected
+    if Series in (box_pandas_1d_array, box_1d_array):
+        dtype = "object"
+    elif Index in (box_pandas_1d_array, box_1d_array):
+        dtype = "int64"
+    else:
+        dtype = "object"
+
+    expected = np.array(expected_data, dtype=dtype)
+    tm.assert_numpy_array_equal(left, expected)
+    tm.assert_numpy_array_equal(right, expected)
