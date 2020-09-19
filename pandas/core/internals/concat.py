@@ -67,14 +67,21 @@ def concatenate_block_managers(
             vals = [ju.block.values for ju in join_units]
 
             if not blk.is_extension:
-                values = concat_compat(vals, axis=blk.ndim - 1)
+                # _is_uniform_join_units ensures a single dtype, so
+                #  we can use np.concatenate, which is more performant
+                #  than concat_compat
+                values = np.concatenate(vals, axis=blk.ndim - 1)
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(vals)
                 if not isinstance(values, ExtensionArray):
                     values = values.reshape(1, len(values))
 
-            b = make_block(values, placement=placement, ndim=blk.ndim)
+            if blk.values.dtype == values.dtype:
+                # Fast-path
+                b = blk.make_block_same_class(values, placement=placement)
+            else:
+                b = make_block(values, placement=placement, ndim=blk.ndim)
         else:
             b = make_block(
                 _concatenate_join_units(join_units, concat_axis, copy=copy),
