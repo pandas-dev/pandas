@@ -455,10 +455,10 @@ class TableFormatter:
     show_dimensions: Union[bool, str]
     formatters: FormattersType
     columns: Index
+    _is_truncated: bool
 
     @property
     def is_truncated(self) -> bool:
-        self._is_truncated: bool
         return self._is_truncated
 
     @property
