@@ -5,7 +5,7 @@ import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
-from pandas._typing import Scalar, ArrayLike
+from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
