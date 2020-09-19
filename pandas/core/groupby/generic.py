@@ -1211,7 +1211,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return result
 
         else:
-            all_indexed_same = all_indexes_same((x.index for x in values))
+            all_indexed_same = all_indexes_same(x.index for x in values)
 
             # GH3596
             # provide a reduction (Frame -> Series) if groups are
