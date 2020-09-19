@@ -463,7 +463,7 @@ class DataFrameInfo(BaseInfo):
             _put_str("-" * len_id, space_num)
             + _put_str("-" * len_column, space)
             + _put_str("-" * count_configs.len_count, count_configs.space_count)
-            + _put_str("-" * len_dtype, space_dtype,)
+            + _put_str("-" * len_dtype, space_dtype)
         )
 
         _display_counts_and_dtypes(
