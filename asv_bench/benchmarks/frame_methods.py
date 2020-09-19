@@ -219,6 +219,46 @@ class ToHTML:
         self.df2.to_html()
 
 
+class ToNumpy:
+    def setup(self):
+        N = 10000
+        M = 10
+        self.df_tall = DataFrame(np.random.randn(N, M))
+        self.df_wide = DataFrame(np.random.randn(M, N))
+        self.df_mixed_tall = self.df_tall.copy()
+        self.df_mixed_tall["foo"] = "bar"
+        self.df_mixed_tall[0] = period_range("2000", periods=N)
+        self.df_mixed_tall[1] = range(N)
+        self.df_mixed_wide = self.df_wide.copy()
+        self.df_mixed_wide["foo"] = "bar"
+        self.df_mixed_wide[0] = period_range("2000", periods=M)
+        self.df_mixed_wide[1] = range(M)
+
+    def time_to_numpy_tall(self):
+        self.df_tall.to_numpy()
+
+    def time_to_numpy_wide(self):
+        self.df_wide.to_numpy()
+
+    def time_to_numpy_mixed_tall(self):
+        self.df_mixed_tall.to_numpy()
+
+    def time_to_numpy_mixed_wide(self):
+        self.df_mixed_wide.to_numpy()
+
+    def time_values_tall(self):
+        self.df_tall.values
+
+    def time_values_wide(self):
+        self.df_wide.values
+
+    def time_values_mixed_tall(self):
+        self.df_mixed_tall.values
+
+    def time_values_mixed_wide(self):
+        self.df_mixed_wide.values
+
+
 class Repr:
     def setup(self):
         nrows = 10000
