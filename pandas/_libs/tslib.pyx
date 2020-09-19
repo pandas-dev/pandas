@@ -221,7 +221,7 @@ def array_with_unit_to_datetime(
 
     if unit == "ns":
         if issubclass(values.dtype.type, (np.integer, np.float_)):
-            result = values.astype("M8[ns]")
+            result = values.astype("M8[ns]", copy=False)
         else:
             result, tz = array_to_datetime(values.astype(object), errors=errors)
         return result, tz
@@ -251,7 +251,7 @@ def array_with_unit_to_datetime(
             if values.dtype.kind == "i":
                 result = (iresult * m).astype("M8[ns]")
 
-            if values.dtype.kind == "f":
+            elif values.dtype.kind == "f":
                 fresult = (values * m).astype("f8")
                 fresult[mask] = 0
                 if prec:
