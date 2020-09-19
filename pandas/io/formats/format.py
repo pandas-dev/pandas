@@ -581,12 +581,7 @@ class DataFrameFormatter(TableFormatter):
         self.formatters = self._initialize_formatters(formatters)
         self.na_rep = na_rep
         self.decimal = decimal
-
-        # Ignoring error
-        # expression has type "Union[str, int, Sequence[Union[str, int]],
-        # Mapping[Optional[Hashable], Union[str, int]], None]",
-        # variable has type "Mapping[Optional[Hashable], Union[str, int]]"
-        self.col_space = col_space  # type: ignore[assignment]
+        self.col_space = self._initialize_colspace(col_space)
 
         self.header = header
         self.index = index
@@ -650,33 +645,31 @@ class DataFrameFormatter(TableFormatter):
             self._columns = self.frame.columns
         assert self._columns is not None
 
-    @property
-    def col_space(self) -> ColspaceType:
-        return self._col_space
+    def _initialize_colspace(
+        self, col_space: Optional[ColspaceArgType]
+    ) -> ColspaceType:
+        result: ColspaceType
 
-    @col_space.setter
-    def col_space(self, col_space: Optional[ColspaceArgType]) -> None:
-        self._col_space: ColspaceType
         if col_space is None:
-            self._col_space = {}
+            result = {}
         elif isinstance(col_space, (int, str)):
-            self._col_space = {"": col_space}
-            self._col_space.update({column: col_space for column in self.frame.columns})
+            result = {"": col_space}
+            result.update({column: col_space for column in self.frame.columns})
         elif isinstance(col_space, Mapping):
             for column in col_space.keys():
                 if column not in self.frame.columns and column != "":
                     raise ValueError(
                         f"Col_space is defined for an unknown column: {column}"
                     )
-            self._col_space = col_space
+            result = col_space
         else:
             if len(self.frame.columns) != len(col_space):
                 raise ValueError(
                     f"Col_space length({len(col_space)}) should match "
                     f"DataFrame number of columns({len(self.frame.columns)})"
                 )
-            self._col_space = dict(zip(self.frame.columns, col_space))
-        assert self._col_space is not None
+            result = dict(zip(self.frame.columns, col_space))
+        return result
 
     @property
     def max_rows_displayed(self) -> int:
