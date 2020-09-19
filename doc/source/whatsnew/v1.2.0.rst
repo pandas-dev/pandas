@@ -298,7 +298,8 @@ Indexing
 Missing
 ^^^^^^^
 
-- Bug in :meth:`SeriesGroupBy.transform` and :meth:`DataFrameGroupBy.transform` now correctly handle missing values (:issue:`35014` and :issue:`35612`)
+- Bug in :meth:`SeriesGroupBy.transform` now correctly handles missing values for `dropna=False` (:issue:`35014`)
+- Bug in :class:`pd.Grouper` now correctly propagates `dropna` argument and :meth:`DataFrameGroupBy.transform` now correctly handle missing values for `dropna=True`(:issue:`35612`)
 -
 
 MultiIndex
