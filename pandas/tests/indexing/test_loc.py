@@ -1131,12 +1131,13 @@ def test_loc_with_period_index_indexer():
     tm.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
     tm.assert_frame_equal(df, df.loc[list(idx)])
 
+
 def test_loc_replace_subset_with_another():
     # GH#36424 Should raise a warning
     df1 = pd.DataFrame(
-        data = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-        columns = ['A', 'B', 'C'],
-        index = [0, 0, 1]
+        data=np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+        columns=['A', 'B', 'C'],
+        index=[0, 0, 1]
     )
     df2 = df1.copy()
     df2[:] = np.nan
