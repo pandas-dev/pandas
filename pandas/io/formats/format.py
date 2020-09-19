@@ -583,7 +583,7 @@ class DataFrameFormatter(TableFormatter):
     ):
         self.frame = frame
         self.show_index_names = index_names
-        self.sparsify = sparsify
+        self.sparsify = sparsify  # type: ignore[assignment]
         self.float_format = float_format
 
         # Ignoring error
@@ -612,7 +612,7 @@ class DataFrameFormatter(TableFormatter):
         self.show_dimensions = show_dimensions
         self.table_id = table_id
         self.render_links = render_links
-        self.justify = justify
+        self.justify = justify  # type: ignore[assignment]
         self.bold_rows = bold_rows
         self.escape = escape
 
@@ -624,11 +624,11 @@ class DataFrameFormatter(TableFormatter):
         self.adj = get_adjustment()
 
     @property
-    def sparsify(self):
+    def sparsify(self) -> bool:
         return self._sparsify
 
     @sparsify.setter
-    def sparsify(self, sparsify):
+    def sparsify(self, sparsify: Optional[bool]) -> None:
         if sparsify is None:
             self._sparsify = get_option("display.multi_sparse")
         else:
@@ -653,11 +653,11 @@ class DataFrameFormatter(TableFormatter):
         assert self._formatters is not None
 
     @property
-    def justify(self):
+    def justify(self) -> str:
         return self._justify
 
     @justify.setter
-    def justify(self, justify):
+    def justify(self, justify: Optional[str]) -> None:
         if justify is None:
             self._justify = get_option("display.colheader_justify")
         else:
@@ -853,10 +853,9 @@ class DataFrameFormatter(TableFormatter):
         col_space = {k: cast(int, v) for k, v in self.col_space.items()}
 
         frame = self.tr_frame
-        # may include levels names also
+        strcols: List[List[str]] = []
 
         if not is_list_like(self.header) and not self.header:
-            strcols = []
             for i, c in enumerate(frame):
                 fmt_values = self._format_col(i)
                 fmt_values = _make_fixed_width(
@@ -881,7 +880,6 @@ class DataFrameFormatter(TableFormatter):
             for x in str_columns:
                 x.append("")
 
-        strcols = []
         for i, c in enumerate(frame):
             cheader = str_columns[i]
             header_colwidth = max(
