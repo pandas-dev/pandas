@@ -18,4 +18,4 @@ jobs:
         days-before-stale: 30
         days-before-close: -1
         remove-stale-when-updated: true
-        debug-only: true
+        debug-only: false
