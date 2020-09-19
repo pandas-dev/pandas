@@ -592,6 +592,7 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                 return False
             raise
         except ValueError:
+            # Avoid raising ValueError when comparing Numpy arrays to other types
             if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
                 # Only compare scalars to scalars and non-scalars to non-scalars
                 return False
