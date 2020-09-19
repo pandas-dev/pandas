@@ -222,10 +222,11 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Performance improvements when creating Series with dtype `str` or :class:`StringDtype` from array with many string elements (:issue:`36304`, :issue:`36317`, :issue:`36325`)
+- Performance improvements when creating DataFrame or Series with dtype `str` or :class:`StringDtype` from array with many string elements (:issue:`36304`, :issue:`36317`, :issue:`36325`, :issue:`36432`)
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
 - Performance improvements when creating :meth:`pd.Series.map` from a huge dictionary (:issue:`34717`)
 - Performance improvement in :meth:`GroupBy.transform` with the ``numba`` engine (:issue:`36240`)
+- ``Styler`` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
 
 .. ---------------------------------------------------------------------------
 
@@ -294,6 +295,7 @@ Indexing
 
 - Bug in :meth:`PeriodIndex.get_loc` incorrectly raising ``ValueError`` on non-datelike strings instead of ``KeyError``, causing similar errors in :meth:`Series.__geitem__`, :meth:`Series.__contains__`, and :meth:`Series.loc.__getitem__` (:issue:`34240`)
 - Bug in :meth:`Index.sort_values` where, when empty values were passed, the method would break by trying to compare missing values instead of pushing them to the end of the sort order. (:issue:`35584`)
+- Bug in :meth:`Index.get_indexer` and :meth:`Index.get_indexer_non_unique` where int64 arrays are returned instead of intp. (:issue:`36359`)
 -
 
 Missing
@@ -320,6 +322,7 @@ I/O
 - :meth:`to_csv` and :meth:`read_csv` did not honor `compression` and `encoding` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
 - :meth:`to_picke` and :meth:`read_pickle` did not support compression for file-objects (:issue:`26237`, :issue:`29054`, and :issue:`29570`)
 - Bug in :func:`LongTableBuilder.middle_separator` was duplicating LaTeX longtable entires in the List of Tables of a LaTeX document (:issue:`34360`)
+- Bug in :meth:`read_csv` with `engine='python'` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
 
 Plotting
 ^^^^^^^^
