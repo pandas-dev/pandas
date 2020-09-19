@@ -333,7 +333,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+    def _shallow_copy(
+        self, values: Optional[IntervalArray] = None, name: Label = lib.no_default
+    ):
         name = self.name if name is lib.no_default else name
         cache = self._cache.copy() if values is None else {}
         if values is None:
@@ -513,22 +515,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         # GH 23309
         return self._engine.is_overlapping
-
-    def _can_reindex(self, indexer: np.ndarray) -> None:
-        """
-        Check if we are allowing reindexing with this particular indexer.
-
-        Parameters
-        ----------
-        indexer : an integer indexer
-
-        Raises
-        ------
-        ValueError if its a duplicate axis
-        """
-        # trying to reindex on an axis with duplicates
-        if self.is_overlapping and len(indexer):
-            raise ValueError("cannot reindex from an overlapping axis")
 
     def _needs_i8_conversion(self, key) -> bool:
         """
@@ -837,21 +823,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    def get_indexer_for(self, target: AnyArrayLike, **kwargs) -> np.ndarray:
-        """
-        Guaranteed return of an indexer even when overlapping.
-
-        This dispatches to get_indexer or get_indexer_non_unique
-        as appropriate.
-
-        Returns
-        -------
-        numpy.ndarray
-            List of indices.
-        """
-        if self.is_overlapping:
-            return self.get_indexer_non_unique(target)[0]
-        return self.get_indexer(target, **kwargs)
+    @property
+    def _index_as_unique(self):
+        return not self.is_overlapping
 
     def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):
@@ -927,20 +901,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         -------
         IntervalIndex
         """
-        if isinstance(item, Interval):
-            if item.closed != self.closed:
-                raise ValueError(
-                    "inserted item must be closed on the same side as the index"
-                )
-            left_insert = item.left
-            right_insert = item.right
-        elif is_scalar(item) and isna(item):
-            # GH 18295
-            left_insert = right_insert = item
-        else:
-            raise ValueError(
-                "can only insert Interval objects and NA into an IntervalIndex"
-            )
+        left_insert, right_insert = self._data._validate_insert_value(item)
 
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
