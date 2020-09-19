@@ -191,13 +191,14 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
         # invalid type
-        msg = "can only insert Interval objects and NA into an IntervalIndex"
+        msg = "can only insert Interval objects and NA into an IntervalArray"
         with pytest.raises(ValueError, match=msg):
             data.insert(1, "foo")
 
         # invalid closed
-        msg = "inserted item must be closed on the same side as the index"
+        msg = "'value.closed' is 'left', expected 'right'."
         for closed in {"left", "right", "both", "neither"} - {item.closed}:
+            msg = f"'value.closed' is '{closed}', expected '{item.closed}'."
             with pytest.raises(ValueError, match=msg):
                 bad_item = Interval(item.left, item.right, closed=closed)
                 data.insert(1, bad_item)
@@ -211,7 +212,7 @@ class TestIntervalIndex:
 
         if data.left.dtype.kind not in ["m", "M"]:
             # trying to insert pd.NaT into a numeric-dtyped Index should cast/raise
-            msg = "can only insert Interval objects and NA into an IntervalIndex"
+            msg = "can only insert Interval objects and NA into an IntervalArray"
             with pytest.raises(ValueError, match=msg):
                 result = data.insert(1, pd.NaT)
         else:
