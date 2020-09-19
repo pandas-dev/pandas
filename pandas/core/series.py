@@ -4614,7 +4614,7 @@ Keep all original rows and also all original values
             --------------    -----
             1000000 non-null  object
             dtypes: object(1)
-            memory usage: 62.9 MB"""
+            memory usage: 55.3 MB"""
         ),
         see_also_sub=(
             """
