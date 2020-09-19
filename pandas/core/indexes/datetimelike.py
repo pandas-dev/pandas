@@ -398,7 +398,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
             if len(self) and (
                 (use_lhs and t1 < self[0] and t2 < self[0])
-                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
+                or (use_rhs and t1 > self[-1] and t2 > self[-1])
             ):
                 # we are out of range
                 raise KeyError
@@ -621,6 +621,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     # --------------------------------------------------------------------
     # Join/Set Methods
+
+    def _can_union_without_object_cast(self, other) -> bool:
+        return is_dtype_equal(self.dtype, other.dtype)
 
     def _wrap_joined_index(self, joined: np.ndarray, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)

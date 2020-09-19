@@ -25,10 +25,10 @@ dependencies:
   - numexpr
   - numpy
   - openpyxl
-  - pandas-gbq=0.12.0
+  - pandas-gbq
+  - google-cloud-bigquery>=1.27.2 # GH 36436
   - pyarrow>=0.17
   - psycopg2=2.7
-  - pyarrow>=0.15.0 # GH #35813
   - pymysql=0.7.11
   - pytables
   - python-dateutil
