@@ -1,7 +1,10 @@
+from contextlib import nullcontext
+
 import numpy as np
 import pytest
 
 from pandas import MultiIndex, Series
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -24,16 +27,25 @@ def test_equals(arr, idx):
     assert not s1.equals(s2)
 
 
-def test_equals_list_array():
+@pytest.mark.parametrize(
+    "val", [1, 1.1, 1 + 1j, True, "abc", [1, 2], (1, 2), {1, 2}, {"a": 1}, None]
+)
+def test_equals_list_array(val):
     # GH20676 Verify equals operator for list of Numpy arrays
     arr = np.array([1, 2])
     s1 = Series([arr, arr])
     s2 = s1.copy()
     assert s1.equals(s2)
 
-    # TODO: Series equals should also work between single value and list
-    # s1[1] = 9
-    # assert not s1.equals(s2)
+    s1[1] = val
+
+    cm = (
+        tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+        if isinstance(val, str)
+        else nullcontext()
+    )
+    with cm:
+        assert not s1.equals(s2)
 
 
 def test_equals_false_negative():

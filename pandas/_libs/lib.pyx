@@ -591,7 +591,16 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
             if "tz-naive and tz-aware" in str(err):
                 return False
             raise
-
+        except ValueError:
+            # Avoid raising ValueError when comparing Numpy arrays to other types
+            if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
+                # Only compare scalars to scalars and non-scalars to non-scalars
+                return False
+            elif (not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
+                  and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
+                # Check if non-scalars have the same type
+                return False
+            raise
     return True
 
 
