@@ -121,6 +121,7 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
+    @pytest.mark.xfail(reason="ResourceWarning from html5lib #36467", strict=False)
     @tm.network
     def test_banklist_url_positional_match(self):
         url = "http://www.fdic.gov/bank/individual/failed/banklist.html"
