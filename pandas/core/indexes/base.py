@@ -1021,6 +1021,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Format specified values of `self` and return them.
 
+        .. deprecated:: 1.2.0
+
         Parameters
         ----------
         slicer : int, array-like
@@ -1042,6 +1044,12 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray
             Formatted values.
         """
+        warnings.warn(
+            "The 'to_native_types' method is deprecated and will be removed in "
+            "a future version. Use 'astype(str)' instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         values = self
         if slicer is not None:
             values = values[slicer]
