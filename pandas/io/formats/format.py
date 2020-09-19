@@ -453,19 +453,12 @@ def get_adjustment() -> TextAdjustment:
 class TableFormatter:
 
     show_dimensions: Union[bool, str]
+    formatters: FormattersType
 
     @property
     def is_truncated(self) -> bool:
         self._is_truncated: bool
         return self._is_truncated
-
-    @property
-    def formatters(self) -> FormattersType:
-        return self._formatters
-
-    @formatters.setter
-    def formatters(self, formatters: FormattersType) -> None:
-        self._formatters: FormattersType = formatters
 
     @property
     def columns(self) -> Index:
@@ -585,15 +578,7 @@ class DataFrameFormatter(TableFormatter):
         self.show_index_names = index_names
         self.sparsify = self._initialize_sparsify(sparsify)
         self.float_format = float_format
-
-        # Ignoring error
-        # expression has type "Union[List[Callable[..., Any]],
-        # Tuple[Callable[..., Any], ...],
-        # Mapping[Union[str, int], Callable[..., Any]], None]",
-        # variable has type "Union[List[Callable[..., Any]],
-        # Tuple[Callable[..., Any], ...], Mapping[Union[str, int],
-        # Callable[..., Any]]]")
-        self.formatters = formatters  # type: ignore[assignment]
+        self.formatters = self._initialize_formatters(formatters)
         self.na_rep = na_rep
         self.decimal = decimal
 
@@ -628,23 +613,18 @@ class DataFrameFormatter(TableFormatter):
             return get_option("display.multi_sparse")
         return sparsify
 
-    @property
-    def formatters(self) -> FormattersType:
-        return self._formatters
-
-    @formatters.setter
-    def formatters(self, formatters: Optional[FormattersType]) -> None:
-        self._formatters: FormattersType
+    def _initialize_formatters(
+        self, formatters: Optional[FormattersType]
+    ) -> FormattersType:
         if formatters is None:
-            self._formatters = {}
+            return {}
         elif len(self.frame.columns) == len(formatters) or isinstance(formatters, dict):
-            self._formatters = formatters
+            return formatters
         else:
             raise ValueError(
                 f"Formatters length({len(formatters)}) should match "
                 f"DataFrame number of columns({len(self.frame.columns)})"
             )
-        assert self._formatters is not None
 
     @property
     def justify(self) -> str:
@@ -813,7 +793,7 @@ class DataFrameFormatter(TableFormatter):
             # truncate formatter
             if isinstance(self.formatters, (list, tuple)):
                 slicer = itemgetter(*cols_to_keep)
-                self._formatters = slicer(self.formatters)
+                self.formatters = slicer(self.formatters)
         else:
             col_num = cast(int, self.max_cols)
             self.tr_frame = self.tr_frame.iloc[:, :col_num]
