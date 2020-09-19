@@ -678,7 +678,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
             self._reset_cache("_selected_obj")
 
-    def _set_result_index_ordered(self, result):
+    def _set_result_index_ordered(self, result: FrameOrSeries) -> FrameOrSeries:
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
@@ -689,19 +689,22 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             result.set_axis(index, axis=self.axis, inplace=True)
             result = result.sort_index(axis=self.axis)
 
+        return self._restore_grouper_index(result)
+
+    def _restore_grouper_index(self, result: FrameOrSeries) -> FrameOrSeries:
+        # GH 35612
         # result.index is a standard index => may need to restore original index
 
-        if (  # check if rows were dropped
-            self.dropna
-            and not self.axis  # if self.axis == 1 rows are never dropped
-            and len(result) < len(self._selected_obj)  # rows dropped iff NaNs present
-        ):
+        rows_dropped: bool = len(result) < len(self._selected_obj)
+        # TODO: address case of axis==1, dropped columns
+
+        if self.dropna and not self.axis and rows_dropped:
             # use result.index to select from index of original object
             original_index = self._selected_obj.index[result.index]
-
             result.index = original_index
         else:
             result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+
         return result
 
     def _dir_additions(self):
