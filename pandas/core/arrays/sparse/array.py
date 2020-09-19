@@ -1427,7 +1427,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     # TODO: look into _wrap_result
                     if len(self) != len(other):
                         raise AssertionError(
-                            (f"length mismatch: {len(self)} vs. {len(other)}")
+                            f"length mismatch: {len(self)} vs. {len(other)}"
                         )
                     if not isinstance(other, SparseArray):
                         dtype = getattr(other, "dtype", None)

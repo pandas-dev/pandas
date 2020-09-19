@@ -29,7 +29,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import lib, reduction as libreduction
 from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
 from pandas.util._decorators import Appender, Substitution, doc
 
@@ -471,12 +471,19 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _aggregate_named(self, func, *args, **kwargs):
         result = {}
+        initialized = False
 
         for name, group in self:
-            group.name = name
+            # Each step of this loop corresponds to
+            #  libreduction._BaseGrouper._apply_to_group
+            group.name = name  # NB: libreduction does not pin name
+
             output = func(group, *args, **kwargs)
-            if isinstance(output, (Series, Index, np.ndarray)):
-                raise ValueError("Must produce aggregated value")
+            output = libreduction.extract_result(output)
+            if not initialized:
+                # We only do this validation on the first iteration
+                libreduction.check_result_array(output, 0)
+                initialized = True
             result[name] = output
 
         return result
@@ -1212,7 +1219,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return result
 
         else:
-            all_indexed_same = all_indexes_same((x.index for x in values))
+            all_indexed_same = all_indexes_same(x.index for x in values)
 
             # GH3596
             # provide a reduction (Frame -> Series) if groups are
