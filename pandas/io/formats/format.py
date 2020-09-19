@@ -799,6 +799,13 @@ class DataFrameFormatter(TableFormatter):
             self._truncate_vertically()
 
     def _truncate_horizontally(self) -> None:
+        """Remove columns, which are not to be displayed and adjust formatters.
+
+        Attributes affected:
+            - tr_frame
+            - formatters
+            - tr_col_num
+        """
         assert self.max_cols_adj is not None
         col_num = self.max_cols_adj // 2
         if col_num >= 1:
@@ -819,6 +826,12 @@ class DataFrameFormatter(TableFormatter):
         self.tr_col_num = col_num
 
     def _truncate_vertically(self) -> None:
+        """Remove rows, which are not to be displayed.
+
+        Attributes affected:
+            - tr_frame
+            - tr_row_num
+        """
         assert self.max_rows_adj is not None
         row_num = self.max_rows_adj // 2
         if row_num >= 1:
