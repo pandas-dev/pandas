@@ -84,7 +84,10 @@ def ensure_float(arr):
                 possible. Otherwise, the original array is returned.
     """
     if is_extension_array_dtype(arr.dtype):
-        arr = arr.to_numpy(dtype="float64", na_value=np.nan)
+        if is_float_dtype(arr.dtype):
+            arr = arr.to_numpy(dtype=arr.dtype.numpy_dtype, na_value=np.nan)
+        else:
+            arr = arr.to_numpy(dtype="float64", na_value=np.nan)
     elif issubclass(arr.dtype.type, (np.integer, np.bool_)):
         arr = arr.astype(float)
     return arr

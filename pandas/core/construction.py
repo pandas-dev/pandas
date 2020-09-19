@@ -115,7 +115,7 @@ def array(
            string dtype for string data, and nullable-boolean dtype
            for boolean data.
 
-        .. versionchanged:: 1.1.0
+        .. versionchanged:: 1.2.0
 
             Pandas now also infers nullable-floating dtype for float-like
             input data
