@@ -1,7 +1,4 @@
-try:
-    from contextlib import nullcontext
-except ImportError:
-    from contextlib import ExitStack as nullcontext  # Py3.6.
+from contextlib import nullcontext
 
 import numpy as np
 import pytest
