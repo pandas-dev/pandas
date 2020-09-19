@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer_dtype,
     is_list_like,
+    is_numeric_v_string_like,
     is_object_dtype,
     is_scalar,
 )
@@ -234,6 +235,10 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
             res_values = np.ones(lvalues.shape, dtype=bool)
         else:
             res_values = np.zeros(lvalues.shape, dtype=bool)
+
+    elif is_numeric_v_string_like(lvalues, rvalues):
+        # GH#36377 going through the numexpr path would incorrectly raise
+        return invalid_comparison(lvalues, rvalues, op)
 
     elif is_object_dtype(lvalues.dtype):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)

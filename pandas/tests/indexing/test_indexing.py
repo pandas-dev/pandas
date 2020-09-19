@@ -745,7 +745,7 @@ class TestMisc:
         # make frames multi-type & re-run tests
         for frame in [df, rhs, right]:
             frame["joe"] = frame["joe"].astype("float64")
-            frame["jolie"] = frame["jolie"].map("@{0}".format)
+            frame["jolie"] = frame["jolie"].map("@{}".format)
 
         run_tests(df, rhs, right)
 

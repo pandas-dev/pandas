@@ -570,8 +570,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             converted = ints_to_pydatetime(
                 data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
             )
-            for v in converted:
-                yield v
+            yield from converted
 
     def astype(self, dtype, copy=True):
         # We handle
