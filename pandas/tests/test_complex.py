@@ -9,7 +9,8 @@ import pandas.util.testing as tm
 class TestBasicComplexSupport:
     @pytest.mark.parametrize(
         "array,expected",
-        [            (
+        [
+            (
                 [1 + 1j, 0, 1, 1j, 1 + 2j],
                 Series([1, 1, 1, 1, 1], index=[1 + 2j, 1 + 1j, 1j, 1, 0]),
             ),
@@ -91,7 +92,10 @@ class TestBasicComplexSupport:
         tm.assert_frame_equal(result, expected)
 
         # sorting of the index should fail since complex numbers are unordered
-        with pytest.raises(TypeError, match="'<' not supported between instances of 'complex' and 'complex'"):
+        with pytest.raises(
+            TypeError,
+            match="'<' not supported between instances of 'complex' and 'complex'",
+        ):
             frame.groupby("b", sort=True).count()
 
     @pytest.mark.parametrize(
