@@ -1277,9 +1277,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return self._reindex_output(result)
 
-    def _transform_general(
-        self, func, *args, engine="cython", engine_kwargs=None, **kwargs
-    ):
+    def _transform_general(self, func, *args, **kwargs):
         """
         Transform with a non-str `func`.
         """
