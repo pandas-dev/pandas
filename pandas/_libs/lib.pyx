@@ -581,13 +581,6 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
                     return False
             elif (x is C_NA) ^ (y is C_NA):
                 return False
-            elif cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
-                # Only compare scalars to scalars and non-scalars to non-scalars
-                return False
-            elif (not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
-                  and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
-                # Check if non-scalars have the same type
-                return False
             elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
                       (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
@@ -598,7 +591,15 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
             if "tz-naive and tz-aware" in str(err):
                 return False
             raise
-
+        except ValueError:
+            if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
+                # Only compare scalars to scalars and non-scalars to non-scalars
+                return False
+            elif (not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
+                  and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
+                # Check if non-scalars have the same type
+                return False
+            raise
     return True
 
 
