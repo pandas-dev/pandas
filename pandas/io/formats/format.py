@@ -654,10 +654,6 @@ class DataFrameFormatter(TableFormatter):
     def max_rows_displayed(self) -> int:
         return min(self.max_rows or len(self.frame), len(self.frame))
 
-    def _is_in_terminal(self) -> bool:
-        """Check if the output is to be shown in terminal."""
-        return bool(self.max_cols == 0 or self.max_rows == 0)
-
     @property
     def max_cols_adj(self) -> Optional[int]:
         """Number of columns fitting the screen."""
@@ -676,12 +672,6 @@ class DataFrameFormatter(TableFormatter):
         else:
             self._max_cols_adj = self.max_cols
         return self._max_cols_adj
-
-    def _is_screen_narrow(self, max_width) -> bool:
-        return bool(self.max_cols == 0 and len(self.frame.columns) > max_width)
-
-    def _is_screen_short(self, max_height) -> bool:
-        return bool(self.max_rows == 0 and len(self.frame) > max_height)
 
     @property
     def max_rows_adj(self) -> Optional[int]:
@@ -705,6 +695,16 @@ class DataFrameFormatter(TableFormatter):
                 # if truncated, set max_rows showed to min_rows
                 max_rows = min(self.min_rows, max_rows)
         return max_rows
+
+    def _is_in_terminal(self) -> bool:
+        """Check if the output is to be shown in terminal."""
+        return bool(self.max_cols == 0 or self.max_rows == 0)
+
+    def _is_screen_narrow(self, max_width) -> bool:
+        return bool(self.max_cols == 0 and len(self.frame.columns) > max_width)
+
+    def _is_screen_short(self, max_height) -> bool:
+        return bool(self.max_rows == 0 and len(self.frame) > max_height)
 
     def _get_number_of_auxillary_rows(self) -> int:
         """Get number of rows occupied by prompt, dots and dimension info."""
