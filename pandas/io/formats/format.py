@@ -808,8 +808,7 @@ class DataFrameFormatter(TableFormatter):
             return strcols
 
         if is_list_like(self.header):
-            # cast here since can't be bool if is_list_like
-            self.header = cast(List[str], self.header)
+            assert isinstance(self.header, list)
             if len(self.header) != len(self.columns):
                 raise ValueError(
                     f"Writing {len(self.columns)} cols "
