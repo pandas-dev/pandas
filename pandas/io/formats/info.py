@@ -340,29 +340,12 @@ class DataFrameInfo(BaseInfo):
             if show_counts:
                 count = counts[i]
 
-    def _verbose_repr(
-        self, lines: List[str], ids: "Index", dtypes: "Series", show_counts: bool
-    ) -> None:
-        lines.append(f"Series name: {self.data.name}")
-
-        id_space = 2
-
-        counts = cast("Series", self.data._constructor(self.data.count()))
-        count_configs = _get_count_configs(counts, id_space, show_counts)
-
-        space_dtype, header, len_dtype = _get_header_and_spaces(
-            dtypes, count_configs.space_count, count_configs.count_header
-        )
-
-        lines.append(header)
-        lines.append(
-            _put_str("-" * count_configs.len_count, count_configs.space_count)
-            + _put_str("-" * len_dtype, space_dtype)
-        )
-
-        _display_counts_and_dtypes(
-            lines, ids, dtypes, show_counts, count_configs, space_dtype
-        )
+            lines.append(
+                line_no
+                + _put_str(col, space)
+                + _put_str(count_temp.format(count=count), space_count)
+                + _put_str(dtype, space_dtype)
+            )
 
     def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
         lines.append(ids._summary(name="Columns"))
