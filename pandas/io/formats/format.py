@@ -450,6 +450,7 @@ def get_adjustment() -> TextAdjustment:
 
 
 class DataFrameFormatter:
+    """Class for processing dataframe formatting options and data."""
 
     __doc__ = __doc__ if __doc__ else ""
     __doc__ += common_docstring + return_docstring
@@ -899,6 +900,7 @@ class DataFrameFormatter:
 
 
 class StringFormatter:
+    """Formatter for string representation of a dataframe."""
 
     def __init__(self, fmt):
         self.fmt = fmt
