@@ -533,14 +533,6 @@ class DataFrameFormatter:
         return bool(self.max_rows_fitted and (len(self.frame) > self.max_rows_fitted))
 
     @property
-    def info_line(self):
-        return (
-            f"Empty {type(self.frame).__name__}\n"
-            f"Columns: {pprint_thing(self.frame.columns)}\n"
-            f"Index: {pprint_thing(self.frame.index)}"
-        )
-
-    @property
     def dimensions_info(self) -> str:
         return f"\n\n[{len(self.frame)} rows x {len(self.frame.columns)} columns]"
 
@@ -927,7 +919,7 @@ class StringFormatter:
 
     def _get_string_representation(self) -> str:
         if self.fmt.frame.empty:
-            return self.fmt.info_line
+            return self._empty_info_line
 
         strcols = self._get_strcols()
 
@@ -940,6 +932,14 @@ class StringFormatter:
 
         # max_cols == 0. Try to fit frame to terminal
         return self._fit_strcols_to_terminal_width(strcols)
+
+    @property
+    def _empty_info_line(self):
+        return (
+            f"Empty {type(self.frame).__name__}\n"
+            f"Columns: {pprint_thing(self.frame.columns)}\n"
+            f"Index: {pprint_thing(self.frame.index)}"
+        )
 
     def _insert_dot_separators(self, strcols: List[List[str]]) -> List[List[str]]:
         str_index = self.fmt._get_formatted_index(self.fmt.tr_frame)

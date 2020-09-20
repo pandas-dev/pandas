@@ -2,7 +2,7 @@
 Module for formatting output data in Latex.
 """
 from abc import ABC, abstractmethod
-from typing import IO, Iterator, List, Optional, Type
+from typing import Iterator, List, Optional, Type
 
 import numpy as np
 
@@ -100,17 +100,12 @@ class RowStringConverter(ABC):
 
     def _get_strcols(self) -> List[List[str]]:
         """String representation of the columns."""
-        if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
-            info_line = (
-                f"Empty {type(self.frame).__name__}\n"
-                f"Columns: {self.frame.columns}\n"
-                f"Index: {self.frame.index}"
-            )
-            strcols = [[info_line]]
+        if self.fmt.frame.empty:
+            strcols = [[self._empty_info_line]]
         else:
             strcols = self.fmt.get_strcols()
 
-        # reestablish the MultiIndex that has been joined by _to_str_column
+        # reestablish the MultiIndex that has been joined by get_strcols()
         if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
             out = self.frame.index.format(
                 adjoin=False,
@@ -142,6 +137,14 @@ class RowStringConverter(ABC):
             # Get rid of old multiindex column and add new ones
             strcols = out + strcols[1:]
         return strcols
+
+    @property
+    def _empty_info_line(self):
+        return (
+            f"Empty {type(self.frame).__name__}\n"
+            f"Columns: {self.frame.columns}\n"
+            f"Index: {self.frame.index}"
+        )
 
     def _preprocess_row(self, row: List[str]) -> List[str]:
         """Preprocess elements of the row."""
