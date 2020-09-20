@@ -1005,19 +1005,9 @@ class DatetimeLikeArrayMixin(
                 else:
                     func = missing.backfill_1d
 
-                values = self._ndarray
-                if not is_period_dtype(self.dtype):
-                    # For PeriodArray self._ndarray is i8, which gets copied
-                    #  by `func`.  Otherwise we need to make a copy manually
-                    # to avoid modifying `self` in-place.
-                    values = values.copy()
-
+                values = self.copy()
                 new_values = func(values, limit=limit, mask=mask)
-                if is_datetime64tz_dtype(self.dtype):
-                    # we need to pass int64 values to the constructor to avoid
-                    #  re-localizing incorrectly
-                    new_values = new_values.view("i8")
-                new_values = type(self)(new_values, dtype=self.dtype)
+                new_values = self._from_backing_data(new_values)
             else:
                 # fill with value
                 new_values = self.copy()
