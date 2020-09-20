@@ -1304,4 +1304,3 @@ def test_inplace_arithmetic_operation_on_series_updating_parent_dataframe():
     s = df["A"]
     s += 1
     tm.assert_series_equal(df["A"], s)
-    
