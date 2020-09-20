@@ -855,7 +855,7 @@ class DataFrame(NDFrame):
         from pandas import option_context
 
         with option_context("display.max_colwidth", max_colwidth):
-            formatter = fmt.DataFrameFormatter(
+            formatter = fmt.ConsoleFormatter(
                 self,
                 columns=columns,
                 col_space=col_space,

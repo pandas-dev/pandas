@@ -69,6 +69,8 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
+from pandas.errors import AbstractMethodError
+
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
@@ -528,6 +530,9 @@ class DataFrameFormatter:
                 return f.getvalue()
             return None
 
+    def write_result(self, buf: IO[str]) -> None:
+        raise AbstractMethodError
+
     @property
     def should_show_dimensions(self) -> bool:
         return self.show_dimensions is True or (
@@ -882,42 +887,9 @@ class DataFrameFormatter:
             col.insert(row_num + n_header_rows, dot_str)
         return strcols
 
-    def write_result(self, buf: IO[str]) -> None:
-        """
-        Render a DataFrame to a console-friendly tabular output.
-        """
-        text = self._get_string_representation()
-
-        buf.writelines(text)
-
-        if self.should_show_dimensions:
-            buf.write(self._dimensions_info)
-
     @property
     def _dimensions_info(self) -> str:
         return f"\n\n[{len(self.frame)} rows x {len(self.frame.columns)} columns]"
-
-    def _get_string_representation(self) -> str:
-        if self.frame.empty:
-            info_line = (
-                f"Empty {type(self.frame).__name__}\n"
-                f"Columns: {pprint_thing(self.frame.columns)}\n"
-                f"Index: {pprint_thing(self.frame.index)}"
-            )
-            return info_line
-
-        strcols = self._to_str_columns()
-
-        if self.line_width is None:
-            # no need to wrap around just print the whole frame
-            return self.adj.adjoin(1, *strcols)
-
-        if self.max_cols is None or self.max_cols > 0:
-            # need to wrap around
-            return self._join_multiline(*strcols)
-
-        # max_cols == 0. Try to fit frame to terminal
-        return self._fit_strcols_to_terminal_width(strcols)
 
     def _fit_strcols_to_terminal_width(self, strcols) -> str:
         from pandas import Series
@@ -991,13 +963,6 @@ class DataFrameFormatter:
             str_lst.append(self.adj.adjoin(adjoin_width, *row))
             start = end
         return "\n\n".join(str_lst)
-
-    def to_string(
-        self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
-        encoding: Optional[str] = None,
-    ) -> Optional[str]:
-        return self.get_result(buf=buf, encoding=encoding)
 
     def to_latex(
         self,
@@ -1177,6 +1142,49 @@ class DataFrameFormatter:
         else:
             names.append("" if columns.name is None else columns.name)
         return names
+
+
+class ConsoleFormatter(DataFrameFormatter):
+
+    def write_result(self, buf: IO[str]) -> None:
+        """
+        Render a DataFrame to a console-friendly tabular output.
+        """
+        text = self._get_string_representation()
+
+        buf.writelines(text)
+
+        if self.should_show_dimensions:
+            buf.write(self._dimensions_info)
+
+    def to_string(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+    ) -> Optional[str]:
+        return self.get_result(buf=buf, encoding=encoding)
+
+    def _get_string_representation(self) -> str:
+        if self.frame.empty:
+            info_line = (
+                f"Empty {type(self.frame).__name__}\n"
+                f"Columns: {pprint_thing(self.frame.columns)}\n"
+                f"Index: {pprint_thing(self.frame.index)}"
+            )
+            return info_line
+
+        strcols = self._to_str_columns()
+
+        if self.line_width is None:
+            # no need to wrap around just print the whole frame
+            return self.adj.adjoin(1, *strcols)
+
+        if self.max_cols is None or self.max_cols > 0:
+            # need to wrap around
+            return self._join_multiline(*strcols)
+
+        # max_cols == 0. Try to fit frame to terminal
+        return self._fit_strcols_to_terminal_width(strcols)
 
 
 # ----------------------------------------------------------------------
