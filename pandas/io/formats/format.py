@@ -40,7 +40,13 @@ from pandas._libs.missing import NA
 from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import FilePathOrBuffer, Label
+from pandas._typing import (
+    CompressionOptions,
+    FilePathOrBuffer,
+    IndexLabel,
+    Label,
+    StorageOptions,
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -1154,6 +1160,54 @@ class DataFrameRenderer:
         string_formatter = StringFormatter(self.fmt)
         string = string_formatter.to_string()
         return self._get_result(string, buf=buf, encoding=encoding)
+
+    def to_csv(
+        self,
+        path_or_buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+        sep: str = ",",
+        columns: Optional[Sequence[Label]] = None,
+        index_label: Optional[IndexLabel] = None,
+        mode: str = "w",
+        compression: CompressionOptions = "infer",
+        quoting: Optional[int] = None,
+        quotechar: str = '"',
+        line_terminator: Optional[str] = None,
+        chunksize: Optional[int] = None,
+        date_format: Optional[str] = None,
+        doublequote: bool = True,
+        escapechar: Optional[str] = None,
+        errors: str = "strict",
+        storage_options: StorageOptions = None,
+    ) -> Optional[str]:
+        from pandas.io.formats.csvs import CSVFormatter
+
+        csv_formatter = CSVFormatter(
+            path_or_buf=path_or_buf,
+            line_terminator=line_terminator,
+            sep=sep,
+            encoding=encoding,
+            errors=errors,
+            compression=compression,
+            quoting=quoting,
+            cols=columns,
+            index_label=index_label,
+            mode=mode,
+            chunksize=chunksize,
+            quotechar=quotechar,
+            date_format=date_format,
+            doublequote=doublequote,
+            escapechar=escapechar,
+            storage_options=storage_options,
+            formatter=self.fmt,
+        )
+        csv_formatter.save()
+
+        if path_or_buf is None:
+            assert isinstance(csv_formatter.path_or_buf, StringIO)
+            return csv_formatter.path_or_buf.getvalue()
+
+        return None
 
     def _get_result(
         self,

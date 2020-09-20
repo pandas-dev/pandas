@@ -4,7 +4,6 @@ import collections
 from datetime import timedelta
 import functools
 import gc
-from io import StringIO
 import json
 import operator
 import pickle
@@ -3322,8 +3321,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
-        from pandas.io.formats.csvs import CSVFormatter
-
         formatter = DataFrameFormatter(
             frame=df,
             columns=columns,
@@ -3334,7 +3331,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             decimal=decimal,
         )
 
-        csv_formatter = CSVFormatter(
+        return DataFrameRenderer(formatter).to_csv(
             path_or_buf,
             line_terminator=line_terminator,
             sep=sep,
@@ -3342,7 +3339,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             errors=errors,
             compression=compression,
             quoting=quoting,
-            cols=columns,
+            columns=columns,
             index_label=index_label,
             mode=mode,
             chunksize=chunksize,
@@ -3351,15 +3348,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
-            formatter=formatter,
         )
-        csv_formatter.save()
-
-        if path_or_buf is None:
-            assert isinstance(csv_formatter.path_or_buf, StringIO)
-            return csv_formatter.path_or_buf.getvalue()
-
-        return None
 
     # ----------------------------------------------------------------------
     # Lookup Caching
