@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_float_dtype,
     is_integer_dtype,
-    is_interval,
     is_interval_dtype,
     is_list_like,
     is_object_dtype,
@@ -245,12 +244,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise ValueError(msg)
 
+        # For dt64/td64 we want DatetimeArray/TimedeltaArray instead of ndarray
         from pandas.core.ops.array_ops import maybe_upcast_datetimelike_array
 
         left = maybe_upcast_datetimelike_array(left)
-        right = extract_array(right, extract_numpy=True)
         left = extract_array(left, extract_numpy=True)
         right = maybe_upcast_datetimelike_array(right)
+        right = extract_array(right, extract_numpy=True)
 
         lbase = getattr(left, "_ndarray", left).base
         rbase = getattr(right, "_ndarray", right).base
@@ -560,38 +560,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left, right)
 
     def __setitem__(self, key, value):
-        # na value: need special casing to set directly on numpy arrays
-        needs_float_conversion = False
-        if is_scalar(value) and isna(value):
-            if is_integer_dtype(self.dtype.subtype):
-                # can't set NaN on a numpy integer array
-                needs_float_conversion = True
-            elif is_datetime64_any_dtype(self.dtype.subtype):
-                # need proper NaT to set directly on the numpy array
-                value = np.datetime64("NaT")
-            elif is_timedelta64_dtype(self.dtype.subtype):
-                # need proper NaT to set directly on the numpy array
-                value = np.timedelta64("NaT")
-            value_left, value_right = value, value
-
-        # scalar interval
-        elif is_interval_dtype(value) or isinstance(value, Interval):
-            self._check_closed_matches(value, name="value")
-            value_left, value_right = value.left, value.right
-
-        else:
-            # list-like of intervals
-            try:
-                array = IntervalArray(value)
-                value_left, value_right = array._left, array.right
-            except TypeError as err:
-                # wrong type: not interval or NA
-                msg = f"'value' should be an interval type, got {type(value)} instead."
-                raise TypeError(msg) from err
-
-        if needs_float_conversion:
-            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
-
+        value_left, value_right = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
 
         self._left[key] = value_left
@@ -717,8 +686,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             try:
                 # We need to use Index rules for astype to prevent casting
                 #  np.nan entries to int subtypes
-                new_left = Index(self._left).astype(dtype.subtype)
-                new_right = Index(self._right).astype(dtype.subtype)
+                new_left = Index(self._left, copy=False).astype(dtype.subtype)
+                new_right = Index(self._right, copy=False).astype(dtype.subtype)
             except TypeError as err:
                 msg = (
                     f"Cannot convert {self.dtype} to {dtype}; subtypes are incompatible"
@@ -792,7 +761,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isna(fill_value):
             from pandas import Index
 
-            fill_value = Index(self._left)._na_value
+            fill_value = Index(self._left, copy=False)._na_value
             empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
         else:
             empty = self._from_sequence([fill_value] * empty_len)
@@ -855,7 +824,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         fill_left = fill_right = fill_value
         if allow_fill:
-            fill_left, fill_right = self._validate_fill_value(fill_value)
+            if (np.asarray(indices) == -1).any():
+                # We have excel tests that pass fill_value=True, xref GH#36466
+                fill_left, fill_right = self._validate_fill_value(fill_value)
 
         left_take = take(
             self._left, indices, allow_fill=allow_fill, fill_value=fill_left
@@ -866,20 +837,33 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return self._shallow_copy(left_take, right_take)
 
-    def _validate_fill_value(self, value):
-        if is_interval(value):
-            self._check_closed_matches(value, name="fill_value")
-            fill_left, fill_right = value.left, value.right
-        elif not is_scalar(value) and notna(value):
-            msg = (
-                "'IntervalArray.fillna' only supports filling with a "
-                "'scalar pandas.Interval or NA'. "
-                f"Got a '{type(value).__name__}' instead."
-            )
-            raise ValueError(msg)
+    def _validate_listlike(self, value):
+        # list-like of intervals
+        try:
+            array = IntervalArray(value)
+            # TODO: self._check_closed_matches(array, name="value")
+            value_left, value_right = array.left, array.right
+        except TypeError as err:
+            # wrong type: not interval or NA
+            msg = f"'value' should be an interval type, got {type(value)} instead."
+            raise TypeError(msg) from err
+        return value_left, value_right
+
+    def _validate_scalar(self, value):
+        if isinstance(value, Interval):
+            self._check_closed_matches(value, name="value")
+            left, right = value.left, value.right
+        elif is_valid_nat_for_dtype(value, self.left.dtype):
+            # GH#18295
+            left = right = value
         else:
-            fill_left = fill_right = self.left._na_value
-        return fill_left, fill_right
+            raise ValueError(
+                "can only insert Interval objects and NA into an IntervalArray"
+            )
+        return left, right
+
+    def _validate_fill_value(self, value):
+        return self._validate_scalar(value)
 
     def _validate_fillna_value(self, value):
         if not isinstance(value, Interval):
@@ -893,21 +877,42 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return value.left, value.right
 
     def _validate_insert_value(self, value):
-        if isinstance(value, Interval):
-            if value.closed != self.closed:
-                raise ValueError(
-                    "inserted item must be closed on the same side as the index"
-                )
-            left_insert = value.left
-            right_insert = value.right
-        elif is_valid_nat_for_dtype(value, self.left.dtype):
-            # GH#18295
-            left_insert = right_insert = value
+        return self._validate_scalar(value)
+
+    def _validate_setitem_value(self, value):
+        needs_float_conversion = False
+
+        if is_valid_nat_for_dtype(value, self.left.dtype):
+            # na value: need special casing to set directly on numpy arrays
+            if is_integer_dtype(self.dtype.subtype):
+                # can't set NaN on a numpy integer array
+                needs_float_conversion = True
+            elif is_datetime64_any_dtype(self.dtype.subtype):
+                # need proper NaT to set directly on the numpy array
+                value = np.datetime64("NaT")
+            elif is_timedelta64_dtype(self.dtype.subtype):
+                # need proper NaT to set directly on the numpy array
+                value = np.timedelta64("NaT")
+            value_left, value_right = value, value
+
+        elif is_interval_dtype(value) or isinstance(value, Interval):
+            # scalar interval
+            self._check_closed_matches(value, name="value")
+            value_left, value_right = value.left, value.right
+
         else:
-            raise ValueError(
-                "can only insert Interval objects and NA into an IntervalIndex"
-            )
-        return left_insert, right_insert
+            try:
+                # list-like of intervals
+                array = IntervalArray(value)
+                value_left, value_right = array.left, array.right
+            except TypeError as err:
+                # wrong type: not interval or NA
+                msg = f"'value' should be an interval type, got {type(value)} instead."
+                raise TypeError(msg) from err
+
+        if needs_float_conversion:
+            raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
+        return value_left, value_right
 
     def value_counts(self, dropna=True):
         """
@@ -995,7 +1000,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         from pandas import Index
 
-        return Index(self._left)
+        return Index(self._left, copy=False)
 
     @property
     def right(self):
@@ -1005,7 +1010,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         from pandas import Index
 
-        return Index(self._right)
+        return Index(self._right, copy=False)
 
     @property
     def length(self):

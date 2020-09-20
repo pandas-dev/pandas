@@ -976,15 +976,14 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     """
     _check_isinstance(left, right, IntervalArray)
 
+    kwargs = {}
     if left._left.dtype.kind in ["m", "M"]:
-        # We have a DatetimeArray or Timed
-        # TODO: `exact` keyword?
-        assert_equal(left._left, right._left, obj=f"{obj}.left", check_freq=False)
-        assert_equal(left._right, right._right, obj=f"{obj}.left", check_freq=False)
-    else:
-        # doesnt take check_freq
-        assert_equal(left._left, right._left, obj=f"{obj}.left")  # TODO: exact?
-        assert_equal(left._right, right._right, obj=f"{obj}.left")
+        # We have a DatetimeArray or TimedeltaArray
+        kwargs["check_freq"] = False
+
+    # TODO: `exact` keyword?
+    assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
+    assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
 
     assert_attr_equal("closed", left, right, obj=obj)
 
@@ -2413,7 +2412,7 @@ def can_connect(url, error_classes=None):
 @optional_args
 def network(
     t,
-    url="http://www.google.com",
+    url="https://www.google.com",
     raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     check_before_test=False,
     error_classes=None,
@@ -2437,7 +2436,7 @@ def network(
         The test requiring network connectivity.
     url : path
         The url to test via ``pandas.io.common.urlopen`` to check
-        for connectivity. Defaults to 'http://www.google.com'.
+        for connectivity. Defaults to 'https://www.google.com'.
     raise_on_error : bool
         If True, never catches errors.
     check_before_test : bool
@@ -2481,7 +2480,7 @@ def network(
 
       You can specify alternative URLs::
 
-        >>> @network("http://www.yahoo.com")
+        >>> @network("https://www.yahoo.com")
         ... def test_something_with_yahoo():
         ...    raise IOError("Failure Message")
         >>> test_something_with_yahoo()
