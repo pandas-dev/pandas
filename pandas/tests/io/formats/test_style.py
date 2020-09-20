@@ -1755,7 +1755,7 @@ class TestStyler:
     def test_tooltip_render(self, ttips):
         # GH 21266
         df = pd.DataFrame(data=[[0, 3], [1, 2]], columns=["A", "B"], index=["a", "b"])
-        s = Styler(df, uuid="_").set_tooltips(ttips).render()
+        s = Styler(df, uuid_len=0).set_tooltips(ttips).render()
 
         # test tooltip table level class
         assert "#T__ .pd-t {\n          visibility: hidden;\n" in s
@@ -1797,7 +1797,7 @@ class TestStyler:
         # GH 21266
         df = pd.DataFrame(data=[[0, 1], [2, 3]])
         s = (
-            Styler(df, uuid="_")
+            Styler(df, uuid_len=0)
             .set_tooltips(DataFrame([["tooltip"]]))
             .set_tooltips_class(name="other-class", properties=[("color", "green")])
             .render()
