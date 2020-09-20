@@ -18,7 +18,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.6.1 and above, 3.7, and 3.8.
+Officially Python 3.7.1 and above, 3.8, and 3.9.
 
 Installing pandas
 -----------------
@@ -220,9 +220,9 @@ Dependencies
 Package                                                          Minimum supported version
 ================================================================ ==========================
 `setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
-`NumPy <https://www.numpy.org>`__                                1.13.3
+`NumPy <https://www.numpy.org>`__                                1.16.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
-`pytz <https://pypi.org/project/pytz/>`__                        2017.2
+`pytz <https://pypi.org/project/pytz/>`__                        2017.3
 ================================================================ ==========================
 
 .. _install.recommended_dependencies:
@@ -232,7 +232,7 @@ Recommended dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.6.2 or higher.
+  If installed, must be Version 2.6.8 or higher.
 
 * `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
@@ -259,35 +259,36 @@ the method requiring that dependency is called.
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 BeautifulSoup4            4.6.0              HTML parser for read_html (see :ref:`note <optional_html>`)
-Jinja2                                       Conditional formatting with DataFrame.style
+Jinja2                    2.10               Conditional formatting with DataFrame.style
 PyQt4                                        Clipboard I/O
 PyQt5                                        Clipboard I/O
-PyTables                  3.4.3              HDF5-based reading / writing
-SQLAlchemy                1.1.4              SQL support for databases other than sqlite
-SciPy                     0.19.0             Miscellaneous statistical functions
-XLsxWriter                0.9.8              Excel writing
-blosc                                        Compression for HDF5
+PyTables                  3.4.4              HDF5-based reading / writing
+SQLAlchemy                1.2.8              SQL support for databases other than sqlite
+SciPy                     1.12.0             Miscellaneous statistical functions
+xlsxwriter                1.0.2              Excel writing
+blosc                     1.14.3             Compression for HDF5
+fsspec                    0.7.4              Handling files aside from local and HTTP
 fastparquet               0.3.2              Parquet reading / writing
-gcsfs                     0.2.2              Google Cloud Storage access
-html5lib                                     HTML parser for read_html (see :ref:`note <optional_html>`)
-lxml                      3.8.0              HTML parser for read_html (see :ref:`note <optional_html>`)
-matplotlib                2.2.2              Visualization
+gcsfs                     0.6.0              Google Cloud Storage access
+html5lib                  1.0.1              HTML parser for read_html (see :ref:`note <optional_html>`)
+lxml                      4.3.0              HTML parser for read_html (see :ref:`note <optional_html>`)
+matplotlib                2.2.3              Visualization
 numba                     0.46.0             Alternative execution engine for rolling operations
-openpyxl                  2.5.7              Reading / writing for xlsx files
-pandas-gbq                0.8.0              Google Big Query access
-psycopg2                                     PostgreSQL engine for sqlalchemy
-pyarrow                   0.12.0             Parquet, ORC (requires 0.13.0), and feather reading / writing
+openpyxl                  2.6.0              Reading / writing for xlsx files
+pandas-gbq                0.12.0             Google Big Query access
+psycopg2                  2.7                PostgreSQL engine for sqlalchemy
+pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
-pytables                  3.4.3              HDF5 reading / writing
+pytables                  3.4.4              HDF5 reading / writing
 pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O
-s3fs                      0.3.0              Amazon S3 access
+s3fs                      0.4.0              Amazon S3 access
 tabulate                  0.8.3              Printing in Markdown-friendly format (see `tabulate`_)
-xarray                    0.8.2              pandas-like API for N-dimensional data
+xarray                    0.12.0             pandas-like API for N-dimensional data
 xclip                                        Clipboard I/O on linux
-xlrd                      1.1.0              Excel reading
-xlwt                      1.2.0              Excel writing
+xlrd                      1.2.0              Excel reading
+xlwt                      1.3.0              Excel writing
 xsel                                         Clipboard I/O on linux
 zlib                                         Compression for HDF5
 ========================= ================== =============================================================
@@ -299,8 +300,6 @@ Optional dependencies for parsing HTML
 
 One of the following combinations of libraries is needed to use the
 top-level :func:`~pandas.read_html` function:
-
-.. versionchanged:: 0.23.0
 
 * `BeautifulSoup4`_ and `html5lib`_
 * `BeautifulSoup4`_ and `lxml`_

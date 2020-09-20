@@ -21,7 +21,7 @@ from collections import OrderedDict
 from distutils.version import LooseVersion
 from typing import Any, Dict, Optional, Union
 
-from numpy import __version__ as _np_version, ndarray
+from numpy import __version__, ndarray
 
 from pandas._libs.lib import is_bool, is_integer
 from pandas.errors import UnsupportedFunctionCall
@@ -122,7 +122,7 @@ ARGSORT_DEFAULTS["axis"] = -1
 ARGSORT_DEFAULTS["kind"] = "quicksort"
 ARGSORT_DEFAULTS["order"] = None
 
-if LooseVersion(_np_version) >= LooseVersion("1.17.0"):
+if LooseVersion(__version__) >= LooseVersion("1.17.0"):
     # GH-26361. NumPy added radix sort and changed default to None.
     ARGSORT_DEFAULTS["kind"] = None
 
@@ -157,7 +157,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     return ascending
 
 
-CLIP_DEFAULTS = dict(out=None)  # type Dict[str, Any]
+CLIP_DEFAULTS: Dict[str, Any] = dict(out=None)
 validate_clip = CompatValidator(
     CLIP_DEFAULTS, fname="clip", method="both", max_fname_arg_count=3
 )
@@ -218,7 +218,7 @@ validate_any = CompatValidator(
 LOGICAL_FUNC_DEFAULTS = dict(out=None, keepdims=False)
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method="kwargs")
 
-MINMAX_DEFAULTS = dict(out=None, keepdims=False)
+MINMAX_DEFAULTS = dict(axis=None, out=None, keepdims=False)
 validate_min = CompatValidator(
     MINMAX_DEFAULTS, fname="min", method="both", max_fname_arg_count=1
 )
@@ -251,9 +251,15 @@ STAT_FUNC_DEFAULTS: "OrderedDict[str, Optional[Any]]" = OrderedDict()
 STAT_FUNC_DEFAULTS["dtype"] = None
 STAT_FUNC_DEFAULTS["out"] = None
 
-PROD_DEFAULTS = SUM_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+SUM_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+SUM_DEFAULTS["axis"] = None
 SUM_DEFAULTS["keepdims"] = False
 SUM_DEFAULTS["initial"] = None
+
+PROD_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+PROD_DEFAULTS["axis"] = None
+PROD_DEFAULTS["keepdims"] = False
+PROD_DEFAULTS["initial"] = None
 
 MEDIAN_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
 MEDIAN_DEFAULTS["overwrite_input"] = False

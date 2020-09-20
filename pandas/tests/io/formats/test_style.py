@@ -405,9 +405,10 @@ class TestStyler:
 
         result = self.df.style.where(f, style1)._compute().ctx
         expected = {
-            (r, c): [style1 if f(self.df.loc[row, col]) else ""]
+            (r, c): [style1]
             for r, row in enumerate(self.df.index)
             for c, col in enumerate(self.df.columns)
+            if f(self.df.loc[row, col])
         }
         assert result == expected
 
@@ -966,7 +967,6 @@ class TestStyler:
                 "transparent 25.0%, #d65f5f 25.0%, "
                 "#d65f5f 50.0%, transparent 50.0%)",
             ],
-            (1, 0): [""],
             (0, 1): [
                 "width: 10em",
                 " height: 80%",
@@ -994,7 +994,6 @@ class TestStyler:
                 "transparent 50.0%, #d65f5f 50.0%, "
                 "#d65f5f 75.0%, transparent 75.0%)",
             ],
-            (1, 0): [""],
             (0, 1): [
                 "width: 10em",
                 " height: 80%",
@@ -1091,7 +1090,7 @@ class TestStyler:
     def test_highlight_null(self, null_color="red"):
         df = pd.DataFrame({"A": [0, np.nan]})
         result = df.style.highlight_null()._compute().ctx
-        expected = {(0, 0): [""], (1, 0): ["background-color: red"]}
+        expected = {(1, 0): ["background-color: red"]}
         assert result == expected
 
     def test_highlight_null_subset(self):
@@ -1104,9 +1103,7 @@ class TestStyler:
             .ctx
         )
         expected = {
-            (0, 0): [""],
             (1, 0): ["background-color: red"],
-            (0, 1): [""],
             (1, 1): ["background-color: green"],
         }
         assert result == expected
@@ -1219,8 +1216,6 @@ class TestStyler:
             expected = {
                 (1, 0): ["background-color: yellow"],
                 (1, 1): ["background-color: yellow"],
-                (0, 1): [""],
-                (0, 0): [""],
             }
             assert result == expected
 
@@ -1228,8 +1223,6 @@ class TestStyler:
             expected = {
                 (0, 1): ["background-color: yellow"],
                 (1, 1): ["background-color: yellow"],
-                (0, 0): [""],
-                (1, 0): [""],
             }
             assert result == expected
 
@@ -1688,6 +1681,62 @@ class TestStyler:
         styler = self.df.style
         result = styler.pipe((f, "styler"), a=1, b=2)
         assert result == (1, 2, styler)
+
+    def test_no_cell_ids(self):
+        # GH 35588
+        # GH 35663
+        df = pd.DataFrame(data=[[0]])
+        styler = Styler(df, uuid="_", cell_ids=False)
+        styler.render()
+        s = styler.render()  # render twice to ensure ctx is not updated
+        assert s.find('<td  class="data row0 col0" >') != -1
+
+    @pytest.mark.parametrize(
+        "classes",
+        [
+            DataFrame(
+                data=[["", "test-class"], [np.nan, None]],
+                columns=["A", "B"],
+                index=["a", "b"],
+            ),
+            DataFrame(data=[["test-class"]], columns=["B"], index=["a"]),
+            DataFrame(data=[["test-class", "unused"]], columns=["B", "C"], index=["a"]),
+        ],
+    )
+    def test_set_data_classes(self, classes):
+        # GH 36159
+        df = DataFrame(data=[[0, 1], [2, 3]], columns=["A", "B"], index=["a", "b"])
+        s = Styler(df, uuid="_", cell_ids=False).set_td_classes(classes).render()
+        assert '<td  class="data row0 col0" >0</td>' in s
+        assert '<td  class="data row0 col1 test-class" >1</td>' in s
+        assert '<td  class="data row1 col0" >2</td>' in s
+        assert '<td  class="data row1 col1" >3</td>' in s
+
+    def test_colspan_w3(self):
+        # GH 36223
+        df = pd.DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
+        s = Styler(df, uuid="_", cell_ids=False)
+        assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
+
+    @pytest.mark.parametrize("len_", [1, 5, 32, 33, 100])
+    def test_uuid_len(self, len_):
+        # GH 36345
+        df = pd.DataFrame(data=[["A"]])
+        s = Styler(df, uuid_len=len_, cell_ids=False).render()
+        strt = s.find('id="T_')
+        end = s[strt + 6 :].find('"')
+        if len_ > 32:
+            assert end == 32 + 1
+        else:
+            assert end == len_ + 1
+
+    @pytest.mark.parametrize("len_", [-2, "bad", None])
+    def test_uuid_len_raises(self, len_):
+        # GH 36345
+        df = pd.DataFrame(data=[["A"]])
+        msg = "``uuid_len`` must be an integer in range \\[0, 32\\]."
+        with pytest.raises(TypeError, match=msg):
+            Styler(df, uuid_len=len_, cell_ids=False).render()
 
 
 @td.skip_if_no_mpl

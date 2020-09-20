@@ -65,7 +65,8 @@ class TestAtTime:
     def test_at_time_raises(self):
         # GH#20725
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
-        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+        msg = "Index must be DatetimeIndex"
+        with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
             df.at_time("00:00")
 
     @pytest.mark.parametrize("axis", ["index", "columns", 0, 1])
@@ -83,4 +84,8 @@ class TestAtTime:
             expected = ts.loc[:, indices]
 
         result = ts.at_time("9:30", axis=axis)
+
+        # Without clearing freq, result has freq 1440T and expected 5T
+        result.index = result.index._with_freq(None)
+        expected.index = expected.index._with_freq(None)
         tm.assert_frame_equal(result, expected)

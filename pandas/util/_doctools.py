@@ -23,7 +23,7 @@ class TablePlotter:
 
     def _shape(self, df: pd.DataFrame) -> Tuple[int, int]:
         """
-        Calculate table chape considering index levels.
+        Calculate table shape considering index levels.
         """
         row, col = df.shape
         return row + df.columns.nlevels, col + df.index.nlevels
@@ -53,8 +53,8 @@ class TablePlotter:
         vertical : bool, default True
             If True, use vertical layout. If False, use horizontal layout.
         """
-        import matplotlib.pyplot as plt
         import matplotlib.gridspec as gridspec
+        import matplotlib.pyplot as plt
 
         if not isinstance(left, list):
             left = [left]

@@ -7,6 +7,7 @@ from typing import Type
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import no_default, register_extension_dtype
@@ -130,9 +131,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return type(self)(self._data.copy())
 
     def astype(self, dtype, copy=True):
+        dtype = pandas_dtype(dtype)
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
-        return np.asarray(self, dtype=dtype)
+
+        return super().astype(dtype, copy=copy)
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):
@@ -164,14 +167,14 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     def _formatter(self, boxed=False):
         if boxed:
-            return "Decimal: {0}".format
+            return "Decimal: {}".format
         return repr
 
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
 
         if skipna:
             # If we don't have any NAs, we can ignore skipna

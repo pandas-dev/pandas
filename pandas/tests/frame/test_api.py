@@ -1,15 +1,17 @@
 from copy import deepcopy
 import datetime
+import inspect
 import pydoc
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
-from pandas.util._test_decorators import async_mark
+from pandas.compat import IS64, is_platform_windows
+import pandas.util._test_decorators as td
+from pandas.util._test_decorators import async_mark, skip_if_no
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
+from pandas import Categorical, DataFrame, Series, date_range, timedelta_range
 import pandas._testing as tm
 
 
@@ -253,7 +255,7 @@ class TestDataFrameMisc:
         assert list(dfaa.itertuples()) == [(0, 1, 1), (1, 2, 2), (2, 3, 3)]
 
         # repr with int on 32-bit/windows
-        if not (compat.is_platform_windows() or compat.is_platform_32bit()):
+        if not (is_platform_windows() or not IS64):
             assert (
                 repr(list(df.itertuples(name=None)))
                 == "[(0, 1, 4), (1, 2, 5), (2, 3, 6)]"
@@ -273,10 +275,7 @@ class TestDataFrameMisc:
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
         assert isinstance(tup3, tuple)
-        if PY37:
-            assert hasattr(tup3, "_fields")
-        else:
-            assert not hasattr(tup3, "_fields")
+        assert hasattr(tup3, "_fields")
 
         # GH 28282
         df_254_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(254)}])
@@ -287,12 +286,7 @@ class TestDataFrameMisc:
         df_255_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(255)}])
         result_255_columns = next(df_255_columns.itertuples(index=False))
         assert isinstance(result_255_columns, tuple)
-
-        # Dataframes with >=255 columns will fallback to regular tuples on python < 3.7
-        if PY37:
-            assert hasattr(result_255_columns, "_fields")
-        else:
-            assert not hasattr(result_255_columns, "_fields")
+        assert hasattr(result_255_columns, "_fields")
 
     def test_sequence_like_with_categorical(self):
 
@@ -364,7 +358,14 @@ class TestDataFrameMisc:
         df = pd.DataFrame(arr)
         assert df.values.base is arr
         assert df.to_numpy(copy=False).base is arr
-        assert df.to_numpy(copy=True).base is None
+        assert df.to_numpy(copy=True).base is not arr
+
+    def test_to_numpy_mixed_dtype_to_str(self):
+        # https://github.com/pandas-dev/pandas/issues/35455
+        df = pd.DataFrame([[pd.Timestamp("2020-01-01 00:00:00"), 100.0]])
+        result = df.to_numpy(dtype=str)
+        expected = np.array([["2020-01-01 00:00:00", "100.0"]], dtype=str)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
@@ -522,6 +523,7 @@ class TestDataFrameMisc:
         _check_f(d.copy(), f)
 
     @async_mark()
+    @td.check_file_leaks
     async def test_tab_complete_warning(self, ip):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
@@ -552,6 +554,33 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
 
+    @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
+    def test_set_flags(self, allows_duplicate_labels):
+        df = pd.DataFrame({"A": [1, 2]})
+        result = df.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+        if allows_duplicate_labels is None:
+            # We don't update when it's not provided
+            assert result.flags.allows_duplicate_labels is True
+        else:
+            assert result.flags.allows_duplicate_labels is allows_duplicate_labels
+
+        # We made a copy
+        assert df is not result
+
+        # We didn't mutate df
+        assert df.flags.allows_duplicate_labels is True
+
+        # But we didn't copy data
+        result.iloc[0, 0] = 0
+        assert df.iloc[0, 0] == 0
+
+        # Now we do copy.
+        result = df.set_flags(
+            copy=True, allows_duplicate_labels=allows_duplicate_labels
+        )
+        result.iloc[0, 0] = 10
+        assert df.iloc[0, 0] == 0
+
     def test_cache_on_copy(self):
         # GH 31784 _item_cache not cleared on copy causes incorrect reads after updates
         df = DataFrame({"a": [1]})
@@ -569,3 +598,14 @@ class TestDataFrameMisc:
 
         assert df["a"].values[0] == -1
         tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0], "y": [0]}))
+
+    @skip_if_no("jinja2")
+    def test_constructor_expanddim_lookup(self):
+        # GH#33628 accessing _constructor_expanddim should not
+        #  raise NotImplementedError
+        df = DataFrame()
+
+        inspect.getmembers(df)
+
+        with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
+            df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))

@@ -31,7 +31,7 @@ def _make_flex_doc(op_name, typ):
         base_doc = _flex_doc_SERIES
         if op_desc["reverse"]:
             base_doc += _see_also_reverse_SERIES.format(
-                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"],
+                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"]
             )
         doc_no_examples = base_doc.format(
             desc=op_desc["desc"],
@@ -399,7 +399,7 @@ _flex_doc_SERIES = """
 Return {desc} of series and other, element-wise (binary operator `{op_name}`).
 
 Equivalent to ``{equiv}``, but with support to substitute a fill_value for
-missing data in one of the inputs.
+missing data in either one of the inputs.
 
 Parameters
 ----------
@@ -408,7 +408,7 @@ fill_value : None or float value, default None (NaN)
     Fill existing missing (NaN) values, and any new element needed for
     successful Series alignment, with this value before computation.
     If data in both corresponding Series locations is missing
-    the result will be missing.
+    the result of filling (at that location) will be missing.
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level.
@@ -611,7 +611,7 @@ Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
 operators.
 
-Equivalent to `==`, `=!`, `<=`, `<`, `>=`, `>` with support to choose axis
+Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
 (rows or columns) and level for comparison.
 
 Parameters

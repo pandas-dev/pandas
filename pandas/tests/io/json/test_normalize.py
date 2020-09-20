@@ -284,6 +284,26 @@ class TestJSONNormalize:
         expected = DataFrame(ex_data, columns=result.columns)
         tm.assert_frame_equal(result, expected)
 
+    def test_nested_meta_path_with_nested_record_path(self, state_data):
+        # GH 27220
+        result = json_normalize(
+            data=state_data,
+            record_path=["counties"],
+            meta=["state", "shortname", ["info", "governor"]],
+            errors="ignore",
+        )
+
+        ex_data = {
+            "name": ["Dade", "Broward", "Palm Beach", "Summit", "Cuyahoga"],
+            "population": [12345, 40000, 60000, 1234, 1337],
+            "state": ["Florida"] * 3 + ["Ohio"] * 2,
+            "shortname": ["FL"] * 3 + ["OH"] * 2,
+            "info.governor": ["Rick Scott"] * 3 + ["John Kasich"] * 2,
+        }
+
+        expected = DataFrame(ex_data)
+        tm.assert_frame_equal(result, expected)
+
     def test_meta_name_conflict(self):
         data = [
             {

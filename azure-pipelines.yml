@@ -1,9 +1,14 @@
 # Adapted from https://github.com/numba/numba/blob/master/azure-pipelines.yml
 trigger:
 - master
+- 1.1.x
 
 pr:
 - master
+- 1.1.x
+
+variables:
+  PYTEST_WORKERS: auto
 
 jobs:
 # Mac and Linux use the same template

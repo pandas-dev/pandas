@@ -113,9 +113,10 @@ def test_read_gbq_with_new_kwargs(monkeypatch):
         return DataFrame([[1.0]])
 
     monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
-    pd.read_gbq("SELECT 1", use_bqstorage_api=True)
+    pd.read_gbq("SELECT 1", use_bqstorage_api=True, max_results=1)
 
     assert captured_kwargs["use_bqstorage_api"]
+    assert captured_kwargs["max_results"]
 
 
 def test_read_gbq_without_new_kwargs(monkeypatch):
@@ -129,6 +130,7 @@ def test_read_gbq_without_new_kwargs(monkeypatch):
     pd.read_gbq("SELECT 1")
 
     assert "use_bqstorage_api" not in captured_kwargs
+    assert "max_results" not in captured_kwargs
 
 
 @pytest.mark.parametrize("progress_bar", [None, "foo"])
@@ -142,11 +144,7 @@ def test_read_gbq_progress_bar_type_kwarg(monkeypatch, progress_bar):
 
     monkeypatch.setattr("pandas_gbq.read_gbq", mock_read_gbq)
     pd.read_gbq("SELECT 1", progress_bar_type=progress_bar)
-
-    if progress_bar:
-        assert "progress_bar_type" in captured_kwargs
-    else:
-        assert "progress_bar_type" not in captured_kwargs
+    assert "progress_bar_type" in captured_kwargs
 
 
 @pytest.mark.single

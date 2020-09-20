@@ -87,11 +87,9 @@ The mapping can be specified many different ways:
 * A Python function, to be called on each of the axis labels.
 * A list or NumPy array of the same length as the selected axis.
 * A dict or ``Series``, providing a ``label -> group name`` mapping.
-* For ``DataFrame`` objects, a string indicating a column to be used to group.
-  Of course ``df.groupby('A')`` is just syntactic sugar for
-  ``df.groupby(df['A'])``, but it makes life simpler.
-* For ``DataFrame`` objects, a string indicating an index level to be used to
-  group.
+* For ``DataFrame`` objects, a string indicating either a column name or
+  an index level name to be used to group.
+* ``df.groupby('A')`` is just syntactic sugar for ``df.groupby(df['A'])``.
 * A list of any of the above things.
 
 Collectively we refer to the grouping objects as the **keys**. For example,
@@ -198,6 +196,33 @@ For example, the groups created by ``groupby()`` below are in the order they app
 
    df3.groupby(['X']).get_group('B')
 
+
+.. _groupby.dropna:
+
+.. versionadded:: 1.1.0
+
+GroupBy dropna
+^^^^^^^^^^^^^^
+
+By default ``NA`` values are excluded from group keys during the ``groupby`` operation. However,
+in case you want to include ``NA`` values in group keys, you could pass ``dropna=False`` to achieve it.
+
+.. ipython:: python
+
+    df_list = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+    df_dropna = pd.DataFrame(df_list, columns=["a", "b", "c"])
+
+    df_dropna
+
+.. ipython:: python
+
+    # Default `dropna` is set to True, which will exclude NaNs in keys
+    df_dropna.groupby(by=["b"], dropna=True).sum()
+
+    # In order to allow NaN in keys, set `dropna` to False
+    df_dropna.groupby(by=["b"], dropna=False).sum()
+
+The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.
 
 
 .. _groupby.attributes:
@@ -1020,6 +1045,73 @@ that is itself a series, and possibly upcast the result to a DataFrame:
    So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
    the output as well as set the indices.
 
+
+Numba Accelerated Routines
+--------------------------
+
+.. versionadded:: 1.1
+
+If `Numba <https://numba.pydata.org/>`__ is installed as an optional dependency, the ``transform`` and
+``aggregate`` methods support ``engine='numba'`` and ``engine_kwargs`` arguments. The ``engine_kwargs``
+argument is a dictionary of keyword arguments that will be passed into the
+`numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
+These keyword arguments will be applied to the passed function. Currently only ``nogil``, ``nopython``,
+and ``parallel`` are supported, and their default values are set to ``False``, ``True`` and ``False`` respectively.
+
+The function signature must start with ``values, index`` **exactly** as the data belonging to each group
+will be passed into ``values``, and the group index will be passed into ``index``.
+
+.. warning::
+
+   When using ``engine='numba'``, there will be no "fall back" behavior internally. The group
+   data and group index will be passed as numpy arrays to the JITed user defined function, and no
+   alternative execution attempts will be tried.
+
+.. note::
+
+   In terms of performance, **the first time a function is run using the Numba engine will be slow**
+   as Numba will have some function compilation overhead. However, the compiled functions are cached,
+   and subsequent calls will be fast. In general, the Numba engine is performant with
+   a larger amount of data points (e.g. 1+ million).
+
+.. code-block:: ipython
+
+   In [1]: N = 10 ** 3
+
+   In [2]: data = {0: [str(i) for i in range(100)] * N, 1: list(range(100)) * N}
+
+   In [3]: df = pd.DataFrame(data, columns=[0, 1])
+
+   In [4]: def f_numba(values, index):
+      ...:     total = 0
+      ...:     for i, value in enumerate(values):
+      ...:         if i % 2:
+      ...:             total += value + 5
+      ...:         else:
+      ...:             total += value * 2
+      ...:     return total
+      ...:
+
+   In [5]: def f_cython(values):
+      ...:     total = 0
+      ...:     for i, value in enumerate(values):
+      ...:         if i % 2:
+      ...:             total += value + 5
+      ...:         else:
+      ...:             total += value * 2
+      ...:     return total
+      ...:
+
+   In [6]: groupby = df.groupby(0)
+   # Run the first time, compilation time will affect performance
+   In [7]: %timeit -r 1 -n 1 groupby.aggregate(f_numba, engine='numba')  # noqa: E225
+   2.14 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
+   # Function is cached and performance will improve
+   In [8]: %timeit groupby.aggregate(f_numba, engine='numba')
+   4.93 ms ± 32.3 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+
+   In [9]: %timeit groupby.aggregate(f_cython, engine='cython')
+   18.6 ms ± 84.8 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
 Other useful features
 ---------------------

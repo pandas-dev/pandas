@@ -18,6 +18,7 @@ from typing import Iterable, List, Tuple
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
+    "pd",
     "Python",
     "IPython",
     "PyTables",
@@ -35,6 +36,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "Series",
     "Index",
     "DataFrame",
+    "DataFrames",
     "C",
     "Git",
     "GitHub",
@@ -49,15 +51,19 @@ CAPITALIZATION_EXCEPTIONS = {
     "PeriodIndex",
     "NA",
     "NaN",
+    "NaT",
     "ValueError",
+    "Boolean",
     "BooleanArray",
     "KeyError",
     "API",
     "FAQ",
     "IO",
+    "Timedelta",
     "TimedeltaIndex",
     "DatetimeIndex",
     "IntervalIndex",
+    "Categorical",
     "CategoricalIndex",
     "Categorical",
     "GroupBy",
@@ -114,6 +120,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "November",
     "December",
     "Float64Index",
+    "FloatIndex",
     "TZ",
     "GIL",
     "strftime",
@@ -122,6 +129,19 @@ CAPITALIZATION_EXCEPTIONS = {
     "East",
     "Asian",
     "None",
+    "URLs",
+    "UInt64",
+    "SciPy",
+    "Matplotlib",
+    "PyPy",
+    "SparseDataFrame",
+    "Google",
+    "CategoricalDtype",
+    "UTC",
+    "Panel",
+    "False",
+    "Styler",
+    "os",
     "UTC",
     "str",
     "msgpack",
@@ -200,7 +220,7 @@ def find_titles(rst_file: str) -> Iterable[Tuple[str, int]]:
         The corresponding line number of the heading.
     """
 
-    with open(rst_file, "r") as fd:
+    with open(rst_file) as fd:
         previous_line = ""
         for i, line in enumerate(fd):
             line = line[:-1]
@@ -238,10 +258,9 @@ def find_rst_files(source_paths: List[str]) -> Iterable[str]:
         elif directory_address.endswith(".rst"):
             yield directory_address
         else:
-            for filename in glob.glob(
+            yield from glob.glob(
                 pathname=f"{directory_address}/**/*.rst", recursive=True
-            ):
-                yield filename
+            )
 
 
 def main(source_paths: List[str], output_format: str) -> int:

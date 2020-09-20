@@ -5,39 +5,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Index, NaT, Timestamp, date_range, offsets
+from pandas import DataFrame, DatetimeIndex, Index, Timestamp, date_range, offsets
 import pandas._testing as tm
 
 randn = np.random.randn
 
 
 class TestDatetimeIndex:
-    def test_roundtrip_pickle_with_tz(self):
-
-        # GH 8367
-        # round-trip of timezone
-        index = date_range("20130101", periods=3, tz="US/Eastern", name="foo")
-        unpickled = tm.round_trip_pickle(index)
-        tm.assert_index_equal(index, unpickled)
-
-    def test_pickle(self):
-
-        # GH#4606
-        p = tm.round_trip_pickle(NaT)
-        assert p is NaT
-
-        idx = pd.to_datetime(["2013-01-01", NaT, "2014-01-06"])
-        idx_p = tm.round_trip_pickle(idx)
-        assert idx_p[0] == idx[0]
-        assert idx_p[1] is NaT
-        assert idx_p[2] == idx[2]
-
-        # GH#11002
-        # don't infer freq
-        idx = date_range("1750-1-1", "2050-1-1", freq="7D")
-        idx_p = tm.round_trip_pickle(idx)
-        tm.assert_index_equal(idx, idx_p)
-
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH7774
         index = date_range("20130101", periods=3, tz="US/Eastern")
@@ -77,14 +51,15 @@ class TestDatetimeIndex:
             "2010-01-02 00:00:00",
         ]
         expected1 = DatetimeIndex(
-            expected_list1, dtype="datetime64[ns, UTC]", freq=None,
+            expected_list1, dtype="datetime64[ns, UTC]", freq=None
         )
-        expected2 = np.array([0] + [-1] * 21 + [23], dtype=np.int64,)
+        expected2 = np.array([0] + [-1] * 21 + [23], dtype=np.dtype("intp"))
         tm.assert_index_equal(result1, expected1)
         tm.assert_numpy_array_equal(result2, expected2)
 
     def test_time_loc(self):  # GH8667
         from datetime import time
+
         from pandas._libs.index import _SIZE_CUTOFF
 
         ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)
@@ -156,23 +131,6 @@ class TestDatetimeIndex:
 
         result = rng.append(idx)
         assert isinstance(result[0], Timestamp)
-
-    def test_map(self):
-        rng = date_range("1/1/2000", periods=10)
-
-        f = lambda x: x.strftime("%Y%m%d")
-        result = rng.map(f)
-        exp = Index([f(x) for x in rng], dtype="<U8")
-        tm.assert_index_equal(result, exp)
-
-    def test_map_fallthrough(self, capsys):
-        # GH#22067, check we don't get warnings about silently ignored errors
-        dti = date_range("2017-01-01", "2018-01-01", freq="B")
-
-        dti.map(lambda x: pd.Period(year=x.year, month=x.month, freq="M"))
-
-        captured = capsys.readouterr()
-        assert captured.err == ""
 
     def test_iteration_preserves_tz(self):
         # see gh-8890
@@ -256,14 +214,6 @@ class TestDatetimeIndex:
         ordered, dexer = idx.sort_values(return_indexer=True, ascending=False)
         assert ordered[::-1].is_monotonic
         tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1], dtype=np.intp))
-
-    def test_map_bug_1677(self):
-        index = DatetimeIndex(["2012-04-25 09:30:00.393000"])
-        f = index.asof
-
-        result = index.map(f)
-        expected = Index([f(index[0])])
-        tm.assert_index_equal(result, expected)
 
     def test_groupby_function_tuple_1677(self):
         df = DataFrame(np.random.rand(100), index=date_range("1/1/2000", periods=100))
@@ -368,7 +318,8 @@ class TestDatetimeIndex:
         for obj in [idx, pd.Series(idx)]:
             arr, res = obj.factorize()
             tm.assert_numpy_array_equal(arr, exp_arr)
-            tm.assert_index_equal(res, base)
+            expected = base._with_freq(None)
+            tm.assert_index_equal(res, expected)
 
     def test_factorize_dst(self):
         # GH 13750
@@ -446,22 +397,9 @@ class TestDatetimeIndex:
         expected = DataFrame(idx, index=idx)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("name", [None, "name"])
-    def test_index_map(self, name):
-        # see GH20990
-        count = 6
-        index = pd.date_range("2018-01-01", periods=count, freq="M", name=name).map(
-            lambda x: (x.year, x.month)
-        )
-        exp_index = pd.MultiIndex.from_product(
-            ((2018,), range(1, 7)), names=[name, name]
-        )
-        tm.assert_index_equal(index, exp_index)
-
     def test_split_non_utc(self):
         # GH 14042
         indices = pd.date_range("2016-01-01 00:00:00+0200", freq="S", periods=10)
         result = np.split(indices, indices_or_sections=[])[0]
-        expected = indices.copy()
-        expected._set_freq(None)
+        expected = indices._with_freq(None)
         tm.assert_index_equal(result, expected)

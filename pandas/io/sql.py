@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time
 from functools import partial
 import re
+from typing import Iterator, Optional, Union, overload
 import warnings
 
 import numpy as np
@@ -89,7 +90,7 @@ def _handle_date_column(col, utc=None, format=None):
             format = "s"
         if format in ["D", "d", "h", "m", "s", "ms", "us", "ns"]:
             return to_datetime(col, errors="coerce", unit=format, utc=utc)
-        elif is_datetime64tz_dtype(col):
+        elif is_datetime64tz_dtype(col.dtype):
             # coerce to UTC timezone
             # GH11216
             return to_datetime(col, utc=True)
@@ -108,7 +109,7 @@ def _parse_date_columns(data_frame, parse_dates):
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
     for col_name, df_col in data_frame.items():
-        if is_datetime64tz_dtype(df_col) or col_name in parse_dates:
+        if is_datetime64tz_dtype(df_col.dtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
             except TypeError:
@@ -162,6 +163,7 @@ def execute(sql, con, cur=None, params=None):
 # -- Read and write to DataFrames
 
 
+@overload
 def read_sql_table(
     table_name,
     con,
@@ -170,8 +172,35 @@ def read_sql_table(
     coerce_float=True,
     parse_dates=None,
     columns=None,
-    chunksize=None,
-):
+    chunksize: None = None,
+) -> DataFrame:
+    ...
+
+
+@overload
+def read_sql_table(
+    table_name,
+    con,
+    schema=None,
+    index_col=None,
+    coerce_float=True,
+    parse_dates=None,
+    columns=None,
+    chunksize: int = 1,
+) -> Iterator[DataFrame]:
+    ...
+
+
+def read_sql_table(
+    table_name,
+    con,
+    schema=None,
+    index_col=None,
+    coerce_float=True,
+    parse_dates=None,
+    columns=None,
+    chunksize: Optional[int] = None,
+) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL database table into a DataFrame.
 
@@ -210,7 +239,7 @@ def read_sql_table(
 
     Returns
     -------
-    DataFrame
+    DataFrame or Iterator[DataFrame]
         A SQL table is returned as two-dimensional data structure with labeled
         axes.
 
@@ -257,6 +286,7 @@ def read_sql_table(
         raise ValueError(f"Table {table_name} not found", con)
 
 
+@overload
 def read_sql_query(
     sql,
     con,
@@ -264,8 +294,33 @@ def read_sql_query(
     coerce_float=True,
     params=None,
     parse_dates=None,
-    chunksize=None,
-):
+    chunksize: None = None,
+) -> DataFrame:
+    ...
+
+
+@overload
+def read_sql_query(
+    sql,
+    con,
+    index_col=None,
+    coerce_float=True,
+    params=None,
+    parse_dates=None,
+    chunksize: int = 1,
+) -> Iterator[DataFrame]:
+    ...
+
+
+def read_sql_query(
+    sql,
+    con,
+    index_col=None,
+    coerce_float=True,
+    params=None,
+    parse_dates=None,
+    chunksize: Optional[int] = None,
+) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL query into a DataFrame.
 
@@ -277,11 +332,9 @@ def read_sql_query(
     ----------
     sql : str SQL query or SQLAlchemy Selectable (select or text object)
         SQL query to be executed.
-    con : SQLAlchemy connectable(engine/connection), database str URI,
-        or sqlite3 DBAPI2 connection
+    con : SQLAlchemy connectable, str, or sqlite3 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
-        If a DBAPI2 object, only sqlite3 is supported.
+        library. If a DBAPI2 object, only sqlite3 is supported.
     index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
@@ -308,7 +361,7 @@ def read_sql_query(
 
     Returns
     -------
-    DataFrame
+    DataFrame or Iterator[DataFrame]
 
     See Also
     --------
@@ -331,6 +384,7 @@ def read_sql_query(
     )
 
 
+@overload
 def read_sql(
     sql,
     con,
@@ -339,8 +393,35 @@ def read_sql(
     params=None,
     parse_dates=None,
     columns=None,
-    chunksize=None,
-):
+    chunksize: None = None,
+) -> DataFrame:
+    ...
+
+
+@overload
+def read_sql(
+    sql,
+    con,
+    index_col=None,
+    coerce_float=True,
+    params=None,
+    parse_dates=None,
+    columns=None,
+    chunksize: int = 1,
+) -> Iterator[DataFrame]:
+    ...
+
+
+def read_sql(
+    sql,
+    con,
+    index_col=None,
+    coerce_float=True,
+    params=None,
+    parse_dates=None,
+    columns=None,
+    chunksize: Optional[int] = None,
+) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL query or database table into a DataFrame.
 
@@ -355,12 +436,11 @@ def read_sql(
     ----------
     sql : str or SQLAlchemy Selectable (select or text object)
         SQL query to be executed or a table name.
-    con : SQLAlchemy connectable (engine/connection) or database str URI
-        or DBAPI2 connection (fallback mode).
-
+    con : SQLAlchemy connectable, str, or sqlite3 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
-        for engine disposal and connection closure for the SQLAlchemy connectable. See
+        for engine disposal and connection closure for the SQLAlchemy connectable; str
+        connections are closed automatically. See
         `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_.
     index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
@@ -391,7 +471,7 @@ def read_sql(
 
     Returns
     -------
-    DataFrame
+    DataFrame or Iterator[DataFrame]
 
     See Also
     --------
@@ -448,7 +528,7 @@ def to_sql(
     chunksize=None,
     dtype=None,
     method=None,
-):
+) -> None:
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -858,7 +938,7 @@ class SQLTable(PandasObject):
         return column_names_and_types
 
     def _create_table_setup(self):
-        from sqlalchemy import Table, Column, PrimaryKeyConstraint
+        from sqlalchemy import Column, PrimaryKeyConstraint, Table
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
@@ -947,15 +1027,15 @@ class SQLTable(PandasObject):
         col_type = lib.infer_dtype(col, skipna=True)
 
         from sqlalchemy.types import (
-            BigInteger,
-            Integer,
-            Float,
-            Text,
-            Boolean,
-            DateTime,
-            Date,
-            Time,
             TIMESTAMP,
+            BigInteger,
+            Boolean,
+            Date,
+            DateTime,
+            Float,
+            Integer,
+            Text,
+            Time,
         )
 
         if col_type == "datetime64" or col_type == "datetime":
@@ -1000,7 +1080,7 @@ class SQLTable(PandasObject):
         return Text
 
     def _get_dtype(self, sqltype):
-        from sqlalchemy.types import Integer, Float, Boolean, DateTime, Date, TIMESTAMP
+        from sqlalchemy.types import TIMESTAMP, Boolean, Date, DateTime, Float, Integer
 
         if isinstance(sqltype, Float):
             return float
@@ -1079,7 +1159,9 @@ class SQLDatabase(PandasSQL):
 
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy connectable"""
-        return self.connectable.execute(*args, **kwargs)
+        return self.connectable.execution_options(no_parameters=True).execute(
+            *args, **kwargs
+        )
 
     def read_table(
         self,
@@ -1293,7 +1375,7 @@ class SQLDatabase(PandasSQL):
             dtype = {col_name: dtype for col_name in frame}
 
         if dtype is not None:
-            from sqlalchemy.types import to_instance, TypeEngine
+            from sqlalchemy.types import TypeEngine, to_instance
 
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):
@@ -1310,7 +1392,20 @@ class SQLDatabase(PandasSQL):
             dtype=dtype,
         )
         table.create()
-        table.insert(chunksize, method=method)
+
+        from sqlalchemy import exc
+
+        try:
+            table.insert(chunksize, method=method)
+        except exc.SQLAlchemyError as err:
+            # GH34431
+            msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
+            err_text = str(err.orig)
+            if re.search(msg, err_text):
+                raise ValueError("inf cannot be used with MySQL") from err
+            else:
+                raise err
+
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case

@@ -1,6 +1,8 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
 import bz2
+from csv import QUOTE_MINIMAL, QUOTE_NONE, QUOTE_NONNUMERIC
+from errno import ENOENT
 import gzip
 import io
 import os
@@ -9,17 +11,14 @@ import time
 import warnings
 import zipfile
 
-from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
-from errno import ENOENT
-
 from libc.stdlib cimport free
-from libc.string cimport strncpy, strlen, strcasecmp
+from libc.string cimport strcasecmp, strlen, strncpy
 
 import cython
 from cython import Py_ssize_t
 
 from cpython.bytes cimport PyBytes_AsString, PyBytes_FromString
-from cpython.exc cimport PyErr_Occurred, PyErr_Fetch
+from cpython.exc cimport PyErr_Fetch, PyErr_Occurred
 from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
 from cpython.unicode cimport PyUnicode_AsUTF8String, PyUnicode_Decode
@@ -30,38 +29,60 @@ cdef extern from "Python.h":
 
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport ndarray, uint8_t, uint64_t, int64_t, float64_t
+from numpy cimport float64_t, int64_t, ndarray, uint8_t, uint64_t
+
 cnp.import_array()
 
-cimport pandas._libs.util as util
-from pandas._libs.util cimport UINT64_MAX, INT64_MAX, INT64_MIN
+from pandas._libs cimport util
+from pandas._libs.util cimport INT64_MAX, INT64_MIN, UINT64_MAX
+
 import pandas._libs.lib as lib
 
 from pandas._libs.khash cimport (
-    khiter_t,
-    kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
-    kh_get_str, kh_destroy_str,
-    kh_float64_t, kh_get_float64, kh_destroy_float64,
-    kh_put_float64, kh_init_float64, kh_resize_float64,
-    kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
+    kh_destroy_float64,
+    kh_destroy_str,
+    kh_destroy_str_starts,
     kh_destroy_strbox,
-    kh_str_starts_t, kh_put_str_starts_item, kh_init_str_starts,
-    kh_get_str_starts_item, kh_destroy_str_starts, kh_resize_str_starts)
+    kh_exist_str,
+    kh_float64_t,
+    kh_get_float64,
+    kh_get_str,
+    kh_get_str_starts_item,
+    kh_get_strbox,
+    kh_init_float64,
+    kh_init_str,
+    kh_init_str_starts,
+    kh_init_strbox,
+    kh_put_float64,
+    kh_put_str,
+    kh_put_str_starts_item,
+    kh_put_strbox,
+    kh_resize_float64,
+    kh_resize_str_starts,
+    kh_str_starts_t,
+    kh_str_t,
+    kh_strbox_t,
+    khiter_t,
+)
+
+from pandas.compat import get_lzma_file, import_lzma
+from pandas.errors import DtypeWarning, EmptyDataError, ParserError, ParserWarning
 
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
     is_categorical_dtype,
-    is_integer_dtype, is_float_dtype,
-    is_bool_dtype, is_object_dtype,
     is_datetime64_dtype,
-    pandas_dtype, is_extension_array_dtype)
+    is_extension_array_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+    pandas_dtype,
+)
 from pandas.core.dtypes.concat import union_categoricals
 
-from pandas.compat import _import_lzma, _get_lzma_file
-from pandas.errors import (ParserError, DtypeWarning,
-                           EmptyDataError, ParserWarning)
-
-lzma = _import_lzma()
+lzma = import_lzma()
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -455,10 +476,13 @@ cdef class TextReader:
         if float_precision == "round_trip":
             # see gh-15140
             self.parser.double_converter = round_trip
-        elif float_precision == "high":
+        elif float_precision == "legacy":
+            self.parser.double_converter = xstrtod
+        elif float_precision == "high" or float_precision is None:
             self.parser.double_converter = precise_xstrtod
         else:
-            self.parser.double_converter = xstrtod
+            raise ValueError(f'Unrecognized float_precision option: '
+                             f'{float_precision}')
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
@@ -617,9 +641,9 @@ cdef class TextReader:
                                      f'zip file {zip_names}')
             elif self.compression == 'xz':
                 if isinstance(source, str):
-                    source = _get_lzma_file(lzma)(source, 'rb')
+                    source = get_lzma_file(lzma)(source, 'rb')
                 else:
-                    source = _get_lzma_file(lzma)(filename=source)
+                    source = get_lzma_file(lzma)(filename=source)
             else:
                 raise ValueError(f'Unrecognized compression type: '
                                  f'{self.compression}')
@@ -2037,7 +2061,7 @@ def _concatenate_chunks(list chunks):
         numpy_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
         if len(numpy_dtypes) > 1:
             common_type = np.find_common_type(numpy_dtypes, [])
-            if common_type == np.object:
+            if common_type == object:
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()

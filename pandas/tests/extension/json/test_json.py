@@ -150,6 +150,21 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
         # construct from our dtype & string dtype
         pass
 
+    @pytest.mark.xfail(reason="RecursionError, GH-33900")
+    def test_series_constructor_no_data_with_index(self, dtype, na_value):
+        # RecursionError: maximum recursion depth exceeded in comparison
+        super().test_series_constructor_no_data_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="RecursionError, GH-33900")
+    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
+        # RecursionError: maximum recursion depth exceeded in comparison
+        super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="collection as scalar, GH-33901")
+    def test_series_constructor_scalar_with_index(self, data, dtype):
+        # TypeError: All values must be of type <class 'collections.abc.Mapping'>
+        super().test_series_constructor_scalar_with_index(data, dtype)
+
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
     @pytest.mark.skip(reason="Different definitions of NA")
@@ -194,6 +209,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         pass
 
     @unhashable
+    def test_value_counts_with_normalize(self, data):
+        pass
+
+    @unhashable
     def test_sort_values_frame(self):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
@@ -205,12 +224,16 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super().test_argsort_missing(data_missing_for_sorting)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values(self, data_for_sorting, ascending):
-        super().test_sort_values(data_for_sorting, ascending)
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
+        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_missing(self, data_missing_for_sorting, ascending):
-        super().test_sort_values_missing(data_missing_for_sorting, ascending)
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
+        super().test_sort_values_missing(
+            data_missing_for_sorting, ascending, sort_by_key
+        )
 
     @pytest.mark.skip(reason="combine for JSONArray not supported")
     def test_combine_le(self, data_repeated):
@@ -238,6 +261,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     @pytest.mark.skip(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
         super().test_searchsorted(data_for_sorting)
+
+    @pytest.mark.skip(reason="Can't compare dicts.")
+    def test_equals(self, data, na_value, as_series):
+        pass
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):

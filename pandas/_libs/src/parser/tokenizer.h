@@ -52,8 +52,8 @@ See LICENSE for the license
 #define PARSER_OUT_OF_MEMORY -1
 
 /*
- *  XXX Might want to couple count_rows() with read_rows() to avoid duplication
- *      of some file I/O.
+ *  TODO: Might want to couple count_rows() with read_rows() to avoid
+ *        duplication of some file I/O.
  */
 
 typedef enum {

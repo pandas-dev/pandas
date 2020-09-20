@@ -63,20 +63,29 @@ class TestFeather:
                 "bool": [True, False, True],
                 "bool_with_null": [True, np.nan, False],
                 "cat": pd.Categorical(list("abc")),
-                "dt": pd.date_range("20130101", periods=3),
-                "dttz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+                "dt": pd.DatetimeIndex(
+                    list(pd.date_range("20130101", periods=3)), freq=None
+                ),
+                "dttz": pd.DatetimeIndex(
+                    list(pd.date_range("20130101", periods=3, tz="US/Eastern")),
+                    freq=None,
+                ),
                 "dt_with_null": [
                     pd.Timestamp("20130101"),
                     pd.NaT,
                     pd.Timestamp("20130103"),
                 ],
-                "dtns": pd.date_range("20130101", periods=3, freq="ns"),
+                "dtns": pd.DatetimeIndex(
+                    list(pd.date_range("20130101", periods=3, freq="ns")), freq=None
+                ),
             }
         )
         if pyarrow_version >= LooseVersion("0.16.1.dev"):
             df["periods"] = pd.period_range("2013", freq="M", periods=3)
             df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
-            df["intervals"] = pd.interval_range(0, 3, 3)
+            # TODO temporary disable due to regression in pyarrow 0.17.1
+            # https://github.com/pandas-dev/pandas/issues/34255
+            # df["intervals"] = pd.interval_range(0, 3, 3)
 
         assert df.dttz.dtype.tz.zone == "US/Eastern"
         self.check_round_trip(df)
@@ -105,6 +114,12 @@ class TestFeather:
         )
         columns = ["col1", "col3"]
         self.check_round_trip(df, expected=df[columns], columns=columns)
+
+    @td.skip_if_no("pyarrow", min_version="0.17.1")
+    def read_columns_different_order(self):
+        # GH 33878
+        df = pd.DataFrame({"A": [1, 2], "B": ["x", "y"], "C": [True, False]})
+        self.check_round_trip(df, columns=["B", "A"])
 
     def test_unsupported_other(self):
 
@@ -159,3 +174,15 @@ class TestFeather:
     def test_passthrough_keywords(self):
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs=dict(version=1))
+
+    @td.skip_if_no("pyarrow")
+    @tm.network
+    def test_http_path(self, feather_file):
+        # GH 29055
+        url = (
+            "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
+            "pandas/tests/io/data/feather/feather-0_3_1.feather"
+        )
+        expected = pd.read_feather(feather_file)
+        res = pd.read_feather(url)
+        tm.assert_frame_equal(expected, res)

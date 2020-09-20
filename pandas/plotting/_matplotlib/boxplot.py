@@ -1,19 +1,22 @@
 from collections import namedtuple
+from typing import TYPE_CHECKING
 import warnings
 
 from matplotlib.artist import setp
 import numpy as np
 
 from pandas.core.dtypes.common import is_dict_like
-from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
-from pandas.plotting._matplotlib.style import _get_standard_colors
-from pandas.plotting._matplotlib.tools import _flatten, _subplots
+from pandas.plotting._matplotlib.style import get_standard_colors
+from pandas.plotting._matplotlib.tools import create_subplots, flatten_axes
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 
 class BoxPlot(LinePlot):
@@ -81,7 +84,7 @@ class BoxPlot(LinePlot):
             self.color = None
 
         # get standard colors for default
-        colors = _get_standard_colors(num_colors=3, colormap=self.colormap, color=None)
+        colors = get_standard_colors(num_colors=3, colormap=self.colormap, color=None)
         # use 2 colors by default, for box/whisker and median
         # flier colors isn't needed here
         # because it can be specified by ``sym`` kw
@@ -151,7 +154,7 @@ class BoxPlot(LinePlot):
                 labels = [pprint_thing(key) for key in range(len(labels))]
             self._set_ticklabels(ax, labels)
 
-    def _set_ticklabels(self, ax, labels):
+    def _set_ticklabels(self, ax: "Axes", labels):
         if self.orientation == "vertical":
             ax.set_xticklabels(labels)
         else:
@@ -197,11 +200,11 @@ def _grouped_plot_by_column(
             by = [by]
         columns = data._get_numeric_data().columns.difference(by)
     naxes = len(columns)
-    fig, axes = _subplots(
+    fig, axes = create_subplots(
         naxes=naxes, sharex=True, sharey=True, figsize=figsize, ax=ax, layout=layout
     )
 
-    _axes = _flatten(axes)
+    _axes = flatten_axes(axes)
 
     ax_values = []
 
@@ -248,7 +251,7 @@ def boxplot(
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
-    if isinstance(data, ABCSeries):
+    if isinstance(data, pd.Series):
         data = data.to_frame("x")
         column = "x"
 
@@ -256,7 +259,7 @@ def boxplot(
         #  num_colors=3 is required as method maybe_color_bp takes the colors
         #  in positions 0 and 2.
         #  if colors not provided, use same defaults as DataFrame.plot.box
-        result = _get_standard_colors(num_colors=3)
+        result = get_standard_colors(num_colors=3)
         result = np.take(result, [0, 0, 2])
         result = np.append(result, "k")
 
@@ -293,13 +296,18 @@ def boxplot(
         if not kwds.get("capprops"):
             setp(bp["caps"], color=colors[3], alpha=1)
 
-    def plot_group(keys, values, ax):
+    def plot_group(keys, values, ax: "Axes"):
         keys = [pprint_thing(x) for x in keys]
-        values = [np.asarray(remove_na_arraylike(v)) for v in values]
+        values = [np.asarray(remove_na_arraylike(v), dtype=object) for v in values]
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
             ax.tick_params(axis="both", labelsize=fontsize)
         if kwds.get("vert", 1):
+            ticks = ax.get_xticks()
+            if len(ticks) != len(keys):
+                i, remainder = divmod(len(ticks), len(keys))
+                assert remainder == 0, remainder
+                keys *= i
             ax.set_xticklabels(keys, rotation=rot)
         else:
             ax.set_yticklabels(keys, rotation=rot)
@@ -406,7 +414,7 @@ def boxplot_frame_groupby(
 ):
     if subplots is True:
         naxes = len(grouped)
-        fig, axes = _subplots(
+        fig, axes = create_subplots(
             naxes=naxes,
             squeeze=False,
             ax=ax,
@@ -415,7 +423,7 @@ def boxplot_frame_groupby(
             figsize=figsize,
             layout=layout,
         )
-        axes = _flatten(axes)
+        axes = flatten_axes(axes)
 
         ret = pd.Series(dtype=object)
 

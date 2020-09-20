@@ -296,6 +296,22 @@ For instance,
    cheese.melt(id_vars=['first', 'last'])
    cheese.melt(id_vars=['first', 'last'], var_name='quantity')
 
+When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored. The original index values can be kept around by setting the ``ignore_index`` parameter to ``False`` (default is ``True``). This will however duplicate them.
+
+.. versionadded:: 1.1.0
+
+.. ipython:: python
+
+   index = pd.MultiIndex.from_tuples([('person', 'A'), ('person', 'B')])
+   cheese = pd.DataFrame({'first': ['John', 'Mary'],
+                          'last': ['Doe', 'Bo'],
+                          'height': [5.5, 6.0],
+                          'weight': [130, 150]},
+                         index=index)
+   cheese
+   cheese.melt(id_vars=['first', 'last'])
+   cheese.melt(id_vars=['first', 'last'], ignore_index=False)
+
 Another way to transform is to use the :func:`~pandas.wide_to_long` panel data
 convenience function. It is less flexible than :func:`~pandas.melt`, but more
 user-friendly.
@@ -471,15 +487,23 @@ If ``crosstab`` receives only two Series, it will provide a frequency table.
 
     pd.crosstab(df['A'], df['B'])
 
-Any input passed containing ``Categorical`` data will have **all** of its
-categories included in the cross-tabulation, even if the actual data does
-not contain any instances of a particular category.
+``crosstab`` can also be implemented
+to ``Categorical`` data.
 
 .. ipython:: python
 
     foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
     pd.crosstab(foo, bar)
+
+If you want to include **all** of data categories even if the actual data does
+not contain any instances of a particular category, you should set ``dropna=False``.
+
+For example:
+
+.. ipython:: python
+
+    pd.crosstab(foo, bar, dropna=False)
 
 Normalization
 ~~~~~~~~~~~~~
@@ -654,8 +678,6 @@ To choose another dtype, use the ``dtype`` argument:
     df = pd.DataFrame({'A': list('abc'), 'B': [1.1, 2.2, 3.3]})
 
     pd.get_dummies(df, dtype=bool).dtypes
-
-.. versionadded:: 0.23.0
 
 
 .. _reshaping.factorize:

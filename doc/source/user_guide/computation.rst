@@ -229,8 +229,17 @@ see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
    The API for window statistics is quite similar to the way one works with ``GroupBy`` objects, see the documentation :ref:`here <groupby>`.
 
+.. warning::
+
+    When using ``rolling()`` and an associated function the results are calculated with rolling sums. As a consequence
+    when having values differing with magnitude :math:`1/np.finfo(np.double).eps` this results in truncation. It must be
+    noted, that large values may have an impact on windows, which do not include these values. `Kahan summation
+    <https://en.wikipedia.org/wiki/Kahan_summation_algorithm>`__ is used
+    to compute the rolling sums to preserve accuracy as much as possible. The same holds true for ``Rolling.var()`` for
+    values differing with magnitude :math:`(1/np.finfo(np.double).eps)^{0.5}`.
+
 We work with ``rolling``, ``expanding`` and ``exponentially weighted`` data through the corresponding
-objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`.
+objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.ExponentialMovingWindow`.
 
 .. ipython:: python
 
@@ -318,8 +327,8 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.kurt`, Sample kurtosis (4th moment)
     :meth:`~Rolling.quantile`, Sample quantile (value at %)
     :meth:`~Rolling.apply`, Generic apply
-    :meth:`~Rolling.cov`, Unbiased covariance (binary)
-    :meth:`~Rolling.corr`, Correlation (binary)
+    :meth:`~Rolling.cov`, Sample covariance (binary)
+    :meth:`~Rolling.corr`, Sample correlation (binary)
 
 .. _computation.window_variance.caveats:
 
@@ -341,6 +350,8 @@ We provide a number of common statistical functions:
    sample variance under the circumstances would result in a biased estimator
    of the variable we are trying to determine.
 
+   The same caveats apply to using any supported statistical sample methods.
+
 .. _stats.rolling_apply:
 
 Rolling apply
@@ -358,6 +369,9 @@ compute the mean absolute deviation on a rolling basis:
 
    @savefig rolling_apply_ex.png
    s.rolling(window=60).apply(mad, raw=True).plot(style='k')
+
+Using the Numba engine
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 1.0
 
@@ -380,8 +394,8 @@ and their default values are set to ``False``, ``True`` and ``False`` respective
 .. note::
 
    In terms of performance, **the first time a function is run using the Numba engine will be slow**
-   as Numba will have some function compilation overhead. However, ``rolling`` objects will cache
-   the function and subsequent calls will be fast. In general, the Numba engine is performant with
+   as Numba will have some function compilation overhead. However, the compiled functions are cached,
+   and subsequent calls will be fast. In general, the Numba engine is performant with
    a larger amount of data points (e.g. 1+ million).
 
 .. code-block:: ipython
@@ -559,7 +573,7 @@ For example, if we have the following ``DataFrame``:
    df
 
 and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
-1, we can create the following ``BaseIndexer``:
+1, we can create the following ``BaseIndexer`` subclass:
 
 .. code-block:: ipython
 
@@ -591,7 +605,21 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    3     3.0
    4    10.0
 
+You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/master/pandas/core/window/indexers.py>`__
+
 .. versionadded:: 1.1
+
+One subclass of note within those examples is the ``VariableOffsetWindowIndexer`` that allows
+rolling operations over a non-fixed offset like a ``BusinessDay``.
+
+.. ipython:: python
+
+   from pandas.api.indexers import VariableOffsetWindowIndexer
+   df = pd.DataFrame(range(10), index=pd.date_range('2020', periods=10))
+   offset = pd.offsets.BDay(1)
+   indexer = VariableOffsetWindowIndexer(index=df.index, offset=offset)
+   df
+   df.rolling(indexer).sum()
 
 For some problems knowledge of the future is available for analysis. For example, this occurs when
 each data point is a full time series read from an experiment, and the task is to extract underlying
@@ -645,6 +673,24 @@ from present information back to past information. This allows the rolling windo
 
 Currently, this feature is only implemented for time-based windows.
 For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
+
+.. _stats.iter_rolling_window:
+
+Iteration over window:
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+``Rolling`` and ``Expanding`` objects now support iteration. Be noted that ``min_periods`` is ignored in iteration.
+
+.. ipython::
+
+   In [1]: df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+   In [2]: for i in df.rolling(2):
+      ...:     print(i)
+      ...:
+
 
 .. _stats.moments.ts-versus-resampling:
 
@@ -757,7 +803,7 @@ columns by reshaping and indexing:
 Aggregation
 -----------
 
-Once the ``Rolling``, ``Expanding`` or ``EWM`` objects have been created, several methods are available to
+Once the ``Rolling``, ``Expanding`` or ``ExponentialMovingWindow`` objects have been created, several methods are available to
 perform multiple computations on the data. These operations are similar to the :ref:`aggregating API <basics.aggregate>`,
 :ref:`groupby API <groupby.aggregate>`, and :ref:`resample API <timeseries.aggregate>`.
 
@@ -870,12 +916,12 @@ Method summary
     :meth:`~Expanding.max`, Maximum
     :meth:`~Expanding.std`, Sample standard deviation
     :meth:`~Expanding.var`, Sample variance
-    :meth:`~Expanding.skew`, Unbiased skewness (3rd moment)
-    :meth:`~Expanding.kurt`, Unbiased kurtosis (4th moment)
+    :meth:`~Expanding.skew`, Sample skewness (3rd moment)
+    :meth:`~Expanding.kurt`, Sample kurtosis (4th moment)
     :meth:`~Expanding.quantile`, Sample quantile (value at %)
     :meth:`~Expanding.apply`, Generic apply
-    :meth:`~Expanding.cov`, Unbiased covariance (binary)
-    :meth:`~Expanding.corr`, Correlation (binary)
+    :meth:`~Expanding.cov`, Sample covariance (binary)
+    :meth:`~Expanding.corr`, Sample correlation (binary)
 
 .. note::
 
@@ -883,6 +929,8 @@ Method summary
    :meth:`~Expanding.var` comes with the same caveats as using them with rolling
    windows. See :ref:`this section <computation.window_variance.caveats>` for more
    information.
+
+   The same caveats apply to using any supported statistical sample methods.
 
 .. currentmodule:: pandas
 
@@ -949,7 +997,7 @@ Exponentially weighted windows
 
 A related set of functions are exponentially weighted versions of several of
 the above statistics. A similar interface to ``.rolling`` and ``.expanding`` is accessed
-through the ``.ewm`` method to receive an :class:`~EWM` object.
+through the ``.ewm`` method to receive an :class:`~ExponentialMovingWindow` object.
 A number of expanding EW (exponentially weighted)
 methods are provided:
 
@@ -958,11 +1006,11 @@ methods are provided:
     :header: "Function", "Description"
     :widths: 20, 80
 
-    :meth:`~EWM.mean`, EW moving average
-    :meth:`~EWM.var`, EW moving variance
-    :meth:`~EWM.std`, EW moving standard deviation
-    :meth:`~EWM.corr`, EW moving correlation
-    :meth:`~EWM.cov`, EW moving covariance
+    :meth:`~ExponentialMovingWindow.mean`, EW moving average
+    :meth:`~ExponentialMovingWindow.var`, EW moving variance
+    :meth:`~ExponentialMovingWindow.std`, EW moving standard deviation
+    :meth:`~ExponentialMovingWindow.corr`, EW moving correlation
+    :meth:`~ExponentialMovingWindow.cov`, EW moving covariance
 
 In general, a weighted moving average is calculated as
 
@@ -1059,6 +1107,25 @@ and **alpha** to the EW functions:
   one half.
 * **Alpha** specifies the smoothing factor directly.
 
+.. versionadded:: 1.1.0
+
+You can also specify ``halflife`` in terms of a timedelta convertible unit to specify the amount of
+time it takes for an observation to decay to half its value when also specifying a sequence
+of ``times``.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    df
+    times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', '2020-01-17']
+    df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
+
+The following formula is used to compute exponentially weighted mean with an input vector of times:
+
+.. math::
+
+    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{0.5^\frac{t_{t} - t_{i}}{\lambda}},
+
 Here is an example for a univariate time series:
 
 .. ipython:: python
@@ -1068,12 +1135,12 @@ Here is an example for a univariate time series:
    @savefig ewma_ex.png
    s.ewm(span=20).mean().plot(style='k')
 
-EWM has a ``min_periods`` argument, which has the same
+ExponentialMovingWindow has a ``min_periods`` argument, which has the same
 meaning it does for all the ``.expanding`` and ``.rolling`` methods:
 no output values will be set until at least ``min_periods`` non-null values
 are encountered in the (expanding) window.
 
-EWM also has an ``ignore_na`` argument, which determines how
+ExponentialMovingWindow also has an ``ignore_na`` argument, which determines how
 intermediate null values affect the calculation of the weights.
 When ``ignore_na=False`` (the default), weights are calculated based on absolute
 positions, so that intermediate null values affect the result.

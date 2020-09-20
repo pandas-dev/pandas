@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_integer
@@ -31,7 +29,7 @@ def test_from_dtype_from_float(data):
 
     # from int / array
     expected = pd.Series(data).dropna().reset_index(drop=True)
-    dropped = np.array(data.dropna()).astype(np.dtype((dtype.type)))
+    dropped = np.array(data.dropna()).astype(np.dtype(dtype.type))
     result = pd.Series(dropped, dtype=str(dtype))
     tm.assert_series_equal(result, expected)
 
@@ -198,41 +196,4 @@ def test_to_integer_array(values, to_dtype, result_dtype):
     result = integer_array(values, dtype=to_dtype)
     assert result.dtype == result_dtype()
     expected = integer_array(values, dtype=result_dtype())
-    tm.assert_extension_array_equal(result, expected)
-
-
-@td.skip_if_no("pyarrow", min_version="0.15.0")
-def test_arrow_array(data):
-    # protocol added in 0.15.0
-    import pyarrow as pa
-
-    arr = pa.array(data)
-    expected = np.array(data, dtype=object)
-    expected[data.isna()] = None
-    expected = pa.array(expected, type=data.dtype.name.lower(), from_pandas=True)
-    assert arr.equals(expected)
-
-
-@td.skip_if_no("pyarrow", min_version="0.16.0")
-def test_arrow_roundtrip(data):
-    # roundtrip possible from arrow 0.16.0
-    import pyarrow as pa
-
-    df = pd.DataFrame({"a": data})
-    table = pa.table(df)
-    assert table.field("a").type == str(data.dtype.numpy_dtype)
-    result = table.to_pandas()
-    tm.assert_frame_equal(result, df)
-
-
-@td.skip_if_no("pyarrow", min_version="0.16.0")
-def test_arrow_from_arrow_uint():
-    # https://github.com/pandas-dev/pandas/issues/31896
-    # possible mismatch in types
-    import pyarrow as pa
-
-    dtype = pd.UInt32Dtype()
-    result = dtype.__from_arrow__(pa.array([1, 2, 3, 4, None], type="int64"))
-    expected = pd.array([1, 2, 3, 4, None], dtype="UInt32")
-
     tm.assert_extension_array_equal(result, expected)

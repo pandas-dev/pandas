@@ -156,7 +156,7 @@ class TestTimedeltaIndex:
             # if no overlap exists return empty index
             (
                 timedelta_range("1 day", periods=10, freq="h", name="idx")[5:],
-                TimedeltaIndex([], name="idx"),
+                TimedeltaIndex([], freq="h", name="idx"),
             ),
         ],
     )

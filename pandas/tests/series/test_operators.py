@@ -121,23 +121,25 @@ class TestSeriesLogicalOps:
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
-        with pytest.raises(TypeError):
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
+        with pytest.raises(TypeError, match=msg):
             s_0123 & np.NaN
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s_0123 & 3.14
-        with pytest.raises(TypeError):
+        msg = "unsupported operand type.+for &:"
+        with pytest.raises(TypeError, match=msg):
             s_0123 & [0.1, 4, 3.14, 2]
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s_0123 & np.array([0.1, 4, 3.14, 2])
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s_0123 & Series([0.1, 4, -3.14, 2])
 
     def test_logical_operators_int_dtype_with_str(self):
         s_1111 = Series([1] * 4, dtype="int8")
-
-        with pytest.raises(TypeError):
+        msg = "Cannot perform 'and_' with a dtyped.+array and scalar of type"
+        with pytest.raises(TypeError, match=msg):
             s_1111 & "a"
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="unsupported operand.+for &"):
             s_1111 & ["a", "b", "c", "d"]
 
     def test_logical_operators_int_dtype_with_bool(self):
@@ -255,7 +257,8 @@ class TestSeriesLogicalOps:
     def test_scalar_na_logical_ops_corners(self):
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
 
-        with pytest.raises(TypeError):
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
+        with pytest.raises(TypeError, match=msg):
             s & datetime(2005, 1, 1)
 
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
@@ -266,23 +269,24 @@ class TestSeriesLogicalOps:
         result = s & list(s)
         tm.assert_series_equal(result, expected)
 
+    def test_scalar_na_logical_ops_corners_aligns(self):
+        s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
+        s[::2] = np.nan
         d = DataFrame({"A": s})
-        # TODO: Fix this exception - needs to be fixed! (see GH5035)
-        # (previously this was a TypeError because series returned
-        # NotImplemented
 
-        # this is an alignment issue; these are equivalent
-        # https://github.com/pandas-dev/pandas/issues/5284
+        expected = DataFrame(False, index=range(9), columns=["A"] + list(range(9)))
 
-        with pytest.raises(TypeError):
-            d.__and__(s, axis="columns")
-        with pytest.raises(TypeError):
-            d.__and__(s, axis=1)
+        result = d.__and__(s, axis="columns")
+        tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(TypeError):
-            s & d
-        with pytest.raises(TypeError):
-            d & s
+        result = d.__and__(s, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        result = s & d
+        tm.assert_frame_equal(result, expected)
+
+        result = d & s
+        tm.assert_frame_equal(result, expected)
 
         expected = (s & s).to_frame("A")
         result = d.__and__(s, axis="index")
@@ -450,8 +454,9 @@ class TestSeriesLogicalOps:
             expected = Series([True, True, True], index=index)
             tm.assert_series_equal(result, expected)
 
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         for v in [np.nan, "foo"]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 t | v
 
         for v in [False, 0]:
@@ -468,8 +473,9 @@ class TestSeriesLogicalOps:
             result = Series([True, False, True], index=index) & v
             expected = Series([False, False, False], index=index)
             tm.assert_series_equal(result, expected)
+        msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         for v in [np.nan]:
-            with pytest.raises(TypeError):
+            with pytest.raises(TypeError, match=msg):
                 t & v
 
     def test_logical_ops_df_compat(self):
@@ -530,3 +536,44 @@ class TestSeriesUnaryOps:
         ser = tm.makeStringSeries()
         ser.name = "series"
         tm.assert_series_equal(-(ser < 0), ~(ser < 0))
+
+    @pytest.mark.parametrize(
+        "source, target",
+        [
+            ([1, 2, 3], [-1, -2, -3]),
+            ([1, 2, None], [-1, -2, None]),
+            ([-1, 0, 1], [1, 0, -1]),
+        ],
+    )
+    def test_unary_minus_nullable_int(
+        self, any_signed_nullable_int_dtype, source, target
+    ):
+        dtype = any_signed_nullable_int_dtype
+        s = pd.Series(source, dtype=dtype)
+        result = -s
+        expected = pd.Series(target, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]],
+    )
+    def test_unary_plus_nullable_int(self, any_signed_nullable_int_dtype, source):
+        dtype = any_signed_nullable_int_dtype
+        expected = pd.Series(source, dtype=dtype)
+        result = +expected
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "source, target",
+        [
+            ([1, 2, 3], [1, 2, 3]),
+            ([1, -2, None], [1, 2, None]),
+            ([-1, 0, 1], [1, 0, 1]),
+        ],
+    )
+    def test_abs_nullable_int(self, any_signed_nullable_int_dtype, source, target):
+        dtype = any_signed_nullable_int_dtype
+        s = pd.Series(source, dtype=dtype)
+        result = abs(s)
+        expected = pd.Series(target, dtype=dtype)
+        tm.assert_series_equal(result, expected)

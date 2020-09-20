@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 import pandas.core.common as com
+from pandas.core.computation.expressions import _MIN_ELEMENTS, NUMEXPR_INSTALLED
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
 # -------------------------------------------------------------------
@@ -49,9 +50,11 @@ class TestFrameComparisons:
                 )
                 tm.assert_frame_equal(result, expected)
 
-                msg = re.escape(
-                    "Invalid comparison between dtype=datetime64[ns] and ndarray"
-                )
+                msgs = [
+                    r"Invalid comparison between dtype=datetime64\[ns\] and ndarray",
+                    "invalid type promotion",
+                ]
+                msg = "|".join(msgs)
                 with pytest.raises(TypeError, match=msg):
                     x >= y
                 with pytest.raises(TypeError, match=msg):
@@ -106,7 +109,7 @@ class TestFrameComparisons:
             else:
                 msg = (
                     "'(<|>)=?' not supported between "
-                    "instances of 'Timestamp' and 'float'"
+                    "instances of 'numpy.ndarray' and 'Timestamp'"
                 )
                 with pytest.raises(TypeError, match=msg):
                     left_f(df, pd.Timestamp("20010109"))
@@ -337,6 +340,20 @@ class TestFrameFlexComparisons:
         result = getattr(empty, opname)(const).dtypes.value_counts()
         tm.assert_series_equal(result, pd.Series([2], index=[np.dtype(bool)]))
 
+    def test_df_flex_cmp_ea_dtype_with_ndarray_series(self):
+        ii = pd.IntervalIndex.from_breaks([1, 2, 3])
+        df = pd.DataFrame({"A": ii, "B": ii})
+
+        ser = pd.Series([0, 0])
+        res = df.eq(ser, axis=0)
+
+        expected = pd.DataFrame({"A": [False, False], "B": [False, False]})
+        tm.assert_frame_equal(res, expected)
+
+        ser2 = pd.Series([1, 2], index=["A", "B"])
+        res2 = df.eq(ser2, axis=1)
+        tm.assert_frame_equal(res2, expected)
+
 
 # -------------------------------------------------------------------
 # Arithmetic
@@ -358,13 +375,13 @@ class TestFrameFlexArithmetic:
         result2 = df.floordiv(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
-    @pytest.mark.slow
+    @pytest.mark.skipif(not NUMEXPR_INSTALLED, reason="numexpr not installed")
     @pytest.mark.parametrize("opname", ["floordiv", "pow"])
     def test_floordiv_axis0_numexpr_path(self, opname):
         # case that goes through numexpr and has to fall back to masked_arith_op
         op = getattr(operator, opname)
 
-        arr = np.arange(10 ** 6).reshape(100, -1)
+        arr = np.arange(_MIN_ELEMENTS + 100).reshape(_MIN_ELEMENTS // 100 + 1, -1) * 100
         df = pd.DataFrame(arr)
         df["C"] = 1.0
 
@@ -612,13 +629,6 @@ class TestFrameArithmetic:
         ]
 
         expected = pd.DataFrame(exvals, columns=df.columns, index=df.index)
-
-        if opname in ["__rmod__", "__rfloordiv__"]:
-            # exvals will have dtypes [f8, i8, i8] so expected will be
-            #   all-f8, but the DataFrame operation will return mixed dtypes
-            # use exvals[-1].dtype instead of "i8" for compat with 32-bit
-            # systems/pythons
-            expected[False] = expected[False].astype(exvals[-1].dtype)
 
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
@@ -1042,7 +1052,7 @@ class TestFrameArithmeticUnsorted:
 
         # no upcast needed
         added = mixed_float_frame + series
-        _check_mixed_float(added)
+        assert np.all(added.dtypes == series.dtype)
 
         # vs mix (upcast) as needed
         added = mixed_float_frame + series.astype("float32")
@@ -1407,7 +1417,7 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
-        align = pd.core.ops._align_method_FRAME
+        align = pd.core.ops.align_method_FRAME
         for val in [
             [1, 2, 3],
             (1, 2, 3),
@@ -1415,12 +1425,13 @@ class TestFrameArithmeticUnsorted:
             range(1, 4),
         ]:
 
-            tm.assert_series_equal(
-                align(df, val, "index")[1], Series([1, 2, 3], index=df.index)
+            expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
+            tm.assert_frame_equal(align(df, val, "index")[1], expected)
+
+            expected = DataFrame(
+                {"X": [1, 1, 1], "Y": [2, 2, 2], "Z": [3, 3, 3]}, index=df.index
             )
-            tm.assert_series_equal(
-                align(df, val, "columns")[1], Series([1, 2, 3], index=df.columns)
-            )
+            tm.assert_frame_equal(align(df, val, "columns")[1], expected)
 
         # length mismatch
         msg = "Unable to coerce to Series, length must be 3: given 2"
@@ -1489,3 +1500,64 @@ def test_pow_nan_with_zero():
 
     result = left["A"] ** right["A"]
     tm.assert_series_equal(result, expected["A"])
+
+
+def test_dataframe_series_extension_dtypes():
+    # https://github.com/pandas-dev/pandas/issues/34311
+    df = pd.DataFrame(np.random.randint(0, 100, (10, 3)), columns=["a", "b", "c"])
+    ser = pd.Series([1, 2, 3], index=["a", "b", "c"])
+
+    expected = df.to_numpy("int64") + ser.to_numpy("int64").reshape(-1, 3)
+    expected = pd.DataFrame(expected, columns=df.columns, dtype="Int64")
+
+    df_ea = df.astype("Int64")
+    result = df_ea + ser
+    tm.assert_frame_equal(result, expected)
+    result = df_ea + ser.astype("Int64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_blockwise_slicelike():
+    # GH#34367
+    arr = np.random.randint(0, 1000, (100, 10))
+    df1 = pd.DataFrame(arr)
+    df2 = df1.copy()
+    df2.iloc[0, [1, 3, 7]] = np.nan
+
+    df3 = df1.copy()
+    df3.iloc[0, [5]] = np.nan
+
+    df4 = df1.copy()
+    df4.iloc[0, np.arange(2, 5)] = np.nan
+    df5 = df1.copy()
+    df5.iloc[0, np.arange(4, 7)] = np.nan
+
+    for left, right in [(df1, df2), (df2, df3), (df4, df5)]:
+        res = left + right
+
+        expected = pd.DataFrame({i: left[i] + right[i] for i in left.columns})
+        tm.assert_frame_equal(res, expected)
+
+
+@pytest.mark.parametrize(
+    "df, col_dtype",
+    [
+        (pd.DataFrame([[1.0, 2.0], [4.0, 5.0]], columns=list("ab")), "float64"),
+        (pd.DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")), "object"),
+    ],
+)
+def test_dataframe_operation_with_non_numeric_types(df, col_dtype):
+    # GH #22663
+    expected = pd.DataFrame([[0.0, np.nan], [3.0, np.nan]], columns=list("ab"))
+    expected = expected.astype({"b": col_dtype})
+    result = df + pd.Series([-1.0], index=list("a"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arith_reindex_with_duplicates():
+    # https://github.com/pandas-dev/pandas/issues/35194
+    df1 = pd.DataFrame(data=[[0]], columns=["second"])
+    df2 = pd.DataFrame(data=[[0, 0, 0]], columns=["first", "second", "second"])
+    result = df1 + df2
+    expected = pd.DataFrame([[np.nan, 0, 0]], columns=["first", "second", "second"])
+    tm.assert_frame_equal(result, expected)

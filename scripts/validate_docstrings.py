@@ -360,7 +360,7 @@ def print_validate_one_results(func_name: str):
                 sys.stderr.write("\tExamples do not pass tests\n")
                 continue
             sys.stderr.write(f"\t{err_desc}\n")
-    elif result["errors"]:
+    else:
         sys.stderr.write(f'Docstring for "{func_name}" correct. :)\n')
 
     if result["examples_errs"]:

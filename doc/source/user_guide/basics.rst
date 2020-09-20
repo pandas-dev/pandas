@@ -68,7 +68,7 @@ the ``.array`` property
    s.index.array
 
 :attr:`~Series.array` will always be an :class:`~pandas.api.extensions.ExtensionArray`.
-The exact details of what an :class:`~pandas.api.extensions.ExtensionArray` is and why pandas uses them is a bit
+The exact details of what an :class:`~pandas.api.extensions.ExtensionArray` is and why pandas uses them are a bit
 beyond the scope of this introduction. See :ref:`basics.dtypes` for more.
 
 If you know you need a NumPy array, use :meth:`~Series.to_numpy`
@@ -518,7 +518,7 @@ data (``True`` by default):
 
 Combined with the broadcasting / arithmetic behavior, one can describe various
 statistical procedures, like standardization (rendering data zero mean and
-standard deviation 1), very concisely:
+standard deviation of 1), very concisely:
 
 .. ipython:: python
 
@@ -700,7 +700,7 @@ By default all columns are used but a subset can be selected using the ``subset`
     frame = pd.DataFrame(data)
     frame.value_counts()
 
-Similarly, you can get the most frequently occurring value(s) (the mode) of the values in a Series or DataFrame:
+Similarly, you can get the most frequently occurring value(s), i.e. the mode, of the values in a Series or DataFrame:
 
 .. ipython:: python
 
@@ -1022,7 +1022,7 @@ Mixed dtypes
 ++++++++++++
 
 When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
-aggregations. This is similar to how groupby ``.agg`` works.
+aggregations. This is similar to how ``.groupby.agg`` works.
 
 .. ipython:: python
 
@@ -1041,7 +1041,7 @@ aggregations. This is similar to how groupby ``.agg`` works.
 Custom describe
 +++++++++++++++
 
-With ``.agg()`` is it possible to easily create a custom describe function, similar
+With ``.agg()`` it is possible to easily create a custom describe function, similar
 to the built in :ref:`describe function <basics.describe>`.
 
 .. ipython:: python
@@ -1083,7 +1083,8 @@ function name or a user defined function.
    tsdf.transform('abs')
    tsdf.transform(lambda x: x.abs())
 
-Here :meth:`~DataFrame.transform` received a single function; this is equivalent to a ufunc application.
+Here :meth:`~DataFrame.transform` received a single function; this is equivalent to a `ufunc
+<https://numpy.org/doc/stable/reference/ufuncs.html>`__ application.
 
 .. ipython:: python
 
@@ -1457,7 +1458,7 @@ for altering the ``Series.name`` attribute.
 
 .. versionadded:: 0.24.0
 
-The methods :meth:`~DataFrame.rename_axis` and :meth:`~Series.rename_axis`
+The methods :meth:`DataFrame.rename_axis` and :meth:`Series.rename_axis`
 allow specific names of a `MultiIndex` to be changed (as opposed to the
 labels).
 
@@ -1781,6 +1782,31 @@ used to sort a pandas object by its index levels.
    # Series
    unsorted_df['three'].sort_index()
 
+.. _basics.sort_index_key:
+
+.. versionadded:: 1.1.0
+
+Sorting by index also supports a ``key`` parameter that takes a callable
+function to apply to the index being sorted. For `MultiIndex` objects,
+the key is applied per-level to the levels specified by `level`.
+
+.. ipython:: python
+
+   s1 = pd.DataFrame({
+       "a": ['B', 'a', 'C'],
+       "b": [1, 2, 3],
+       "c": [2, 3, 4]
+   }).set_index(list("ab"))
+   s1
+
+.. ipython:: python
+
+   s1.sort_index(level="a")
+   s1.sort_index(level="a", key=lambda idx: idx.str.lower())
+
+For information on key sorting by value, see :ref:`value sorting
+<basics.sort_value_key>`.
+
 .. _basics.sort_values:
 
 By values
@@ -1813,12 +1839,43 @@ argument:
    s.sort_values()
    s.sort_values(na_position='first')
 
+.. _basics.sort_value_key:
+
+.. versionadded:: 1.1.0
+
+Sorting also supports a ``key`` parameter that takes a callable function
+to apply to the values being sorted.
+
+.. ipython:: python
+
+   s1 = pd.Series(['B', 'a', 'C'])
+
+.. ipython:: python
+
+   s1.sort_values()
+   s1.sort_values(key=lambda x: x.str.lower())
+
+`key` will be given the :class:`Series` of values and should return a ``Series``
+or array of the same shape with the transformed values. For `DataFrame` objects,
+the key is applied per column, so the key should still expect a Series and return
+a Series, e.g.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": ['B', 'a', 'C'], "b": [1, 2, 3]})
+
+.. ipython:: python
+
+   df.sort_values(by='a')
+   df.sort_values(by='a', key=lambda col: col.str.lower())
+
+The name or type of each column can be used to apply different functions to
+different columns.
+
 .. _basics.sort_indexes_and_values:
 
 By indexes and values
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.23.0
 
 Strings passed as the ``by`` parameter to :meth:`DataFrame.sort_values` may
 refer to either columns or index level names.
@@ -2327,7 +2384,7 @@ For example, to select ``bool`` columns:
    df.select_dtypes(include=[bool])
 
 You can also pass the name of a dtype in the `NumPy dtype hierarchy
-<https://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__:
+<https://numpy.org/doc/stable/reference/arrays.scalars.html>`__:
 
 .. ipython:: python
 

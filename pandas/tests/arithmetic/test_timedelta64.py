@@ -403,9 +403,7 @@ class TestTimedelta64ArithmeticUnsorted:
         _check(result, expected)
 
         result = dti_tz - td
-        expected = DatetimeIndex(
-            ["20121231", "20130101", "20130102"], tz="US/Eastern", freq="D"
-        )
+        expected = DatetimeIndex(["20121231", "20130101", "20130102"], tz="US/Eastern")
         tm.assert_index_equal(result, expected)
 
     def test_dti_tdi_numeric_ops(self):
@@ -515,7 +513,13 @@ class TestTimedelta64ArithmeticUnsorted:
         result2 = DatetimeIndex(s - np.timedelta64(100000000))
         result3 = rng - np.timedelta64(100000000)
         result4 = DatetimeIndex(s - pd.offsets.Hour(1))
+
+        assert result1.freq == rng.freq
+        result1 = result1._with_freq(None)
         tm.assert_index_equal(result1, result4)
+
+        assert result3.freq == rng.freq
+        result3 = result3._with_freq(None)
         tm.assert_index_equal(result2, result3)
 
     def test_tda_add_sub_index(self):
@@ -537,16 +541,20 @@ class TestTimedelta64ArithmeticUnsorted:
         expected = tdi - tdi
         tm.assert_index_equal(result, expected)
 
-    def test_tda_add_dt64_object_array(self, box_df_fail, tz_naive_fixture):
+    def test_tda_add_dt64_object_array(self, box_with_array, tz_naive_fixture):
         # Result should be cast back to DatetimeArray
+        box = box_with_array
+
         dti = pd.date_range("2016-01-01", periods=3, tz=tz_naive_fixture)
-        dti._set_freq(None)
+        dti = dti._with_freq(None)
         tdi = dti - dti
 
-        obj = tm.box_expected(tdi, box_df_fail)
-        other = tm.box_expected(dti, box_df_fail)
+        obj = tm.box_expected(tdi, box)
+        other = tm.box_expected(dti, box)
 
-        warn = PerformanceWarning if box_df_fail is not pd.DataFrame else None
+        warn = None
+        if box is not pd.DataFrame or tz_naive_fixture is None:
+            warn = PerformanceWarning
         with tm.assert_produces_warning(warn):
             result = obj + other.astype(object)
         tm.assert_equal(result, other)
@@ -1075,16 +1083,9 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             tdi - pi
 
-        # FIXME: don't leave commented-out
-        # FIXME: this raises with period scalar but not with PeriodIndex?
-        # with pytest.raises(TypeError):
-        #    pi - tdi
-
         # GH#13078 subtraction of Period scalar not supported
         with pytest.raises(TypeError, match=msg):
             tdi - pi[0]
-        with pytest.raises(TypeError, match=msg):
-            pi[0] - tdi
 
     @pytest.mark.parametrize(
         "other",
@@ -1191,24 +1192,19 @@ class TestTimedeltaArraylikeAddSubOps:
         result = tdarr - tdi
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "names",
-        [
-            (None, None, None),
-            ("Egon", "Venkman", None),
-            ("NCC1701D", "NCC1701D", "NCC1701D"),
-        ],
-    )
-    def test_td64arr_add_sub_tdi(self, box, names):
+    def test_td64arr_add_sub_tdi(self, box_with_array, names):
         # GH#17250 make sure result dtype is correct
         # GH#19043 make sure names are propagated correctly
-        if box is pd.DataFrame and names[1] == "Venkman":
+        box = box_with_array
+
+        if box is pd.DataFrame and names[1] != names[0]:
             pytest.skip(
                 "Name propagation for DataFrame does not behave like "
                 "it does for Index/Series"
             )
 
         tdi = TimedeltaIndex(["0 days", "1 day"], name=names[0])
+        tdi = np.array(tdi) if box is tm.to_array else tdi
         ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
         expected = Series(
             [Timedelta(hours=3), Timedelta(days=1, hours=4)], name=names[2]
@@ -1303,12 +1299,11 @@ class TestTimedeltaArraylikeAddSubOps:
     # ------------------------------------------------------------------
     # __add__/__sub__ with DateOffsets and arrays of DateOffsets
 
-    @pytest.mark.parametrize(
-        "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
-    )
-    def test_td64arr_add_offset_index(self, names, box):
+    def test_td64arr_add_offset_index(self, names, box_with_array):
         # GH#18849, GH#19744
-        if box is pd.DataFrame and names[1] == "bar":
+        box = box_with_array
+
+        if box is pd.DataFrame and names[1] != names[0]:
             pytest.skip(
                 "Name propagation for DataFrame does not behave like "
                 "it does for Index/Series"
@@ -1316,6 +1311,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
+        other = np.array(other) if box is tm.to_array else other
 
         expected = TimedeltaIndex(
             [tdi[n] + other[n] for n in range(len(tdi))], freq="infer", name=names[2]
@@ -1323,14 +1319,11 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
 
-        # The DataFrame operation is transposed and so operates as separate
-        #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
@@ -1349,27 +1342,21 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
 
-        # The DataFrame operation is transposed and so operates as separate
-        #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = tdi + other
         tm.assert_equal(res, expected)
 
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
 
-    @pytest.mark.parametrize(
-        "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
-    )
     def test_td64arr_sub_offset_index(self, names, box_with_array):
         # GH#18824, GH#19744
         box = box_with_array
         xbox = box if box is not tm.to_array else pd.Index
         exname = names[2] if box is not tm.to_array else names[1]
 
-        if box is pd.DataFrame and names[1] == "bar":
+        if box is pd.DataFrame and names[1] != names[0]:
             pytest.skip(
                 "Name propagation for DataFrame does not behave like "
                 "it does for Index/Series"
@@ -1385,10 +1372,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)
 
-        # The DataFrame operation is transposed and so operates as separate
-        #  scalar operations, which do not issue a PerformanceWarning
-        warn = PerformanceWarning if box is not pd.DataFrame else None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = tdi - other
         tm.assert_equal(res, expected)
 
@@ -1404,43 +1388,44 @@ class TestTimedeltaArraylikeAddSubOps:
         tdi = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        # The DataFrame operation is transposed and so operates as separate
-        #  scalar operations, which do not issue a PerformanceWarning
-        warn = None if box_with_array is pd.DataFrame else PerformanceWarning
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             res = tdi - other
         tm.assert_equal(res, expected)
 
-    @pytest.mark.parametrize(
-        "names", [(None, None, None), ("foo", "bar", None), ("foo", "foo", "foo")]
-    )
-    def test_td64arr_with_offset_series(self, names, box_df_fail):
+    def test_td64arr_with_offset_series(self, names, box_with_array):
         # GH#18849
-        box = box_df_fail
+        box = box_with_array
         box2 = Series if box in [pd.Index, tm.to_array] else box
-        exname = names[2] if box is not tm.to_array else names[1]
+
+        if box is pd.DataFrame:
+            # Since we are operating with a DataFrame and a non-DataFrame,
+            # the non-DataFrame is cast to Series and its name ignored.
+            exname = names[0]
+        elif box is tm.to_array:
+            exname = names[1]
+        else:
+            exname = names[2]
 
         tdi = TimedeltaIndex(["1 days 00:00:00", "3 days 04:00:00"], name=names[0])
         other = Series([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)], name=names[1])
 
         expected_add = Series([tdi[n] + other[n] for n in range(len(tdi))], name=exname)
-        tdi = tm.box_expected(tdi, box)
+        obj = tm.box_expected(tdi, box)
         expected_add = tm.box_expected(expected_add, box2)
 
         with tm.assert_produces_warning(PerformanceWarning):
-            res = tdi + other
+            res = obj + other
         tm.assert_equal(res, expected_add)
 
         with tm.assert_produces_warning(PerformanceWarning):
-            res2 = other + tdi
+            res2 = other + obj
         tm.assert_equal(res2, expected_add)
 
-        # TODO: separate/parametrize add/sub test?
         expected_sub = Series([tdi[n] - other[n] for n in range(len(tdi))], name=exname)
         expected_sub = tm.box_expected(expected_sub, box2)
 
         with tm.assert_produces_warning(PerformanceWarning):
-            res3 = tdi - other
+            res3 = obj - other
         tm.assert_equal(res3, expected_sub)
 
     @pytest.mark.parametrize("obox", [np.array, pd.Index, pd.Series])
@@ -1478,8 +1463,7 @@ class TestTimedeltaArraylikeAddSubOps:
             [pd.Timedelta(days=1), pd.offsets.Day(2), pd.Timestamp("2000-01-04")]
         )
 
-        warn = PerformanceWarning if box_with_array is not pd.DataFrame else None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = tdarr + other
 
         expected = pd.Index(
@@ -1490,10 +1474,10 @@ class TestTimedeltaArraylikeAddSubOps:
 
         msg = "unsupported operand type|cannot subtract a datelike"
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(warn):
+            with tm.assert_produces_warning(PerformanceWarning):
                 tdarr - other
 
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(PerformanceWarning):
             result = other - tdarr
 
         expected = pd.Index(
@@ -1749,6 +1733,23 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
+    def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
+        # GH#35529
+        box = box_with_array
+
+        left = pd.Series([1000, 222330, 30], dtype="timedelta64[ns]")
+        right = pd.Series([1000, 222330, None], dtype="timedelta64[ns]")
+
+        left = tm.box_expected(left, box)
+        right = tm.box_expected(right, box)
+
+        expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
+        expected = tm.box_expected(expected, box)
+
+        result = left // right
+
+        tm.assert_equal(result, expected)
+
     def test_td64arr_floordiv_tdscalar(self, box_with_array, scalar_td):
         # GH#18831
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
@@ -1925,6 +1926,7 @@ class TestTimedeltaArraylikeMulDivOps:
             "Unable to coerce to Series"
         )
         with pytest.raises(TypeError, match=msg):
+            # length check before dtype check
             idx * idx[:3]
         with pytest.raises(ValueError, match=msg):
             idx * np.array([1, 2])
@@ -2023,7 +2025,7 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(result, expected)
 
         pattern = (
-            "true_divide cannot use operands|"
+            "true_divide'? cannot use operands|"
             "cannot perform __div__|"
             "cannot perform __truediv__|"
             "unsupported operand|"
@@ -2039,23 +2041,20 @@ class TestTimedeltaArraylikeMulDivOps:
                 expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
             else:
                 expected = [tdser[n] / vector[n] for n in range(len(tdser))]
+            expected = pd.Index(expected)  # do dtype inference
             expected = tm.box_expected(expected, xbox)
             tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError, match=pattern):
             vector.astype(object) / tdser
 
-    @pytest.mark.parametrize(
-        "names",
-        [
-            (None, None, None),
-            ("Egon", "Venkman", None),
-            ("NCC1701D", "NCC1701D", "NCC1701D"),
-        ],
-    )
-    def test_td64arr_mul_int_series(self, box_df_fail, names):
+    def test_td64arr_mul_int_series(self, box_with_array, names, request):
         # GH#19042 test for correct name attachment
-        box = box_df_fail  # broadcasts along wrong axis, but doesn't raise
+        box = box_with_array
+        if box_with_array is pd.DataFrame and names[2] is None:
+            reason = "broadcasts along wrong axis, but doesn't raise"
+            request.node.add_marker(pytest.mark.xfail(reason=reason))
+
         exname = names[2] if box is not tm.to_array else names[1]
 
         tdi = TimedeltaIndex(
@@ -2079,17 +2078,12 @@ class TestTimedeltaArraylikeMulDivOps:
 
         # The direct operation tdi * ser still needs to be fixed.
         result = ser.__rmul__(tdi)
-        tm.assert_equal(result, expected)
+        if box is pd.DataFrame:
+            assert result is NotImplemented
+        else:
+            tm.assert_equal(result, expected)
 
     # TODO: Should we be parametrizing over types for `ser` too?
-    @pytest.mark.parametrize(
-        "names",
-        [
-            (None, None, None),
-            ("Egon", "Venkman", None),
-            ("NCC1701D", "NCC1701D", "NCC1701D"),
-        ],
-    )
     def test_float_series_rdiv_td64arr(self, box_with_array, names):
         # GH#19042 test for correct name attachment
         # TODO: the direct operation TimedeltaIndex / Series still

@@ -145,7 +145,11 @@ class TestDatetimeIndex:
 
         for sel in (index, list(index)):
             # getitem
-            tm.assert_series_equal(ser[sel], ser)
+            result = ser[sel]
+            expected = ser.copy()
+            if sel is not index:
+                expected.index = expected.index._with_freq(None)
+            tm.assert_series_equal(result, expected)
 
             # setitem
             result = ser.copy()
@@ -154,7 +158,11 @@ class TestDatetimeIndex:
             tm.assert_series_equal(result, expected)
 
             # .loc getitem
-            tm.assert_series_equal(ser.loc[sel], ser)
+            result = ser.loc[sel]
+            expected = ser.copy()
+            if sel is not index:
+                expected.index = expected.index._with_freq(None)
+            tm.assert_series_equal(result, expected)
 
             # .loc setitem
             result = ser.copy()
@@ -226,6 +234,7 @@ class TestDatetimeIndex:
 
         result = ser.loc[[Timestamp("2011-01-01"), Timestamp("2011-01-02")]]
         exp = Series([0.1, 0.2], index=idx, name="s")
+        exp.index = exp.index._with_freq(None)
         tm.assert_series_equal(result, exp, check_index_type=True)
 
         keys = [

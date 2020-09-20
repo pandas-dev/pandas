@@ -19,6 +19,7 @@ from pandas.util._decorators import Appender
 import pandas as pd
 
 from pandas.io.common import get_filepath_or_buffer
+from pandas.io.sas.sasreader import ReaderBase
 
 _correct_line1 = (
     "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
@@ -239,7 +240,7 @@ def _parse_float_vec(vec):
     return ieee
 
 
-class XportReader(abc.Iterator):
+class XportReader(ReaderBase, abc.Iterator):
     __doc__ = _xport_reader_doc
 
     def __init__(
@@ -252,12 +253,9 @@ class XportReader(abc.Iterator):
         self._chunksize = chunksize
 
         if isinstance(filepath_or_buffer, str):
-            (
-                filepath_or_buffer,
-                encoding,
-                compression,
-                should_close,
-            ) = get_filepath_or_buffer(filepath_or_buffer, encoding=encoding)
+            filepath_or_buffer = get_filepath_or_buffer(
+                filepath_or_buffer, encoding=encoding
+            ).filepath_or_buffer
 
         if isinstance(filepath_or_buffer, (str, bytes)):
             self.filepath_or_buffer = open(filepath_or_buffer, "rb")
@@ -266,7 +264,11 @@ class XportReader(abc.Iterator):
             # should already be opened in binary mode in Python 3.
             self.filepath_or_buffer = filepath_or_buffer
 
-        self._read_header()
+        try:
+            self._read_header()
+        except Exception:
+            self.close()
+            raise
 
     def close(self):
         self.filepath_or_buffer.close()

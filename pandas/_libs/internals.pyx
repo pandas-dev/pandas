@@ -1,20 +1,25 @@
-import cython
 from collections import defaultdict
+
+import cython
 from cython import Py_ssize_t
 
 from cpython.slice cimport PySlice_GetIndicesEx
+
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport NPY_INT64, int64_t
+
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
 
+@cython.final
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef:
@@ -48,7 +53,7 @@ cdef class BlockPlacement:
         else:
             # Cython memoryview interface requires ndarray to be writeable.
             arr = np.require(val, dtype=np.int64, requirements='W')
-            assert arr.ndim == 1
+            assert arr.ndim == 1, arr.shape
             self._as_array = arr
             self._has_array = True
 

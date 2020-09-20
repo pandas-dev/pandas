@@ -260,7 +260,9 @@ You don't have to specify all levels of the ``MultiIndex`` by passing only the
 first elements of the tuple. For example, you can use "partial" indexing to
 get all elements with ``bar`` in the first level as follows:
 
-df.loc['bar']
+.. ipython:: python
+
+   df.loc['bar']
 
 This is a shortcut for the slightly more verbose notation ``df.loc[('bar',),]`` (equivalent
 to ``df.loc['bar',]`` in this example).
@@ -1062,8 +1064,6 @@ are closed on.  Intervals are closed on the right side by default.
    pd.interval_range(start=0, end=4, closed='both')
 
    pd.interval_range(start=0, end=4, closed='neither')
-
-.. versionadded:: 0.23.0
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 intervals from ``start`` to ``end`` inclusively, with ``periods`` number of elements

@@ -82,6 +82,17 @@ class TestTimedeltaIndexInsert:
         with pytest.raises(TypeError, match="incompatible label"):
             idx.insert(0, np.datetime64("NaT"))
 
+    @pytest.mark.parametrize(
+        "item", [0, np.int64(0), np.float64(0), np.array(0), np.datetime64(456, "us")]
+    )
+    def test_insert_mismatched_types_raises(self, item):
+        # GH#33703 dont cast these to td64
+        tdi = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
+
+        msg = "incompatible label"
+        with pytest.raises(TypeError, match=msg):
+            tdi.insert(1, item)
+
     def test_insert_dont_cast_strings(self):
         # To match DatetimeIndex and PeriodIndex behavior, dont try to
         #  parse strings to Timedelta

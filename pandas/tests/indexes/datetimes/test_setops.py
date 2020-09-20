@@ -46,10 +46,8 @@ class TestDatetimeIndexSetOps:
         first = everything[:5]
         second = everything[5:]
 
-        # GH 10149
-        expected = (
-            first.astype("O").union(pd.Index(second.values, dtype="O")).astype("O")
-        )
+        # GH 10149 support listlike inputs other than Index objects
+        expected = first.union(second, sort=sort)
         case = box(second.values)
         result = first.union(case, sort=sort)
         tm.assert_index_equal(result, expected)
@@ -222,7 +220,7 @@ class TestDatetimeIndexSetOps:
         expected3 = date_range("6/1/2000", "6/20/2000", freq="D", name=None)
 
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", name="idx")
-        expected4 = DatetimeIndex([], name="idx")
+        expected4 = DatetimeIndex([], freq="D", name="idx")
 
         for (rng, expected) in [
             (rng2, expected2),
@@ -231,9 +229,7 @@ class TestDatetimeIndexSetOps:
         ]:
             result = base.intersection(rng)
             tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
             assert result.freq == expected.freq
-            assert result.tz == expected.tz
 
         # non-monotonic
         base = DatetimeIndex(
@@ -255,6 +251,7 @@ class TestDatetimeIndexSetOps:
         # GH 7880
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", tz=tz, name="idx")
         expected4 = DatetimeIndex([], tz=tz, name="idx")
+        assert expected4.freq is None
 
         for (rng, expected) in [
             (rng2, expected2),
@@ -265,9 +262,7 @@ class TestDatetimeIndexSetOps:
             if sort is None:
                 expected = expected.sort_values()
             tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq is None
-            assert result.tz == expected.tz
+            assert result.freq == expected.freq
 
     # parametrize over both anchored and non-anchored freqs, as they
     #  have different code paths
@@ -285,16 +280,17 @@ class TestDatetimeIndexSetOps:
         assert result.freq == rng.freq
 
         # no overlap GH#33604
+        check_freq = freq != "T"  # We don't preserve freq on non-anchored offsets
         result = rng[:3].intersection(rng[-3:])
         tm.assert_index_equal(result, rng[:0])
-        if freq != "T":
+        if check_freq:
             # We don't preserve freq on non-anchored offsets
             assert result.freq == rng.freq
 
         # swapped left and right
         result = rng[-3:].intersection(rng[:3])
         tm.assert_index_equal(result, rng[:0])
-        if freq != "T":
+        if check_freq:
             # We don't preserve freq on non-anchored offsets
             assert result.freq == rng.freq
 
@@ -471,6 +467,13 @@ class TestBusinessDatetimeIndex:
         result = a.intersection(b)
         tm.assert_index_equal(result, b)
         assert result.freq == b.freq
+
+    def test_intersection_list(self):
+        # GH#35876
+        values = [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-02-01")]
+        idx = pd.DatetimeIndex(values, name="a")
+        res = idx.intersection(values)
+        tm.assert_index_equal(res, idx)
 
     def test_month_range_union_tz_pytz(self, sort):
         from pytz import timezone

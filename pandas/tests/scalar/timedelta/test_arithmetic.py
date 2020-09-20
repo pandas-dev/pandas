@@ -7,8 +7,10 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import is_numpy_dev
+
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp, _is_numpy_dev, offsets
+from pandas import NaT, Timedelta, Timestamp, compat, offsets
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -263,7 +265,10 @@ class TestTimedeltaAdditionSubtraction:
         msg = r"unsupported operand type\(s\) for \+: 'Timedelta' and 'int'"
         with pytest.raises(TypeError, match=msg):
             td + np.array([1])
-        msg = r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and 'Timedelta'"
+        msg = (
+            r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and 'Timedelta'|"
+            "Concatenation operation is not implemented for NumPy arrays"
+        )
         with pytest.raises(TypeError, match=msg):
             np.array([1]) + td
 
@@ -325,7 +330,13 @@ class TestTimedeltaMultiplicationDivision:
     def test_td_mul_nat(self, op, td_nat):
         # GH#19819
         td = Timedelta(10, unit="d")
-        msg = "cannot use operands with types|Cannot multiply Timedelta with NaT"
+        typs = "|".join(["numpy.timedelta64", "NaTType", "Timedelta"])
+        msg = "|".join(
+            [
+                rf"unsupported operand type\(s\) for \*: '{typs}' and '{typs}'",
+                r"ufunc '?multiply'? cannot use operands with types",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             op(td, td_nat)
 
@@ -416,9 +427,10 @@ class TestTimedeltaMultiplicationDivision:
             pytest.param(
                 np.float64("NaN"),
                 marks=pytest.mark.xfail(
-                    _is_numpy_dev,
+                    # Works on numpy dev only in python 3.9
+                    is_numpy_dev and not compat.PY39,
+                    raises=RuntimeWarning,
                     reason="https://github.com/pandas-dev/pandas/issues/31992",
-                    strict=False,
                 ),
             ),
             float("nan"),
@@ -457,11 +469,11 @@ class TestTimedeltaMultiplicationDivision:
         result = np.timedelta64("NaT") / td
         assert np.isnan(result)
 
-        msg = "cannot use operands with types dtype"
+        msg = r"unsupported operand type\(s\) for /: 'numpy.datetime64' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
             np.datetime64("NaT") / td
 
-        msg = "Cannot divide float by Timedelta"
+        msg = r"unsupported operand type\(s\) for /: 'float' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
             np.nan / td
 
@@ -479,7 +491,7 @@ class TestTimedeltaMultiplicationDivision:
         tm.assert_numpy_array_equal(result, expected)
 
         arr = np.array([np.nan], dtype=object)
-        msg = "Cannot divide float by Timedelta"
+        msg = r"unsupported operand type\(s\) for /: 'float' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
             arr / td
 
@@ -522,6 +534,7 @@ class TestTimedeltaMultiplicationDivision:
             [
                 r"Invalid dtype datetime64\[D\] for __floordiv__",
                 "'dtype' is an invalid keyword argument for this function",
+                r"ufunc '?floor_divide'? cannot use operands with types",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -595,9 +608,14 @@ class TestTimedeltaMultiplicationDivision:
         td = Timedelta(hours=3, minutes=3)
 
         dt64 = np.datetime64("2016-01-01", "us")
-        msg = r"Invalid dtype datetime64\[us\] for __floordiv__"
+
+        assert td.__rfloordiv__(dt64) is NotImplemented
+
+        msg = (
+            r"unsupported operand type\(s\) for //: 'numpy.datetime64' and 'Timedelta'"
+        )
         with pytest.raises(TypeError, match=msg):
-            td.__rfloordiv__(dt64)
+            dt64 // td
 
     def test_td_rfloordiv_numeric_scalar(self):
         # GH#18846
@@ -606,15 +624,18 @@ class TestTimedeltaMultiplicationDivision:
         assert td.__rfloordiv__(np.nan) is NotImplemented
         assert td.__rfloordiv__(3.5) is NotImplemented
         assert td.__rfloordiv__(2) is NotImplemented
+        assert td.__rfloordiv__(np.float64(2.0)) is NotImplemented
+        assert td.__rfloordiv__(np.uint8(9)) is NotImplemented
+        assert td.__rfloordiv__(np.int32(2.0)) is NotImplemented
 
-        msg = "Invalid dtype"
+        msg = r"unsupported operand type\(s\) for //: '.*' and 'Timedelta"
         with pytest.raises(TypeError, match=msg):
-            td.__rfloordiv__(np.float64(2.0))
+            np.float64(2.0) // td
         with pytest.raises(TypeError, match=msg):
-            td.__rfloordiv__(np.uint8(9))
+            np.uint8(9) // td
         with pytest.raises(TypeError, match=msg):
             # deprecated GH#19761, enforced GH#29797
-            td.__rfloordiv__(np.int32(2.0))
+            np.int32(2.0) // td
 
     def test_td_rfloordiv_timedeltalike_array(self):
         # GH#18846
@@ -651,7 +672,6 @@ class TestTimedeltaMultiplicationDivision:
         msg = "Invalid dtype"
         with pytest.raises(TypeError, match=msg):
             # Deprecated GH#19761, enforced GH#29797
-            # TODO: GH-19761. Change to TypeError.
             ser // td
 
     # ----------------------------------------------------------------

@@ -309,6 +309,24 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_searchsorted(data_for_sorting, as_series)
 
+    def test_shift_0_periods(self, data):
+        # GH#33856 shifting with periods=0 should return a copy, not same obj
+        result = data.shift(0)
+
+        data._sparse_values[0] = data._sparse_values[1]
+        assert result._sparse_values[0] != result._sparse_values[1]
+
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_argmin_argmax_all_na(self, method, data, na_value):
+        # overriding because Sparse[int64, 0] cannot handle na_value
+        self._check_unsupported(data)
+        super().test_argmin_argmax_all_na(method, data, na_value)
+
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        self._check_unsupported(data)
+        super().test_equals(data, na_value, as_series, box)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     def test_astype_object_series(self, all_data):
@@ -330,6 +348,16 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         # check that we can compare the dtypes
         # comp = result.dtypes.equals(df.dtypes)
         # assert not comp.any()
+
+    def test_astype_str(self, data):
+        result = pd.Series(data[:5]).astype(str)
+        expected_dtype = pd.SparseDtype(str, str(data.fill_value))
+        expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
+        self.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
+    def test_astype_string(self, data):
+        super().test_astype_string(data)
 
 
 class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):

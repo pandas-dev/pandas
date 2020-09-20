@@ -14,9 +14,9 @@ from pandas._typing import Label
 
 from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
-from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex, ABCPeriodIndex
+from pandas.core.dtypes.generic import ABCIndex
 
-from pandas import Index
+from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 import pandas.core.common as com
 
 from pandas.io.common import stringify_path
@@ -385,7 +385,7 @@ class ExcelFormatter:
     ):
         self.rowcounter = 0
         self.na_rep = na_rep
-        if hasattr(df, "render"):
+        if not isinstance(df, DataFrame):
             self.styler = df
             df = df.data
             if style_converter is None:
@@ -465,7 +465,7 @@ class ExcelFormatter:
         coloffset = 0
         lnum = 0
 
-        if self.index and isinstance(self.df.index, ABCMultiIndex):
+        if self.index and isinstance(self.df.index, MultiIndex):
             coloffset = len(self.df.index[0]) - 1
 
         if self.merge_cells:
@@ -507,7 +507,7 @@ class ExcelFormatter:
 
             if self.index:
                 coloffset = 1
-                if isinstance(self.df.index, ABCMultiIndex):
+                if isinstance(self.df.index, MultiIndex):
                     coloffset = len(self.df.index[0])
 
             colnames = self.columns
@@ -526,7 +526,7 @@ class ExcelFormatter:
                 )
 
     def _format_header(self):
-        if isinstance(self.columns, ABCMultiIndex):
+        if isinstance(self.columns, MultiIndex):
             gen = self._format_header_mi()
         else:
             gen = self._format_header_regular()
@@ -545,7 +545,7 @@ class ExcelFormatter:
         return itertools.chain(gen, gen2)
 
     def _format_body(self):
-        if isinstance(self.df.index, ABCMultiIndex):
+        if isinstance(self.df.index, MultiIndex):
             return self._format_hierarchical_rows()
         else:
             return self._format_regular_rows()
@@ -569,7 +569,7 @@ class ExcelFormatter:
             else:
                 index_label = self.df.index.names[0]
 
-            if isinstance(self.columns, ABCMultiIndex):
+            if isinstance(self.columns, MultiIndex):
                 self.rowcounter += 1
 
             if index_label and self.header is not False:
@@ -577,7 +577,7 @@ class ExcelFormatter:
 
             # write index_values
             index_values = self.df.index
-            if isinstance(self.df.index, ABCPeriodIndex):
+            if isinstance(self.df.index, PeriodIndex):
                 index_values = self.df.index.to_timestamp()
 
             for idx, idxval in enumerate(index_values):
@@ -587,8 +587,7 @@ class ExcelFormatter:
         else:
             coloffset = 0
 
-        for cell in self._generate_body(coloffset):
-            yield cell
+        yield from self._generate_body(coloffset)
 
     def _format_hierarchical_rows(self):
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
@@ -609,7 +608,7 @@ class ExcelFormatter:
             # with index names (blank if None) for
             # unambiguous round-trip, unless not merging,
             # in which case the names all go on one row Issue #11328
-            if isinstance(self.columns, ABCMultiIndex) and self.merge_cells:
+            if isinstance(self.columns, MultiIndex) and self.merge_cells:
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
@@ -664,8 +663,7 @@ class ExcelFormatter:
                         )
                     gcolidx += 1
 
-        for cell in self._generate_body(gcolidx):
-            yield cell
+        yield from self._generate_body(gcolidx)
 
     def _generate_body(self, coloffset: int):
         if self.styler is None:

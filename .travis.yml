@@ -14,6 +14,8 @@ cache:
 
 env:
   global:
+    # Variable for test workers
+    - PYTEST_WORKERS="auto"
     # create a github personal access token
     # cd pandas-dev/pandas
     # travis encrypt 'PANDAS_GH_TOKEN=personal_access_token' -r pandas-dev/pandas
@@ -27,14 +29,23 @@ matrix:
   fast_finish: true
 
   include:
+    # In allowed failures
+    - dist: bionic
+      python: 3.9-dev
+      env:
+        - JOB="3.9-dev" PATTERN="(not slow and not network and not clipboard)"
     - env:
         - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
 
     - env:
         - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network and not clipboard)"
 
+    - arch: arm64
+      env:
+        - JOB="3.7, arm64" PYTEST_WORKERS=8 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
+
     - env:
-        - JOB="3.6, locale" ENV_FILE="ci/deps/travis-36-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
+        - JOB="3.7, locale" ENV_FILE="ci/deps/travis-37-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
       services:
         - mysql
         - postgresql
@@ -43,21 +54,15 @@ matrix:
         # Enabling Deprecations when running tests
         # PANDAS_TESTING_MODE="deprecate" causes DeprecationWarning messages to be displayed in the logs
         # See pandas/_testing.py for more details.
-        - JOB="3.6, coverage" ENV_FILE="ci/deps/travis-36-cov.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
+        - JOB="3.7, coverage" ENV_FILE="ci/deps/travis-37-cov.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" PANDAS_TESTING_MODE="deprecate" COVERAGE=true SQL="1"
       services:
         - mysql
         - postgresql
 
-    - env:
-        - JOB="3.6, slow" ENV_FILE="ci/deps/travis-36-slow.yaml" PATTERN="slow" SQL="1"
-      services:
-        - mysql
-        - postgresql
 
 before_install:
   - echo "before_install"
-  # set non-blocking IO on travis
-  # https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
+  # Use blocking IO on travis.  Ref:  https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
   - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
   - source ci/travis_process_gbq_encryption.sh
   - export PATH="$HOME/miniconda3/bin:$PATH"
@@ -83,7 +88,7 @@ install:
 script:
   - echo "script start"
   - echo "$JOB"
-  - source activate pandas-dev
+  - if [ "$JOB" != "3.9-dev" ]; then source activate pandas-dev; fi
   - ci/run_tests.sh
 
 after_script:

@@ -2,45 +2,42 @@
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
 """
+from locale import LC_TIME
 
 import cython
 from cython import Py_ssize_t
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, int32_t, int8_t, uint32_t
+from numpy cimport int8_t, int32_t, int64_t, ndarray, uint32_t
+
 cnp.import_array()
 
-from pandas._libs.tslibs.ccalendar import (
-    get_locale_names, MONTHS_FULL, DAYS_FULL, DAY_SECONDS)
+from pandas._config.localization import set_locale
+
+from pandas._libs.tslibs.ccalendar import DAYS_FULL, MONTHS_FULL
+
 from pandas._libs.tslibs.ccalendar cimport (
-    get_days_in_month, is_leapyear, dayofweek, get_week_of_year,
-    get_day_of_year, get_iso_calendar, iso_calendar_t)
-from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct, pandas_timedeltastruct, dt64_to_dtstruct,
-    td64_to_tdstruct)
+    dayofweek,
+    get_day_of_year,
+    get_days_in_month,
+    get_firstbday,
+    get_iso_calendar,
+    get_lastbday,
+    get_week_of_year,
+    is_leapyear,
+    iso_calendar_t,
+    month_offset,
+)
 from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.np_datetime cimport (
+    dt64_to_dtstruct,
+    npy_datetimestruct,
+    pandas_timedeltastruct,
+    td64_to_tdstruct,
+)
 
-
-def get_time_micros(const int64_t[:] dtindex):
-    """
-    Return the number of microseconds in the time component of a
-    nanosecond timestamp.
-
-    Parameters
-    ----------
-    dtindex : ndarray[int64_t]
-
-    Returns
-    -------
-    micros : ndarray[int64_t]
-    """
-    cdef:
-        ndarray[int64_t] micros
-
-    micros = np.mod(dtindex, DAY_SECONDS * 1_000_000_000, dtype=np.int64)
-    micros //= 1000
-    return micros
+from pandas._libs.tslibs.strptime import LocaleTime
 
 
 @cython.wraparound(False)
@@ -87,9 +84,49 @@ def build_field_sarray(const int64_t[:] dtindex):
     return out
 
 
+def month_position_check(fields, weekdays):
+    cdef:
+        int32_t daysinmonth, y, m, d
+        bint calendar_end = True
+        bint business_end = True
+        bint calendar_start = True
+        bint business_start = True
+        bint cal
+        int32_t[:] years = fields["Y"]
+        int32_t[:] months = fields["M"]
+        int32_t[:] days = fields["D"]
+
+    for y, m, d, wd in zip(years, months, days, weekdays):
+        if calendar_start:
+            calendar_start &= d == 1
+        if business_start:
+            business_start &= d == 1 or (d <= 3 and wd == 0)
+
+        if calendar_end or business_end:
+            daysinmonth = get_days_in_month(y, m)
+            cal = d == daysinmonth
+            if calendar_end:
+                calendar_end &= cal
+            if business_end:
+                business_end &= cal or (daysinmonth - d < 3 and wd == 4)
+        elif not calendar_start and not business_start:
+            break
+
+    if calendar_end:
+        return "ce"
+    elif business_end:
+        return "be"
+    elif calendar_start:
+        return "cs"
+    elif business_start:
+        return "bs"
+    else:
+        return None
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_name_field(const int64_t[:] dtindex, object field, object locale=None):
+def get_date_name_field(const int64_t[:] dtindex, str field, object locale=None):
     """
     Given a int64-based datetime index, return array of strings of date
     name based on requested field (e.g. day_name)
@@ -139,7 +176,7 @@ def get_date_name_field(const int64_t[:] dtindex, object field, object locale=No
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_start_end_field(const int64_t[:] dtindex, object field,
+def get_start_end_field(const int64_t[:] dtindex, str field,
                         object freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
@@ -153,18 +190,7 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
         int end_month = 12
         int start_month = 1
         ndarray[int8_t] out
-        ndarray[int32_t, ndim=2] _month_offset
-        bint isleap
         npy_datetimestruct dts
-        int mo_off, dom, doy, dow, ldom
-
-    _month_offset = np.array(
-        [
-            [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
-            [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366],
-        ],
-        dtype=np.int32,
-    )
 
     out = np.zeros(count, dtype='int8')
 
@@ -197,10 +223,8 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                dom = dts.day
-                dow = dayofweek(dts.year, dts.month, dts.day)
 
-                if (dom == 1 and dow < 5) or (dom <= 3 and dow == 0):
+                if dts.day == get_firstbday(dts.year, dts.month):
                     out[i] = 1
 
         else:
@@ -210,9 +234,8 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                dom = dts.day
 
-                if dom == 1:
+                if dts.day == 1:
                     out[i] = 1
 
     elif field == 'is_month_end':
@@ -223,15 +246,8 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                isleap = is_leapyear(dts.year)
-                mo_off = _month_offset[isleap, dts.month - 1]
-                dom = dts.day
-                doy = mo_off + dom
-                ldom = _month_offset[isleap, dts.month]
-                dow = dayofweek(dts.year, dts.month, dts.day)
 
-                if (ldom == doy and dow < 5) or (
-                        dow == 4 and (ldom - doy <= 2)):
+                if dts.day == get_lastbday(dts.year, dts.month):
                     out[i] = 1
 
         else:
@@ -241,13 +257,8 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                isleap = is_leapyear(dts.year)
-                mo_off = _month_offset[isleap, dts.month - 1]
-                dom = dts.day
-                doy = mo_off + dom
-                ldom = _month_offset[isleap, dts.month]
 
-                if ldom == doy:
+                if dts.day == get_days_in_month(dts.year, dts.month):
                     out[i] = 1
 
     elif field == 'is_quarter_start':
@@ -258,11 +269,9 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                dom = dts.day
-                dow = dayofweek(dts.year, dts.month, dts.day)
 
                 if ((dts.month - start_month) % 3 == 0) and (
-                        (dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
+                        dts.day == get_firstbday(dts.year, dts.month)):
                     out[i] = 1
 
         else:
@@ -272,9 +281,8 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                dom = dts.day
 
-                if ((dts.month - start_month) % 3 == 0) and dom == 1:
+                if ((dts.month - start_month) % 3 == 0) and dts.day == 1:
                     out[i] = 1
 
     elif field == 'is_quarter_end':
@@ -285,16 +293,9 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                isleap = is_leapyear(dts.year)
-                mo_off = _month_offset[isleap, dts.month - 1]
-                dom = dts.day
-                doy = mo_off + dom
-                ldom = _month_offset[isleap, dts.month]
-                dow = dayofweek(dts.year, dts.month, dts.day)
 
                 if ((dts.month - end_month) % 3 == 0) and (
-                        (ldom == doy and dow < 5) or (
-                            dow == 4 and (ldom - doy <= 2))):
+                        dts.day == get_lastbday(dts.year, dts.month)):
                     out[i] = 1
 
         else:
@@ -304,13 +305,9 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                isleap = is_leapyear(dts.year)
-                mo_off = _month_offset[isleap, dts.month - 1]
-                dom = dts.day
-                doy = mo_off + dom
-                ldom = _month_offset[isleap, dts.month]
 
-                if ((dts.month - end_month) % 3 == 0) and (ldom == doy):
+                if ((dts.month - end_month) % 3 == 0) and (
+                        dts.day == get_days_in_month(dts.year, dts.month)):
                     out[i] = 1
 
     elif field == 'is_year_start':
@@ -321,11 +318,9 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                dom = dts.day
-                dow = dayofweek(dts.year, dts.month, dts.day)
 
                 if (dts.month == start_month) and (
-                        (dom == 1 and dow < 5) or (dom <= 3 and dow == 0)):
+                        dts.day == get_firstbday(dts.year, dts.month)):
                     out[i] = 1
 
         else:
@@ -335,9 +330,8 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                dom = dts.day
 
-                if (dts.month == start_month) and dom == 1:
+                if (dts.month == start_month) and dts.day == 1:
                     out[i] = 1
 
     elif field == 'is_year_end':
@@ -348,16 +342,9 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                isleap = is_leapyear(dts.year)
-                dom = dts.day
-                mo_off = _month_offset[isleap, dts.month - 1]
-                doy = mo_off + dom
-                dow = dayofweek(dts.year, dts.month, dts.day)
-                ldom = _month_offset[isleap, dts.month]
 
                 if (dts.month == end_month) and (
-                        (ldom == doy and dow < 5) or (
-                            dow == 4 and (ldom - doy <= 2))):
+                        dts.day == get_lastbday(dts.year, dts.month)):
                     out[i] = 1
 
         else:
@@ -367,13 +354,9 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                isleap = is_leapyear(dts.year)
-                mo_off = _month_offset[isleap, dts.month - 1]
-                dom = dts.day
-                doy = mo_off + dom
-                ldom = _month_offset[isleap, dts.month]
 
-                if (dts.month == end_month) and (ldom == doy):
+                if (dts.month == end_month) and (
+                        dts.day == get_days_in_month(dts.year, dts.month)):
                     out[i] = 1
 
     else:
@@ -384,7 +367,7 @@ def get_start_end_field(const int64_t[:] dtindex, object field,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_field(const int64_t[:] dtindex, object field):
+def get_date_field(const int64_t[:] dtindex, str field):
     """
     Given a int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.
@@ -546,7 +529,7 @@ def get_date_field(const int64_t[:] dtindex, object field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_timedelta_field(const int64_t[:] tdindex, object field):
+def get_timedelta_field(const int64_t[:] tdindex, str field):
     """
     Given a int64-based timedelta index, extract the days, hrs, sec.,
     field and return an array of these values.
@@ -709,3 +692,21 @@ def build_isocalendar_sarray(const int64_t[:] dtindex):
             iso_weeks[i] = ret_val[1]
             days[i] = ret_val[2]
     return out
+
+
+def get_locale_names(name_type: str, locale: object = None):
+    """
+    Returns an array of localized day or month names.
+
+    Parameters
+    ----------
+    name_type : string, attribute of LocaleTime() in which to return localized
+        names
+    locale : string
+
+    Returns
+    -------
+    list of locale names
+    """
+    with set_locale(locale, LC_TIME):
+        return getattr(LocaleTime(), name_type)

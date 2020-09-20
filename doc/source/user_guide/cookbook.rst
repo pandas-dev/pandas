@@ -219,8 +219,8 @@ There are 2 explicit slicing methods, with a third general case
    df.loc['bar':'kar']  # Label
 
    # Generic
-   df.iloc[0:3]
-   df.loc['bar':'kar']
+   df[0:3]
+   df['bar':'kar']
 
 Ambiguity arises when an index consists of integers with a non-zero start or non-unit increment.
 
@@ -765,7 +765,7 @@ Timeseries
 <https://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
 `Aggregation and plotting time series
-<http://nipunbatra.github.io/2015/06/timeseries/>`__
+<https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html>`__
 
 Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
 `How to rearrange a Python pandas DataFrame?
@@ -1166,6 +1166,25 @@ Storing Attributes to a group node
    store.close()
    os.remove('test.h5')
 
+You can create or load a HDFStore in-memory  by passing the ``driver``
+parameter to PyTables. Changes are only written to disk when the HDFStore
+is closed.
+
+.. ipython:: python
+
+   store = pd.HDFStore('test.h5', 'w', diver='H5FD_CORE')
+
+   df = pd.DataFrame(np.random.randn(8, 3))
+   store['test'] = df
+
+   # only after closing the store, data is written to disk:
+   store.close()
+
+.. ipython:: python
+   :suppress:
+
+   os.remove('test.h5')
+
 .. _cookbook.binary:
 
 Binary files
@@ -1332,33 +1351,6 @@ Values can be set to NaT using np.nan, similar to datetime
 
    y[1] = np.nan
    y
-
-Aliasing axis names
--------------------
-
-To globally provide aliases for axis names, one can define these 2 functions:
-
-.. ipython:: python
-
-   def set_axis_alias(cls, axis, alias):
-       if axis not in cls._AXIS_NUMBERS:
-           raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-       cls._AXIS_ALIASES[alias] = axis
-
-.. ipython:: python
-
-   def clear_axis_alias(cls, axis, alias):
-       if axis not in cls._AXIS_NUMBERS:
-           raise Exception("invalid axis [%s] for alias [%s]" % (axis, alias))
-       cls._AXIS_ALIASES.pop(alias, None)
-
-.. ipython:: python
-
-   set_axis_alias(pd.DataFrame, 'columns', 'myaxis2')
-   df2 = pd.DataFrame(np.random.randn(3, 2), columns=['c1', 'c2'],
-                      index=['i1', 'i2', 'i3'])
-   df2.sum(axis='myaxis2')
-   clear_axis_alias(pd.DataFrame, 'columns', 'myaxis2')
 
 Creating example data
 ---------------------

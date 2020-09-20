@@ -33,8 +33,8 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-min_numpy_ver = "1.13.3"
-min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
+min_numpy_ver = "1.16.5"
+min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
     import Cython
@@ -99,7 +99,7 @@ class build_ext(_build_ext):
                 # if .pxi.in is not updated, no need to output .pxi
                 continue
 
-            with open(pxifile, "r") as f:
+            with open(pxifile) as f:
                 tmpl = f.read()
             pyxcontent = tempita.sub(tmpl)
 
@@ -117,7 +117,7 @@ class build_ext(_build_ext):
 
 DESCRIPTION = "Powerful data structures for data analysis, time series, and statistics"
 LONG_DESCRIPTION = """
-**pandas** is a Python package providing fast, flexible, and expressive data
+**pandas** is a Python package that provides fast, flexible, and expressive data
 structures designed to make working with structured (tabular, multidimensional,
 potentially heterogeneous) and time series data both easy and intuitive. It
 aims to be the fundamental high-level building block for doing practical,
@@ -197,9 +197,9 @@ CLASSIFIERS = [
     "Intended Audience :: Science/Research",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Cython",
     "Topic :: Scientific/Engineering",
 ]
@@ -307,8 +307,9 @@ class CheckSDist(sdist_class):
         "pandas/_libs/sparse.pyx",
         "pandas/_libs/ops.pyx",
         "pandas/_libs/parsers.pyx",
-        "pandas/_libs/tslibs/c_timestamp.pyx",
+        "pandas/_libs/tslibs/base.pyx",
         "pandas/_libs/tslibs/ccalendar.pyx",
+        "pandas/_libs/tslibs/dtypes.pyx",
         "pandas/_libs/tslibs/period.pyx",
         "pandas/_libs/tslibs/strptime.pyx",
         "pandas/_libs/tslibs/np_datetime.pyx",
@@ -318,10 +319,9 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/conversion.pyx",
         "pandas/_libs/tslibs/fields.pyx",
         "pandas/_libs/tslibs/offsets.pyx",
-        "pandas/_libs/tslibs/frequencies.pyx",
-        "pandas/_libs/tslibs/resolution.pyx",
         "pandas/_libs/tslibs/parsing.pyx",
         "pandas/_libs/tslibs/tzconversion.pyx",
+        "pandas/_libs/tslibs/vectorized.pyx",
         "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
         "pandas/io/sas/sas.pyx",
@@ -456,6 +456,9 @@ if is_platform_mac():
 
     if sys.version_info[:2] == (3, 8):  # GH 33239
         extra_compile_args.append("-Wno-error=deprecated-declarations")
+
+    # https://github.com/pandas-dev/pandas/issues/35559
+    extra_compile_args.append("-Wno-error=unreachable-code")
 
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
@@ -602,11 +605,9 @@ ext_data = {
     "_libs.reshape": {"pyxfile": "_libs/reshape", "depends": []},
     "_libs.sparse": {"pyxfile": "_libs/sparse", "depends": _pxi_dep["sparse"]},
     "_libs.tslib": {"pyxfile": "_libs/tslib", "depends": tseries_depends},
-    "_libs.tslibs.c_timestamp": {
-        "pyxfile": "_libs/tslibs/c_timestamp",
-        "depends": tseries_depends,
-    },
+    "_libs.tslibs.base": {"pyxfile": "_libs/tslibs/base"},
     "_libs.tslibs.ccalendar": {"pyxfile": "_libs/tslibs/ccalendar"},
+    "_libs.tslibs.dtypes": {"pyxfile": "_libs/tslibs/dtypes"},
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
         "depends": tseries_depends,
@@ -616,7 +617,6 @@ ext_data = {
         "pyxfile": "_libs/tslibs/fields",
         "depends": tseries_depends,
     },
-    "_libs.tslibs.frequencies": {"pyxfile": "_libs/tslibs/frequencies"},
     "_libs.tslibs.nattype": {"pyxfile": "_libs/tslibs/nattype"},
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",
@@ -641,10 +641,6 @@ ext_data = {
         "depends": tseries_depends,
         "sources": ["pandas/_libs/tslibs/src/datetime/np_datetime.c"],
     },
-    "_libs.tslibs.resolution": {
-        "pyxfile": "_libs/tslibs/resolution",
-        "depends": tseries_depends,
-    },
     "_libs.tslibs.strptime": {
         "pyxfile": "_libs/tslibs/strptime",
         "depends": tseries_depends,
@@ -662,6 +658,7 @@ ext_data = {
         "pyxfile": "_libs/tslibs/tzconversion",
         "depends": tseries_depends,
     },
+    "_libs.tslibs.vectorized": {"pyxfile": "_libs/tslibs/vectorized"},
     "_libs.testing": {"pyxfile": "_libs/testing"},
     "_libs.window.aggregations": {
         "pyxfile": "_libs/window/aggregations",
@@ -748,7 +745,7 @@ def setup_package():
     setuptools_kwargs = {
         "install_requires": [
             "python-dateutil >= 2.7.3",
-            "pytz >= 2017.2",
+            "pytz >= 2017.3",
             f"numpy >= {min_numpy_ver}",
         ],
         "setup_requires": [f"numpy >= {min_numpy_ver}"],
@@ -772,11 +769,11 @@ def setup_package():
         long_description=LONG_DESCRIPTION,
         classifiers=CLASSIFIERS,
         platforms="any",
-        python_requires=">=3.6.1",
+        python_requires=">=3.7.1",
         extras_require={
             "test": [
                 # sync with setup.cfg minversion & install.rst
-                "pytest>=4.0.2",
+                "pytest>=5.0.1",
                 "pytest-xdist",
                 "hypothesis>=3.58",
             ]

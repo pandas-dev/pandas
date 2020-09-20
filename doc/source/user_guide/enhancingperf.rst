@@ -13,6 +13,14 @@ when we use Cython and Numba on a test function operating row-wise on the
 ``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of
 ~2.
 
+.. note::
+
+   In addition to following the steps in this tutorial, users interested in enhancing
+   performance are highly encouraged to install the
+   :ref:`recommended dependencies<install.recommended_dependencies>` for pandas.
+   These dependencies are often not installed by default, but will offer speed
+   improvements if present.
+
 .. _enhancingperf.cython:
 
 Cython (writing C extensions for pandas)
@@ -365,6 +373,13 @@ nicer interface by passing/returning pandas objects.
 
 In this example, using Numba was faster than Cython.
 
+Numba as an argument
+~~~~~~~~~~~~~~~~~~~~
+
+Additionally, we can leverage the power of `Numba <https://numba.pydata.org/>`__
+by calling it as an argument in :meth:`~Rolling.apply`. See :ref:`Computation tools
+<stats.rolling_apply>` for an extensive example.
+
 Vectorize
 ~~~~~~~~~
 
@@ -396,7 +411,7 @@ Consider the following toy example of doubling each observation:
    1000 loops, best of 3: 233 us per loop
 
    # Custom function with numba
-   In [7]: %timeit (df['col1_doubled'] = double_every_value_withnumba(df['a'].to_numpy())
+   In [7]: %timeit df['col1_doubled'] = double_every_value_withnumba(df['a'].to_numpy())
    1000 loops, best of 3: 145 us per loop
 
 Caveats
@@ -599,13 +614,6 @@ identifier.
 The ``inplace`` keyword determines whether this assignment will performed
 on the original ``DataFrame`` or return a copy with the new column.
 
-.. warning::
-
-   For backwards compatibility, ``inplace`` defaults to ``True`` if not
-   specified. This will change in a future version of pandas - if your
-   code depends on an inplace assignment you should update to explicitly
-   set ``inplace=True``.
-
 .. ipython:: python
 
    df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
@@ -614,7 +622,7 @@ on the original ``DataFrame`` or return a copy with the new column.
    df.eval('a = 1', inplace=True)
    df
 
-When ``inplace`` is set to ``False``, a copy of the ``DataFrame`` with the
+When ``inplace`` is set to ``False``, the default, a copy of the ``DataFrame`` with the
 new or modified columns is returned and the original frame is unchanged.
 
 .. ipython:: python
@@ -652,11 +660,6 @@ whether the query modifies the original frame.
    df.query('a > 2')
    df.query('a > 2', inplace=True)
    df
-
-.. warning::
-
-   Unlike with ``eval``, the default value for ``inplace`` for ``query``
-   is ``False``.  This is consistent with prior versions of pandas.
 
 Local variables
 ~~~~~~~~~~~~~~~

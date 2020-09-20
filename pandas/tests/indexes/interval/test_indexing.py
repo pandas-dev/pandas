@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 from pandas import (
     CategoricalIndex,
     Interval,
@@ -12,7 +14,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.indexes.base import InvalidIndexError
 
 
 class TestGetLoc:
@@ -157,6 +158,15 @@ class TestGetLoc:
         result = index.get_loc(index[0])
         expected = 0
         assert result == expected
+
+    @pytest.mark.parametrize("key", [[5], (2, 3)])
+    def test_get_loc_non_scalar_errors(self, key):
+        # GH 31117
+        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
+
+        msg = str(key)
+        with pytest.raises(InvalidIndexError, match=msg):
+            idx.get_loc(key)
 
 
 class TestGetIndexer:

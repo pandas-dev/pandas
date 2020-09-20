@@ -1,7 +1,7 @@
 .. _whatsnew_0180:
 
-v0.18.0 (March 13, 2016)
-------------------------
+Version 0.18.0 (March 13, 2016)
+-------------------------------
 
 {{ header }}
 
@@ -145,7 +145,7 @@ This continues to work as before for function or dict-like values.
 
 .. _whatsnew_0180.enhancements.rangeindex:
 
-Range index
+Range Index
 ^^^^^^^^^^^
 
 A ``RangeIndex`` has been added to the ``Int64Index`` sub-classes to support a memory saving alternative for common use cases. This has a similar implementation to the python ``range`` object (``xrange`` in python 2), in that it only stores the start, stop, and step values for the index. It will transparently interact with the user API, converting to ``Int64Index`` if needed.
@@ -456,8 +456,8 @@ New behavior:
 
 .. _whatsnew_0180.enhancements.xarray:
 
-to_xarray
-^^^^^^^^^
+Method to_xarray
+^^^^^^^^^^^^^^^^
 
 In a future version of pandas, we will be deprecating ``Panel`` and other > 2 ndim objects. In order to provide for continuity,
 all ``NDFrame`` objects have gained the ``.to_xarray()`` method in order to convert to ``xarray`` objects, which has

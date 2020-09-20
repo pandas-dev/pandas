@@ -3,12 +3,12 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import np_version_under1p17
 
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, date_range
+from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -86,7 +86,9 @@ class Generic:
     def test_get_numeric_data(self):
 
         n = 4
-        kwargs = {self._typ._AXIS_NAMES[i]: list(range(n)) for i in range(self._ndim)}
+        kwargs = {
+            self._typ._get_axis_name(i): list(range(n)) for i in range(self._ndim)
+        }
 
         # get the numeric data
         o = self._construct(n, **kwargs)
@@ -249,13 +251,13 @@ class Generic:
             self.check_metadata(v1 & v2)
             self.check_metadata(v1 | v2)
 
-    def test_head_tail(self, indices):
+    def test_head_tail(self, index):
         # GH5370
 
-        o = self._construct(shape=len(indices))
+        o = self._construct(shape=len(index))
 
         axis = o._get_axis_name(0)
-        setattr(o, axis, indices)
+        setattr(o, axis, index)
 
         o.head()
 
@@ -271,8 +273,8 @@ class Generic:
         self._compare(o.tail(len(o) + 1), o)
 
         # neg index
-        self._compare(o.head(-3), o.head(len(indices) - 3))
-        self._compare(o.tail(-3), o.tail(len(indices) - 3))
+        self._compare(o.head(-3), o.head(len(index) - 3))
+        self._compare(o.tail(-3), o.tail(len(index) - 3))
 
     def test_sample(self):
         # Fixes issue: 2419
@@ -650,12 +652,12 @@ class TestNDFrame:
             pytest.param(
                 "np.random.MT19937",
                 3,
-                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
             ),
             pytest.param(
                 "np.random.PCG64",
                 11,
-                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
             ),
         ],
     )
@@ -783,26 +785,6 @@ class TestNDFrame:
             s.take([0, 1], is_copy=is_copy)
 
     def test_equals(self):
-        s1 = pd.Series([1, 2, 3], index=[0, 2, 1])
-        s2 = s1.copy()
-        assert s1.equals(s2)
-
-        s1[1] = 99
-        assert not s1.equals(s2)
-
-        # NaNs compare as equal
-        s1 = pd.Series([1, np.nan, 3, np.nan], index=[0, 2, 1, 3])
-        s2 = s1.copy()
-        assert s1.equals(s2)
-
-        s2[0] = 9.9
-        assert not s1.equals(s2)
-
-        idx = MultiIndex.from_tuples([(0, "a"), (1, "b"), (2, "c")])
-        s1 = Series([1, 2, np.nan], index=idx)
-        s2 = s1.copy()
-        assert s1.equals(s2)
-
         # Add object dtype column with nans
         index = np.random.random(10)
         df1 = DataFrame(np.random.random(10), index=index, columns=["floats"])
@@ -855,21 +837,6 @@ class TestNDFrame:
         df2 = df1.set_index(["floats"], append=True)
         assert df3.equals(df2)
 
-        # GH 8437
-        a = pd.Series([False, np.nan])
-        b = pd.Series([False, np.nan])
-        c = pd.Series(index=range(2), dtype=object)
-        d = c.copy()
-        e = c.copy()
-        f = c.copy()
-        c[:-1] = d[:-1] = e[0] = f[0] = False
-        assert a.equals(a)
-        assert a.equals(b)
-        assert a.equals(c)
-        assert a.equals(d)
-        assert a.equals(e)
-        assert e.equals(f)
-
     def test_pipe(self):
         df = DataFrame({"A": [1, 2, 3]})
         f = lambda x, y: x ** y
@@ -901,12 +868,32 @@ class TestNDFrame:
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):
         obj = box(dtype=object)
-        values = (
-            list(box._AXIS_NAMES.keys())
-            + list(box._AXIS_NUMBERS.keys())
-            + list(box._AXIS_ALIASES.keys())
-        )
+        values = box._AXIS_TO_AXIS_NUMBER.keys()
         for v in values:
             assert obj._get_axis_number(v) == box._get_axis_number(v)
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
+
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_axis_names_deprecated(self, box):
+        # GH33637
+        obj = box(dtype=object)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            obj._AXIS_NAMES
+
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_axis_numbers_deprecated(self, box):
+        # GH33637
+        obj = box(dtype=object)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            obj._AXIS_NUMBERS
+
+    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_flags_identity(self, as_frame):
+        s = pd.Series([1, 2])
+        if as_frame:
+            s = s.to_frame()
+
+        assert s.flags is s.flags
+        s2 = s.copy()
+        assert s2.flags is not s.flags

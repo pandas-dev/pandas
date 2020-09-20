@@ -273,7 +273,7 @@ pandas object. Like Series, DataFrame accepts many different kinds of input:
 * Dict of 1D ndarrays, lists, dicts, or Series
 * 2-D numpy.ndarray
 * `Structured or record
-  <https://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
+  <https://numpy.org/doc/stable/user/basics.rec.html>`__ ndarray
 * A ``Series``
 * Another ``DataFrame``
 
@@ -396,6 +396,32 @@ From a Series
 The result will be a DataFrame with the same index as the input Series, and
 with one column whose name is the original name of the Series (only if no other
 column name provided).
+
+
+.. _basics.dataframe.from_list_namedtuples:
+
+From a list of namedtuples
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The field names of the first ``namedtuple`` in the list determine the columns
+of the ``DataFrame``. The remaining namedtuples (or tuples) are simply unpacked
+and their values are fed into the rows of the ``DataFrame``. If any of those
+tuples is shorter than the first ``namedtuple`` then the later columns in the
+corresponding row are marked as missing values. If any are longer than the
+first ``namedtuple``, a ``ValueError`` is raised.
+
+.. ipython:: python
+
+    from collections import namedtuple
+
+    Point = namedtuple('Point', 'x y')
+
+    pd.DataFrame([Point(0, 0), Point(0, 3), (2, 3)])
+
+    Point3D = namedtuple('Point3D', 'x y z')
+
+    pd.DataFrame([Point3D(0, 0, 0), Point3D(0, 3, 5), Point(2, 3)])
+
 
 .. _basics.dataframe.from_list_dataclasses:
 
@@ -571,8 +597,6 @@ to be inserted (for example, a ``Series`` or NumPy array), or a function
 of one argument to be called on the ``DataFrame``. A *copy* of the original
 DataFrame is returned, with the new values inserted.
 
-.. versionchanged:: 0.23.0
-
 Starting with Python 3.6 the order of ``**kwargs`` is preserved. This allows
 for *dependent* assignment, where an expression later in ``**kwargs`` can refer
 to a column created earlier in the same :meth:`~DataFrame.assign`.
@@ -632,7 +656,7 @@ union of the column and row labels.
 
 When doing an operation between DataFrame and Series, the default behavior is
 to align the Series **index** on the DataFrame **columns**, thus `broadcasting
-<https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html>`__
+<https://numpy.org/doc/stable/user/basics.broadcasting.html>`__
 row-wise. For example:
 
 .. ipython:: python
@@ -718,7 +742,7 @@ indexing semantics and data model are quite different in places from an n-dimens
 array.
 
 :class:`Series` implements ``__array_ufunc__``, which allows it to work with NumPy's
-`universal functions <https://docs.scipy.org/doc/numpy/reference/ufuncs.html>`_.
+`universal functions <https://numpy.org/doc/stable/reference/ufuncs.html>`_.
 
 The ufunc is applied to the underlying array in a Series.
 

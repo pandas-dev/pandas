@@ -11,7 +11,6 @@ from pandas import (
     Series,
     Timedelta,
     TimedeltaIndex,
-    array,
     date_range,
     timedelta_range,
 )
@@ -26,13 +25,15 @@ class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
 
     @pytest.fixture
-    def indices(self):
+    def index(self):
         return tm.makeTimedeltaIndex(10)
 
     def create_index(self) -> TimedeltaIndex:
         index = pd.to_timedelta(range(5), unit="d")._with_freq("infer")
         assert index.freq == "D"
-        return index + pd.offsets.Hour(1)
+        ret = index + pd.offsets.Hour(1)
+        assert ret.freq == "D"
+        return ret
 
     def test_numeric_compat(self):
         # Dummy method to override super's version; this test is now done
@@ -44,6 +45,13 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_pickle_compat_construction(self):
         pass
+
+    def test_pickle_after_set_freq(self):
+        tdi = timedelta_range("1 day", periods=4, freq="s")
+        tdi = tdi._with_freq(None)
+
+        res = tm.round_trip_pickle(tdi)
+        tm.assert_index_equal(res, tdi)
 
     def test_isin(self):
 
@@ -98,26 +106,6 @@ class TestTimedeltaIndex(DatetimeLike):
         assert ordered[::-1].is_monotonic
 
         tm.assert_numpy_array_equal(dexer, np.array([0, 2, 1]), check_dtype=False)
-
-    @pytest.mark.parametrize("klass", [list, np.array, array, Series])
-    def test_searchsorted_different_argument_classes(self, klass):
-        idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
-        result = idx.searchsorted(klass(idx))
-        expected = np.arange(len(idx), dtype=result.dtype)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = idx._data.searchsorted(klass(idx))
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "arg",
-        [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2],
-    )
-    def test_searchsorted_invalid_argument_dtype(self, arg):
-        idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
-        msg = "searchsorted requires compatible dtype"
-        with pytest.raises(TypeError, match=msg):
-            idx.searchsorted(arg)
 
     def test_argmin_argmax(self):
         idx = TimedeltaIndex(["1 day 00:00:05", "1 day 00:00:01", "1 day 00:00:02"])

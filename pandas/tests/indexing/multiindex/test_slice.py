@@ -6,7 +6,7 @@ from pandas.errors import UnsortedIndexError
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
 import pandas._testing as tm
-from pandas.core.indexing import _non_reducing_slice
+from pandas.core.indexing import non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
 
@@ -118,11 +118,11 @@ class TestMultiIndexSlicers:
         with pytest.raises(ValueError, match=msg):
             df.loc[(slice(None), np.array([True, False])), :]
 
-        # ambiguous notation
-        # this is interpreted as slicing on both axes (GH #16396)
-        result = df.loc[slice(None), [1]]
-        expected = df.iloc[:, []]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match=r"\[1\] not in index"):
+            # slice(None) is on the index, [1] is on the columns, but 1 is
+            #  not in the columns, so we raise
+            #  This used to treat [1] as positional GH#16396
+            df.loc[slice(None), [1]]
 
         result = df.loc[(slice(None), [1]), :]
         expected = df.iloc[[0, 3]]
@@ -739,7 +739,7 @@ class TestMultiIndexSlicers:
         df = pd.DataFrame(dic, index=[0, 1])
         idx = pd.IndexSlice
         slice_ = idx[:, idx["b", "d"]]
-        tslice_ = _non_reducing_slice(slice_)
+        tslice_ = non_reducing_slice(slice_)
 
         result = df.loc[tslice_]
         expected = pd.DataFrame({("b", "d"): [4, 1]})

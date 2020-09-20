@@ -1,5 +1,6 @@
 import re
-from typing import List
+from typing import TYPE_CHECKING, List, cast
+import warnings
 
 import numpy as np
 
@@ -7,41 +8,51 @@ from pandas.util._decorators import Appender, deprecate_kwarg
 
 from pandas.core.dtypes.common import is_extension_array_dtype, is_list_like
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.arrays import Categorical
 import pandas.core.common as com
-from pandas.core.frame import DataFrame, _shared_docs
-from pandas.core.indexes.base import Index
+from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import tile_compat
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series  # noqa: F401
 
-@Appender(
-    _shared_docs["melt"]
-    % dict(caller="pd.melt(df, ", versionadded="", other="DataFrame.melt")
-)
+
+@Appender(_shared_docs["melt"] % dict(caller="pd.melt(df, ", other="DataFrame.melt"))
 def melt(
-    frame: DataFrame,
+    frame: "DataFrame",
     id_vars=None,
     value_vars=None,
     var_name=None,
     value_name="value",
     col_level=None,
-) -> DataFrame:
-    # TODO: what about the existing index?
+    ignore_index: bool = True,
+) -> "DataFrame":
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
-    if isinstance(frame.columns, ABCMultiIndex):
+    if isinstance(frame.columns, MultiIndex):
         cols = [x for c in frame.columns for x in c]
     else:
         cols = list(frame.columns)
 
+    if value_name in frame.columns:
+        warnings.warn(
+            "This dataframe has a column name that matches the 'value_name' column "
+            "name of the resultiing Dataframe. "
+            "In the future this will raise an error, please set the 'value_name' "
+            "parameter of DataFrame.melt to a unique name.",
+            FutureWarning,
+            stacklevel=3,
+        )
+
     if id_vars is not None:
         if not is_list_like(id_vars):
             id_vars = [id_vars]
-        elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(id_vars, list):
+        elif isinstance(frame.columns, MultiIndex) and not isinstance(id_vars, list):
             raise ValueError(
                 "id_vars must be a list of tuples when columns are a MultiIndex"
             )
@@ -60,9 +71,7 @@ def melt(
     if value_vars is not None:
         if not is_list_like(value_vars):
             value_vars = [value_vars]
-        elif isinstance(frame.columns, ABCMultiIndex) and not isinstance(
-            value_vars, list
-        ):
+        elif isinstance(frame.columns, MultiIndex) and not isinstance(value_vars, list):
             raise ValueError(
                 "value_vars must be a list of tuples when columns are a MultiIndex"
             )
@@ -75,7 +84,13 @@ def melt(
                     "The following 'value_vars' are not present in "
                     f"the DataFrame: {list(missing)}"
                 )
-        frame = frame.loc[:, id_vars + value_vars]
+        if col_level is not None:
+            idx = frame.columns.get_level_values(col_level).get_indexer(
+                id_vars + value_vars
+            )
+        else:
+            idx = frame.columns.get_indexer(id_vars + value_vars)
+        frame = frame.iloc[:, idx]
     else:
         frame = frame.copy()
 
@@ -84,7 +99,7 @@ def melt(
         frame.columns = frame.columns.get_level_values(col_level)
 
     if var_name is None:
-        if isinstance(frame.columns, ABCMultiIndex):
+        if isinstance(frame.columns, MultiIndex):
             if len(frame.columns.names) == len(set(frame.columns.names)):
                 var_name = frame.columns.names
             else:
@@ -103,7 +118,7 @@ def melt(
     for col in id_vars:
         id_data = frame.pop(col)
         if is_extension_array_dtype(id_data):
-            id_data = concat([id_data] * K, ignore_index=True)
+            id_data = cast("Series", concat([id_data] * K, ignore_index=True))
         else:
             id_data = np.tile(id_data._values, K)
         mdata[col] = id_data
@@ -115,20 +130,54 @@ def melt(
         # asanyarray will keep the columns as an Index
         mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
 
-    return frame._constructor(mdata, columns=mcolumns)
+    result = frame._constructor(mdata, columns=mcolumns)
+
+    if not ignore_index:
+        result.index = tile_compat(frame.index, K)
+
+    return result
 
 
 @deprecate_kwarg(old_arg_name="label", new_arg_name=None)
-def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFrame:
+def lreshape(data: "DataFrame", groups, dropna: bool = True, label=None) -> "DataFrame":
     """
-    Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
+    Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
+
+    Accepts a dictionary, ``groups``, in which each key is a new column name
+    and each value is a list of old column names that will be "melted" under
+    the new column name as part of the reshape.
 
     Parameters
     ----------
     data : DataFrame
+        The wide-format DataFrame.
     groups : dict
-        {new_name : list_of_columns}
-    dropna : boolean, default True
+        {new_name : list_of_columns}.
+    dropna : bool, default True
+        Do not include columns whose entries are all NaN.
+    label : None
+        Not used.
+
+        .. deprecated:: 1.0.0
+
+    Returns
+    -------
+    DataFrame
+        Reshaped DataFrame.
+
+    See Also
+    --------
+    melt : Unpivot a DataFrame from wide to long format, optionally leaving
+        identifiers set.
+    pivot : Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.pivot : Pivot without aggregation that can handle
+        non-numeric data.
+    DataFrame.pivot_table : Generalization of pivot that can handle
+        duplicate values for one index/column pair.
+    DataFrame.unstack : Pivot based on the index values instead of a
+        column.
+    wide_to_long : Wide panel to long format. Less flexible but more
+        user-friendly than melt.
 
     Examples
     --------
@@ -146,10 +195,6 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     1  Yankees  2007  573
     2  Red Sox  2008  545
     3  Yankees  2008  526
-
-    Returns
-    -------
-    reshaped : DataFrame
     """
     if isinstance(groups, dict):
         keys = list(groups.keys())
@@ -189,8 +234,8 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
 
 
 def wide_to_long(
-    df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
-) -> DataFrame:
+    df: "DataFrame", stubnames, i, j, sep: str = "", suffix: str = r"\d+"
+) -> "DataFrame":
     r"""
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
@@ -226,18 +271,28 @@ def wide_to_long(
         A regular expression capturing the wanted suffixes. '\\d+' captures
         numeric suffixes. Suffixes with no numbers could be specified with the
         negated character class '\\D+'. You can also further disambiguate
-        suffixes, for example, if your wide variables are of the form
-        A-one, B-two,.., and you have an unrelated column A-rating, you can
-        ignore the last one by specifying `suffix='(!?one|two)'`.
-
-        .. versionchanged:: 0.23.0
-            When all suffixes are numeric, they are cast to int64/float64.
+        suffixes, for example, if your wide variables are of the form A-one,
+        B-two,.., and you have an unrelated column A-rating, you can ignore the
+        last one by specifying `suffix='(!?one|two)'`. When all suffixes are
+        numeric, they are cast to int64/float64.
 
     Returns
     -------
     DataFrame
         A DataFrame that contains each stub name as a variable, with new index
         (i, j).
+
+    See Also
+    --------
+    melt : Unpivot a DataFrame from wide to long format, optionally leaving
+        identifiers set.
+    pivot : Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.pivot : Pivot without aggregation that can handle
+        non-numeric data.
+    DataFrame.pivot_table : Generalization of pivot that can handle
+        duplicate values for one index/column pair.
+    DataFrame.unstack : Pivot based on the index values instead of a
+        column.
 
     Notes
     -----

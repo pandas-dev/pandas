@@ -5,7 +5,8 @@ ExtensionArrays.
 from datetime import timedelta
 from functools import partial
 import operator
-from typing import Any, Optional, Tuple
+from typing import Any, Tuple
+import warnings
 
 import numpy as np
 
@@ -22,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer_dtype,
     is_list_like,
+    is_numeric_v_string_like,
     is_object_dtype,
     is_scalar,
 )
@@ -84,13 +86,7 @@ def masked_arith_op(x: np.ndarray, y, op):
         yrav = y.ravel()
         mask = notna(xrav) & ymask.ravel()
 
-        if yrav.shape != mask.shape:
-            # FIXME: GH#5284, GH#5035, GH#19448
-            # Without specifically raising here we get mismatched
-            # errors in Py3 (TypeError) vs Py2 (ValueError)
-            # Note: Only = an issue in DataFrame case
-            raise ValueError("Cannot broadcast operands together.")
-
+        # See GH#5284, GH#5035, GH#19448 for historical reference
         if mask.any():
             with np.errstate(all="ignore"):
                 result[mask] = op(xrav[mask], yrav[mask])
@@ -120,24 +116,16 @@ def masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def define_na_arithmetic_op(op, str_rep: str):
-    def na_op(x, y):
-        return na_arithmetic_op(x, y, op, str_rep)
-
-    return na_op
-
-
-def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = False):
+def na_arithmetic_op(left, right, op, is_cmp: bool = False):
     """
     Return the result of evaluating op on the passed in values.
 
-    If native types are not compatible, try coersion to object dtype.
+    If native types are not compatible, try coercion to object dtype.
 
     Parameters
     ----------
     left : np.ndarray
     right : np.ndarray or scalar
-    str_rep : str or None
     is_cmp : bool, default False
         If this a comparison operation.
 
@@ -152,7 +140,7 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
     import pandas.core.computation.expressions as expressions
 
     try:
-        result = expressions.evaluate(op, str_rep, left, right)
+        result = expressions.evaluate(op, left, right)
     except TypeError:
         if is_cmp:
             # numexpr failed on comparison op, e.g. ndarray[float] > datetime
@@ -169,7 +157,7 @@ def na_arithmetic_op(left, right, op, str_rep: Optional[str], is_cmp: bool = Fal
     return missing.dispatch_fill_zeros(op, left, right, result)
 
 
-def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
+def arithmetic_op(left: ArrayLike, right: Any, op):
     """
     Evaluate an arithmetic operation `+`, `-`, `*`, `/`, `//`, `%`, `**`, ...
 
@@ -180,18 +168,18 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
         Cannot be a DataFrame or Index.  Series is *not* excluded.
     op : {operator.add, operator.sub, ...}
         Or one of the reversed variants from roperator.
-    str_rep : str
 
     Returns
     -------
-    ndarrray or ExtensionArray
+    ndarray or ExtensionArray
         Or a 2-tuple of these in the case of divmod or rdivmod.
     """
 
     # NB: We assume that extract_array has already been called
     #  on `left` and `right`.
     lvalues = maybe_upcast_datetimelike_array(left)
-    rvalues = maybe_upcast_for_op(right, lvalues.shape)
+    rvalues = maybe_upcast_datetimelike_array(right)
+    rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
@@ -199,14 +187,12 @@ def arithmetic_op(left: ArrayLike, right: Any, op, str_rep: str):
 
     else:
         with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep)
+            res_values = na_arithmetic_op(lvalues, rvalues, op)
 
     return res_values
 
 
-def comparison_op(
-    left: ArrayLike, right: Any, op, str_rep: Optional[str] = None,
-) -> ArrayLike:
+def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
 
@@ -250,12 +236,19 @@ def comparison_op(
         else:
             res_values = np.zeros(lvalues.shape, dtype=bool)
 
+    elif is_numeric_v_string_like(lvalues, rvalues):
+        # GH#36377 going through the numexpr path would incorrectly raise
+        return invalid_comparison(lvalues, rvalues, op)
+
     elif is_object_dtype(lvalues.dtype):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op, str_rep, is_cmp=True)
+        with warnings.catch_warnings():
+            # suppress warnings from numpy about element-wise comparison
+            warnings.simplefilter("ignore", DeprecationWarning)
+            with np.errstate(all="ignore"):
+                res_values = na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
 
     return res_values
 
@@ -315,7 +308,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     Returns
     -------
-    ndarrray or ExtensionArray
+    ndarray or ExtensionArray
     """
     fill_int = lambda x: x
 
@@ -361,12 +354,13 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
         res_values = na_logical_op(lvalues, rvalues, op)
-        res_values = filler(res_values)  # type: ignore
+        # error: Cannot call function of unknown type
+        res_values = filler(res_values)  # type: ignore[operator]
 
     return res_values
 
 
-def get_array_op(op, str_rep: Optional[str] = None):
+def get_array_op(op):
     """
     Return a binary array operation corresponding to the given operator op.
 
@@ -374,20 +368,38 @@ def get_array_op(op, str_rep: Optional[str] = None):
     ----------
     op : function
         Binary operator from operator or roperator module.
-    str_rep : str or None, default None
-        str_rep to pass to arithmetic_op
 
     Returns
     -------
-    function
+    functools.partial
     """
-    op_name = op.__name__.strip("_")
+    if isinstance(op, partial):
+        # We get here via dispatch_to_series in DataFrame case
+        # TODO: avoid getting here
+        return op
+
+    op_name = op.__name__.strip("_").lstrip("r")
+    if op_name == "arith_op":
+        # Reached via DataFrame._combine_frame
+        return op
+
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
-        return partial(comparison_op, op=op, str_rep=str_rep)
+        return partial(comparison_op, op=op)
     elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
         return partial(logical_op, op=op)
+    elif op_name in {
+        "add",
+        "sub",
+        "mul",
+        "truediv",
+        "floordiv",
+        "mod",
+        "divmod",
+        "pow",
+    }:
+        return partial(arithmetic_op, op=op)
     else:
-        return partial(arithmetic_op, op=op, str_rep=str_rep)
+        raise NotImplementedError(op_name)
 
 
 def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:

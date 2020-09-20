@@ -377,7 +377,7 @@ class TestBlockManager:
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
 
             # view assertion
-            assert cp_blk.equals(blk)
+            tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
                 assert cp_blk.values.base is blk.values.base
             else:
@@ -389,7 +389,7 @@ class TestBlockManager:
 
             # copy assertion we either have a None for a base or in case of
             # some blocks it is an array (e.g. datetimetz), but was copied
-            assert cp_blk.equals(blk)
+            tm.assert_equal(cp_blk.values, blk.values)
             if not isinstance(cp_blk.values, np.ndarray):
                 assert cp_blk.values._data.base is not blk.values._data.base
             else:
@@ -584,7 +584,7 @@ class TestBlockManager:
         mgr = create_mgr("a: complex")
         assert mgr.as_array().dtype == "complex"
         mgr = create_mgr("a: f8; b: category")
-        assert mgr.as_array().dtype == "object"
+        assert mgr.as_array().dtype == "f8"
         mgr = create_mgr("a: M8[ns]; b: category")
         assert mgr.as_array().dtype == "object"
         mgr = create_mgr("a: M8[ns]; b: bool")
@@ -892,16 +892,16 @@ class TestIndexing:
                 fill_value,
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, mgr.axes[ax][::-1], np.arange(mgr.shape[ax]), fill_value,
+                mgr, ax, mgr.axes[ax][::-1], np.arange(mgr.shape[ax]), fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax])[::-1], fill_value,
+                mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax])[::-1], fill_value
             )
             assert_reindex_indexer_is_ok(
                 mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 0, 0], fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, pd.Index(["foo", "bar", "baz"]), [-1, 0, -1], fill_value,
+                mgr, ax, pd.Index(["foo", "bar", "baz"]), [-1, 0, -1], fill_value
             )
             assert_reindex_indexer_is_ok(
                 mgr,
@@ -913,7 +913,7 @@ class TestIndexing:
 
             if mgr.shape[ax] >= 3:
                 assert_reindex_indexer_is_ok(
-                    mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value,
+                    mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value
                 )
 
 

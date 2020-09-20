@@ -1,13 +1,14 @@
 """ test parquet compat """
 import datetime
 from distutils.version import LooseVersion
-import locale
+from io import BytesIO
 import os
 from warnings import catch_warnings
 
 import numpy as np
 import pytest
 
+from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -131,6 +132,7 @@ def check_round_trip(
     read_kwargs=None,
     expected=None,
     check_names=True,
+    check_like=False,
     repeat=2,
 ):
     """Verify parquet serializer and deserializer produce the same results.
@@ -150,6 +152,8 @@ def check_round_trip(
         Expected deserialization result, otherwise will be equal to `df`
     check_names: list of str, optional
         Closed set of column names to be compared
+    check_like: bool, optional
+        If True, ignore the order of index & columns.
     repeat: int, optional
         How many times to repeat the test
     """
@@ -169,7 +173,9 @@ def check_round_trip(
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
 
-            tm.assert_frame_equal(expected, actual, check_names=check_names)
+            tm.assert_frame_equal(
+                expected, actual, check_names=check_names, check_like=check_like
+            )
 
     if path is None:
         with tm.ensure_clean() as path:
@@ -385,6 +391,8 @@ class TestBasic(Base):
         # non-default index
         for index in indexes:
             df.index = index
+            if isinstance(index, pd.DatetimeIndex):
+                df.index = df.index._with_freq(None)  # freq doesnt round-trip
             check_round_trip(df, engine, check_names=check_names)
 
         # index with meta-data
@@ -462,7 +470,9 @@ class TestParquetPyArrow(Base):
         df = df_full
 
         # additional supported types for pyarrow
-        df["datetime_tz"] = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = dti._with_freq(None)  # freq doesnt round-trip
+        df["datetime_tz"] = dti
         df["bool_with_none"] = [True, None, True]
 
         check_round_trip(df, pa)
@@ -528,14 +538,105 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
-    # GH#33077 2020-03-27
-    @pytest.mark.xfail(
-        locale.getlocale()[0] == "zh_CN",
-        reason="dateutil cannot parse e.g. '五, 27 3月 2020 21:45:38 GMT'",
-    )
-    def test_s3_roundtrip(self, df_compat, s3_resource, pa):
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
+        s3fs = pytest.importorskip("s3fs")
+        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
+            pytest.skip()
+        s3 = s3fs.S3FileSystem(**s3so)
+        kw = dict(filesystem=s3)
+        check_round_trip(
+            df_compat,
+            pa,
+            path="pandas-test/pyarrow.parquet",
+            read_kwargs=kw,
+            write_kwargs=kw,
+        )
+
+    def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
+        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
+            pytest.skip()
         # GH #19134
-        check_round_trip(df_compat, pa, path="s3://pandas-test/pyarrow.parquet")
+        s3so = dict(storage_options=s3so)
+        check_round_trip(
+            df_compat,
+            pa,
+            path="s3://pandas-test/pyarrow.parquet",
+            read_kwargs=s3so,
+            write_kwargs=s3so,
+        )
+
+    @td.skip_if_no("s3fs")  # also requires flask
+    @pytest.mark.parametrize(
+        "partition_col",
+        [
+            pytest.param(
+                ["A"],
+                marks=pytest.mark.xfail(
+                    PY38, reason="Getting back empty DataFrame", raises=AssertionError,
+                ),
+            ),
+            [],
+        ],
+    )
+    def test_s3_roundtrip_for_dir(
+        self, df_compat, s3_resource, pa, partition_col, s3so
+    ):
+        # GH #26388
+        expected_df = df_compat.copy()
+
+        # GH #35791
+        # read_table uses the new Arrow Datasets API since pyarrow 1.0.0
+        # Previous behaviour was pyarrow partitioned columns become 'category' dtypes
+        # These are added to back of dataframe on read. In new API category dtype is
+        # only used if partition field is string.
+        legacy_read_table = LooseVersion(pyarrow.__version__) < LooseVersion("1.0.0")
+        if partition_col and legacy_read_table:
+            partition_col_type = "category"
+        else:
+            partition_col_type = "int32"
+
+        expected_df[partition_col] = expected_df[partition_col].astype(
+            partition_col_type
+        )
+
+        check_round_trip(
+            df_compat,
+            pa,
+            expected=expected_df,
+            path="s3://pandas-test/parquet_dir",
+            read_kwargs=dict(storage_options=s3so),
+            write_kwargs=dict(
+                partition_cols=partition_col, compression=None, storage_options=s3so
+            ),
+            check_like=True,
+            repeat=1,
+        )
+
+    @tm.network
+    @td.skip_if_no("pyarrow")
+    def test_parquet_read_from_url(self, df_compat):
+        url = (
+            "https://raw.githubusercontent.com/pandas-dev/pandas/"
+            "master/pandas/tests/io/data/parquet/simple.parquet"
+        )
+        df = pd.read_parquet(url)
+        tm.assert_frame_equal(df, df_compat)
+
+    @td.skip_if_no("pyarrow")
+    def test_read_file_like_obj_support(self, df_compat):
+        buffer = BytesIO()
+        df_compat.to_parquet(buffer)
+        df_from_buf = pd.read_parquet(buffer)
+        tm.assert_frame_equal(df_compat, df_from_buf)
+
+    @td.skip_if_no("pyarrow")
+    def test_expand_user(self, df_compat, monkeypatch):
+        monkeypatch.setenv("HOME", "TestingUser")
+        monkeypatch.setenv("USERPROFILE", "TestingUser")
+        with pytest.raises(OSError, match=r".*TestingUser.*"):
+            pd.read_parquet("~/file.parquet")
+        with pytest.raises(OSError, match=r".*TestingUser.*"):
+            df_compat.to_parquet("~/file.parquet")
 
     def test_partition_cols_supported(self, pa, df_full):
         # GH #23283
@@ -623,13 +724,26 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": "2.0"})
 
+    @td.skip_if_no("pyarrow", min_version="0.17")
+    def test_filter_row_groups(self, pa):
+        # https://github.com/pandas-dev/pandas/issues/26551
+        df = pd.DataFrame({"a": list(range(0, 3))})
+        with tm.ensure_clean() as path:
+            df.to_parquet(path, pa)
+            result = read_parquet(
+                path, pa, filters=[("a", "==", 0)], use_legacy_dataset=False
+            )
+        assert len(result) == 1
+
 
 class TestParquetFastParquet(Base):
     @td.skip_if_no("fastparquet", min_version="0.3.2")
     def test_basic(self, fp, df_full):
         df = df_full
 
-        df["datetime_tz"] = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        dti = dti._with_freq(None)  # freq doesnt round-trip
+        df["datetime_tz"] = dti
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)
         check_round_trip(df, fp)
 
@@ -667,9 +781,15 @@ class TestParquetFastParquet(Base):
             result = read_parquet(path, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
-    def test_s3_roundtrip(self, df_compat, s3_resource, fp):
+    def test_s3_roundtrip(self, df_compat, s3_resource, fp, s3so):
         # GH #19134
-        check_round_trip(df_compat, fp, path="s3://pandas-test/fastparquet.parquet")
+        check_round_trip(
+            df_compat,
+            fp,
+            path="s3://pandas-test/fastparquet.parquet",
+            read_kwargs=dict(storage_options=s3so),
+            write_kwargs=dict(compression=None, storage_options=s3so),
+        )
 
     def test_partition_cols_supported(self, fp, df_full):
         # GH #23283

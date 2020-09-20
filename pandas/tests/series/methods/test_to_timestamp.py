@@ -1,6 +1,8 @@
 from datetime import timedelta
 
-from pandas import Series, Timedelta, date_range, period_range, to_datetime
+import pytest
+
+from pandas import PeriodIndex, Series, Timedelta, date_range, period_range, to_datetime
 import pandas._testing as tm
 
 
@@ -52,3 +54,11 @@ class TestToTimestamp:
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
         tm.assert_index_equal(result.index, exp_index)
         assert result.name == "foo"
+
+    def test_to_timestamp_raises(self, index):
+        # https://github.com/pandas-dev/pandas/issues/33327
+        ser = Series(index=index, dtype=object)
+        if not isinstance(index, PeriodIndex):
+            msg = f"unsupported Type {type(index).__name__}"
+            with pytest.raises(TypeError, match=msg):
+                ser.to_timestamp()

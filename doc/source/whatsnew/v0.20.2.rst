@@ -1,7 +1,7 @@
 .. _whatsnew_0202:
 
-v0.20.2 (June 4, 2017)
-----------------------
+Version 0.20.2 (June 4, 2017)
+-----------------------------
 
 {{ header }}
 
@@ -74,8 +74,8 @@ Indexing
 - Bug in partial string indexing with a monotonic, but not strictly-monotonic, index incorrectly reversing the slice bounds (:issue:`16515`)
 - Bug in ``MultiIndex.remove_unused_levels()`` that would not return a ``MultiIndex`` equal to the original. (:issue:`16556`)
 
-I/O
-^^^
+IO
+^^
 
 - Bug in :func:`read_csv` when ``comment`` is passed in a space delimited text file (:issue:`16472`)
 - Bug in :func:`read_csv` not raising an exception with nonexistent columns in ``usecols`` when it had the correct length (:issue:`14671`)
@@ -97,7 +97,7 @@ Plotting
 
 
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in creating a time-based rolling window on an empty ``DataFrame`` (:issue:`15819`)

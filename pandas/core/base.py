@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Dict, FrozenSet, List, Optional, Union
+from typing import Any, Callable, Dict, FrozenSet, Optional, Union
 
 import numpy as np
 
@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -438,7 +437,13 @@ class SelectionMixin:
                 # we have a dict of DataFrames
                 # return a MI DataFrame
 
-                return concat([result[k] for k in keys], keys=keys, axis=1), True
+                keys_to_use = [k for k in keys if not result[k].empty]
+                # Have to check, if at least one DataFrame is not empty.
+                keys_to_use = keys_to_use if keys_to_use != [] else keys
+                return (
+                    concat([result[k] for k in keys_to_use], keys=keys_to_use, axis=1),
+                    True,
+                )
 
             elif isinstance(self, ABCSeries) and is_any_series():
 
@@ -465,9 +470,12 @@ class SelectionMixin:
             try:
                 result = DataFrame(result)
             except ValueError:
-
                 # we have a dict of scalars
-                result = Series(result, name=getattr(self, "name", None))
+
+                # GH 36212 use name only if self is a series
+                name = self.name if (self.ndim == 1) else None
+
+                result = Series(result, name=name)
 
             return result, True
         elif is_list_like(arg):
@@ -555,7 +563,7 @@ class SelectionMixin:
                 ) from err
             return result
 
-    def _get_cython_func(self, arg: str) -> Optional[str]:
+    def _get_cython_func(self, arg: Callable) -> Optional[str]:
         """
         if we define an internal function for this argument, return it
         """
@@ -567,21 +575,6 @@ class SelectionMixin:
         otherwise return the arg
         """
         return self._builtin_table.get(arg, arg)
-
-
-class ShallowMixin:
-    _attributes: List[str] = []
-
-    def _shallow_copy(self, obj, **kwargs):
-        """
-        return a new object with the replacement attributes
-        """
-        if isinstance(obj, self._constructor):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return self._constructor(obj, **kwargs)
 
 
 class IndexOpsMixin:
@@ -650,13 +643,6 @@ class IndexOpsMixin:
         ValueError
             If the data is not length-1.
         """
-        if not (
-            is_extension_array_dtype(self.dtype) or needs_i8_conversion(self.dtype)
-        ):
-            # numpy returns ints instead of datetime64/timedelta64 objects,
-            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
-            return self._values.item()
-
         if len(self) == 1:
             return next(iter(self))
         raise ValueError("can only convert an array of size 1 to a Python scalar")
@@ -737,8 +723,8 @@ class IndexOpsMixin:
 
         >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
         >>> ser.array
-        [a, b, a]
-        Categories (2, object): [a, b]
+        ['a', 'b', 'a']
+        Categories (2, object): ['a', 'b']
         """
         raise AbstractMethodError(self)
 
@@ -753,7 +739,7 @@ class IndexOpsMixin:
         dtype : str or numpy.dtype, optional
             The dtype to pass to :meth:`numpy.asarray`.
         copy : bool, default False
-            Whether to ensure that the returned value is a not a view on
+            Whether to ensure that the returned value is not a view on
             another array. Note that ``copy=False`` does not *ensure* that
             ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that
             a copy is made, even if not strictly necessary.
@@ -1123,7 +1109,7 @@ class IndexOpsMixin:
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
-            if is_categorical_dtype(self._values):
+            if is_categorical_dtype(self.dtype):
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
                 return self._values.map(mapper)
@@ -1257,8 +1243,7 @@ class IndexOpsMixin:
     def unique(self):
         values = self._values
 
-        if hasattr(values, "unique"):
-
+        if not isinstance(values, np.ndarray):
             result = values.unique()
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
@@ -1401,7 +1386,7 @@ class IndexOpsMixin:
             """
         ),
     )
-    def factorize(self, sort=False, na_sentinel=-1):
+    def factorize(self, sort: bool = False, na_sentinel: Optional[int] = -1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs[
@@ -1476,8 +1461,8 @@ class IndexOpsMixin:
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
         ... )
         >>> ser
-        [apple, bread, bread, cheese, milk]
-        Categories (4, object): [apple < bread < cheese < milk]
+        ['apple', 'bread', 'bread', 'cheese', 'milk']
+        Categories (4, object): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
         1
@@ -1515,7 +1500,7 @@ class IndexOpsMixin:
     def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
-                return np.zeros(len(self), dtype=np.bool)
+                return np.zeros(len(self), dtype=bool)
             return duplicated(self, keep=keep)
         else:
             return self._constructor(

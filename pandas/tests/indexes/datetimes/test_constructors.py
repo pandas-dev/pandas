@@ -131,6 +131,7 @@ class TestDatetimeIndex:
     def test_construction_with_alt_tz_localize(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
         i = pd.date_range("20130101", periods=5, freq="H", tz=tz)
+        i = i._with_freq(None)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
         if "tz" in kwargs:
@@ -703,7 +704,9 @@ class TestDatetimeIndex:
         end = Timestamp("2013-01-02 06:00:00", tz="America/Los_Angeles")
         result = date_range(freq="D", start=start, end=end, tz=tz)
         expected = DatetimeIndex(
-            ["2013-01-01 06:00:00", "2013-01-02 06:00:00"], tz="America/Los_Angeles"
+            ["2013-01-01 06:00:00", "2013-01-02 06:00:00"],
+            tz="America/Los_Angeles",
+            freq="D",
         )
         tm.assert_index_equal(result, expected)
         # Especially assert that the timezone is consistent for pytz
@@ -784,6 +787,65 @@ class TestDatetimeIndex:
         expected = DatetimeIndex([Timestamp("2018", tz=tz), pd.NaT])
         tm.assert_index_equal(result, expected)
 
+    def test_constructor_with_ambiguous_keyword_arg(self):
+        # GH 35297
+
+        expected = DatetimeIndex(
+            ["2020-11-01 01:00:00", "2020-11-02 01:00:00"],
+            dtype="datetime64[ns, America/New_York]",
+            freq="D",
+            ambiguous=False,
+        )
+
+        # ambiguous keyword in start
+        timezone = "America/New_York"
+        start = pd.Timestamp(year=2020, month=11, day=1, hour=1).tz_localize(
+            timezone, ambiguous=False
+        )
+        result = pd.date_range(start=start, periods=2, ambiguous=False)
+        tm.assert_index_equal(result, expected)
+
+        # ambiguous keyword in end
+        timezone = "America/New_York"
+        end = pd.Timestamp(year=2020, month=11, day=2, hour=1).tz_localize(
+            timezone, ambiguous=False
+        )
+        result = pd.date_range(end=end, periods=2, ambiguous=False)
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_with_nonexistent_keyword_arg(self):
+        # GH 35297
+
+        timezone = "Europe/Warsaw"
+
+        # nonexistent keyword in start
+        start = pd.Timestamp("2015-03-29 02:30:00").tz_localize(
+            timezone, nonexistent="shift_forward"
+        )
+        result = pd.date_range(start=start, periods=2, freq="H")
+        expected = DatetimeIndex(
+            [
+                pd.Timestamp("2015-03-29 03:00:00+02:00", tz=timezone),
+                pd.Timestamp("2015-03-29 04:00:00+02:00", tz=timezone),
+            ]
+        )
+
+        tm.assert_index_equal(result, expected)
+
+        # nonexistent keyword in end
+        end = pd.Timestamp("2015-03-29 02:30:00").tz_localize(
+            timezone, nonexistent="shift_forward"
+        )
+        result = pd.date_range(end=end, periods=2, freq="H")
+        expected = DatetimeIndex(
+            [
+                pd.Timestamp("2015-03-29 01:00:00+01:00", tz=timezone),
+                pd.Timestamp("2015-03-29 03:00:00+02:00", tz=timezone),
+            ]
+        )
+
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_no_precision_raises(self):
         # GH-24753, GH-24739
 
@@ -812,6 +874,16 @@ class TestTimeSeries:
 
         rng2 = DatetimeIndex(rng)
         assert rng.freq == rng2.freq
+
+    def test_explicit_none_freq(self):
+        # Explicitly passing freq=None is respected
+        rng = date_range("1/1/2000", "1/2/2000", freq="5min")
+
+        result = DatetimeIndex(rng, freq=None)
+        assert result.freq is None
+
+        result = DatetimeIndex(rng._data, freq=None)
+        assert result.freq is None
 
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -933,11 +1005,6 @@ class TestTimeSeries:
         assert idx[0] == sdate + 0 * offsets.BDay()
         assert idx.freq == "B"
 
-        idx = date_range(end=edate, freq=("D", 5), periods=20)
-        assert len(idx) == 20
-        assert idx[-1] == edate
-        assert idx.freq == "5D"
-
         idx1 = date_range(start=sdate, end=edate, freq="W-SUN")
         idx2 = date_range(start=sdate, end=edate, freq=offsets.Week(weekday=6))
         assert len(idx1) == len(idx2)
@@ -965,6 +1032,12 @@ class TestTimeSeries:
         expected = Index(rng.to_pydatetime(), dtype=object)
 
         tm.assert_numpy_array_equal(idx.values, expected.values)
+
+    def test_date_range_tuple_freq_raises(self):
+        # GH#34703
+        edate = datetime(2000, 1, 1)
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            date_range(end=edate, freq=("D", 5), periods=20)
 
 
 def test_timestamp_constructor_invalid_fold_raise():

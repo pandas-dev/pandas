@@ -333,64 +333,73 @@ def test_drop_duplicates_inplace():
     )
     # single column
     df = orig.copy()
-    df.drop_duplicates("A", inplace=True)
+    return_value = df.drop_duplicates("A", inplace=True)
     expected = orig[:2]
     result = df
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df = orig.copy()
-    df.drop_duplicates("A", keep="last", inplace=True)
+    return_value = df.drop_duplicates("A", keep="last", inplace=True)
     expected = orig.loc[[6, 7]]
     result = df
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df = orig.copy()
-    df.drop_duplicates("A", keep=False, inplace=True)
+    return_value = df.drop_duplicates("A", keep=False, inplace=True)
     expected = orig.loc[[]]
     result = df
     tm.assert_frame_equal(result, expected)
     assert len(df) == 0
+    assert return_value is None
 
     # multi column
     df = orig.copy()
-    df.drop_duplicates(["A", "B"], inplace=True)
+    return_value = df.drop_duplicates(["A", "B"], inplace=True)
     expected = orig.loc[[0, 1, 2, 3]]
     result = df
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df = orig.copy()
-    df.drop_duplicates(["A", "B"], keep="last", inplace=True)
+    return_value = df.drop_duplicates(["A", "B"], keep="last", inplace=True)
     expected = orig.loc[[0, 5, 6, 7]]
     result = df
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df = orig.copy()
-    df.drop_duplicates(["A", "B"], keep=False, inplace=True)
+    return_value = df.drop_duplicates(["A", "B"], keep=False, inplace=True)
     expected = orig.loc[[0]]
     result = df
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     # consider everything
     orig2 = orig.loc[:, ["A", "B", "C"]].copy()
 
     df2 = orig2.copy()
-    df2.drop_duplicates(inplace=True)
+    return_value = df2.drop_duplicates(inplace=True)
     # in this case only
     expected = orig2.drop_duplicates(["A", "B"])
     result = df2
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df2 = orig2.copy()
-    df2.drop_duplicates(keep="last", inplace=True)
+    return_value = df2.drop_duplicates(keep="last", inplace=True)
     expected = orig2.drop_duplicates(["A", "B"], keep="last")
     result = df2
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
     df2 = orig2.copy()
-    df2.drop_duplicates(keep=False, inplace=True)
+    return_value = df2.drop_duplicates(keep=False, inplace=True)
     expected = orig2.drop_duplicates(["A", "B"], keep=False)
     result = df2
     tm.assert_frame_equal(result, expected)
+    assert return_value is None
 
 
 @pytest.mark.parametrize("inplace", [True, False])
@@ -418,3 +427,10 @@ def test_drop_duplicates_ignore_index(
 
     tm.assert_frame_equal(result_df, expected)
     tm.assert_frame_equal(df, DataFrame(origin_dict))
+
+
+def test_drop_duplicates_null_in_object_column(nulls_fixture):
+    # https://github.com/pandas-dev/pandas/issues/32992
+    df = DataFrame([[1, nulls_fixture], [2, "a"]], dtype=object)
+    result = df.drop_duplicates()
+    tm.assert_frame_equal(result, df)

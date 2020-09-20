@@ -6,17 +6,17 @@ import sys
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, NaT, Series, isna
+from pandas import DataFrame, Index, NaT, Series, isna, to_datetime
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import bdate_range, date_range
+from pandas.core.indexes.datetimes import DatetimeIndex, bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import timedelta_range
-from pandas.core.resample import DatetimeIndex
 from pandas.tests.plotting.common import TestPlotBase
 
-from pandas.tseries.offsets import DateOffset
+from pandas.tseries.offsets import WeekOfMonth
 
 
 @td.skip_if_no_mpl
@@ -325,6 +325,18 @@ class TestTSPlot(TestPlotBase):
         idx = ax.get_lines()[0].get_xdata()
         assert PeriodIndex(data=idx).freqstr == "M"
 
+    def test_freq_with_no_period_alias(self):
+        # GH34487
+        freq = WeekOfMonth()
+        bts = tm.makeTimeSeries(5).asfreq(freq)
+        _, ax = self.plt.subplots()
+        bts.plot(ax=ax)
+
+        idx = ax.get_lines()[0].get_xdata()
+        msg = "freq not specified and cannot be inferred"
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex(data=idx)
+
     def test_nonzero_base(self):
         # GH2571
         idx = date_range("2012-12-20", periods=24, freq="H") + timedelta(minutes=30)
@@ -385,12 +397,12 @@ class TestTSPlot(TestPlotBase):
     def test_get_finder(self):
         import pandas.plotting._matplotlib.converter as conv
 
-        assert conv.get_finder("B") == conv._daily_finder
-        assert conv.get_finder("D") == conv._daily_finder
-        assert conv.get_finder("M") == conv._monthly_finder
-        assert conv.get_finder("Q") == conv._quarterly_finder
-        assert conv.get_finder("A") == conv._annual_finder
-        assert conv.get_finder("W") == conv._daily_finder
+        assert conv.get_finder(to_offset("B")) == conv._daily_finder
+        assert conv.get_finder(to_offset("D")) == conv._daily_finder
+        assert conv.get_finder(to_offset("M")) == conv._monthly_finder
+        assert conv.get_finder(to_offset("Q")) == conv._quarterly_finder
+        assert conv.get_finder(to_offset("A")) == conv._annual_finder
+        assert conv.get_finder(to_offset("W")) == conv._daily_finder
 
     @pytest.mark.slow
     def test_finder_daily(self):
@@ -1267,6 +1279,8 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_irregular_ts_shared_ax_xlim(self):
         # GH 2960
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
         ts = tm.makeTimeSeries()[:20]
         ts_irregular = ts[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
@@ -1277,8 +1291,8 @@ class TestTSPlot(TestPlotBase):
 
         # check that axis limits are correct
         left, right = ax.get_xlim()
-        assert left <= ts_irregular.index.min().toordinal()
-        assert right >= ts_irregular.index.max().toordinal()
+        assert left <= DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
+        assert right >= DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
     @pytest.mark.slow
     def test_secondary_y_non_ts_xlim(self):
@@ -1333,6 +1347,8 @@ class TestTSPlot(TestPlotBase):
     @pytest.mark.slow
     def test_secondary_y_irregular_ts_xlim(self):
         # GH 3490 - irregular-timeseries with secondary y
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
         ts = tm.makeTimeSeries()[:20]
         ts_irregular = ts[[1, 4, 5, 6, 8, 9, 10, 12, 13, 14, 15, 17, 18]]
 
@@ -1344,8 +1360,8 @@ class TestTSPlot(TestPlotBase):
         ts_irregular[:5].plot(ax=ax)
 
         left, right = ax.get_xlim()
-        assert left <= ts_irregular.index.min().toordinal()
-        assert right >= ts_irregular.index.max().toordinal()
+        assert left <= DatetimeConverter.convert(ts_irregular.index.min(), "", ax)
+        assert right >= DatetimeConverter.convert(ts_irregular.index.max(), "", ax)
 
     def test_plot_outofbounds_datetime(self):
         # 2579 - checking this does not raise
@@ -1456,7 +1472,9 @@ class TestTSPlot(TestPlotBase):
         # ax.xaxis.converter with a DatetimeConverter
         s = Series(np.random.randn(10), index=date_range("1970-01-02", periods=10))
         ax = s.plot()
-        ax.plot(s.index, s.values, color="g")
+        with tm.assert_produces_warning(DeprecationWarning):
+            # multi-dimensional indexing
+            ax.plot(s.index, s.values, color="g")
         l1, l2 = ax.lines
         tm.assert_numpy_array_equal(l1.get_xydata(), l2.get_xydata())
 
@@ -1476,6 +1494,32 @@ class TestTSPlot(TestPlotBase):
             expected = "2017-12-12"
         assert label.get_text() == expected
 
+    def test_check_xticks_rot(self):
+        # https://github.com/pandas-dev/pandas/issues/29460
+        # regular time series
+        x = to_datetime(["2020-05-01", "2020-05-02", "2020-05-03"])
+        df = DataFrame({"x": x, "y": [1, 2, 3]})
+        axes = df.plot(x="x", y="y")
+        self._check_ticks_props(axes, xrot=0)
+
+        # irregular time series
+        x = to_datetime(["2020-05-01", "2020-05-02", "2020-05-04"])
+        df = DataFrame({"x": x, "y": [1, 2, 3]})
+        axes = df.plot(x="x", y="y")
+        self._check_ticks_props(axes, xrot=30)
+
+        # use timeseries index or not
+        axes = df.set_index("x").plot(y="y", use_index=True)
+        self._check_ticks_props(axes, xrot=30)
+        axes = df.set_index("x").plot(y="y", use_index=False)
+        self._check_ticks_props(axes, xrot=0)
+
+        # separate subplots
+        axes = df.plot(x="x", y="y", subplots=True, sharex=True)
+        self._check_ticks_props(axes, xrot=30)
+        axes = df.plot(x="x", y="y", subplots=True, sharex=False)
+        self._check_ticks_props(axes, xrot=0)
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
@@ -1494,7 +1538,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         ax = kwargs.pop("ax", plt.gca())
         if series is not None:
             dfreq = series.index.freq
-            if isinstance(dfreq, DateOffset):
+            if isinstance(dfreq, BaseOffset):
                 dfreq = dfreq.rule_code
             if orig_axfreq is None:
                 assert ax.freq == dfreq

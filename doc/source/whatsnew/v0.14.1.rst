@@ -131,7 +131,7 @@ Enhancements
 
 - Implemented ``sem`` (standard error of the mean) operation for ``Series``,
   ``DataFrame``, ``Panel``, and ``Groupby`` (:issue:`6897`)
-- Add ``nlargest`` and ``nsmallest`` to the ``Series`` ``groupby`` whitelist,
+- Add ``nlargest`` and ``nsmallest`` to the ``Series`` ``groupby`` allowlist,
   which means you can now use these methods on a ``SeriesGroupBy`` object
   (:issue:`7053`).
 - All offsets ``apply``, ``rollforward`` and ``rollback`` can now handle ``np.datetime64``, previously results in ``ApplyTypeError`` (:issue:`7452`)

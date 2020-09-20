@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import re
 
 import numpy as np
 import pytest
@@ -9,7 +8,6 @@ from pandas._libs.tslibs import Timestamp
 import pandas as pd
 from pandas import Float64Index, Index, Int64Index, Series, UInt64Index
 import pandas._testing as tm
-from pandas.api.types import pandas_dtype
 from pandas.tests.indexes.common import Base
 
 
@@ -22,6 +20,13 @@ class Numeric(Base):
         idx = self.create_index()
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
+
+    def test_format(self):
+        # GH35439
+        idx = self.create_index()
+        max_width = max(len(str(x)) for x in idx)
+        expected = [str(x).ljust(max_width) for x in idx]
+        assert idx.format() == expected
 
     def test_numeric_compat(self):
         pass  # override Base method
@@ -79,10 +84,14 @@ class Numeric(Base):
             expected = {ex_keys[0]: idx[[0, 5]], ex_keys[1]: idx[[1, 4]]}
             tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
-    def test_insert(self, nulls_fixture):
+    def test_insert_na(self, nulls_fixture):
         # GH 18295 (test missing)
         index = self.create_index()
-        expected = Float64Index([index[0], np.nan] + list(index[1:]))
+
+        if nulls_fixture is pd.NaT:
+            expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
+        else:
+            expected = Float64Index([index[0], np.nan] + list(index[1:]))
         result = index.insert(1, nulls_fixture)
         tm.assert_index_equal(result, expected)
 
@@ -99,7 +108,7 @@ class TestFloat64Index(Numeric):
         ],
         ids=["mixed", "float", "mixed_dec", "float_dec"],
     )
-    def indices(self, request):
+    def index(self, request):
         return Float64Index(request.param)
 
     @pytest.fixture
@@ -113,8 +122,8 @@ class TestFloat64Index(Numeric):
     def create_index(self) -> Float64Index:
         return Float64Index(np.arange(5, dtype="float64"))
 
-    def test_repr_roundtrip(self, indices):
-        tm.assert_index_equal(eval(repr(indices)), indices)
+    def test_repr_roundtrip(self, index):
+        tm.assert_index_equal(eval(repr(index)), index)
 
     def check_is_index(self, i):
         assert isinstance(i, Index)
@@ -213,67 +222,6 @@ class TestFloat64Index(Numeric):
             mixed_index, Index([1.5, 2, 3, 4, 5], dtype=object), is_float_index=False
         )
 
-    def test_astype(self, mixed_index, float_index):
-
-        result = float_index.astype(object)
-        assert result.equals(float_index)
-        assert float_index.equals(result)
-        self.check_is_index(result)
-
-        i = mixed_index.copy()
-        i.name = "foo"
-        result = i.astype(object)
-        assert result.equals(i)
-        assert i.equals(result)
-        self.check_is_index(result)
-
-        # GH 12881
-        # a float astype int
-        for dtype in ["int16", "int32", "int64"]:
-            i = Float64Index([0, 1, 2])
-            result = i.astype(dtype)
-            expected = Int64Index([0, 1, 2])
-            tm.assert_index_equal(result, expected)
-
-            i = Float64Index([0, 1.1, 2])
-            result = i.astype(dtype)
-            expected = Int64Index([0, 1, 2])
-            tm.assert_index_equal(result, expected)
-
-        for dtype in ["float32", "float64"]:
-            i = Float64Index([0, 1, 2])
-            result = i.astype(dtype)
-            expected = i
-            tm.assert_index_equal(result, expected)
-
-            i = Float64Index([0, 1.1, 2])
-            result = i.astype(dtype)
-            expected = Index(i.values.astype(dtype))
-            tm.assert_index_equal(result, expected)
-
-        # invalid
-        for dtype in ["M8[ns]", "m8[ns]"]:
-            msg = (
-                f"Cannot convert Float64Index to dtype {pandas_dtype(dtype)}; "
-                f"integer values are required for conversion"
-            )
-            with pytest.raises(TypeError, match=re.escape(msg)):
-                i.astype(dtype)
-
-        # GH 13149
-        for dtype in ["int16", "int32", "int64"]:
-            i = Float64Index([0, 1.1, np.NAN])
-            msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
-            with pytest.raises(ValueError, match=msg):
-                i.astype(dtype)
-
-    def test_cannot_cast_inf_to_int(self):
-        idx = pd.Float64Index([1, 2, np.inf])
-
-        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
-        with pytest.raises(ValueError, match=msg):
-            idx.astype(int)
-
     def test_type_coercion_fail(self, any_int_dtype):
         # see gh-15832
         msg = "Trying to coerce float values to integers"
@@ -303,6 +251,19 @@ class TestFloat64Index(Numeric):
         assert i.equals(i2)
 
     @pytest.mark.parametrize(
+        "other",
+        (
+            Int64Index([1, 2]),
+            Index([1.0, 2.0], dtype=object),
+            Index([1, 2], dtype=object),
+        ),
+    )
+    def test_equals_numeric_other_index_type(self, other):
+        i = Float64Index([1.0, 2.0])
+        assert i.equals(other)
+        assert other.equals(i)
+
+    @pytest.mark.parametrize(
         "vals",
         [
             pd.date_range("2016-01-01", periods=3),
@@ -317,9 +278,11 @@ class TestFloat64Index(Numeric):
 
         expected = vals[1]
 
-        result = ser.index.get_value(ser, 4.0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = ser.index.get_value(ser, 4.0)
         assert isinstance(result, type(expected)) and result == expected
-        result = ser.index.get_value(ser, 4)
+        with tm.assert_produces_warning(FutureWarning):
+            result = ser.index.get_value(ser, 4)
         assert isinstance(result, type(expected)) and result == expected
 
         result = ser[4.0]
@@ -358,13 +321,6 @@ class TestFloat64Index(Numeric):
         tm.assert_numpy_array_equal(i.isin([1.0, np.nan]), np.array([True, True]))
         i = Float64Index([1.0, 2.0])
         tm.assert_numpy_array_equal(i.isin([np.nan]), np.array([False, False]))
-
-    def test_astype_from_object(self):
-        index = Index([1.0, np.nan, 0.2], dtype="object")
-        result = index.astype(float)
-        expected = Float64Index([1.0, np.nan, 0.2])
-        assert result.dtype == expected.dtype
-        tm.assert_index_equal(result, expected)
 
     def test_fillna_float64(self):
         # GH 11343
@@ -442,7 +398,7 @@ class NumericInt(Numeric):
         same_values_different_type = Index(i, dtype=object)
         assert not i.identical(same_values_different_type)
 
-        i = index.copy(dtype=object)
+        i = index.astype(dtype=object)
         i = i.rename("foo")
         same_values = Index(i, dtype=object)
         assert same_values.identical(i)
@@ -450,7 +406,7 @@ class NumericInt(Numeric):
         assert not i.identical(index)
         assert Index(same_values, name="foo", dtype=object).identical(i)
 
-        assert not index.copy(dtype=object).identical(index.copy(dtype=self._dtype))
+        assert not index.astype(dtype=object).identical(index.astype(dtype=self._dtype))
 
     def test_union_noncomparable(self):
         # corner case, non-Int64Index
@@ -496,7 +452,7 @@ class TestInt64Index(NumericInt):
     @pytest.fixture(
         params=[range(0, 20, 2), range(19, -1, -1)], ids=["index_inc", "index_dec"]
     )
-    def indices(self, request):
+    def index(self, request):
         return Int64Index(request.param)
 
     def create_index(self) -> Int64Index:
@@ -605,7 +561,7 @@ class TestUInt64Index(NumericInt):
         ],
         ids=["index_inc", "index_dec"],
     )
-    def indices(self, request):
+    def index(self, request):
         return UInt64Index(request.param)
 
     @pytest.fixture
@@ -679,7 +635,11 @@ def test_range_float_union_dtype():
     tm.assert_index_equal(result, expected)
 
 
-def test_uint_index_does_not_convert_to_float64():
+@pytest.mark.parametrize(
+    "box",
+    [list, lambda x: np.array(x, dtype=object), lambda x: pd.Index(x, dtype=object)],
+)
+def test_uint_index_does_not_convert_to_float64(box):
     # https://github.com/pandas-dev/pandas/issues/28279
     # https://github.com/pandas-dev/pandas/issues/28023
     series = pd.Series(
@@ -694,7 +654,7 @@ def test_uint_index_does_not_convert_to_float64():
         ],
     )
 
-    result = series.loc[[7606741985629028552, 17876870360202815256]]
+    result = series.loc[box([7606741985629028552, 17876870360202815256])]
 
     expected = UInt64Index(
         [7606741985629028552, 17876870360202815256, 17876870360202815256],
@@ -703,3 +663,44 @@ def test_uint_index_does_not_convert_to_float64():
     tm.assert_index_equal(result.index, expected)
 
     tm.assert_equal(result, series[:3])
+
+
+def test_float64_index_equals():
+    # https://github.com/pandas-dev/pandas/issues/35217
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
+
+    result = float_index.equals(string_index)
+    assert result is False
+
+    result = string_index.equals(float_index)
+    assert result is False
+
+
+def test_float64_index_difference():
+    # https://github.com/pandas-dev/pandas/issues/35217
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
+
+    result = float_index.difference(string_index)
+    tm.assert_index_equal(result, float_index)
+
+    result = string_index.difference(float_index)
+    tm.assert_index_equal(result, string_index)
+
+
+class TestGetSliceBounds:
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
+    def test_get_slice_bounds_within(self, kind, side, expected):
+        index = Index(range(6))
+        result = index.get_slice_bound(4, kind=kind, side=side)
+        assert result == expected
+
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side", ["left", "right"])
+    @pytest.mark.parametrize("bound, expected", [(-1, 0), (10, 6)])
+    def test_get_slice_bounds_outside(self, kind, side, expected, bound):
+        index = Index(range(6))
+        result = index.get_slice_bound(bound, kind=kind, side=side)
+        assert result == expected

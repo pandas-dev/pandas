@@ -9,9 +9,7 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 
-from pandas.core.dtypes.generic import ABCMultiIndex
-
-from pandas import option_context
+from pandas import MultiIndex, option_context
 
 from pandas.io.common import is_url
 from pandas.io.formats.format import (
@@ -55,8 +53,11 @@ class HTMLFormatter(TableFormatter):
         self.border = border
         self.table_id = self.fmt.table_id
         self.render_links = self.fmt.render_links
-        if isinstance(self.fmt.col_space, int):
-            self.fmt.col_space = f"{self.fmt.col_space}px"
+
+        self.col_space = {
+            column: f"{value}px" if isinstance(value, int) else value
+            for column, value in self.fmt.col_space.items()
+        }
 
     @property
     def show_row_idx_names(self) -> bool:
@@ -84,9 +85,8 @@ class HTMLFormatter(TableFormatter):
     def _get_columns_formatted_values(self) -> Iterable:
         return self.columns
 
-    # https://github.com/python/mypy/issues/1237
     @property
-    def is_truncated(self) -> bool:  # type: ignore
+    def is_truncated(self) -> bool:
         return self.fmt.is_truncated
 
     @property
@@ -122,9 +122,11 @@ class HTMLFormatter(TableFormatter):
         -------
         A written <th> cell.
         """
-        if header and self.fmt.col_space is not None:
+        col_space = self.col_space.get(s, None)
+
+        if header and col_space is not None:
             tags = tags or ""
-            tags += f'style="min-width: {self.fmt.col_space};"'
+            tags += f'style="min-width: {col_space};"'
 
         self._write_cell(s, kind="th", indent=indent, tags=tags)
 
@@ -232,8 +234,8 @@ class HTMLFormatter(TableFormatter):
         self.write("</table>", indent)
 
     def _write_col_header(self, indent: int) -> None:
-        truncate_h = self.fmt.truncate_h
-        if isinstance(self.columns, ABCMultiIndex):
+        is_truncated_horizontally = self.fmt.is_truncated_horizontally
+        if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
             if self.fmt.sparsify:
@@ -245,7 +247,7 @@ class HTMLFormatter(TableFormatter):
             level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
             for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
-                if truncate_h:
+                if is_truncated_horizontally:
                     # modify the header lines
                     ins_col = self.fmt.tr_col_num
                     if self.fmt.sparsify:
@@ -342,16 +344,16 @@ class HTMLFormatter(TableFormatter):
             row.extend(self._get_columns_formatted_values())
             align = self.fmt.justify
 
-            if truncate_h:
+            if is_truncated_horizontally:
                 ins_col = self.row_levels + self.fmt.tr_col_num
                 row.insert(ins_col, "...")
 
             self.write_tr(row, indent, self.indent_delta, header=True, align=align)
 
     def _write_row_header(self, indent: int) -> None:
-        truncate_h = self.fmt.truncate_h
+        is_truncated_horizontally = self.fmt.is_truncated_horizontally
         row = [x if x is not None else "" for x in self.frame.index.names] + [""] * (
-            self.ncols + (1 if truncate_h else 0)
+            self.ncols + (1 if is_truncated_horizontally else 0)
         )
         self.write_tr(row, indent, self.indent_delta, header=True)
 
@@ -376,7 +378,7 @@ class HTMLFormatter(TableFormatter):
         fmt_values = self._get_formatted_values()
 
         # write values
-        if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
+        if self.fmt.index and isinstance(self.frame.index, MultiIndex):
             self._write_hierarchical_rows(fmt_values, indent + self.indent_delta)
         else:
             self._write_regular_rows(fmt_values, indent + self.indent_delta)
@@ -386,8 +388,8 @@ class HTMLFormatter(TableFormatter):
     def _write_regular_rows(
         self, fmt_values: Mapping[int, List[str]], indent: int
     ) -> None:
-        truncate_h = self.fmt.truncate_h
-        truncate_v = self.fmt.truncate_v
+        is_truncated_horizontally = self.fmt.is_truncated_horizontally
+        is_truncated_vertically = self.fmt.is_truncated_vertically
 
         nrows = len(self.fmt.tr_frame)
 
@@ -401,7 +403,7 @@ class HTMLFormatter(TableFormatter):
         row: List[str] = []
         for i in range(nrows):
 
-            if truncate_v and i == (self.fmt.tr_row_num):
+            if is_truncated_vertically and i == (self.fmt.tr_row_num):
                 str_sep_row = ["..."] * len(row)
                 self.write_tr(
                     str_sep_row,
@@ -422,7 +424,7 @@ class HTMLFormatter(TableFormatter):
                 row.append("")
             row.extend(fmt_values[j][i] for j in range(self.ncols))
 
-            if truncate_h:
+            if is_truncated_horizontally:
                 dot_col_ix = self.fmt.tr_col_num + self.row_levels
                 row.insert(dot_col_ix, "...")
             self.write_tr(
@@ -434,11 +436,12 @@ class HTMLFormatter(TableFormatter):
     ) -> None:
         template = 'rowspan="{span}" valign="top"'
 
-        truncate_h = self.fmt.truncate_h
-        truncate_v = self.fmt.truncate_v
+        is_truncated_horizontally = self.fmt.is_truncated_horizontally
+        is_truncated_vertically = self.fmt.is_truncated_vertically
         frame = self.fmt.tr_frame
         nrows = len(frame)
 
+        assert isinstance(frame.index, MultiIndex)
         idx_values = frame.index.format(sparsify=False, adjoin=False, names=False)
         idx_values = list(zip(*idx_values))
 
@@ -449,12 +452,10 @@ class HTMLFormatter(TableFormatter):
 
             level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
-            if truncate_v:
+            if is_truncated_vertically:
                 # Insert ... row and adjust idx_values and
                 # level_lengths to take this into account.
                 ins_row = self.fmt.tr_row_num
-                # cast here since if truncate_v is True, self.fmt.tr_row_num is not None
-                ins_row = cast(int, ins_row)
                 inserted = False
                 for lnum, records in enumerate(level_lengths):
                     rec_new = {}
@@ -515,7 +516,7 @@ class HTMLFormatter(TableFormatter):
                     row.append(v)
 
                 row.extend(fmt_values[j][i] for j in range(self.ncols))
-                if truncate_h:
+                if is_truncated_horizontally:
                     row.insert(
                         self.row_levels - sparse_offset + self.fmt.tr_col_num, "..."
                     )
@@ -529,7 +530,7 @@ class HTMLFormatter(TableFormatter):
         else:
             row = []
             for i in range(len(frame)):
-                if truncate_v and i == (self.fmt.tr_row_num):
+                if is_truncated_vertically and i == (self.fmt.tr_row_num):
                     str_sep_row = ["..."] * len(row)
                     self.write_tr(
                         str_sep_row,
@@ -545,7 +546,7 @@ class HTMLFormatter(TableFormatter):
                 row = []
                 row.extend(idx_values[i])
                 row.extend(fmt_values[j][i] for j in range(self.ncols))
-                if truncate_h:
+                if is_truncated_horizontally:
                     row.insert(self.row_levels + self.fmt.tr_col_num, "...")
                 self.write_tr(
                     row,
@@ -585,7 +586,7 @@ class NotebookFormatter(HTMLFormatter):
             ("tbody tr th:only-of-type", "vertical-align", "middle"),
             ("tbody tr th", "vertical-align", "top"),
         ]
-        if isinstance(self.columns, ABCMultiIndex):
+        if isinstance(self.columns, MultiIndex):
             element_props.append(("thead tr th", "text-align", "left"))
             if self.show_row_idx_names:
                 element_props.append(

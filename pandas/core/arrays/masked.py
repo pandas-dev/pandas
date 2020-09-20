@@ -1,14 +1,24 @@
-from typing import TYPE_CHECKING, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
 
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import Scalar
+from pandas.errors import AbstractMethodError
+from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import is_integer, is_object_dtype, is_string_dtype
+from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_object_dtype,
+    is_scalar,
+    is_string_dtype,
+)
 from pandas.core.dtypes.missing import isna, notna
 
-from pandas.core.algorithms import take
+from pandas.core import nanops
+from pandas.core.algorithms import factorize_array, take
+from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.indexers import check_array_indexer
 
@@ -17,6 +27,29 @@ if TYPE_CHECKING:
 
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
+
+
+class BaseMaskedDtype(ExtensionDtype):
+    """
+    Base class for dtypes for BasedMaskedArray subclasses.
+    """
+
+    na_value = libmissing.NA
+
+    @property
+    def numpy_dtype(self) -> np.dtype:
+        raise AbstractMethodError
+
+    @classmethod
+    def construct_array_type(cls) -> Type["BaseMaskedArray"]:
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
+        raise NotImplementedError
 
 
 class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
@@ -48,6 +81,10 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         self._data = values
         self._mask = mask
 
+    @property
+    def dtype(self) -> BaseMaskedDtype:
+        raise AbstractMethodError(self)
+
     def __getitem__(self, item):
         if is_integer(item):
             if self._mask[item]:
@@ -57,6 +94,23 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         item = check_array_indexer(self, item)
 
         return type(self)(self._data[item], self._mask[item])
+
+    def _coerce_to_array(self, values) -> Tuple[np.ndarray, np.ndarray]:
+        raise AbstractMethodError(self)
+
+    def __setitem__(self, key, value) -> None:
+        _is_scalar = is_scalar(value)
+        if _is_scalar:
+            value = [value]
+        value, mask = self._coerce_to_array(value)
+
+        if _is_scalar:
+            value = value[0]
+            mask = mask[0]
+
+        key = check_array_indexer(self, key)
+        self._data[key] = value
+        self._mask[key] = mask
 
     def __iter__(self):
         for i in range(len(self)):
@@ -72,7 +126,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         return type(self)(~self._data, self._mask)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default,
+        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
@@ -228,6 +282,18 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         mask = mask.copy()
         return type(self)(data, mask, copy=False)
 
+    @doc(ExtensionArray.factorize)
+    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+        arr = self._data
+        mask = self._mask
+
+        codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
+
+        # the hashtables don't handle all different types of bits
+        uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
+        uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
+        return codes, uniques
+
     def value_counts(self, dropna: bool = True) -> "Series":
         """
         Returns a Series containing counts of each unique value.
@@ -274,3 +340,24 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         counts = IntegerArray(counts, mask)
 
         return Series(counts, index=index)
+
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+        data = self._data
+        mask = self._mask
+
+        if name in {"sum", "prod", "min", "max"}:
+            op = getattr(masked_reductions, name)
+            return op(data, mask, skipna=skipna, **kwargs)
+
+        # coerce to a nan-aware float if needed
+        # (we explicitly use NaN within reductions)
+        if self._hasna:
+            data = self.to_numpy("float64", na_value=np.nan)
+
+        op = getattr(nanops, "nan" + name)
+        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
+
+        if np.isnan(result):
+            return libmissing.NA
+
+        return result

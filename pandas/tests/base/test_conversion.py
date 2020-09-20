@@ -48,8 +48,6 @@ class TestToIterable:
         ],
         ids=["tolist", "to_list", "list", "iter"],
     )
-    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
-    # TODO(GH-24559): Remove the filterwarnings
     def test_iterable(self, index_or_series, method, dtype, rdtype):
         # gh-10904
         # gh-13258
@@ -104,8 +102,6 @@ class TestToIterable:
     @pytest.mark.parametrize(
         "dtype, rdtype", dtypes + [("object", int), ("category", int)]
     )
-    @pytest.mark.filterwarnings("ignore:\\n    Passing:FutureWarning")
-    # TODO(GH-24559): Remove the filterwarnings
     def test_iterable_map(self, index_or_series, dtype, rdtype):
         # gh-13236
         # coerce iteration to underlying python / pandas types
@@ -187,7 +183,7 @@ class TestToIterable:
             PeriodArray,
             pd.core.dtypes.dtypes.PeriodDtype("A-DEC"),
         ),
-        (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval",),
+        (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval"),
         # This test is currently failing for datetime64[ns] and timedelta64[ns].
         # The NumPy type system is sufficient for representing these types, so
         # we just use NumPy for Series / DataFrame columns of these types (so
@@ -289,10 +285,7 @@ def test_array_multiindex_raises():
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
         ),
-        (
-            pd.core.arrays.integer_array([0, np.nan]),
-            np.array([0, pd.NA], dtype=object),
-        ),
+        (pd.core.arrays.integer_array([0, np.nan]), np.array([0, pd.NA], dtype=object)),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
@@ -391,10 +384,11 @@ def test_to_numpy_dtype(as_series):
         ),
     ],
 )
-@pytest.mark.parametrize("container", [pd.Series, pd.Index])  # type: ignore
-def test_to_numpy_na_value_numpy_dtype(container, values, dtype, na_value, expected):
-    s = container(values)
-    result = s.to_numpy(dtype=dtype, na_value=na_value)
+def test_to_numpy_na_value_numpy_dtype(
+    index_or_series, values, dtype, na_value, expected
+):
+    obj = index_or_series(values)
+    result = obj.to_numpy(dtype=dtype, na_value=na_value)
     expected = np.array(expected)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -410,3 +404,48 @@ def test_to_numpy_kwargs_raises():
     s = pd.Series([1, 2, 3], dtype="Int64")
     with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"a": [1, 2, 3], "b": [1, 2, None]},
+        {"a": np.array([1, 2, 3]), "b": np.array([1, 2, np.nan])},
+        {"a": pd.array([1, 2, 3]), "b": pd.array([1, 2, None])},
+    ],
+)
+@pytest.mark.parametrize("dtype, na_value", [(float, np.nan), (object, None)])
+def test_to_numpy_dataframe_na_value(data, dtype, na_value):
+    # https://github.com/pandas-dev/pandas/issues/33820
+    df = pd.DataFrame(data)
+    result = df.to_numpy(dtype=dtype, na_value=na_value)
+    expected = np.array([[1, 1], [2, 2], [3, na_value]], dtype=dtype)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (
+            {"a": pd.array([1, 2, None])},
+            np.array([[1.0], [2.0], [np.nan]], dtype=float),
+        ),
+        (
+            {"a": [1, 2, 3], "b": [1, 2, 3]},
+            np.array([[1, 1], [2, 2], [3, 3]], dtype=float),
+        ),
+    ],
+)
+def test_to_numpy_dataframe_single_block(data, expected):
+    # https://github.com/pandas-dev/pandas/issues/33820
+    df = pd.DataFrame(data)
+    result = df.to_numpy(dtype=float, na_value=np.nan)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_dataframe_single_block_no_mutate():
+    # https://github.com/pandas-dev/pandas/issues/33820
+    result = pd.DataFrame(np.array([1.0, 2.0, np.nan]))
+    expected = pd.DataFrame(np.array([1.0, 2.0, np.nan]))
+    result.to_numpy(na_value=0.0)
+    tm.assert_frame_equal(result, expected)

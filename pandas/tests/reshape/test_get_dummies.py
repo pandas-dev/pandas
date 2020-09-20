@@ -161,7 +161,7 @@ class TestGetDummies:
         s = [e, eacute, eacute]
         res = get_dummies(s, prefix="letter", sparse=sparse)
         exp = DataFrame(
-            {"letter_e": [1, 0, 0], f"letter_{eacute}": [0, 1, 1]}, dtype=np.uint8,
+            {"letter_e": [1, 0, 0], f"letter_{eacute}": [0, 1, 1]}, dtype=np.uint8
         )
         if sparse:
             exp = exp.apply(SparseArray, fill_value=0)
@@ -386,7 +386,7 @@ class TestGetDummies:
         "get_dummies_kwargs,expected",
         [
             (
-                {"data": DataFrame(({"ä": ["a"]}))},
+                {"data": DataFrame({"ä": ["a"]})},
                 DataFrame({"ä_a": [1]}, dtype=np.uint8),
             ),
             (

@@ -274,7 +274,7 @@ def init_dev_clipboard_clipboard():
             fo.write(text)
 
     def paste_dev_clipboard() -> str:
-        with open("/dev/clipboard", "rt") as fo:
+        with open("/dev/clipboard") as fo:
             content = fo.read()
         return content
 
@@ -311,17 +311,17 @@ def init_windows_clipboard():
     global HGLOBAL, LPVOID, DWORD, LPCSTR, INT
     global HWND, HINSTANCE, HMENU, BOOL, UINT, HANDLE
     from ctypes.wintypes import (
-        HGLOBAL,
-        LPVOID,
+        BOOL,
         DWORD,
-        LPCSTR,
-        INT,
-        HWND,
+        HANDLE,
+        HGLOBAL,
         HINSTANCE,
         HMENU,
-        BOOL,
+        HWND,
+        INT,
+        LPCSTR,
+        LPVOID,
         UINT,
-        HANDLE,
     )
 
     windll = ctypes.windll
@@ -494,7 +494,7 @@ def init_wsl_clipboard():
 
 
 # Automatic detection of clipboard mechanisms
-# and importing is done in deteremine_clipboard():
+# and importing is done in determine_clipboard():
 def determine_clipboard():
     """
     Determine the OS/platform and set the copy() and paste() functions
@@ -521,15 +521,15 @@ def determine_clipboard():
         return init_windows_clipboard()
 
     if platform.system() == "Linux":
-        with open("/proc/version", "r") as f:
+        with open("/proc/version") as f:
             if "Microsoft" in f.read():
                 return init_wsl_clipboard()
 
     # Setup for the MAC OS X platform:
     if os.name == "mac" or platform.system() == "Darwin":
         try:
-            import Foundation  # check if pyobjc is installed
             import AppKit
+            import Foundation  # check if pyobjc is installed
         except ImportError:
             return init_osx_pbcopy_clipboard()
         else:

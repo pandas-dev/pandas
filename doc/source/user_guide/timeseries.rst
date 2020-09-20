@@ -235,6 +235,8 @@ inferred frequency upon creation:
 
     pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'], freq='infer')
 
+.. _timeseries.converting.format:
+
 Providing a format argument
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -319,11 +321,17 @@ which can be specified. These are computed from the starting point specified by 
    pd.to_datetime([1349720105100, 1349720105200, 1349720105300,
                    1349720105400, 1349720105500], unit='ms')
 
+.. note::
+
+   The ``unit`` parameter does not use the same strings as the ``format`` parameter
+   that was discussed :ref:`above<timeseries.converting.format>`). The
+   available units are listed on the documentation for :func:`pandas.to_datetime`.
+
+.. versionchanged:: 1.0.0
+
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
-with the ``tz`` argument specified will currently localize the epoch timestamps to UTC
-first then convert the result to the specified time zone. However, this behavior
-is :ref:`deprecated <whatsnew_0240.deprecations.integer_tz>`, and if you have
-epochs in wall time in another timezone, it is recommended to read the epochs
+with the ``tz`` argument specified will raise a ValueError. If you have
+epochs in wall time in another timezone, you can read the epochs
 as timezone-naive timestamps and then localize to the appropriate timezone:
 
 .. ipython:: python
@@ -453,8 +461,6 @@ of those specified will not be generated:
 
    pd.bdate_range(start=start, periods=20)
 
-.. versionadded:: 0.23.0
-
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 dates from ``start`` to ``end`` inclusively, with ``periods`` number of elements in the
 resulting ``DatetimeIndex``:
@@ -516,7 +522,7 @@ The ``DatetimeIndex`` class contains many time series related optimizations:
 * A large range of dates for various offsets are pre-computed and cached
   under the hood in order to make generating subsequent date ranges very fast
   (just have to grab a slice).
-* Fast shifting using the ``shift`` and ``tshift`` method on pandas objects.
+* Fast shifting using the ``shift`` method on pandas objects.
 * Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
   very fast (important for fast data alignment).
 * Quick access to date fields via properties such as ``year``, ``month``, etc.
@@ -634,8 +640,6 @@ Slicing with string indexing also honors UTC offset.
 
 Slice vs. exact match
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionchanged:: 0.20.0
 
 The same string used as an indexing parameter can be treated either as a slice or as an exact match depending on the resolution of the index. If the string is less accurate than the index, it will be treated as a slice, otherwise as an exact match.
 
@@ -793,6 +797,7 @@ You may obtain the year, week and day components of the ISO year from the ISO 86
 .. ipython:: python
 
    idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
+   idx.isocalendar()
    idx.to_series().dt.isocalendar()
 
 .. _timeseries.offsets:
@@ -1461,23 +1466,19 @@ the pandas objects.
 
 The ``shift`` method accepts an ``freq`` argument which can accept a
 ``DateOffset`` class or other ``timedelta``-like object or also an
-:ref:`offset alias <timeseries.offset_aliases>`:
+:ref:`offset alias <timeseries.offset_aliases>`.
+
+When ``freq`` is specified, ``shift`` method changes all the dates in the index
+rather than changing the alignment of the data and the index:
 
 .. ipython:: python
 
+   ts.shift(5, freq='D')
    ts.shift(5, freq=pd.offsets.BDay())
    ts.shift(5, freq='BM')
 
-Rather than changing the alignment of the data and the index, ``DataFrame`` and
-``Series`` objects also have a :meth:`~Series.tshift` convenience method that
-changes all the dates in the index by a specified number of offsets:
-
-.. ipython:: python
-
-   ts.tshift(5, freq='D')
-
-Note that with ``tshift``, the leading entry is no longer NaN because the data
-is not being realigned.
+Note that with when ``freq`` is specified, the leading entry is no longer NaN
+because the data is not being realigned.
 
 Frequency conversion
 ~~~~~~~~~~~~~~~~~~~~
@@ -1572,18 +1573,15 @@ end of the interval is closed:
 
    ts.resample('5Min', closed='left').mean()
 
-Parameters like ``label`` and ``loffset`` are used to manipulate the resulting
-labels. ``label`` specifies whether the result is labeled with the beginning or
-the end of the interval. ``loffset`` performs a time adjustment on the output
-labels.
+Parameters like ``label`` are used to manipulate the resulting labels.
+``label`` specifies whether the result is labeled with the beginning or
+the end of the interval.
 
 .. ipython:: python
 
    ts.resample('5Min').mean()  # by default label='left'
 
    ts.resample('5Min', label='left').mean()
-
-   ts.resample('5Min', label='left', loffset='1s').mean()
 
 .. warning::
 
@@ -1789,6 +1787,58 @@ natural and functions similarly to :py:func:`itertools.groupby`:
 
 See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
+.. _timeseries.adjust-the-start-of-the-bins:
+
+Use `origin` or `offset` to adjust the start of the bins
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.1.0
+
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divide a day evenly (like `90s` or `1min`). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed Timestamp with the argument ``origin``.
+
+For example:
+
+.. ipython:: python
+
+    start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
+    middle = '2000-10-02 00:00:00'
+    rng = pd.date_range(start, end, freq='7min')
+    ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
+    ts
+
+Here we can see that, when using ``origin`` with its default value (``'start_day'``), the result after ``'2000-10-02 00:00:00'`` are not identical depending on the start of time series:
+
+.. ipython:: python
+
+    ts.resample('17min', origin='start_day').sum()
+    ts[middle:end].resample('17min', origin='start_day').sum()
+
+
+Here we can see that, when setting ``origin`` to ``'epoch'``, the result after ``'2000-10-02 00:00:00'`` are identical depending on the start of time series:
+
+.. ipython:: python
+
+   ts.resample('17min', origin='epoch').sum()
+   ts[middle:end].resample('17min', origin='epoch').sum()
+
+
+If needed you can use a custom timestamp for ``origin``:
+
+.. ipython:: python
+
+   ts.resample('17min', origin='2001-01-01').sum()
+   ts[middle:end].resample('17min', origin=pd.Timestamp('2001-01-01')).sum()
+
+If needed you can just adjust the bins with an ``offset`` Timedelta that would be added to the default ``origin``.
+Those two examples are equivalent for this time series:
+
+.. ipython:: python
+
+    ts.resample('17min', origin='start').sum()
+    ts.resample('17min', offset='23h30min').sum()
+
+
+Note the use of ``'start'`` for ``origin`` on the last example. In that case, ``origin`` will be set to the first value of the timeseries.
 
 .. _timeseries.periods:
 
@@ -2264,6 +2314,29 @@ you can use the ``tz_convert`` method.
     (e.g., ``datetime.datetime(2011, 1, 1, tz=pytz.timezone('US/Eastern'))``.
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
+
+.. warning::
+
+    Be aware that for times in the future, correct conversion between time zones
+    (and UTC) cannot be guaranteed by any time zone library because a timezone's
+    offset from UTC may be changed by the respective government.
+
+.. warning::
+
+    If you are using dates beyond 2038-01-18, due to current deficiencies
+    in the underlying libraries caused by the year 2038 problem, daylight saving time (DST) adjustments
+    to timezone aware dates will not be applied. If and when the underlying libraries are fixed,
+    the DST transitions will be applied.
+
+    For example, for two dates that are in British Summer Time (and so would normally be GMT+1), both the following asserts evaluate as true:
+
+    .. ipython:: python
+
+       d_2037 = '2037-03-31T010101'
+       d_2038 = '2038-03-31T010101'
+       DST = 'Europe/London'
+       assert pd.Timestamp(d_2037, tz=DST) != pd.Timestamp(d_2037, tz='GMT')
+       assert pd.Timestamp(d_2038, tz=DST) == pd.Timestamp(d_2038, tz='GMT')
 
 Under the hood, all timestamps are stored in UTC. Values from a time zone aware
 :class:`DatetimeIndex` or :class:`Timestamp` will have their fields (day, hour, minute, etc.)

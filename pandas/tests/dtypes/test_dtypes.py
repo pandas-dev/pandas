@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical,
@@ -22,7 +23,6 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
-    registry,
 )
 
 import pandas as pd
@@ -67,7 +67,11 @@ class Base:
 
         # force back to the cache
         result = tm.round_trip_pickle(dtype)
-        assert not len(dtype._cache)
+        if not isinstance(dtype, PeriodDtype):
+            # Because PeriodDtype has a cython class as a base class,
+            #  it has different pickle semantics, and its cache is re-populated
+            #  on un-pickling.
+            assert not len(dtype._cache)
         assert result == dtype
 
 
@@ -191,6 +195,10 @@ class TestCategoricalDtype(Base):
         result = str(Categorical(DatetimeIndex([])).categories.dtype)
         assert result == expected
 
+    def test_not_string(self):
+        # though CategoricalDtype has object kind, it cannot be string
+        assert not is_string_dtype(CategoricalDtype())
+
 
 class TestDatetimeTZDtype(Base):
     @pytest.fixture
@@ -278,12 +286,14 @@ class TestDatetimeTZDtype(Base):
         assert not DatetimeTZDtype.is_dtype(None)
         assert DatetimeTZDtype.is_dtype(dtype)
         assert DatetimeTZDtype.is_dtype("datetime64[ns, US/Eastern]")
+        assert DatetimeTZDtype.is_dtype("M8[ns, US/Eastern]")
         assert not DatetimeTZDtype.is_dtype("foo")
         assert DatetimeTZDtype.is_dtype(DatetimeTZDtype("ns", "US/Pacific"))
         assert not DatetimeTZDtype.is_dtype(np.float64)
 
     def test_equality(self, dtype):
         assert is_dtype_equal(dtype, "datetime64[ns, US/Eastern]")
+        assert is_dtype_equal(dtype, "M8[ns, US/Eastern]")
         assert is_dtype_equal(dtype, DatetimeTZDtype("ns", "US/Eastern"))
         assert not is_dtype_equal(dtype, "foo")
         assert not is_dtype_equal(dtype, DatetimeTZDtype("ns", "CET"))
@@ -293,6 +303,8 @@ class TestDatetimeTZDtype(Base):
 
         # numpy compat
         assert is_dtype_equal(np.dtype("M8[ns]"), "datetime64[ns]")
+
+        assert dtype == "M8[ns, US/Eastern]"
 
     def test_basic(self, dtype):
 
@@ -939,7 +951,7 @@ def test_registry_find(dtype, expected):
         (str, False),
         (int, False),
         (bool, True),
-        (np.bool, True),
+        (np.bool_, True),
         (np.array(["a", "b"]), False),
         (pd.Series([1, 2]), False),
         (np.array([True, False]), True),
