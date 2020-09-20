@@ -279,9 +279,7 @@ def main(source_paths: List[str], output_format: str) -> int:
     for filename in find_rst_files(source_paths):
         for title, line_number in find_titles(filename):
             if not correct_title_capitalization(title):
-                print(
-                    f"""{filename}:{line_number}:{err_msg} "{title}" """
-                )
+                print(f"""{filename}:{line_number}:{err_msg} "{title}" """)
                 number_of_errors += 1
 
     return number_of_errors
