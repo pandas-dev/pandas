@@ -555,7 +555,8 @@ class TestSeriesUnaryOps:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]],
+        "source",
+        [[1, 2, 3], [1, 2, None], [-1, 0, 1]],
     )
     def test_unary_plus_nullable_int(self, any_signed_nullable_int_dtype, source):
         dtype = any_signed_nullable_int_dtype

@@ -198,7 +198,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Constructors
 
     def __init__(
-        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False,
+        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
     ):
 
         if (
@@ -208,9 +208,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             and copy is False
         ):
             # GH#33357 called with just the SingleBlockManager
-            NDFrame.__init__(
-                self, data,
-            )
+            NDFrame.__init__(self, data)
             self.name = name
             return
 
@@ -330,7 +328,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 data = SingleBlockManager.from_array(data, index)
 
         generic.NDFrame.__init__(
-            self, data,
+            self,
+            data,
         )
         self.name = name
         self._set_axis(0, index, fastpath=True)

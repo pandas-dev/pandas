@@ -371,6 +371,26 @@ def test_info_memory_usage_qualified():
     df.info(buf=buf)
     assert "+" in buf.getvalue()
 
+    buf = StringIO()
+    s = Series(1, index=[1, 2, 3])
+    s.info(buf=buf)
+    assert "+" not in buf.getvalue()
+
+    buf = StringIO()
+    s = Series(1, index=list("ABC"))
+    s.info(buf=buf)
+    assert "+" in buf.getvalue()
+
+    buf = StringIO()
+    s = Series(1, index=MultiIndex.from_product([range(3), range(3)]))
+    s.info(buf=buf)
+    assert "+" not in buf.getvalue()
+
+    buf = StringIO()
+    s = Series(1, index=MultiIndex.from_product([range(3), ["foo", "bar"]]))
+    s.info(buf=buf)
+    assert "+" in buf.getvalue()
+
 
 def test_info_memory_usage_bug_on_multiindex():
     # GH 14308

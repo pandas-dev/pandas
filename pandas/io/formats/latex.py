@@ -41,9 +41,9 @@ class RowStringConverter(ABC):
         self.multirow = multirow
         self.clinebuf: List[List[int]] = []
         self.strcols = self._get_strcols()
-        self.strrows: List[List[str]] = (
-            list(zip(*self.strcols))  # type: ignore[arg-type]
-        )
+        self.strrows: List[List[str]] = list(
+            zip(*self.strcols)
+        )  # type: ignore[arg-type]
 
     def get_strrow(self, row_num: int) -> str:
         """Get string representation of the row."""
