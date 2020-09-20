@@ -445,16 +445,6 @@ class _Window(ShallowMixin, SelectionMixin):
             )
         return window_func
 
-    def _get_cython_func_type(self, func: str) -> Callable:
-        """
-        Return a variable or fixed cython function type.
-
-        Variable algorithms do not use window while fixed do.
-        """
-        if self.is_freq_type or isinstance(self.window, BaseIndexer):
-            return self._get_roll_func(f"{func}_variable")
-        return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
-
     def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -1386,7 +1376,8 @@ class RollingAndExpandingMixin(RollingMixin):
             apply_func = self._generate_cython_apply_func(
                 args, kwargs, raw, offset, func
             )
-            center = False
+            center = self.center
+            # center = False
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
@@ -1407,7 +1398,7 @@ class RollingAndExpandingMixin(RollingMixin):
         from pandas import Series
 
         window_func = partial(
-            self._get_cython_func_type("roll_generic"),
+            self._get_roll_func("roll_generic"),
             args=args,
             kwargs=kwargs,
             raw=raw,
@@ -1424,7 +1415,7 @@ class RollingAndExpandingMixin(RollingMixin):
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
-        window_func = self._get_cython_func_type("roll_sum")
+        window_func = self._get_roll_func("roll_sum")
         kwargs.pop("floor", None)
         return self._apply(
             window_func, center=self.center, floor=0, name="sum", **kwargs
@@ -1443,7 +1434,7 @@ class RollingAndExpandingMixin(RollingMixin):
 
     def max(self, *args, **kwargs):
         nv.validate_window_func("max", args, kwargs)
-        window_func = self._get_cython_func_type("roll_max")
+        window_func = self._get_roll_func("roll_max")
         return self._apply(window_func, center=self.center, name="max", **kwargs)
 
     _shared_docs["min"] = dedent(
@@ -1485,12 +1476,12 @@ class RollingAndExpandingMixin(RollingMixin):
 
     def min(self, *args, **kwargs):
         nv.validate_window_func("min", args, kwargs)
-        window_func = self._get_cython_func_type("roll_min")
+        window_func = self._get_roll_func("roll_min")
         return self._apply(window_func, center=self.center, name="min", **kwargs)
 
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        window_func = self._get_cython_func_type("roll_mean")
+        window_func = self._get_roll_func("roll_mean")
         return self._apply(window_func, center=self.center, name="mean", **kwargs)
 
     _shared_docs["median"] = dedent(
@@ -1539,7 +1530,7 @@ class RollingAndExpandingMixin(RollingMixin):
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
         kwargs.pop("require_min_periods", None)
-        window_func = self._get_cython_func_type("roll_var")
+        window_func = self._get_roll_func("roll_var")
 
         def zsqrt_func(values, begin, end, min_periods):
             return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
@@ -1557,7 +1548,7 @@ class RollingAndExpandingMixin(RollingMixin):
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         kwargs.pop("require_min_periods", None)
-        window_func = partial(self._get_cython_func_type("roll_var"), ddof=ddof)
+        window_func = partial(self._get_roll_func("roll_var"), ddof=ddof)
         # ddof passed again for compat with groupby.rolling
         return self._apply(
             window_func,
@@ -1580,7 +1571,7 @@ class RollingAndExpandingMixin(RollingMixin):
     """
 
     def skew(self, **kwargs):
-        window_func = self._get_cython_func_type("roll_skew")
+        window_func = self._get_roll_func("roll_skew")
         kwargs.pop("require_min_periods", None)
         return self._apply(
             window_func,
@@ -1623,7 +1614,7 @@ class RollingAndExpandingMixin(RollingMixin):
     )
 
     def kurt(self, **kwargs):
-        window_func = self._get_cython_func_type("roll_kurt")
+        window_func = self._get_roll_func("roll_kurt")
         kwargs.pop("require_min_periods", None)
         return self._apply(
             window_func,
@@ -1689,9 +1680,9 @@ class RollingAndExpandingMixin(RollingMixin):
 
     def quantile(self, quantile, interpolation="linear", **kwargs):
         if quantile == 1.0:
-            window_func = self._get_cython_func_type("roll_max")
+            window_func = self._get_roll_func("roll_max")
         elif quantile == 0.0:
-            window_func = self._get_cython_func_type("roll_min")
+            window_func = self._get_roll_func("roll_min")
         else:
             window_func = partial(
                 self._get_roll_func("roll_quantile"),
@@ -2236,16 +2227,6 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             ).astype(np.int64)
             obj = obj.take(groupby_order)
         return super()._create_data(obj)
-
-    def _get_cython_func_type(self, func: str) -> Callable:
-        """
-        Return the cython function type.
-
-        RollingGroupby needs to always use "variable" algorithms since processing
-        the data in group order may not be monotonic with the data which
-        "fixed" algorithms assume
-        """
-        return self._get_roll_func(f"{func}_variable")
 
     def _get_window_indexer(self, window: int) -> GroupbyRollingIndexer:
         """

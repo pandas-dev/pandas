@@ -767,7 +767,7 @@ def test_rolling_numerical_too_large_numbers():
     ds[2] = -9e33
     result = ds.rolling(5).mean()
     expected = pd.Series(
-        [np.nan, np.nan, np.nan, np.nan, -1.8e33, -1.8e33, -1.8e33, 0.0, 6.0, 7.0],
+        [np.nan, np.nan, np.nan, np.nan, -1.8e33, -1.8e33, -1.8e33, 5.0, 6.0, 7.0],
         index=dates,
     )
     tm.assert_series_equal(result, expected)
