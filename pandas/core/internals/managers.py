@@ -1803,13 +1803,18 @@ def _stack_arrays(tuples, dtype):
             return x.shape
 
     placement, names, arrays = zip(*tuples)
-
+    arrays = [_asarray_compat(arr) for arr in arrays]
     first = arrays[0]
+
+    if len(arrays) == 1:
+        assert first.ndim == 1
+        return first[np.newaxis, ...], placement
+
     shape = (len(arrays),) + _shape_compat(first)
 
     stacked = np.empty(shape, dtype=dtype)
     for i, arr in enumerate(arrays):
-        stacked[i] = _asarray_compat(arr)
+        stacked[i] = arr
 
     return stacked, placement
 
