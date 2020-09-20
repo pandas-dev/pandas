@@ -243,7 +243,13 @@ class _Window(ShallowMixin, SelectionMixin):
         if self.on is not None and not isinstance(self.on, Index):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
-
+        if self.axis == 1:
+            # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
+            # to float to calculate the complete row at once. We exclude all non-numeric
+            # dtypes.
+            obj = obj.select_dtypes(include=["integer", "float"], exclude=["timedelta"])
+            obj = obj.astype("float64", copy=False)
+            obj._mgr = obj._mgr.consolidate()
         return obj
 
     def _gotitem(self, key, ndim, subset=None):
@@ -1374,14 +1380,7 @@ class RollingAndExpandingMixin(RollingMixin):
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
-            cache_key = (func, "rolling_apply")
-            if cache_key in NUMBA_FUNC_CACHE:
-                # Return an already compiled version of roll_apply if available
-                apply_func = NUMBA_FUNC_CACHE[cache_key]
-            else:
-                apply_func = generate_numba_apply_func(
-                    args, kwargs, func, engine_kwargs
-                )
+            apply_func = generate_numba_apply_func(args, kwargs, func, engine_kwargs)
             center = self.center
         elif engine in ("cython", None):
             if engine_kwargs is not None:
@@ -1403,7 +1402,7 @@ class RollingAndExpandingMixin(RollingMixin):
             center=center,
             floor=0,
             name=func,
-            use_numba_cache=engine == "numba",
+            use_numba_cache=maybe_use_numba(engine),
             raw=raw,
             original_func=func,
             args=args,

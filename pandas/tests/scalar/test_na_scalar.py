@@ -28,9 +28,9 @@ def test_format():
     assert format(NA, ">10") == "      <NA>"
     assert format(NA, "xxx") == "<NA>"  # NA is flexible, accept any format spec
 
-    assert "{}".format(NA) == "<NA>"
-    assert "{:>10}".format(NA) == "      <NA>"
-    assert "{:xxx}".format(NA) == "<NA>"
+    assert f"{NA}" == "<NA>"
+    assert f"{NA:>10}" == "      <NA>"
+    assert f"{NA:xxx}" == "<NA>"
 
 
 def test_truthiness():
@@ -305,3 +305,11 @@ def test_pickle_roundtrip_containers(as_frame, values, dtype):
         s = s.to_frame(name="A")
     result = tm.round_trip_pickle(s)
     tm.assert_equal(result, s)
+
+
+@pytest.mark.parametrize("array", [np.array(["a"], dtype=object), ["a"]])
+def test_array_contains_na(array):
+    # GH 31922
+    msg = "boolean value of NA is ambiguous"
+    with pytest.raises(TypeError, match=msg):
+        NA in array
