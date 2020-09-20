@@ -873,8 +873,7 @@ class DataFrame(NDFrame):
                 line_width=line_width,
             )
             return fmt.DataFrameRenderer(formatter).to_string(
-                buf=buf,
-                encoding=encoding,
+                buf=buf, encoding=encoding
             )
 
     # ----------------------------------------------------------------------
