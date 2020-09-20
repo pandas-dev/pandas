@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas.io.formats.format import DataFrameFormatter, TableFormatter
+from pandas.io.formats.format import DataFrameFormatter
 
 
 class RowStringConverter(ABC):
@@ -595,7 +595,7 @@ class TabularBuilder(GenericTableBuilder):
         return "\\end{tabular}"
 
 
-class LatexFormatter(TableFormatter):
+class LatexFormatter(DataFrameFormatter):
     """
     Used to render a DataFrame to a LaTeX tabular/longtable environment output.
 

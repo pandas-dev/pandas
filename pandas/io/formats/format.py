@@ -41,7 +41,6 @@ from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import FilePathOrBuffer, Label
-from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -450,87 +449,7 @@ def get_adjustment() -> TextAdjustment:
         return TextAdjustment()
 
 
-class TableFormatter:
-
-    show_dimensions: Union[bool, str]
-    formatters: FormattersType
-    columns: Index
-    _is_truncated: bool
-
-    @property
-    def is_truncated(self) -> bool:
-        return self._is_truncated
-
-    @property
-    def should_show_dimensions(self) -> bool:
-        return self.show_dimensions is True or (
-            self.show_dimensions == "truncate" and self.is_truncated
-        )
-
-    def _get_formatter(self, i: Union[str, int]) -> Optional[Callable]:
-        if isinstance(self.formatters, (list, tuple)):
-            if is_integer(i):
-                i = cast(int, i)
-                return self.formatters[i]
-            else:
-                return None
-        else:
-            if is_integer(i) and i not in self.columns:
-                i = self.columns[i]
-            return self.formatters.get(i, None)
-
-    @contextmanager
-    def get_buffer(
-        self, buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None
-    ):
-        """
-        Context manager to open, yield and close buffer for filenames or Path-like
-        objects, otherwise yield buf unchanged.
-        """
-        if buf is not None:
-            buf = stringify_path(buf)
-        else:
-            buf = StringIO()
-
-        if encoding is None:
-            encoding = "utf-8"
-        elif not isinstance(buf, str):
-            raise ValueError("buf is not a file name and encoding is specified.")
-
-        if hasattr(buf, "write"):
-            yield buf
-        elif isinstance(buf, str):
-            with open(buf, "w", encoding=encoding, newline="") as f:
-                # GH#30034 open instead of codecs.open prevents a file leak
-                #  if we have an invalid encoding argument.
-                # newline="" is needed to roundtrip correctly on
-                #  windows test_to_latex_filename
-                yield f
-        else:
-            raise TypeError("buf is not a file name and it has no write method")
-
-    def write_result(self, buf: IO[str]) -> None:
-        """
-        Write the result of serialization to buf.
-        """
-        raise AbstractMethodError(self)
-
-    def get_result(
-        self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
-        encoding: Optional[str] = None,
-    ) -> Optional[str]:
-        """
-        Perform serialization. Write to buf or return as string if buf is None.
-        """
-        with self.get_buffer(buf, encoding=encoding) as f:
-            self.write_result(buf=f)
-            if buf is None:
-                return f.getvalue()
-            return None
-
-
-class DataFrameFormatter(TableFormatter):
+class DataFrameFormatter:
     """
     Render a DataFrame
 
@@ -594,6 +513,68 @@ class DataFrameFormatter(TableFormatter):
 
         self._truncate()
         self.adj = get_adjustment()
+
+    def get_result(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        Perform serialization. Write to buf or return as string if buf is None.
+        """
+        with self.get_buffer(buf, encoding=encoding) as f:
+            self.write_result(buf=f)
+            if buf is None:
+                return f.getvalue()
+            return None
+
+    @property
+    def should_show_dimensions(self) -> bool:
+        return self.show_dimensions is True or (
+            self.show_dimensions == "truncate" and self.is_truncated
+        )
+
+    def _get_formatter(self, i: Union[str, int]) -> Optional[Callable]:
+        if isinstance(self.formatters, (list, tuple)):
+            if is_integer(i):
+                i = cast(int, i)
+                return self.formatters[i]
+            else:
+                return None
+        else:
+            if is_integer(i) and i not in self.columns:
+                i = self.columns[i]
+            return self.formatters.get(i, None)
+
+    @contextmanager
+    def get_buffer(
+        self, buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None
+    ):
+        """
+        Context manager to open, yield and close buffer for filenames or Path-like
+        objects, otherwise yield buf unchanged.
+        """
+        if buf is not None:
+            buf = stringify_path(buf)
+        else:
+            buf = StringIO()
+
+        if encoding is None:
+            encoding = "utf-8"
+        elif not isinstance(buf, str):
+            raise ValueError("buf is not a file name and encoding is specified.")
+
+        if hasattr(buf, "write"):
+            yield buf
+        elif isinstance(buf, str):
+            with open(buf, "w", encoding=encoding, newline="") as f:
+                # GH#30034 open instead of codecs.open prevents a file leak
+                #  if we have an invalid encoding argument.
+                # newline="" is needed to roundtrip correctly on
+                #  windows test_to_latex_filename
+                yield f
+        else:
+            raise TypeError("buf is not a file name and it has no write method")
 
     def _initialize_sparsify(self, sparsify: Optional[bool]) -> bool:
         if sparsify is None:

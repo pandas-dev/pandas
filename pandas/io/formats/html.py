@@ -14,14 +14,13 @@ from pandas import MultiIndex, option_context
 from pandas.io.common import is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
-    TableFormatter,
     buffer_put_lines,
     get_level_lengths,
 )
 from pandas.io.formats.printing import pprint_thing
 
 
-class HTMLFormatter(TableFormatter):
+class HTMLFormatter(DataFrameFormatter):
     """
     Internal class for formatting output data in html.
     This class is intended for shared functionality between
