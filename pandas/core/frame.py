@@ -874,7 +874,7 @@ class DataFrame(NDFrame):
                 decimal=decimal,
                 line_width=line_width,
             )
-            return formatter.to_string(buf=buf, encoding=encoding)
+            return formatter.get_result(buf=buf, encoding=encoding)
 
     # ----------------------------------------------------------------------
 

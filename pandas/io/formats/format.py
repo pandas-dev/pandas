@@ -1157,13 +1157,6 @@ class ConsoleFormatter(DataFrameFormatter):
         if self.should_show_dimensions:
             buf.write(self._dimensions_info)
 
-    def to_string(
-        self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
-        encoding: Optional[str] = None,
-    ) -> Optional[str]:
-        return self.get_result(buf=buf, encoding=encoding)
-
     def _get_string_representation(self) -> str:
         if self.frame.empty:
             info_line = (
