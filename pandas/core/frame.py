@@ -787,7 +787,7 @@ class DataFrame(NDFrame):
                 show_dimensions=show_dimensions,
                 decimal=".",
             )
-            return formatter.to_html(notebook=True)
+            return fmt.DataFrameRenderer(formatter).to_html(notebook=True)
         else:
             return None
 
@@ -853,7 +853,7 @@ class DataFrame(NDFrame):
         from pandas import option_context
 
         with option_context("display.max_colwidth", max_colwidth):
-            formatter = fmt.ConsoleFormatter(
+            formatter = fmt.DataFrameFormatter(
                 self,
                 columns=columns,
                 col_space=col_space,
@@ -872,7 +872,10 @@ class DataFrame(NDFrame):
                 decimal=decimal,
                 line_width=line_width,
             )
-            return formatter.get_result(buf=buf, encoding=encoding)
+            return fmt.DataFrameRenderer(formatter).to_string(
+                buf=buf,
+                encoding=encoding,
+            )
 
     # ----------------------------------------------------------------------
 
@@ -2480,7 +2483,7 @@ class DataFrame(NDFrame):
             show_dimensions=show_dimensions,
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
-        return formatter.to_html(
+        return fmt.DataFrameRenderer(formatter).to_html(
             buf=buf,
             classes=classes,
             notebook=notebook,

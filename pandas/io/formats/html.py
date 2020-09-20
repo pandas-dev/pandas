@@ -199,8 +199,11 @@ class HTMLFormatter(DataFrameFormatter):
 
         return self.elements
 
-    def write_result(self, buf: IO[str]) -> None:
-        buffer_put_lines(buf, self.render())
+    def to_string(self) -> str:
+        lines = self.render()
+        if any(isinstance(x, str) for x in lines):
+            lines = [str(x) for x in lines]
+        return "\n".join(lines)
 
     def _write_table(self, indent: int = 0) -> None:
         _classes = ["dataframe"]  # Default class.
@@ -371,7 +374,7 @@ class HTMLFormatter(DataFrameFormatter):
 
     def _get_formatted_values(self) -> Dict[int, List[str]]:
         with option_context("display.max_colwidth", None):
-            fmt_values = {i: self.fmt._format_col(i) for i in range(self.ncols)}
+            fmt_values = {i: self.fmt.format_col(i) for i in range(self.ncols)}
         return fmt_values
 
     def _write_body(self, indent: int) -> None:
@@ -566,7 +569,7 @@ class NotebookFormatter(HTMLFormatter):
     """
 
     def _get_formatted_values(self) -> Dict[int, List[str]]:
-        return {i: self.fmt._format_col(i) for i in range(self.ncols)}
+        return {i: self.fmt.format_col(i) for i in range(self.ncols)}
 
     def _get_columns_formatted_values(self) -> List[str]:
         return self.columns.format()

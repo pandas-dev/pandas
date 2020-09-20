@@ -108,7 +108,7 @@ class RowStringConverter(ABC):
             )
             strcols = [[info_line]]
         else:
-            strcols = self.fmt._to_str_columns()
+            strcols = self.fmt.get_strcols()
 
         # reestablish the MultiIndex that has been joined by _to_str_column
         if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
@@ -634,13 +634,12 @@ class LatexFormatter(DataFrameFormatter):
         self.label = label
         self.position = position
 
-    def write_result(self, buf: IO[str]) -> None:
+    def to_string(self) -> str:
         """
         Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
         environment output.
         """
-        table_string = self.builder.get_result()
-        buf.write(table_string)
+        return self.builder.get_result()
 
     @property
     def builder(self) -> TableBuilderAbstract:

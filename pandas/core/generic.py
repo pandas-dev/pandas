@@ -106,7 +106,11 @@ from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
-from pandas.io.formats.format import DataFrameFormatter, format_percentiles
+from pandas.io.formats.format import (
+    DataFrameFormatter,
+    DataFrameRenderer,
+    format_percentiles,
+)
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
@@ -3127,7 +3131,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             escape=escape,
             decimal=decimal,
         )
-        return formatter.to_latex(
+        return DataFrameRenderer(formatter).to_latex(
             buf=buf,
             column_format=column_format,
             longtable=longtable,

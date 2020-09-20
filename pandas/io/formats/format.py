@@ -69,8 +69,6 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
-from pandas.errors import AbstractMethodError
-
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 
@@ -452,14 +450,6 @@ def get_adjustment() -> TextAdjustment:
 
 
 class DataFrameFormatter:
-    """
-    Render a DataFrame
-
-    self.to_string() : console-friendly tabular output
-    self.to_html()   : html table
-    self.to_latex()   : LaTeX tabular environment table
-
-    """
 
     __doc__ = __doc__ if __doc__ else ""
     __doc__ += common_docstring + return_docstring
@@ -487,47 +477,42 @@ class DataFrameFormatter:
         escape: bool = True,
     ):
         self.frame = frame
-        self.show_index_names = index_names
-        self.sparsify = self._initialize_sparsify(sparsify)
-        self.float_format = float_format
-        self.formatters = self._initialize_formatters(formatters)
-        self.na_rep = na_rep
-        self.decimal = decimal
+        self.columns = self._initialize_columns(columns)
         self.col_space = self._initialize_colspace(col_space)
         self.header = header
         self.index = index
+        self.na_rep = na_rep
+        self.formatters = self._initialize_formatters(formatters)
+        self.justify = self._initialize_justify(justify)
+        self.float_format = float_format
+        self.sparsify = self._initialize_sparsify(sparsify)
+        self.show_index_names = index_names
+        self.decimal = decimal
+        self.bold_rows = bold_rows
+        self.escape = escape
         self.line_width = line_width
         self.max_rows = max_rows
         self.min_rows = min_rows
         self.max_cols = max_cols
         self.show_dimensions = show_dimensions
-        self.justify = self._initialize_justify(justify)
-        self.bold_rows = bold_rows
-        self.escape = escape
-        self.columns = self._initialize_columns(columns)
 
         self.max_cols_fitted = self._calc_max_cols_fitted()
         self.max_rows_fitted = self._calc_max_rows_fitted()
 
-        self._truncate()
+        self.truncate()
         self.adj = get_adjustment()
 
-    def get_result(
-        self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
-        encoding: Optional[str] = None,
-    ) -> Optional[str]:
+    def get_strcols(self) -> List[List[str]]:
         """
-        Perform serialization. Write to buf or return as string if buf is None.
+        Render a DataFrame to a list of columns (as lists of strings).
         """
-        with self.get_buffer(buf, encoding=encoding) as f:
-            self.write_result(buf=f)
-            if buf is None:
-                return f.getvalue()
-            return None
+        strcols = self._get_strcols_without_index()
 
-    def write_result(self, buf: IO[str]) -> None:
-        raise AbstractMethodError
+        if self.index:
+            str_index = self._get_formatted_index(self.tr_frame)
+            strcols.insert(0, str_index)
+
+        return strcols
 
     @property
     def should_show_dimensions(self) -> bool:
@@ -535,47 +520,53 @@ class DataFrameFormatter:
             self.show_dimensions == "truncate" and self.is_truncated
         )
 
-    def _get_formatter(self, i: Union[str, int]) -> Optional[Callable]:
-        if isinstance(self.formatters, (list, tuple)):
-            if is_integer(i):
-                i = cast(int, i)
-                return self.formatters[i]
-            else:
-                return None
-        else:
-            if is_integer(i) and i not in self.columns:
-                i = self.columns[i]
-            return self.formatters.get(i, None)
+    @property
+    def is_truncated(self) -> bool:
+        return bool(self.is_truncated_horizontally or self.is_truncated_vertically)
 
-    @contextmanager
-    def get_buffer(
-        self, buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None
-    ):
-        """
-        Context manager to open, yield and close buffer for filenames or Path-like
-        objects, otherwise yield buf unchanged.
-        """
-        if buf is not None:
-            buf = stringify_path(buf)
-        else:
-            buf = StringIO()
+    @property
+    def is_truncated_horizontally(self) -> bool:
+        return bool(self.max_cols_fitted and (len(self.columns) > self.max_cols_fitted))
 
-        if encoding is None:
-            encoding = "utf-8"
-        elif not isinstance(buf, str):
-            raise ValueError("buf is not a file name and encoding is specified.")
+    @property
+    def is_truncated_vertically(self) -> bool:
+        return bool(self.max_rows_fitted and (len(self.frame) > self.max_rows_fitted))
 
-        if hasattr(buf, "write"):
-            yield buf
-        elif isinstance(buf, str):
-            with open(buf, "w", encoding=encoding, newline="") as f:
-                # GH#30034 open instead of codecs.open prevents a file leak
-                #  if we have an invalid encoding argument.
-                # newline="" is needed to roundtrip correctly on
-                #  windows test_to_latex_filename
-                yield f
-        else:
-            raise TypeError("buf is not a file name and it has no write method")
+    @property
+    def info_line(self):
+        return (
+            f"Empty {type(self.frame).__name__}\n"
+            f"Columns: {pprint_thing(self.frame.columns)}\n"
+            f"Index: {pprint_thing(self.frame.index)}"
+        )
+
+    @property
+    def dimensions_info(self) -> str:
+        return f"\n\n[{len(self.frame)} rows x {len(self.frame.columns)} columns]"
+
+    @property
+    def has_index_names(self) -> bool:
+        return _has_names(self.frame.index)
+
+    @property
+    def has_column_names(self) -> bool:
+        return _has_names(self.frame.columns)
+
+    @property
+    def show_row_idx_names(self) -> bool:
+        return all((self.has_index_names, self.index, self.show_index_names))
+
+    @property
+    def show_col_idx_names(self) -> bool:
+        return all((self.has_column_names, self.show_index_names, self.header))
+
+    @property
+    def max_rows_displayed(self) -> int:
+        return min(self.max_rows or len(self.frame), len(self.frame))
+
+    @property
+    def need_to_wrap_around(self) -> bool:
+        return bool(self.max_cols is None or self.max_cols > 0)
 
     def _initialize_sparsify(self, sparsify: Optional[bool]) -> bool:
         if sparsify is None:
@@ -635,10 +626,6 @@ class DataFrameFormatter:
             result = dict(zip(self.frame.columns, col_space))
         return result
 
-    @property
-    def max_rows_displayed(self) -> int:
-        return min(self.max_rows or len(self.frame), len(self.frame))
-
     def _calc_max_cols_fitted(self) -> Optional[int]:
         """Number of columns fitting the screen."""
         if not self._is_in_terminal():
@@ -689,26 +676,14 @@ class DataFrameFormatter:
         num_rows = dot_row + prompt_row
 
         if self.show_dimensions:
-            num_rows += len(self._dimensions_info.splitlines())
+            num_rows += len(self.dimensions_info.splitlines())
 
         if self.header:
             num_rows += 1
 
         return num_rows
 
-    @property
-    def is_truncated_horizontally(self) -> bool:
-        return bool(self.max_cols_fitted and (len(self.columns) > self.max_cols_fitted))
-
-    @property
-    def is_truncated_vertically(self) -> bool:
-        return bool(self.max_rows_fitted and (len(self.frame) > self.max_rows_fitted))
-
-    @property
-    def is_truncated(self) -> bool:
-        return bool(self.is_truncated_horizontally or self.is_truncated_vertically)
-
-    def _truncate(self) -> None:
+    def truncate(self) -> None:
         """
         Check whether the frame should be truncated. If so, slice the frame up.
         """
@@ -773,7 +748,7 @@ class DataFrameFormatter:
 
         if not is_list_like(self.header) and not self.header:
             for i, c in enumerate(self.tr_frame):
-                fmt_values = self._format_col(i)
+                fmt_values = self.format_col(i)
                 fmt_values = _make_fixed_width(
                     strings=fmt_values,
                     justify=self.justify,
@@ -804,7 +779,7 @@ class DataFrameFormatter:
             header_colwidth = max(
                 int(self.col_space.get(c, 0)), *(self.adj.len(x) for x in cheader)
             )
-            fmt_values = self._format_col(i)
+            fmt_values = self.format_col(i)
             fmt_values = _make_fixed_width(
                 fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
             )
@@ -815,145 +790,7 @@ class DataFrameFormatter:
 
         return strcols
 
-    def _get_strcols(self) -> List[List[str]]:
-        strcols = self._get_strcols_without_index()
-
-        str_index = self._get_formatted_index(self.tr_frame)
-        if self.index:
-            strcols.insert(0, str_index)
-
-        return strcols
-
-    def _to_str_columns(self) -> List[List[str]]:
-        """
-        Render a DataFrame to a list of columns (as lists of strings).
-        """
-        strcols = self._get_strcols()
-
-        if self.is_truncated:
-            strcols = self._insert_dot_separators(strcols)
-
-        return strcols
-
-    def _insert_dot_separators(self, strcols: List[List[str]]) -> List[List[str]]:
-        str_index = self._get_formatted_index(self.tr_frame)
-        index_length = len(str_index)
-
-        if self.is_truncated_horizontally:
-            strcols = self._insert_dot_separator_horizontal(strcols, index_length)
-
-        if self.is_truncated_vertically:
-            strcols = self._insert_dot_separator_vertical(strcols, index_length)
-
-        return strcols
-
-    def _insert_dot_separator_horizontal(
-        self, strcols: List[List[str]], index_length: int
-    ) -> List[List[str]]:
-        strcols.insert(self.tr_col_num + 1, [" ..."] * index_length)
-        return strcols
-
-    def _insert_dot_separator_vertical(
-        self, strcols: List[List[str]], index_length: int
-    ) -> List[List[str]]:
-        n_header_rows = index_length - len(self.tr_frame)
-        row_num = self.tr_row_num
-        for ix, col in enumerate(strcols):
-            cwidth = self.adj.len(col[row_num])
-
-            if self.is_truncated_horizontally:
-                is_dot_col = ix == self.tr_col_num + 1
-            else:
-                is_dot_col = False
-
-            if cwidth > 3 or is_dot_col:
-                dots = "..."
-            else:
-                dots = ".."
-
-            if ix == 0:
-                dot_mode = "left"
-            elif is_dot_col:
-                cwidth = 4
-                dot_mode = "right"
-            else:
-                dot_mode = "right"
-
-            dot_str = self.adj.justify([dots], cwidth, mode=dot_mode)[0]
-            col.insert(row_num + n_header_rows, dot_str)
-        return strcols
-
-    @property
-    def _dimensions_info(self) -> str:
-        return f"\n\n[{len(self.frame)} rows x {len(self.frame.columns)} columns]"
-
-    def _fit_strcols_to_terminal_width(self, strcols) -> str:
-        from pandas import Series
-
-        lines = self.adj.adjoin(1, *strcols).split("\n")
-        max_len = Series(lines).str.len().max()
-        # plus truncate dot col
-        width, _ = get_terminal_size()
-        dif = max_len - width
-        # '+ 1' to avoid too wide repr (GH PR #17023)
-        adj_dif = dif + 1
-        col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
-        n_cols = len(col_lens)
-        counter = 0
-        while adj_dif > 0 and n_cols > 1:
-            counter += 1
-            mid = int(round(n_cols / 2.0))
-            mid_ix = col_lens.index[mid]
-            col_len = col_lens[mid_ix]
-            # adjoin adds one
-            adj_dif -= col_len + 1
-            col_lens = col_lens.drop(mid_ix)
-            n_cols = len(col_lens)
-
-        # subtract index column
-        max_cols_fitted = n_cols - self.index
-        # GH-21180. Ensure that we print at least two.
-        max_cols_fitted = max(max_cols_fitted, 2)
-        self.max_cols_fitted = max_cols_fitted
-
-        # Call again _truncate to cut frame appropriately
-        # and then generate string representation
-        self._truncate()
-        strcols = self._to_str_columns()
-        return self.adj.adjoin(1, *strcols)
-
-    def to_latex(
-        self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
-        column_format: Optional[str] = None,
-        longtable: bool = False,
-        encoding: Optional[str] = None,
-        multicolumn: bool = False,
-        multicolumn_format: Optional[str] = None,
-        multirow: bool = False,
-        caption: Optional[str] = None,
-        label: Optional[str] = None,
-        position: Optional[str] = None,
-    ) -> Optional[str]:
-        """
-        Render a DataFrame to a LaTeX tabular/longtable environment output.
-        """
-        from pandas.io.formats.latex import LatexFormatter
-
-        latex_formatter = LatexFormatter(
-            self,
-            longtable=longtable,
-            column_format=column_format,
-            multicolumn=multicolumn,
-            multicolumn_format=multicolumn_format,
-            multirow=multirow,
-            caption=caption,
-            label=label,
-            position=position,
-        )
-        return latex_formatter.get_result(buf=buf, encoding=encoding)
-
-    def _format_col(self, i: int) -> List[str]:
+    def format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         return format_array(
@@ -966,46 +803,17 @@ class DataFrameFormatter:
             leading_space=self.index,
         )
 
-    def to_html(
-        self,
-        buf: Optional[FilePathOrBuffer[str]] = None,
-        encoding: Optional[str] = None,
-        classes: Optional[Union[str, List, Tuple]] = None,
-        notebook: bool = False,
-        border: Optional[int] = None,
-        table_id: Optional[str] = None,
-        render_links: bool = False,
-    ) -> Optional[str]:
-        """
-        Render a DataFrame to a html table.
-
-        Parameters
-        ----------
-        classes : str or list-like
-            classes to include in the `class` attribute of the opening
-            ``<table>`` tag, in addition to the default "dataframe".
-        notebook : {True, False}, optional, default False
-            Whether the generated HTML is for IPython Notebook.
-        border : int
-            A ``border=border`` attribute is included in the opening
-            ``<table>`` tag. Default ``pd.options.display.html.border``.
-        table_id
-
-        render_links
-
-        """
-        from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
-
-        Klass = NotebookFormatter if notebook else HTMLFormatter
-
-        instance = Klass(
-            self,
-            classes=classes,
-            border=border,
-            table_id=table_id,
-            render_links=render_links,
-        )
-        return instance.get_result(buf=buf, encoding=encoding)
+    def _get_formatter(self, i: Union[str, int]) -> Optional[Callable]:
+        if isinstance(self.formatters, (list, tuple)):
+            if is_integer(i):
+                i = cast(int, i)
+                return self.formatters[i]
+            else:
+                return None
+        else:
+            if is_integer(i) and i not in self.columns:
+                i = self.columns[i]
+            return self.formatters.get(i, None)
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.indexes.multi import sparsify_labels
@@ -1047,22 +855,6 @@ class DataFrameFormatter:
             ]
         # self.str_columns = str_columns
         return str_columns
-
-    @property
-    def has_index_names(self) -> bool:
-        return _has_names(self.frame.index)
-
-    @property
-    def has_column_names(self) -> bool:
-        return _has_names(self.frame.columns)
-
-    @property
-    def show_row_idx_names(self) -> bool:
-        return all((self.has_index_names, self.index, self.show_index_names))
-
-    @property
-    def show_col_idx_names(self) -> bool:
-        return all((self.has_column_names, self.show_index_names, self.header))
 
     def _get_formatted_index(self, frame: "DataFrame") -> List[str]:
         # Note: this is only used by to_string() and to_latex(), not by
@@ -1114,46 +906,94 @@ class DataFrameFormatter:
         return names
 
 
-class ConsoleFormatter(DataFrameFormatter):
+class StringFormatter:
 
-    def write_result(self, buf: IO[str]) -> None:
-        """
-        Render a DataFrame to a console-friendly tabular output.
-        """
+    def __init__(self, fmt):
+        self.fmt = fmt
+        self.adj = fmt.adj
+        self.frame = fmt.frame
+
+    def to_string(self) -> str:
         text = self._get_string_representation()
+        if self.fmt.should_show_dimensions:
+            text = "".join([text, self.fmt.dimensions_info])
+        return text
 
-        buf.writelines(text)
-
-        if self.should_show_dimensions:
-            buf.write(self._dimensions_info)
+    def _get_strcols(self):
+        strcols = self.fmt.get_strcols()
+        if self.fmt.is_truncated:
+            strcols = self._insert_dot_separators(strcols)
+        return strcols
 
     def _get_string_representation(self) -> str:
-        if self.frame.empty:
-            info_line = (
-                f"Empty {type(self.frame).__name__}\n"
-                f"Columns: {pprint_thing(self.frame.columns)}\n"
-                f"Index: {pprint_thing(self.frame.index)}"
-            )
-            return info_line
+        if self.fmt.frame.empty:
+            return self.fmt.info_line
 
-        strcols = self._to_str_columns()
+        strcols = self._get_strcols()
 
-        if self.line_width is None:
+        if self.fmt.line_width is None:
             # no need to wrap around just print the whole frame
             return self.adj.adjoin(1, *strcols)
 
-        if self.max_cols is None or self.max_cols > 0:
-            # need to wrap around
+        if self.fmt.need_to_wrap_around:
             return self._join_multiline(*strcols)
 
         # max_cols == 0. Try to fit frame to terminal
         return self._fit_strcols_to_terminal_width(strcols)
 
+    def _insert_dot_separators(self, strcols: List[List[str]]) -> List[List[str]]:
+        str_index = self.fmt._get_formatted_index(self.fmt.tr_frame)
+        index_length = len(str_index)
+
+        if self.fmt.is_truncated_horizontally:
+            strcols = self._insert_dot_separator_horizontal(strcols, index_length)
+
+        if self.fmt.is_truncated_vertically:
+            strcols = self._insert_dot_separator_vertical(strcols, index_length)
+
+        return strcols
+
+    def _insert_dot_separator_horizontal(
+        self, strcols: List[List[str]], index_length: int
+    ) -> List[List[str]]:
+        strcols.insert(self.fmt.tr_col_num + 1, [" ..."] * index_length)
+        return strcols
+
+    def _insert_dot_separator_vertical(
+        self, strcols: List[List[str]], index_length: int
+    ) -> List[List[str]]:
+        n_header_rows = index_length - len(self.fmt.tr_frame)
+        row_num = self.fmt.tr_row_num
+        for ix, col in enumerate(strcols):
+            cwidth = self.adj.len(col[row_num])
+
+            if self.fmt.is_truncated_horizontally:
+                is_dot_col = ix == self.fmt.tr_col_num + 1
+            else:
+                is_dot_col = False
+
+            if cwidth > 3 or is_dot_col:
+                dots = "..."
+            else:
+                dots = ".."
+
+            if ix == 0:
+                dot_mode = "left"
+            elif is_dot_col:
+                cwidth = 4
+                dot_mode = "right"
+            else:
+                dot_mode = "right"
+
+            dot_str = self.adj.justify([dots], cwidth, mode=dot_mode)[0]
+            col.insert(row_num + n_header_rows, dot_str)
+        return strcols
+
     def _join_multiline(self, *args) -> str:
-        lwidth = self.line_width
+        lwidth = self.fmt.line_width
         adjoin_width = 1
         strcols = list(args)
-        if self.index:
+        if self.fmt.index:
             idx = strcols.pop(0)
             lwidth -= np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
 
@@ -1166,9 +1006,9 @@ class ConsoleFormatter(DataFrameFormatter):
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
-        if self.is_truncated_vertically:
-            assert self.max_rows_fitted is not None
-            nrows = self.max_rows_fitted + 1
+        if self.fmt.is_truncated_vertically:
+            assert self.fmt.max_rows_fitted is not None
+            nrows = self.fmt.max_rows_fitted + 1
         else:
             nrows = len(self.frame)
 
@@ -1176,7 +1016,7 @@ class ConsoleFormatter(DataFrameFormatter):
         start = 0
         for i, end in enumerate(col_bins):
             row = strcols[start:end]
-            if self.index:
+            if self.fmt.index:
                 row.insert(0, idx)
             if nbins > 1:
                 if end <= len(strcols) and i < nbins - 1:
@@ -1186,6 +1026,180 @@ class ConsoleFormatter(DataFrameFormatter):
             str_lst.append(self.adj.adjoin(adjoin_width, *row))
             start = end
         return "\n\n".join(str_lst)
+
+    def _fit_strcols_to_terminal_width(self, strcols) -> str:
+        from pandas import Series
+
+        lines = self.adj.adjoin(1, *strcols).split("\n")
+        max_len = Series(lines).str.len().max()
+        # plus truncate dot col
+        width, _ = get_terminal_size()
+        dif = max_len - width
+        # '+ 1' to avoid too wide repr (GH PR #17023)
+        adj_dif = dif + 1
+        col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
+        n_cols = len(col_lens)
+        counter = 0
+        while adj_dif > 0 and n_cols > 1:
+            counter += 1
+            mid = int(round(n_cols / 2.0))
+            mid_ix = col_lens.index[mid]
+            col_len = col_lens[mid_ix]
+            # adjoin adds one
+            adj_dif -= col_len + 1
+            col_lens = col_lens.drop(mid_ix)
+            n_cols = len(col_lens)
+
+        # subtract index column
+        max_cols_fitted = n_cols - self.fmt.index
+        # GH-21180. Ensure that we print at least two.
+        max_cols_fitted = max(max_cols_fitted, 2)
+        self.fmt.max_cols_fitted = max_cols_fitted
+
+        # Call again _truncate to cut frame appropriately
+        # and then generate string representation
+        self.fmt.truncate()
+        strcols = self._get_strcols()
+        return self.adj.adjoin(1, *strcols)
+
+
+class DataFrameRenderer:
+    def __init__(
+        self,
+        fmt: DataFrameFormatter,
+    ):
+        self.fmt = fmt
+
+    def to_latex(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        column_format: Optional[str] = None,
+        longtable: bool = False,
+        encoding: Optional[str] = None,
+        multicolumn: bool = False,
+        multicolumn_format: Optional[str] = None,
+        multirow: bool = False,
+        caption: Optional[str] = None,
+        label: Optional[str] = None,
+        position: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        Render a DataFrame to a LaTeX tabular/longtable environment output.
+        """
+        from pandas.io.formats.latex import LatexFormatter
+
+        latex_formatter = LatexFormatter(
+            self.fmt,
+            longtable=longtable,
+            column_format=column_format,
+            multicolumn=multicolumn,
+            multicolumn_format=multicolumn_format,
+            multirow=multirow,
+            caption=caption,
+            label=label,
+            position=position,
+        )
+        string = latex_formatter.to_string()
+        return self._get_result(string, buf=buf, encoding=encoding)
+
+    def to_html(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+        classes: Optional[Union[str, List, Tuple]] = None,
+        notebook: bool = False,
+        border: Optional[int] = None,
+        table_id: Optional[str] = None,
+        render_links: bool = False,
+    ) -> Optional[str]:
+        """
+        Render a DataFrame to a html table.
+
+        Parameters
+        ----------
+        classes : str or list-like
+            classes to include in the `class` attribute of the opening
+            ``<table>`` tag, in addition to the default "dataframe".
+        notebook : {True, False}, optional, default False
+            Whether the generated HTML is for IPython Notebook.
+        border : int
+            A ``border=border`` attribute is included in the opening
+            ``<table>`` tag. Default ``pd.options.display.html.border``.
+        table_id
+
+        render_links
+
+        """
+        from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
+
+        Klass = NotebookFormatter if notebook else HTMLFormatter
+
+        html_formatter = Klass(
+            self.fmt,
+            classes=classes,
+            border=border,
+            table_id=table_id,
+            render_links=render_links,
+        )
+        string = html_formatter.to_string()
+        return self._get_result(string, buf=buf, encoding=encoding)
+
+    def to_string(
+        self,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        Render a DataFrame to a console-friendly tabular output.
+        """
+        string_formatter = StringFormatter(self.fmt)
+        string = string_formatter.to_string()
+        return self._get_result(string, buf=buf, encoding=encoding)
+
+    def _get_result(
+        self,
+        string: str,
+        buf: Optional[FilePathOrBuffer[str]] = None,
+        encoding: Optional[str] = None,
+    ) -> Optional[str]:
+        """
+        Perform serialization. Write to buf or return as string if buf is None.
+        """
+        with self.get_buffer(buf, encoding=encoding) as f:
+            f.write(string)
+            if buf is None:
+                return f.getvalue()
+            return None
+
+    @contextmanager
+    def get_buffer(
+        self, buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None
+    ):
+        """
+        Context manager to open, yield and close buffer for filenames or Path-like
+        objects, otherwise yield buf unchanged.
+        """
+        if buf is not None:
+            buf = stringify_path(buf)
+        else:
+            buf = StringIO()
+
+        if encoding is None:
+            encoding = "utf-8"
+        elif not isinstance(buf, str):
+            raise ValueError("buf is not a file name and encoding is specified.")
+
+        if hasattr(buf, "write"):
+            yield buf
+        elif isinstance(buf, str):
+            with open(buf, "w", encoding=encoding, newline="") as f:
+                # GH#30034 open instead of codecs.open prevents a file leak
+                #  if we have an invalid encoding argument.
+                # newline="" is needed to roundtrip correctly on
+                #  windows test_to_latex_filename
+                yield f
+        else:
+            raise TypeError("buf is not a file name and it has no write method")
 
 
 # ----------------------------------------------------------------------
