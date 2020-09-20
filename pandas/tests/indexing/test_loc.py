@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.core.common as com
+
 from pandas.compat.numpy import is_numpy_dev
 
 import pandas as pd
@@ -1141,6 +1143,5 @@ def test_loc_replace_subset_with_subset():
     )
     df2 = df1.copy()
     df2[:] = np.nan
-    # It fail if a SettingWithCopyError is not raised
-    with pytest.raises(pandas.core.common.SettingWithCopyError):
+    with pytest.raises(com.SettingWithCopyError):
         df2.loc[0]["A"] = df1.loc[0]["A"]
