@@ -483,8 +483,6 @@ class DataFrameFormatter:
         max_cols: Optional[int] = None,
         show_dimensions: Union[bool, str] = False,
         decimal: str = ".",
-        table_id: Optional[str] = None,
-        render_links: bool = False,
         bold_rows: bool = False,
         escape: bool = True,
     ):
@@ -503,8 +501,6 @@ class DataFrameFormatter:
         self.min_rows = min_rows
         self.max_cols = max_cols
         self.show_dimensions = show_dimensions
-        self.table_id = table_id
-        self.render_links = render_links
         self.justify = self._initialize_justify(justify)
         self.bold_rows = bold_rows
         self.escape = escape
@@ -1015,6 +1011,8 @@ class DataFrameFormatter:
         classes: Optional[Union[str, List, Tuple]] = None,
         notebook: bool = False,
         border: Optional[int] = None,
+        table_id: Optional[str] = None,
+        render_links: bool = False,
     ) -> Optional[str]:
         """
         Render a DataFrame to a html table.
@@ -1029,13 +1027,23 @@ class DataFrameFormatter:
         border : int
             A ``border=border`` attribute is included in the opening
             ``<table>`` tag. Default ``pd.options.display.html.border``.
+        table_id
+
+        render_links
+
         """
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
         Klass = NotebookFormatter if notebook else HTMLFormatter
-        return Klass(self, classes=classes, border=border).get_result(
-            buf=buf, encoding=encoding
+
+        instance = Klass(
+            self,
+            classes=classes,
+            border=border,
+            table_id=table_id,
+            render_links=render_links,
         )
+        return instance.get_result(buf=buf, encoding=encoding)
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
         from pandas.core.indexes.multi import sparsify_labels

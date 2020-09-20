@@ -37,6 +37,8 @@ class HTMLFormatter(DataFrameFormatter):
         formatter: DataFrameFormatter,
         classes: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
         border: Optional[int] = None,
+        table_id: Optional[str] = None,
+        render_links: bool = False,
     ) -> None:
         self.fmt = formatter
         self.classes = classes
@@ -50,8 +52,8 @@ class HTMLFormatter(DataFrameFormatter):
         if border is None:
             border = cast(int, get_option("display.html.border"))
         self.border = border
-        self.table_id = self.fmt.table_id
-        self.render_links = self.fmt.render_links
+        self.table_id = table_id
+        self.render_links = render_links
 
         self.col_space = {
             column: f"{value}px" if isinstance(value, int) else value

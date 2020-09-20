@@ -786,8 +786,6 @@ class DataFrame(NDFrame):
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
                 decimal=".",
-                table_id=None,
-                render_links=False,
             )
             return formatter.to_html(notebook=True)
         else:
@@ -2467,21 +2465,19 @@ class DataFrame(NDFrame):
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
+            header=header,
+            index=index,
             formatters=formatters,
             float_format=float_format,
+            bold_rows=bold_rows,
             sparsify=sparsify,
             justify=justify,
             index_names=index_names,
-            header=header,
-            index=index,
-            bold_rows=bold_rows,
             escape=escape,
+            decimal=decimal,
             max_rows=max_rows,
             max_cols=max_cols,
             show_dimensions=show_dimensions,
-            decimal=decimal,
-            table_id=table_id,
-            render_links=render_links,
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
         return formatter.to_html(
@@ -2490,6 +2486,8 @@ class DataFrame(NDFrame):
             notebook=notebook,
             border=border,
             encoding=encoding,
+            table_id=table_id,
+            render_links=render_links,
         )
 
     # ----------------------------------------------------------------------
