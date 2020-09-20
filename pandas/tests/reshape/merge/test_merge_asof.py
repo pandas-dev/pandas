@@ -1339,3 +1339,25 @@ class TestAsOfMerge:
             index=pd.Index([0, 1, 2, 3, 4]),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_left_index_right_index_tolerance(self):
+        # https://github.com/pandas-dev/pandas/issues/35558
+        dr1 = pd.date_range(
+            start="1/1/2020", end="1/20/2020", freq="2D"
+        ) + pd.Timedelta(seconds=0.4)
+        dr2 = pd.date_range(start="1/1/2020", end="2/1/2020")
+
+        df1 = pd.DataFrame({"val1": "foo"}, index=pd.DatetimeIndex(dr1))
+        df2 = pd.DataFrame({"val2": "bar"}, index=pd.DatetimeIndex(dr2))
+
+        expected = pd.DataFrame(
+            {"val1": "foo", "val2": "bar"}, index=pd.DatetimeIndex(dr1)
+        )
+        result = pd.merge_asof(
+            df1,
+            df2,
+            left_index=True,
+            right_index=True,
+            tolerance=pd.Timedelta(seconds=0.5),
+        )
+        tm.assert_frame_equal(result, expected)

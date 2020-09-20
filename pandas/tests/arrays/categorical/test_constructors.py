@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p16
-
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -279,7 +277,7 @@ class TestCategoricalConstructors:
         # returned a scalar for a generator
 
         exp = Categorical([0, 1, 2])
-        cat = Categorical((x for x in [0, 1, 2]))
+        cat = Categorical(x for x in [0, 1, 2])
         tm.assert_categorical_equal(cat, exp)
         cat = Categorical(range(3))
         tm.assert_categorical_equal(cat, exp)
@@ -637,7 +635,6 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(c1.categories, Index(values))
         tm.assert_numpy_array_equal(np.array(c1), np.array(values))
 
-    @pytest.mark.skipif(_np_version_under1p16, reason="Skipping for NumPy <1.16")
     def test_constructor_string_and_tuples(self):
         # GH 21416
         c = pd.Categorical(np.array(["c", ("a", "b"), ("b", "a"), "c"], dtype=object))

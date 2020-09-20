@@ -1,27 +1,30 @@
 """Strptime-related classes and functions.
 """
-import time
-import locale
 import calendar
+import locale
 import re
+import time
 
 from cpython.datetime cimport date, tzinfo
 
 from _thread import allocate_lock as _thread_allocate_lock
 
+import numpy as np
 import pytz
 
-import numpy as np
 from numpy cimport int64_t
 
-from pandas._libs.tslibs.np_datetime cimport (
-    check_dts_bounds, dtstruct_to_dt64, npy_datetimestruct)
-
 from pandas._libs.tslibs.nattype cimport (
-    checknull_with_nat,
     NPY_NAT,
     c_nat_strings as nat_strings,
+    checknull_with_nat,
 )
+from pandas._libs.tslibs.np_datetime cimport (
+    check_dts_bounds,
+    dtstruct_to_dt64,
+    npy_datetimestruct,
+)
+
 
 cdef dict _parse_code_table = {'y': 0,
                                'Y': 1,

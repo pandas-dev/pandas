@@ -90,7 +90,7 @@ class TestSeriesAsof:
         tm.assert_series_equal(result, expected)
 
     def test_periodindex(self):
-        from pandas import period_range, PeriodIndex
+        from pandas import PeriodIndex, period_range
 
         # array or list or dates
         N = 50

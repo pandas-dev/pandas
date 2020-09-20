@@ -1877,8 +1877,6 @@ different columns.
 By indexes and values
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.23.0
-
 Strings passed as the ``by`` parameter to :meth:`DataFrame.sort_values` may
 refer to either columns or index level names.
 

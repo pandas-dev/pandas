@@ -285,7 +285,7 @@ class TestnanopsDataFrame:
 
     def test_nanmean(self, skipna):
         self.check_funs(
-            nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False,
+            nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False
         )
 
     def test_nanmean_overflow(self):

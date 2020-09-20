@@ -9,54 +9,66 @@ shadows the python class, where we do any heavy lifting.
 import warnings
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport int64_t, int8_t, uint8_t, ndarray
+from numpy cimport int8_t, int64_t, ndarray, uint8_t
+
 cnp.import_array()
 
-from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
-                             Py_EQ, Py_NE)
-
-from cpython.datetime cimport (
-    datetime,
-    time,
-    tzinfo,
-    tzinfo as tzinfo_type,  # alias bc `tzinfo` is a kwarg below
+from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     PyDateTime_Check,
+    PyDateTime_IMPORT,
     PyDelta_Check,
     PyTZInfo_Check,
-    PyDateTime_IMPORT,
+    datetime,
+    time,
+    tzinfo as tzinfo_type,
 )
+from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompare, PyObject_RichCompareBool
+
 PyDateTime_IMPORT
 
-from pandas._libs.tslibs.util cimport (
-    is_datetime64_object, is_float_object, is_integer_object,
-    is_timedelta64_object, is_array,
-)
-
-from pandas._libs.tslibs.base cimport ABCTimestamp
-
 from pandas._libs.tslibs cimport ccalendar
-
+from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
-    convert_to_tsobject,
     convert_datetime_to_tsobject,
+    convert_to_tsobject,
     normalize_i8_stamp,
 )
-from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
+from pandas._libs.tslibs.util cimport (
+    is_array,
+    is_datetime64_object,
+    is_float_object,
+    is_integer_object,
+    is_timedelta64_object,
+)
+
+from pandas._libs.tslibs.fields import get_date_name_field, get_start_end_field
+
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
-    check_dts_bounds, npy_datetimestruct, dt64_to_dtstruct,
+    check_dts_bounds,
     cmp_scalar,
+    dt64_to_dtstruct,
+    npy_datetimestruct,
     pydatetime_to_dt64,
 )
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.offsets cimport to_offset, is_offset_object
-from pandas._libs.tslibs.timedeltas cimport is_any_td_scalar, delta_to_nanoseconds
+
+from pandas._libs.tslibs.offsets cimport is_offset_object, to_offset
+from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds, is_any_td_scalar
+
 from pandas._libs.tslibs.timedeltas import Timedelta
+
 from pandas._libs.tslibs.timezones cimport (
-    is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,
-    get_timezone, tz_compare,
+    get_timezone,
+    is_utc,
+    maybe_get_tz,
+    treat_tz_as_pytz,
+    tz_compare,
+    utc_pytz as UTC,
 )
 from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_from_utc_single,
@@ -491,9 +503,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Returns
         -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
+        string
         """
         return self._get_date_name_field("day_name", locale)
 
@@ -508,9 +518,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Returns
         -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
+        string
         """
         return self._get_date_name_field("month_name", locale)
 
@@ -771,7 +779,6 @@ class Timestamp(_Timestamp):
     year, month, day : int
     hour, minute, second, microsecond : int, optional, default 0
     nanosecond : int, optional, default 0
-        .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice

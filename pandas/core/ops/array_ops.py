@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer_dtype,
     is_list_like,
+    is_numeric_v_string_like,
     is_object_dtype,
     is_scalar,
 )
@@ -235,6 +236,10 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         else:
             res_values = np.zeros(lvalues.shape, dtype=bool)
 
+    elif is_numeric_v_string_like(lvalues, rvalues):
+        # GH#36377 going through the numexpr path would incorrectly raise
+        return invalid_comparison(lvalues, rvalues, op)
+
     elif is_object_dtype(lvalues.dtype):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
@@ -349,7 +354,8 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
         res_values = na_logical_op(lvalues, rvalues, op)
-        res_values = filler(res_values)  # type: ignore
+        # error: Cannot call function of unknown type
+        res_values = filler(res_values)  # type: ignore[operator]
 
     return res_values
 
