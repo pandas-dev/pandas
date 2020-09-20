@@ -12,7 +12,7 @@ from pandas import DataFrame, Series, Timestamp, date_range
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
-from pandas.core.common import SettingWithCopyError
+
 
 class TestLoc(Base):
     def test_loc_getitem_int(self):
@@ -1137,10 +1137,10 @@ def test_loc_replace_subset_with_subset():
     df1 = pd.DataFrame(
         data=np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
         columns=["A", "B", "C"],
-        index=[0, 0, 1]
+        index=[0, 0, 1],
     )
     df2 = df1.copy()
     df2[:] = np.nan
     # It fail if a SettingWithCopyError is not raised
-    with pytest.raises(SettingWithCopyError):
+    with pytest.raises(pandas.core.common.SettingWithCopyError):
         df2.loc[0]["A"] = df1.loc[0]["A"]
