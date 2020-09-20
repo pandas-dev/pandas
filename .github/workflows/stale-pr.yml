@@ -17,5 +17,5 @@ jobs:
         exempt-pr-labels: "Needs Review,Blocked,Needs Discussion"
         days-before-stale: 30
         days-before-close: -1
-        remove-stale-when-updated: true
+        remove-stale-when-updated: false
         debug-only: false
