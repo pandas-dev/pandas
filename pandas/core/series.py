@@ -327,10 +327,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 data = SingleBlockManager.from_array(data, index)
 
-        generic.NDFrame.__init__(
-            self,
-            data,
-        )
+        generic.NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
