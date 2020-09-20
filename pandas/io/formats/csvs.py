@@ -35,6 +35,7 @@ from pandas.io.formats.format import DataFrameFormatter
 class CSVFormatter:
     def __init__(
         self,
+        formatter: DataFrameFormatter,
         path_or_buf: Optional[FilePathOrBuffer[str]] = None,
         sep: str = ",",
         cols: Optional[Sequence[Label]] = None,
@@ -51,7 +52,6 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: Optional[str] = None,
         storage_options: StorageOptions = None,
-        formatter: DataFrameFormatter = None,
     ):
         self.fmt = formatter
 
@@ -159,7 +159,12 @@ class CSVFormatter:
 
         # update columns to include possible multiplicity of dupes
         # and make sure sure cols is just a list of labels
-        cols = self.obj.columns
+
+        # Ignore mypy error
+        # Incompatible types in assignment
+        # (expression has type "Index",
+        # variable has type "Optional[Sequence[Optional[Hashable]]]")  [assignment]
+        cols = self.obj.columns  # type: ignore[assignment]
         if isinstance(cols, ABCIndexClass):
             return cols._format_native_types(**self._number_format)
         else:

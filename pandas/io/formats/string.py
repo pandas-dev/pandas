@@ -6,13 +6,14 @@ from typing import List
 
 import numpy as np
 
+from pandas.io.formats.format import DataFrameFormatter
 from pandas.io.formats.printing import pprint_thing
 
 
 class StringFormatter:
     """Formatter for string representation of a dataframe."""
 
-    def __init__(self, fmt):
+    def __init__(self, fmt: DataFrameFormatter):
         self.fmt = fmt
         self.adj = fmt.adj
         self.frame = fmt.frame
@@ -23,7 +24,7 @@ class StringFormatter:
             text = "".join([text, self.fmt.dimensions_info])
         return text
 
-    def _get_strcols(self):
+    def _get_strcols(self) -> List[List[str]]:
         strcols = self.fmt.get_strcols()
         if self.fmt.is_truncated:
             strcols = self._insert_dot_separators(strcols)
@@ -46,7 +47,7 @@ class StringFormatter:
         return self._fit_strcols_to_terminal_width(strcols)
 
     @property
-    def _empty_info_line(self):
+    def _empty_info_line(self) -> str:
         return (
             f"Empty {type(self.frame).__name__}\n"
             f"Columns: {pprint_thing(self.frame.columns)}\n"

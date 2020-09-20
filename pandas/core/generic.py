@@ -3163,7 +3163,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         date_format: Optional[str] = None,
         doublequote: bool_t = True,
         escapechar: Optional[str] = None,
-        decimal: Optional[str] = ".",
+        decimal: str = ".",
         errors: str = "strict",
         storage_options: StorageOptions = None,
     ) -> Optional[str]:
@@ -3323,7 +3323,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         formatter = DataFrameFormatter(
             frame=df,
-            columns=columns,
             header=header,
             index=index,
             na_rep=na_rep,
