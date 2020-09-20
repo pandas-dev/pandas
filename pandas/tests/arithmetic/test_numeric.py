@@ -1298,8 +1298,10 @@ def test_dataframe_div_silenced():
     with tm.assert_produces_warning(None):
         pdf1.div(pdf2, fill_value=0)
 
+
 def test_inplace_arithmetic_operation_on_series_updating_parent_dataframe():
     df = pd.DataFrame({"A": [1, 2, 3]})
     s = df["A"]
     s += 1
     tm.assert_series_equal(df["A"], s)
+    
