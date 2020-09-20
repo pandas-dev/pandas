@@ -10,7 +10,7 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, to_datetime
 import pandas._testing as tm
 
 
@@ -21,12 +21,15 @@ class TestPlotBase:
     """
 
     def setup_method(self, method):
-
+        # GH32590
         import matplotlib as mpl
 
         from pandas.plotting._matplotlib import compat
 
         mpl.rcdefaults()
+
+        self.start_date_to_int64 = 812419200000000000
+        self.end_date_to_int64 = 819331200000000000
 
         self.mpl_ge_2_2_3 = compat.mpl_ge_2_2_3()
         self.mpl_ge_3_0_0 = compat.mpl_ge_3_0_0()
@@ -43,6 +46,7 @@ class TestPlotBase:
             gender = np.random.choice(["Male", "Female"], size=n)
             classroom = np.random.choice(["A", "B", "C"], size=n)
 
+            # GH32590
             self.hist_df = DataFrame(
                 {
                     "gender": gender,
@@ -50,6 +54,14 @@ class TestPlotBase:
                     "height": random.normal(66, 4, size=n),
                     "weight": random.normal(161, 32, size=n),
                     "category": random.randint(4, size=n),
+                    "datetime": to_datetime(
+                        random.randint(
+                            self.start_date_to_int64,
+                            self.end_date_to_int64,
+                            size=n,
+                            dtype=np.int64,
+                        )
+                    ),
                 }
             )
 

@@ -6,8 +6,6 @@ from pandas.core.dtypes.common import is_integer, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass
 from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
-from pandas.core.reshape.concat import concat
-
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
 from pandas.plotting._matplotlib.tools import (
@@ -420,20 +418,15 @@ def hist_frame(
             column = [column]
         data = data[column]
     # GH32590
-    columns_copy = data.columns
-    numeric_data = data._get_numeric_data()
-    datetime_data = data.select_dtypes(include=["datetime64", "datetimetz"])
-    data = concat([numeric_data, datetime_data], axis=1)
+    data = data.select_dtypes(
+        include=(np.number, "datetime64", "datetimetz"), exclude="timedelta"
+    )
     naxes = len(data.columns)
 
     if naxes == 0:
         raise ValueError(
             "hist method requires numerical or datetime columns, nothing to plot."
         )
-
-    data = data.reindex(
-        columns=[name for name in columns_copy if name in data.columns], copy=False
-    )
 
     fig, axes = create_subplots(
         naxes=naxes,
