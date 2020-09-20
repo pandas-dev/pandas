@@ -7,7 +7,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Interval, Period, Timestamp, algos
+from pandas._libs import Interval, Period, algos
 from pandas._libs.tslibs import conversion
 from pandas._typing import ArrayLike, DtypeObj, Optional
 
@@ -1216,11 +1216,9 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
     if arr_or_dtype is None:
         return False
     if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
-        # Fastpath
+        # fastpath
         dtype = arr_or_dtype
-        return (
-            dtype.type is Period or dtype.type is Timestamp or dtype.kind in ["m", "M"]
-        )
+        return dtype.kind in ["m", "M"] or dtype.type is Period
     return (
         is_datetime_or_timedelta_dtype(arr_or_dtype)
         or is_datetime64tz_dtype(arr_or_dtype)
