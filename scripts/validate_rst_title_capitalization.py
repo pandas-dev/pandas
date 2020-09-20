@@ -62,8 +62,9 @@ CAPITALIZATION_EXCEPTIONS = {
     "TimedeltaIndex",
     "DatetimeIndex",
     "IntervalIndex",
+    "Categorical",
     "CategoricalIndex",
-    ("categorical", "Categorical"),
+    "Categorical",
     "GroupBy",
     "SPSS",
     "ORC",
@@ -142,20 +143,16 @@ CAPITALIZATION_EXCEPTIONS = {
     "os",
 }
 
-CAP_EXCEPTIONS_DICT = {
-    exception.lower() if type(exception) is str else exception[0].lower(): exception
-    for exception in CAPITALIZATION_EXCEPTIONS
-}
-
+CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
 
 err_msg = "Heading capitalization formatted incorrectly. Please correctly capitalize"
 
 symbols = ("*", "=", "-", "^", "~", "#", '"')
 
 
-def correct_title_capitalization(title: str) -> (str, dict):
+def correct_title_capitalization(title: str) -> bool:
     """
-    Algorithm to create the correct capitalization for a given title.
+    Algorithm to return True or False if title is correctly capitalized or not.
 
     Parameters
     ----------
@@ -164,14 +161,14 @@ def correct_title_capitalization(title: str) -> (str, dict):
 
     Returns
     -------
-    str
-        Correctly capitalized heading.
+    bool
+        True if correctly capitalized else False.
     """
 
     # Skip modification no matter what if title begins by ":" to exclude specific
     # syntax that is needed to build links.
     if title[0] == ":":
-        return title, {}
+        return True
 
     # Strip all non-word characters from the beginning of the title to the
     # first word character.
@@ -184,64 +181,15 @@ def correct_title_capitalization(title: str) -> (str, dict):
     # Split a title into a list using non-word character delimiters.
     word_list = re.split(r"\W", removed_https_title)
 
-    tuple_exceptions_dict: dict = {}
-    for indx, word in enumerate(word_list):
-        if word:
-            for exception in CAP_EXCEPTIONS_DICT:
-
-                # Following code applies if word corresponds to an exception in
-                # the exception set.
-                if word.lower() == exception:
-
-                    # If type of exception is a string, correct with the right syntax.
-                    if type(CAP_EXCEPTIONS_DICT[exception]) is str:
-                        if word != CAP_EXCEPTIONS_DICT[exception]:
-                            correct_title = re.sub(
-                                rf"\b{word}\b",
-                                CAP_EXCEPTIONS_DICT[exception],
-                                correct_title,
-                            )
-
-                    # Else if type of exception is a tuple, apply specific algorithm
-                    elif type(CAP_EXCEPTIONS_DICT[exception]) is tuple:
-
-                        # If word not in tuple exceptions, correct word capitalization
-                        # with first exception of tuple else keep current word
-                        # capitalization.
-                        if word not in CAP_EXCEPTIONS_DICT[exception]:
-                            correct_title = re.sub(
-                                rf"\b{word}\b",
-                                CAP_EXCEPTIONS_DICT[exception][0],
-                                correct_title,
-                            )
-
-                        # If tuple not in dict add it to dict to be returned by
-                        # the function.
-                        if CAP_EXCEPTIONS_DICT[exception] not in tuple_exceptions_dict:
-                            tuple_exceptions_dict[exception] = CAP_EXCEPTIONS_DICT[
-                                exception
-                            ]
-                    break
-
-            else:
-
-                # If not corresponding to first word of the sentence
-                # and not an exception, lower it.
-                if indx != 0:
-                    correct_title = re.sub(rf"\b{word}\b", word.lower(), correct_title,)
-
-                # If not an exception and corresponding to first word of the sentence,
-                # capitalize it.
-                else:
-                    correct_title = re.sub(
-                        rf"\b{word}\b", word.capitalize(), correct_title,
-                    )
-
-    # Return the correct title and the dict corresponding to tuple exceptions
-    # that match a word in title.
-    print("correct_title is", correct_title)
-    print("tuple_exceptions_dict is", tuple_exceptions_dict)
-    return correct_title, tuple_exceptions_dict
+    # Return True or False if depending of capitalization check
+    for index in range(len(word_list)):
+        word = word_list[index]
+        if index == 0 and not word == word.capitalize():
+            return False
+        if word[0].isupper():
+            if not CAP_EXCEPTIONS_DICT.get(word.lower()):
+                return False
+    return True
 
 
 def find_titles(rst_file: str) -> Iterable[Tuple[str, int]]:
@@ -330,54 +278,11 @@ def main(source_paths: List[str], output_format: str) -> int:
 
     for filename in find_rst_files(source_paths):
         for title, line_number in find_titles(filename):
-            print(title)
-            correct_capitalization, tuple_dict = correct_title_capitalization(title)
-            if title != correct_capitalization:
+            if not correct_title_capitalization(title):
                 print(
-                    f"""---\n{filename}:{line_number}:{err_msg} "{title}" to "{
-                    correct_capitalization}"\n---"""
+                    f"""{filename}:{line_number}:{err_msg} "{title}" """
                 )
                 number_of_errors += 1
-
-                # Check for multiple wording available for each word in title.
-                if tuple_dict:
-                    for word in title.split(" "):
-                        for el in tuple_dict:
-
-                            # Check if word is in tuple exception elements.
-                            if word.lower() == el:
-                                print("****")
-                                print(
-                                    " ".join(
-                                        f"""Be careful. In "{title}", "{word}" can have
-                                    different writings:""".split()
-                                    ),
-                                    end=" ",
-                                )
-                                for elem in tuple_dict[el]:
-                                    print(f'"{elem}"', end=" ")
-                                print("\n****")
-                print("\n", end="")
-
-            # Check for multiple wording available for each word in title.
-            elif tuple_dict:
-                for word in title.split(" "):
-                    for el in tuple_dict:
-
-                        # Check if word is in tuple exception elements.
-                        if word.lower() == el:
-                            print("****")
-                            print(
-                                " ".join(
-                                    f"""{filename}:{line_number}:Be careful. In "{title}", "{word}"
-                                    can have different writings:""".split()
-                                ),
-                                end=" ",
-                            )
-                            for elem in tuple_dict[el]:
-                                print(f'"{elem}"', end=" ")
-                            print("\n****")
-                print("\n", end="")
 
     return number_of_errors
 
