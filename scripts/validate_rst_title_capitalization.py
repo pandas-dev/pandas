@@ -184,7 +184,7 @@ def correct_title_capitalization(title: str) -> bool:
     # Return True or False if depending of capitalization check
     for index in range(len(word_list)):
         word = word_list[index]
-        print('word is: ', word)
+        print("word is: ", word)
         if index == 0 and not word == word.capitalize():
             return False
         if len(word) > 1:
