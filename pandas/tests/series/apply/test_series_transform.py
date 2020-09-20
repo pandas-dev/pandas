@@ -34,9 +34,15 @@ def test_transform_groupby_kernel(string_series, op):
 
 
 @pytest.mark.parametrize(
-    "ops, names", [([np.sqrt], ["sqrt"]), ([np.abs, np.sqrt], ["absolute", "sqrt"])]
+    "ops, names",
+    [
+        ([np.sqrt], ["sqrt"]),
+        ([np.abs, np.sqrt], ["absolute", "sqrt"]),
+        (np.array([np.sqrt]), ["sqrt"]),
+        (np.array([np.abs, np.sqrt]), ["absolute", "sqrt"]),
+    ],
 )
-def test_transform_list(string_series, ops, names):
+def test_transform_listlike(string_series, ops, names):
     # GH 35964
     with np.errstate(all="ignore"):
         expected = concat([op(string_series) for op in ops], axis=1)
@@ -45,12 +51,13 @@ def test_transform_list(string_series, ops, names):
         tm.assert_frame_equal(result, expected)
 
 
-def test_transform_dict(string_series):
+@pytest.mark.parametrize("argtype", [dict, Series])
+def test_transform_dictlike(string_series, argtype):
     # GH 35964
     with np.errstate(all="ignore"):
         expected = concat([np.sqrt(string_series), np.abs(string_series)], axis=1)
     expected.columns = ["foo", "bar"]
-    result = string_series.transform({"foo": np.sqrt, "bar": np.abs})
+    result = string_series.transform(argtype({"foo": np.sqrt, "bar": np.abs}))
     tm.assert_frame_equal(result, expected)
 
 

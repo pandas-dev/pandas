@@ -4,7 +4,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 from pandas.core.groupby.base import transformation_kernels
@@ -41,9 +41,15 @@ def test_transform_groupby_kernel(axis, float_frame, op):
 
 
 @pytest.mark.parametrize(
-    "ops, names", [([np.sqrt], ["sqrt"]), ([np.abs, np.sqrt], ["absolute", "sqrt"])]
+    "ops, names",
+    [
+        ([np.sqrt], ["sqrt"]),
+        ([np.abs, np.sqrt], ["absolute", "sqrt"]),
+        (np.array([np.sqrt]), ["sqrt"]),
+        (np.array([np.abs, np.sqrt]), ["absolute", "sqrt"]),
+    ],
 )
-def test_transform_list(axis, float_frame, ops, names):
+def test_transform_listlike(axis, float_frame, ops, names):
     # GH 35964
     other_axis = 1 if axis in {0, "index"} else 0
     with np.errstate(all="ignore"):
@@ -56,7 +62,8 @@ def test_transform_list(axis, float_frame, ops, names):
     tm.assert_frame_equal(result, expected)
 
 
-def test_transform_dict(axis, float_frame):
+@pytest.mark.parametrize("argtype", [dict, Series])
+def test_transform_dictlike(axis, float_frame, argtype):
     # GH 35964
     if axis == 0 or axis == "index":
         e = float_frame.columns[0]
@@ -64,7 +71,7 @@ def test_transform_dict(axis, float_frame):
     else:
         e = float_frame.index[0]
         expected = float_frame.iloc[[0]].transform(np.abs)
-    result = float_frame.transform({e: np.abs}, axis=axis)
+    result = float_frame.transform(argtype({e: np.abs}), axis=axis)
     tm.assert_frame_equal(result, expected)
 
 

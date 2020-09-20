@@ -476,7 +476,8 @@ def transform_dict_like(
         if len(cols) > 0:
             raise SpecificationError(f"Column(s) {cols} do not exist")
 
-    if any(isinstance(v, dict) for v in func.values()):
+    # Can't use func.values(); wouldn't work for a Series
+    if any(is_dict_like(v) for _, v in func.items()):
         # GH 15931 - deprecation of renaming keys
         raise SpecificationError("nested renamer is not supported")
 
