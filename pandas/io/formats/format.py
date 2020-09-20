@@ -1066,10 +1066,7 @@ class StringFormatter:
 
 
 class DataFrameRenderer:
-    def __init__(
-        self,
-        fmt: DataFrameFormatter,
-    ):
+    def __init__(self, fmt: DataFrameFormatter):
         self.fmt = fmt
 
     def to_latex(
@@ -1167,14 +1164,14 @@ class DataFrameRenderer:
         """
         Perform serialization. Write to buf or return as string if buf is None.
         """
-        with self.get_buffer(buf, encoding=encoding) as f:
+        with self._get_buffer(buf, encoding=encoding) as f:
             f.write(string)
             if buf is None:
                 return f.getvalue()
             return None
 
     @contextmanager
-    def get_buffer(
+    def _get_buffer(
         self, buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None
     ):
         """
