@@ -598,7 +598,7 @@ class TabularBuilder(GenericTableBuilder):
         return "\\end{tabular}"
 
 
-class LatexFormatter(DataFrameFormatter):
+class LatexFormatter:
     """
     Used to render a DataFrame to a LaTeX tabular/longtable environment output.
 
