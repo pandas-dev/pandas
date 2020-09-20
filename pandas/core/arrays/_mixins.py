@@ -2,6 +2,7 @@ from typing import Any, Sequence, Tuple, TypeVar
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -9,6 +10,7 @@ from pandas.util._decorators import cache_readonly, doc
 from pandas.core.algorithms import take, unique
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.indexers import check_array_indexer
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
 
@@ -28,6 +30,12 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             self == self._from_backing_data(self._ndarray)
         """
         raise AbstractMethodError(self)
+
+    def _box_func(self, x):
+        """
+        Wrap numpy type in our dtype.type if necessary.
+        """
+        return x
 
     # ------------------------------------------------------------------------
 
@@ -156,3 +164,33 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         # TODO: after deprecation in datetimelikearraymixin is enforced,
         #  we can remove this and ust validate_fill_value directly
         return self._validate_fill_value(fill_value)
+
+    def __setitem__(self, key, value):
+        key = self._validate_setitem_key(key)
+        value = self._validate_setitem_value(value)
+        self._ndarray[key] = value
+
+    def _validate_setitem_key(self, key):
+        return check_array_indexer(self, key)
+
+    def _validate_setitem_value(self, value):
+        return value
+
+    def __getitem__(self, key):
+        if lib.is_integer(key):
+            # fast-path
+            result = self._ndarray[key]
+            if self.ndim == 1:
+                return self._box_func(result)
+            return self._from_backing_data(result)
+
+        key = self._validate_getitem_key(key)
+        result = self._ndarray[key]
+        if lib.is_scalar(result):
+            return self._box_func(result)
+
+        result = self._from_backing_data(result)
+        return result
+
+    def _validate_getitem_key(self, key):
+        return check_array_indexer(self, key)
