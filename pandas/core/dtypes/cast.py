@@ -697,6 +697,11 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         else:
             dtype = np.dtype(np.int64)
 
+        try:
+            np.array(val, dtype=dtype)
+        except OverflowError:
+            dtype = np.array(val).dtype
+
     elif is_float(val):
         if isinstance(val, np.floating):
             dtype = np.dtype(type(val))
@@ -1151,9 +1156,11 @@ def convert_dtypes(
             target_int_dtype = "Int64"
 
             if is_integer_dtype(input_array.dtype):
-                from pandas.core.arrays.integer import _dtypes
+                from pandas.core.arrays.integer import STR_TO_DTYPE
 
-                inferred_dtype = _dtypes.get(input_array.dtype.name, target_int_dtype)
+                inferred_dtype = STR_TO_DTYPE.get(
+                    input_array.dtype.name, target_int_dtype
+                )
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
                 input_array.dtype
             ):

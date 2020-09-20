@@ -112,8 +112,6 @@ only labels present in a given column are categories:
     df['B']
 
 
-.. versionadded:: 0.23.0
-
 Analogously, all columns in an existing ``DataFrame`` can be batch converted using :meth:`DataFrame.astype`:
 
 .. ipython:: python

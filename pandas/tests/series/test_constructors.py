@@ -49,7 +49,7 @@ class TestSeriesConstructors:
             (lambda: Series({}), True),
             (lambda: Series(()), False),  # creates a RangeIndex
             (lambda: Series([]), False),  # creates a RangeIndex
-            (lambda: Series((_ for _ in [])), False),  # creates a RangeIndex
+            (lambda: Series(_ for _ in []), False),  # creates a RangeIndex
             (lambda: Series(data=None), True),
             (lambda: Series(data={}), True),
             (lambda: Series(data=()), False),  # creates a RangeIndex
@@ -222,8 +222,7 @@ class TestSeriesConstructors:
         # GH 21987
         class Iter:
             def __iter__(self):
-                for i in range(10):
-                    yield i
+                yield from range(10)
 
         expected = Series(list(range(10)), dtype="int64")
         result = Series(Iter(), dtype="int64")
@@ -1500,4 +1499,11 @@ class TestSeriesConstructors:
 
         result = Series({"a": 1, "b": 2}.values())
         expected = Series([1, 2])
+        tm.assert_series_equal(result, expected)
+
+    def test_construction_from_large_int_scalar_no_overflow(self):
+        # https://github.com/pandas-dev/pandas/issues/36291
+        n = 1_000_000_000_000_000_000_000
+        result = Series(n, index=[0])
+        expected = Series(n)
         tm.assert_series_equal(result, expected)
