@@ -5,7 +5,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO, TextIOWrapper
 import os
-from typing import Any, Dict, Hashable, Iterator, List, Optional, Sequence, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence
 
 import numpy as np
 
@@ -29,19 +29,15 @@ from pandas.core.dtypes.missing import notna
 from pandas.core.indexes.api import Index
 
 from pandas.io.common import get_filepath_or_buffer, get_handle
+from pandas.io.formats.format import DataFrameFormatter
 
 
 class CSVFormatter:
     def __init__(
         self,
-        obj,
         path_or_buf: Optional[FilePathOrBuffer[str]] = None,
         sep: str = ",",
-        na_rep: str = "",
-        float_format: Optional[str] = None,
         cols: Optional[Sequence[Label]] = None,
-        header: Union[bool, Sequence[Hashable]] = True,
-        index: bool = True,
         index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
@@ -54,10 +50,12 @@ class CSVFormatter:
         date_format: Optional[str] = None,
         doublequote: bool = True,
         escapechar: Optional[str] = None,
-        decimal=".",
         storage_options: StorageOptions = None,
+        formatter: DataFrameFormatter = None,
     ):
-        self.obj = obj
+        self.fmt = formatter
+
+        self.obj = self.fmt.frame
 
         self.encoding = encoding or "utf-8"
 
@@ -79,11 +77,11 @@ class CSVFormatter:
         self.mode = ioargs.mode
 
         self.sep = sep
-        self.na_rep = na_rep
-        self.float_format = float_format
-        self.decimal = decimal
-        self.header = header
-        self.index = index
+        self.na_rep = self.fmt.na_rep
+        self.float_format = self.fmt.float_format
+        self.decimal = self.fmt.decimal
+        self.header = self.fmt.header
+        self.index = self.fmt.index
         self.index_label = index_label
         self.errors = errors
         self.quoting = quoting or csvlib.QUOTE_MINIMAL

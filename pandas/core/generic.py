@@ -3324,8 +3324,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         from pandas.io.formats.csvs import CSVFormatter
 
-        formatter = CSVFormatter(
-            df,
+        formatter = DataFrameFormatter(
+            frame=df,
+            columns=columns,
+            header=header,
+            index=index,
+            na_rep=na_rep,
+            float_format=float_format,
+            decimal=decimal,
+        )
+
+        csv_formatter = CSVFormatter(
             path_or_buf,
             line_terminator=line_terminator,
             sep=sep,
@@ -3333,11 +3342,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             errors=errors,
             compression=compression,
             quoting=quoting,
-            na_rep=na_rep,
-            float_format=float_format,
             cols=columns,
-            header=header,
-            index=index,
             index_label=index_label,
             mode=mode,
             chunksize=chunksize,
@@ -3345,14 +3350,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             date_format=date_format,
             doublequote=doublequote,
             escapechar=escapechar,
-            decimal=decimal,
             storage_options=storage_options,
+            formatter=formatter,
         )
-        formatter.save()
+        csv_formatter.save()
 
         if path_or_buf is None:
-            assert isinstance(formatter.path_or_buf, StringIO)
-            return formatter.path_or_buf.getvalue()
+            assert isinstance(csv_formatter.path_or_buf, StringIO)
+            return csv_formatter.path_or_buf.getvalue()
 
         return None
 
