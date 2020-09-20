@@ -706,7 +706,8 @@ class TestMultiplicationDivision:
     @pytest.mark.parametrize("other", [np.nan, 7, -23, 2.718, -3.14, np.inf])
     def test_ops_np_scalar(self, other):
         vals = np.random.randn(5, 3)
-        f = lambda x: pd.DataFrame(
+
+        def f(x): return pd.DataFrame(
             x, index=list("ABCDE"), columns=["jim", "joe", "jolie"]
         )
 
@@ -1304,4 +1305,3 @@ def test_inplace_arithmetic_operation_on_series_updating_parent_dataframe():
     s = df["A"]
     s += 1
     tm.assert_series_equal(df["A"], s)
-    
