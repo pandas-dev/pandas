@@ -2128,6 +2128,16 @@ def test_first_row_bom(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_first_row_bom_unquoted(all_parsers):
+    # see gh-36343
+    parser = all_parsers
+    data = """\ufeffHead1	Head2	Head3"""
+
+    result = parser.read_csv(StringIO(data), delimiter="\t")
+    expected = DataFrame(columns=["Head1", "Head2", "Head3"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_integer_precision(all_parsers):
     # Gh 7072
     s = """1,1;0;0;0;1;1;3844;3844;3844;1;1;1;1;1;1;0;0;1;1;0;0,,,4321583677327450765
