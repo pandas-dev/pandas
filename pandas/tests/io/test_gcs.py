@@ -108,11 +108,7 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
         compression_only = "gz"
     compression["method"] = "infer"
     path_gcs += f".{compression_only}"
-    df.to_csv(
-        path_gcs,
-        compression=compression,
-        encoding=encoding,
-    )
+    df.to_csv(path_gcs, compression=compression, encoding=encoding)
     assert gcs_buffer.getvalue() == buffer.getvalue()
     read_df = read_csv(path_gcs, index_col=0, compression="infer", encoding=encoding)
     tm.assert_frame_equal(df, read_df)
