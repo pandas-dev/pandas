@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
 
 
-class _OpenpyxlWriter(ExcelWriter):
+class OpenpyxlWriter(ExcelWriter):
     engine = "openpyxl"
     supported_extensions = (".xlsx", ".xlsm")
 
@@ -438,7 +438,7 @@ class _OpenpyxlWriter(ExcelWriter):
                                 setattr(xcell, k, v)
 
 
-class _OpenpyxlReader(BaseExcelReader):
+class OpenpyxlReader(BaseExcelReader):
     def __init__(
         self,
         filepath_or_buffer: FilePathOrBuffer,
@@ -508,7 +508,14 @@ class _OpenpyxlReader(BaseExcelReader):
 
         return cell.value
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+    def get_sheet_data(
+        self,
+        sheet,
+        convert_float: bool,
+        header_nrows: int,
+        skiprows_nrows: int,
+        nrows: Optional[int],
+    ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
         for row in sheet.rows:
             data.append([self._convert_cell(cell, convert_float) for cell in row])

@@ -570,8 +570,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             converted = ints_to_pydatetime(
                 data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
             )
-            for v in converted:
-                yield v
+            yield from converted
 
     def astype(self, dtype, copy=True):
         # We handle
@@ -1148,8 +1147,6 @@ default 'raise'
         """
         Return the month names of the DateTimeIndex with specified locale.
 
-        .. versionadded:: 0.23.0
-
         Parameters
         ----------
         locale : str, optional
@@ -1182,8 +1179,6 @@ default 'raise'
     def day_name(self, locale=None):
         """
         Return the day names of the DateTimeIndex with specified locale.
-
-        .. versionadded:: 0.23.0
 
         Parameters
         ----------

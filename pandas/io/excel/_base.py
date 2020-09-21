@@ -3,12 +3,12 @@ import datetime
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Any, Mapping, Union
+from typing import Any, List, Mapping, Optional, Union
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import StorageOptions
+from pandas._typing import Scalar, StorageOptions
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
@@ -50,7 +50,7 @@ io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
     By file-like object, we refer to objects with a ``read()`` method,
-    such as a file handler (e.g. via builtin ``open`` function)
+    such as a file handle (e.g. via builtin ``open`` function)
     or ``StringIO``.
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
@@ -120,13 +120,14 @@ true_values : list, default None
     Values to consider as True.
 false_values : list, default None
     Values to consider as False.
-skiprows : list-like
-    Rows to skip at the beginning (0-indexed).
+skiprows : list-like, int, or callable, optional
+    Line numbers to skip (0-indexed) or number of lines to skip (int) at the
+    start of the file. If callable, the callable function will be evaluated
+    against the row indices, returning True if the row should be skipped and
+    False otherwise. An example of a valid callable argument would be ``lambda
+    x: x in [0, 2]``.
 nrows : int, default None
     Number of rows to parse.
-
-    .. versionadded:: 0.23.0
-
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
@@ -397,7 +398,14 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(self, sheet, convert_float):
+    def get_sheet_data(
+        self,
+        sheet,
+        convert_float: bool,
+        header_nrows: int,
+        skiprows_nrows: int,
+        nrows: Optional[int],
+    ) -> List[List[Scalar]]:
         pass
 
     def parse(
@@ -453,7 +461,22 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            data = self.get_sheet_data(sheet, convert_float)
+            if isinstance(header, int):
+                header_nrows = header
+            elif header is None:
+                header_nrows = 0
+            else:
+                header_nrows = max(header)
+            if isinstance(skiprows, int):
+                skiprows_nrows = skiprows
+            elif skiprows is None:
+                skiprows_nrows = 0
+            else:
+                skiprows_nrows = len(skiprows)
+
+            data = self.get_sheet_data(
+                sheet, convert_float, header_nrows, skiprows_nrows, nrows
+            )
             usecols = maybe_convert_usecols(usecols)
 
             if not data:
@@ -554,7 +577,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     Parameters
     ----------
-    path : str
+    path : str or typing.BinaryIO
         Path to xls or xlsx or ods file.
     engine : str (optional)
         Engine to use for writing. If None, defaults to
@@ -609,6 +632,21 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
     ...     df.to_excel(writer, sheet_name='Sheet3')
+
+    You can store Excel file in RAM:
+
+    >>> import io
+    >>> buffer = io.BytesIO()
+    >>> with pd.ExcelWriter(buffer) as writer:
+    ...     df.to_excel(writer)
+
+    You can pack Excel file into zip archive:
+
+    >>> import zipfile
+    >>> with zipfile.ZipFile('path_to_file.zip', 'w') as zf:
+    ...     with zf.open('filename.xlsx', 'w') as buffer:
+    ...         with pd.ExcelWriter(buffer) as writer:
+    ...             df.to_excel(writer)
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)
@@ -844,16 +882,16 @@ class ExcelFile:
         - ``pyxlsb`` supports Binary Excel files.
     """
 
-    from pandas.io.excel._odfreader import _ODFReader
-    from pandas.io.excel._openpyxl import _OpenpyxlReader
-    from pandas.io.excel._pyxlsb import _PyxlsbReader
-    from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._odfreader import ODFReader
+    from pandas.io.excel._openpyxl import OpenpyxlReader
+    from pandas.io.excel._pyxlsb import PyxlsbReader
+    from pandas.io.excel._xlrd import XlrdReader
 
     _engines: Mapping[str, Any] = {
-        "xlrd": _XlrdReader,
-        "openpyxl": _OpenpyxlReader,
-        "odf": _ODFReader,
-        "pyxlsb": _PyxlsbReader,
+        "xlrd": XlrdReader,
+        "openpyxl": OpenpyxlReader,
+        "odf": ODFReader,
+        "pyxlsb": PyxlsbReader,
     }
 
     def __init__(

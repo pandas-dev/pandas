@@ -1,3 +1,4 @@
+from functools import wraps
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
@@ -150,6 +151,25 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
 
         # Multiple keys
         return np.bitwise_or.reduce(codes, axis=1)
+
+
+def names_compat(meth):
+    """
+    A decorator to allow either `name` or `names` keyword but not both.
+
+    This makes it easier to share code with base class.
+    """
+
+    @wraps(meth)
+    def new_meth(self_or_cls, *args, **kwargs):
+        if "name" in kwargs and "names" in kwargs:
+            raise TypeError("Can only provide one of `names` and `name`")
+        elif "name" in kwargs:
+            kwargs["names"] = kwargs.pop("name")
+
+        return meth(self_or_cls, *args, **kwargs)
+
+    return new_meth
 
 
 class MultiIndex(Index):
@@ -449,6 +469,7 @@ class MultiIndex(Index):
         )
 
     @classmethod
+    @names_compat
     def from_tuples(
         cls,
         tuples,
@@ -2512,10 +2533,6 @@ class MultiIndex(Index):
 
         return ensure_platform_int(indexer)
 
-    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
-        return super().get_indexer_non_unique(target)
-
     def get_slice_bound(
         self, label: Union[Hashable, Sequence[Hashable]], side: str, kind: str
     ) -> int:
@@ -3579,6 +3596,15 @@ class MultiIndex(Index):
             return self._shallow_copy()
         return self
 
+    def _validate_insert_value(self, item):
+        if not isinstance(item, tuple):
+            # Pad the key with empty strings if lower levels of the key
+            # aren't specified:
+            item = (item,) + ("",) * (self.nlevels - 1)
+        elif len(item) != self.nlevels:
+            raise ValueError("Item must have length equal to number of levels.")
+        return item
+
     def insert(self, loc: int, item):
         """
         Make new MultiIndex inserting new item at location
@@ -3593,12 +3619,7 @@ class MultiIndex(Index):
         -------
         new_index : Index
         """
-        # Pad the key with empty strings if lower levels of the key
-        # aren't specified:
-        if not isinstance(item, tuple):
-            item = (item,) + ("",) * (self.nlevels - 1)
-        elif len(item) != self.nlevels:
-            raise ValueError("Item must have length equal to number of levels.")
+        item = self._validate_insert_value(item)
 
         new_levels = []
         new_codes = []
@@ -3634,10 +3655,6 @@ class MultiIndex(Index):
             names=self.names,
             verify_integrity=False,
         )
-
-    def _wrap_joined_index(self, joined, other):
-        names = self.names if self.names == other.names else None
-        return MultiIndex.from_tuples(joined, names=names)
 
     @doc(Index.isin)
     def isin(self, values, level=None):
