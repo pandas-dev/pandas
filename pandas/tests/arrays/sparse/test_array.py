@@ -691,12 +691,12 @@ class TestSparseArray:
         dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
 
         sparse = SparseArray(dense)
-        res = sparse[4:]
+        res = sparse[(slice(4, None),)]
         exp = SparseArray(dense[4:])
         tm.assert_sp_array_equal(res, exp)
 
         sparse = SparseArray(dense, fill_value=0)
-        res = sparse[4:]
+        res = sparse[(slice(4, None),)]
         exp = SparseArray(dense[4:], fill_value=0)
         tm.assert_sp_array_equal(res, exp)
 
