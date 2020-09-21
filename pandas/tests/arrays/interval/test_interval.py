@@ -105,6 +105,10 @@ class TestSetitem:
         left, right = left_right_dtypes
         result = IntervalArray.from_arrays(left, right)
 
+        if result.dtype.subtype.kind not in ["m", "M"]:
+            msg = "'value' should be an interval type, got <.*NaTType'> instead."
+            with pytest.raises(TypeError, match=msg):
+                result[0] = pd.NaT
         if result.dtype.subtype.kind in ["i", "u"]:
             msg = "Cannot set float NaN to integer-backed IntervalArray"
             with pytest.raises(ValueError, match=msg):
