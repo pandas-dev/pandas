@@ -30,3 +30,10 @@ repos:
     -   id: isort
         language: python_venv
         exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$
+-   repo: local
+    hooks:
+    -   id: pip_to_conda
+        name: Generate pip dependency from conda
+        language: python_venv
+        entry: ./scripts/generate_pip_deps_from_conda.py --compare
+        types: [python]
