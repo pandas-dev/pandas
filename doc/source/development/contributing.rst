@@ -634,7 +634,7 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
-In addition to `./ci/code_checks.sh`, some extra checks are run by
+In addition to ``./ci/code_checks.sh``, some extra checks are run by
 ``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
 run them.
 
