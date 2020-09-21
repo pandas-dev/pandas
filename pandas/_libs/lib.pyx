@@ -650,11 +650,12 @@ cpdef ndarray[object] ensure_string_array(
         Py_ssize_t i = 0, n = len(arr)
 
     result = np.asarray(arr, dtype="object")
+
     if copy and result is arr:
         result = result.copy()
 
     for i in range(n):
-        val = result[i]
+        val = arr[i]
         if not checknull(val):
             result[i] = str(val)
         else:
