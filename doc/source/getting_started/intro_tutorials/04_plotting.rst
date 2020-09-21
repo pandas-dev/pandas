@@ -167,7 +167,7 @@ I want each of the columns in a separate subplot.
     @savefig 04_airqual_area_subplot.png
     axs = air_quality.plot.area(figsize=(12, 4), subplots=True)
 
-Separate subplots for each of the data columns is supported by the ``subplots`` argument
+Separate subplots for each of the data columns are supported by the ``subplots`` argument
 of the ``plot`` functions. The builtin options available in each of the pandas plot
 functions that are worthwhile to have a look.
 
@@ -213,7 +213,7 @@ I want to further customize, extend or save the resulting plot.
         </li>
     </ul>
 
-Each of the plot objects created by pandas are a
+Each of the plot objects created by pandas is a
 `matplotlib <https://matplotlib.org/>`__ object. As Matplotlib provides
 plenty of options to customize plots, making the link between pandas and
 Matplotlib explicit enables all the power of matplotlib to the plot.
