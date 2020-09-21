@@ -138,9 +138,13 @@ def _make_comparison_op(op, cls):
             with np.errstate(all="ignore"):
                 result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
 
-        else:
+        elif is_interval_dtype(self.dtype):
             with np.errstate(all="ignore"):
                 result = op(self._values, np.asarray(other))
+
+        else:
+            with np.errstate(all="ignore"):
+                result = ops.comparison_op(self._values, np.asarray(other), op)
 
         if is_bool_dtype(result):
             return result
@@ -504,7 +508,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not self.is_unique:
             msg = """Index has duplicates."""
             duplicates = self._format_duplicate_message()
-            msg += "\n{}".format(duplicates)
+            msg += f"\n{duplicates}"
 
             raise DuplicateLabelError(msg)
 
@@ -1017,6 +1021,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Format specified values of `self` and return them.
 
+        .. deprecated:: 1.2.0
+
         Parameters
         ----------
         slicer : int, array-like
@@ -1038,6 +1044,12 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray
             Formatted values.
         """
+        warnings.warn(
+            "The 'to_native_types' method is deprecated and will be removed in "
+            "a future version. Use 'astype(str)' instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         values = self
         if slicer is not None:
             values = values[slicer]
@@ -2507,7 +2519,7 @@ class Index(IndexOpsMixin, PandasObject):
         other = Index(other).astype(object, copy=False)
         return Index.union(this, other, sort=sort).astype(object, copy=False)
 
-    def _is_compatible_with_other(self, other) -> bool:
+    def _can_union_without_object_cast(self, other) -> bool:
         """
         Check whether this and the other dtype are compatible with each other.
         Meaning a union can be formed between them without needing to be cast
@@ -2583,8 +2595,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
+        other = ensure_index(other)
 
-        if not self._is_compatible_with_other(other):
+        if not self._can_union_without_object_cast(other):
             return self._union_incompatible_dtypes(other, sort=sort)
 
         return self._union(other, sort=sort)
@@ -4315,10 +4328,8 @@ class Index(IndexOpsMixin, PandasObject):
         return (
             self.equals(other)
             and all(
-                (
-                    getattr(self, c, None) == getattr(other, c, None)
-                    for c in self._comparables
-                )
+                getattr(self, c, None) == getattr(other, c, None)
+                for c in self._comparables
             )
             and type(self) == type(other)
         )
@@ -5655,6 +5666,13 @@ def ensure_index(
 
             return MultiIndex.from_arrays(converted)
         else:
+            if isinstance(converted, np.ndarray) and converted.dtype == np.int64:
+                # Check for overflows if we should actually be uint64
+                # xref GH#35481
+                alt = np.asarray(index_like)
+                if alt.dtype == np.uint64:
+                    converted = alt
+
             index_like = converted
     else:
         # clean_index_list does the equivalent of copying

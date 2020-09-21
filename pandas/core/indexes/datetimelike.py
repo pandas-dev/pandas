@@ -398,7 +398,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
             if len(self) and (
                 (use_lhs and t1 < self[0] and t2 < self[0])
-                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
+                or (use_rhs and t1 > self[-1] and t2 > self[-1])
             ):
                 # we are out of range
                 raise KeyError
@@ -575,8 +575,55 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
         return type(self)._simple_new(arr, name=self.name)
 
+    def insert(self, loc: int, item):
+        """
+        Make new Index inserting new item at location
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+            if not either a Python datetime or a numpy integer-like, returned
+            Index dtype will be object rather than datetime.
+
+        Returns
+        -------
+        new_index : Index
+        """
+        item = self._data._validate_insert_value(item)
+
+        freq = None
+        if is_period_dtype(self.dtype):
+            freq = self.freq
+        elif self.freq is not None:
+            # freq can be preserved on edge cases
+            if self.size:
+                if item is NaT:
+                    pass
+                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                    freq = self.freq
+                elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
+            else:
+                # Adding a single item to an empty index may preserve freq
+                if self.freq.is_on_offset(item):
+                    freq = self.freq
+
+        arr = self._data
+        item = arr._unbox_scalar(item)
+        item = arr._rebox_native(item)
+
+        new_values = np.concatenate([arr._ndarray[:loc], [item], arr._ndarray[loc:]])
+        new_arr = self._data._from_backing_data(new_values)
+        new_arr._freq = freq
+
+        return type(self)._simple_new(new_arr, name=self.name)
+
     # --------------------------------------------------------------------
     # Join/Set Methods
+
+    def _can_union_without_object_cast(self, other) -> bool:
+        return is_dtype_equal(self.dtype, other.dtype)
 
     def _wrap_joined_index(self, joined: np.ndarray, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
@@ -895,45 +942,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     # --------------------------------------------------------------------
     # List-Like Methods
 
+    @Appender(DatetimeIndexOpsMixin.insert.__doc__)
     def insert(self, loc, item):
-        """
-        Make new Index inserting new item at location
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-            if not either a Python datetime or a numpy integer-like, returned
-            Index dtype will be object rather than datetime.
-
-        Returns
-        -------
-        new_index : Index
-        """
         if isinstance(item, str):
             # TODO: Why are strings special?
             # TODO: Should we attempt _scalar_from_string?
             return self.astype(object).insert(loc, item)
 
-        item = self._data._validate_insert_value(item)
-
-        freq = None
-        # check freq can be preserved on edge cases
-        if self.freq is not None:
-            if self.size:
-                if item is NaT:
-                    pass
-                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
-                    freq = self.freq
-                elif (loc == len(self)) and item - self.freq == self[-1]:
-                    freq = self.freq
-            else:
-                # Adding a single item to an empty index may preserve freq
-                if self.freq.is_on_offset(item):
-                    freq = self.freq
-
-        item = self._data._unbox_scalar(item)
-
-        new_i8s = np.concatenate([self[:loc].asi8, [item], self[loc:].asi8])
-        arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
-        return type(self)._simple_new(arr, name=self.name)
+        return DatetimeIndexOpsMixin.insert(self, loc, item)

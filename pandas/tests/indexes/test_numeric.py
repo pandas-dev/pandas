@@ -699,9 +699,7 @@ class TestGetSliceBounds:
 
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
-    @pytest.mark.parametrize(
-        "bound, expected", [(-1, 0), (10, 6)],
-    )
+    @pytest.mark.parametrize("bound, expected", [(-1, 0), (10, 6)])
     def test_get_slice_bounds_outside(self, kind, side, expected, bound):
         index = Index(range(6))
         result = index.get_slice_bound(bound, kind=kind, side=side)
