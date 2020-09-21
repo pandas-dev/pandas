@@ -33,8 +33,8 @@ Fixed regressions
 - Fixed regression in :class:`IntegerArray` unary plus and minus operations raising a ``TypeError`` (:issue:`36063`)
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a tuple (:issue:`35534`)
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a frozenset (:issue:`35747`)
-- Fixed regression in :meth:`read_excel` with ``engine="odf"`` caused ``UnboundLocalError`` in some cases where cells had nested child nodes (:issue:`36122`,:issue:`35802`)
-- Fixed regression in :class:`DataFrame` and :class:`Series` comparisons between numeric arrays and strings (:issue:`35700`,:issue:`36377`)
+- Fixed regression in :meth:`read_excel` with ``engine="odf"`` caused ``UnboundLocalError`` in some cases where cells had nested child nodes (:issue:`36122`, :issue:`35802`)
+- Fixed regression in :class:`DataFrame` and :class:`Series` comparisons between numeric arrays and strings (:issue:`35700`, :issue:`36377`)
 
 .. ---------------------------------------------------------------------------
 
