@@ -11,7 +11,7 @@ from ..pandas_vb_common import tm
 
 
 def _generate_dataframe():
-    N = 2000
+    N = 20000
     C = 5
     df = DataFrame(
         np.random.randn(N, C),
@@ -68,6 +68,10 @@ class ReadExcel:
     def time_read_excel(self, engine):
         fname = self.fname_odf if engine == "odf" else self.fname_excel
         read_excel(fname, engine=engine)
+
+    def time_read_excel_nrows(self, engine):
+        fname = self.fname_odf if engine == "odf" else self.fname_excel
+        read_excel(fname, engine=engine, nrows=1)
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

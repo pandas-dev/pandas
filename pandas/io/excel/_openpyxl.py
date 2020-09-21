@@ -508,7 +508,14 @@ class OpenpyxlReader(BaseExcelReader):
 
         return cell.value
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+    def get_sheet_data(
+        self,
+        sheet,
+        convert_float: bool,
+        header_nrows: int,
+        skiprows_nrows: int,
+        nrows: Optional[int],
+    ) -> List[List[Scalar]]:
         data: List[List[Scalar]] = []
         for row in sheet.rows:
             data.append([self._convert_cell(cell, convert_float) for cell in row])
