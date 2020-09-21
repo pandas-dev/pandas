@@ -831,6 +831,8 @@ arithmetic operator (``+``) or the ``apply`` method can be used to perform the s
    ts + pd.Timedelta(days=1)
    # Respects calendar time
    ts + pd.DateOffset(days=1)
+   # Default DateOffset is 24 hours instead of a calendar day since Hour is one of subclasses for DateOffset
+   ts + pd.DateOffset()
    friday = pd.Timestamp('2018-01-05')
    friday.day_name()
    # Add 2 business days (Friday --> Tuesday)
@@ -846,7 +848,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :header: "Date Offset", "Frequency String", "Description"
     :widths: 15, 15, 65
 
-    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to 1 calendar day"
+    :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to 24 hours"
     :class:`~pandas.tseries.offsets.BDay` or :class:`~pandas.tseries.offsets.BusinessDay`, ``'B'``,"business day (weekday)"
     :class:`~pandas.tseries.offsets.CDay` or :class:`~pandas.tseries.offsets.CustomBusinessDay`, ``'C'``, "custom business day"
     :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
