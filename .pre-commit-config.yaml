@@ -34,7 +34,5 @@ repos:
     hooks:
     -   id: pip_to_conda
         name: Generate pip dependency from conda
-        language: python_venv
         entry: python scripts/generate_pip_deps_from_conda.py --compare
-        types: [python]
-        files: scripts/generate*.py
+        language: python_venv
