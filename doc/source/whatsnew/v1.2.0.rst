@@ -323,6 +323,7 @@ I/O
 - :meth:`to_csv` did not support zip compression for binary file object not having a filename (:issue:`35058`)
 - :meth:`to_csv` and :meth:`read_csv` did not honor `compression` and `encoding` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
 - :meth:`to_picke` and :meth:`read_pickle` did not support compression for file-objects (:issue:`26237`, :issue:`29054`, and :issue:`29570`)
+- Bug in :func:`LongTableBuilder.middle_separator` was duplicating LaTeX longtable entires in the List of Tables of a LaTeX document (:issue:`34360`)
 - Bug in :meth:`read_csv` with `engine='python'` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
 
 Plotting
@@ -344,7 +345,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.tshift` failing to raise ``ValueError`` when a frequency cannot be inferred for the index of a group (:issue:`35937`)
 - Bug in :meth:`DataFrame.groupby` does not always maintain column index name for ``any``, ``all``, ``bfill``, ``ffill``, ``shift`` (:issue:`29764`)
 - Bug in :meth:`DataFrameGroupBy.apply` raising error with ``np.nan`` group(s) when ``dropna=False`` (:issue:`35889`)
--
+- Bug in :meth:`Rolling.sum()` returned wrong values when dtypes where mixed between float and integer and axis was equal to one (:issue:`20649`, :issue:`35596`)
 
 Reshaping
 ^^^^^^^^^
