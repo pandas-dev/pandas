@@ -47,6 +47,8 @@ matrix:
     - arch: arm64
       env:
         - JOB="3.7, arm64" ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
+      services:
+        - xvfb
 
     - env:
         - JOB="3.7, locale" ENV_FILE="ci/deps/travis-37-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
