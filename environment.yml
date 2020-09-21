@@ -23,6 +23,7 @@ dependencies:
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.782
   - pycodestyle  # used by flake8
+  - pyupgrade
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
