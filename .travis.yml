@@ -4,6 +4,8 @@ python: 3.7
 addons:
   apt:
     update: true
+    packages:
+      - xvfb
 
 # To turn off cached cython files and compiler cache
 # set NOCACHE-true
