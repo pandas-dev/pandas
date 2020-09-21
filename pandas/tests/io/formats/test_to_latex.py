@@ -1,6 +1,7 @@
 import codecs
 from collections import namedtuple
 from datetime import datetime
+from textwrap import dedent
 
 import pytest
 
@@ -15,6 +16,16 @@ from pandas.io.formats.latex import (
     RowHeaderIterator,
     RowStringConverter,
 )
+
+
+def _dedent(string):
+    """Dedent without new line in the beginning.
+
+    Built-in textwrap.dedent would keep new line character in the beginning
+    of multi-line string starting from the new line.
+    This version drops the leading new line character.
+    """
+    return dedent(string).lstrip()
 
 
 class TestToLatex:
@@ -43,29 +54,35 @@ class TestToLatex:
     def test_to_latex_tabular_with_index(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex()
-        expected = r"""\begin{tabular}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_tabular_without_index(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(index=False)
-        expected = r"""\begin{tabular}{rl}
-\toprule
- a &  b \\
-\midrule
- 1 & b1 \\
- 2 & b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{rl}
+            \toprule
+             a &  b \\
+            \midrule
+             1 & b1 \\
+             2 & b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -84,40 +101,49 @@ class TestToLatex:
 
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(column_format="lcr")
-        expected = r"""\begin{tabular}{lcr}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lcr}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_empty_tabular(self):
         df = DataFrame()
         result = df.to_latex()
-        expected = r"""\begin{tabular}{l}
-\toprule
-Empty DataFrame
-Columns: Index([], dtype='object')
-Index: Index([], dtype='object') \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{l}
+            \toprule
+            Empty DataFrame
+            Columns: Index([], dtype='object')
+            Index: Index([], dtype='object') \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_empty_longtable(self):
         df = DataFrame()
         result = df.to_latex(longtable=True)
-        expected = r"""\begin{longtable}{l}
-\toprule
-Empty DataFrame
-Columns: Index([], dtype='object')
-Index: Index([], dtype='object') \\
-\end{longtable}
-"""
+        expected = _dedent(
+            r"""
+            \begin{longtable}{l}
+            \toprule
+            Empty DataFrame
+            Columns: Index([], dtype='object')
+            Index: Index([], dtype='object') \\
+            \end{longtable}
+            """
+        )
         assert result == expected
 
     def test_to_latex_with_formatters(self):
@@ -143,43 +169,52 @@ Index: Index([], dtype='object') \\
         }
         result = df.to_latex(formatters=dict(formatters))
 
-        expected = r"""\begin{tabular}{llrrl}
-\toprule
-{} & datetime64 &  float & int &    object \\
-\midrule
-index: 0 &    2016-01 & [ 1.0] & 0x1 &  -(1, 2)- \\
-index: 1 &    2016-02 & [ 2.0] & 0x2 &    -True- \\
-index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{llrrl}
+            \toprule
+            {} & datetime64 &  float & int &    object \\
+            \midrule
+            index: 0 &    2016-01 & [ 1.0] & 0x1 &  -(1, 2)- \\
+            index: 1 &    2016-02 & [ 2.0] & 0x2 &    -True- \\
+            index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_multiindex_column_tabular(self):
         df = DataFrame({("x", "y"): ["a"]})
         result = df.to_latex()
-        expected = r"""\begin{tabular}{ll}
-\toprule
-{} &  x \\
-{} &  y \\
-\midrule
-0 &  a \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{ll}
+            \toprule
+            {} &  x \\
+            {} &  y \\
+            \midrule
+            0 &  a \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_multiindex_small_tabular(self):
         df = DataFrame({("x", "y"): ["a"]})
         result = df.T.to_latex()
-        expected = r"""\begin{tabular}{lll}
-\toprule
-  &   &  0 \\
-\midrule
-x & y &  a \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lll}
+            \toprule
+              &   &  0 \\
+            \midrule
+            x & y &  a \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     @pytest.fixture
@@ -196,18 +231,21 @@ x & y &  a \\
 
     def test_to_latex_multiindex_tabular(self, multiindex_frame):
         result = multiindex_frame.to_latex()
-        expected = r"""\begin{tabular}{llrrrr}
-\toprule
-   &   &  0 &  1 &  2 &  3 \\
-\midrule
-c1 & 0 &  0 &  1 &  2 &  3 \\
-   & 1 &  4 &  5 &  6 &  7 \\
-c2 & 0 &  0 &  1 &  2 &  3 \\
-   & 1 &  4 &  5 &  6 &  7 \\
-c3 & 0 &  0 &  1 &  2 &  3 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{llrrrr}
+            \toprule
+               &   &  0 &  1 &  2 &  3 \\
+            \midrule
+            c1 & 0 &  0 &  1 &  2 &  3 \\
+               & 1 &  4 &  5 &  6 &  7 \\
+            c2 & 0 &  0 &  1 &  2 &  3 \\
+               & 1 &  4 &  5 &  6 &  7 \\
+            c3 & 0 &  0 &  1 &  2 &  3 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_multicolumn_tabular(self, multiindex_frame):
@@ -215,54 +253,62 @@ c3 & 0 &  0 &  1 &  2 &  3 \\
         df = multiindex_frame.T
         df.columns.names = ["a", "b"]
         result = df.to_latex()
-        expected = r"""\begin{tabular}{lrrrrr}
-\toprule
-a & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
-b &  0 &  1 &  0 &  1 &  0 \\
-\midrule
-0 &  0 &  4 &  0 &  4 &  0 \\
-1 &  1 &  5 &  1 &  5 &  1 \\
-2 &  2 &  6 &  2 &  6 &  2 \\
-3 &  3 &  7 &  3 &  7 &  3 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrrrrr}
+            \toprule
+            a & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
+            b &  0 &  1 &  0 &  1 &  0 \\
+            \midrule
+            0 &  0 &  4 &  0 &  4 &  0 \\
+            1 &  1 &  5 &  1 &  5 &  1 \\
+            2 &  2 &  6 &  2 &  6 &  2 \\
+            3 &  3 &  7 &  3 &  7 &  3 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_index_has_name_tabular(self):
         # GH 10660
         df = pd.DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
         result = df.set_index(["a", "b"]).to_latex()
-        expected = r"""\begin{tabular}{llr}
-\toprule
-  &   &  c \\
-a & b &    \\
-\midrule
-0 & a &  1 \\
-  & b &  2 \\
-1 & a &  3 \\
-  & b &  4 \\
-\bottomrule
-\end{tabular}
-"""
-
+        expected = _dedent(
+            r"""
+            \begin{tabular}{llr}
+            \toprule
+              &   &  c \\
+            a & b &    \\
+            \midrule
+            0 & a &  1 \\
+              & b &  2 \\
+            1 & a &  3 \\
+              & b &  4 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_groupby_tabular(self):
         # GH 10660
         df = pd.DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
         result = df.groupby("a").describe().to_latex()
-        expected = r"""\begin{tabular}{lrrrrrrrr}
-\toprule
-{} & \multicolumn{8}{l}{c} \\
-{} & count & mean &       std &  min &   25\% &  50\% &   75\% &  max \\
-a &       &      &           &      &       &      &       &      \\
-\midrule
-0 &   2.0 &  1.5 &  0.707107 &  1.0 &  1.25 &  1.5 &  1.75 &  2.0 \\
-1 &   2.0 &  3.5 &  0.707107 &  3.0 &  3.25 &  3.5 &  3.75 &  4.0 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrrrrrrrr}
+            \toprule
+            {} & \multicolumn{8}{l}{c} \\
+            {} & count & mean &       std &  min &   25\% &  50\% &   75\% &  max \\
+            a &       &      &           &      &       &      &       &      \\
+            \midrule
+            0 &   2.0 &  1.5 &  0.707107 &  1.0 &  1.25 &  1.5 &  1.75 &  2.0 \\
+            1 &   2.0 &  3.5 &  0.707107 &  3.0 &  3.25 &  3.5 &  3.75 &  4.0 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_multiindex_dupe_level(self):
@@ -277,15 +323,18 @@ a &       &      &           &      &       &      &       &      \\
             index=pd.MultiIndex.from_tuples([("A", "c"), ("B", "c")]), columns=["col"]
         )
         result = df.to_latex()
-        expected = r"""\begin{tabular}{lll}
-\toprule
-  &   &  col \\
-\midrule
-A & c &  NaN \\
-B & c &  NaN \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lll}
+            \toprule
+              &   &  col \\
+            \midrule
+            A & c &  NaN \\
+            B & c &  NaN \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     @pytest.fixture
@@ -302,54 +351,63 @@ B & c &  NaN \\
 
     def test_to_latex_multicolumn_default(self, multicolumn_frame):
         result = multicolumn_frame.to_latex()
-        expected = r"""\begin{tabular}{lrrrrr}
-\toprule
-{} & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
-{} &  0 &  1 &  0 &  1 &  0 \\
-\midrule
-0 &  0 &  5 &  0 &  5 &  0 \\
-1 &  1 &  6 &  1 &  6 &  1 \\
-2 &  2 &  7 &  2 &  7 &  2 \\
-3 &  3 &  8 &  3 &  8 &  3 \\
-4 &  4 &  9 &  4 &  9 &  4 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrrrrr}
+            \toprule
+            {} & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
+            {} &  0 &  1 &  0 &  1 &  0 \\
+            \midrule
+            0 &  0 &  5 &  0 &  5 &  0 \\
+            1 &  1 &  6 &  1 &  6 &  1 \\
+            2 &  2 &  7 &  2 &  7 &  2 \\
+            3 &  3 &  8 &  3 &  8 &  3 \\
+            4 &  4 &  9 &  4 &  9 &  4 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_multicolumn_false(self, multicolumn_frame):
         result = multicolumn_frame.to_latex(multicolumn=False)
-        expected = r"""\begin{tabular}{lrrrrr}
-\toprule
-{} & c1 &    & c2 &    & c3 \\
-{} &  0 &  1 &  0 &  1 &  0 \\
-\midrule
-0 &  0 &  5 &  0 &  5 &  0 \\
-1 &  1 &  6 &  1 &  6 &  1 \\
-2 &  2 &  7 &  2 &  7 &  2 \\
-3 &  3 &  8 &  3 &  8 &  3 \\
-4 &  4 &  9 &  4 &  9 &  4 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrrrrr}
+            \toprule
+            {} & c1 &    & c2 &    & c3 \\
+            {} &  0 &  1 &  0 &  1 &  0 \\
+            \midrule
+            0 &  0 &  5 &  0 &  5 &  0 \\
+            1 &  1 &  6 &  1 &  6 &  1 \\
+            2 &  2 &  7 &  2 &  7 &  2 \\
+            3 &  3 &  8 &  3 &  8 &  3 \\
+            4 &  4 &  9 &  4 &  9 &  4 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_multirow_true(self, multicolumn_frame):
         result = multicolumn_frame.T.to_latex(multirow=True)
-        expected = r"""\begin{tabular}{llrrrrr}
-\toprule
-   &   &  0 &  1 &  2 &  3 &  4 \\
-\midrule
-\multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
-   & 1 &  5 &  6 &  7 &  8 &  9 \\
-\cline{1-7}
-\multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
-   & 1 &  5 &  6 &  7 &  8 &  9 \\
-\cline{1-7}
-c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{llrrrrr}
+            \toprule
+               &   &  0 &  1 &  2 &  3 &  4 \\
+            \midrule
+            \multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
+               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \cline{1-7}
+            \multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
+               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \cline{1-7}
+            c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_multicolumnrow_with_multicol_format(self, multicolumn_frame):
@@ -357,21 +415,24 @@ c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
         result = multicolumn_frame.T.to_latex(
             multirow=True, multicolumn=True, multicolumn_format="c",
         )
-        expected = r"""\begin{tabular}{llrrrrr}
-\toprule
-   &   & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & c3 \\
-   &   &  0 &  1 &  0 &  1 &  0 \\
-\midrule
-\multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
-   & 1 &  5 &  6 &  7 &  8 &  9 \\
-\cline{1-7}
-\multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
-   & 1 &  5 &  6 &  7 &  8 &  9 \\
-\cline{1-7}
-c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{llrrrrr}
+            \toprule
+               &   & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & c3 \\
+               &   &  0 &  1 &  0 &  1 &  0 \\
+            \midrule
+            \multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
+               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \cline{1-7}
+            \multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
+               & 1 &  5 &  6 &  7 &  8 &  9 \\
+            \cline{1-7}
+            c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     @pytest.fixture
@@ -382,95 +443,110 @@ c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
 
     def test_to_latex_escape_false(self, df_with_symbols):
         result = df_with_symbols.to_latex(escape=False)
-        expected = r"""\begin{tabular}{lll}
-\toprule
-{} & co$e^x$ & co^l1 \\
-\midrule
-a &       a &     a \\
-b &       b &     b \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lll}
+            \toprule
+            {} & co$e^x$ & co^l1 \\
+            \midrule
+            a &       a &     a \\
+            b &       b &     b \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_escape_default(self, df_with_symbols):
         result = df_with_symbols.to_latex()  # default: escape=True
-        expected = r"""\begin{tabular}{lll}
-\toprule
-{} & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
-\midrule
-a &       a &     a \\
-b &       b &     b \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lll}
+            \toprule
+            {} & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
+            \midrule
+            a &       a &     a \\
+            b &       b &     b \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_special_escape(self):
         df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
         result = df.to_latex()
-        expected = r"""\begin{tabular}{ll}
-\toprule
-{} &       0 \\
-\midrule
-0 &   a\textbackslash b\textbackslash c \\
-1 &  \textasciicircum a\textasciicircum b\textasciicircum c \\
-2 &  \textasciitilde a\textasciitilde b\textasciitilde c \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{ll}
+            \toprule
+            {} &       0 \\
+            \midrule
+            0 &   a\textbackslash b\textbackslash c \\
+            1 &  \textasciicircum a\textasciicircum b\textasciicircum c \\
+            2 &  \textasciitilde a\textasciitilde b\textasciitilde c \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_longtable_with_index(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(longtable=True)
-        expected = r"""\begin{longtable}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-\endfirsthead
+        expected = _dedent(
+            r"""
+            \begin{longtable}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endfirsthead
 
-\toprule
-{} &  a &   b \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{{Continued on next page}} \\
-\midrule
-\endfoot
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endhead
+            \midrule
+            \multicolumn{3}{r}{{Continued on next page}} \\
+            \midrule
+            \endfoot
 
-\bottomrule
-\endlastfoot
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\end{longtable}
-"""
+            \bottomrule
+            \endlastfoot
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \end{longtable}
+            """
+        )
         assert result == expected
 
     def test_to_latex_longtable_without_index(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(index=False, longtable=True)
-        expected = r"""\begin{longtable}{rl}
-\toprule
- a &  b \\
-\midrule
-\endfirsthead
+        expected = _dedent(
+            r"""
+            \begin{longtable}{rl}
+            \toprule
+             a &  b \\
+            \midrule
+            \endfirsthead
 
-\toprule
- a &  b \\
-\midrule
-\endhead
-\midrule
-\multicolumn{2}{r}{{Continued on next page}} \\
-\midrule
-\endfoot
+            \toprule
+             a &  b \\
+            \midrule
+            \endhead
+            \midrule
+            \multicolumn{2}{r}{{Continued on next page}} \\
+            \midrule
+            \endfoot
 
-\bottomrule
-\endlastfoot
- 1 & b1 \\
- 2 & b2 \\
-\end{longtable}
-"""
+            \bottomrule
+            \endlastfoot
+             1 & b1 \\
+             2 & b2 \\
+            \end{longtable}
+            """
+        )
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -498,58 +574,67 @@ b &       b &     b \\
         # GH 25436
         df, the_caption, _ = df_caption_label
         result = df.to_latex(caption=the_caption)
-        expected = r"""\begin{table}
-\centering
-\caption{a table in a \texttt{table/tabular} environment}
-\begin{tabular}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-\end{table}
-"""
+        expected = _dedent(
+            r"""
+            \begin{table}
+            \centering
+            \caption{a table in a \texttt{table/tabular} environment}
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            \end{table}
+            """
+        )
         assert result == expected
 
     def test_to_latex_label_only(self, df_caption_label):
         # GH 25436
         df, _, the_label = df_caption_label
         result = df.to_latex(label=the_label)
-        expected = r"""\begin{table}
-\centering
-\label{tab:table_tabular}
-\begin{tabular}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-\end{table}
-"""
+        expected = _dedent(
+            r"""
+            \begin{table}
+            \centering
+            \label{tab:table_tabular}
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            \end{table}
+            """
+        )
         assert result == expected
 
     def test_to_latex_caption_and_label(self, df_caption_label):
         # GH 25436
         df, the_caption, the_label = df_caption_label
         result = df.to_latex(caption=the_caption, label=the_label)
-        expected = r"""\begin{table}
-\centering
-\caption{a table in a \texttt{table/tabular} environment}
-\label{tab:table_tabular}
-\begin{tabular}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-\end{table}
-"""
+        expected = _dedent(
+            r"""
+            \begin{table}
+            \centering
+            \caption{a table in a \texttt{table/tabular} environment}
+            \label{tab:table_tabular}
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            \end{table}
+            """
+        )
         assert result == expected
 
     @pytest.fixture
@@ -567,224 +652,257 @@ b &       b &     b \\
         # is performed by test_to_latex_longtable()
         df, the_caption, the_label = df_caption_label_longtable
         result = df.to_latex(longtable=True, caption=the_caption)
-        expected = r"""\begin{longtable}{lrl}
-\caption{a table in a \texttt{longtable} environment}\\
-\toprule
-{} &  a &   b \\
-\midrule
-\endfirsthead
-\caption[]{a table in a \texttt{longtable} environment} \\
-\toprule
-{} &  a &   b \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{{Continued on next page}} \\
-\midrule
-\endfoot
+        expected = _dedent(
+            r"""
+            \begin{longtable}{lrl}
+            \caption{a table in a \texttt{longtable} environment}\\
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endfirsthead
+            \caption[]{a table in a \texttt{longtable} environment} \\
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endhead
+            \midrule
+            \multicolumn{3}{r}{{Continued on next page}} \\
+            \midrule
+            \endfoot
 
-\bottomrule
-\endlastfoot
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\end{longtable}
-"""
+            \bottomrule
+            \endlastfoot
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \end{longtable}
+            """
+        )
         assert result == expected
 
     def test_to_latex_longtable_label_only(self, df_caption_label_longtable):
         # GH 25436
         df, the_caption, the_label = df_caption_label_longtable
         result = df.to_latex(longtable=True, label=the_label)
-        expected = r"""\begin{longtable}{lrl}
-\label{tab:longtable}\\
-\toprule
-{} &  a &   b \\
-\midrule
-\endfirsthead
+        expected = _dedent(
+            r"""
+            \begin{longtable}{lrl}
+            \label{tab:longtable}\\
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endfirsthead
 
-\toprule
-{} &  a &   b \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{{Continued on next page}} \\
-\midrule
-\endfoot
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endhead
+            \midrule
+            \multicolumn{3}{r}{{Continued on next page}} \\
+            \midrule
+            \endfoot
 
-\bottomrule
-\endlastfoot
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\end{longtable}
-"""
+            \bottomrule
+            \endlastfoot
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \end{longtable}
+            """
+        )
         assert result == expected
 
     def test_to_latex_longtable_caption_and_label(self, df_caption_label_longtable):
         # GH 25436
         df, the_caption, the_label = df_caption_label_longtable
         result = df.to_latex(longtable=True, caption=the_caption, label=the_label)
-        expected = r"""\begin{longtable}{lrl}
-\caption{a table in a \texttt{longtable} environment}
-\label{tab:longtable}\\
-\toprule
-{} &  a &   b \\
-\midrule
-\endfirsthead
-\caption[]{a table in a \texttt{longtable} environment} \\
-\toprule
-{} &  a &   b \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{{Continued on next page}} \\
-\midrule
-\endfoot
+        expected = _dedent(
+            r"""
+            \begin{longtable}{lrl}
+            \caption{a table in a \texttt{longtable} environment}
+            \label{tab:longtable}\\
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endfirsthead
+            \caption[]{a table in a \texttt{longtable} environment} \\
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endhead
+            \midrule
+            \multicolumn{3}{r}{{Continued on next page}} \\
+            \midrule
+            \endfoot
 
-\bottomrule
-\endlastfoot
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\end{longtable}
-"""
+            \bottomrule
+            \endlastfoot
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \end{longtable}
+            """
+        )
         assert result == expected
 
     def test_to_latex_position(self):
         the_position = "h"
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(position=the_position)
-        expected = r"""\begin{table}[h]
-\centering
-\begin{tabular}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-\end{table}
-"""
+        expected = _dedent(
+            r"""
+            \begin{table}[h]
+            \centering
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            \end{table}
+            """
+        )
         assert result == expected
 
     def test_to_latex_longtable_position(self):
         the_position = "t"
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(longtable=True, position=the_position)
-        expected = r"""\begin{longtable}[t]{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-\endfirsthead
+        expected = _dedent(
+            r"""
+            \begin{longtable}[t]{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endfirsthead
 
-\toprule
-{} &  a &   b \\
-\midrule
-\endhead
-\midrule
-\multicolumn{3}{r}{{Continued on next page}} \\
-\midrule
-\endfoot
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endhead
+            \midrule
+            \multicolumn{3}{r}{{Continued on next page}} \\
+            \midrule
+            \endfoot
 
-\bottomrule
-\endlastfoot
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\end{longtable}
-"""
+            \bottomrule
+            \endlastfoot
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \end{longtable}
+            """
+        )
         assert result == expected
 
     def test_to_latex_escape_special_chars(self):
         special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
         df = DataFrame(data=special_characters)
         result = df.to_latex()
-        expected = r"""\begin{tabular}{ll}
-\toprule
-{} &  0 \\
-\midrule
-0 &  \& \\
-1 &  \% \\
-2 &  \$ \\
-3 &  \# \\
-4 &  \_ \\
-5 &  \{ \\
-6 &  \} \\
-7 &  \textasciitilde  \\
-8 &  \textasciicircum  \\
-9 &  \textbackslash  \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{ll}
+            \toprule
+            {} &  0 \\
+            \midrule
+            0 &  \& \\
+            1 &  \% \\
+            2 &  \$ \\
+            3 &  \# \\
+            4 &  \_ \\
+            5 &  \{ \\
+            6 &  \} \\
+            7 &  \textasciitilde  \\
+            8 &  \textasciicircum  \\
+            9 &  \textbackslash  \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_no_header_with_index(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(header=False)
-        expected = r"""\begin{tabular}{lrl}
-\toprule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_no_header_without_index(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(index=False, header=False)
-        expected = r"""\begin{tabular}{rl}
-\toprule
-1 & b1 \\
-2 & b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{rl}
+            \toprule
+            1 & b1 \\
+            2 & b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_specified_header_with_index(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(header=["AA", "BB"])
-        expected = r"""\begin{tabular}{lrl}
-\toprule
-{} & AA &  BB \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            {} & AA &  BB \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_specified_header_without_index(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(header=["AA", "BB"], index=False)
-        expected = r"""\begin{tabular}{rl}
-\toprule
-AA & BB \\
-\midrule
- 1 & b1 \\
- 2 & b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{rl}
+            \toprule
+            AA & BB \\
+            \midrule
+             1 & b1 \\
+             2 & b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_specified_header_special_chars_without_escape(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(header=["$A$", "$B$"], escape=False)
-        expected = r"""\begin{tabular}{lrl}
-\toprule
-{} & $A$ & $B$ \\
-\midrule
-0 &   1 &  b1 \\
-1 &   2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            {} & $A$ & $B$ \\
+            \midrule
+            0 &   1 &  b1 \\
+            1 &   2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_number_of_items_in_header_missmatch_raises(self):
@@ -798,60 +916,72 @@ AA & BB \\
         # GH 12031
         df = DataFrame({"a": [1.0, 2.1], "b": ["b1", "b2"]})
         result = df.to_latex(decimal=",")
-        expected = r"""\begin{tabular}{lrl}
-\toprule
-{} &    a &   b \\
-\midrule
-0 &  1,0 &  b1 \\
-1 &  2,1 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            {} &    a &   b \\
+            \midrule
+            0 &  1,0 &  b1 \\
+            1 &  2,1 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_series(self):
         s = Series(["a", "b", "c"])
         result = s.to_latex()
-        expected = r"""\begin{tabular}{ll}
-\toprule
-{} &  0 \\
-\midrule
-0 &  a \\
-1 &  b \\
-2 &  c \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{ll}
+            \toprule
+            {} &  0 \\
+            \midrule
+            0 &  a \\
+            1 &  b \\
+            2 &  c \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_bold_rows(self):
         # GH 16707
         df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(bold_rows=True)
-        expected = r"""\begin{tabular}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-\textbf{0} &  1 &  b1 \\
-\textbf{1} &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \textbf{0} &  1 &  b1 \\
+            \textbf{1} &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_no_bold_rows(self):
         # GH 16707
         df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(bold_rows=False)
-        expected = r"""\begin{tabular}{lrl}
-\toprule
-{} &  a &   b \\
-\midrule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     @pytest.mark.parametrize("name0", [None, "named0"])
@@ -897,13 +1027,16 @@ AA & BB \\
         if one_row:
             df = df.iloc[[0]]
         observed = df.set_index(["a", "b"]).to_latex()
-        expected = r"""\begin{tabular}{llr}
-\toprule
-    &   &  c \\
-a & b &    \\
-\midrule
-NaN & 2 &  4 \\
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{llr}
+            \toprule
+                &   &  c \\
+            a & b &    \\
+            \midrule
+            NaN & 2 &  4 \\
+            """
+        )
         if not one_row:
             expected += r"""1.0 & 3 &  5 \\
 """
@@ -915,16 +1048,19 @@ NaN & 2 &  4 \\
     def test_to_latex_non_string_index(self):
         # GH 19981
         observed = pd.DataFrame([[1, 2, 3]] * 2).set_index([0, 1]).to_latex()
-        expected = r"""\begin{tabular}{llr}
-\toprule
-  &   &  2 \\
-0 & 1 &    \\
-\midrule
-1 & 2 &  3 \\
-  & 2 &  3 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{llr}
+            \toprule
+              &   &  2 \\
+            0 & 1 &    \\
+            \midrule
+            1 & 2 &  3 \\
+              & 2 &  3 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert observed == expected
 
     def test_to_latex_midrule_location(self):
@@ -932,15 +1068,18 @@ NaN & 2 &  4 \\
         df = pd.DataFrame({"a": [1, 2]})
         df.index.name = "foo"
         result = df.to_latex(index_names=False)
-        expected = r"""\begin{tabular}{lr}
-\toprule
-{} &  a \\
-\midrule
-0 &  1 \\
-1 &  2 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lr}
+            \toprule
+            {} &  a \\
+            \midrule
+            0 &  1 \\
+            1 &  2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert result == expected
 
     def test_to_latex_multiindex_empty_name(self):
@@ -948,59 +1087,72 @@ NaN & 2 &  4 \\
         mi = pd.MultiIndex.from_product([[1, 2]], names=[""])
         df = pd.DataFrame(-1, index=mi, columns=range(4))
         observed = df.to_latex()
-        expected = r"""\begin{tabular}{lrrrr}
-\toprule
-  &  0 &  1 &  2 &  3 \\
-{} &    &    &    &    \\
-\midrule
-1 & -1 & -1 & -1 & -1 \\
-2 & -1 & -1 & -1 & -1 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrrrr}
+            \toprule
+              &  0 &  1 &  2 &  3 \\
+            {} &    &    &    &    \\
+            \midrule
+            1 & -1 & -1 & -1 & -1 \\
+            2 & -1 & -1 & -1 & -1 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert observed == expected
 
-    def test_to_latex_float_format_no_fixed_width(self):
-
+    def test_to_latex_float_format_no_fixed_width_3decimals(self):
         # GH 21625
         df = DataFrame({"x": [0.19999]})
-        expected = r"""\begin{tabular}{lr}
-\toprule
-{} &     x \\
-\midrule
-0 & 0.200 \\
-\bottomrule
-\end{tabular}
-"""
-        assert df.to_latex(float_format="%.3f") == expected
+        result = df.to_latex(float_format="%.3f")
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lr}
+            \toprule
+            {} &     x \\
+            \midrule
+            0 & 0.200 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
 
+    def test_to_latex_float_format_no_fixed_width_integer(self):
         # GH 22270
         df = DataFrame({"x": [100.0]})
-        expected = r"""\begin{tabular}{lr}
-\toprule
-{} &   x \\
-\midrule
-0 & 100 \\
-\bottomrule
-\end{tabular}
-"""
-        assert df.to_latex(float_format="%.0f") == expected
+        result = df.to_latex(float_format="%.0f")
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lr}
+            \toprule
+            {} &   x \\
+            \midrule
+            0 & 100 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
 
     def test_to_latex_multindex_header(self):
         # GH 16718
-        df = pd.DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]}).set_index(
-            ["a", "b"]
-        )
+        df = pd.DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]})
+        df = df.set_index(["a", "b"])
         observed = df.to_latex(header=["r1", "r2"])
-        expected = r"""\begin{tabular}{llrr}
-\toprule
-  &   & r1 & r2 \\
-a & b &    &    \\
-\midrule
-0 & 1 &  2 &  3 \\
-\bottomrule
-\end{tabular}
-"""
+        expected = _dedent(
+            r"""
+            \begin{tabular}{llrr}
+            \toprule
+              &   & r1 & r2 \\
+            a & b &    &    \\
+            \midrule
+            0 & 1 &  2 &  3 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
         assert observed == expected
 
 
