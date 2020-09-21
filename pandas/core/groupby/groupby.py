@@ -689,23 +689,27 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             result.set_axis(index, axis=self.axis, inplace=True)
             result = result.sort_index(axis=self.axis)
 
+        def restore_grouper_index(result):
+            # xref 35612
+            # result.index is a standard index => may need to restore original index
+
+            rows_dropped: bool = len(result) < len(self._selected_obj)
+            # TODO: address case of axis==1, dropped columns
+
+            if self.dropna and self.axis == 0 and rows_dropped:
+                # use result.index to select from index of original object
+                original_index = self._selected_obj.index[result.index]
+                result.index = original_index
+            else:
+                result.set_axis(
+                    self.obj._get_axis(self.axis), axis=self.axis, inplace=True
+                )
+
+            return result
+
+        return restore_grouper_index(result)
+
         return self._restore_grouper_index(result)
-
-    def _restore_grouper_index(self, result: FrameOrSeries) -> FrameOrSeries:
-        # GH 35612
-        # result.index is a standard index => may need to restore original index
-
-        rows_dropped: bool = len(result) < len(self._selected_obj)
-        # TODO: address case of axis==1, dropped columns
-
-        if self.dropna and not self.axis and rows_dropped:
-            # use result.index to select from index of original object
-            original_index = self._selected_obj.index[result.index]
-            result.index = original_index
-        else:
-            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
-
-        return result
 
     def _dir_additions(self):
         return self.obj._dir_additions() | self._apply_allowlist
