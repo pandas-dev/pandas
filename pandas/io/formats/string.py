@@ -13,11 +13,7 @@ from pandas.io.formats.printing import pprint_thing
 class StringFormatter:
     """Formatter for string representation of a dataframe."""
 
-    def __init__(
-        self,
-        fmt: DataFrameFormatter,
-        line_width: Optional[int] = None,
-    ):
+    def __init__(self, fmt: DataFrameFormatter, line_width: Optional[int] = None):
         self.fmt = fmt
         self.adj = fmt.adj
         self.frame = fmt.frame

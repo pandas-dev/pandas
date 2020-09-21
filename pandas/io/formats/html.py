@@ -56,6 +56,23 @@ class HTMLFormatter(DataFrameFormatter):
             for column, value in self.fmt.col_space.items()
         }
 
+    def to_string(self) -> str:
+        lines = self.render()
+        if any(isinstance(x, str) for x in lines):
+            lines = [str(x) for x in lines]
+        return "\n".join(lines)
+
+    def render(self) -> List[str]:
+        self._write_table()
+
+        if self.should_show_dimensions:
+            by = chr(215)  # ×
+            self.write(
+                f"<p>{len(self.frame)} rows {by} {len(self.frame.columns)} columns</p>"
+            )
+
+        return self.elements
+
     @property
     def show_row_idx_names(self) -> bool:
         return self.fmt.show_row_idx_names
@@ -183,23 +200,6 @@ class HTMLFormatter(DataFrameFormatter):
 
         indent -= indent_delta
         self.write("</tr>", indent)
-
-    def render(self) -> List[str]:
-        self._write_table()
-
-        if self.should_show_dimensions:
-            by = chr(215)  # ×
-            self.write(
-                f"<p>{len(self.frame)} rows {by} {len(self.frame.columns)} columns</p>"
-            )
-
-        return self.elements
-
-    def to_string(self) -> str:
-        lines = self.render()
-        if any(isinstance(x, str) for x in lines):
-            lines = [str(x) for x in lines]
-        return "\n".join(lines)
 
     def _write_table(self, indent: int = 0) -> None:
         _classes = ["dataframe"]  # Default class.
