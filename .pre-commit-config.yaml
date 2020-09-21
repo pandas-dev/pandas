@@ -35,5 +35,5 @@ repos:
     -   id: pip_to_conda
         name: Generate pip dependency from conda
         language: python_venv
-        entry: ./scripts/generate_pip_deps_from_conda.py --compare
+        entry: python scripts/generate_pip_deps_from_conda.py --compare
         types: [python]
