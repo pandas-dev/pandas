@@ -361,7 +361,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed Bug where :class:`DataFrame` column set to scalar extension type via a dict instantion was considered an object type rather than the extension type (:issue:`35965`)
-- Fixed bug where `ExtensionArray.astype(dtype=?????, copy=False)` would return a new object (:issue:`284881`)
+- Fixed bug where ``astype()`` with equal dtype and ``copy=False`` would return a new object (:issue:`284881`)
 -
 
 
