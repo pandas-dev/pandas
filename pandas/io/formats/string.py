@@ -45,10 +45,9 @@ class StringFormatter:
             # no need to wrap around just print the whole frame
             return self.adj.adjoin(1, *strcols)
 
-        if self.fmt.need_to_wrap_around:
+        if self._need_to_wrap_around:
             return self._join_multiline(*strcols)
 
-        # max_cols == 0. Try to fit frame to terminal
         return self._fit_strcols_to_terminal_width(strcols)
 
     @property
@@ -58,6 +57,10 @@ class StringFormatter:
             f"Columns: {pprint_thing(self.frame.columns)}\n"
             f"Index: {pprint_thing(self.frame.index)}"
         )
+
+    @property
+    def _need_to_wrap_around(self) -> bool:
+        return bool(self.fmt.max_cols is None or self.fmt.max_cols > 0)
 
     def _insert_dot_separators(self, strcols: List[List[str]]) -> List[List[str]]:
         str_index = self.fmt._get_formatted_index(self.fmt.tr_frame)

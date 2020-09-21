@@ -561,10 +561,6 @@ class DataFrameFormatter:
     def max_rows_displayed(self) -> int:
         return min(self.max_rows or len(self.frame), len(self.frame))
 
-    @property
-    def need_to_wrap_around(self) -> bool:
-        return bool(self.max_cols is None or self.max_cols > 0)
-
     def _initialize_sparsify(self, sparsify: Optional[bool]) -> bool:
         if sparsify is None:
             return get_option("display.multi_sparse")
