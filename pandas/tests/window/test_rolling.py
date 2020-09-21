@@ -771,3 +771,51 @@ def test_rolling_numerical_too_large_numbers():
         index=dates,
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("func", "value"),
+    [("sum", 2.0), ("max", 1.0), ("min", 1.0), ("mean", 1.0), ("median", 1.0)],
+)
+def test_rolling_mixed_dtypes_axis_1(func, value):
+    # GH: 20649
+    df = pd.DataFrame(1, index=[1, 2], columns=["a", "b", "c"])
+    df["c"] = 1.0
+    result = getattr(df.rolling(window=2, min_periods=1, axis=1), func)()
+    expected = pd.DataFrame(
+        {"a": [1.0, 1.0], "b": [value, value], "c": [value, value]}, index=[1, 2]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_axis_one_with_nan():
+    # GH: 35596
+    df = pd.DataFrame(
+        [
+            [0, 1, 2, 4, np.nan, np.nan, np.nan],
+            [0, 1, 2, np.nan, np.nan, np.nan, np.nan],
+            [0, 2, 2, np.nan, 2, np.nan, 1],
+        ]
+    )
+    result = df.rolling(window=7, min_periods=1, axis="columns").sum()
+    expected = pd.DataFrame(
+        [
+            [0.0, 1.0, 3.0, 7.0, 7.0, 7.0, 7.0],
+            [0.0, 1.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+            [0.0, 2.0, 4.0, 4.0, 6.0, 6.0, 7.0],
+        ]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["test", pd.to_datetime("2019-12-31"), pd.to_timedelta("1 days 06:05:01.00003")],
+)
+def test_rolling_axis_1_non_numeric_dtypes(value):
+    # GH: 20649
+    df = pd.DataFrame({"a": [1, 2]})
+    df["b"] = value
+    result = df.rolling(window=2, min_periods=1, axis=1).sum()
+    expected = pd.DataFrame({"a": [1.0, 2.0]})
+    tm.assert_frame_equal(result, expected)
