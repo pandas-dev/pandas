@@ -48,6 +48,31 @@ fi
 ### LINTING ###
 if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
+    echo "black --version"
+    black --version
+
+    MSG='Checking black formatting' ; echo $MSG
+    black . --check
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # `setup.cfg` contains the list of error codes that are being ignored in flake8
+
+    echo "flake8 --version"
+    flake8 --version
+
+    # pandas/_libs/src is C code, so no need to search there.
+    MSG='Linting .py code' ; echo $MSG
+    flake8 --format="$FLAKE8_FORMAT" .
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Linting .pyx and .pxd code' ; echo $MSG
+    flake8 --format="$FLAKE8_FORMAT" pandas --append-config=flake8/cython.cfg
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Linting .pxi.in' ; echo $MSG
+    flake8 --format="$FLAKE8_FORMAT" pandas/_libs --append-config=flake8/cython-template.cfg
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     echo "flake8-rst --version"
     flake8-rst --version
 
@@ -104,6 +129,19 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
         $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
     else
         $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    echo "isort --version-number"
+    isort --version-number
+
+    # Imports - Check formatting using isort see setup.cfg for settings
+    MSG='Check import format using isort' ; echo $MSG
+    ISORT_CMD="isort --quiet --check-only pandas asv_bench scripts web"
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
+    else
+        eval $ISORT_CMD
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
