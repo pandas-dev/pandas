@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_sparse,
+    is_string_dtype,
     is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -438,7 +439,12 @@ def sanitize_array(
             subarr = subarr.copy()
         return subarr
 
-    elif isinstance(data, (list, tuple)) and len(data) > 0:
+    elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
+        if isinstance(data, set):
+            # Raise only for unordered sets, e.g., not for dict_keys
+            raise TypeError("Set type is unordered")
+        data = list(data)
+
         if dtype is not None:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
@@ -450,8 +456,6 @@ def sanitize_array(
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
-    elif isinstance(data, abc.Set):
-        raise TypeError("Set type is unordered")
     elif lib.is_scalar(data) and index is not None and dtype is not None:
         data = maybe_cast_to_datetime(data, dtype)
         if not lib.is_scalar(data):
@@ -469,7 +473,7 @@ def sanitize_array(
 
             # figure out the dtype from the value (upcast if necessary)
             if dtype is None:
-                dtype, value = infer_dtype_from_scalar(value)
+                dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
             else:
                 # need to possibly convert the value here
                 value = maybe_cast_to_datetime(value, dtype)
@@ -507,7 +511,8 @@ def sanitize_array(
                     data = np.array(data, dtype=dtype, copy=False)
                 subarr = np.array(data, dtype=object, copy=copy)
 
-        if is_object_dtype(subarr.dtype) and not is_object_dtype(dtype):
+        is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
+        if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
             inferred = lib.infer_dtype(subarr, skipna=False)
             if inferred in {"interval", "period"}:
                 subarr = array(subarr)

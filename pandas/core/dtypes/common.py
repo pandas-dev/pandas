@@ -43,7 +43,7 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_sequence,
 )
 
-_POSSIBLY_CAST_DTYPES = {
+POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name
     for t in [
         "O",
@@ -1215,6 +1215,10 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
     """
     if arr_or_dtype is None:
         return False
+    if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
+        # fastpath
+        dtype = arr_or_dtype
+        return dtype.kind in ["m", "M"] or dtype.type is Period
     return (
         is_datetime_or_timedelta_dtype(arr_or_dtype)
         or is_datetime64tz_dtype(arr_or_dtype)

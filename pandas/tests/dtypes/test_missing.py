@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import datetime
 from decimal import Decimal
 
@@ -373,7 +374,7 @@ def test_array_equivalent(dtype_equal):
     )
     # The rest are not dtype_equal
     assert not array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
     )
     assert not array_equivalent(
         DatetimeIndex([0, np.nan], tz="CET"),
@@ -381,6 +382,20 @@ def test_array_equivalent(dtype_equal):
     )
 
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
+
+
+@pytest.mark.parametrize(
+    "val", [1, 1.1, 1 + 1j, True, "abc", [1, 2], (1, 2), {1, 2}, {"a": 1}, None]
+)
+def test_array_equivalent_series(val):
+    arr = np.array([1, 2])
+    cm = (
+        tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+        if isinstance(val, str)
+        else nullcontext()
+    )
+    with cm:
+        assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
 
 
 def test_array_equivalent_different_dtype_but_equal():
