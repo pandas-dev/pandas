@@ -150,6 +150,7 @@ class TestCategoricalMissing:
             tm.assert_frame_equal(result, expected)
 
     def test_compare_unequal(self):
+        # GH 28384
         s1 = Series(["a", "b", np.nan], dtype="category")
         s2 = Series(["b", "a", "a"], dtype="category")
 
