@@ -27,14 +27,14 @@ This tutorial uses the Titanic data set, stored as CSV. The data
 consists of the following data columns:
 
 -  PassengerId: Id of every passenger.
--  Survived: This feature have value 0 and 1. 0 for not survived and 1
+-  Survived: This feature has value 0 and 1. 0 for not survived and 1
    for survived.
 -  Pclass: There are 3 classes: Class 1, Class 2 and Class 3.
 -  Name: Name of passenger.
 -  Sex: Gender of passenger.
 -  Age: Age of passenger.
--  SibSp: Indication that passenger have siblings and spouse.
--  Parch: Whether a passenger is alone or have family.
+-  SibSp: Indication that passengers have siblings and spouses.
+-  Parch: Whether a passenger is alone or has a family.
 -  Ticket: Ticket number of passenger.
 -  Fare: Indicating the fare.
 -  Cabin: The cabin of passenger.
@@ -97,7 +97,7 @@ I want to see the first 8 rows of a pandas DataFrame.
     titanic.head(8)
 
 To see the first N rows of a ``DataFrame``, use the :meth:`~DataFrame.head` method with
-the required number of rows (in this case 8) as argument.
+the required number of rows (in this case 8) as an argument.
 
 .. raw:: html
 
@@ -209,7 +209,7 @@ The method :meth:`~DataFrame.info` provides technical information about a
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  Getting data in to pandas from many different file formats or data
+-  Getting data into pandas from many different file formats or data
    sources is supported by ``read_*`` functions.
 -  Exporting data out of pandas is provided by different
    ``to_*``\ methods.
