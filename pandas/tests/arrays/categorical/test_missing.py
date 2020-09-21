@@ -148,3 +148,12 @@ class TestCategoricalMissing:
             result = pd.isna(DataFrame(cat))
             expected = DataFrame(expected)
             tm.assert_frame_equal(result, expected)
+
+    def test_compare_unequal(self):
+        s1 = Series(["a", "b", np.nan], dtype="category")
+        s2 = Series(["b", "a", "a"], dtype="category")
+
+        result = s1 != s2
+        expected = Series([True, True, True], dtype=bool)
+
+        tm.assert_series_equal(result, expected)
