@@ -1211,7 +1211,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 return result
         else:
             # values are Series
-            return self.wrap_applied_output_series(
+            return self._wrap_applied_output_series(
                 keys, values, not_indexed_same, first_not_none, key_index
             )
 
