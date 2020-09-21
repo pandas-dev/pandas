@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas import Interval, Series, Timestamp, date_range
@@ -46,3 +47,11 @@ class TestAstype:
             msg = "(Cannot cast)|(could not convert)"
             with pytest.raises((ValueError, TypeError), match=msg):
                 values.astype(float, errors=errors)
+
+    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+    def test_astype_from_float_to_str(self, dtype):
+        # https://github.com/pandas-dev/pandas/issues/36451
+        s = Series([0.1], dtype=dtype)
+        result = s.astype(str)
+        expected = Series(["0.1"])
+        tm.assert_series_equal(result, expected)

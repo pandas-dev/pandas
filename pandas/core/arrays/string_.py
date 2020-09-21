@@ -198,10 +198,9 @@ class StringArray(PandasArray):
         if dtype:
             assert dtype == "string"
 
-        result = np.asarray(scalars, dtype="object")
         # convert non-na-likes to str, and nan-likes to StringDtype.na_value
         result = lib.ensure_string_array(
-            result, na_value=StringDtype.na_value, copy=copy
+            scalars, na_value=StringDtype.na_value, copy=copy
         )
 
         # Manually creating new array avoids the validation step in the __init__, so is
