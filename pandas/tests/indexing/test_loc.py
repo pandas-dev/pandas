@@ -5,14 +5,13 @@ import re
 import numpy as np
 import pytest
 
-import pandas.core.common as com
-
 from pandas.compat.numpy import is_numpy_dev
 
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 import pandas._testing as tm
 from pandas.api.types import is_scalar
+import pandas.core.common as com
 from pandas.tests.indexing.common import Base
 
 
@@ -1143,5 +1142,6 @@ def test_loc_replace_subset_with_subset():
     )
     df2 = df1.copy()
     df2[:] = np.nan
-    with pytest.raises(com.SettingWithCopyError):
+    msg = r"A value is trying to be set on a copy of a slice from a DataFrame."
+    with pytest.raises(com.SettingWithCopyError, match=msg):
         df2.loc[0]["A"] = df1.loc[0]["A"]
