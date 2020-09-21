@@ -16,7 +16,7 @@ from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
-from pandas.core.strings.string_array import StringArrayMethods
+from pandas.core.strings.object_array import ObjectStringArray
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
@@ -96,6 +96,9 @@ class StringDtype(ExtensionDtype):
 
         return StringArray._concat_same_type(results)
 
+
+# Uhmmm, this is going to have to dispatch on the dtype if we want
+# to share StringArray between python / arrow.
 
 class StringArray(PandasArray):
     """

@@ -5,8 +5,6 @@ import numpy as np
 
 from pandas._typing import Scalar
 
-from pandas.core.arrays.base import ExtensionArray
-
 
 class BaseStringArrayMethods(abc.ABC):
     """
@@ -23,45 +21,42 @@ class BaseStringArrayMethods(abc.ABC):
     See :ref:`Series.str` for the docstring of each method.
     """
 
-    def __init__(self, array: ExtensionArray):
-        self._array = array
-
-    def __getitem__(self, key):
+    def _str_getitem(self, key):
         if isinstance(key, slice):
             return self.slice(start=key.start, stop=key.stop, step=key.step)
         else:
             return self.get(key)
 
     @abc.abstractmethod
-    def count(self, pat, flags=0):
+    def _str_count(self, pat, flags=0):
         pass
 
     @abc.abstractmethod
-    def pad(self, width, side="left", fillchar=" "):
+    def _str_pad(self, width, side="left", fillchar=" "):
         pass
 
     @abc.abstractmethod
-    def contains(self, pat, case=True, flags=0, na=None, regex=True):
+    def _str_contains(self, pat, case=True, flags=0, na=None, regex=True):
         pass
 
     @abc.abstractmethod
-    def startswith(self, pat, na=None):
+    def _str_startswith(self, pat, na=None):
         pass
 
     @abc.abstractmethod
-    def endswith(self, pat, na=None):
+    def _str_endswith(self, pat, na=None):
         pass
 
     @abc.abstractmethod
-    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
+    def _str_replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
         pass
 
     @abc.abstractmethod
-    def repeat(self, repeats):
+    def _str_repeat(self, repeats):
         pass
 
     @abc.abstractmethod
-    def match(
+    def _str_match(
         self,
         pat: Union[str, Pattern],
         case: bool = True,
@@ -71,7 +66,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def fullmatch(
+    def _str_fullmatch(
         self,
         pat: Union[str, Pattern],
         case: bool = True,
@@ -81,149 +76,149 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def encode(self, encoding, errors="strict"):
+    def _str_encode(self, encoding, errors="strict"):
         pass
 
     @abc.abstractmethod
-    def find(self, sub, start=0, end=None):
+    def _str_find(self, sub, start=0, end=None):
         pass
 
     @abc.abstractmethod
-    def rfind(self, sub, start=0, end=None):
+    def _str_rfind(self, sub, start=0, end=None):
         pass
 
     @abc.abstractmethod
-    def findall(self, pat, flags=0):
+    def _str_findall(self, pat, flags=0):
         pass
 
     @abc.abstractmethod
-    def get(self, i):
+    def _str_get(self, i):
         pass
 
     @abc.abstractmethod
-    def index(self, sub, start=0, end=None):
+    def _str_index(self, sub, start=0, end=None):
         pass
 
     @abc.abstractmethod
-    def rindex(self, sub, start=0, end=None):
+    def _str_rindex(self, sub, start=0, end=None):
         pass
 
     @abc.abstractmethod
-    def join(self, sep):
+    def _str_join(self, sep):
         pass
 
     @abc.abstractmethod
-    def partition(self, sep, expand):
+    def _str_partition(self, sep, expand):
         pass
 
     @abc.abstractmethod
-    def rpartition(self, sep, expand):
+    def _str_rpartition(self, sep, expand):
         pass
 
     @abc.abstractmethod
-    def len(self):
+    def _str_len(self):
         pass
 
     @abc.abstractmethod
-    def slice(self, start=None, stop=None, step=None):
+    def _str_slice(self, start=None, stop=None, step=None):
         pass
 
     @abc.abstractmethod
-    def slice_replace(self, start=None, stop=None, repl=None):
+    def _str_slice_replace(self, start=None, stop=None, repl=None):
         pass
 
     @abc.abstractmethod
-    def translate(self, table):
+    def _str_translate(self, table):
         pass
 
     @abc.abstractmethod
-    def wrap(self, width, **kwargs):
+    def _str_wrap(self, width, **kwargs):
         pass
 
     @abc.abstractmethod
-    def get_dummies(self, sep="|"):
+    def _str_get_dummies(self, sep="|"):
         pass
 
     @abc.abstractmethod
-    def isalnum(self):
+    def _str_isalnum(self):
         pass
 
     @abc.abstractmethod
-    def isalpha(self):
+    def _str_isalpha(self):
         pass
 
     @abc.abstractmethod
-    def isdecimal(self):
+    def _str_isdecimal(self):
         pass
 
     @abc.abstractmethod
-    def isdigit(self):
+    def _str_isdigit(self):
         pass
 
     @abc.abstractmethod
-    def islower(self):
+    def _str_islower(self):
         pass
 
     @abc.abstractmethod
-    def isnumeric(self):
+    def _str_isnumeric(self):
         pass
 
     @abc.abstractmethod
-    def isspace(self):
+    def _str_isspace(self):
         pass
 
     @abc.abstractmethod
-    def istitle(self):
+    def _str_istitle(self):
         pass
 
     @abc.abstractmethod
-    def isupper(self):
+    def _str_isupper(self):
         pass
 
     @abc.abstractmethod
-    def capitalize(self):
+    def _str_capitalize(self):
         pass
 
     @abc.abstractmethod
-    def casefold(self):
+    def _str_casefold(self):
         pass
 
     @abc.abstractmethod
-    def title(self):
+    def _str_title(self):
         pass
 
     @abc.abstractmethod
-    def swapcase(self):
+    def _str_swapcase(self):
         pass
 
     @abc.abstractmethod
-    def lower(self):
+    def _str_lower(self):
         pass
 
     @abc.abstractmethod
-    def upper(self):
+    def _str_upper(self):
         pass
 
     @abc.abstractmethod
-    def normalize(self, form):
+    def _str_normalize(self, form):
         pass
 
     @abc.abstractmethod
-    def strip(self, to_strip=None):
+    def _str_strip(self, to_strip=None):
         pass
 
     @abc.abstractmethod
-    def lstrip(self, to_strip=None):
+    def _str_lstrip(self, to_strip=None):
         pass
 
     @abc.abstractmethod
-    def rstrip(self, to_strip=None):
+    def _str_rstrip(self, to_strip=None):
         pass
 
     @abc.abstractmethod
-    def split(self, pat=None, n=-1, expand=False):
+    def _str_split(self, pat=None, n=-1, expand=False):
         pass
 
     @abc.abstractmethod
-    def rsplit(self, pat=None, n=-1):
+    def _str_rsplit(self, pat=None, n=-1):
         pass
