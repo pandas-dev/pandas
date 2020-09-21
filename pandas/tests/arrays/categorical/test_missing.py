@@ -151,10 +151,19 @@ class TestCategoricalMissing:
 
     def test_compare_categorical_with_missing(self):
         # GH 28384
-        s1 = Series(["a", "b", np.nan], dtype="category")
-        s2 = Series(["b", "a", "a"], dtype="category")
+        a1 = ["a", "b", np.nan]
+        a2 = ["b", "a", "a"]
 
-        result = s1 != s2
+        cat_s1 = Series(a1, dtype="category")
+        cat_s2 = Series(a2, dtype="category")
+        result = cat_s1 != cat_s2
+
         expected = Series([True, True, True], dtype="bool")
+        tm.assert_series_equal(result, expected)
+
+        # categorical vs noncategorical
+        noncat_s1 = Series(a1)
+        noncat_s2 = Series(a2)
+        expected = noncat_s1 != noncat_s2
 
         tm.assert_series_equal(result, expected)
