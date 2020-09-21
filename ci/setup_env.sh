@@ -91,8 +91,8 @@ else
     echo "Not using ccache"
 fi
 
-echo "conda deactivate"
-conda deactivate
+echo "source deactivate"
+source deactivate
 
 echo "conda list (root environment)"
 conda list
@@ -111,7 +111,7 @@ if [[ "$BITS32" == "yes" ]]; then
 fi
 
 echo "activate pandas-dev"
-conda activate pandas-dev
+source activate pandas-dev
 
 echo
 echo "remove any installed pandas package"
