@@ -870,10 +870,11 @@ class DataFrame(NDFrame):
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
                 decimal=decimal,
-                line_width=line_width,
             )
             return fmt.DataFrameRenderer(formatter).to_string(
-                buf=buf, encoding=encoding
+                buf=buf,
+                encoding=encoding,
+                line_width=line_width,
             )
 
     # ----------------------------------------------------------------------

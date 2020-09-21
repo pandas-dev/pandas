@@ -2,7 +2,7 @@
 Module for formatting output data in console (to string).
 """
 from shutil import get_terminal_size
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 
@@ -13,10 +13,15 @@ from pandas.io.formats.printing import pprint_thing
 class StringFormatter:
     """Formatter for string representation of a dataframe."""
 
-    def __init__(self, fmt: DataFrameFormatter):
+    def __init__(
+        self,
+        fmt: DataFrameFormatter,
+        line_width: Optional[int] = None,
+    ):
         self.fmt = fmt
         self.adj = fmt.adj
         self.frame = fmt.frame
+        self.line_width = line_width
 
     def to_string(self) -> str:
         text = self._get_string_representation()
@@ -36,7 +41,7 @@ class StringFormatter:
 
         strcols = self._get_strcols()
 
-        if self.fmt.line_width is None:
+        if self.line_width is None:
             # no need to wrap around just print the whole frame
             return self.adj.adjoin(1, *strcols)
 
@@ -103,7 +108,7 @@ class StringFormatter:
         return strcols
 
     def _join_multiline(self, *args) -> str:
-        lwidth = self.fmt.line_width
+        lwidth = self.line_width
         adjoin_width = 1
         strcols = list(args)
         if self.fmt.index:

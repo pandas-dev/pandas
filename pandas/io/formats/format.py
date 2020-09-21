@@ -474,7 +474,6 @@ class DataFrameFormatter:
         float_format: Optional[FloatFormatType] = None,
         sparsify: Optional[bool] = None,
         index_names: bool = True,
-        line_width: Optional[int] = None,
         max_rows: Optional[int] = None,
         min_rows: Optional[int] = None,
         max_cols: Optional[int] = None,
@@ -497,7 +496,6 @@ class DataFrameFormatter:
         self.decimal = decimal
         self.bold_rows = bold_rows
         self.escape = escape
-        self.line_width = line_width
         self.max_rows = max_rows
         self.min_rows = min_rows
         self.max_cols = max_cols
@@ -987,13 +985,14 @@ class DataFrameRenderer:
         self,
         buf: Optional[FilePathOrBuffer[str]] = None,
         encoding: Optional[str] = None,
+        line_width: Optional[int] = None,
     ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
         """
         from pandas.io.formats.string import StringFormatter
 
-        string_formatter = StringFormatter(self.fmt)
+        string_formatter = StringFormatter(self.fmt, line_width=line_width)
         string = string_formatter.to_string()
         return self._get_result(string, buf=buf, encoding=encoding)
 
