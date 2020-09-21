@@ -271,7 +271,8 @@ Numeric
 - Bug in :func:`to_numeric` where float precision was incorrect (:issue:`31364`)
 - Bug in :meth:`DataFrame.any` with ``axis=1`` and ``bool_only=True`` ignoring the ``bool_only`` keyword (:issue:`32432`)
 - Bug in :meth:`Series.equals` where a ``ValueError`` was raised when numpy arrays were compared to scalars (:issue:`35267`)
--
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
 
 Conversion
 ^^^^^^^^^^
@@ -297,6 +298,7 @@ Indexing
 
 - Bug in :meth:`PeriodIndex.get_loc` incorrectly raising ``ValueError`` on non-datelike strings instead of ``KeyError``, causing similar errors in :meth:`Series.__geitem__`, :meth:`Series.__contains__`, and :meth:`Series.loc.__getitem__` (:issue:`34240`)
 - Bug in :meth:`Index.sort_values` where, when empty values were passed, the method would break by trying to compare missing values instead of pushing them to the end of the sort order. (:issue:`35584`)
+- Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 - Bug in :meth:`Index.get_indexer` and :meth:`Index.get_indexer_non_unique` where int64 arrays are returned instead of intp. (:issue:`36359`)
 -
 
@@ -354,7 +356,7 @@ Reshaping
 - Bug in :func:`union_indexes` where input index names are not preserved in some cases. Affects :func:`concat` and :class:`DataFrame` constructor (:issue:`13475`)
 - Bug in func :meth:`crosstab` when using multiple columns with ``margins=True`` and ``normalize=True`` (:issue:`35144`)
 - Bug in :meth:`DataFrame.agg` with ``func={'name':<FUNC>}`` incorrectly raising ``TypeError`` when ``DataFrame.columns==['Name']`` (:issue:`36212`)
--
+- Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
 
 Sparse
 ^^^^^^
@@ -367,14 +369,6 @@ ExtensionArray
 
 - Fixed Bug where :class:`DataFrame` column set to scalar extension type via a dict instantion was considered an object type rather than the extension type (:issue:`35965`)
 -
-
-
-Other
-^^^^^
-- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
-- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
-- Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
-- Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 
 .. ---------------------------------------------------------------------------
 
