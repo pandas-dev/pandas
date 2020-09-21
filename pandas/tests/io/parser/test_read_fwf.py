@@ -173,13 +173,7 @@ A   B     C            D            E
 
 
 def test_bytes_io_input():
-<<<<<<< HEAD
     result = read_fwf(BytesIO("שלום\nשלום".encode()), widths=[2, 2], encoding="utf8")
-=======
-    result = read_fwf(
-        BytesIO("שלום\nשלום".encode("utf8")), col_widths=[2, 2], encoding="utf8"
-    )
->>>>>>> af312e5635c1cd311e8ffad81ac00848b5d1f57e
     expected = DataFrame([["של", "ום"]], columns=["של", "ום"])
     tm.assert_frame_equal(result, expected)
 
