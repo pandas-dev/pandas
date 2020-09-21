@@ -40,7 +40,7 @@ A         B            C            D
     tm.assert_frame_equal(result, expected)
 
 
-def test_colspecs():
+def test_col_specs():
     data = """\
 A   B     C            D            E
 201158    360.242940   149.910199   11950.7
@@ -49,8 +49,8 @@ A   B     C            D            E
 201161    413.836124   184.375703   11916.8
 201162    502.953953   173.237159   12468.3
 """
-    colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
-    result = read_fwf(StringIO(data), colspecs=colspecs)
+    col_specs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
+    result = read_fwf(StringIO(data), colspecs=col_specs)
 
     expected = DataFrame(
         [
@@ -74,7 +74,7 @@ A    B    C            D            E
 2011 61   413.836124   184.375703   11916.8
 2011 62   502.953953   173.237159   12468.3
 """
-    result = read_fwf(StringIO(data), widths=[5, 5, 13, 13, 7])
+    result = read_fwf(StringIO(data), col_widths=[5, 5, 13, 13, 7])
 
     expected = DataFrame(
         [
@@ -104,8 +104,8 @@ A~~~~B~~~~C~~~~~~~~~~~~D~~~~~~~~~~~~E
 201161~~~~413.836124~~~184.375703~~~11916.8
 201162~~~~502.953953~~~173.237159~~~12468.3
 """
-    colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
-    result = read_fwf(StringIO(data), colspecs=colspecs, delimiter="~")
+    col_specs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
+    result = read_fwf(StringIO(data), col_specs=col_specs, delimiter="~")
 
     expected = DataFrame(
         [
@@ -129,10 +129,10 @@ A   B     C            D            E
 201161    413.836124   184.375703   11916.8
 201162    502.953953   173.237159   12468.3
 """
-    colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
+    col_specs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
 
     with pytest.raises(ValueError, match="must specify only one of"):
-        read_fwf(StringIO(data), colspecs=colspecs, widths=[6, 10, 10, 7])
+        read_fwf(StringIO(data), col_specs=col_specs, col_widths=[6, 10, 10, 7])
 
 
 def test_under_specified():
@@ -145,7 +145,7 @@ A   B     C            D            E
 201162    502.953953   173.237159   12468.3
 """
     with pytest.raises(ValueError, match="Must specify either"):
-        read_fwf(StringIO(data), colspecs=None, widths=None)
+        read_fwf(StringIO(data), col_specs=None, col_widths=None)
 
 
 def test_read_csv_compat():
@@ -167,18 +167,24 @@ A   B     C            D            E
 201161    413.836124   184.375703   11916.8
 201162    502.953953   173.237159   12468.3
 """
-    colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
-    result = read_fwf(StringIO(fwf_data), colspecs=colspecs)
+    col_specs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
+    result = read_fwf(StringIO(fwf_data), col_specs=col_specs)
     tm.assert_frame_equal(result, expected)
 
 
 def test_bytes_io_input():
+<<<<<<< HEAD
     result = read_fwf(BytesIO("שלום\nשלום".encode()), widths=[2, 2], encoding="utf8")
+=======
+    result = read_fwf(
+        BytesIO("שלום\nשלום".encode("utf8")), col_widths=[2, 2], encoding="utf8"
+    )
+>>>>>>> af312e5635c1cd311e8ffad81ac00848b5d1f57e
     expected = DataFrame([["של", "ום"]], columns=["של", "ום"])
     tm.assert_frame_equal(result, expected)
 
 
-def test_fwf_colspecs_is_list_or_tuple():
+def test_fwf_col_specs_is_list_or_tuple():
     data = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
@@ -191,10 +197,10 @@ bar2,12,13,14,15
     msg = "column specifications must be a list or tuple.+"
 
     with pytest.raises(TypeError, match=msg):
-        read_fwf(StringIO(data), colspecs={"a": 1}, delimiter=",")
+        read_fwf(StringIO(data), col_specs={"a": 1}, delimiter=",")
 
 
-def test_fwf_colspecs_is_list_or_tuple_of_two_element_tuples():
+def test_fwf_col_specs_is_list_or_tuple_of_two_element_tuples():
     data = """index,A,B,C,D
 foo,2,3,4,5
 bar,7,8,9,10
@@ -211,7 +217,7 @@ bar2,12,13,14,15
 
 
 @pytest.mark.parametrize(
-    "colspecs,exp_data",
+    "col_specs,exp_data",
     [
         ([(0, 3), (3, None)], [[123, 456], [456, 789]]),
         ([(None, 3), (3, 6)], [[123, 456], [456, 789]]),
@@ -219,7 +225,7 @@ bar2,12,13,14,15
         ([(None, None), (3, 6)], [[123456, 456], [456789, 789]]),
     ],
 )
-def test_fwf_colspecs_none(colspecs, exp_data):
+def test_fwf_col_specs_none(col_specs, exp_data):
     # see gh-7079
     data = """\
 123456
@@ -227,7 +233,7 @@ def test_fwf_colspecs_none(colspecs, exp_data):
 """
     expected = DataFrame(exp_data)
 
-    result = read_fwf(StringIO(data), colspecs=colspecs, header=None)
+    result = read_fwf(StringIO(data), col_specs=col_specs, header=None)
     tm.assert_frame_equal(result, expected)
 
 
@@ -240,7 +246,7 @@ def test_fwf_colspecs_none(colspecs, exp_data):
         (10, [[1, 2], [123, 98]]),
     ],
 )
-def test_fwf_colspecs_infer_nrows(infer_nrows, exp_data):
+def test_fwf_col_specs_infer_nrows(infer_nrows, exp_data):
     # see gh-15138
     data = """\
   1  2
@@ -257,7 +263,7 @@ def test_fwf_regression():
     #
     # Turns out "T060" is parsable as a datetime slice!
     tz_list = [1, 10, 20, 30, 60, 80, 100]
-    widths = [16] + [8] * len(tz_list)
+    col_widths = [16] + [8] * len(tz_list)
     names = ["SST"] + [f"T{z:03d}" for z in tz_list[1:]]
 
     data = """  2009164202000   9.5403  9.4105  8.6571  7.8372  6.0612  5.8843  5.5192
@@ -272,7 +278,7 @@ def test_fwf_regression():
         index_col=0,
         header=None,
         names=names,
-        widths=widths,
+        col_widths=col_widths,
         parse_dates=True,
         date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
     )
@@ -303,7 +309,7 @@ def test_fwf_for_uint8():
 1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""  # noqa
     df = read_fwf(
         StringIO(data),
-        colspecs=[(0, 17), (25, 26), (33, 37), (49, 51), (58, 62), (63, 1000)],
+        col_specs=[(0, 17), (25, 26), (33, 37), (49, 51), (58, 62), (63, 1000)],
         names=["time", "pri", "pgn", "dst", "src", "data"],
         converters={
             "pgn": lambda x: int(x, 16),
@@ -332,10 +338,10 @@ def test_fwf_comment(comment):
 """
     data = data.replace("#", comment)
 
-    colspecs = [(0, 3), (4, 9), (9, 25)]
+    col_specs = [(0, 3), (4, 9), (9, 25)]
     expected = DataFrame([[1, 2.0, 4], [5, np.nan, 10.0]])
 
-    result = read_fwf(StringIO(data), colspecs=colspecs, header=None, comment=comment)
+    result = read_fwf(StringIO(data), col_specs=col_specs, header=None, comment=comment)
     tm.assert_almost_equal(result, expected)
 
 
@@ -347,11 +353,11 @@ def test_fwf_thousands(thousands):
 """
     data = data.replace(",", thousands)
 
-    colspecs = [(0, 3), (3, 11), (12, 16)]
+    col_specs = [(0, 3), (3, 11), (12, 16)]
     expected = DataFrame([[1, 2334.0, 5], [10, 13, 10.0]])
 
     result = read_fwf(
-        StringIO(data), header=None, colspecs=colspecs, thousands=thousands
+        StringIO(data), header=None, col_specs=col_specs, thousands=thousands
     )
     tm.assert_almost_equal(result, expected)
 
@@ -381,8 +387,8 @@ def test_full_file():
 2000-01-07T00:00:00  0.487094399463    0  bar
 2000-01-10T00:00:00  0.836648671666    2  baz
 2000-01-11T00:00:00  0.157160753327   34  foo"""
-    colspecs = ((0, 19), (21, 35), (38, 40), (42, 45))
-    expected = read_fwf(StringIO(test), colspecs=colspecs)
+    col_specs = ((0, 19), (21, 35), (38, 40), (42, 45))
+    expected = read_fwf(StringIO(test), col_specs=col_specs)
 
     result = read_fwf(StringIO(test))
     tm.assert_frame_equal(result, expected)
@@ -398,8 +404,8 @@ def test_full_file_with_missing():
 2000-01-07T00:00:00                    0  bar
 2000-01-10T00:00:00  0.836648671666    2  baz
                                       34"""
-    colspecs = ((0, 19), (21, 35), (38, 40), (42, 45))
-    expected = read_fwf(StringIO(test), colspecs=colspecs)
+    col_specs = ((0, 19), (21, 35), (38, 40), (42, 45))
+    expected = read_fwf(StringIO(test), col_specs=col_specs)
 
     result = read_fwf(StringIO(test))
     tm.assert_frame_equal(result, expected)
@@ -417,8 +423,8 @@ Account                 Name  Balance     CreditLimit   AccountCreated
 """.strip(
         "\r\n"
     )
-    colspecs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
-    expected = read_fwf(StringIO(test), colspecs=colspecs)
+    col_specs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
+    expected = read_fwf(StringIO(test), col_specs=col_specs)
 
     result = read_fwf(StringIO(test))
     tm.assert_frame_equal(result, expected)
@@ -436,8 +442,8 @@ Account               Name    Balance     CreditLimit   AccountCreated
 """.strip(
         "\r\n"
     )
-    colspecs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
-    expected = read_fwf(StringIO(test), colspecs=colspecs)
+    col_specs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
+    expected = read_fwf(StringIO(test), col_specs=col_specs)
 
     result = read_fwf(StringIO(test))
     tm.assert_frame_equal(result, expected)
@@ -455,8 +461,8 @@ def test_messed_up_data():
 """.strip(
         "\r\n"
     )
-    colspecs = ((2, 10), (15, 33), (37, 45), (49, 61), (64, 79))
-    expected = read_fwf(StringIO(test), colspecs=colspecs)
+    col_specs = ((2, 10), (15, 33), (37, 45), (49, 61), (64, 79))
+    expected = read_fwf(StringIO(test), col_specs=col_specs)
 
     result = read_fwf(StringIO(test))
     tm.assert_frame_equal(result, expected)
@@ -474,8 +480,8 @@ col1~~~~~col2  col3++++++++++++++++++col4
         "\r\n"
     )
     delimiter = " +~.\\"
-    colspecs = ((0, 4), (7, 13), (15, 19), (21, 41))
-    expected = read_fwf(StringIO(test), colspecs=colspecs, delimiter=delimiter)
+    col_specs = ((0, 4), (7, 13), (15, 19), (21, 41))
+    expected = read_fwf(StringIO(test), col_specs=col_specs, delimiter=delimiter)
 
     result = read_fwf(StringIO(test), delimiter=delimiter)
     tm.assert_frame_equal(result, expected)
@@ -493,7 +499,7 @@ def test_variable_width_unicode():
     kwargs = dict(header=None, encoding=encoding)
 
     expected = read_fwf(
-        BytesIO(data.encode(encoding)), colspecs=[(0, 4), (5, 9)], **kwargs
+        BytesIO(data.encode(encoding)), col_specs=[(0, 4), (5, 9)], **kwargs
     )
     result = read_fwf(BytesIO(data.encode(encoding)), **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -505,8 +511,8 @@ def test_dtype(dtype):
 1    2    3.2
 3    4    5.2
 """
-    colspecs = [(0, 5), (5, 10), (10, None)]
-    result = read_fwf(StringIO(data), colspecs=colspecs, dtype=dtype)
+    col_specs = [(0, 5), (5, 10), (10, None)]
+    result = read_fwf(StringIO(data), col_specs=col_specs, dtype=dtype)
 
     expected = pd.DataFrame(
         {"a": [1, 3], "b": [2, 4], "c": [3.2, 5.2]}, columns=["a", "b", "c"]
@@ -572,7 +578,11 @@ def test_whitespace_preservation():
  a bbb
  ccdd """
     result = read_fwf(
-        StringIO(fwf_data), widths=[3, 3], header=header, skiprows=[0], delimiter="\n\t"
+        StringIO(fwf_data),
+        col_widths=[3, 3],
+        header=header,
+        skiprows=[0],
+        delimiter="\n\t",
     )
     expected = read_csv(StringIO(csv_data), header=header)
     tm.assert_frame_equal(result, expected)
@@ -587,7 +597,9 @@ cc,dd"""
     fwf_data = """
 a \tbbb
 cc\tdd """
-    result = read_fwf(StringIO(fwf_data), widths=[3, 3], header=header, skiprows=[0])
+    result = read_fwf(
+        StringIO(fwf_data), col_widths=[3, 3], header=header, skiprows=[0]
+    )
     expected = read_csv(StringIO(csv_data), header=header)
     tm.assert_frame_equal(result, expected)
 
@@ -601,7 +613,7 @@ def test_fwf_compression(compression_only, infer):
     compression = compression_only
     extension = "gz" if compression == "gzip" else compression
 
-    kwargs = dict(widths=[5, 5], names=["one", "two"])
+    kwargs = dict(col_widths=[5, 5], names=["one", "two"])
     expected = read_fwf(StringIO(data), **kwargs)
 
     data = bytes(data, encoding="utf-8")

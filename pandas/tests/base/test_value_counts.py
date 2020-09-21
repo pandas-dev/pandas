@@ -208,7 +208,7 @@ def test_value_counts_datetime64(index_or_series):
     )
     f = StringIO(txt)
     df = pd.read_fwf(
-        f, widths=[6, 8, 3], names=["person_id", "dt", "food"], parse_dates=["dt"]
+        f, col_widths=[6, 8, 3], names=["person_id", "dt", "food"], parse_dates=["dt"]
     )
 
     s = klass(df["dt"].copy())

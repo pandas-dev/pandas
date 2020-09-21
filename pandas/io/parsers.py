@@ -524,7 +524,7 @@ _c_parser_defaults = {
     "float_precision": None,
 }
 
-_fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
+_fwf_defaults = {"col_specs": "infer", "infer_nrows": 100, "col_widths": None}
 
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
@@ -762,8 +762,8 @@ def read_table(
 
 def read_fwf(
     filepath_or_buffer: FilePathOrBuffer,
-    colspecs="infer",
-    widths=None,
+    col_specs="infer",
+    col_widths=None,
     infer_nrows=100,
     **kwds,
 ):
@@ -790,18 +790,18 @@ def read_fwf(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handler (e.g. via builtin ``open`` function)
         or ``StringIO``.
-    colspecs : list of tuple (int, int) or 'infer'. optional
+    col_specs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to[ ).
         String value 'infer' can be used to instruct the parser to try
         detecting the column specifications from the first 100 rows of
         the data which are not being skipped via skiprows (default='infer').
-    widths : list of int, optional
-        A list of field widths which can be used instead of 'colspecs' if
+    col_widths : list of int, optional
+        A list of column widths which can be used instead of 'col_specs' if
         the intervals are contiguous.
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
-        `colspecs`.
+        `col_specs`.
 
         .. versionadded:: 0.24.0
     **kwds : optional
@@ -823,19 +823,19 @@ def read_fwf(
     >>> pd.read_fwf('data.csv')  # doctest: +SKIP
     """
     # Check input arguments.
-    if colspecs is None and widths is None:
-        raise ValueError("Must specify either colspecs or widths")
-    elif colspecs not in (None, "infer") and widths is not None:
-        raise ValueError("You must specify only one of 'widths' and 'colspecs'")
+    if col_specs is None and col_widths is None:
+        raise ValueError("Must specify either col_specs or col_widths")
+    elif col_specs not in (None, "infer") and col_widths is not None:
+        raise ValueError("You must specify only one of 'col_widths' and 'col specs'")
 
-    # Compute 'colspecs' from 'widths', if specified.
-    if widths is not None:
-        colspecs, col = [], 0
-        for w in widths:
-            colspecs.append((col, col + w))
+    # Compute 'col_specs' from 'col_widths', if specified.
+    if col_widths is not None:
+        col_specs, col = [], 0
+        for w in col_widths:
+            col_specs.append((col, col + w))
             col += w
 
-    kwds["colspecs"] = colspecs
+    kwds["col_specs"] = col_specs
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
     return _read(filepath_or_buffer, kwds)
@@ -3650,30 +3650,32 @@ class FixedWidthReader(abc.Iterator):
     A reader of fixed-width lines.
     """
 
-    def __init__(self, f, colspecs, delimiter, comment, skiprows=None, infer_nrows=100):
+    def __init__(
+        self, f, col_specs, delimiter, comment, skiprows=None, infer_nrows=100
+    ):
         self.f = f
         self.buffer = None
         self.delimiter = "\r\n" + delimiter if delimiter else "\n\r\t "
         self.comment = comment
-        if colspecs == "infer":
-            self.colspecs = self.detect_colspecs(
+        if col_specs == "infer":
+            self.col_specs = self.detect_colspecs(
                 infer_nrows=infer_nrows, skiprows=skiprows
             )
         else:
-            self.colspecs = colspecs
+            self.col_specs = col_specs
 
-        if not isinstance(self.colspecs, (tuple, list)):
+        if not isinstance(self.col_specs, (tuple, list)):
             raise TypeError(
                 "column specifications must be a list or tuple, "
-                f"input was a {type(colspecs).__name__}"
+                f"input was a {type(col_specs).__name__}"
             )
 
-        for colspec in self.colspecs:
+        for col_specs in self.col_specs:
             if not (
-                isinstance(colspec, (tuple, list))
-                and len(colspec) == 2
-                and isinstance(colspec[0], (int, np.integer, type(None)))
-                and isinstance(colspec[1], (int, np.integer, type(None)))
+                isinstance(col_specs, (tuple, list))
+                and len(col_specs) == 2
+                and isinstance(col_specs[0], (int, np.integer, type(None)))
+                and isinstance(col_specs[1], (int, np.integer, type(None)))
             ):
                 raise TypeError(
                     "Each column specification must be "
@@ -3747,8 +3749,8 @@ class FixedWidthReader(abc.Iterator):
                 line = next(self.f)
         else:
             line = next(self.f)
-        # Note: 'colspecs' is a sequence of half-open intervals.
-        return [line[fromm:to].strip(self.delimiter) for (fromm, to) in self.colspecs]
+        # Note: 'col_specs' is a sequence of half-open intervals.
+        return [line[fromm:to].strip(self.delimiter) for (fromm, to) in self.col_specs]
 
 
 class FixedWidthFieldParser(PythonParser):
@@ -3759,14 +3761,14 @@ class FixedWidthFieldParser(PythonParser):
 
     def __init__(self, f, **kwds):
         # Support iterators, convert to a list.
-        self.colspecs = kwds.pop("colspecs")
+        self.col_specs = kwds.pop("col_specs")
         self.infer_nrows = kwds.pop("infer_nrows")
         PythonParser.__init__(self, f, **kwds)
 
     def _make_reader(self, f):
         self.data = FixedWidthReader(
             f,
-            self.colspecs,
+            self.col_specs,
             self.delimiter,
             self.comment,
             self.skiprows,
