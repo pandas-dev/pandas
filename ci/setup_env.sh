@@ -42,8 +42,6 @@ else
 fi
 
 if [ "${TRAVIS_CPU_ARCH}" == "arm64" ]; then
-  sudo apt-get update
-  sudo apt-get -y install xvfb
   CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.5-0/Miniforge3-4.8.5-0-Linux-aarch64.sh"
 else
   CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh"
@@ -93,15 +91,13 @@ else
     echo "Not using ccache"
 fi
 
-echo "source deactivate"
-source deactivate
+echo "conda deactivate"
+conda deactivate
 
 echo "conda list (root environment)"
 conda list
 
 # Clean up any left-over from a previous build
-# (note workaround for https://github.com/conda/conda/issues/2679:
-#  `conda env remove` issue)
 conda remove --all -q -y -n pandas-dev
 
 echo
@@ -115,7 +111,7 @@ if [[ "$BITS32" == "yes" ]]; then
 fi
 
 echo "activate pandas-dev"
-source activate pandas-dev
+conda activate pandas-dev
 
 echo
 echo "remove any installed pandas package"
@@ -142,12 +138,6 @@ conda list pandas
 echo "[Build extensions]"
 python setup.py build_ext -q -i -j2
 
-# TODO: Some of our environments end up with old versions of pip (10.x)
-# Adding a new enough version of pip to the requirements explodes the
-# solve time. Just using pip to update itself.
-# - py35_macos
-# - py35_compat
-# - py36_32bit
 echo "[Updating pip]"
 python -m pip install --no-deps -U pip wheel setuptools
 
