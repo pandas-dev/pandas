@@ -831,8 +831,6 @@ arithmetic operator (``+``) or the ``apply`` method can be used to perform the s
    ts + pd.Timedelta(days=1)
    # Respects calendar time
    ts + pd.DateOffset(days=1)
-   # Default DateOffset is 24 hours instead of a calendar day since Hour is one of subclasses for DateOffset
-   ts + pd.DateOffset()
    friday = pd.Timestamp('2018-01-05')
    friday.day_name()
    # Add 2 business days (Friday --> Tuesday)
