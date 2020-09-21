@@ -950,6 +950,10 @@ class DataFrameRenderer:
 
         Parameters
         ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        encoding : str, default “utf-8”
+            Set character encoding.
         classes : str or list-like
             classes to include in the `class` attribute of the opening
             ``<table>`` tag, in addition to the default "dataframe".
@@ -958,10 +962,10 @@ class DataFrameRenderer:
         border : int
             A ``border=border`` attribute is included in the opening
             ``<table>`` tag. Default ``pd.options.display.html.border``.
-        table_id
-
-        render_links
-
+        table_id : str, optional
+            A css id is included in the opening `<table>` tag if specified.
+        render_links : bool, default False
+            Convert URLs to HTML links.
         """
         from pandas.io.formats.html import HTMLFormatter, NotebookFormatter
 
@@ -985,6 +989,15 @@ class DataFrameRenderer:
     ) -> Optional[str]:
         """
         Render a DataFrame to a console-friendly tabular output.
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        encoding: str, default “utf-8”
+            Set character encoding.
+        line_width : int, optional
+            Width to wrap a line in characters.
         """
         from pandas.io.formats.string import StringFormatter
 
@@ -1011,6 +1024,9 @@ class DataFrameRenderer:
         errors: str = "strict",
         storage_options: StorageOptions = None,
     ) -> Optional[str]:
+        """
+        Render dataframe as comma-separated file.
+        """
         from pandas.io.formats.csvs import CSVFormatter
 
         csv_formatter = CSVFormatter(
