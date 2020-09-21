@@ -409,7 +409,7 @@ class Block(PandasObject):
             return [self] if inplace else [self.copy()]
 
         # operate column-by-column
-        def f(idx):
+        def f(mask, val, idx):
             block = self.coerce_to_target_dtype(value)
 
             # slice out our block
@@ -520,7 +520,7 @@ class Block(PandasObject):
 
         # operate column-by-column
         # this is expensive as it splits the blocks items-by-item
-        def f(val):
+        def f(mask, val, idx):
             val = maybe_downcast_to_dtype(val, dtype="infer")
             return val
 
@@ -2469,7 +2469,7 @@ class ObjectBlock(Block):
         can return multiple blocks!
         """
         # operate column-by-column
-        def f(val):
+        def f(mask, val, idx):
             shape = val.shape
             values = soft_convert_objects(
                 val.ravel(),
