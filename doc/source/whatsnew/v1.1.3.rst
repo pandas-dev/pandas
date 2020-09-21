@@ -35,6 +35,7 @@ Fixed regressions
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a frozenset (:issue:`35747`)
 - Fixed regression in :meth:`read_excel` with ``engine="odf"`` caused ``UnboundLocalError`` in some cases where cells had nested child nodes (:issue:`36122`,:issue:`35802`)
 - Fixed regression in :class:`DataFrame` and :class:`Series` comparisons between numeric arrays and strings (:issue:`35700`,:issue:`36377`)
+- Fixed regression when setting empty :class:`DataFrame` column to a :class:`Series` in preserving name of index in frame (:issue:`36527`)
 
 .. ---------------------------------------------------------------------------
 
