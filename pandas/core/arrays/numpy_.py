@@ -1,5 +1,5 @@
 import numbers
-from typing import Optional, Tuple, Type, Union
+from typing import Tuple, Type, Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -7,10 +7,8 @@ from numpy.lib.mixins import NDArrayOperatorsMixin
 from pandas._libs import lib
 from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas import compat
@@ -19,7 +17,6 @@ from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
 from pandas.core.construction import extract_array
-from pandas.core.missing import backfill_1d, pad_1d
 
 
 class PandasDtype(ExtensionDtype):
@@ -262,35 +259,6 @@ class PandasArray(
 
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
-
-    def fillna(
-        self, value=None, method: Optional[str] = None, limit: Optional[int] = None
-    ) -> "PandasArray":
-        # TODO(_values_for_fillna): remove this
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                func = pad_1d if method == "pad" else backfill_1d
-                new_values = func(self._ndarray, limit=limit, mask=mask)
-                new_values = self._from_sequence(new_values, dtype=self.dtype)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     def _validate_fill_value(self, fill_value):
         if fill_value is None:
