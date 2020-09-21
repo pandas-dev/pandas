@@ -298,8 +298,7 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
 
 
 class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
-    def test_series_repr(self, data):
-        super().test_series_repr(data)
+    pass
 
 
 @skip_nested
