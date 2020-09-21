@@ -37,3 +37,4 @@ repos:
         language: python_venv
         entry: python scripts/generate_pip_deps_from_conda.py --compare
         types: [python]
+        files: scripts/generate*.py
