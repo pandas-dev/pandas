@@ -1142,6 +1142,6 @@ def test_loc_replace_subset_with_subset():
     )
     df2 = df1.copy()
     df2[:] = np.nan
-    msg = r"A value is trying to be set on a copy of a slice from a DataFrame."
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame."
     with pytest.raises(com.SettingWithCopyError, match=msg):
         df2.loc[0]["A"] = df1.loc[0]["A"]
