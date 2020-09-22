@@ -757,7 +757,7 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
-    if delim_whitespace:
+    if delim_whitespace and sep == "\t":
         sep = ","
     return read_csv(**locals())
 
