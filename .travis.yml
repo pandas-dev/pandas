@@ -88,7 +88,6 @@ install:
 script:
   - echo "script start"
   - echo "$JOB"
-  - if [ "$JOB" != "3.9-dev" ]; then conda activate pandas-dev; fi
   - ci/run_tests.sh
 
 after_script:
