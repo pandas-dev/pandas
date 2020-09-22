@@ -25,7 +25,7 @@ def set_use_numba(enable: bool = False) -> None:
 
 
 def get_jit_arguments(
-    engine_kwargs: Optional[Dict[str, bool]] = None, kwargs: Optional[Dict] = None,
+    engine_kwargs: Optional[Dict[str, bool]] = None, kwargs: Optional[Dict] = None
 ) -> Tuple[bool, bool, bool]:
     """
     Return arguments to pass to numba.JIT, falling back on pandas default JIT settings.

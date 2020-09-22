@@ -308,7 +308,7 @@ for old, new in moved_classes:
 
     for method in methods:
         # ... and each of its public methods
-        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}",))
+        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}"))
 
 if pattern is None:
     html_additional_pages = {

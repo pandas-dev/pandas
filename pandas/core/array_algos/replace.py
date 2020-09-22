@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
 
 
 def compare_or_regex_search(
-    a: ArrayLike, b: Union[Scalar, Pattern], regex: bool, mask: ArrayLike,
+    a: ArrayLike, b: Union[Scalar, Pattern], regex: bool, mask: ArrayLike
 ) -> Union[ArrayLike, bool]:
     """
     Compare two array_like inputs of the same shape or two scalar values

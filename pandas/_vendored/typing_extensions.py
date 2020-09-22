@@ -2116,8 +2116,7 @@ elif PEP_560:
             raise TypeError(f"Cannot subclass {cls.__module__}.Annotated")
 
     def _strip_annotations(t):
-        """Strips the annotations from a given type.
-        """
+        """Strips the annotations from a given type."""
         if isinstance(t, _AnnotatedAlias):
             return _strip_annotations(t.__origin__)
         if isinstance(t, typing._GenericAlias):
