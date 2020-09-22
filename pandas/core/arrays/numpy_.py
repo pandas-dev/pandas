@@ -17,6 +17,7 @@ from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
 from pandas.core.construction import extract_array
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -115,7 +116,10 @@ class PandasDtype(ExtensionDtype):
 
 
 class PandasArray(
-    NDArrayBackedExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin
+    NDArrayBackedExtensionArray,
+    ExtensionOpsMixin,
+    NDArrayOperatorsMixin,
+    ObjectStringArrayMixin,
 ):
     """
     A pandas ExtensionArray for NumPy data.
@@ -397,6 +401,10 @@ class PandasArray(
         return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
 
     _create_comparison_method = _create_arithmetic_method
+
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = np.nan
 
 
 PandasArray._add_arithmetic_ops()

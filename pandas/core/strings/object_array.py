@@ -14,31 +14,27 @@ from pandas._typing import Scalar
 from pandas.core.dtypes.common import is_re, is_scalar
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.strings.base import BaseStringArrayMethods
 
 
-class ObjectStringArray(PandasArray, BaseStringArrayMethods):
+class ObjectStringArrayMixin(BaseStringArrayMethods):
     """
-    PandasArray subclass with _str methods.
+    String Methods operating on object-dtype ndarrays.
+    """
 
-    We don't want to put the _str methods on all PandasArrays
-    so we use this subclass with the BaseStringArrayMethods
-    mixin.
-    """
-    _default_na_value = np.nan
+    _str_na_value = np.nan
 
     def _str_map(self, f, na_value=None, dtype=None):
         arr = self
         if dtype is None:
             dtype = np.dtype("object")
         if na_value is None:
-            na_value = self._default_na_value
+            na_value = self._str_na_value
 
         if not len(arr):
             return np.ndarray(0, dtype=dtype)
         if na_value is None:
-            na_value = self._default_na_value
+            na_value = self._str_na_value
 
         if not isinstance(arr, np.ndarray):
             arr = np.asarray(arr, dtype=object)
@@ -258,7 +254,7 @@ class ObjectStringArray(PandasArray, BaseStringArrayMethods):
                 return x.get(i)
             elif len(x) > i >= -len(x):
                 return x[i]
-            return self._default_na_value
+            return self._str_na_value
 
         return self._str_map(f)
 

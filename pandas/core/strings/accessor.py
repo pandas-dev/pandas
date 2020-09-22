@@ -24,9 +24,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.base import NoNewAttributesMixin
-from pandas.core.strings.object_array import ObjectStringArray
 
 _shared_docs: Dict[str, str] = dict()
 _cpython_optimized_encoders = (
@@ -150,19 +148,11 @@ class StringMethods(NoNewAttributesMixin):
 
     def __init__(self, data):
         from pandas.core.arrays.string_ import StringDtype
-        from pandas.core.arrays import Categorical
-        from pandas.core.strings.categorical import CategoricalStringMethods
 
         self._inferred_dtype = self._validate(data)
         self._is_categorical = is_categorical_dtype(data.dtype)
         self._is_string = isinstance(data.dtype, StringDtype)
         array = data.array
-
-        if type(array) is PandasArray:
-            # wrap in an object proxy to get the str methods.
-            array = ObjectStringArray(array._ndarray)
-        elif isinstance(array, Categorical):
-            array = CategoricalStringMethods(array)
         self._array = array
 
         if isinstance(data, ABCSeries):
