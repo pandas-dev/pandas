@@ -378,9 +378,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         cls,
         dummies: "DataFrame",
         ordered: Optional[bool] = None,
-        prefix=None,
-        prefix_sep="_",
-        fillna=None,
+        prefix: Optional[str] = None,
+        prefix_sep: str = "_",
+        fillna: Optional[bool] = None,
     ) -> "Categorical":
         """Create a `Categorical` using a ``DataFrame`` of dummy variables.
 
@@ -493,12 +493,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
     def get_dummies(
         self,
-        prefix=None,
-        prefix_sep="_",
-        dummy_na=False,
-        sparse=False,
-        drop_first=False,
-        dtype=None,
+        prefix: Optional[str] = None,
+        prefix_sep: str = "_",
+        dummy_na: bool = False,
+        sparse: bool = False,
+        drop_first: bool = False,
+        dtype: Dtype = None,
     ) -> "DataFrame":
         """
         Convert into dummy/indicator variables.
