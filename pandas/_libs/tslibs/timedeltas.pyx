@@ -294,7 +294,9 @@ cdef inline int64_t parse_timedelta_string(str ts) except? -1:
     # have_value : track if we have at least 1 leading unit
     # have_hhmmss : tracks if we have a regular format hh:mm:ss
 
-    if len(ts) == 0 or ts in nat_strings:
+    if len(ts) == 0:
+        raise ValueError("Empty string is not a valid timedelta")
+    if ts in nat_strings:
         return NPY_NAT
 
     for c in ts:
