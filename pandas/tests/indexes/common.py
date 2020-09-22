@@ -1,11 +1,10 @@
 import gc
-from typing import Optional, Type
+from typing import Type
 
 import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.compat.numpy import _is_numpy_dev
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
@@ -33,7 +32,7 @@ from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 class Base:
     """ base class for index sub-class tests """
 
-    _holder: Optional[Type[Index]] = None
+    _holder: Type[Index]
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
     def create_index(self) -> Index:
@@ -270,7 +269,7 @@ class Base:
             s3 = s1 * s2
             assert s3.index.name == "mario"
 
-    def test_name2(self, index):
+    def test_copy_name2(self, index):
         # gh-35592
         if isinstance(index, MultiIndex):
             return
@@ -283,6 +282,11 @@ class Base:
         msg = f"{type(index).__name__}.name must be a hashable type"
         with pytest.raises(TypeError, match=msg):
             index.copy(name=[["mario"]])
+
+    def test_copy_dtype_deprecated(self, index):
+        # GH35853
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            index.copy(dtype=object)
 
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
@@ -451,7 +455,7 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             getattr(index, method)(case)
 
-    def test_intersection_base(self, index, request):
+    def test_intersection_base(self, index):
         if isinstance(index, CategoricalIndex):
             return
 
@@ -468,15 +472,6 @@ class Base:
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
-            # https://github.com/pandas-dev/pandas/issues/35481
-            if (
-                _is_numpy_dev
-                and isinstance(case, Series)
-                and isinstance(index, UInt64Index)
-            ):
-                mark = pytest.mark.xfail(reason="gh-35481")
-                request.node.add_marker(mark)
-
             result = first.intersection(case)
             assert tm.equalContents(result, second)
 
@@ -502,7 +497,11 @@ class Base:
         for case in cases:
             if not isinstance(index, CategoricalIndex):
                 result = first.union(case)
-                assert tm.equalContents(result, everything)
+                assert tm.equalContents(result, everything), (
+                    result,
+                    everything,
+                    type(case),
+                )
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -681,6 +680,12 @@ class Base:
         expected = [str(x) for x in idx]
         assert idx.format() == expected
 
+    def test_format_empty(self):
+        # GH35712
+        empty_idx = self._holder([])
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]
+
     def test_hasnans_isnans(self, index):
         # GH 11343, added tests for hasnans / isnans
         if isinstance(index, MultiIndex):
@@ -835,16 +840,17 @@ class Base:
     def test_putmask_with_wrong_mask(self):
         # GH18368
         index = self.create_index()
+        fill = index[0]
 
         msg = "putmask: mask and data must be the same size"
         with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) + 1, np.bool_), 1)
+            index.putmask(np.ones(len(index) + 1, np.bool_), fill)
 
         with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) - 1, np.bool_), 1)
+            index.putmask(np.ones(len(index) - 1, np.bool_), fill)
 
         with pytest.raises(ValueError, match=msg):
-            index.putmask("foo", 1)
+            index.putmask("foo", fill)
 
     @pytest.mark.parametrize("copy", [True, False])
     @pytest.mark.parametrize("name", [None, "foo"])
@@ -894,6 +900,7 @@ class Base:
         index_na_dup = index_na.insert(0, np.nan)
         assert index_na_dup.is_unique is False
 
+    @pytest.mark.arm_slow
     def test_engine_reference_cycle(self):
         # GH27585
         index = self.create_index()

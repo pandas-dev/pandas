@@ -591,7 +591,16 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
             if "tz-naive and tz-aware" in str(err):
                 return False
             raise
-
+        except ValueError:
+            # Avoid raising ValueError when comparing Numpy arrays to other types
+            if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
+                # Only compare scalars to scalars and non-scalars to non-scalars
+                return False
+            elif (not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
+                  and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
+                # Check if non-scalars have the same type
+                return False
+            raise
     return True
 
 
@@ -618,35 +627,57 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
-    """
-    Convert all elements in an array to string.
+cpdef ndarray[object] ensure_string_array(
+        arr,
+        object na_value=np.nan,
+        bint convert_na_value=True,
+        bint copy=True,
+        bint skipna=True,
+):
+    """Returns a new numpy array with object dtype and only strings and na values.
 
     Parameters
     ----------
-    arr : ndarray
-        The array whose elements we are casting.
-    skipna : bool, default False
+    arr : array-like
+        The values to be converted to str, if needed.
+    na_value : Any
+        The value to use for na. For example, np.nan or pd.NA.
+    convert_na_value : bool, default True
+        If False, existing na values will be used unchanged in the new array.
+    copy : bool, default True
+        Whether to ensure that a new array is returned.
+    skipna : bool, default True
         Whether or not to coerce nulls to their stringified form
-        (e.g. NaN becomes 'nan').
+        (e.g. if False, NaN becomes 'nan').
 
     Returns
     -------
     ndarray
-        A new array with the input array's elements casted.
+        An array with the input array's elements casted to str or nan-like.
     """
     cdef:
-        object arr_i
-        Py_ssize_t i, n = arr.size
-        ndarray[object] result = np.empty(n, dtype=object)
+        Py_ssize_t i = 0, n = len(arr)
+
+    result = np.asarray(arr, dtype="object")
+
+    if copy and result is arr:
+        result = result.copy()
 
     for i in range(n):
-        arr_i = arr[i]
+        val = arr[i]
 
-        if not (skipna and checknull(arr_i)):
-            arr_i = str(arr_i)
+        if isinstance(val, str):
+            continue
 
-        result[i] = arr_i
+        if not checknull(val):
+            result[i] = str(val)
+        else:
+            if convert_na_value:
+                val = na_value
+            if skipna:
+                result[i] = val
+            else:
+                result[i] = str(val)
 
     return result
 
@@ -2360,7 +2391,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer(ndarray arr, object f, bint convert=True):
+def map_infer(ndarray arr, object f, bint convert=True, bint ignore_na=False):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2368,6 +2399,9 @@ def map_infer(ndarray arr, object f, bint convert=True):
     ----------
     arr : ndarray
     f : function
+    convert : bint
+    ignore_na : bint
+        If True, NA values will not have f applied
 
     Returns
     -------
@@ -2381,6 +2415,9 @@ def map_infer(ndarray arr, object f, bint convert=True):
     n = len(arr)
     result = np.empty(n, dtype=object)
     for i in range(n):
+        if ignore_na and checknull(arr[i]):
+            result[i] = arr[i]
+            continue
         val = f(arr[i])
 
         if cnp.PyArray_IsZeroDim(val):

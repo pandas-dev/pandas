@@ -177,11 +177,10 @@ class StringArray(PandasArray):
 
     def __init__(self, values, copy=False):
         values = extract_array(values)
-        skip_validation = isinstance(values, type(self))
 
         super().__init__(values, copy=copy)
         self._dtype = StringDtype()
-        if not skip_validation:
+        if not isinstance(values, type(self)):
             self._validate()
 
     def _validate(self):
@@ -199,26 +198,18 @@ class StringArray(PandasArray):
         if dtype:
             assert dtype == "string"
 
-        result = np.asarray(scalars, dtype="object")
-        if copy and result is scalars:
-            result = result.copy()
+        # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+        result = lib.ensure_string_array(
+            scalars, na_value=StringDtype.na_value, copy=copy
+        )
 
-        # Standardize all missing-like values to NA
-        # TODO: it would be nice to do this in _validate / lib.is_string_array
-        # We are already doing a scan over the values there.
-        na_values = isna(result)
-        has_nans = na_values.any()
-        if has_nans and result is scalars:
-            # force a copy now, if we haven't already
-            result = result.copy()
+        # Manually creating new array avoids the validation step in the __init__, so is
+        # faster. Refactor need for validation?
+        new_string_array = object.__new__(cls)
+        new_string_array._dtype = StringDtype()
+        new_string_array._ndarray = result
 
-        # convert to str, then to object to avoid dtype like '<U3', then insert na_value
-        result = np.asarray(result, dtype=str)
-        result = np.asarray(result, dtype="object")
-        if has_nans:
-            result[na_values] = StringDtype.na_value
-
-        return cls(result)
+        return new_string_array
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):

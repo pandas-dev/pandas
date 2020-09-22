@@ -16,18 +16,7 @@ import os
 from pathlib import Path
 import struct
 import sys
-from typing import (
-    Any,
-    AnyStr,
-    BinaryIO,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, AnyStr, BinaryIO, Dict, List, Optional, Sequence, Tuple, Union
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -35,7 +24,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
-from pandas._typing import FilePathOrBuffer, Label, StorageOptions
+from pandas._typing import CompressionOptions, FilePathOrBuffer, Label, StorageOptions
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -58,13 +47,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
 
-from pandas.io.common import (
-    get_compression_method,
-    get_filepath_or_buffer,
-    get_handle,
-    infer_compression,
-    stringify_path,
-)
+from pandas.io.common import get_filepath_or_buffer, get_handle, stringify_path
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
@@ -181,8 +164,6 @@ Parameters
 path_or_buf : path (string), buffer or path object
     string, path object (pathlib.Path or py._path.local.LocalPath) or object
     implementing a binary read() functions.
-
-    .. versionadded:: 0.23.0 support for pathlib, py.path.
 {_statafile_processing_params1}
 {_statafile_processing_params2}
 {_chunksize_params}
@@ -1069,9 +1050,9 @@ class StataReader(StataParser, abc.Iterator):
         self._native_byteorder = _set_endianness(sys.byteorder)
         path_or_buf = stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(
+            path_or_buf = get_filepath_or_buffer(
                 path_or_buf, storage_options=storage_options
-            )
+            ).filepath_or_buffer
 
         if isinstance(path_or_buf, (str, bytes)):
             self.path_or_buf = open(path_or_buf, "rb")
@@ -1096,7 +1077,7 @@ class StataReader(StataParser, abc.Iterator):
         """ close the handle if its open """
         try:
             self.path_or_buf.close()
-        except IOError:
+        except OSError:
             pass
 
     def _set_encoding(self) -> None:
@@ -1938,9 +1919,9 @@ def read_stata(
 
 def _open_file_binary_write(
     fname: FilePathOrBuffer,
-    compression: Union[str, Mapping[str, str], None],
+    compression: CompressionOptions,
     storage_options: StorageOptions = None,
-) -> Tuple[BinaryIO, bool, Optional[Union[str, Mapping[str, str]]]]:
+) -> Tuple[BinaryIO, bool, CompressionOptions]:
     """
     Open a binary file or no-op if file-like.
 
@@ -1976,21 +1957,16 @@ def _open_file_binary_write(
         return fname, False, None  # type: ignore[return-value]
     elif isinstance(fname, (str, Path)):
         # Extract compression mode as given, if dict
-        compression_typ, compression_args = get_compression_method(compression)
-        compression_typ = infer_compression(fname, compression_typ)
-        path_or_buf, _, compression_typ, _ = get_filepath_or_buffer(
-            fname,
-            mode="wb",
-            compression=compression_typ,
-            storage_options=storage_options,
+        ioargs = get_filepath_or_buffer(
+            fname, mode="wb", compression=compression, storage_options=storage_options
         )
-        if compression_typ is not None:
-            compression = compression_args
-            compression["method"] = compression_typ
-        else:
-            compression = None
-        f, _ = get_handle(path_or_buf, "wb", compression=compression, is_text=False)
-        return f, True, compression
+        f, _ = get_handle(
+            ioargs.filepath_or_buffer,
+            "wb",
+            compression=ioargs.compression,
+            is_text=False,
+        )
+        return f, True, ioargs.compression
     else:
         raise TypeError("fname must be a binary file, buffer or path-like.")
 
@@ -2144,9 +2120,6 @@ class StataWriter(StataParser):
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
-
-        .. versionadded:: 0.23.0 support for pathlib, py.path.
-
     data : DataFrame
         Input to save
     convert_dates : dict
@@ -2237,7 +2210,7 @@ class StataWriter(StataParser):
         time_stamp: Optional[datetime.datetime] = None,
         data_label: Optional[str] = None,
         variable_labels: Optional[Dict[Label, str]] = None,
-        compression: Union[str, Mapping[str, str], None] = "infer",
+        compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ):
         super().__init__()
@@ -3022,8 +2995,6 @@ class StataWriter117(StataWriter):
     """
     A class for writing Stata binary dta files in Stata 13 format (117)
 
-    .. versionadded:: 0.23.0
-
     Parameters
     ----------
     fname : path (string), buffer or path object
@@ -3120,7 +3091,7 @@ class StataWriter117(StataWriter):
         data_label: Optional[str] = None,
         variable_labels: Optional[Dict[Label, str]] = None,
         convert_strl: Optional[Sequence[Label]] = None,
-        compression: Union[str, Mapping[str, str], None] = "infer",
+        compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ):
         # Copy to new list since convert_strl might be modified later
@@ -3525,7 +3496,7 @@ class StataWriterUTF8(StataWriter117):
         variable_labels: Optional[Dict[Label, str]] = None,
         convert_strl: Optional[Sequence[Label]] = None,
         version: Optional[int] = None,
-        compression: Union[str, Mapping[str, str], None] = "infer",
+        compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ):
         if version is None:

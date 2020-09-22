@@ -5,15 +5,16 @@ dependencies:
   - python=3.8.*
 
   # tools
-  - cython>=0.29.16
-  - pytest>=5.0.1,<6.0.0  # https://github.com/pandas-dev/pandas/issues/35620
+  - cython>=0.29.21
+  - pytest>=5.0.1
   - pytest-xdist>=1.21
-  - pytest-asyncio
+  - pytest-asyncio>=0.12.0
   - hypothesis>=3.58.0
   - pytest-azurepipelines
 
   # pandas dependencies
   - beautifulsoup4
+  - flask
   - html5lib
   - ipython
   - jinja2
@@ -32,6 +33,7 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
+  - moto
   - pyarrow>=0.15
   - pip
   - pip:

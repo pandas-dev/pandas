@@ -1138,7 +1138,6 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.skip("unreliable test #35214")
 def test_chunks_have_consistent_numerical_type(all_parsers):
     parser = all_parsers
     integers = [str(i) for i in range(499999)]
@@ -1152,7 +1151,6 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
     assert result.a.dtype == float
 
 
-@pytest.mark.skip("unreliable test #35214")
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
     warning_type = None
     parser = all_parsers
@@ -1726,7 +1724,7 @@ def test_iteration_open_handle(all_parsers):
         with open(path, "w") as f:
             f.write("AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG")
 
-        with open(path, "r") as f:
+        with open(path) as f:
             for line in f:
                 if "CCC" in line:
                     break
@@ -1836,6 +1834,7 @@ def test_raise_on_no_columns(all_parsers, nrows):
         parser.read_csv(StringIO(data))
 
 
+@td.check_file_leaks
 def test_memory_map(all_parsers, csv_dir_path):
     mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
     parser = all_parsers
@@ -2121,6 +2120,16 @@ def test_first_row_bom(all_parsers):
     # see gh-26545
     parser = all_parsers
     data = '''\ufeff"Head1"	"Head2"	"Head3"'''
+
+    result = parser.read_csv(StringIO(data), delimiter="\t")
+    expected = DataFrame(columns=["Head1", "Head2", "Head3"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_first_row_bom_unquoted(all_parsers):
+    # see gh-36343
+    parser = all_parsers
+    data = """\ufeffHead1	Head2	Head3"""
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])

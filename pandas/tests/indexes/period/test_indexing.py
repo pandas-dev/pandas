@@ -157,6 +157,7 @@ class TestGetItem:
         exp = ts.iloc[[1]]
         tm.assert_series_equal(ts[[Period("2012-01-02", freq="D")]], exp)
 
+    @pytest.mark.arm_slow
     def test_getitem_seconds(self):
         # GH#6716
         didx = date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
@@ -358,6 +359,22 @@ class TestGetLoc:
                     Timedelta("1 day").to_timedelta64(),
                 ],
             )
+
+    def test_get_loc_invalid_string_raises_keyerror(self):
+        # GH#34240
+        pi = pd.period_range("2000", periods=3, name="A")
+        with pytest.raises(KeyError, match="A"):
+            pi.get_loc("A")
+
+        ser = pd.Series([1, 2, 3], index=pi)
+        with pytest.raises(KeyError, match="A"):
+            ser.loc["A"]
+
+        with pytest.raises(KeyError, match="A"):
+            ser["A"]
+
+        assert "A" not in ser
+        assert "A" not in pi
 
 
 class TestGetIndexer:

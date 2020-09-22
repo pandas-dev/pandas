@@ -229,6 +229,15 @@ see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
    The API for window statistics is quite similar to the way one works with ``GroupBy`` objects, see the documentation :ref:`here <groupby>`.
 
+.. warning::
+
+    When using ``rolling()`` and an associated function the results are calculated with rolling sums. As a consequence
+    when having values differing with magnitude :math:`1/np.finfo(np.double).eps` this results in truncation. It must be
+    noted, that large values may have an impact on windows, which do not include these values. `Kahan summation
+    <https://en.wikipedia.org/wiki/Kahan_summation_algorithm>`__ is used
+    to compute the rolling sums to preserve accuracy as much as possible. The same holds true for ``Rolling.var()`` for
+    values differing with magnitude :math:`(1/np.finfo(np.double).eps)^{0.5}`.
+
 We work with ``rolling``, ``expanding`` and ``exponentially weighted`` data through the corresponding
 objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.ExponentialMovingWindow`.
 
@@ -361,6 +370,9 @@ compute the mean absolute deviation on a rolling basis:
    @savefig rolling_apply_ex.png
    s.rolling(window=60).apply(mad, raw=True).plot(style='k')
 
+Using the Numba engine
+~~~~~~~~~~~~~~~~~~~~~~
+
 .. versionadded:: 1.0
 
 Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
@@ -421,7 +433,7 @@ The following methods are available:
 
 The weights used in the window are specified by the ``win_type`` keyword.
 The list of recognized types are the `scipy.signal window functions
-<https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__:
+<https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__:
 
 * ``boxcar``
 * ``triang``

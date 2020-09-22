@@ -62,11 +62,6 @@ class TestIndex(Base):
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
-    @pytest.mark.parametrize("index", ["int", "uint", "float"], indirect=True)
-    def test_copy_and_deepcopy(self, index):
-        new_copy2 = index.copy(dtype=int)
-        assert new_copy2.dtype.kind == "i"
-
     def test_constructor_regular(self, index):
         tm.assert_contains_all(index, index)
 
@@ -1365,7 +1360,7 @@ class TestIndex(Base):
     def test_get_indexer_numeric_index_boolean_target(self, idx_class):
         # GH 16877
 
-        numeric_index = idx_class(RangeIndex((4)))
+        numeric_index = idx_class(RangeIndex(4))
         result = numeric_index.get_indexer([True, False, True])
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -2431,7 +2426,7 @@ class TestMixedIntIndex(Base):
         # TODO: remove tupleize_cols=False once correct behaviour is restored
         # TODO: also this op right now produces FutureWarning from numpy
         idx = Index([("a", "b"), ("b", "c"), ("c", "a")], tupleize_cols=False)
-        result = idx == ("c", "a",)
+        result = idx == ("c", "a")
         expected = np.array([False, False, True])
         tm.assert_numpy_array_equal(result, expected)
 

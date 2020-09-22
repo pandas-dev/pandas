@@ -37,7 +37,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import _maybe_fill, isna
+from pandas.core.dtypes.missing import isna, maybe_fill
 
 import pandas.core.algorithms as algorithms
 from pandas.core.base import SelectionMixin
@@ -54,12 +54,6 @@ from pandas.core.sorting import (
     get_group_index,
     get_group_index_sorter,
     get_indexer_dict,
-)
-from pandas.core.util.numba_ import (
-    NUMBA_FUNC_CACHE,
-    generate_numba_func,
-    maybe_use_numba,
-    split_for_numba,
 )
 
 
@@ -88,7 +82,7 @@ class BaseGrouper:
     def __init__(
         self,
         axis: Index,
-        groupings: "Sequence[grouper.Grouping]",
+        groupings: Sequence["grouper.Grouping"],
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
@@ -530,13 +524,11 @@ class BaseGrouper:
         codes, _, _ = self.group_info
 
         if kind == "aggregate":
-            result = _maybe_fill(
-                np.empty(out_shape, dtype=out_dtype), fill_value=np.nan
-            )
+            result = maybe_fill(np.empty(out_shape, dtype=out_dtype), fill_value=np.nan)
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(result, counts, values, codes, func, min_count)
         elif kind == "transform":
-            result = _maybe_fill(
+            result = maybe_fill(
                 np.empty_like(values, dtype=out_dtype), fill_value=np.nan
             )
 
@@ -589,7 +581,7 @@ class BaseGrouper:
         return self._cython_operation("transform", values, how, axis, **kwargs)
 
     def _aggregate(
-        self, result, counts, values, comp_ids, agg_func, min_count: int = -1,
+        self, result, counts, values, comp_ids, agg_func, min_count: int = -1
     ):
         if agg_func is libgroupby.group_nth:
             # different signature from the others
@@ -609,22 +601,10 @@ class BaseGrouper:
 
         return result
 
-    def agg_series(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
-    ):
+    def agg_series(self, obj: Series, func: F):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
 
-        if maybe_use_numba(engine):
-            return self._aggregate_series_pure_python(
-                obj, func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-            )
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
             return self._aggregate_series_pure_python(obj, func)
@@ -643,7 +623,7 @@ class BaseGrouper:
         try:
             return self._aggregate_series_fast(obj, func)
         except ValueError as err:
-            if "Function does not reduce" in str(err):
+            if "Must produce aggregated value" in str(err):
                 # raised in libreduction
                 pass
             else:
@@ -669,51 +649,30 @@ class BaseGrouper:
         result, counts = grouper.get_result()
         return result, counts
 
-    def _aggregate_series_pure_python(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
-    ):
-
-        if maybe_use_numba(engine):
-            numba_func, cache_key = generate_numba_func(
-                func, engine_kwargs, kwargs, "groupby_agg"
-            )
-
+    def _aggregate_series_pure_python(self, obj: Series, func: F):
         group_index, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
-        result = None
+        result = np.empty(ngroups, dtype="O")
+        initialized = False
 
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            if maybe_use_numba(engine):
-                values, index = split_for_numba(group)
-                res = numba_func(values, index, *args)
-                if cache_key not in NUMBA_FUNC_CACHE:
-                    NUMBA_FUNC_CACHE[cache_key] = numba_func
-            else:
-                res = func(group, *args, **kwargs)
 
-            if result is None:
-                if isinstance(res, (Series, Index, np.ndarray)):
-                    if len(res) == 1:
-                        # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
-                        # FIXME: are we potentially losing important res.index info?
-                        res = res.item()
-                    else:
-                        raise ValueError("Function does not reduce")
-                result = np.empty(ngroups, dtype="O")
+            # Each step of this loop corresponds to
+            #  libreduction._BaseGrouper._apply_to_group
+            res = func(group)
+            res = libreduction.extract_result(res)
+
+            if not initialized:
+                # We only do this validation on the first iteration
+                libreduction.check_result_array(res, 0)
+                initialized = True
 
             counts[label] = group.shape[0]
             result[label] = res
 
-        assert result is not None
         result = lib.maybe_convert_objects(result, try_float=0)
         # TODO: maybe_cast_to_extension_array?
 
@@ -875,15 +834,7 @@ class BinGrouper(BaseGrouper):
             for lvl, name in zip(self.levels, self.names)
         ]
 
-    def agg_series(
-        self,
-        obj: Series,
-        func: F,
-        *args,
-        engine: str = "cython",
-        engine_kwargs=None,
-        **kwargs,
-    ):
+    def agg_series(self, obj: Series, func: F):
         # Caller is responsible for checking ngroups != 0
         assert self.ngroups != 0
         assert len(self.bins) > 0  # otherwise we'd get IndexError in get_result

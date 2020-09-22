@@ -12,7 +12,7 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
 import pandas._testing as tm
-from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
+from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
 # ------------------------------------------------------------------------
@@ -745,7 +745,7 @@ class TestMisc:
         # make frames multi-type & re-run tests
         for frame in [df, rhs, right]:
             frame["joe"] = frame["joe"].astype("float64")
-            frame["jolie"] = frame["jolie"].map("@{0}".format)
+            frame["jolie"] = frame["jolie"].map("@{}".format)
 
         run_tests(df, rhs, right)
 
@@ -822,7 +822,7 @@ class TestMisc:
     def test_non_reducing_slice(self, slc):
         df = DataFrame([[0, 1], [2, 3]])
 
-        tslice_ = _non_reducing_slice(slc)
+        tslice_ = non_reducing_slice(slc)
         assert isinstance(df.loc[tslice_], DataFrame)
 
     def test_list_slice(self):
@@ -831,18 +831,18 @@ class TestMisc:
         df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
         expected = pd.IndexSlice[:, ["A"]]
         for subset in slices:
-            result = _non_reducing_slice(subset)
+            result = non_reducing_slice(subset)
             tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
     def test_maybe_numeric_slice(self):
         df = DataFrame({"A": [1, 2], "B": ["c", "d"], "C": [True, False]})
-        result = _maybe_numeric_slice(df, slice_=None)
+        result = maybe_numeric_slice(df, slice_=None)
         expected = pd.IndexSlice[:, ["A"]]
         assert result == expected
 
-        result = _maybe_numeric_slice(df, None, include_bool=True)
+        result = maybe_numeric_slice(df, None, include_bool=True)
         expected = pd.IndexSlice[:, ["A", "C"]]
-        result = _maybe_numeric_slice(df, [1])
+        result = maybe_numeric_slice(df, [1])
         expected = [1]
         assert result == expected
 
@@ -1004,7 +1004,7 @@ def test_extension_array_cross_section():
 def test_extension_array_cross_section_converts():
     # all numeric columns -> numeric series
     df = pd.DataFrame(
-        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"],
+        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"]
     )
     result = df.loc["a"]
     expected = pd.Series([1, 1], dtype="Int64", index=["A", "B"], name="a")
