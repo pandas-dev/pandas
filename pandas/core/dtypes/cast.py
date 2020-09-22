@@ -1559,6 +1559,11 @@ def construct_1d_arraylike_from_scalar(
             dtype = np.dtype("object")
             if not isna(value):
                 value = ensure_str(value)
+        elif isinstance(dtype, np.dtype) and dtype.kind == "M" and value is NaT:
+            # can't fill array directly with pd.NaT:
+            # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
+            # ValueError: cannot convert float NaN to integer
+            value = np.datetime64("NaT")
 
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)

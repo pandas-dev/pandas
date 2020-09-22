@@ -20,3 +20,16 @@ def test_access_none_value_in_multiindex():
     s = Series([1] * len(midx), dtype=object, index=midx)
     result = s.loc[("Level1", "Level2_a")]
     assert result == 1
+
+
+def test_nat_multi_index():
+    ix = pd.MultiIndex.from_tuples([(pd.NaT, 1), (pd.NaT, 2)], names=["a", "b"])
+    result = pd.DataFrame({"x": [11, 12]}, index=ix)
+    result = result.reset_index()
+
+    expected = pd.DataFrame({
+        "a": [pd.NaT, pd.NaT],
+        "b": [1, 2],
+        "x": [11, 12]
+    })
+    pd.testing.assert_frame_equal(result, expected)
