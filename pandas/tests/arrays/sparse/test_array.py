@@ -193,9 +193,7 @@ class TestSparseArray:
             assert result == fill_value
 
     @pytest.mark.parametrize("format", ["coo", "csc", "csr"])
-    @pytest.mark.parametrize(
-        "size", [0, 10],
-    )
+    @pytest.mark.parametrize("size", [0, 10])
     @td.skip_if_no_scipy
     def test_from_spmatrix(self, size, format):
         import scipy.sparse
@@ -693,17 +691,13 @@ class TestSparseArray:
         dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
 
         sparse = SparseArray(dense)
-        res = sparse[
-            4:,
-        ]  # noqa: E231
-        exp = SparseArray(dense[4:,])  # noqa: E231
+        res = sparse[(slice(4, None),)]
+        exp = SparseArray(dense[4:])
         tm.assert_sp_array_equal(res, exp)
 
         sparse = SparseArray(dense, fill_value=0)
-        res = sparse[
-            4:,
-        ]  # noqa: E231
-        exp = SparseArray(dense[4:,], fill_value=0)  # noqa: E231
+        res = sparse[(slice(4, None),)]
+        exp = SparseArray(dense[4:], fill_value=0)
         tm.assert_sp_array_equal(res, exp)
 
         msg = "too many indices for array"
