@@ -51,13 +51,13 @@ def test_transform_listlike(string_series, ops, names):
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("argtype", [dict, Series])
-def test_transform_dictlike(string_series, argtype):
+@pytest.mark.parametrize("box", [dict, Series])
+def test_transform_dictlike(string_series, box):
     # GH 35964
     with np.errstate(all="ignore"):
         expected = concat([np.sqrt(string_series), np.abs(string_series)], axis=1)
     expected.columns = ["foo", "bar"]
-    result = string_series.transform(argtype({"foo": np.sqrt, "bar": np.abs}))
+    result = string_series.transform(box({"foo": np.sqrt, "bar": np.abs}))
     tm.assert_frame_equal(result, expected)
 
 

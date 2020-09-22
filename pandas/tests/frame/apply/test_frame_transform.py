@@ -62,8 +62,8 @@ def test_transform_listlike(axis, float_frame, ops, names):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("argtype", [dict, Series])
-def test_transform_dictlike(axis, float_frame, argtype):
+@pytest.mark.parametrize("box", [dict, Series])
+def test_transform_dictlike(axis, float_frame, box):
     # GH 35964
     if axis == 0 or axis == "index":
         e = float_frame.columns[0]
@@ -71,7 +71,7 @@ def test_transform_dictlike(axis, float_frame, argtype):
     else:
         e = float_frame.index[0]
         expected = float_frame.iloc[[0]].transform(np.abs)
-    result = float_frame.transform(argtype({e: np.abs}), axis=axis)
+    result = float_frame.transform(box({e: np.abs}), axis=axis)
     tm.assert_frame_equal(result, expected)
 
 
