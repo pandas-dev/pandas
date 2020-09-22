@@ -1727,7 +1727,16 @@ class _Tooltips:
         self.table_styles: List[Dict[str, Union[str, List[Tuple[str, str]]]]] = []
 
     @property
-    def class_styles(self):
+    def _class_styles(self):
+        """
+        Combine the ``_Tooltips`` CSS class name and CSS properties to the format
+        required to extend the underlying ``Styler`` `table_styles` to allow
+        tooltips to render in HTML.
+
+        Returns
+        -------
+        styles : List
+        """
         return [{"selector": f".{self.class_name}", "props": self.class_properties}]
 
     def _translate_tooltips(self, styler_data, uuid, d):
@@ -1755,7 +1764,9 @@ class _Tooltips:
         if self.tt_data.empty:
             return d
 
-        def pseudo_css(uuid, row, col, name, text):
+        name = self.class_name
+
+        def _pseudo_css(row: int, col: int, text: str):
             """
             For every table data-cell that has a valid tooltip (not None, NaN or
             empty string) must create two pseudo CSS entries for the specific
@@ -1768,6 +1779,15 @@ class _Tooltips:
                  "props": [("visibility", "visible")]},
                 {"selector": "T__row1_col1 .pd-t::after",
                  "props": [("content", "Some Valid Text String")]}]
+
+            Parameters
+            ----------
+            row : int
+                The row index of the specified tooltip string data
+            col : int
+                The col index of the specified tooltip string data
+            text : str
+                The textual content of the tooltip to be displayed in HTML.
 
             Returns
             -------
@@ -1800,7 +1820,7 @@ class _Tooltips:
         self.table_styles = [
             d
             for sublist in [
-                pseudo_css(uuid, i, j, self.class_name, str(self.tt_data.iloc[i, j]),)
+                _pseudo_css(i, j, str(self.tt_data.iloc[i, j]))
                 for i, rn in enumerate(self.tt_data.index)
                 for j, cn in enumerate(self.tt_data.columns)
                 if not mask.iloc[i, j]
@@ -1816,7 +1836,7 @@ class _Tooltips:
                             str(item["display_value"])
                             + f'<span class="{self.class_name}"></span>'
                         )
-            d["table_styles"].extend(self.class_styles)
+            d["table_styles"].extend(self._class_styles)
             d["table_styles"].extend(self.table_styles)
 
         return d

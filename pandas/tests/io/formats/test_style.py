@@ -1788,7 +1788,7 @@ class TestStyler:
         # GH 21266
         df = pd.DataFrame(data=[[0, 1], [2, 3]])
         s = (
-            Styler(df, uuid="_").set_tooltips_class("pd-t").render()
+            Styler(df).set_tooltips_class("pd-t").render()
         )  # no set_tooltips()
         assert '<style  type="text/css" >\n</style>' in s
         assert '<span class="pd-t"></span>' not in s
