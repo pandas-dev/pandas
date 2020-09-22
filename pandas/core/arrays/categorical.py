@@ -577,8 +577,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         1  0.0  1.0  0.0
         2  0.0  0.0  1.0
         """
-        # Would be better to use pandas.core.reshape.reshape._get_dummies_1d
-        # but that's internal and fails lints
         from pandas import get_dummies
 
         return get_dummies(
