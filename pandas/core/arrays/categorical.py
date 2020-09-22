@@ -451,11 +451,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         from pandas import Series
 
-        copied = False
         to_drop = dummies.columns[isna(dummies.columns.values)]
         if len(to_drop):
             dummies = dummies.drop(columns=to_drop)
-            copied = True
 
         if prefix is None:
             cats = dummies.columns
@@ -471,7 +469,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         df = dummies.astype("boolean")
         if fillna is not None:
-            df = df.fillna(fillna, inplace=copied)
+            df = df.fillna(fillna)
 
         row_totals = df.sum(axis=1, skipna=False)
         if row_totals.isna().any():
@@ -481,7 +479,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         if multicat_rows.any():
             raise ValueError(
                 "{} record(s) belongs to multiple categories: {}".format(
-                    multicat_rows.sum(), list(df.index[multicat_rows]),
+                    multicat_rows.sum(),
+                    list(df.index[multicat_rows]),
                 )
             )
 
