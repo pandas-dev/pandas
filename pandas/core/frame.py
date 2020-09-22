@@ -872,7 +872,9 @@ class DataFrame(NDFrame):
                 decimal=decimal,
             )
             return fmt.DataFrameRenderer(formatter).to_string(
-                buf=buf, encoding=encoding, line_width=line_width,
+                buf=buf,
+                encoding=encoding,
+                line_width=line_width,
             )
 
     # ----------------------------------------------------------------------
