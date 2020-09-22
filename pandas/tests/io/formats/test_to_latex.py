@@ -1,5 +1,4 @@
 import codecs
-from collections import namedtuple
 from datetime import datetime
 from textwrap import dedent
 
@@ -30,24 +29,29 @@ def _dedent(string):
 
 class TestToLatex:
     @pytest.fixture
-    def df_caption_label(self):
-        """DataFrame, caption and label for testing LaTeX table/tabular env."""
-        container = namedtuple("Container", ["frame", "caption", "label"])
-        yield container(
-            DataFrame({"a": [1, 2], "b": ["b1", "b2"]}),
-            "a table in a \\texttt{table/tabular} environment",
-            "tab:table_tabular",
-        )
+    def df_short(self):
+        """Short dataframe for testing table/tabular/longtable LaTeX env."""
+        return DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
     @pytest.fixture
-    def df_caption_label_longtable(self):
-        """DataFrame, caption and label for testing LaTeX longtable env."""
-        container = namedtuple("Container", ["frame", "caption", "label"])
-        yield container(
-            DataFrame({"a": [1, 2], "b": ["b1", "b2"]}),
-            "a table in a \\texttt{longtable} environment",
-            "tab:longtable",
-        )
+    def caption_table(self):
+        """Caption for table/tabular LaTeX environment."""
+        return "a table in a \\texttt{table/tabular} environment"
+
+    @pytest.fixture
+    def label_table(self):
+        """Label for table/tabular LaTeX environment."""
+        return "tab:table_tabular"
+
+    @pytest.fixture
+    def caption_longtable(self):
+        """Caption for longtable LaTeX environment."""
+        return "a table in a \\texttt{longtable} environment"
+
+    @pytest.fixture
+    def label_longtable(self):
+        """Label for longtable LaTeX environment."""
+        return "tab:longtable"
 
     @pytest.fixture
     def multiindex_frame(self):
@@ -584,10 +588,9 @@ class TestToLatex:
         result = df.to_latex(index=False, longtable=True)
         assert fr"\multicolumn{{{expected_number}}}" in result
 
-    def test_to_latex_caption_only(self, df_caption_label):
+    def test_to_latex_caption_only(self, df_short, caption_table):
         # GH 25436
-        df, the_caption, _ = df_caption_label
-        result = df.to_latex(caption=the_caption)
+        result = df_short.to_latex(caption=caption_table)
         expected = _dedent(
             r"""
             \begin{table}
@@ -606,10 +609,9 @@ class TestToLatex:
         )
         assert result == expected
 
-    def test_to_latex_label_only(self, df_caption_label):
+    def test_to_latex_label_only(self, df_short, label_table):
         # GH 25436
-        df, _, the_label = df_caption_label
-        result = df.to_latex(label=the_label)
+        result = df_short.to_latex(label=label_table)
         expected = _dedent(
             r"""
             \begin{table}
@@ -628,10 +630,9 @@ class TestToLatex:
         )
         assert result == expected
 
-    def test_to_latex_caption_and_label(self, df_caption_label):
+    def test_to_latex_caption_and_label(self, df_short, caption_table, label_table):
         # GH 25436
-        df, the_caption, the_label = df_caption_label
-        result = df.to_latex(caption=the_caption, label=the_label)
+        result = df_short.to_latex(caption=caption_table, label=label_table)
         expected = _dedent(
             r"""
             \begin{table}
@@ -651,12 +652,11 @@ class TestToLatex:
         )
         assert result == expected
 
-    def test_to_latex_longtable_caption_only(self, df_caption_label_longtable):
+    def test_to_latex_longtable_caption_only(self, df_short, caption_longtable):
         # GH 25436
         # test when no caption and no label is provided
         # is performed by test_to_latex_longtable()
-        df, the_caption, the_label = df_caption_label_longtable
-        result = df.to_latex(longtable=True, caption=the_caption)
+        result = df_short.to_latex(longtable=True, caption=caption_longtable)
         expected = _dedent(
             r"""
             \begin{longtable}{lrl}
@@ -684,10 +684,9 @@ class TestToLatex:
         )
         assert result == expected
 
-    def test_to_latex_longtable_label_only(self, df_caption_label_longtable):
+    def test_to_latex_longtable_label_only(self, df_short, label_longtable):
         # GH 25436
-        df, the_caption, the_label = df_caption_label_longtable
-        result = df.to_latex(longtable=True, label=the_label)
+        result = df_short.to_latex(longtable=True, label=label_longtable)
         expected = _dedent(
             r"""
             \begin{longtable}{lrl}
@@ -715,10 +714,13 @@ class TestToLatex:
         )
         assert result == expected
 
-    def test_to_latex_longtable_caption_and_label(self, df_caption_label_longtable):
+    def test_to_latex_longtable_caption_and_label(
+        self, df_short, caption_longtable, label_longtable,
+    ):
         # GH 25436
-        df, the_caption, the_label = df_caption_label_longtable
-        result = df.to_latex(longtable=True, caption=the_caption, label=the_label)
+        result = df_short.to_latex(
+            longtable=True, caption=caption_longtable, label=label_longtable,
+        )
         expected = _dedent(
             r"""
             \begin{longtable}{lrl}
