@@ -83,29 +83,28 @@ class CSVFormatter:
         self.header = self.fmt.header
         self.index = self.fmt.index
         self.index_label = index_label
+        self.index_label = self._initialize_index_label(index_label)
         self.errors = errors
         self.quoting = quoting or csvlib.QUOTE_MINIMAL
-        self.quotechar = quotechar
+        self.quotechar = self._initialize_quotechar(quotechar)
         self.doublequote = doublequote
         self.escapechar = escapechar
         self.line_terminator = line_terminator or os.linesep
         self.date_format = date_format
-        self.cols = cols  # type: ignore[assignment]
-        self.chunksize = chunksize  # type: ignore[assignment]
+        self.cols = self._initialize_columns(cols)
+        self.chunksize = self._initialize_chunksize(chunksize)
 
     @property
-    def index_label(self) -> IndexLabel:
-        return self._index_label
 
-    @index_label.setter
-    def index_label(self, index_label: Optional[IndexLabel]) -> None:
+
+    def _initialize_index_label(self, index_label: Optional[IndexLabel]) -> IndexLabel:
         if index_label is not False:
             if index_label is None:
-                index_label = self._get_index_label_from_obj()
+                return self._get_index_label_from_obj()
             elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
                 # given a string for a DF with Index
-                index_label = [index_label]
-        self._index_label = index_label
+                return [index_label]
+        return index_label
 
     def _get_index_label_from_obj(self) -> List[str]:
         if isinstance(self.obj.index, ABCMultiIndex):
@@ -120,30 +119,16 @@ class CSVFormatter:
         index_label = self.obj.index.name
         return [""] if index_label is None else [index_label]
 
-    @property
-    def quotechar(self) -> Optional[str]:
+    def _initialize_quotechar(self, quotechar: Optional[str]) -> Optional[str]:
         if self.quoting != csvlib.QUOTE_NONE:
             # prevents crash in _csv
-            return self._quotechar
-        return None
-
-    @quotechar.setter
-    def quotechar(self, quotechar: Optional[str]) -> None:
-        self._quotechar = quotechar
+            return quotechar
 
     @property
     def has_mi_columns(self) -> bool:
         return bool(isinstance(self.obj.columns, ABCMultiIndex))
 
-    @property
-    def cols(self) -> Sequence[Label]:
-        return self._cols
-
-    @cols.setter
-    def cols(self, cols: Optional[Sequence[Label]]) -> None:
-        self._cols = self._refine_cols(cols)
-
-    def _refine_cols(self, cols: Optional[Sequence[Label]]) -> Sequence[Label]:
+    def _initialize_columns(self, cols: Optional[Sequence[Label]]) -> Sequence[Label]:
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
@@ -159,17 +144,17 @@ class CSVFormatter:
 
         # update columns to include possible multiplicity of dupes
         # and make sure sure cols is just a list of labels
-
-        # Ignore mypy error
-        # Incompatible types in assignment
-        # (expression has type "Index",
-        # variable has type "Optional[Sequence[Optional[Hashable]]]")  [assignment]
-        cols = self.obj.columns  # type: ignore[assignment]
-        if isinstance(cols, ABCIndexClass):
-            return cols._format_native_types(**self._number_format)
+        new_cols = self.obj.columns
+        if isinstance(new_cols, ABCIndexClass):
+            return new_cols._format_native_types(**self._number_format)
         else:
             assert isinstance(cols, Sequence)
-            return list(cols)
+            return list(new_cols)
+
+    def _initialize_chunksize(self, chunksize: Optional[int]) -> int:
+        if chunksize is None:
+            return (100000 // (len(self.cols) or 1)) or 1
+        return int(chunksize)
 
     @property
     def _number_format(self) -> Dict[str, Any]:
@@ -181,17 +166,6 @@ class CSVFormatter:
             quoting=self.quoting,
             decimal=self.decimal,
         )
-
-    @property
-    def chunksize(self) -> int:
-        return self._chunksize
-
-    @chunksize.setter
-    def chunksize(self, chunksize: Optional[int]) -> None:
-        if chunksize is None:
-            chunksize = (100000 // (len(self.cols) or 1)) or 1
-        assert chunksize is not None
-        self._chunksize = int(chunksize)
 
     @property
     def data_index(self) -> Index:
