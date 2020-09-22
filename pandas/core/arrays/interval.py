@@ -824,9 +824,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         fill_left = fill_right = fill_value
         if allow_fill:
-            if (np.asarray(indices) == -1).any():
-                # We have excel tests that pass fill_value=True, xref GH#36466
-                fill_left, fill_right = self._validate_fill_value(fill_value)
+            fill_left, fill_right = self._validate_fill_value(fill_value)
 
         left_take = take(
             self._left, indices, allow_fill=allow_fill, fill_value=fill_left
