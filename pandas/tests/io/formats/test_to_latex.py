@@ -21,7 +21,7 @@ class TestToLatex:
         with tm.ensure_clean("test.tex") as path:
             float_frame.to_latex(path)
 
-            with open(path, "r") as f:
+            with open(path) as f:
                 assert float_frame.to_latex() == f.read()
 
         # test with utf-8 and encoding option (GH 7061)
@@ -414,6 +414,11 @@ b &       b &     b \\
 \toprule
 {} &  a &   b \\
 \midrule
+\endfirsthead
+
+\toprule
+{} &  a &   b \\
+\midrule
 \endhead
 \midrule
 \multicolumn{3}{r}{{Continued on next page}} \\
@@ -430,6 +435,11 @@ b &       b &     b \\
 
         withoutindex_result = df.to_latex(index=False, longtable=True)
         withoutindex_expected = r"""\begin{longtable}{rl}
+\toprule
+ a &  b \\
+\midrule
+\endfirsthead
+
 \toprule
  a &  b \\
 \midrule
@@ -594,11 +604,19 @@ b &       b &     b \\
 
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
+        # test when no caption and no label is provided
+        # is performed by test_to_latex_longtable()
+
         # test when only the caption is provided
         result_c = df.to_latex(longtable=True, caption=the_caption)
 
         expected_c = r"""\begin{longtable}{lrl}
 \caption{a table in a \texttt{longtable} environment}\\
+\toprule
+{} &  a &   b \\
+\midrule
+\endfirsthead
+\caption[]{a table in a \texttt{longtable} environment} \\
 \toprule
 {} &  a &   b \\
 \midrule
@@ -624,6 +642,11 @@ b &       b &     b \\
 \toprule
 {} &  a &   b \\
 \midrule
+\endfirsthead
+
+\toprule
+{} &  a &   b \\
+\midrule
 \endhead
 \midrule
 \multicolumn{3}{r}{{Continued on next page}} \\
@@ -644,6 +667,11 @@ b &       b &     b \\
         expected_cl = r"""\begin{longtable}{lrl}
 \caption{a table in a \texttt{longtable} environment}
 \label{tab:longtable}\\
+\toprule
+{} &  a &   b \\
+\midrule
+\endfirsthead
+\caption[]{a table in a \texttt{longtable} environment} \\
 \toprule
 {} &  a &   b \\
 \midrule
@@ -717,6 +745,11 @@ b &       b &     b \\
         result_p = df.to_latex(longtable=True, position=the_position)
 
         expected_p = r"""\begin{longtable}[t]{lrl}
+\toprule
+{} &  a &   b \\
+\midrule
+\endfirsthead
+
 \toprule
 {} &  a &   b \\
 \midrule
