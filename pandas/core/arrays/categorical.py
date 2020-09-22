@@ -478,10 +478,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         multicat_rows = row_totals > 1
         if multicat_rows.any():
             raise ValueError(
-                "{} record(s) belongs to multiple categories: {}".format(
-                    multicat_rows.sum(),
-                    list(df.index[multicat_rows]),
-                )
+                f"{multicat_rows.sum()} record(s) belongs to multiple categories: "
+                f"{list(df.index[multicat_rows])}"
             )
 
         codes = Series(np.full(len(row_totals), np.nan), index=df.index, dtype="Int64")
