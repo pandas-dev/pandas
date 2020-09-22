@@ -7,7 +7,7 @@ from typing import Type
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.common import is_dtype_equal, pandas_dtype
 
 import pandas as pd
 from pandas.api.extensions import no_default, register_extension_dtype
@@ -131,9 +131,12 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return type(self)(self._data.copy())
 
     def astype(self, dtype, copy=True):
+        if is_dtype_equal(dtype, self._dtype):
+            if not copy:
+                return self
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, type(self.dtype)):
-            return type(self)(self._data, context=dtype.context)
+            return type(self)(self._data, copy=copy, context=dtype.context)
 
         return super().astype(dtype, copy=copy)
 

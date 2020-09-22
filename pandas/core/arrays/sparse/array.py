@@ -1063,6 +1063,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
+        if is_dtype_equal(dtype, self._dtype):
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot

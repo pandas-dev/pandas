@@ -177,7 +177,7 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
 
     def test_loc_iloc_frame_single_dtype(self, data, request):
         npdtype = data.dtype.numpy_dtype
-        if npdtype == object or npdtype == np.float64:
+        if npdtype == object:
             # GH#33125
             mark = pytest.mark.xfail(
                 reason="GH#33125 astype doesn't recognize data.dtype"
@@ -191,14 +191,6 @@ class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     def test_groupby_extension_apply(
         self, data_for_grouping, groupby_apply_op, request
     ):
-        # ValueError: Names should be list-like for a MultiIndex
-        a = "a"
-        is_identity = groupby_apply_op(a) is a
-        if data_for_grouping.dtype.numpy_dtype == np.float64 and is_identity:
-            mark = pytest.mark.xfail(
-                reason="GH#33125 astype doesn't recognize data.dtype"
-            )
-            request.node.add_marker(mark)
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
 
@@ -306,11 +298,7 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
 
 
 class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
-    @pytest.mark.xfail(
-        reason="GH#33125 PandasArray.astype does not recognize PandasDtype"
-    )
-    def test_series_repr(self, data):
-        super().test_series_repr(data)
+    pass
 
 
 @skip_nested
