@@ -16,7 +16,7 @@ from pandas.io.formats.format import DataFrameFormatter, get_level_lengths
 from pandas.io.formats.printing import pprint_thing
 
 
-class HTMLFormatter(DataFrameFormatter):
+class HTMLFormatter:
     """
     Internal class for formatting output data in html.
     This class is intended for shared functionality between
@@ -72,6 +72,10 @@ class HTMLFormatter(DataFrameFormatter):
             )
 
         return self.elements
+
+    @property
+    def should_show_dimensions(self):
+        return self.fmt.should_show_dimensions
 
     @property
     def show_row_idx_names(self) -> bool:
