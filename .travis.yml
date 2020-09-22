@@ -88,6 +88,7 @@ install:
 script:
   - echo "script start"
   - echo "$JOB"
+  - if [ "$JOB" != "3.9-dev" ]; then source activate pandas-dev; fi
   - ci/run_tests.sh
 
 after_script:
