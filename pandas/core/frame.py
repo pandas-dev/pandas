@@ -3172,7 +3172,8 @@ class DataFrame(NDFrame):
 
             # GH31368 preserve name of index
             index_copy = value.index.copy()
-            index_copy.name = self.index.name
+            if self.index.name is not None:
+                index_copy.name = self.index.name
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
