@@ -678,7 +678,9 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
             self._reset_cache("_selected_obj")
 
-    def _set_result_index_ordered(self, result: FrameOrSeries) -> FrameOrSeries:
+    def _set_result_index_ordered(
+        self, factorized_result: FrameOrSeries
+    ) -> FrameOrSeries:
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
@@ -686,30 +688,28 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         # shortcut if we have an already ordered grouper
         if not self.grouper.is_monotonic:
             index = Index(np.concatenate(self._get_indices(self.grouper.result_index)))
-            result.set_axis(index, axis=self.axis, inplace=True)
-            result = result.sort_index(axis=self.axis)
+            factorized_result.set_axis(index, axis=self.axis, inplace=True)
+            factorized_result = factorized_result.sort_index(axis=self.axis)
 
-        def restore_grouper_index(result):
+        def restore_grouper_index(factorized_result):
             # xref 35612
-            # result.index is a standard index => may need to restore original index
+            # factorized_result has a standard index => restore original index
 
-            rows_dropped: bool = len(result) < len(self._selected_obj)
+            rows_dropped: bool = len(factorized_result) < len(self._selected_obj)
             # TODO: address case of axis==1, dropped columns
 
             if self.dropna and self.axis == 0 and rows_dropped:
                 # use result.index to select from index of original object
-                original_index = self._selected_obj.index[result.index]
-                result.index = original_index
+                original_index = self._selected_obj.index[factorized_result.index]
+                factorized_result.index = original_index
             else:
-                result.set_axis(
+                factorized_result.set_axis(
                     self.obj._get_axis(self.axis), axis=self.axis, inplace=True
                 )
 
-            return result
+            return factorized_result
 
-        return restore_grouper_index(result)
-
-        return self._restore_grouper_index(result)
+        return restore_grouper_index(factorized_result)
 
     def _dir_additions(self):
         return self.obj._dir_additions() | self._apply_allowlist
