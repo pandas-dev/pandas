@@ -375,7 +375,10 @@ class BooleanArray(BaseMaskedArray):
 
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
-            return BooleanArray(values, mask, copy=False)
+            if not copy:
+                return self
+            else:
+                return BooleanArray(values, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
