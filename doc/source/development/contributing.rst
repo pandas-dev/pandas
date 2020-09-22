@@ -720,7 +720,7 @@ submitting code to run the check yourself::
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
 
-You should use a ``black`` version >= 19.10b0 as previous versions are not compatible
+You should use a ``black`` version 20.8b1 as previous versions are not compatible
 with the pandas codebase.
 
 If you wish to run these checks automatically, we encourage you to use
