@@ -31,6 +31,7 @@ def _dedent(string):
 class TestToLatex:
     @pytest.fixture
     def df_caption_label(self):
+        """DataFrame, caption and label for testing LaTeX table/tabular env."""
         container = namedtuple("Container", ["frame", "caption", "label"])
         yield container(
             DataFrame({"a": [1, 2], "b": ["b1", "b2"]}),
@@ -40,6 +41,7 @@ class TestToLatex:
 
     @pytest.fixture
     def df_caption_label_longtable(self):
+        """DataFrame, caption and label for testing LaTeX longtable env."""
         container = namedtuple("Container", ["frame", "caption", "label"])
         yield container(
             DataFrame({"a": [1, 2], "b": ["b1", "b2"]}),
@@ -49,6 +51,7 @@ class TestToLatex:
 
     @pytest.fixture
     def multiindex_frame(self):
+        """Multiindex dataframe for testing multirow LaTeX macros."""
         yield DataFrame.from_dict(
             {
                 ("c1", 0): pd.Series({x: x for x in range(4)}),
@@ -61,6 +64,7 @@ class TestToLatex:
 
     @pytest.fixture
     def multicolumn_frame(self):
+        """Multicolumn dataframe for testing multicolumn LaTeX macros."""
         yield pd.DataFrame(
             {
                 ("c1", 0): {x: x for x in range(5)},
@@ -73,6 +77,7 @@ class TestToLatex:
 
     @pytest.fixture
     def df_with_symbols(self):
+        """Dataframe with special characters for testing chars escaping."""
         a = "a"
         b = "b"
         yield DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
