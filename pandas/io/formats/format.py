@@ -949,7 +949,7 @@ class DataFrameRenderer:
             position=position,
         )
         string = latex_formatter.to_string()
-        return self._get_result(string, buf=buf, encoding=encoding)
+        return save_to_buffer(string, buf=buf, encoding=encoding)
 
     def to_html(
         self,
@@ -995,7 +995,7 @@ class DataFrameRenderer:
             render_links=render_links,
         )
         string = html_formatter.to_string()
-        return self._get_result(string, buf=buf, encoding=encoding)
+        return save_to_buffer(string, buf=buf, encoding=encoding)
 
     def to_string(
         self,
@@ -1019,7 +1019,7 @@ class DataFrameRenderer:
 
         string_formatter = StringFormatter(self.fmt, line_width=line_width)
         string = string_formatter.to_string()
-        return self._get_result(string, buf=buf, encoding=encoding)
+        return save_to_buffer(string, buf=buf, encoding=encoding)
 
     def to_csv(
         self,
@@ -1072,50 +1072,49 @@ class DataFrameRenderer:
 
         return None
 
-    def _get_result(
-        self,
-        string: str,
-        buf: Optional[FilePathOrBuffer[str]] = None,
-        encoding: Optional[str] = None,
-    ) -> Optional[str]:
-        """
-        Perform serialization. Write to buf or return as string if buf is None.
-        """
-        with self._get_buffer(buf, encoding=encoding) as f:
-            f.write(string)
-            if buf is None:
-                return f.getvalue()
-            return None
 
-    @contextmanager
-    def _get_buffer(
-        self, buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None
-    ):
-        """
-        Context manager to open, yield and close buffer for filenames or Path-like
-        objects, otherwise yield buf unchanged.
-        """
-        if buf is not None:
-            buf = stringify_path(buf)
-        else:
-            buf = StringIO()
+def save_to_buffer(
+    string: str,
+    buf: Optional[FilePathOrBuffer[str]] = None,
+    encoding: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Perform serialization. Write to buf or return as string if buf is None.
+    """
+    with get_buffer(buf, encoding=encoding) as f:
+        f.write(string)
+        if buf is None:
+            return f.getvalue()
+        return None
 
-        if encoding is None:
-            encoding = "utf-8"
-        elif not isinstance(buf, str):
-            raise ValueError("buf is not a file name and encoding is specified.")
 
-        if hasattr(buf, "write"):
-            yield buf
-        elif isinstance(buf, str):
-            with open(buf, "w", encoding=encoding, newline="") as f:
-                # GH#30034 open instead of codecs.open prevents a file leak
-                #  if we have an invalid encoding argument.
-                # newline="" is needed to roundtrip correctly on
-                #  windows test_to_latex_filename
-                yield f
-        else:
-            raise TypeError("buf is not a file name and it has no write method")
+@contextmanager
+def get_buffer(buf: Optional[FilePathOrBuffer[str]], encoding: Optional[str] = None):
+    """
+    Context manager to open, yield and close buffer for filenames or Path-like
+    objects, otherwise yield buf unchanged.
+    """
+    if buf is not None:
+        buf = stringify_path(buf)
+    else:
+        buf = StringIO()
+
+    if encoding is None:
+        encoding = "utf-8"
+    elif not isinstance(buf, str):
+        raise ValueError("buf is not a file name and encoding is specified.")
+
+    if hasattr(buf, "write"):
+        yield buf
+    elif isinstance(buf, str):
+        with open(buf, "w", encoding=encoding, newline="") as f:
+            # GH#30034 open instead of codecs.open prevents a file leak
+            #  if we have an invalid encoding argument.
+            # newline="" is needed to roundtrip correctly on
+            #  windows test_to_latex_filename
+            yield f
+    else:
+        raise TypeError("buf is not a file name and it has no write method")
 
 
 # ----------------------------------------------------------------------
