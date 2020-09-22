@@ -1177,13 +1177,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return self._validate_listlike(value)
 
     def _validate_insert_value(self, value) -> int:
-        code = self.categories.get_indexer([value])
-        if (code == -1) and not (is_scalar(value) and isna(value)):
-            raise TypeError(
-                "cannot insert an item into a CategoricalIndex "
-                "that is not already an existing category"
-            )
-        return code[0]
+        return self._validate_fill_value(value)
 
     def _validate_searchsorted_value(self, value):
         # searchsorted is very performance sensitive. By converting codes
@@ -1213,7 +1207,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         ValueError
         """
 
-        if isna(fill_value):
+        if is_valid_nat_for_dtype(fill_value, self.categories.dtype):
             fill_value = -1
         elif fill_value in self.categories:
             fill_value = self._unbox_scalar(fill_value)
