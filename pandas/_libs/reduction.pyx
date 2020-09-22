@@ -16,12 +16,12 @@ from pandas._libs cimport util
 from pandas._libs.lib import is_scalar, maybe_convert_objects
 
 
-cdef _check_result_array(object obj, Py_ssize_t cnt):
+cpdef check_result_array(object obj, Py_ssize_t cnt):
 
     if (util.is_array(obj) or
             (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
-        raise ValueError('Function does not reduce')
+        raise ValueError('Must produce aggregated value')
 
 
 cdef class _BaseGrouper:
@@ -74,12 +74,14 @@ cdef class _BaseGrouper:
         cached_ityp._engine.clear_mapping()
         cached_ityp._cache.clear()  # e.g. inferred_freq must go
         res = self.f(cached_typ)
-        res = _extract_result(res)
+        res = extract_result(res)
         if not initialized:
             # On the first pass, we check the output shape to see
             #  if this looks like a reduction.
             initialized = True
-            _check_result_array(res, len(self.dummy_arr))
+            # In all tests other than test_series_grouper and
+            #  test_series_bin_grouper, we have len(self.dummy_arr) == 0
+            check_result_array(res, len(self.dummy_arr))
 
         return res, initialized
 
@@ -278,9 +280,14 @@ cdef class SeriesGrouper(_BaseGrouper):
         return result, counts
 
 
-cdef inline _extract_result(object res, bint squeeze=True):
+cpdef inline extract_result(object res, bint squeeze=True):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
+    if hasattr(res, "_values"):
+        # Preserve EA
+        res = res._values
+        if squeeze and res.ndim == 1 and len(res) == 1:
+            res = res[0]
     if hasattr(res, 'values') and util.is_array(res.values):
         res = res.values
     if util.is_array(res):

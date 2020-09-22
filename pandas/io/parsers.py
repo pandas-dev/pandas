@@ -338,9 +338,21 @@ memory_map : bool, default False
     option can improve performance because there is no longer any I/O overhead.
 float_precision : str, optional
     Specifies which converter the C engine should use for floating-point
-    values. The options are `None` or `high` for the ordinary converter,
-    `legacy` for the original lower precision pandas converter, and
-    `round_trip` for the round-trip converter.
+    values. The options are ``None`` or 'high' for the ordinary converter,
+    'legacy' for the original lower precision pandas converter, and
+    'round_trip' for the round-trip converter.
+
+    .. versionchanged:: 1.2
+
+storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc., if using a URL that will
+    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+    will be raised if providing this argument with a local path or
+    a file-like buffer. See the fsspec and backend storage implementation
+    docs for the set of allowed keys and values.
+
+    .. versionadded:: 1.2
 
 Returns
 -------
@@ -2281,9 +2293,10 @@ def TextParser(*args, **kwds):
         can be inferred, there often will be a large parsing speed-up.
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
-        values. The options are None for the ordinary converter,
-        'high' for the high-precision converter, and 'round_trip' for the
-        round-trip converter.
+        values. The options are `None` or `high` for the ordinary converter,
+        `legacy` for the original lower precision pandas converter, and
+        `round_trip` for the round-trip converter.
+
         .. versionchanged:: 1.2
     """
     kwds["engine"] = "python"
@@ -2873,14 +2886,12 @@ class PythonParser(ParserBase):
             # quotation mark.
             if len(first_row_bom) > end + 1:
                 new_row += first_row_bom[end + 1 :]
-            return [new_row] + first_row[1:]
 
-        elif len(first_row_bom) > 1:
-            return [first_row_bom[1:]]
         else:
-            # First row is just the BOM, so we
-            # return an empty string.
-            return [""]
+
+            # No quotation so just remove BOM from first element
+            new_row = first_row_bom[1:]
+        return [new_row] + first_row[1:]
 
     def _is_line_empty(self, line):
         """

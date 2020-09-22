@@ -12,17 +12,19 @@ dependencies:
   - asv
 
   # building
-  - cython>=0.29.16
+  - cython>=0.29.21
 
   # code checks
-  - black=19.10b0
+  - black=20.8b1
   - cpplint
   - flake8<3.8.0  # temporary pin, GH#34150
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.782
+  - pre-commit
   - pycodestyle  # used by flake8
+  - pyupgrade
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
@@ -106,6 +108,7 @@ dependencies:
   - cftime  # Needed for downstream xarray.CFTimeIndex test
   - pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
+  - natsort  # DataFrame.sort_values
   - pip:
     - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
     - git+https://github.com/numpy/numpydoc
