@@ -239,7 +239,7 @@ class Styler:
         >>> ttips = pd.DataFrame(
         ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
         ... )
-        >>> s = Styler(df, uuid="_").set_tooltips(ttips).render()
+        >>> s = df.style.set_tooltips(ttips).render()
         """
         if not self.cell_ids:
             # tooltips not optimised for individual cell check.
