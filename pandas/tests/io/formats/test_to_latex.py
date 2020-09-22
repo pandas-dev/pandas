@@ -700,6 +700,11 @@ b &       b &     b \\
 \toprule
 {} &  a &   b \\
 \midrule
+\endfirsthead
+\caption[]{a table in a \texttt{longtable} environment} \\
+\toprule
+{} &  a &   b \\
+\midrule
 \endhead
 \midrule
 \multicolumn{3}{r}{{Continued on next page}} \\
