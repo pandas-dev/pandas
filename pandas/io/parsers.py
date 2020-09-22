@@ -757,6 +757,8 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
+    if delim_whitespace:
+        sep = ","
     return read_csv(**locals())
 
 
