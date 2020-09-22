@@ -2927,3 +2927,20 @@ def test_concat_preserves_extension_int64_dtype():
     result = pd.concat([df_a, df_b], ignore_index=True)
     expected = pd.DataFrame({"a": [-1, None], "b": [None, 1]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("keys", "integrity"),
+    [
+        (["red"] * 3, False),
+        (["red", "blue", "red"], False),
+        (["red", "blue", "red"], True),
+    ],
+)
+def test_concat_repeated_keys(keys, integrity):
+    # GH: 20816
+    series_list = [pd.Series({"a": 1}), pd.Series({"b": 2}), pd.Series({"c": 3})]
+    result = pd.concat(series_list, keys=keys, verify_integrity=integrity)
+    tuples = [(first, second) for first, second in zip(keys, ["a", "b", "c"])]
+    expected = pd.Series([1, 2, 3], index=pd.MultiIndex.from_tuples(tuples))
+    tm.assert_series_equal(result, expected)
