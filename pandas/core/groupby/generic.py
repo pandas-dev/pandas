@@ -1190,14 +1190,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         key_index = self.grouper.result_index if self.as_index else None
 
-        if isinstance(first_not_none, Series):
-            # this is to silence a DeprecationWarning
-            # TODO: Remove when default dtype of empty Series is object
-            kwargs = first_not_none._construct_axes_dict()
-            backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
-
-            values = [x if (x is not None) else backup for x in values]
-
         if isinstance(first_not_none, (np.ndarray, Index)):
             # GH#1738: values is list of arrays of unequal lengths
             #  fall through to the outer else clause
@@ -1217,8 +1209,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = DataFrame(values, index=key_index, columns=[self._selection])
                 self._insert_inaxis_grouper_inplace(result)
                 return result
-
         else:
+            # this is to silence a DeprecationWarning
+            # TODO: Remove when default dtype of empty Series is object
+            kwargs = first_not_none._construct_axes_dict()
+            backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
+            values = [x if (x is not None) else backup for x in values]
+
             all_indexed_same = all_indexes_same(x.index for x in values)
 
             # GH3596
