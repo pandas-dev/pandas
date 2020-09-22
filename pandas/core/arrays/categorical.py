@@ -2,7 +2,7 @@ from csv import QUOTE_NONNUMERIC
 from functools import partial
 import operator
 from shutil import get_terminal_size
-from typing import TYPE_CHECKING, Dict, Hashable, List, Optional, Type, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, Hashable, List, Optional, Type, Union, cast
 from warnings import warn
 
 import numpy as np
@@ -455,12 +455,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         if len(to_drop):
             dummies = dummies.drop(columns=to_drop)
 
+        cats: List[Any]
         if prefix is None:
-            cats = dummies.columns
+            cats = list(dummies.columns)
         else:
             pref = prefix + (prefix_sep or "")
             cats = []
-            to_keep = []
+            to_keep: List[str] = []
             for c in dummies.columns:
                 if isinstance(c, str) and c.startswith(pref):
                     to_keep.append(c)
