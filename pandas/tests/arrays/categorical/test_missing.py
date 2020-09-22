@@ -149,21 +149,23 @@ class TestCategoricalMissing:
             expected = DataFrame(expected)
             tm.assert_frame_equal(result, expected)
 
-    def test_compare_categorical_with_missing(self):
+    @pytest.mark.parametrize(
+        "a1, a2, categories",
+        [
+            (["a", "b", "c"], [np.nan, "a", "b"], ["a", "b", "c"]),
+            ([1, 2, 3], [np.nan, 1, 2], [1, 2, 3]),
+        ],
+    )
+    def test_compare_categorical_with_missing(self, a1, a2, categories):
         # GH 28384
-        a1 = ["a", "b", np.nan]
-        a2 = ["b", "a", "a"]
+        cat_type = CategoricalDtype(categories)
 
-        cat_s1 = Series(a1, dtype="category")
-        cat_s2 = Series(a2, dtype="category")
-        result = cat_s1 != cat_s2
-
-        expected = Series([True, True, True], dtype="bool")
+        # !=
+        result = Series(a1, dtype=cat_type) != Series(a2, dtype=cat_type)
+        expected = Series(a1) != Series(a2)
         tm.assert_series_equal(result, expected)
 
-        # categorical vs noncategorical
-        noncat_s1 = Series(a1)
-        noncat_s2 = Series(a2)
-        expected = noncat_s1 != noncat_s2
-
+        # ==
+        result = Series(a1, dtype=cat_type) == Series(a2, dtype=cat_type)
+        expected = Series(a1) == Series(a2)
         tm.assert_series_equal(result, expected)
