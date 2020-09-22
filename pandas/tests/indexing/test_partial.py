@@ -672,3 +672,12 @@ class TestPartialSetting:
         )
 
         tm.assert_frame_equal(df, expected)
+
+        # GH 36527
+        df = pd.DataFrame()
+        series = pd.Series(1.23, index=pd.RangeIndex(4, name="series_index"))
+        df["series"] = series
+        expected = pd.DataFrame(
+            {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="series_index")
+        )
+        tm.assert_frame_equal(df, expected)
