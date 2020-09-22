@@ -11,7 +11,6 @@ import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 import pandas._testing as tm
 from pandas.api.types import is_scalar
-import pandas.core.common as com
 from pandas.tests.indexing.common import Base
 
 
@@ -1131,17 +1130,3 @@ def test_loc_with_period_index_indexer():
     tm.assert_frame_equal(df, df.loc[list(idx)])
     tm.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
     tm.assert_frame_equal(df, df.loc[list(idx)])
-
-
-def test_loc_replace_subset_with_subset():
-    # GH#36424 Should raise a SettingWithCopyError
-    df1 = pd.DataFrame(
-        data=np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-        columns=["A", "B", "C"],
-        index=[0, 0, 1],
-    )
-    df2 = df1.copy()
-    df2[:] = np.nan
-    msg = r"A value is trying to be set on a copy of a slice from a DataFrame."
-    with pytest.raises(com.SettingWithCopyError, match=msg):
-        df2.loc[0]["A"] = df1.loc[0]["A"]
