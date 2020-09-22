@@ -587,7 +587,7 @@ def interpolate_2d(
     return values
 
 
-def _cast_values_for_fillna(values, dtype: DtypeObj):
+def _cast_values_for_fillna(values, dtype: DtypeObj, has_mask: bool):
     """
     Cast values to a dtype that algos.pad and algos.backfill can handle.
     """
@@ -597,8 +597,10 @@ def _cast_values_for_fillna(values, dtype: DtypeObj):
     if needs_i8_conversion(dtype):
         values = values.view(np.int64)
 
-    elif is_integer_dtype(values):
+    elif is_integer_dtype(values) and not has_mask:
         # NB: this check needs to come after the datetime64 check above
+        # has_mask check to avoid casting i8 values that have already
+        #  been cast from PeriodDtype
         values = ensure_float64(values)
 
     return values
@@ -609,11 +611,12 @@ def _fillna_prep(values, mask=None, dtype: Optional[DtypeObj] = None):
     if dtype is None:
         dtype = values.dtype
 
-    if mask is None:
+    has_mask = mask is not None
+    if not has_mask:
         # This needs to occur before datetime/timedeltas are cast to int64
         mask = isna(values)
 
-    values = _cast_values_for_fillna(values, dtype)
+    values = _cast_values_for_fillna(values, dtype, has_mask)
 
     mask = mask.view(np.uint8)
     return values, mask
