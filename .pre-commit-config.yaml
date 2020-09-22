@@ -35,5 +35,6 @@ repos:
     -   id: pip_to_conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
-        entry: python scripts/generate_pip_deps_from_conda.py --compare
         language: python_venv
+        entry: python scripts/generate_pip_deps_from_conda.py
+        args: [--compare]
