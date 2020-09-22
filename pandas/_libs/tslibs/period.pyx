@@ -861,6 +861,7 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date, int64_t ordinal) nogil:
     """
     cdef:
         int64_t sub, factor
+        int64_t nanos_in_day = 24 * 3600 * 10**9
 
     freq = get_freq_group(freq)
 
@@ -886,7 +887,7 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date, int64_t ordinal) nogil:
         # We must have freq == FR_HR
         factor = 10**9 * 3600
 
-    sub = ordinal - unix_date * 24 * 3600 * 10**9 / factor
+    sub = ordinal - unix_date * (nanos_in_day / factor)
     return sub * factor
 
 

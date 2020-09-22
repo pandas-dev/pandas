@@ -486,6 +486,13 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period("2011-01", freq="1D1W")
 
+    @pytest.mark.parametrize("hour", range(24))
+    def test_period_large_ordinal(self, hour):
+        # Issue #36430
+        # Integer overflow for Period over the maximum timestamp
+        p = pd.Period(ordinal=2562048 + hour, freq="1H")
+        assert p.hour == hour
+
 
 class TestPeriodMethods:
     def test_round_trip(self):
