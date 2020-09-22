@@ -6,7 +6,7 @@ addons:
     update: true
     packages:
       - xvfb
-      - xfonts-encodings
+      - xfonts-base
 
 # To turn off cached cython files and compiler cache
 # set NOCACHE-true
