@@ -433,7 +433,7 @@ The following methods are available:
 
 The weights used in the window are specified by the ``win_type`` keyword.
 The list of recognized types are the `scipy.signal window functions
-<https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__:
+<https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__:
 
 * ``boxcar``
 * ``triang``
