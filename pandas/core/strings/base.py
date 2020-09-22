@@ -23,9 +23,9 @@ class BaseStringArrayMethods(abc.ABC):
 
     def _str_getitem(self, key):
         if isinstance(key, slice):
-            return self.slice(start=key.start, stop=key.stop, step=key.step)
+            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
         else:
-            return self.get(key)
+            return self._str_get(key)
 
     @abc.abstractmethod
     def _str_count(self, pat, flags=0):

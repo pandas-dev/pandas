@@ -24,6 +24,10 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     _str_na_value = np.nan
 
+    def __len__(self):
+        # For typing, _str_map relies on the object being sized.
+        raise NotImplementedError
+
     def _str_map(self, f, na_value=None, dtype=None):
         arr = self
         if dtype is None:
