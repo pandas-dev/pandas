@@ -664,7 +664,10 @@ class TestParquetPyArrow(Base):
             assert len(dataset.partitions.partition_names) == 1
             assert dataset.partitions.partition_names == set(partition_cols_list)
 
-    def test_partition_cols_pathlib(self, pa, df_compat):
+    @pytest.mark.parametrize(
+        "path_type", [lambda path: path, lambda path: pathlib.Path(path)]
+    )
+    def test_partition_cols_pathlib(self, pa, df_compat, path_type):
         # GH 35902
 
         partition_cols = "B"
@@ -672,11 +675,8 @@ class TestParquetPyArrow(Base):
         df = df_compat
 
         with tm.ensure_clean_dir() as path_str:
-            df.to_parquet(path_str, partition_cols=partition_cols_list)
-
-        with tm.ensure_clean_dir() as path_str:
-            path_posix = pathlib.Path(path_str)
-            df_compat.to_parquet(path_posix, partition_cols=partition_cols_list)
+            path = path_type(path_str)
+            df.to_parquet(path, partition_cols=partition_cols_list)
 
     def test_empty_dataframe(self, pa):
         # GH #27339
