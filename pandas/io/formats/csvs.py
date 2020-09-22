@@ -77,12 +77,6 @@ class CSVFormatter:
         self.mode = ioargs.mode
 
         self.sep = sep
-        self.na_rep = self.fmt.na_rep
-        self.float_format = self.fmt.float_format
-        self.decimal = self.fmt.decimal
-        self.header = self.fmt.header
-        self.index = self.fmt.index
-        self.index_label = index_label
         self.index_label = self._initialize_index_label(index_label)
         self.errors = errors
         self.quoting = quoting or csvlib.QUOTE_MINIMAL
@@ -95,7 +89,24 @@ class CSVFormatter:
         self.chunksize = self._initialize_chunksize(chunksize)
 
     @property
+    def na_rep(self):
+        return self.fmt.na_rep
 
+    @property
+    def float_format(self):
+        return self.fmt.float_format
+
+    @property
+    def decimal(self):
+        return self.fmt.decimal
+
+    @property
+    def header(self):
+        return self.fmt.header
+
+    @property
+    def index(self):
+        return self.fmt.index
 
     def _initialize_index_label(self, index_label: Optional[IndexLabel]) -> IndexLabel:
         if index_label is not False:
@@ -123,6 +134,7 @@ class CSVFormatter:
         if self.quoting != csvlib.QUOTE_NONE:
             # prevents crash in _csv
             return quotechar
+        return None
 
     @property
     def has_mi_columns(self) -> bool:
@@ -148,7 +160,6 @@ class CSVFormatter:
         if isinstance(new_cols, ABCIndexClass):
             return new_cols._format_native_types(**self._number_format)
         else:
-            assert isinstance(cols, Sequence)
             return list(new_cols)
 
     def _initialize_chunksize(self, chunksize: Optional[int]) -> int:
