@@ -573,7 +573,7 @@ class TestParquetPyArrow(Base):
             pytest.param(
                 ["A"],
                 marks=pytest.mark.xfail(
-                    PY38, reason="Getting back empty DataFrame", raises=AssertionError,
+                    PY38, reason="Getting back empty DataFrame", raises=AssertionError
                 ),
             ),
             [],
