@@ -421,7 +421,9 @@ def unstack(obj, level, fill_value=None):
         # GH 36113
         # Give nicer error messages when unstack a  Series whose
         # Index is not a MultiIndex.
-        raise ValueError("index must be a MultiIndex to unstack")
+        raise ValueError(
+            "index must be a MultiIndex to unstack, " f"{type(obj.index)} was passed"
+        )
     else:
         if is_extension_array_dtype(obj.dtype):
             return _unstack_extension_series(obj, level, fill_value)
