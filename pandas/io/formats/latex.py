@@ -658,13 +658,7 @@ class LatexFormatter(TableFormatter):
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
-
-        # Here is a reason for ignoring typing in assignment.
-        # Inside caption setter we make sure that self._caption is str only.
-        # Meanwhile mypy would complain that it expects
-        # Union[str, Tuple[str, str], None].
-        self.caption = caption  # type: ignore[assignment]
-
+        self.caption, self.short_caption = self._split_into_long_short_caption(caption)
         self.label = label
         self.position = position
 
@@ -705,27 +699,23 @@ class LatexFormatter(TableFormatter):
             return RegularTableBuilder
         return TabularBuilder
 
-    @property
-    def caption(self) -> str:
-        return self._caption
-
-    @caption.setter
-    def caption(self, caption: Optional[Union[str, Tuple[str, str]]]) -> None:
+    def _split_into_long_short_caption(
+        self, caption: Optional[Union[str, Tuple[str, str]]]
+    ) -> Tuple[str, str]:
         if caption:
             if isinstance(caption, str):
-                self._caption = caption
-                self.short_caption = ""
+                long_caption = caption
+                short_caption = ""
             else:
                 try:
-                    self._caption, self.short_caption = caption
+                    long_caption, short_caption = caption
                 except ValueError as err:
                     msg = "caption must be either a string or a tuple of two strings"
                     raise ValueError(msg) from err
         else:
-            self._caption = ""
-            self.short_caption = ""
-        assert isinstance(self._caption, str)
-        assert isinstance(self.short_caption, str)
+            long_caption = ""
+            short_caption = ""
+        return long_caption, short_caption
 
     @property
     def column_format(self) -> Optional[str]:
