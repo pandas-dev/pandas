@@ -407,7 +407,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             If ``prefix`` is not ``None``, use as the separator
             between the prefix and the final name of the category.
         fillna : optional bool, default None
-            How to handle NA values. If ``True`` or ``False``, NA is filled with that value.
+            How to handle NA values.
+            If ``True`` or ``False``, NA is filled with that value.
             If ``None``, raise a ValueError if there are any NA values.
 
         Raises
