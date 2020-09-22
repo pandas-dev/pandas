@@ -10,13 +10,12 @@ from pandas.core.dtypes.common import is_array_like, pandas_dtype
 
 from pandas import compat
 from pandas.core import ops
-from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import IntegerArray, PandasArray
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
-from pandas.core.strings.object_array import ObjectStringArray
+# from pandas.core.strings.object_array import ObjectStringArray
 
 if TYPE_CHECKING:
     import pyarrow  # noqa: F401
@@ -351,7 +350,6 @@ class StringArray(PandasArray):
         cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
 
     _create_comparison_method = _create_arithmetic_method
-    _str = CachedAccessor("_str", StringArrayMethods)
 
 
 StringArray._add_arithmetic_ops()

@@ -41,7 +41,7 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import ops
-from pandas.core.accessor import CachedAccessor, PandasDelegate, delegate_names
+from pandas.core.accessor import PandasDelegate, delegate_names
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import factorize, get_data_algo, take_1d, unique1d
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
@@ -52,7 +52,6 @@ from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
-from pandas.core.strings.categorical import CategoricalStringMethods
 
 from pandas.io.formats import console
 
@@ -2335,8 +2334,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     cat.rename_categories(categories, inplace=True)
         if not inplace:
             return cat
-
-    _str = CachedAccessor("_str", CategoricalStringMethods)
 
 
 # The Series.cat accessor

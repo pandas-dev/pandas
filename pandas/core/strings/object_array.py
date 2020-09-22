@@ -14,16 +14,22 @@ from pandas._typing import Scalar
 from pandas.core.dtypes.common import is_re, is_scalar
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.strings.base import BaseStringArrayMethods
 
 
-class ObjectStringArray(PandasArray):
+class ObjectStringArray(PandasArray, BaseStringArrayMethods):
+    """
+    PandasArray subclass with _str methods.
+
+    We don't want to put the _str methods on all PandasArrays
+    so we use this subclass with the BaseStringArrayMethods
+    mixin.
+    """
     _default_na_value = np.nan
 
     def _str_map(self, f, na_value=None, dtype=None):
-        arr = self._array  # object-dtype ndarray.
+        arr = self
         if dtype is None:
             dtype = np.dtype("object")
         if na_value is None:
@@ -52,7 +58,7 @@ class ObjectStringArray(PandasArray):
                 # FIXME: this should be totally avoidable
                 raise e
 
-            def _str_g(x):
+            def g(x):
                 # This type of fallback behavior can be removed once
                 # we remove object-dtype .str accessor.
                 try:
@@ -60,7 +66,7 @@ class ObjectStringArray(PandasArray):
                 except (TypeError, AttributeError):
                     return na_value
 
-            return self._map(g, na_value=na_value, dtype=dtype)
+            return self._str_map(g, na_value=na_value, dtype=dtype)
         if na_value is not np.nan:
             np.putmask(result, mask, na_value)
             if result.dtype == object:
@@ -69,14 +75,14 @@ class ObjectStringArray(PandasArray):
 
     def _str_getitem(self, key):
         if isinstance(key, slice):
-            return self.slice(start=key.start, stop=key.stop, step=key.step)
+            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
         else:
-            return self.get(key)
+            return self._str_get(key)
 
     def _str_count(self, pat, flags=0):
         regex = re.compile(pat, flags=flags)
         f = lambda x: len(regex.findall(x))
-        return self._map(f, dtype="int64")
+        return self._str_map(f, dtype="int64")
 
     def _str_pad(self, width, side="left", fillchar=" "):
         if side == "left":
@@ -87,7 +93,7 @@ class ObjectStringArray(PandasArray):
             f = lambda x: x.center(width, fillchar)
         else:  # pragma: no cover
             raise ValueError("Invalid side")
-        return self._map(f)
+        return self._str_map(f)
 
     def _str_contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
         if regex:
@@ -111,15 +117,15 @@ class ObjectStringArray(PandasArray):
             else:
                 upper_pat = pat.upper()
                 f = lambda x: upper_pat in x.upper()
-        return self._map(f, na, dtype=np.dtype("bool"))
+        return self._str_map(f, na, dtype=np.dtype("bool"))
 
     def _str_startswith(self, pat, na=None):
         f = lambda x: x.startswith(pat)
-        return self._map(f, na_value=na, dtype=np.dtype(bool))
+        return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_endswith(self, pat, na=None):
         f = lambda x: x.endswith(pat)
-        return self._map(f, na_value=na, dtype=np.dtype(bool))
+        return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
         # Check whether repl is valid (GH 13438, GH 15055)
@@ -158,22 +164,22 @@ class ObjectStringArray(PandasArray):
                 raise ValueError("Cannot use a callable replacement when regex=False")
             f = lambda x: x.replace(pat, repl, n)
 
-        return self._map(f, dtype=str)
+        return self._str_map(f, dtype=str)
 
     def _str_repeat(self, repeats):
         if is_scalar(repeats):
 
-            def _str_scalar_rep(x):
+            def scalar_rep(x):
                 try:
                     return bytes.__mul__(x, repeats)
                 except TypeError:
                     return str.__mul__(x, repeats)
 
-            return self._map(scalar_rep, dtype=str)
+            return self._str_map(scalar_rep, dtype=str)
         else:
             from pandas.core.arrays.string_ import StringArray
 
-            def _str_rep(x, r):
+            def rep(x, r):
                 if x is libmissing.NA:
                     return x
                 try:
@@ -182,8 +188,8 @@ class ObjectStringArray(PandasArray):
                     return str.__mul__(x, r)
 
             repeats = np.asarray(repeats, dtype=object)
-            result = libops.vec_binop(np.asarray(self._array), repeats, rep)
-            if isinstance(self._array, StringArray):
+            result = libops.vec_binop(np.asarray(self), repeats, rep)
+            if isinstance(self, StringArray):
                 # Not going through map, so we have to do this here.
                 result = StringArray._from_sequence(result)
             return result
@@ -201,7 +207,7 @@ class ObjectStringArray(PandasArray):
         regex = re.compile(pat, flags=flags)
 
         f = lambda x: regex.match(x) is not None
-        return self._map(f, na_value=na, dtype=np.dtype(bool))
+        return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_fullmatch(
         self,
@@ -216,19 +222,19 @@ class ObjectStringArray(PandasArray):
         regex = re.compile(pat, flags=flags)
 
         f = lambda x: regex.fullmatch(x) is not None
-        return self._map(f, na_value=na, dtype=np.dtype(bool))
+        return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_encode(self, encoding, errors="strict"):
         f = lambda x: x.encode(encoding, errors=errors)
-        return self._map(f, dtype=object)
+        return self._str_map(f, dtype=object)
 
     def _str_find(self, sub, start=0, end=None):
-        return self._find(sub, start, end, side="left")
+        return self._str_find_(sub, start, end, side="left")
 
     def _str_rfind(self, sub, start=0, end=None):
-        return self._find(sub, start, end, side="right")
+        return self._str_find_(sub, start, end, side="right")
 
-    def _str__find(self, sub, start, end, side):
+    def _str_find_(self, sub, start, end, side):
         if side == "left":
             method = "find"
         elif side == "right":
@@ -240,58 +246,58 @@ class ObjectStringArray(PandasArray):
             f = lambda x: getattr(x, method)(sub, start)
         else:
             f = lambda x: getattr(x, method)(sub, start, end)
-        return self._map(f, dtype="int64")
+        return self._str_map(f, dtype="int64")
 
     def _str_findall(self, pat, flags=0):
         regex = re.compile(pat, flags=flags)
-        return self._map(regex.findall, dtype="object")
+        return self._str_map(regex.findall, dtype="object")
 
     def _str_get(self, i):
-        def _str_f(x):
+        def f(x):
             if isinstance(x, dict):
                 return x.get(i)
             elif len(x) > i >= -len(x):
                 return x[i]
             return self._default_na_value
 
-        return self._map(f)
+        return self._str_map(f)
 
     def _str_index(self, sub, start=0, end=None):
         if end:
             f = lambda x: x.index(sub, start, end)
         else:
             f = lambda x: x.index(sub, start, end)
-        return self._map(f, dtype="int64")
+        return self._str_map(f, dtype="int64")
 
     def _str_rindex(self, sub, start=0, end=None):
         if end:
             f = lambda x: x.rindex(sub, start, end)
         else:
             f = lambda x: x.rindex(sub, start, end)
-        return self._map(f, dtype="int64")
+        return self._str_map(f, dtype="int64")
 
     def _str_join(self, sep):
-        return self._map(sep.join)
+        return self._str_map(sep.join)
 
     def _str_partition(self, sep, expand):
-        result = self._map(lambda x: x.partition(sep), dtype="object")
+        result = self._str_map(lambda x: x.partition(sep), dtype="object")
         return result
 
     def _str_rpartition(self, sep, expand):
-        return self._map(lambda x: x.rpartition(sep), dtype="object")
+        return self._str_map(lambda x: x.rpartition(sep), dtype="object")
 
     def _str_len(self):
-        return self._map(len, dtype="int64")
+        return self._str_map(len, dtype="int64")
 
     def _str_slice(self, start=None, stop=None, step=None):
         obj = slice(start, stop, step)
-        return self._map(lambda x: x[obj])
+        return self._str_map(lambda x: x[obj])
 
     def _str_slice_replace(self, start=None, stop=None, repl=None):
         if repl is None:
             repl = ""
 
-        def _str_f(x):
+        def f(x):
             if x[start:stop] == "":
                 local_stop = start
             else:
@@ -304,7 +310,7 @@ class ObjectStringArray(PandasArray):
                 y += x[local_stop:]
             return y
 
-        return self._map(f)
+        return self._str_map(f)
 
     def _str_split(self, pat=None, n=-1, expand=False):
         if pat is None:
@@ -321,26 +327,26 @@ class ObjectStringArray(PandasArray):
                     n = 0
                 regex = re.compile(pat)
                 f = lambda x: regex.split(x, maxsplit=n)
-        return self._map(f, dtype=object)
+        return self._str_map(f, dtype=object)
 
     def _str_rsplit(self, pat=None, n=-1):
         if n is None or n == 0:
             n = -1
         f = lambda x: x.rsplit(pat, n)
-        return self._map(f, dtype="object")
+        return self._str_map(f, dtype="object")
 
     def _str_translate(self, table):
-        return self._map(lambda x: x.translate(table))
+        return self._str_map(lambda x: x.translate(table))
 
     def _str_wrap(self, width, **kwargs):
         kwargs["width"] = width
         tw = textwrap.TextWrapper(**kwargs)
-        return self._map(lambda s: "\n".join(tw.wrap(s)))
+        return self._str_map(lambda s: "\n".join(tw.wrap(s)))
 
     def _str_get_dummies(self, sep="|"):
         from pandas import Series
 
-        arr = Series(self._array).fillna("")
+        arr = Series(self).fillna("")
         try:
             arr = sep + arr + sep
         except TypeError:
@@ -361,59 +367,59 @@ class ObjectStringArray(PandasArray):
         return dummies, tags2
 
     def _str_upper(self):
-        return self._map(lambda x: x.upper())
+        return self._str_map(lambda x: x.upper())
 
     def _str_isalnum(self):
-        return self._map(str.isalnum, dtype="bool")
+        return self._str_map(str.isalnum, dtype="bool")
 
     def _str_isalpha(self):
-        return self._map(str.isalpha, dtype="bool")
+        return self._str_map(str.isalpha, dtype="bool")
 
     def _str_isdecimal(self):
-        return self._map(str.isdecimal, dtype="bool")
+        return self._str_map(str.isdecimal, dtype="bool")
 
     def _str_isdigit(self):
-        return self._map(str.isdigit, dtype="bool")
+        return self._str_map(str.isdigit, dtype="bool")
 
     def _str_islower(self):
-        return self._map(str.islower, dtype="bool")
+        return self._str_map(str.islower, dtype="bool")
 
     def _str_isnumeric(self):
-        return self._map(str.isnumeric, dtype="bool")
+        return self._str_map(str.isnumeric, dtype="bool")
 
     def _str_isspace(self):
-        return self._map(str.isspace, dtype="bool")
+        return self._str_map(str.isspace, dtype="bool")
 
     def _str_istitle(self):
-        return self._map(str.istitle, dtype="bool")
+        return self._str_map(str.istitle, dtype="bool")
 
     def _str_isupper(self):
-        return self._map(str.isupper, dtype="bool")
+        return self._str_map(str.isupper, dtype="bool")
 
     def _str_capitalize(self):
-        return self._map(str.capitalize)
+        return self._str_map(str.capitalize)
 
     def _str_casefold(self):
-        return self._map(str.casefold)
+        return self._str_map(str.casefold)
 
     def _str_title(self):
-        return self._map(str.title)
+        return self._str_map(str.title)
 
     def _str_swapcase(self):
-        return self._map(str.swapcase)
+        return self._str_map(str.swapcase)
 
     def _str_lower(self):
-        return self._map(str.lower)
+        return self._str_map(str.lower)
 
     def _str_normalize(self, form):
         f = lambda x: unicodedata.normalize(form, x)
-        return self._map(f)
+        return self._str_map(f)
 
     def _str_strip(self, to_strip=None):
-        return self._map(lambda x: x.strip(to_strip))
+        return self._str_map(lambda x: x.strip(to_strip))
 
     def _str_lstrip(self, to_strip=None):
-        return self._map(lambda x: x.lstrip(to_strip))
+        return self._str_map(lambda x: x.lstrip(to_strip))
 
     def _str_rstrip(self, to_strip=None):
-        return self._map(lambda x: x.rstrip(to_strip))
+        return self._str_map(lambda x: x.rstrip(to_strip))
