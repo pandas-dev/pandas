@@ -469,7 +469,10 @@ class DatetimeLikeArrayMixin(
         return lib.map_infer(values, self._box_func)
 
     def __iter__(self):
-        return (self._box_func(v) for v in self.asi8)
+        if self.ndim > 1:
+            return (self[n] for n in range(len(self)))
+        else:
+            return (self._box_func(v) for v in self.asi8)
 
     @property
     def asi8(self) -> np.ndarray:
