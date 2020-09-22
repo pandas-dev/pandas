@@ -83,7 +83,7 @@ class TestToLatex:
             with open(path) as f:
                 assert float_frame.to_latex() == f.read()
 
-    def test_to_latex_to_file_utf8_with_encoding(self, float_frame):
+    def test_to_latex_to_file_utf8_with_encoding(self):
         # test with utf-8 and encoding option (GH 7061)
         df = DataFrame([["au\xdfgangen"]])
         with tm.ensure_clean("test.tex") as path:
@@ -91,7 +91,7 @@ class TestToLatex:
             with codecs.open(path, "r", encoding="utf-8") as f:
                 assert df.to_latex() == f.read()
 
-    def test_to_latex_to_file_utf8_without_encoding(self, float_frame):
+    def test_to_latex_to_file_utf8_without_encoding(self):
         # test with utf-8 without encoding option
         df = DataFrame([["au\xdfgangen"]])
         with tm.ensure_clean("test.tex") as path:
