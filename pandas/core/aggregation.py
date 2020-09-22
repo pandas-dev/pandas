@@ -395,7 +395,7 @@ def validate_func_kwargs(
 
 
 def transform(
-    obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs,
+    obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs
 ) -> FrameOrSeriesUnion:
     """
     Transform a DataFrame or Series
