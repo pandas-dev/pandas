@@ -37,8 +37,6 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         if not len(arr):
             return np.ndarray(0, dtype=dtype)
-        if na_value is None:
-            na_value = self._str_na_value
 
         if not isinstance(arr, np.ndarray):
             arr = np.asarray(arr, dtype=object)
@@ -72,12 +70,6 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             if result.dtype == object:
                 result = lib.maybe_convert_objects(result)
         return result
-
-    def _str_getitem(self, key):
-        if isinstance(key, slice):
-            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
-        else:
-            return self._str_get(key)
 
     def _str_count(self, pat, flags=0):
         regex = re.compile(pat, flags=flags)

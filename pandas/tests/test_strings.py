@@ -2541,6 +2541,18 @@ class TestStringMethods:
         exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
         tm.assert_series_equal(result, exp)
 
+    @pytest.mark.parametrize("dtype", [object, "string"])
+    @pytest.mark.parametrize("method", ["split", "rsplit"])
+    def test_split_n(self, dtype, method):
+        s = pd.Series(["a b", pd.NA, "b c"], dtype=dtype)
+        expected = pd.Series([["a", "b"], pd.NA, ["b", "c"]])
+
+        result = getattr(s.str, method)(" ", n=None)
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(s.str, method)(" ", n=0)
+        tm.assert_series_equal(result, expected)
+
     def test_rsplit(self):
         values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
         result = values.str.rsplit("_")
