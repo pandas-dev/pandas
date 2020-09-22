@@ -29,6 +29,54 @@ def _dedent(string):
 
 
 class TestToLatex:
+    @pytest.fixture
+    def df_caption_label(self):
+        container = namedtuple("Container", ["frame", "caption", "label"])
+        yield container(
+            DataFrame({"a": [1, 2], "b": ["b1", "b2"]}),
+            "a table in a \\texttt{table/tabular} environment",
+            "tab:table_tabular",
+        )
+
+    @pytest.fixture
+    def df_caption_label_longtable(self):
+        container = namedtuple("Container", ["frame", "caption", "label"])
+        yield container(
+            DataFrame({"a": [1, 2], "b": ["b1", "b2"]}),
+            "a table in a \\texttt{longtable} environment",
+            "tab:longtable",
+        )
+
+    @pytest.fixture
+    def multiindex_frame(self):
+        yield DataFrame.from_dict(
+            {
+                ("c1", 0): pd.Series({x: x for x in range(4)}),
+                ("c1", 1): pd.Series({x: x + 4 for x in range(4)}),
+                ("c2", 0): pd.Series({x: x for x in range(4)}),
+                ("c2", 1): pd.Series({x: x + 4 for x in range(4)}),
+                ("c3", 0): pd.Series({x: x for x in range(4)}),
+            }
+        ).T
+
+    @pytest.fixture
+    def multicolumn_frame(self):
+        yield pd.DataFrame(
+            {
+                ("c1", 0): {x: x for x in range(5)},
+                ("c1", 1): {x: x + 5 for x in range(5)},
+                ("c2", 0): {x: x for x in range(5)},
+                ("c2", 1): {x: x + 5 for x in range(5)},
+                ("c3", 0): {x: x for x in range(5)},
+            }
+        )
+
+    @pytest.fixture
+    def df_with_symbols(self):
+        a = "a"
+        b = "b"
+        yield DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
+
     def test_to_latex_to_file(self, float_frame):
         with tm.ensure_clean("test.tex") as path:
             float_frame.to_latex(path)
@@ -217,18 +265,6 @@ class TestToLatex:
         )
         assert result == expected
 
-    @pytest.fixture
-    def multiindex_frame(self):
-        yield DataFrame.from_dict(
-            {
-                ("c1", 0): pd.Series({x: x for x in range(4)}),
-                ("c1", 1): pd.Series({x: x + 4 for x in range(4)}),
-                ("c2", 0): pd.Series({x: x for x in range(4)}),
-                ("c2", 1): pd.Series({x: x + 4 for x in range(4)}),
-                ("c3", 0): pd.Series({x: x for x in range(4)}),
-            }
-        ).T
-
     def test_to_latex_multiindex_tabular(self, multiindex_frame):
         result = multiindex_frame.to_latex()
         expected = _dedent(
@@ -337,18 +373,6 @@ class TestToLatex:
         )
         assert result == expected
 
-    @pytest.fixture
-    def multicolumn_frame(self):
-        yield pd.DataFrame(
-            {
-                ("c1", 0): {x: x for x in range(5)},
-                ("c1", 1): {x: x + 5 for x in range(5)},
-                ("c2", 0): {x: x for x in range(5)},
-                ("c2", 1): {x: x + 5 for x in range(5)},
-                ("c3", 0): {x: x for x in range(5)},
-            }
-        )
-
     def test_to_latex_multicolumn_default(self, multicolumn_frame):
         result = multicolumn_frame.to_latex()
         expected = _dedent(
@@ -434,12 +458,6 @@ class TestToLatex:
             """
         )
         assert result == expected
-
-    @pytest.fixture
-    def df_with_symbols(self):
-        a = "a"
-        b = "b"
-        yield DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
 
     def test_to_latex_escape_false(self, df_with_symbols):
         result = df_with_symbols.to_latex(escape=False)
@@ -561,15 +579,6 @@ class TestToLatex:
         result = df.to_latex(index=False, longtable=True)
         assert fr"\multicolumn{{{expected_number}}}" in result
 
-    @pytest.fixture
-    def df_caption_label(self):
-        container = namedtuple("Container", ["frame", "caption", "label"])
-        yield container(
-            DataFrame({"a": [1, 2], "b": ["b1", "b2"]}),
-            "a table in a \\texttt{table/tabular} environment",
-            "tab:table_tabular",
-        )
-
     def test_to_latex_caption_only(self, df_caption_label):
         # GH 25436
         df, the_caption, _ = df_caption_label
@@ -636,15 +645,6 @@ class TestToLatex:
             """
         )
         assert result == expected
-
-    @pytest.fixture
-    def df_caption_label_longtable(self):
-        container = namedtuple("Container", ["frame", "caption", "label"])
-        yield container(
-            DataFrame({"a": [1, 2], "b": ["b1", "b2"]}),
-            "a table in a \\texttt{longtable} environment",
-            "tab:longtable",
-        )
 
     def test_to_latex_longtable_caption_only(self, df_caption_label_longtable):
         # GH 25436
