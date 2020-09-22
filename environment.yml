@@ -22,7 +22,9 @@ dependencies:
   - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.782
+  - pre-commit
   - pycodestyle  # used by flake8
+  - pyupgrade
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
