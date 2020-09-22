@@ -387,8 +387,7 @@ class CythonCommand(build_ext):
 
 
 class DummyBuildSrc(Command):
-    """ numpy's build_src command interferes with Cython's build_ext.
-    """
+    """numpy's build_src command interferes with Cython's build_ext."""
 
     user_options = []
 
