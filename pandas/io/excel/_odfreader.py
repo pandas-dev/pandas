@@ -1,4 +1,4 @@
-from typing import List, Optional, cast
+from typing import List, cast
 
 import numpy as np
 
@@ -71,14 +71,7 @@ class ODFReader(BaseExcelReader):
 
         raise ValueError(f"sheet {name} not found")
 
-    def get_sheet_data(
-        self,
-        sheet,
-        convert_float: bool,
-        header_nrows: int,
-        skiprows_nrows: int,
-        nrows: Optional[int],
-    ) -> List[List[Scalar]]:
+    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
         """
         Parse an ODF Table into a list of lists
         """
@@ -94,8 +87,6 @@ class ODFReader(BaseExcelReader):
 
         table: List[List[Scalar]] = []
 
-        if isinstance(nrows, int):
-            sheet_rows = sheet_rows[: header_nrows + skiprows_nrows + nrows + 1]
         for i, sheet_row in enumerate(sheet_rows):
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0

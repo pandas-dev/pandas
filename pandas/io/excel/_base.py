@@ -3,12 +3,12 @@ import datetime
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, Mapping, Union
 
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import Scalar, StorageOptions
+from pandas._typing import StorageOptions
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
@@ -398,14 +398,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def get_sheet_data(
-        self,
-        sheet,
-        convert_float: bool,
-        header_nrows: int,
-        skiprows_nrows: int,
-        nrows: Optional[int],
-    ) -> List[List[Scalar]]:
+    def get_sheet_data(self, sheet, convert_float):
         pass
 
     def parse(
@@ -461,22 +454,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             else:  # assume an integer if not a string
                 sheet = self.get_sheet_by_index(asheetname)
 
-            if isinstance(header, int):
-                header_nrows = header
-            elif header is None:
-                header_nrows = 0
-            else:
-                header_nrows = max(header)
-            if isinstance(skiprows, int):
-                skiprows_nrows = skiprows
-            elif skiprows is None:
-                skiprows_nrows = 0
-            else:
-                skiprows_nrows = len(skiprows)
-
-            data = self.get_sheet_data(
-                sheet, convert_float, header_nrows, skiprows_nrows, nrows
-            )
+            data = self.get_sheet_data(sheet, convert_float)
             usecols = maybe_convert_usecols(usecols)
 
             if not data:
