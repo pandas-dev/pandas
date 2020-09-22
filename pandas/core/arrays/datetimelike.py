@@ -28,7 +28,6 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution, cache_readonly
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -48,11 +47,9 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
-from pandas.core import missing, nanops, ops
+from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
@@ -67,6 +64,15 @@ from pandas.tseries import frequencies
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 
 
+class InvalidComparison(Exception):
+    """
+    Raised by _validate_comparison_value to indicate to caller it should
+    return invalid_comparison.
+    """
+
+    pass
+
+
 def _datetimelike_array_cmp(cls, op):
     """
     Wrap comparison operations to convert Timestamp/Timedelta/Period-like to
@@ -75,36 +81,6 @@ def _datetimelike_array_cmp(cls, op):
     opname = f"__{op.__name__}__"
     nat_result = opname == "__ne__"
 
-    class InvalidComparison(Exception):
-        pass
-
-    def _validate_comparison_value(self, other):
-        if isinstance(other, str):
-            try:
-                # GH#18435 strings get a pass from tzawareness compat
-                other = self._scalar_from_string(other)
-            except ValueError:
-                # failed to parse as Timestamp/Timedelta/Period
-                raise InvalidComparison(other)
-
-        if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
-            self._check_compatible_with(other)
-
-        elif not is_list_like(other):
-            raise InvalidComparison(other)
-
-        elif len(other) != len(self):
-            raise ValueError("Lengths must match")
-
-        else:
-            try:
-                other = self._validate_listlike(other, opname, allow_object=True)
-            except TypeError as err:
-                raise InvalidComparison(other) from err
-
-        return other
-
     @unpack_zerodim_and_defer(opname)
     def wrapper(self, other):
         if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
@@ -112,7 +88,7 @@ def _datetimelike_array_cmp(cls, op):
             return op(self.ravel(), other.ravel()).reshape(self.shape)
 
         try:
-            other = _validate_comparison_value(self, other)
+            other = self._validate_comparison_value(other, opname)
         except InvalidComparison:
             return invalid_comparison(self, other, op)
 
@@ -696,6 +672,33 @@ class DatetimeLikeArrayMixin(
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
 
+    def _validate_comparison_value(self, other, opname: str):
+        if isinstance(other, str):
+            try:
+                # GH#18435 strings get a pass from tzawareness compat
+                other = self._scalar_from_string(other)
+            except ValueError:
+                # failed to parse as Timestamp/Timedelta/Period
+                raise InvalidComparison(other)
+
+        if isinstance(other, self._recognized_scalars) or other is NaT:
+            other = self._scalar_type(other)  # type: ignore[call-arg]
+            self._check_compatible_with(other)
+
+        elif not is_list_like(other):
+            raise InvalidComparison(other)
+
+        elif len(other) != len(self):
+            raise ValueError("Lengths must match")
+
+        else:
+            try:
+                other = self._validate_listlike(other, opname, allow_object=True)
+            except TypeError as err:
+                raise InvalidComparison(other) from err
+
+        return other
+
     def _validate_fill_value(self, fill_value):
         """
         If a fill_value is passed to `take` convert it to an i8 representation,
@@ -972,53 +975,6 @@ class DatetimeLikeArrayMixin(
                 fill_value = np.nan
             result[self._isnan] = fill_value
         return result
-
-    def fillna(self, value=None, method=None, limit=None):
-        # TODO(GH-20300): remove this
-        # Just overriding to ensure that we avoid an astype(object).
-        # Either 20300 or a `_values_for_fillna` would avoid this duplication.
-        if isinstance(value, ABCSeries):
-            value = value.array
-
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                if method == "pad":
-                    func = missing.pad_1d
-                else:
-                    func = missing.backfill_1d
-
-                values = self._ndarray
-                if not is_period_dtype(self.dtype):
-                    # For PeriodArray self._ndarray is i8, which gets copied
-                    #  by `func`.  Otherwise we need to make a copy manually
-                    # to avoid modifying `self` in-place.
-                    values = values.copy()
-
-                new_values = func(values, limit=limit, mask=mask)
-                if is_datetime64tz_dtype(self.dtype):
-                    # we need to pass int64 values to the constructor to avoid
-                    #  re-localizing incorrectly
-                    new_values = new_values.view("i8")
-                new_values = type(self)(new_values, dtype=self.dtype)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     # ------------------------------------------------------------------
     # Frequency Properties/Methods

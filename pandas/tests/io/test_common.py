@@ -345,7 +345,7 @@ class TestMMapWrapper:
         with pytest.raises(err, match=msg):
             icom._MMapWrapper(non_file)
 
-        target = open(mmap_file, "r")
+        target = open(mmap_file)
         target.close()
 
         msg = "I/O operation on closed file"
@@ -353,7 +353,7 @@ class TestMMapWrapper:
             icom._MMapWrapper(target)
 
     def test_get_attr(self, mmap_file):
-        with open(mmap_file, "r") as target:
+        with open(mmap_file) as target:
             wrapper = icom._MMapWrapper(target)
 
         attrs = dir(wrapper.mmap)
@@ -366,7 +366,7 @@ class TestMMapWrapper:
         assert not hasattr(wrapper, "foo")
 
     def test_next(self, mmap_file):
-        with open(mmap_file, "r") as target:
+        with open(mmap_file) as target:
             wrapper = icom._MMapWrapper(target)
             lines = target.readlines()
 

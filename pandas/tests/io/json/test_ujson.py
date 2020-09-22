@@ -594,14 +594,14 @@ class TestUltraJSONTests:
     def test_encode_big_escape(self):
         # Make sure no Exception is raised.
         for _ in range(10):
-            base = "\u00e5".encode("utf-8")
+            base = "\u00e5".encode()
             escape_input = base * 1024 * 1024 * 2
             ujson.encode(escape_input)
 
     def test_decode_big_escape(self):
         # Make sure no Exception is raised.
         for _ in range(10):
-            base = "\u00e5".encode("utf-8")
+            base = "\u00e5".encode()
             quote = b'"'
 
             escape_input = quote + (base * 1024 * 1024 * 2) + quote
