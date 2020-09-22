@@ -634,6 +634,10 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
+In addition to ``./ci/code_checks.sh``, some extra checks are run by
+``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
+run them.
+
 Additional standards are outlined on the :ref:`pandas code style guide <code_style>`
 
 Optional dependencies
@@ -825,6 +829,13 @@ In addition, using this pre-commit hook will also allow you to more easily
 remain up-to-date with our code checks as they change.
 
 Note that if needed, you can skip these checks with ``git commit --no-verify``.
+
+If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
+to run its checks by running::
+
+    pre-commit run --files <files you have modified>
+
+without having to have done ``pre-commit install`` beforehand.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
