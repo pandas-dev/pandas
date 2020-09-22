@@ -451,7 +451,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         from pandas import Series
 
-        to_drop = dummies.columns[isna(dummies.columns.values)]
+        to_drop = dummies.columns[isna(dummies.columns)]
         if len(to_drop):
             dummies = dummies.drop(columns=to_drop)
 
