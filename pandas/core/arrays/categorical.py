@@ -37,7 +37,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
-from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import ops
@@ -1177,13 +1176,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         return self._validate_listlike(value)
 
     def _validate_insert_value(self, value) -> int:
-        code = self.categories.get_indexer([value])
-        if (code == -1) and not (is_scalar(value) and isna(value)):
-            raise TypeError(
-                "cannot insert an item into a CategoricalIndex "
-                "that is not already an existing category"
-            )
-        return code[0]
+        return self._validate_fill_value(value)
 
     def _validate_searchsorted_value(self, value):
         # searchsorted is very performance sensitive. By converting codes
@@ -1213,7 +1206,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         ValueError
         """
 
-        if isna(fill_value):
+        if is_valid_nat_for_dtype(fill_value, self.categories.dtype):
             fill_value = -1
         elif fill_value in self.categories:
             fill_value = self._unbox_scalar(fill_value)
@@ -1636,6 +1629,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         value, method = validate_fillna_kwargs(
             value, method, validate_scalar_dict_value=False
         )
+        value = extract_array(value, extract_numpy=True)
 
         if value is None:
             value = np.nan
@@ -1644,10 +1638,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                 "specifying a limit for fillna has not been implemented yet"
             )
 
-        codes = self._codes
-
-        # pad / bfill
         if method is not None:
+            # pad / bfill
 
             # TODO: dispatch when self.categories is EA-dtype
             values = np.asarray(self).reshape(-1, len(self))
@@ -1657,40 +1649,25 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             codes = _get_codes_for_values(values, self.categories)
 
         else:
+            # We copy even if there is nothing to fill
+            codes = self._ndarray.copy()
+            mask = self.isna()
 
-            # If value is a dict or a Series (a dict value has already
-            # been converted to a Series)
-            if isinstance(value, (np.ndarray, Categorical, ABCSeries)):
+            if isinstance(value, (np.ndarray, Categorical)):
                 # We get ndarray or Categorical if called via Series.fillna,
                 #  where it will unwrap another aligned Series before getting here
 
-                mask = ~algorithms.isin(value, self.categories)
-                if not isna(value[mask]).all():
+                not_categories = ~algorithms.isin(value, self.categories)
+                if not isna(value[not_categories]).all():
+                    # All entries in `value` must either be a category or NA
                     raise ValueError("fill value must be in categories")
 
                 values_codes = _get_codes_for_values(value, self.categories)
-                indexer = np.where(codes == -1)
-                codes = codes.copy()
-                codes[indexer] = values_codes[indexer]
-
-            # If value is not a dict or Series it should be a scalar
-            elif is_hashable(value):
-                if not isna(value) and value not in self.categories:
-                    raise ValueError("fill value must be in categories")
-
-                mask = codes == -1
-                if mask.any():
-                    codes = codes.copy()
-                    if isna(value):
-                        codes[mask] = -1
-                    else:
-                        codes[mask] = self._unbox_scalar(value)
+                codes[mask] = values_codes[mask]
 
             else:
-                raise TypeError(
-                    f"'value' parameter must be a scalar, dict "
-                    f"or Series, but you passed a {type(value).__name__}"
-                )
+                new_code = self._validate_fill_value(value)
+                codes[mask] = new_code
 
         return self._from_backing_data(codes)
 

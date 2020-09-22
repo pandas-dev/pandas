@@ -224,7 +224,6 @@ Performance improvements
 
 - Performance improvements when creating DataFrame or Series with dtype `str` or :class:`StringDtype` from array with many string elements (:issue:`36304`, :issue:`36317`, :issue:`36325`, :issue:`36432`)
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
-- Performance improvement in `read_excel` for when ``nrows`` is much smaller than the length of the file (:issue:`33281`).
 - Performance improvements when creating :meth:`pd.Series.map` from a huge dictionary (:issue:`34717`)
 - Performance improvement in :meth:`GroupBy.transform` with the ``numba`` engine (:issue:`36240`)
 - ``Styler`` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
@@ -239,7 +238,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-
+- :meth:`Categorical.fillna` will always return a copy, will validate a passed fill value regardless of whether there are any NAs to fill, and will disallow a ``NaT`` as a fill value for numeric categories (:issue:`36530`)
 -
 -
 
@@ -368,6 +367,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed Bug where :class:`DataFrame` column set to scalar extension type via a dict instantion was considered an object type rather than the extension type (:issue:`35965`)
+- Fixed bug where ``astype()`` with equal dtype and ``copy=False`` would return a new object (:issue:`284881`)
 -
 
 
@@ -376,6 +376,7 @@ Other
 
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
+- Fixed metadata propagation in the :class:`Series.dt` accessor (:issue:`28283`)
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 
