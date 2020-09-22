@@ -171,11 +171,8 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid
-        msg = (
-            "cannot insert an item into a CategoricalIndex that is not "
-            "already an existing category"
-        )
-        with pytest.raises(TypeError, match=msg):
+        msg = "'fill_value=d' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
             ci.insert(0, "d")
 
         # GH 18295 (test missing)
@@ -183,6 +180,12 @@ class TestCategoricalIndex(Base):
         for na in (np.nan, pd.NaT, None):
             result = CategoricalIndex(list("aabcb")).insert(1, na)
             tm.assert_index_equal(result, expected)
+
+    def test_insert_na_mismatched_dtype(self):
+        ci = pd.CategoricalIndex([0, 1, 1])
+        msg = "'fill_value=NaT' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
+            ci.insert(0, pd.NaT)
 
     def test_delete(self):
 
