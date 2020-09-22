@@ -446,7 +446,9 @@ class TestToLatex:
     def test_to_latex_multicolumnrow_with_multicol_format(self, multicolumn_frame):
         multicolumn_frame.index = multicolumn_frame.T.index
         result = multicolumn_frame.T.to_latex(
-            multirow=True, multicolumn=True, multicolumn_format="c",
+            multirow=True,
+            multicolumn=True,
+            multicolumn_format="c",
         )
         expected = _dedent(
             r"""
@@ -715,11 +717,16 @@ class TestToLatex:
         assert result == expected
 
     def test_to_latex_longtable_caption_and_label(
-        self, df_short, caption_longtable, label_longtable,
+        self,
+        df_short,
+        caption_longtable,
+        label_longtable,
     ):
         # GH 25436
         result = df_short.to_latex(
-            longtable=True, caption=caption_longtable, label=label_longtable,
+            longtable=True,
+            caption=caption_longtable,
+            label=label_longtable,
         )
         expected = _dedent(
             r"""
