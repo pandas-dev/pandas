@@ -739,7 +739,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # GH#27198
                     raise NotImplementedError
                 return result
-            return self._constructor(result, index=index, name=name, copy=False)
+            # TODO: When we support multiple values in __finalize__, this should
+            # pass alignable instead of self.
+            return self._constructor(
+                result, index=index, name=name, copy=False
+            ).__finalize__(self)
 
         if type(result) is tuple:
             # multiple return values
