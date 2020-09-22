@@ -900,6 +900,22 @@ class DataFrameFormatter:
 
 
 class DataFrameRenderer:
+    """Class for creating dataframe output in multiple formats.
+
+    Called in pandas.core.generic.NDFrame:
+        - to_csv
+        - to_latex
+
+    Called in pandas.core.frame.DataFrame:
+        - to_html
+        - to_string
+
+    Parameters
+    ----------
+    fmt : DataFrameFormatter
+        Formatter with the formating options.
+    """
+
     def __init__(self, fmt: DataFrameFormatter):
         self.fmt = fmt
 
