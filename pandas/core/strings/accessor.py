@@ -235,7 +235,12 @@ class StringMethods(NoNewAttributesMixin):
             g = self.get(i)
 
     def _wrap_result(
-        self, result, name=None, expand=None, fill_value=np.nan, returns_string=True,
+        self,
+        result,
+        name=None,
+        expand=None,
+        fill_value=np.nan,
+        returns_string=True,
     ):
         from pandas import Index, MultiIndex
 
@@ -1888,7 +1893,12 @@ class StringMethods(NoNewAttributesMixin):
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
         result, name = self._array._str_get_dummies(sep)
-        return self._wrap_result(result, name=name, expand=True, returns_string=False,)
+        return self._wrap_result(
+            result,
+            name=name,
+            expand=True,
+            returns_string=False,
+        )
 
     @forbid_nonstring_types(["bytes"])
     def translate(self, table):
