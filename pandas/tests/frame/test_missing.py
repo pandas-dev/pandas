@@ -362,7 +362,8 @@ class TestDataFrameMissingData:
         res = df.fillna(value={"cats": 3, "vals": "b"})
         tm.assert_frame_equal(res, df_exp_fill)
 
-        with pytest.raises(ValueError, match=("fill value must be in categories")):
+        msg = "'fill_value=4' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
             df.fillna(value={"cats": 4, "vals": "c"})
 
         res = df.fillna(method="pad")
