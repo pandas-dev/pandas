@@ -144,7 +144,7 @@ class StringFormatter:
             start = end
         return "\n\n".join(str_lst)
 
-    def _fit_strcols_to_terminal_width(self, strcols) -> str:
+    def _fit_strcols_to_terminal_width(self, strcols: List[List[str]]) -> str:
         from pandas import Series
 
         lines = self.adj.adjoin(1, *strcols).split("\n")
