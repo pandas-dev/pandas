@@ -264,8 +264,11 @@ class CSSToExcelConverter:
     def _width_to_float(self, width: Optional[str]) -> float:
         if width is None:
             width = "2pt"
-        assert width.endswith("pt")
-        return float(width.rstrip("pt"))
+        return self._pt_to_float(width)
+
+    def _pt_to_float(self, pt_string: str) -> float:
+        assert pt_string.endswith("pt")
+        return float(pt_string.rstrip("pt"))
 
     def build_fill(self, props: Mapping[str, str]):
         # TODO: perhaps allow for special properties
@@ -360,8 +363,7 @@ class CSSToExcelConverter:
         size = props.get("font-size")
         if size is None:
             return size
-        assert size.endswith("pt")
-        return float(size.rstrip("pt"))
+        return self._pt_to_float(size)
 
     def _select_font_family(self, font_names) -> Optional[int]:
         family = None
