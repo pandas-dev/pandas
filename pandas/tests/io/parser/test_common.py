@@ -2215,7 +2215,9 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers):
     # GH: 35958
     f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
     parser = all_parsers
-    msg = "Specified a delimiter with both sep and " \
-          "delim_whitespace=True; you can only specify one."
+    msg = (
+        "Specified a delimiter with both sep and "
+        "delim_whitespace=True; you can only specify one."
+    )
     with pytest.raises(ValueError, match=msg):
         parser.read_table(f, delim_whitespace=True, sep=",")
