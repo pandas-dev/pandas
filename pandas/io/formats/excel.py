@@ -198,6 +198,7 @@ class CSSToExcelConverter:
                 return "dashed"
             return "mediumDashed"
 
+
     def build_fill(self, props: Dict[str, str]):
         # TODO: perhaps allow for special properties
         #       -excel-pattern-bgcolor and -excel-pattern-type
@@ -251,19 +252,17 @@ class CSSToExcelConverter:
             if name:
                 font_names.append(name)
 
+        family_mapping = {
+            "serif": 1,  # roman
+            "sans-serif": 2,  # swiss
+            "cursive": 4,  # script
+            "fantasy": 5,  # decorative
+        }
+
         family = None
         for name in font_names:
-            if name == "serif":
-                family = 1  # roman
-                break
-            elif name == "sans-serif":
-                family = 2  # swiss
-                break
-            elif name == "cursive":
-                family = 4  # script
-                break
-            elif name == "fantasy":
-                family = 5  # decorative
+            family = family_mapping.get(name)
+            if family:
                 break
 
         decoration = props.get("text-decoration")
