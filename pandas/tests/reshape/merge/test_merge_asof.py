@@ -1378,8 +1378,7 @@ def test_non_numerical_dtype(data):
         pd.merge_asof(left, right, on="x")
 
 
-def test_merge_asof_string_column():
-    # GH: 29130
+def test_some_issues():
     left = pd.DataFrame({"a": ["12", "13", "15"], "left_val1": ["a", "b", "c"]})
     right = pd.DataFrame({"a": ["a", "b", "c"], "left_val": ["d", "e", "f"]})
     with pytest.raises(
