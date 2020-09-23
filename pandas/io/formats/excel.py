@@ -274,8 +274,6 @@ class CSSToExcelConverter:
             "name": font_names[0] if font_names else None,
             "family": self._select_font_family(font_names),
             "size": self._get_font_size(props),
-            # Ignored mypy errors because of changed get.
-            # Link to mypy issue: https://github.com/python/mypy/issues/9430
             "bold": self._get_is_bold(props),
             "italic": self._get_is_italic(props),
             "underline": ("single" if "underline" in decoration else None),
