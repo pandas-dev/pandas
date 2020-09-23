@@ -226,7 +226,7 @@ class CSSToExcelConverter:
         size = props.get("font-size")
         if size is not None:
             assert size.endswith("pt")
-            size = float(size[:-2])
+            size = float(size.rstrip("pt"))
 
         font_names_tmp = re.findall(
             r"""(?x)
