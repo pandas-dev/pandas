@@ -58,6 +58,68 @@ class CSSToExcelConverter:
         CSS processed by :meth:`__call__`.
     """
 
+    NAMED_COLORS = {
+        "maroon": "800000",
+        "brown": "A52A2A",
+        "red": "FF0000",
+        "pink": "FFC0CB",
+        "orange": "FFA500",
+        "yellow": "FFFF00",
+        "olive": "808000",
+        "green": "008000",
+        "purple": "800080",
+        "fuchsia": "FF00FF",
+        "lime": "00FF00",
+        "teal": "008080",
+        "aqua": "00FFFF",
+        "blue": "0000FF",
+        "navy": "000080",
+        "black": "000000",
+        "gray": "808080",
+        "grey": "808080",
+        "silver": "C0C0C0",
+        "white": "FFFFFF",
+    }
+
+    VERTICAL_MAP = {
+        "top": "top",
+        "text-top": "top",
+        "middle": "center",
+        "baseline": "bottom",
+        "bottom": "bottom",
+        "text-bottom": "bottom",
+        # OpenXML also has 'justify', 'distributed'
+    }
+
+    BOLD_MAP = {
+        "bold": True,
+        "bolder": True,
+        "600": True,
+        "700": True,
+        "800": True,
+        "900": True,
+        "normal": False,
+        "lighter": False,
+        "100": False,
+        "200": False,
+        "300": False,
+        "400": False,
+        "500": False,
+    }
+
+    ITALIC_MAP = {
+        "normal": False,
+        "italic": True,
+        "oblique": True,
+    }
+
+    FAMILY_MAP = {
+        "serif": 1,  # roman
+        "sans-serif": 2,  # swiss
+        "cursive": 4,  # script
+        "fantasy": 5,  # decorative
+    }
+
     # NB: Most of the methods here could be classmethods, as only __init__
     #     and __call__ make use of instance attributes.  We leave them as
     #     instancemethods so that users can easily experiment with extensions
@@ -114,16 +176,6 @@ class CSSToExcelConverter:
 
         remove_none(out)
         return out
-
-    VERTICAL_MAP = {
-        "top": "top",
-        "text-top": "top",
-        "middle": "center",
-        "baseline": "bottom",
-        "bottom": "bottom",
-        "text-bottom": "bottom",
-        # OpenXML also has 'justify', 'distributed'
-    }
 
     def build_alignment(self, props) -> Dict[str, Optional[Union[bool, str]]]:
         # TODO: text-indent, padding-left -> alignment.indent
@@ -205,23 +257,6 @@ class CSSToExcelConverter:
         if fill_color not in (None, "transparent", "none"):
             return {"fgColor": self.color_to_excel(fill_color), "patternType": "solid"}
 
-    BOLD_MAP = {
-        "bold": True,
-        "bolder": True,
-        "600": True,
-        "700": True,
-        "800": True,
-        "900": True,
-        "normal": False,
-        "lighter": False,
-        "100": False,
-        "200": False,
-        "300": False,
-        "400": False,
-        "500": False,
-    }
-    ITALIC_MAP = {"normal": False, "italic": True, "oblique": True}
-
     def build_font(self, props) -> Dict[str, Optional[Union[bool, int, float, str]]]:
         decoration = props.get("text-decoration")
         if decoration is not None:
@@ -253,29 +288,6 @@ class CSSToExcelConverter:
             # 'outline': ,
             # 'condense': ,
         }
-
-    NAMED_COLORS = {
-        "maroon": "800000",
-        "brown": "A52A2A",
-        "red": "FF0000",
-        "pink": "FFC0CB",
-        "orange": "FFA500",
-        "yellow": "FFFF00",
-        "olive": "808000",
-        "green": "008000",
-        "purple": "800080",
-        "fuchsia": "FF00FF",
-        "lime": "00FF00",
-        "teal": "008080",
-        "aqua": "00FFFF",
-        "blue": "0000FF",
-        "navy": "000080",
-        "black": "000000",
-        "gray": "808080",
-        "grey": "808080",
-        "silver": "C0C0C0",
-        "white": "FFFFFF",
-    }
 
     def _get_font_names(self, props: Mapping[str, str]) -> Sequence[str]:
         font_names_tmp = re.findall(
@@ -311,16 +323,9 @@ class CSSToExcelConverter:
         return float(size.rstrip("pt"))
 
     def _select_font_family(self, font_names) -> Optional[int]:
-        family_mapping = {
-            "serif": 1,  # roman
-            "sans-serif": 2,  # swiss
-            "cursive": 4,  # script
-            "fantasy": 5,  # decorative
-        }
-
         family = None
         for name in font_names:
-            family = family_mapping.get(name)
+            family = self.FAMILY_MAP.get(name)
             if family:
                 break
 
