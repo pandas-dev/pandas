@@ -252,7 +252,7 @@ class Styler:
     def set_tooltips_class(
         self,
         name: Optional[str] = None,
-        properties: Optional[List[Tuple[str, Union[str, int, float]]]] = None,
+        properties: Optional[Sequence[Tuple[str, Union[str, int, float]]]] = None,
     ) -> "Styler":
         """
         Manually configure the name and/or properties of the class for
