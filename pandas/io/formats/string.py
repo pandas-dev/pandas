@@ -42,7 +42,7 @@ class StringFormatter:
             return self.adj.adjoin(1, *strcols)
 
         if self._need_to_wrap_around:
-            return self._join_multiline(*strcols)
+            return self._join_multiline(strcols)
 
         return self._fit_strcols_to_terminal_width(strcols)
 
@@ -106,10 +106,9 @@ class StringFormatter:
             col.insert(row_num + n_header_rows, dot_str)
         return strcols
 
-    def _join_multiline(self, *strcols: List[str]) -> str:
+    def _join_multiline(self, strcols: List[List[str]]) -> str:
         lwidth = self.line_width
         adjoin_width = 1
-        strcols = list(strcols)
         if self.fmt.index:
             idx = strcols.pop(0)
             lwidth -= np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
