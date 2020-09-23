@@ -266,13 +266,8 @@ class CSSToExcelConverter:
         return {"format_code": props.get("number-format")}
 
     def build_font(self, props) -> Dict[str, Optional[Union[bool, int, float, str]]]:
-        decoration = props.get("text-decoration")
-        if decoration is not None:
-            decoration = decoration.split()
-        else:
-            decoration = ()
-
         font_names = self._get_font_names(props)
+        decoration = self._get_decoration(props)
 
         return {
             "name": font_names[0] if font_names else None,
@@ -296,6 +291,13 @@ class CSSToExcelConverter:
             # 'outline': ,
             # 'condense': ,
         }
+
+    def _get_decoration(self, props: Mapping[str, str]) -> Sequence[str]:
+        decoration = props.get("text-decoration")
+        if decoration is not None:
+            return decoration.split()
+        else:
+            return ()
 
     def _get_font_names(self, props: Mapping[str, str]) -> Sequence[str]:
         font_names_tmp = re.findall(
