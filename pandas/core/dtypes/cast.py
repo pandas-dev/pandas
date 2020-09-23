@@ -73,7 +73,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
-from pandas.core.dtypes.missing import isna, notna, is_valid_nat_for_dtype
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 if TYPE_CHECKING:
     from pandas import Series
