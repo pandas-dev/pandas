@@ -11,6 +11,7 @@ import pytest
 import pandas._config.config as cf
 
 from pandas._libs.tslib import Timestamp
+from pandas.compat import IS64
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
@@ -2607,7 +2608,8 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
         ex1 = np.array([0, 3, 1, 4, 2, 5] * 2, dtype=np.intp)
         ex2 = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(result[0], ex1)
-        tm.assert_numpy_array_equal(result[1], ex2.astype(np.int64))
+        expected_dtype = np.int64 if IS64 else np.int32
+        tm.assert_numpy_array_equal(result[1], ex2.astype(expected_dtype))
 
     else:
         no_matches = np.array([-1] * 6, dtype=np.intp)

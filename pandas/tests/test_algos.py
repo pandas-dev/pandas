@@ -1545,7 +1545,8 @@ class TestHashTable:
         xs.setflags(write=writable)
         m = ht.Float64HashTable()
         m.map_locations(xs)
-        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.int64))
+        expected_dtype = np.int64 if IS64 else np.int32
+        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=expected_dtype))
 
     def test_add_signed_zeros(self):
         # GH 21866 inconsistent hash-function for float64
@@ -1578,7 +1579,8 @@ class TestHashTable:
         xs.setflags(write=writable)
         m = ht.UInt64HashTable()
         m.map_locations(xs)
-        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.int64))
+        expected_dtype = np.int64 if IS64 else np.int32
+        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=expected_dtype))
 
     def test_get_unique(self):
         s = Series([1, 2, 2 ** 63, 2 ** 63], dtype=np.uint64)
