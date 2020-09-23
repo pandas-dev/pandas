@@ -239,3 +239,51 @@ class TestRangeIndexSetOps:
         res3 = idx1._int64index.union(idx2, sort=None)
         tm.assert_index_equal(res2, expected_sorted, exact=True)
         tm.assert_index_equal(res3, expected_sorted)
+
+    def test_difference(self):
+        # GH#12034 Cases where we operate against another RangeIndex and may
+        #  get back another RangeIndex
+        obj = RangeIndex.from_range(range(1, 10))
+
+        result = obj.difference(obj)
+        expected = RangeIndex.from_range(range(0))
+        tm.assert_index_equal(result, expected)
+
+        result = obj.difference(expected)
+        tm.assert_index_equal(result, obj)
+
+        result = obj.difference(obj[:3])
+        tm.assert_index_equal(result, obj[3:])
+
+        result = obj.difference(obj[-3:])
+        tm.assert_index_equal(result, obj[:-3])
+
+        result = obj.difference(obj[2:6])
+        expected = Int64Index([1, 2, 7, 8, 9])
+        tm.assert_index_equal(result, expected)
+
+    def test_symmetric_difference(self):
+        # GH#12034 Cases where we operate against another RangeIndex and may
+        #  get back another RangeIndex
+        left = RangeIndex.from_range(range(1, 10))
+
+        result = left.symmetric_difference(left)
+        expected = RangeIndex.from_range(range(0))
+        tm.assert_index_equal(result, expected)
+
+        result = left.symmetric_difference(expected)
+        tm.assert_index_equal(result, left)
+
+        result = left[:-2].symmetric_difference(left[2:])
+        expected = Int64Index([1, 2, 8, 9])
+        tm.assert_index_equal(result, expected)
+
+        right = RangeIndex.from_range(range(10, 15))
+
+        result = left.symmetric_difference(right)
+        expected = RangeIndex.from_range(range(1, 15))
+        tm.assert_index_equal(result, expected)
+
+        result = left.symmetric_difference(right[1:])
+        expected = Int64Index([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14])
+        tm.assert_index_equal(result, expected)
