@@ -1063,6 +1063,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
+        if is_dtype_equal(dtype, self._dtype):
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
@@ -1427,7 +1432,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     # TODO: look into _wrap_result
                     if len(self) != len(other):
                         raise AssertionError(
-                            (f"length mismatch: {len(self)} vs. {len(other)}")
+                            f"length mismatch: {len(self)} vs. {len(other)}"
                         )
                     if not isinstance(other, SparseArray):
                         dtype = getattr(other, "dtype", None)

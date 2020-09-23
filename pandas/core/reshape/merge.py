@@ -1851,7 +1851,7 @@ def _get_single_indexer(join_key, index, sort: bool = False):
 def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool = False):
     if len(join_keys) > 1:
         if not (
-            (isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels)
+            isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels
         ):
             raise AssertionError(
                 "If more than one join key is given then "

@@ -99,7 +99,7 @@ class build_ext(_build_ext):
                 # if .pxi.in is not updated, no need to output .pxi
                 continue
 
-            with open(pxifile, "r") as f:
+            with open(pxifile) as f:
                 tmpl = f.read()
             pyxcontent = tempita.sub(tmpl)
 
@@ -387,8 +387,7 @@ class CythonCommand(build_ext):
 
 
 class DummyBuildSrc(Command):
-    """ numpy's build_src command interferes with Cython's build_ext.
-    """
+    """numpy's build_src command interferes with Cython's build_ext."""
 
     user_options = []
 
