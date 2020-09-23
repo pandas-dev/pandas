@@ -41,14 +41,8 @@ class RowStringConverter(ABC):
         self.multirow = multirow
         self.clinebuf: List[List[int]] = []
         self.strcols = self._get_strcols()
-
-        # Here is a reason for ignoring typing.
-        # list() implicitly exhausts zip iterator into lists of strings.
-        # Hence, self.strrows is List[List[str]].
-        # Meanwhile, mypy thinks we pass Iterator[Tuple[Any, ...]] to list(),
-        # but expected Iterable[List[str]].
-        self.strrows: List[List[str]] = (
-            list(zip(*self.strcols))  # type: ignore[arg-type]
+        self.strrows: List[List[str]] = list(
+            zip(*self.strcols)  # type: ignore[arg-type]
         )
 
     def get_strrow(self, row_num: int) -> str:
