@@ -684,12 +684,18 @@ class TestToLatex:
         )
         assert result == expected
 
+    def test_to_latex_caption_and_shortcaption_list_is_ok(self, df_short):
+        caption = ("Long-long-caption", "Short")
+        result_tuple = df_short.to_latex(caption=caption)
+        result_list = df_short.to_latex(caption=list(caption))
+        assert result_tuple == result_list
+
     def test_to_latex_caption_shortcaption_and_label(
         self,
         df_short,
         caption_table,
         short_caption,
-        label_table
+        label_table,
     ):
         # test when the short_caption is provided alongside caption and label
         result = df_short.to_latex(
@@ -727,7 +733,7 @@ class TestToLatex:
     )
     def test_to_latex_bad_caption_raises(self, bad_caption):
         # test that wrong number of params is raised
-        df = pd.DataFrame({'a': [1]})
+        df = pd.DataFrame({"a": [1]})
         msg = "caption must be either a string or a tuple of two strings"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(caption=bad_caption)
