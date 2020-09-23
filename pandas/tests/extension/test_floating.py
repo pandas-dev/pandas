@@ -186,11 +186,7 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
-    def test_astype_string(self, data):
-        if data.dtype == "Float32":
-            # https://github.com/pandas-dev/pandas/issues/36451
-            pytest.skip()
-        super().test_astype_string(data)
+    pass
 
 
 class TestGroupby(base.BaseGroupbyTests):
