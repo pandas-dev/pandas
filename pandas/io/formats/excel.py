@@ -189,7 +189,7 @@ class CSSToExcelConverter:
             ),
         }
 
-    def build_border(self, props: Dict) -> Dict[str, Dict[str, str]]:
+    def build_border(self, props: Dict) -> Dict[str, Dict[str, Optional[str]]]:
         return {
             side: {
                 "style": self._border_style(
@@ -339,7 +339,7 @@ class CSSToExcelConverter:
 
         return family
 
-    def color_to_excel(self, val: Optional[str]):
+    def color_to_excel(self, val: Optional[str]) -> Optional[str]:
         if val is None:
             return None
         if val.startswith("#") and len(val) == 7:
@@ -350,6 +350,7 @@ class CSSToExcelConverter:
             return self.NAMED_COLORS[val]
         except KeyError:
             warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
+        return None
 
 
 class ExcelFormatter:
