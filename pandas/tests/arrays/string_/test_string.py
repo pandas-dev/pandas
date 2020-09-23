@@ -363,7 +363,7 @@ def test_string_dtype_subclassing():
     assert series.dtype == "my_extension"
     assert series.values == ["test", "test2"]
     assert is_string_dtype(series)
-   
+
 
 @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
 def test_astype_from_float_dtype(dtype):
