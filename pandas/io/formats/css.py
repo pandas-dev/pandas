@@ -76,6 +76,11 @@ class CSSResolver:
         if inherited is None:
             inherited = {}
 
+        props = self._update_initial(props, inherited)
+        props = self._update_font_size(props, inherited)
+        return self._update_other_units(props)
+
+    def _update_initial(self, props, inherited):
         # 1. resolve inherited, initial
         for prop, val in inherited.items():
             if prop not in props:
@@ -92,38 +97,48 @@ class CSSResolver:
                 del props[prop]
             else:
                 props[prop] = val
+        return props
 
+    def _update_font_size(self, props, inherited):
         # 2. resolve relative font size
-        font_size: Optional[float]
         if props.get("font-size"):
-            if "font-size" in inherited:
-                em_pt = inherited["font-size"]
-                assert em_pt[-2:] == "pt"
-                em_pt = float(em_pt[:-2])
-            else:
-                em_pt = None
             props["font-size"] = self.size_to_pt(
-                props["font-size"], em_pt, conversions=self.FONT_SIZE_RATIOS
+                props["font-size"],
+                self._get_font_size(inherited),
+                conversions=self.FONT_SIZE_RATIOS,
             )
+        return props
 
-            font_size = float(props["font-size"][:-2])
-        else:
-            font_size = None
+    def _get_font_size(self, props) -> Optional[float]:
+        if props.get("font-size"):
+            font_size_string = props["font-size"]
+            return self._get_float_font_size_from_pt(font_size_string)
+        return None
 
+    def _get_float_font_size_from_pt(self, font_size_string):
+        assert font_size_string.endswith("pt")
+        return float(font_size_string.rstrip("pt"))
+
+    def _update_other_units(self, props):
+        font_size = self._get_font_size(props)
         # 3. TODO: resolve other font-relative units
         for side in self.SIDES:
             prop = f"border-{side}-width"
             if prop in props:
                 props[prop] = self.size_to_pt(
-                    props[prop], em_pt=font_size, conversions=self.BORDER_WIDTH_RATIOS
+                    props[prop],
+                    em_pt=font_size,
+                    conversions=self.BORDER_WIDTH_RATIOS,
                 )
+
             for prop in [f"margin-{side}", f"padding-{side}"]:
                 if prop in props:
                     # TODO: support %
                     props[prop] = self.size_to_pt(
-                        props[prop], em_pt=font_size, conversions=self.MARGIN_RATIOS
+                        props[prop],
+                        em_pt=font_size,
+                        conversions=self.MARGIN_RATIOS,
                     )
-
         return props
 
     UNIT_RATIOS = {
