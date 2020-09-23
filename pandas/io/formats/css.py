@@ -3,7 +3,7 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 
 import re
-from typing import Optional
+from typing import Dict, Mapping, Optional
 import warnings
 
 
@@ -34,7 +34,11 @@ class CSSResolver:
     A callable for parsing and resolving CSS to atomic properties.
     """
 
-    def __call__(self, declarations_str, inherited=None):
+    def __call__(
+        self,
+        declarations_str: str,
+        inherited: Optional[Mapping[str, str]] = None,
+    ):
         """
         The given declarations to atomic properties.
 
@@ -80,7 +84,11 @@ class CSSResolver:
         props = self._update_font_size(props, inherited)
         return self._update_other_units(props)
 
-    def _update_initial(self, props, inherited):
+    def _update_initial(
+        self,
+        props: Dict[str, Optional[str]],
+        inherited: Mapping[str, str],
+    ) -> Dict[str, Optional[str]]:
         # 1. resolve inherited, initial
         for prop, val in inherited.items():
             if prop not in props:
@@ -89,17 +97,19 @@ class CSSResolver:
         for prop, val in list(props.items()):
             if val == "inherit":
                 val = inherited.get(prop, "initial")
-            if val == "initial":
-                val = None
 
-            if val is None:
+            if val in ("initial", None):
                 # we do not define a complete initial stylesheet
                 del props[prop]
             else:
                 props[prop] = val
         return props
 
-    def _update_font_size(self, props, inherited):
+    def _update_font_size(
+        self,
+        props: Dict[str, Optional[str]],
+        inherited: Mapping[str, str],
+    ) -> Dict[str, Optional[str]]:
         # 2. resolve relative font size
         if props.get("font-size"):
             props["font-size"] = self.size_to_pt(
