@@ -32,6 +32,59 @@ class CSSResolver:
     A callable for parsing and resolving CSS to atomic properties.
     """
 
+    UNIT_RATIOS = {
+        "rem": ("pt", 12),
+        "ex": ("em", 0.5),
+        # 'ch':
+        "px": ("pt", 0.75),
+        "pc": ("pt", 12),
+        "in": ("pt", 72),
+        "cm": ("in", 1 / 2.54),
+        "mm": ("in", 1 / 25.4),
+        "q": ("mm", 0.25),
+        "!!default": ("em", 0),
+    }
+
+    FONT_SIZE_RATIOS = UNIT_RATIOS.copy()
+    FONT_SIZE_RATIOS.update(
+        {
+            "%": ("em", 0.01),
+            "xx-small": ("rem", 0.5),
+            "x-small": ("rem", 0.625),
+            "small": ("rem", 0.8),
+            "medium": ("rem", 1),
+            "large": ("rem", 1.125),
+            "x-large": ("rem", 1.5),
+            "xx-large": ("rem", 2),
+            "smaller": ("em", 1 / 1.2),
+            "larger": ("em", 1.2),
+            "!!default": ("em", 1),
+        }
+    )
+
+    MARGIN_RATIOS = UNIT_RATIOS.copy()
+    MARGIN_RATIOS.update({"none": ("pt", 0)})
+
+    BORDER_WIDTH_RATIOS = UNIT_RATIOS.copy()
+    BORDER_WIDTH_RATIOS.update(
+        {
+            "none": ("pt", 0),
+            "thick": ("px", 4),
+            "medium": ("px", 2),
+            "thin": ("px", 1),
+            # Default: medium only if solid
+        }
+    )
+
+    SIDE_SHORTHANDS = {
+        1: [0, 0, 0, 0],
+        2: [0, 1, 0, 1],
+        3: [0, 1, 2, 1],
+        4: [0, 1, 2, 3],
+    }
+
+    SIDES = ("top", "right", "bottom", "left")
+
     def __call__(
         self,
         declarations_str: str,
@@ -150,50 +203,6 @@ class CSSResolver:
                     )
         return props
 
-    UNIT_RATIOS = {
-        "rem": ("pt", 12),
-        "ex": ("em", 0.5),
-        # 'ch':
-        "px": ("pt", 0.75),
-        "pc": ("pt", 12),
-        "in": ("pt", 72),
-        "cm": ("in", 1 / 2.54),
-        "mm": ("in", 1 / 25.4),
-        "q": ("mm", 0.25),
-        "!!default": ("em", 0),
-    }
-
-    FONT_SIZE_RATIOS = UNIT_RATIOS.copy()
-    FONT_SIZE_RATIOS.update(
-        {
-            "%": ("em", 0.01),
-            "xx-small": ("rem", 0.5),
-            "x-small": ("rem", 0.625),
-            "small": ("rem", 0.8),
-            "medium": ("rem", 1),
-            "large": ("rem", 1.125),
-            "x-large": ("rem", 1.5),
-            "xx-large": ("rem", 2),
-            "smaller": ("em", 1 / 1.2),
-            "larger": ("em", 1.2),
-            "!!default": ("em", 1),
-        }
-    )
-
-    MARGIN_RATIOS = UNIT_RATIOS.copy()
-    MARGIN_RATIOS.update({"none": ("pt", 0)})
-
-    BORDER_WIDTH_RATIOS = UNIT_RATIOS.copy()
-    BORDER_WIDTH_RATIOS.update(
-        {
-            "none": ("pt", 0),
-            "thick": ("px", 4),
-            "medium": ("px", 2),
-            "thin": ("px", 1),
-            # Default: medium only if solid
-        }
-    )
-
     def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
         def _error():
             warnings.warn(f"Unhandled size: {repr(in_val)}", CSSWarning)
@@ -245,14 +254,6 @@ class CSSResolver:
             else:
                 for prop, value in expand(prop, value):
                     yield prop, value
-
-    SIDE_SHORTHANDS = {
-        1: [0, 0, 0, 0],
-        2: [0, 1, 0, 1],
-        3: [0, 1, 2, 1],
-        4: [0, 1, 2, 3],
-    }
-    SIDES = ("top", "right", "bottom", "left")
 
     expand_border_color = _side_expander("border-{:s}-color")
     expand_border_style = _side_expander("border-{:s}-style")
