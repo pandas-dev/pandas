@@ -29,6 +29,21 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         raise NotImplementedError
 
     def _str_map(self, f, na_value=None, dtype=None):
+        """
+        Map a callable over valid element of the array.
+
+        Parameters
+        ----------
+        f : Callable
+            A function to call on each non-NA element.
+        na_value : Scalar, optional
+            The value to set for NA values. Might also be used for the
+            fill value if the callable `f` raises an exception.
+            This defaults to ``self._str_na_value`` which is ``np.nan``
+            for object-dtype and Categorical and ``pd.NA`` for StringArray.
+        dtype : Dtype, optional
+            The dtype of the result array.
+        """
         arr = self
         if dtype is None:
             dtype = np.dtype("object")

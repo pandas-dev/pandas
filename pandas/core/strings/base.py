@@ -8,14 +8,15 @@ from pandas._typing import Scalar
 
 class BaseStringArrayMethods(abc.ABC):
     """
-    Base class for array _str accessor.
+    Base class for extension arrays implementing string methods.
 
-    This is where ExtensionArrays can override the implementation of
-    Series.str.<method>. The rough layout is
+    This is our ExtensionArrays can override the implementation of
+    Series.str.<method>. We don't currenlty expect this to work with
+    3rd-party extension arrays.
 
     * User calls Series.str.<method>
     * pandas extracts the extension array from the Series
-    * pandas calls ``extension_array._str.<method>(*args, **kwargs)``
+    * pandas calls ``extension_array._str_<method>(*args, **kwargs)``
     * pandas wraps the result, to return to the user.
 
     See :ref:`Series.str` for the docstring of each method.
