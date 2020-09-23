@@ -1710,7 +1710,7 @@ class _Tooltips:
 
     def __init__(
         self,
-        css_props: List[Tuple[str, Union[str, int, float]]] = [
+        css_props: Sequence[Tuple[str, Union[str, int, float]]] = [
             ("visibility", "hidden"),
             ("position", "absolute"),
             ("z-index", 1),
