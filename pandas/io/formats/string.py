@@ -106,10 +106,10 @@ class StringFormatter:
             col.insert(row_num + n_header_rows, dot_str)
         return strcols
 
-    def _join_multiline(self, *args) -> str:
+    def _join_multiline(self, *strcols: List[str]) -> str:
         lwidth = self.line_width
         adjoin_width = 1
-        strcols = list(args)
+        strcols = list(strcols)
         if self.fmt.index:
             idx = strcols.pop(0)
             lwidth -= np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
