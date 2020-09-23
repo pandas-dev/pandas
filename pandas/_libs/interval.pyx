@@ -434,7 +434,7 @@ cdef class Interval(IntervalMixin):
                 self.left // y, self.right // y, closed=self.closed)
         return NotImplemented
 
-    def overlaps(self, other):
+    def overlaps(self, other: "Interval") -> bool:
         """
         Check whether two Interval objects overlap.
 
