@@ -182,12 +182,13 @@ class CSSToExcelConverter:
         return {
             "horizontal": props.get("text-align"),
             "vertical": self.VERTICAL_MAP.get(props.get("vertical-align")),
-            "wrap_text": (
-                None
-                if props.get("white-space") is None
-                else props["white-space"] not in ("nowrap", "pre", "pre-line")
-            ),
+            "wrap_text": self._get_is_wrap_text(props),
         }
+
+    def _get_is_wrap_text(self, props: Mapping[str, str]) -> Optional[bool]:
+        if props.get("white-space") is None:
+            return None
+        return bool(props["white-space"] not in ("nowrap", "pre", "pre-line"))
 
     def build_border(self, props: Dict) -> Dict[str, Dict[str, Optional[str]]]:
         return {
