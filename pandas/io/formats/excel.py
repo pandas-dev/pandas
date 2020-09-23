@@ -225,14 +225,12 @@ class CSSToExcelConverter:
         if width_name is None:
             return None
 
-        if style in (None, "groove", "ridge", "inset", "outset"):
+        if style in (None, "groove", "ridge", "inset", "outset", "solid"):
             # not handled
-            style = "solid"
+            return width_name
 
         if style == "double":
             return "double"
-        if style == "solid":
-            return width_name
         if style == "dotted":
             if width_name in ("hair", "thin"):
                 return "dotted"
