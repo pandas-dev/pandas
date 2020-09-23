@@ -5,7 +5,7 @@ Utilities for conversion to writer-agnostic Excel representation.
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, Optional, Sequence, Union
+from typing import Callable, Dict, Mapping, Optional, Sequence, Union
 import warnings
 
 import numpy as np
@@ -222,45 +222,19 @@ class CSSToExcelConverter:
     }
     ITALIC_MAP = {"normal": False, "italic": True, "oblique": True}
 
-    def build_font(self, props) -> Dict[str, Optional[Union[bool, int, str]]]:
-        size = props.get("font-size")
-        if size is not None:
-            assert size.endswith("pt")
-            size = float(size.rstrip("pt"))
-
-        font_names_tmp = re.findall(
-            r"""(?x)
-            (
-            "(?:[^"]|\\")+"
-            |
-            '(?:[^']|\\')+'
-            |
-            [^'",]+
-            )(?=,|\s*$)
-        """,
-            props.get("font-family", ""),
-        )
-        font_names = []
-        for name in font_names_tmp:
-            if name[:1] == '"':
-                name = name[1:-1].replace('\\"', '"')
-            elif name[:1] == "'":
-                name = name[1:-1].replace("\\'", "'")
-            else:
-                name = name.strip()
-            if name:
-                font_names.append(name)
-
+    def build_font(self, props) -> Dict[str, Optional[Union[bool, int, float, str]]]:
         decoration = props.get("text-decoration")
         if decoration is not None:
             decoration = decoration.split()
         else:
             decoration = ()
 
+        font_names = self._get_font_names(props)
+
         return {
             "name": font_names[0] if font_names else None,
             "family": self._select_font_family(font_names),
-            "size": size,
+            "size": self._get_font_size(props),
             "bold": self.BOLD_MAP.get(props.get("font-weight")),
             "italic": self.ITALIC_MAP.get(props.get("font-style")),
             "underline": ("single" if "underline" in decoration else None),
@@ -303,7 +277,40 @@ class CSSToExcelConverter:
         "white": "FFFFFF",
     }
 
-    def _select_font_family(self, font_names):
+    def _get_font_names(self, props: Mapping[str, str]) -> Sequence[str]:
+        font_names_tmp = re.findall(
+            r"""(?x)
+            (
+            "(?:[^"]|\\")+"
+            |
+            '(?:[^']|\\')+'
+            |
+            [^'",]+
+            )(?=,|\s*$)
+        """,
+            props.get("font-family", ""),
+        )
+
+        font_names = []
+        for name in font_names_tmp:
+            if name[:1] == '"':
+                name = name[1:-1].replace('\\"', '"')
+            elif name[:1] == "'":
+                name = name[1:-1].replace("\\'", "'")
+            else:
+                name = name.strip()
+            if name:
+                font_names.append(name)
+        return font_names
+
+    def _get_font_size(self, props: Mapping[str, str]) -> Optional[float]:
+        size = props.get("font-size")
+        if size is None:
+            return size
+        assert size.endswith("pt")
+        return float(size.rstrip("pt"))
+
+    def _select_font_family(self, font_names) -> Optional[int]:
         family_mapping = {
             "serif": 1,  # roman
             "sans-serif": 2,  # swiss
