@@ -342,15 +342,38 @@ class CSSToExcelConverter:
     def color_to_excel(self, val: Optional[str]) -> Optional[str]:
         if val is None:
             return None
-        if val.startswith("#") and len(val) == 7:
-            return val[1:].upper()
-        if val.startswith("#") and len(val) == 4:
-            return (val[1] * 2 + val[2] * 2 + val[3] * 2).upper()
+
+        if self._is_hex_color(val):
+            return self._convert_hex_to_excel(val)
+
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
             warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
         return None
+
+    def _is_hex_color(self, color_string: str) -> bool:
+        return bool(color_string.startswith("#"))
+
+    def _convert_hex_to_excel(self, color_string: str) -> str:
+        code = color_string.lstrip("#")
+        if self._is_shorthand_color(color_string):
+            return (code[0] * 2 + code[1] * 2 + code[2] * 2).upper()
+        else:
+            return code.upper()
+
+    def _is_shorthand_color(self, color_string: str) -> bool:
+        """Check if color code is shorthand.
+
+        #FFF is a shorthand as opposed to full #FFFFFF.
+        """
+        code = color_string.lstrip("#")
+        if len(code) == 3:
+            return True
+        elif len(code) == 6:
+            return False
+        else:
+            raise ValueError(f"Unexpected color {color_string}")
 
 
 class ExcelFormatter:
