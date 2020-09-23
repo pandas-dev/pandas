@@ -1704,7 +1704,12 @@ class _AsOfMerge(_OrderedMerge):
     def _maybe_coerce_merge_keys(self):
         """Check if the merge keys are not object and call super method."""
         len_by_cols = 0 if self.left_by is None else len(self.left_by)
-        for i, (lk, rk) in enumerate(zip(self.left_join_keys, self.right_join_keys,)):
+        for i, (lk, rk) in enumerate(
+            zip(
+                self.left_join_keys,
+                self.right_join_keys,
+            )
+        ):
             if i >= len_by_cols:
                 if is_object_dtype(rk.dtype) or is_object_dtype(lk.dtype):
                     raise ValueError(
