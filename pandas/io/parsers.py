@@ -758,6 +758,8 @@ def read_table(
     float_precision=None,
 ):
     if delim_whitespace and sep == "\t":
+        # In this case sep is not used so we set it to the read_csv
+        # default to avoid a ValueError
         sep = ","
     return read_csv(**locals())
 
