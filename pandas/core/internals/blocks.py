@@ -2067,6 +2067,7 @@ class IntBlock(NumericBlock):
                 and not issubclass(tipo.type, (np.datetime64, np.timedelta64))
                 and self.dtype.itemsize >= tipo.itemsize
             )
+        # Will have to be modified in the future see GH 36444 and GH 35376
         return is_integer(element) or (is_float(element) and element.is_integer())
 
 
