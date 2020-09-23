@@ -449,9 +449,7 @@ class DataFrame(NDFrame):
         if isinstance(data, BlockManager):
             if index is None and columns is None and dtype is None and copy is False:
                 # GH#33357 fastpath
-                NDFrame.__init__(
-                    self, data,
-                )
+                NDFrame.__init__(self, data)
                 return
 
             mgr = self._init_mgr(
@@ -3190,7 +3188,8 @@ class DataFrame(NDFrame):
 
             # GH31368 preserve name of index
             index_copy = value.index.copy()
-            index_copy.name = self.index.name
+            if self.index.name is not None:
+                index_copy.name = self.index.name
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
@@ -3842,9 +3841,14 @@ class DataFrame(NDFrame):
     def lookup(self, row_labels, col_labels) -> np.ndarray:
         """
         Label-based "fancy indexing" function for DataFrame.
-
         Given equal-length arrays of row and column labels, return an
         array of the values corresponding to each (row, col) pair.
+
+        .. deprecated:: 1.2.0
+            DataFrame.lookup is deprecated,
+            use DataFrame.melt and DataFrame.loc instead.
+            For an example see :meth:`~pandas.DataFrame.lookup`
+            in the user guide.
 
         Parameters
         ----------
@@ -3858,6 +3862,14 @@ class DataFrame(NDFrame):
         numpy.ndarray
             The found values.
         """
+        msg = (
+            "The 'lookup' method is deprecated and will be"
+            "removed in a future version."
+            "You can use DataFrame.melt and DataFrame.loc"
+            "as a substitute."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         n = len(row_labels)
         if n != len(col_labels):
             raise ValueError("Row labels must have same size as column labels")
@@ -5734,7 +5746,7 @@ class DataFrame(NDFrame):
                   population    GDP alpha-2
         Tuvalu         11300     38      TV
         Anguilla       11300    311      AI
-        Iceland       337000  17036	     IS
+        Iceland       337000  17036      IS
 
         When using ``keep='last'``, ties are resolved in reverse order:
 
@@ -7129,7 +7141,7 @@ NaN 12.3   33.0
 
         return unstack(self, level, fill_value)
 
-    @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt",))
+    @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt"))
     def melt(
         self,
         id_vars=None,
@@ -8611,7 +8623,7 @@ NaN 12.3   33.0
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
             res = df._mgr.reduce(blk_func)
-            out = df._constructor(res,).iloc[0].rename(None)
+            out = df._constructor(res).iloc[0].rename(None)
             if out_dtype is not None:
                 out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):

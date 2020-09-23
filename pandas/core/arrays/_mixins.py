@@ -2,10 +2,15 @@ from typing import Any, Sequence, Tuple, TypeVar
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
+from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.inference import is_array_like
+
+from pandas.core import missing
 from pandas.core.algorithms import take, unique
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
@@ -29,6 +34,12 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             self == self._from_backing_data(self._ndarray)
         """
         raise AbstractMethodError(self)
+
+    def _box_func(self, x):
+        """
+        Wrap numpy type in our dtype.type if necessary.
+        """
+        return x
 
     # ------------------------------------------------------------------------
 
@@ -168,3 +179,51 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     def _validate_setitem_value(self, value):
         return value
+
+    def __getitem__(self, key):
+        if lib.is_integer(key):
+            # fast-path
+            result = self._ndarray[key]
+            if self.ndim == 1:
+                return self._box_func(result)
+            return self._from_backing_data(result)
+
+        key = self._validate_getitem_key(key)
+        result = self._ndarray[key]
+        if lib.is_scalar(result):
+            return self._box_func(result)
+
+        result = self._from_backing_data(result)
+        return result
+
+    def _validate_getitem_key(self, key):
+        return check_array_indexer(self, key)
+
+    @doc(ExtensionArray.fillna)
+    def fillna(self: _T, value=None, method=None, limit=None) -> _T:
+        value, method = validate_fillna_kwargs(value, method)
+
+        mask = self.isna()
+
+        # TODO: share this with EA base class implementation
+        if is_array_like(value):
+            if len(value) != len(self):
+                raise ValueError(
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f" expected {len(self)}"
+                )
+            value = value[mask]
+
+        if mask.any():
+            if method is not None:
+                func = missing.get_fill_func(method)
+                new_values = func(self._ndarray.copy(), limit=limit, mask=mask)
+                # TODO: PandasArray didnt used to copy, need tests for this
+                new_values = self._from_backing_data(new_values)
+            else:
+                # fill with value
+                new_values = self.copy()
+                new_values[mask] = value
+        else:
+            new_values = self.copy()
+        return new_values

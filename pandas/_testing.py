@@ -1960,8 +1960,7 @@ def index_subclass_makers_generator():
         makeCategoricalIndex,
         makeMultiIndex,
     ]
-    for make_index_func in make_index_funcs:
-        yield make_index_func
+    yield from make_index_funcs
 
 
 def all_timeseries_index_generator(k=10):
@@ -2404,7 +2403,7 @@ def can_connect(url, error_classes=None):
 @optional_args
 def network(
     t,
-    url="http://www.google.com",
+    url="https://www.google.com",
     raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     check_before_test=False,
     error_classes=None,
@@ -2428,7 +2427,7 @@ def network(
         The test requiring network connectivity.
     url : path
         The url to test via ``pandas.io.common.urlopen`` to check
-        for connectivity. Defaults to 'http://www.google.com'.
+        for connectivity. Defaults to 'https://www.google.com'.
     raise_on_error : bool
         If True, never catches errors.
     check_before_test : bool
@@ -2472,7 +2471,7 @@ def network(
 
       You can specify alternative URLs::
 
-        >>> @network("http://www.yahoo.com")
+        >>> @network("https://www.yahoo.com")
         ... def test_something_with_yahoo():
         ...    raise IOError("Failure Message")
         >>> test_something_with_yahoo()
