@@ -1,6 +1,8 @@
 """ feather-format compat """
 
-from pandas._typing import StorageOptions
+from typing import AnyStr
+
+from pandas._typing import FilePathOrBuffer, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
@@ -8,7 +10,12 @@ from pandas import DataFrame, Int64Index, RangeIndex
 from pandas.io.common import get_filepath_or_buffer
 
 
-def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kwargs):
+def to_feather(
+    df: DataFrame,
+    path: FilePathOrBuffer[AnyStr],
+    storage_options: StorageOptions = None,
+    **kwargs,
+):
     """
     Write a DataFrame to the binary Feather format.
 
@@ -34,9 +41,7 @@ def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kw
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path, _, _, should_close = get_filepath_or_buffer(
-        path, mode="wb", storage_options=storage_options
-    )
+    ioargs = get_filepath_or_buffer(path, mode="wb", storage_options=storage_options)
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
@@ -74,7 +79,11 @@ def to_feather(df: DataFrame, path, storage_options: StorageOptions = None, **kw
     if df.columns.inferred_type not in valid_types:
         raise ValueError("feather must have string column names")
 
-    feather.write_feather(df, path, **kwargs)
+    feather.write_feather(df, ioargs.filepath_or_buffer, **kwargs)
+
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
+        ioargs.filepath_or_buffer.close()
 
 
 def read_feather(
@@ -122,14 +131,15 @@ def read_feather(
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    path, _, _, should_close = get_filepath_or_buffer(
-        path, storage_options=storage_options
+    ioargs = get_filepath_or_buffer(path, storage_options=storage_options)
+
+    df = feather.read_feather(
+        ioargs.filepath_or_buffer, columns=columns, use_threads=bool(use_threads)
     )
 
-    df = feather.read_feather(path, columns=columns, use_threads=bool(use_threads))
-
     # s3fs only validates the credentials when the file is closed.
-    if should_close:
-        path.close()
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
+        ioargs.filepath_or_buffer.close()
 
     return df

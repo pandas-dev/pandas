@@ -163,11 +163,11 @@ def _json_normalize(
     >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
     ...         {'name': {'given': 'Mose', 'family': 'Regner'}},
     ...         {'id': 2, 'name': 'Faye Raker'}]
-    >>> pandas.json_normalize(data)
-        id        name name.family name.first name.given name.last
-    0  1.0         NaN         NaN     Coleen        NaN      Volk
-    1  NaN         NaN      Regner        NaN       Mose       NaN
-    2  2.0  Faye Raker         NaN        NaN        NaN       NaN
+    >>> pd.json_normalize(data)
+        id name.first name.last name.given name.family        name
+    0  1.0     Coleen      Volk        NaN         NaN         NaN
+    1  NaN        NaN       NaN       Mose      Regner         NaN
+    2  2.0        NaN       NaN        NaN         NaN  Faye Raker
 
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
@@ -176,11 +176,11 @@ def _json_normalize(
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
-    >>> json_normalize(data, max_level=0)
-                fitness                 id        name
-    0   {'height': 130, 'weight': 60}  1.0   Cole Volk
-    1   {'height': 130, 'weight': 60}  NaN    Mose Reg
-    2   {'height': 130, 'weight': 60}  2.0  Faye Raker
+    >>> pd.json_normalize(data, max_level=0)
+        id        name                        fitness
+    0  1.0   Cole Volk  {'height': 130, 'weight': 60}
+    1  NaN    Mose Reg  {'height': 130, 'weight': 60}
+    2  2.0  Faye Raker  {'height': 130, 'weight': 60}
 
     Normalizes nested data up to level 1.
 
@@ -191,11 +191,11 @@ def _json_normalize(
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
-    >>> json_normalize(data, max_level=1)
-      fitness.height  fitness.weight   id    name
-    0   130              60          1.0    Cole Volk
-    1   130              60          NaN    Mose Reg
-    2   130              60          2.0    Faye Raker
+    >>> pd.json_normalize(data, max_level=1)
+        id        name  fitness.height  fitness.weight
+    0  1.0   Cole Volk             130              60
+    1  NaN    Mose Reg             130              60
+    2  2.0  Faye Raker             130              60
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
@@ -208,7 +208,7 @@ def _json_normalize(
     ...          'info': {'governor': 'John Kasich'},
     ...          'counties': [{'name': 'Summit', 'population': 1234},
     ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
-    >>> result = json_normalize(data, 'counties', ['state', 'shortname',
+    >>> result = pd.json_normalize(data, 'counties', ['state', 'shortname',
     ...                                            ['info', 'governor']])
     >>> result
              name  population    state shortname info.governor
@@ -219,7 +219,7 @@ def _json_normalize(
     4    Cuyahoga        1337   Ohio       OH    John Kasich
 
     >>> data = {'A': [1, 2]}
-    >>> json_normalize(data, 'A', record_prefix='Prefix.')
+    >>> pd.json_normalize(data, 'A', record_prefix='Prefix.')
         Prefix.0
     0          1
     1          2
