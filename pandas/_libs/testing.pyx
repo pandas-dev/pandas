@@ -1,3 +1,4 @@
+import cmath
 import math
 
 import numpy as np
@@ -31,8 +32,19 @@ cdef NUMERIC_TYPES = (
 )
 
 
+cdef COMPLEX_NUMERIC_TYPES = (
+    complex,
+    np.complex64,
+    np.complex128,
+)
+
+
 cdef bint is_comparable_as_number(obj):
     return isinstance(obj, NUMERIC_TYPES)
+
+
+cdef bint is_comparable_as_complex_number(obj):
+    return isinstance(obj, COMPLEX_NUMERIC_TYPES)
 
 
 cdef bint isiterable(obj):
@@ -207,6 +219,16 @@ cpdef assert_almost_equal(a, b,
 
         if not math.isclose(fa, fb, rel_tol=rtol, abs_tol=atol):
             assert False, (f"expected {fb:.5f} but got {fa:.5f}, "
+                           f"with rtol={rtol}, atol={atol}")
+        return True
+
+    if is_comparable_as_complex_number(a) and is_comparable_as_complex_number(b):
+        if array_equivalent(a, b, strict_nan=True):
+            # inf comparison
+            return True
+
+        if not cmath.isclose(a, b, rel_tol=rtol, abs_tol=atol):
+            assert False, (f"expected {b:.5f} but got {a:.5f}, "
                            f"with rtol={rtol}, atol={atol}")
         return True
 
