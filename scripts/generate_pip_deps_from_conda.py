@@ -6,11 +6,11 @@ or check that they have the same packages (for the CI)
 Usage:
 
     Generate `requirements-dev.txt`
-    $ ./conda_to_pip
+    $ python scripts/generate_pip_deps_from_conda.py
 
     Compare and fail (exit status != 0) if `requirements-dev.txt` has not been
     generated with this script:
-    $ ./conda_to_pip --compare
+    $ python scripts/generate_pip_deps_from_conda.py --compare
 """
 import argparse
 import os
