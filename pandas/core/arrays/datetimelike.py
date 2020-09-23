@@ -1453,13 +1453,6 @@ class DatetimeLikeArrayMixin(
     # --------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
-        op = getattr(self, name, None)
-        if op:
-            return op(skipna=skipna, **kwargs)
-        else:
-            return super()._reduce(name, skipna, **kwargs)
-
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """
         Return the minimum value of the Array or minimum along
