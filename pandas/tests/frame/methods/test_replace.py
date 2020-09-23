@@ -975,15 +975,30 @@ class TestDataFrameReplace:
                 ),
             ),
             # GH 35376
-            (DataFrame([[1, 1.0], [2, 2.0]]), 1.0, 5, DataFrame([[5, 5.0], [2, 2.0]]),),
-            (DataFrame([[1, 1.0], [2, 2.0]]), 1, 5, DataFrame([[5, 5.0], [2, 2.0]]),),
+            (
+                DataFrame([[1, 1.0], [2, 2.0]]),
+                1.0,
+                5,
+                DataFrame([[5, 5.0], [2, 2.0]]),
+            ),
+            (
+                DataFrame([[1, 1.0], [2, 2.0]]),
+                1,
+                5,
+                DataFrame([[5, 5.0], [2, 2.0]]),
+            ),
             (
                 DataFrame([[1, 1.0], [2, 2.0]]),
                 1.0,
                 5.0,
                 DataFrame([[5, 5.0], [2, 2.0]]),
             ),
-            (DataFrame([[1, 1.0], [2, 2.0]]), 1, 5.0, DataFrame([[5, 5.0], [2, 2.0]]),),
+            (
+                DataFrame([[1, 1.0], [2, 2.0]]),
+                1,
+                5.0,
+                DataFrame([[5, 5.0], [2, 2.0]]),
+            ),
         ],
     )
     def test_replace_dtypes(self, frame, to_replace, value, expected):
