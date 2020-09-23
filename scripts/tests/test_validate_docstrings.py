@@ -6,8 +6,7 @@ import validate_docstrings
 
 
 class BadDocstrings:
-    """Everything here has a bad docstring
-    """
+    """Everything here has a bad docstring"""
 
     def private_classes(self):
         """

@@ -72,7 +72,7 @@ def get_indexer_indexer(
         )
     elif isinstance(target, ABCMultiIndex):
         indexer = lexsort_indexer(
-            target._get_codes_for_sorting(), orders=ascending, na_position=na_position,
+            target._get_codes_for_sorting(), orders=ascending, na_position=na_position
         )
     else:
         # Check monotonic-ness before sort an index (GH 11080)
