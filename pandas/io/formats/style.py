@@ -274,8 +274,18 @@ class Styler:
         If arguments are `None` will not make any changes to the underlying ``Tooltips``
         existing values.
 
-        The property ('visibility', 'hidden') should always be included in any manual
-        properties specification, to allow for HTML on hover functionality.
+        The default properties for the tooltip CSS class are:
+
+        - visibility: hidden
+        - position: absolute
+        - z-index: 1
+        - background-color: black
+        - color: white
+        - transform: translate(-20px, -20px)
+
+        The property ('visibility', 'hidden') is a key prerequisite to the hover
+        functionality, and should always be included in any manual properties
+        specification.
 
         Examples
         --------
