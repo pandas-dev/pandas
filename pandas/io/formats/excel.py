@@ -257,6 +257,9 @@ class CSSToExcelConverter:
         if fill_color not in (None, "transparent", "none"):
             return {"fgColor": self.color_to_excel(fill_color), "patternType": "solid"}
 
+    def build_number_format(self, props: Dict) -> Dict[str, Optional[str]]:
+        return {"format_code": props.get("number-format")}
+
     def build_font(self, props) -> Dict[str, Optional[Union[bool, int, float, str]]]:
         decoration = props.get("text-decoration")
         if decoration is not None:
@@ -342,9 +345,6 @@ class CSSToExcelConverter:
             return self.NAMED_COLORS[val]
         except KeyError:
             warnings.warn(f"Unhandled color format: {repr(val)}", CSSWarning)
-
-    def build_number_format(self, props: Dict) -> Dict[str, Optional[str]]:
-        return {"format_code": props.get("number-format")}
 
 
 class ExcelFormatter:
