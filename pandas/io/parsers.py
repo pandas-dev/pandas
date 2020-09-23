@@ -763,7 +763,7 @@ def read_table(
             "Specified a delimiter with both sep and "
             "delim_whitespace=True; you can only specify one."
         )
-    if delim_whitespace and sep == "\t":
+    if delim_whitespace:
         # In this case sep is not used so we set it to the read_csv
         # default to avoid a ValueError
         sep = ","
