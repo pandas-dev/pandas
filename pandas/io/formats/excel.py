@@ -153,7 +153,7 @@ class CSSToExcelConverter:
         properties = self.compute_css(declarations_str, self.inherited)
         return self.build_xlstyle(properties)
 
-    def build_xlstyle(self, props: Dict[str, str]) -> Dict[str, Dict[str, str]]:
+    def build_xlstyle(self, props: Mapping[str, str]) -> Dict[str, Dict[str, str]]:
         out = {
             "alignment": self.build_alignment(props),
             "border": self.build_border(props),
@@ -177,20 +177,30 @@ class CSSToExcelConverter:
         remove_none(out)
         return out
 
-    def build_alignment(self, props) -> Dict[str, Optional[Union[bool, str]]]:
+    def build_alignment(
+        self, props: Mapping[str, str]
+    ) -> Dict[str, Optional[Union[bool, str]]]:
         # TODO: text-indent, padding-left -> alignment.indent
         return {
             "horizontal": props.get("text-align"),
-            "vertical": self.VERTICAL_MAP.get(props.get("vertical-align")),
+            "vertical": self._get_vertical_alignment(props),
             "wrap_text": self._get_is_wrap_text(props),
         }
+
+    def _get_vertical_alignment(self, props: Mapping[str, str]) -> Optional[str]:
+        vertical_align = props.get("vertical-align")
+        if vertical_align:
+            return self.VERTICAL_MAP.get(vertical_align)
+        return None
 
     def _get_is_wrap_text(self, props: Mapping[str, str]) -> Optional[bool]:
         if props.get("white-space") is None:
             return None
         return bool(props["white-space"] not in ("nowrap", "pre", "pre-line"))
 
-    def build_border(self, props: Dict) -> Dict[str, Dict[str, Optional[str]]]:
+    def build_border(
+        self, props: Mapping[str, str]
+    ) -> Dict[str, Dict[str, Optional[str]]]:
         return {
             side: {
                 "style": self._border_style(
@@ -256,14 +266,14 @@ class CSSToExcelConverter:
             width = "2pt"
         return float(width[:-2])
 
-    def build_fill(self, props: Dict[str, str]):
+    def build_fill(self, props: Mapping[str, str]):
         # TODO: perhaps allow for special properties
         #       -excel-pattern-bgcolor and -excel-pattern-type
         fill_color = props.get("background-color")
         if fill_color not in (None, "transparent", "none"):
             return {"fgColor": self.color_to_excel(fill_color), "patternType": "solid"}
 
-    def build_number_format(self, props: Dict) -> Dict[str, Optional[str]]:
+    def build_number_format(self, props: Mapping[str, str]) -> Dict[str, Optional[str]]:
         return {"format_code": props.get("number-format")}
 
     def build_font(
