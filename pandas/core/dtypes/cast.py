@@ -73,7 +73,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna, notna, is_valid_nat_for_dtype
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -1559,7 +1559,7 @@ def construct_1d_arraylike_from_scalar(
             dtype = np.dtype("object")
             if not isna(value):
                 value = ensure_str(value)
-        elif isinstance(dtype, np.dtype) and dtype.kind == "M" and value is NaT:
+        elif is_valid_nat_for_dtype(value, dtype):
             # can't fill array directly with pd.NaT:
             # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
             # ValueError: cannot convert float NaN to integer

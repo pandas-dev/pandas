@@ -3,6 +3,7 @@
 
 import pandas as pd
 from pandas import MultiIndex, Series
+import pandas._testing as tm
 
 
 def test_access_none_value_in_multiindex():
@@ -29,4 +30,4 @@ def test_nat_multi_index():
     result = result.reset_index()
 
     expected = pd.DataFrame({"a": [pd.NaT, pd.NaT], "b": [1, 2], "x": [11, 12]})
-    pd.testing.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
