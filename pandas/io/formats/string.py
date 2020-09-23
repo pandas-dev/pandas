@@ -2,7 +2,7 @@
 Module for formatting output data in console (to string).
 """
 from shutil import get_terminal_size
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 import numpy as np
 
@@ -106,9 +106,11 @@ class StringFormatter:
             col.insert(row_num + n_header_rows, dot_str)
         return strcols
 
-    def _join_multiline(self, strcols: List[List[str]]) -> str:
+    def _join_multiline(self, strcols_input: Iterable[List[str]]) -> str:
         lwidth = self.line_width
         adjoin_width = 1
+        strcols = list(strcols_input)
+
         if self.fmt.index:
             idx = strcols.pop(0)
             lwidth -= np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
