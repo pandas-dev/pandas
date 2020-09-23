@@ -259,20 +259,17 @@ class TestTimestampConstructors:
             Timestamp("20151112")
         )
 
-        assert (
-            repr(
-                Timestamp(
-                    year=2015,
-                    month=11,
-                    day=12,
-                    hour=1,
-                    minute=2,
-                    second=3,
-                    microsecond=999999,
-                )
+        assert repr(
+            Timestamp(
+                year=2015,
+                month=11,
+                day=12,
+                hour=1,
+                minute=2,
+                second=3,
+                microsecond=999999,
             )
-            == repr(Timestamp("2015-11-12 01:02:03.999999"))
-        )
+        ) == repr(Timestamp("2015-11-12 01:02:03.999999"))
 
     def test_constructor_fromordinal(self):
         base = datetime(2000, 1, 1)
