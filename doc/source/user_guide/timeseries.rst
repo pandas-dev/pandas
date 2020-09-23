@@ -235,6 +235,8 @@ inferred frequency upon creation:
 
     pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'], freq='infer')
 
+.. _timeseries.converting.format:
+
 Providing a format argument
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -319,11 +321,17 @@ which can be specified. These are computed from the starting point specified by 
    pd.to_datetime([1349720105100, 1349720105200, 1349720105300,
                    1349720105400, 1349720105500], unit='ms')
 
+.. note::
+
+   The ``unit`` parameter does not use the same strings as the ``format`` parameter
+   that was discussed :ref:`above<timeseries.converting.format>`). The
+   available units are listed on the documentation for :func:`pandas.to_datetime`.
+
+.. versionchanged:: 1.0.0
+
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
-with the ``tz`` argument specified will currently localize the epoch timestamps to UTC
-first then convert the result to the specified time zone. However, this behavior
-is :ref:`deprecated <whatsnew_0240.deprecations.integer_tz>`, and if you have
-epochs in wall time in another timezone, it is recommended to read the epochs
+with the ``tz`` argument specified will raise a ValueError. If you have
+epochs in wall time in another timezone, you can read the epochs
 as timezone-naive timestamps and then localize to the appropriate timezone:
 
 .. ipython:: python
@@ -453,8 +461,6 @@ of those specified will not be generated:
 
    pd.bdate_range(start=start, periods=20)
 
-.. versionadded:: 0.23.0
-
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 dates from ``start`` to ``end`` inclusively, with ``periods`` number of elements in the
 resulting ``DatetimeIndex``:
@@ -516,7 +522,7 @@ The ``DatetimeIndex`` class contains many time series related optimizations:
 * A large range of dates for various offsets are pre-computed and cached
   under the hood in order to make generating subsequent date ranges very fast
   (just have to grab a slice).
-* Fast shifting using the ``shift`` and ``tshift`` method on pandas objects.
+* Fast shifting using the ``shift`` method on pandas objects.
 * Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
   very fast (important for fast data alignment).
 * Quick access to date fields via properties such as ``year``, ``month``, etc.
@@ -634,8 +640,6 @@ Slicing with string indexing also honors UTC offset.
 
 Slice vs. exact match
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionchanged:: 0.20.0
 
 The same string used as an indexing parameter can be treated either as a slice or as an exact match depending on the resolution of the index. If the string is less accurate than the index, it will be treated as a slice, otherwise as an exact match.
 
@@ -793,6 +797,7 @@ You may obtain the year, week and day components of the ISO year from the ISO 86
 .. ipython:: python
 
    idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
+   idx.isocalendar()
    idx.to_series().dt.isocalendar()
 
 .. _timeseries.offsets:
@@ -1461,23 +1466,19 @@ the pandas objects.
 
 The ``shift`` method accepts an ``freq`` argument which can accept a
 ``DateOffset`` class or other ``timedelta``-like object or also an
-:ref:`offset alias <timeseries.offset_aliases>`:
+:ref:`offset alias <timeseries.offset_aliases>`.
+
+When ``freq`` is specified, ``shift`` method changes all the dates in the index
+rather than changing the alignment of the data and the index:
 
 .. ipython:: python
 
+   ts.shift(5, freq='D')
    ts.shift(5, freq=pd.offsets.BDay())
    ts.shift(5, freq='BM')
 
-Rather than changing the alignment of the data and the index, ``DataFrame`` and
-``Series`` objects also have a :meth:`~Series.tshift` convenience method that
-changes all the dates in the index by a specified number of offsets:
-
-.. ipython:: python
-
-   ts.tshift(5, freq='D')
-
-Note that with ``tshift``, the leading entry is no longer NaN because the data
-is not being realigned.
+Note that with when ``freq`` is specified, the leading entry is no longer NaN
+because the data is not being realigned.
 
 Frequency conversion
 ~~~~~~~~~~~~~~~~~~~~
@@ -2316,11 +2317,16 @@ you can use the ``tz_convert`` method.
 
 .. warning::
 
+    Be aware that for times in the future, correct conversion between time zones
+    (and UTC) cannot be guaranteed by any time zone library because a timezone's
+    offset from UTC may be changed by the respective government.
+
+.. warning::
+
     If you are using dates beyond 2038-01-18, due to current deficiencies
     in the underlying libraries caused by the year 2038 problem, daylight saving time (DST) adjustments
     to timezone aware dates will not be applied. If and when the underlying libraries are fixed,
-    the DST transitions will be applied. It should be noted though, that time zone data for far future time zones
-    are likely to be inaccurate, as they are simple extrapolations of the current set of (regularly revised) rules.
+    the DST transitions will be applied.
 
     For example, for two dates that are in British Summer Time (and so would normally be GMT+1), both the following asserts evaluate as true:
 

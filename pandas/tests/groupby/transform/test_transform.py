@@ -4,7 +4,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._libs import groupby
+from pandas._libs.groupby import group_cumprod_float64, group_cumsum
 
 from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
 
@@ -323,15 +323,22 @@ def test_transform_transformation_func(transformation_func):
         {
             "A": ["foo", "foo", "foo", "foo", "bar", "bar", "baz"],
             "B": [1, 2, np.nan, 3, 3, np.nan, 4],
-        }
+        },
+        index=pd.date_range("2020-01-01", "2020-01-07"),
     )
 
-    if transformation_func in ["pad", "backfill", "tshift", "cumcount"]:
-        # These transformation functions are not yet covered in this test
-        pytest.xfail("See GH 31269")
+    if transformation_func == "cumcount":
+        test_op = lambda x: x.transform("cumcount")
+        mock_op = lambda x: Series(range(len(x)), x.index)
     elif transformation_func == "fillna":
         test_op = lambda x: x.transform("fillna", value=0)
         mock_op = lambda x: x.fillna(value=0)
+    elif transformation_func == "tshift":
+        msg = (
+            "Current behavior of groupby.tshift is inconsistent with other "
+            "transformations. See GH34452 for more details"
+        )
+        pytest.xfail(msg)
     else:
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
@@ -340,7 +347,10 @@ def test_transform_transformation_func(transformation_func):
     groups = [df[["B"]].iloc[:4], df[["B"]].iloc[4:6], df[["B"]].iloc[6:]]
     expected = concat([mock_op(g) for g in groups])
 
-    tm.assert_frame_equal(result, expected)
+    if transformation_func == "cumcount":
+        tm.assert_series_equal(result, expected)
+    else:
+        tm.assert_frame_equal(result, expected)
 
 
 def test_transform_select_columns(df):
@@ -535,14 +545,14 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
 def test_cython_group_transform_cumsum(any_real_dtype):
     # see gh-4095
     dtype = np.dtype(any_real_dtype).type
-    pd_op, np_op = groupby.group_cumsum, np.cumsum
+    pd_op, np_op = group_cumsum, np.cumsum
     _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
 
 
 def test_cython_group_transform_cumprod():
     # see gh-4095
     dtype = np.float64
-    pd_op, np_op = groupby.group_cumprod_float64, np.cumproduct
+    pd_op, np_op = group_cumprod_float64, np.cumproduct
     _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
 
 
@@ -557,13 +567,13 @@ def test_cython_group_transform_algos():
     data = np.array([[1], [2], [3], [np.nan], [4]], dtype="float64")
     actual = np.zeros_like(data)
     actual.fill(np.nan)
-    groupby.group_cumprod_float64(actual, data, labels, ngroups, is_datetimelike)
+    group_cumprod_float64(actual, data, labels, ngroups, is_datetimelike)
     expected = np.array([1, 2, 6, np.nan, 24], dtype="float64")
     tm.assert_numpy_array_equal(actual[:, 0], expected)
 
     actual = np.zeros_like(data)
     actual.fill(np.nan)
-    groupby.group_cumsum(actual, data, labels, ngroups, is_datetimelike)
+    group_cumsum(actual, data, labels, ngroups, is_datetimelike)
     expected = np.array([1, 3, 6, np.nan, 10], dtype="float64")
     tm.assert_numpy_array_equal(actual[:, 0], expected)
 
@@ -571,7 +581,7 @@ def test_cython_group_transform_algos():
     is_datetimelike = True
     data = np.array([np.timedelta64(1, "ns")] * 5, dtype="m8[ns]")[:, None]
     actual = np.zeros_like(data, dtype="int64")
-    groupby.group_cumsum(actual, data.view("int64"), labels, ngroups, is_datetimelike)
+    group_cumsum(actual, data.view("int64"), labels, ngroups, is_datetimelike)
     expected = np.array(
         [
             np.timedelta64(1, "ns"),
@@ -665,6 +675,7 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
     tm.assert_series_equal(expected, result)
 
 
+@pytest.mark.arm_slow
 @pytest.mark.parametrize(
     "op, args, targop",
     [
@@ -718,7 +729,7 @@ def test_cython_transform_frame(op, args, targop):
             # dict(by=['int','string'])]:
 
             gb = df.groupby(**gb_target)
-            # whitelisted methods set the selection before applying
+            # allowlisted methods set the selection before applying
             # bit a of hack to make sure the cythonized shift
             # is equivalent to pre 0.17.1 behavior
             if op == "shift":
@@ -1022,7 +1033,7 @@ def test_groupby_transform_with_datetimes(func, values):
     dates = pd.date_range("1/1/2011", periods=10, freq="D")
 
     stocks = pd.DataFrame({"price": np.arange(10.0)}, index=dates)
-    stocks["week_id"] = pd.to_datetime(stocks.index).week
+    stocks["week_id"] = dates.isocalendar().week
 
     result = stocks.groupby(stocks["week_id"])["price"].transform(func)
 
@@ -1195,3 +1206,36 @@ def test_transform_lambda_indexing():
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_and_not_categorical_key(observed):
+    # Checks that groupby-transform, when grouping by both a categorical
+    # and a non-categorical key, doesn't try to expand the output to include
+    # non-observed categories but instead matches the input shape.
+    # GH 32494
+    df_with_categorical = pd.DataFrame(
+        {
+            "A": pd.Categorical(["a", "b", "a"], categories=["a", "b", "c"]),
+            "B": [1, 2, 3],
+            "C": ["a", "b", "a"],
+        }
+    )
+    df_without_categorical = pd.DataFrame(
+        {"A": ["a", "b", "a"], "B": [1, 2, 3], "C": ["a", "b", "a"]}
+    )
+
+    # DataFrame case
+    result = df_with_categorical.groupby(["A", "C"], observed=observed).transform("sum")
+    expected = df_without_categorical.groupby(["A", "C"]).transform("sum")
+    tm.assert_frame_equal(result, expected)
+    expected_explicit = pd.DataFrame({"B": [4, 2, 4]})
+    tm.assert_frame_equal(result, expected_explicit)
+
+    # Series case
+    result = df_with_categorical.groupby(["A", "C"], observed=observed)["B"].transform(
+        "sum"
+    )
+    expected = df_without_categorical.groupby(["A", "C"])["B"].transform("sum")
+    tm.assert_series_equal(result, expected)
+    expected_explicit = pd.Series([4, 2, 4], name="B")
+    tm.assert_series_equal(result, expected_explicit)

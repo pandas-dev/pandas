@@ -16,7 +16,7 @@ from pandas.core.dtypes import missing
 from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes.generic import ABCIndex
 
-from pandas import Index, MultiIndex, PeriodIndex
+from pandas import DataFrame, Index, MultiIndex, PeriodIndex
 import pandas.core.common as com
 
 from pandas.io.common import stringify_path
@@ -385,7 +385,7 @@ class ExcelFormatter:
     ):
         self.rowcounter = 0
         self.na_rep = na_rep
-        if hasattr(df, "render"):
+        if not isinstance(df, DataFrame):
             self.styler = df
             df = df.data
             if style_converter is None:
@@ -587,8 +587,7 @@ class ExcelFormatter:
         else:
             coloffset = 0
 
-        for cell in self._generate_body(coloffset):
-            yield cell
+        yield from self._generate_body(coloffset)
 
     def _format_hierarchical_rows(self):
         has_aliases = isinstance(self.header, (tuple, list, np.ndarray, ABCIndex))
@@ -630,7 +629,9 @@ class ExcelFormatter:
                 ):
 
                     values = levels.take(
-                        level_codes, allow_fill=levels._can_hold_na, fill_value=True
+                        level_codes,
+                        allow_fill=levels._can_hold_na,
+                        fill_value=levels._na_value,
                     )
 
                     for i in spans:
@@ -664,8 +665,7 @@ class ExcelFormatter:
                         )
                     gcolidx += 1
 
-        for cell in self._generate_body(gcolidx):
-            yield cell
+        yield from self._generate_body(gcolidx)
 
     def _generate_body(self, coloffset: int):
         if self.styler is None:

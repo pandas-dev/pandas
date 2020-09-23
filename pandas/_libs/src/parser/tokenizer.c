@@ -709,7 +709,7 @@ int skip_this_line(parser_t *self, int64_t rownum) {
 }
 
 int tokenize_bytes(parser_t *self,
-                   size_t line_limit, int64_t start_lines) {
+                   size_t line_limit, uint64_t start_lines) {
     int64_t i;
     uint64_t slen;
     int should_skip;
@@ -1348,7 +1348,7 @@ int parser_trim_buffers(parser_t *self) {
 
 int _tokenize_helper(parser_t *self, size_t nrows, int all) {
     int status = 0;
-    int64_t start_lines = self->lines;
+    uint64_t start_lines = self->lines;
 
     if (self->state == FINISHED) {
         return 0;
@@ -1778,20 +1778,73 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
     return number;
 }
 
+/* copy a decimal number string with `decimal`, `tsep` as decimal point
+   and thousands separator to an equivalent c-locale decimal string (striping
+   `tsep`, replacing `decimal` with '.'). The returned memory should be free-d
+   with a call to `free`.
+*/
+
+char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
+                              char tsep) {
+    const char *p = s;
+    size_t length = strlen(s);
+    char *s_copy = malloc(length + 1);
+    char *dst = s_copy;
+    // Copy Leading sign
+    if (*p == '+' || *p == '-') {
+        *dst++ = *p++;
+    }
+    // Copy integer part dropping `tsep`
+    while (isdigit_ascii(*p)) {
+        *dst++ = *p++;
+        p += (tsep != '\0' && *p == tsep);
+    }
+    // Replace `decimal` with '.'
+    if (*p == decimal) {
+       *dst++ = '.';
+       p++;
+    }
+    // Copy the remainder of the string as is.
+    strncpy(dst, p, length + 1 - (p - s));
+    if (endpos != NULL)
+        *endpos = (char *)(s + length);
+    return s_copy;
+}
+
+
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int) {
+    // 'normalize' representation to C-locale; replace decimal with '.' and
+    // remove t(housand)sep.
+    char *endptr;
+    char *pc = _str_copy_decimal_str_c(p, &endptr, decimal, tsep);
     // This is called from a nogil block in parsers.pyx
     // so need to explicitly get GIL before Python calls
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
-
-    double r = PyOS_string_to_double(p, q, 0);
+    char *endpc;
+    double r = PyOS_string_to_double(pc, &endpc, 0);
+    // PyOS_string_to_double needs to consume the whole string
+    if (endpc == pc + strlen(pc)) {
+        if (q != NULL) {
+           // report endptr from source string (p)
+            *q = (char *) endptr;
+        }
+    } else {
+        *error = -1;
+        if (q != NULL) {
+           // p and pc are different len due to tsep removal. Can't report
+           // how much it has consumed of p. Just rewind to beginning.
+            *q = (char *)p;
+        }
+    }
     if (maybe_int != NULL) *maybe_int = 0;
     if (PyErr_Occurred() != NULL) *error = -1;
     else if (r == Py_HUGE_VAL) *error = (int)Py_HUGE_VAL;
     PyErr_Clear();
 
     PyGILState_Release(gstate);
+    free(pc);
     return r;
 }
 

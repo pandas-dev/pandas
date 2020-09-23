@@ -80,6 +80,11 @@ ML pipeline.
 
 Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community.
 
+`Compose <https://github.com/FeatureLabs/compose>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Compose is a machine learning tool for labeling data and prediction engineering. It allows you to structure the labeling process by parameterizing prediction problems and transforming time-driven relational data into target values with cutoff times that can be used for supervised learning.
+
 .. _ecosystem.visualization:
 
 Visualization
@@ -153,6 +158,23 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
 library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
 
+`D-Tale <https://github.com/man-group/dtale>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+D-Tale is a lightweight web client for visualizing pandas data structures. It
+provides a rich spreadsheet-style grid which acts as a wrapper for a lot of
+pandas functionality (query, sort, describe, corr...) so users can quickly
+manipulate their data. There is also an interactive chart-builder using Plotly
+Dash allowing users to build nice portable visualizations. D-Tale can be
+invoked with the following command
+
+.. code:: python
+
+    import dtale; dtale.show(df)
+
+D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
+& Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
+and `chart-builder <http://alphatechadmin.pythonanywhere.com/charts/4?chart_type=surface&query=&x=date&z=Col0&agg=raw&cpg=false&y=%5B%22security_id%22%5D>`__.
 
 .. _ecosystem.ide:
 
@@ -281,6 +303,13 @@ HTTP API, and also provides several convenient methods for parsing and analyzing
 fredapi makes use of pandas and returns data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
 
+`dataframe_sql <https://github.com/zbrookle/dataframe_sql>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``dataframe_sql`` is a Python package that translates SQL syntax directly into
+operations on pandas DataFrames. This is useful when migrating from a database to
+using pandas or for users more comfortable with SQL looking for a way to interface
+with pandas.
+
 
 .. _ecosystem.domain:
 
@@ -301,6 +330,20 @@ xarray brings the labeled data power of pandas to the physical sciences by
 providing N-dimensional variants of the core pandas data structures. It aims to
 provide a pandas-like and pandas-compatible toolkit for analytics on multi-
 dimensional arrays, rather than the tabular data for which pandas excels.
+
+
+.. _ecosystem.io:
+
+IO
+--
+
+`BCPandas <https://github.com/yehoshuadimarsky/bcpandas>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+BCPandas provides high performance writes from pandas to Microsoft SQL Server,
+far exceeding the performance of the native ``df.to_sql`` method. Internally, it uses
+Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
+Rigorously tested, it is a complete replacement for ``df.to_sql``.
 
 
 .. _ecosystem.out-of-core:
@@ -390,6 +433,14 @@ found in NumPy or pandas, which work well with pandas' data containers.
 Cyberpandas provides an extension type for storing arrays of IP Addresses. These
 arrays can be stored inside pandas' Series and DataFrame.
 
+`Pint-Pandas`_
+~~~~~~~~~~~~~~
+
+`Pint-Pandas <https://github.com/hgrecco/pint-pandas>` provides an extension type for
+storing numeric arrays with units. These arrays can be stored inside pandas'
+Series and DataFrame. Operations between Series and DataFrame columns which
+use pint's extension array are then units aware.
+
 .. _ecosystem.accessors:
 
 Accessors
@@ -405,6 +456,8 @@ Library         Accessor   Classes                   Description
 `cyberpandas`_  ``ip``     ``Series``                Provides common operations for working with IP addresses.
 `pdvega`_       ``vgplot`` ``Series``, ``DataFrame`` Provides plotting functions from the Altair_ library.
 `pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
+`pint-pandas`_  ``pint``   ``Series``, ``DataFrame`` Provides units support for numeric Series and DataFrames.
+`composeml`_    ``slice``  ``DataFrame``             Provides a generator for enhanced data slicing.
 =============== ========== ========================= ===============================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
@@ -412,3 +465,5 @@ Library         Accessor   Classes                   Description
 .. _Altair: https://altair-viz.github.io/
 .. _pandas_path: https://github.com/drivendataorg/pandas-path/
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
+.. _pint-pandas: https://github.com/hgrecco/pint-pandas
+.. _composeml: https://github.com/FeatureLabs/compose

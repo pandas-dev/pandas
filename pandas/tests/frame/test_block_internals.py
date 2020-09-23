@@ -64,7 +64,8 @@ class TestDataFrameBlockInternals:
         float_frame["F"] = 8.0
         assert len(float_frame._mgr.blocks) == 3
 
-        float_frame._consolidate(inplace=True)
+        return_value = float_frame._consolidate(inplace=True)
+        assert return_value is None
         assert len(float_frame._mgr.blocks) == 1
 
     def test_consolidate_inplace(self, float_frame):
@@ -86,8 +87,13 @@ class TestDataFrameBlockInternals:
 
         # unconsolidated
         float_frame["E"] = 7.0
+        col = float_frame["E"]
         float_frame.values[6] = 6
         assert (float_frame.values[6] == 6).all()
+
+        # check that item_cache was cleared
+        assert float_frame["E"] is not col
+        assert (col == 7).all()
 
     def test_boolean_set_uncons(self, float_frame):
         float_frame["E"] = 7.0
@@ -620,3 +626,58 @@ class TestDataFrameBlockInternals:
         assert type(df["c"]._mgr.blocks[0]) == ObjectBlock
         assert type(df2["c"]._mgr.blocks[0]) == ObjectBlock
         tm.assert_frame_equal(df, df2)
+
+
+def test_to_dict_of_blocks_item_cache():
+    # Calling to_dict_of_blocks should not poison item_cache
+    df = pd.DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
+    df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
+    mgr = df._mgr
+    assert len(mgr.blocks) == 3  # i.e. not consolidated
+
+    ser = df["b"]  # populations item_cache["b"]
+
+    df._to_dict_of_blocks()
+
+    # Check that the to_dict_of_blocks didnt break link between ser and df
+    ser.values[0] = "foo"
+    assert df.loc[0, "b"] == "foo"
+
+    assert df["b"] is ser
+
+
+def test_update_inplace_sets_valid_block_values():
+    # https://github.com/pandas-dev/pandas/issues/33457
+    df = pd.DataFrame({"a": pd.Series([1, 2, None], dtype="category")})
+
+    # inplace update of a single column
+    df["a"].fillna(1, inplace=True)
+
+    # check we havent put a Series into any block.values
+    assert isinstance(df._mgr.blocks[0].values, pd.Categorical)
+
+    # smoketest for OP bug from GH#35731
+    assert df.isnull().sum().sum() == 0
+
+
+def test_nonconsolidated_item_cache_take():
+    # https://github.com/pandas-dev/pandas/issues/35521
+
+    # create non-consolidated dataframe with object dtype columns
+    df = pd.DataFrame()
+    df["col1"] = pd.Series(["a"], dtype=object)
+    df["col2"] = pd.Series([0], dtype=object)
+
+    # access column (item cache)
+    df["col1"] == "A"
+    # take operation
+    # (regression was that this consolidated but didn't reset item cache,
+    # resulting in an invalid cache and the .at operation not working properly)
+    df[df["col2"] == 0]
+
+    # now setting value should update actual dataframe
+    df.at[0, "col1"] = "A"
+
+    expected = pd.DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+    assert df.at[0, "col1"] == "A"

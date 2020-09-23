@@ -125,7 +125,7 @@ class FrameWithFrameWide:
         arr1 = np.random.randn(n_rows, int(n_cols / 2)).astype("f8")
         arr2 = np.random.randn(n_rows, int(n_cols / 2)).astype("f4")
         df = pd.concat(
-            [pd.DataFrame(arr1), pd.DataFrame(arr2)], axis=1, ignore_index=True,
+            [pd.DataFrame(arr1), pd.DataFrame(arr2)], axis=1, ignore_index=True
         )
         # should already be the case, but just to be sure
         df._consolidate_inplace()
@@ -466,7 +466,32 @@ class ApplyIndex:
         self.rng = rng
 
     def time_apply_index(self, offset):
-        offset.apply_index(self.rng)
+        self.rng + offset
+
+
+class BinaryOpsMultiIndex:
+    params = ["sub", "add", "mul", "div"]
+    param_names = ["func"]
+
+    def setup(self, func):
+        date_range = pd.date_range("20200101 00:00", "20200102 0:00", freq="S")
+        level_0_names = [str(i) for i in range(30)]
+
+        index = pd.MultiIndex.from_product([level_0_names, date_range])
+        column_names = ["col_1", "col_2"]
+
+        self.df = pd.DataFrame(
+            np.random.rand(len(index), 2), index=index, columns=column_names
+        )
+
+        self.arg_df = pd.DataFrame(
+            np.random.randint(1, 10, (len(level_0_names), 2)),
+            index=level_0_names,
+            columns=column_names,
+        )
+
+    def time_binary_op_multiindex(self, func):
+        getattr(self.df, func)(self.arg_df, level=0)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

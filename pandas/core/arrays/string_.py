@@ -5,10 +5,8 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 
-from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.inference import is_array_like
 
 from pandas import compat
@@ -152,15 +150,21 @@ class StringArray(PandasArray):
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
-    Unlike ``object`` dtype arrays, ``StringArray`` doesn't allow non-string
-    values.
+    Unlike arrays instantiated with ``dtype="object"``, ``StringArray``
+    will convert the values to strings.
 
+    >>> pd.array(['1', 1], dtype="object")
+    <PandasArray>
+    ['1', 1]
+    Length: 2, dtype: object
     >>> pd.array(['1', 1], dtype="string")
-    Traceback (most recent call last):
-    ...
-    ValueError: StringArray requires an object-dtype ndarray of strings.
+    <StringArray>
+    ['1', '1']
+    Length: 2, dtype: string
 
-    For comparison methods, this returns a :class:`pandas.BooleanArray`
+    However, instantiating StringArrays directly with non-strings will raise an error.
+
+    For comparison methods, `StringArray` returns a :class:`pandas.BooleanArray`:
 
     >>> pd.array(["a", None, "c"], dtype="string") == "a"
     <BooleanArray>
@@ -173,11 +177,10 @@ class StringArray(PandasArray):
 
     def __init__(self, values, copy=False):
         values = extract_array(values)
-        skip_validation = isinstance(values, type(self))
 
         super().__init__(values, copy=copy)
         self._dtype = StringDtype()
-        if not skip_validation:
+        if not isinstance(values, type(self)):
             self._validate()
 
     def _validate(self):
@@ -195,21 +198,18 @@ class StringArray(PandasArray):
         if dtype:
             assert isinstance(dtype, StringDtype)
 
-        result = np.asarray(scalars, dtype="object")
-        if copy and result is scalars:
-            result = result.copy()
+        # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+        result = lib.ensure_string_array(
+            scalars, na_value=StringDtype.na_value, copy=copy
+        )
 
-        # Standardize all missing-like values to NA
-        # TODO: it would be nice to do this in _validate / lib.is_string_array
-        # We are already doing a scan over the values there.
-        na_values = isna(result)
-        if na_values.any():
-            if result is scalars:
-                # force a copy now, if we haven't already
-                result = result.copy()
-            result[na_values] = StringDtype.na_value
+        # Manually creating new array avoids the validation step in the __init__, so is
+        # faster. Refactor need for validation?
+        new_string_array = object.__new__(cls)
+        new_string_array._dtype = StringDtype()
+        new_string_array._ndarray = result
 
-        return cls(result)
+        return new_string_array
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
@@ -281,7 +281,7 @@ class StringArray(PandasArray):
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna)
 
@@ -302,15 +302,14 @@ class StringArray(PandasArray):
     @classmethod
     def _create_arithmetic_method(cls, op):
         # Note: this handles both arithmetic and comparison methods.
+
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def method(self, other):
             from pandas.arrays import BooleanArray
 
             assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
 
-            if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):
-                return NotImplemented
-
-            elif isinstance(other, cls):
+            if isinstance(other, cls):
                 other = other._ndarray
 
             mask = isna(self) | isna(other)

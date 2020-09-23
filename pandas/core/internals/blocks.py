@@ -1,16 +1,17 @@
 from datetime import datetime, timedelta
 import inspect
 import re
-from typing import Any, List
+from typing import TYPE_CHECKING, Any, List, Optional
 import warnings
 
 import numpy as np
 
 from pandas._libs import NaT, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
+from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -55,14 +56,10 @@ from pandas.core.dtypes.generic import (
     ABCPandasArray,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import (
-    _isna_compat,
-    array_equivalent,
-    is_valid_nat_for_dtype,
-    isna,
-)
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.replace import compare_or_regex_search
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -82,6 +79,9 @@ from pandas.core.indexers import (
 )
 import pandas.core.missing as missing
 from pandas.core.nanops import nanpercentile
+
+if TYPE_CHECKING:
+    from pandas import Index
 
 
 class Block(PandasObject):
@@ -106,8 +106,20 @@ class Block(PandasObject):
     is_extension = False
     _can_hold_na = False
     _can_consolidate = True
-    _verify_integrity = True
     _validate_ndim = True
+
+    @classmethod
+    def _simple_new(
+        cls, values: ArrayLike, placement: BlockPlacement, ndim: int
+    ) -> "Block":
+        """
+        Fastpath constructor, does *no* validation
+        """
+        obj = object.__new__(cls)
+        obj.ndim = ndim
+        obj.values = values
+        obj._mgr_locs = placement
+        return obj
 
     def __init__(self, values, placement, ndim=None):
         self.ndim = self._check_ndim(values, ndim)
@@ -164,10 +176,6 @@ class Block(PandasObject):
     @property
     def _consolidate_key(self):
         return (self._can_consolidate, self.dtype.name)
-
-    @property
-    def _is_single_block(self) -> bool:
-        return self.ndim == 1
 
     @property
     def is_view(self) -> bool:
@@ -256,7 +264,7 @@ class Block(PandasObject):
     def __repr__(self) -> str:
         # don't want to print out all of the items here
         name = type(self).__name__
-        if self._is_single_block:
+        if self.ndim == 1:
             result = f"{name}: {len(self)} dtype: {self.dtype}"
         else:
 
@@ -290,13 +298,15 @@ class Block(PandasObject):
         if new_mgr_locs is None:
             axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer
             new_mgr_locs = self.mgr_locs[axis0_slicer]
+        elif not isinstance(new_mgr_locs, BlockPlacement):
+            new_mgr_locs = BlockPlacement(new_mgr_locs)
 
         new_values = self._slice(slicer)
 
         if self._validate_ndim and new_values.ndim != self.ndim:
             raise ValueError("Only same dim slicing is allowed")
 
-        return self.make_block_same_class(new_values, new_mgr_locs)
+        return type(self)._simple_new(new_values, new_mgr_locs, self.ndim)
 
     @property
     def shape(self):
@@ -337,6 +347,21 @@ class Block(PandasObject):
 
         return self._split_op_result(result)
 
+    def reduce(self, func) -> List["Block"]:
+        # We will apply the function and reshape the result into a single-row
+        #  Block with the same mgr_locs; squeezing will be done at a higher level
+        assert self.ndim == 2
+
+        result = func(self.values)
+        if np.ndim(result) == 0:
+            # TODO(EA2D): special case not needed with 2D EAs
+            res_values = np.array([[result]])
+        else:
+            res_values = result.reshape(-1, 1)
+
+        nb = self.make_block(res_values)
+        return [nb]
+
     def _split_op_result(self, result) -> List["Block"]:
         # See also: split_and_operate
         if is_extension_array_dtype(result) and result.ndim > 1:
@@ -365,7 +390,7 @@ class Block(PandasObject):
 
         mask = isna(self.values)
         if limit is not None:
-            limit = libalgos._validate_limit(None, limit=limit)
+            limit = libalgos.validate_limit(None, limit=limit)
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if not self._can_hold_na:
@@ -463,7 +488,7 @@ class Block(PandasObject):
         ):
             return blocks
 
-        return _extend_blocks([b.downcast(downcast) for b in blocks])
+        return extend_blocks([b.downcast(downcast) for b in blocks])
 
     def downcast(self, dtypes=None):
         """ try to downcast each item to the dict of dtypes if present """
@@ -473,8 +498,7 @@ class Block(PandasObject):
 
         values = self.values
 
-        # single block handling
-        if self._is_single_block:
+        if self.ndim == 1:
 
             # try to cast all non-floats here
             if dtypes is None:
@@ -557,14 +581,19 @@ class Block(PandasObject):
 
         # force the copy here
         if self.is_extension:
-            # TODO: Should we try/except this astype?
-            values = self.values.astype(dtype)
+            try:
+                values = self.values.astype(dtype)
+            except (ValueError, TypeError):
+                if errors == "ignore":
+                    values = self.values
+                else:
+                    raise
         else:
             if issubclass(dtype.type, str):
 
                 # use native type formatting for datetime/tz/timedelta
                 if self.is_datelike:
-                    values = self.to_native_types()
+                    values = self.to_native_types().values
 
                 # astype formatting
                 else:
@@ -655,7 +684,7 @@ class Block(PandasObject):
             values = np.array(values, dtype="object")
 
         values[mask] = na_rep
-        return values
+        return self.make_block(values)
 
     # block actions #
     def copy(self, deep: bool = True):
@@ -701,7 +730,7 @@ class Block(PandasObject):
                 # _can_hold_element checks have reduced this back to the
                 #  scalar case and we can avoid a costly object cast
                 return self.replace(
-                    to_replace[0], value, inplace=inplace, regex=regex, convert=convert,
+                    to_replace[0], value, inplace=inplace, regex=regex, convert=convert
                 )
 
             # GH 22083, TypeError or ValueError occurred within error handling
@@ -742,7 +771,11 @@ class Block(PandasObject):
             if is_object_dtype(self):
                 raise
 
-            assert not self._can_hold_element(value), value
+            if not self.is_extension:
+                # TODO: https://github.com/pandas-dev/pandas/issues/32586
+                # Need an ExtensionArray._can_hold_element to indicate whether
+                # a scalar value can be placed in the array.
+                assert not self._can_hold_element(value), value
 
             # try again with a compatible block
             block = self.astype(object)
@@ -760,6 +793,59 @@ class Block(PandasObject):
     def _replace_single(self, *args, **kwargs):
         """ no-op on a non-ObjectBlock """
         return self if kwargs["inplace"] else self.copy()
+
+    def _replace_list(
+        self,
+        src_list: List[Any],
+        dest_list: List[Any],
+        inplace: bool = False,
+        regex: bool = False,
+    ) -> List["Block"]:
+        """
+        See BlockManager._replace_list docstring.
+        """
+        src_len = len(src_list) - 1
+
+        def comp(s: Scalar, mask: np.ndarray, regex: bool = False) -> np.ndarray:
+            """
+            Generate a bool array by perform an equality check, or perform
+            an element-wise regular expression matching
+            """
+            if isna(s):
+                return ~mask
+
+            s = com.maybe_box_datetimelike(s)
+            return compare_or_regex_search(self.values, s, regex, mask)
+
+        # Calculate the mask once, prior to the call of comp
+        # in order to avoid repeating the same computations
+        mask = ~isna(self.values)
+
+        masks = [comp(s, mask, regex) for s in src_list]
+
+        rb = [self if inplace else self.copy()]
+        for i, (src, dest) in enumerate(zip(src_list, dest_list)):
+            new_rb: List["Block"] = []
+            for blk in rb:
+                m = masks[i]
+                convert = i == src_len  # only convert once at the end
+                result = blk._replace_coerce(
+                    mask=m,
+                    to_replace=src,
+                    value=dest,
+                    inplace=inplace,
+                    convert=convert,
+                    regex=regex,
+                )
+                if m.any() or convert:
+                    if isinstance(result, list):
+                        new_rb.extend(result)
+                    else:
+                        new_rb.append(result)
+                else:
+                    new_rb.append(blk)
+            rb = new_rb
+        return rb
 
     def setitem(self, indexer, value):
         """
@@ -824,8 +910,10 @@ class Block(PandasObject):
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
             #  can be parsed to EADtypes
+            is_ea_value = True
             arr_value = value
         else:
+            is_ea_value = False
             arr_value = np.array(value)
 
         if transpose:
@@ -853,6 +941,11 @@ class Block(PandasObject):
             values[indexer] = value
             return self.make_block(Categorical(self.values, dtype=arr_value.dtype))
 
+        elif exact_match and is_ea_value:
+            # GH#32395 if we're going to replace the values entirely, just
+            #  substitute in the new array
+            return self.make_block(arr_value)
+
         # if we are an exact match (ex-broadcasting),
         # then use the resultant dtype
         elif exact_match:
@@ -871,7 +964,7 @@ class Block(PandasObject):
         return block
 
     def putmask(
-        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
     ) -> List["Block"]:
         """
         putmask the data to the block; it is possible that we may create a
@@ -896,8 +989,7 @@ class Block(PandasObject):
         mask = _extract_bool_array(mask)
         assert not isinstance(new, (ABCIndexClass, ABCSeries, ABCDataFrame))
 
-        new_values = self.values if inplace else self.values.copy()
-
+        new_values = self.values  # delay copy if possible.
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
             # FIXME: make sure we have compatible NA
@@ -907,7 +999,7 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(new):
-                new = convert_scalar_for_putitemlike(new, new_values.dtype)
+                new = convert_scalar_for_putitemlike(new, self.values.dtype)
 
             if transpose:
                 new_values = new_values.T
@@ -919,6 +1011,8 @@ class Block(PandasObject):
                     new = np.repeat(new, new_values.shape[-1]).reshape(self.shape)
                 new = new.astype(new_values.dtype)
 
+            if new_values is self.values and not inplace:
+                new_values = new_values.copy()
             # we require exact matches between the len of the
             # values we are setting (or is compat). np.putmask
             # doesn't check this and will simply truncate / pad
@@ -990,6 +1084,8 @@ class Block(PandasObject):
             return [self]
 
         if transpose:
+            if new_values is None:
+                new_values = self.values if inplace else self.values.copy()
             new_values = new_values.T
 
         return [self.make_block(new_values)]
@@ -1059,29 +1155,24 @@ class Block(PandasObject):
 
     def interpolate(
         self,
-        method="pad",
-        axis=0,
-        index=None,
-        inplace=False,
-        limit=None,
-        limit_direction="forward",
-        limit_area=None,
-        fill_value=None,
-        coerce=False,
-        downcast=None,
+        method: str = "pad",
+        axis: int = 0,
+        index: Optional["Index"] = None,
+        inplace: bool = False,
+        limit: Optional[int] = None,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        fill_value: Optional[Any] = None,
+        coerce: bool = False,
+        downcast: Optional[str] = None,
         **kwargs,
     ):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        def check_int_bool(self, inplace):
-            # Only FloatBlocks will contain NaNs.
-            # timedelta subclasses IntBlock
-            if (self.is_bool or self.is_integer) and not self.is_timedelta:
-                if inplace:
-                    return self
-                else:
-                    return self.copy()
+        # Only FloatBlocks will contain NaNs. timedelta subclasses IntBlock
+        if (self.is_bool or self.is_integer) and not self.is_timedelta:
+            return self if inplace else self.copy()
 
         # a fill na type method
         try:
@@ -1090,9 +1181,6 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
-            r = check_int_bool(self, inplace)
-            if r is not None:
-                return r
             return self._interpolate_with_fill(
                 method=m,
                 axis=axis,
@@ -1105,9 +1193,8 @@ class Block(PandasObject):
         # validate the interp method
         m = missing.clean_interp_method(method, **kwargs)
 
-        r = check_int_bool(self, inplace)
-        if r is not None:
-            return r
+        assert index is not None  # for mypy
+
         return self._interpolate(
             method=m,
             index=index,
@@ -1123,13 +1210,13 @@ class Block(PandasObject):
 
     def _interpolate_with_fill(
         self,
-        method="pad",
-        axis=0,
-        inplace=False,
-        limit=None,
-        fill_value=None,
-        coerce=False,
-        downcast=None,
+        method: str = "pad",
+        axis: int = 0,
+        inplace: bool = False,
+        limit: Optional[int] = None,
+        fill_value: Optional[Any] = None,
+        coerce: bool = False,
+        downcast: Optional[str] = None,
     ) -> List["Block"]:
         """ fillna but using the interpolate machinery """
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1162,15 +1249,15 @@ class Block(PandasObject):
 
     def _interpolate(
         self,
-        method=None,
-        index=None,
-        fill_value=None,
-        axis=0,
-        limit=None,
-        limit_direction="forward",
-        limit_area=None,
-        inplace=False,
-        downcast=None,
+        method: str,
+        index: "Index",
+        fill_value: Optional[Any] = None,
+        axis: int = 0,
+        limit: Optional[int] = None,
+        limit_direction: str = "forward",
+        limit_area: Optional[str] = None,
+        inplace: bool = False,
+        downcast: Optional[str] = None,
         **kwargs,
     ) -> List["Block"]:
         """ interpolate using scipy wrappers """
@@ -1193,14 +1280,14 @@ class Block(PandasObject):
                 )
         # process 1-d slices in the axis direction
 
-        def func(x):
+        def func(yvalues: np.ndarray) -> np.ndarray:
 
             # process a 1-d slice, returning it
             # should the axis argument be handled below in apply_along_axis?
             # i.e. not an arg to missing.interpolate_1d
             return missing.interpolate_1d(
-                index,
-                x,
+                xvalues=index,
+                yvalues=yvalues,
                 method=method,
                 limit=limit,
                 limit_direction=limit_direction,
@@ -1264,7 +1351,7 @@ class Block(PandasObject):
         return [self.make_block(new_values)]
 
     def where(
-        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
     ) -> List["Block"]:
         """
         evaluate the block; return result block(s) from the result
@@ -1338,7 +1425,7 @@ class Block(PandasObject):
                 # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
                 blocks = block.where(
-                    orig_other, cond, errors=errors, try_cast=try_cast, axis=axis,
+                    orig_other, cond, errors=errors, try_cast=try_cast, axis=axis
                 )
                 return self._maybe_downcast(blocks, "infer")
 
@@ -1354,7 +1441,7 @@ class Block(PandasObject):
         cond = cond.swapaxes(axis, 0)
         mask = np.array([cond[i].all() for i in range(cond.shape[0])], dtype=bool)
 
-        result_blocks = []
+        result_blocks: List["Block"] = []
         for m in [mask, ~mask]:
             if m.any():
                 taken = result.take(m.nonzero()[0], axis=axis)
@@ -1363,11 +1450,6 @@ class Block(PandasObject):
                 result_blocks.append(nb)
 
         return result_blocks
-
-    def equals(self, other) -> bool:
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        return array_equivalent(self.values, other.values)
 
     def _unstack(self, unstacker, fill_value, new_placement):
         """
@@ -1516,7 +1598,6 @@ class ExtensionBlock(Block):
     """
 
     _can_consolidate = False
-    _verify_integrity = False
     _validate_ndim = False
     is_extension = True
 
@@ -1580,10 +1661,10 @@ class ExtensionBlock(Block):
 
     def set(self, locs, values):
         assert locs.tolist() == [0]
-        self.values[:] = values
+        self.values = values
 
     def putmask(
-        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False,
+        self, mask, new, inplace: bool = False, axis: int = 0, transpose: bool = False
     ) -> List["Block"]:
         """
         See Block.putmask.__doc__
@@ -1597,7 +1678,7 @@ class ExtensionBlock(Block):
         if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
 
-        mask = _safe_reshape(mask, new_values.shape)
+        mask = safe_reshape(mask, new_values.shape)
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
@@ -1693,7 +1774,7 @@ class ExtensionBlock(Block):
 
         # TODO(EA2D): reshape not needed with 2D EAs
         # we are expected to return a 2-d ndarray
-        return values.reshape(1, len(values))
+        return self.make_block(values)
 
     def take_nd(
         self, indexer, axis: int = 0, new_mgr_locs=None, fill_value=lib.no_default
@@ -1794,7 +1875,7 @@ class ExtensionBlock(Block):
         return super().diff(n, axis)
 
     def shift(
-        self, periods: int, axis: int = 0, fill_value: Any = None,
+        self, periods: int, axis: int = 0, fill_value: Any = None
     ) -> List["ExtensionBlock"]:
         """
         Shift the block by `periods`.
@@ -1811,7 +1892,7 @@ class ExtensionBlock(Block):
         ]
 
     def where(
-        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0,
+        self, other, cond, errors="raise", try_cast: bool = False, axis: int = 0
     ) -> List["Block"]:
 
         cond = _extract_bool_array(cond)
@@ -1859,9 +1940,6 @@ class ExtensionBlock(Block):
 
         return [self.make_block_same_class(result, placement=self.mgr_locs)]
 
-    def equals(self, other) -> bool:
-        return self.values.equals(other.values)
-
     def _unstack(self, unstacker, fill_value, new_placement):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
@@ -1907,12 +1985,6 @@ class NumericBlock(Block):
 class FloatOrComplexBlock(NumericBlock):
     __slots__ = ()
 
-    def equals(self, other) -> bool:
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        left, right = self.values, other.values
-        return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
-
 
 class FloatBlock(FloatOrComplexBlock):
     __slots__ = ()
@@ -1932,7 +2004,7 @@ class FloatBlock(FloatOrComplexBlock):
         )
 
     def to_native_types(
-        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs,
+        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
     ):
         """ convert to our native types format """
         values = self.values
@@ -1949,7 +2021,7 @@ class FloatBlock(FloatOrComplexBlock):
                 values = np.array(values, dtype="object")
 
             values[mask] = na_rep
-            return values
+            return self.make_block(values)
 
         from pandas.io.formats.format import FloatArrayFormatter
 
@@ -1961,7 +2033,8 @@ class FloatBlock(FloatOrComplexBlock):
             quoting=quoting,
             fixed_width=False,
         )
-        return formatter.get_result_as_array()
+        res = formatter.get_result_as_array()
+        return self.make_block(res)
 
 
 class ComplexBlock(FloatOrComplexBlock):
@@ -2120,7 +2193,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         result = dta._format_native_types(
             na_rep=na_rep, date_format=date_format, **kwargs
         )
-        return np.atleast_2d(result)
+        return self.make_block(result)
 
     def set(self, locs, values):
         """
@@ -2276,12 +2349,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         )
         return newb.setitem(indexer, value)
 
-    def equals(self, other) -> bool:
-        # override for significant performance improvement
-        if self.dtype != other.dtype or self.shape != other.shape:
-            return False
-        return (self.values.view("i8") == other.values.view("i8")).all()
-
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
 
@@ -2305,7 +2372,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def __init__(self, values, placement, ndim=None):
         if values.dtype != TD64NS_DTYPE:
-            values = conversion.ensure_timedelta64ns(values)
+            # e.g. non-nano or int64
+            values = TimedeltaArray._from_sequence(values)._data
         if isinstance(values, TimedeltaArray):
             values = values._data
         assert isinstance(values, np.ndarray), type(values)
@@ -2341,7 +2409,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """
         tda = self.array_values()
-        return tda._format_native_types(na_rep, **kwargs)
+        res = tda._format_native_types(na_rep, **kwargs)
+        return self.make_block(res)
 
 
 class BoolBlock(NumericBlock):
@@ -2361,7 +2430,7 @@ class BoolBlock(NumericBlock):
         if not np.can_cast(to_replace_values, bool):
             return self
         return super().replace(
-            to_replace, value, inplace=inplace, regex=regex, convert=convert,
+            to_replace, value, inplace=inplace, regex=regex, convert=convert
         )
 
 
@@ -2429,7 +2498,7 @@ class ObjectBlock(Block):
             return blocks
 
         # split and convert the blocks
-        return _extend_blocks([b.convert(datetime=True, numeric=False) for b in blocks])
+        return extend_blocks([b.convert(datetime=True, numeric=False) for b in blocks])
 
     def _can_hold_element(self, element: Any) -> bool:
         return True
@@ -2445,20 +2514,20 @@ class ObjectBlock(Block):
 
         if not either_list and is_re(to_replace):
             return self._replace_single(
-                to_replace, value, inplace=inplace, regex=True, convert=convert,
+                to_replace, value, inplace=inplace, regex=True, convert=convert
             )
         elif not (either_list or regex):
             return super().replace(
-                to_replace, value, inplace=inplace, regex=regex, convert=convert,
+                to_replace, value, inplace=inplace, regex=regex, convert=convert
             )
         elif both_lists:
             for to_rep, v in zip(to_replace, value):
                 result_blocks = []
                 for b in blocks:
                     result = b._replace_single(
-                        to_rep, v, inplace=inplace, regex=regex, convert=convert,
+                        to_rep, v, inplace=inplace, regex=regex, convert=convert
                     )
-                    result_blocks = _extend_blocks(result, result_blocks)
+                    result_blocks = extend_blocks(result, result_blocks)
                 blocks = result_blocks
             return result_blocks
 
@@ -2467,18 +2536,18 @@ class ObjectBlock(Block):
                 result_blocks = []
                 for b in blocks:
                     result = b._replace_single(
-                        to_rep, value, inplace=inplace, regex=regex, convert=convert,
+                        to_rep, value, inplace=inplace, regex=regex, convert=convert
                     )
-                    result_blocks = _extend_blocks(result, result_blocks)
+                    result_blocks = extend_blocks(result, result_blocks)
                 blocks = result_blocks
             return result_blocks
 
         return self._replace_single(
-            to_replace, value, inplace=inplace, convert=convert, regex=regex,
+            to_replace, value, inplace=inplace, convert=convert, regex=regex
         )
 
     def _replace_single(
-        self, to_replace, value, inplace=False, regex=False, convert=True, mask=None,
+        self, to_replace, value, inplace=False, regex=False, convert=True, mask=None
     ):
         """
         Replace elements by the given value.
@@ -2618,7 +2687,6 @@ class ObjectBlock(Block):
 class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
     is_categorical = True
-    _verify_integrity = True
     _can_hold_na = True
 
     should_store = Block.should_store
@@ -2725,7 +2793,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None):
 # -----------------------------------------------------------------
 
 
-def _extend_blocks(result, blocks=None):
+def extend_blocks(result, blocks=None):
     """ return a new extended blocks, given the result """
     if blocks is None:
         blocks = []
@@ -2749,11 +2817,12 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-            values = values.reshape(tuple((1,) + shape))  # type: ignore
+            # error: "ExtensionArray" has no attribute "reshape"
+            values = values.reshape(tuple((1,) + shape))  # type: ignore[attr-defined]
     return values
 
 
-def _safe_reshape(arr, new_shape):
+def safe_reshape(arr, new_shape):
     """
     If possible, reshape `arr` to have shape `new_shape`,
     with a couple of exceptions (see gh-13012):
@@ -2815,7 +2884,7 @@ def _putmask_smart(v: np.ndarray, mask: np.ndarray, n) -> np.ndarray:
     else:
         # make sure that we have a nullable type
         # if we have nulls
-        if not _isna_compat(v, nn[0]):
+        if not isna_compat(v, nn[0]):
             pass
         elif not (is_float_dtype(nn.dtype) or is_integer_dtype(nn.dtype)):
             # only compare integers/floats
@@ -2863,7 +2932,9 @@ def _extract_bool_array(mask: ArrayLike) -> np.ndarray:
     """
     if isinstance(mask, ExtensionArray):
         # We could have BooleanArray, Sparse[bool], ...
-        mask = np.asarray(mask, dtype=np.bool_)
+        #  Except for BooleanArray, this is equivalent to just
+        #  np.asarray(mask, dtype=bool)
+        mask = mask.to_numpy(dtype=bool, na_value=False)
 
     assert isinstance(mask, np.ndarray), type(mask)
     assert mask.dtype == bool, mask.dtype

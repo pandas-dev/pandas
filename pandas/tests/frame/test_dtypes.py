@@ -37,15 +37,13 @@ class TestDataFrameDataTypes:
 
     def test_empty_frame_dtypes(self):
         empty_df = pd.DataFrame()
-        tm.assert_series_equal(empty_df.dtypes, pd.Series(dtype=np.object))
+        tm.assert_series_equal(empty_df.dtypes, pd.Series(dtype=object))
 
         nocols_df = pd.DataFrame(index=[1, 2, 3])
-        tm.assert_series_equal(nocols_df.dtypes, pd.Series(dtype=np.object))
+        tm.assert_series_equal(nocols_df.dtypes, pd.Series(dtype=object))
 
         norows_df = pd.DataFrame(columns=list("abc"))
-        tm.assert_series_equal(
-            norows_df.dtypes, pd.Series(np.object, index=list("abc"))
-        )
+        tm.assert_series_equal(norows_df.dtypes, pd.Series(object, index=list("abc")))
 
         norows_int_df = pd.DataFrame(columns=list("abc")).astype(np.int32)
         tm.assert_series_equal(
@@ -55,7 +53,7 @@ class TestDataFrameDataTypes:
         odict = OrderedDict
         df = pd.DataFrame(odict([("a", 1), ("b", True), ("c", 1.0)]), index=[1, 2, 3])
         ex_dtypes = pd.Series(
-            odict([("a", np.int64), ("b", np.bool), ("c", np.float64)])
+            odict([("a", np.int64), ("b", np.bool_), ("c", np.float64)])
         )
         tm.assert_series_equal(df.dtypes, ex_dtypes)
 
@@ -234,6 +232,18 @@ class TestDataFrameDataTypes:
     )
     def test_is_homogeneous_type(self, data, expected):
         assert data._is_homogeneous_type is expected
+
+    def test_is_homogeneous_type_clears_cache(self):
+        ser = pd.Series([1, 2, 3])
+        df = ser.to_frame("A")
+        df["B"] = ser
+
+        assert len(df._mgr.blocks) == 2
+
+        a = df["B"]  # caches lookup
+        df._is_homogeneous_type  # _should_ clear cache
+        assert len(df._mgr.blocks) == 1
+        assert df["B"] is not a
 
     def test_asarray_homogenous(self):
         df = pd.DataFrame({"A": pd.Categorical([1, 2]), "B": pd.Categorical([1, 2])})

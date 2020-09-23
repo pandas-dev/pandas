@@ -6,9 +6,14 @@ from typing import Dict, Optional, Union, no_type_check
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import NaT, Period, Timedelta, Timestamp
-from pandas._libs.tslibs.frequencies import is_subperiod, is_superperiod
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs import (
+    IncompatibleFrequency,
+    NaT,
+    Period,
+    Timedelta,
+    Timestamp,
+    to_offset,
+)
 from pandas._typing import TimedeltaConvertibleTypes, TimestampConvertibleTypes
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -17,11 +22,16 @@ from pandas.util._decorators import Appender, Substitution, doc
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 import pandas.core.algorithms as algos
-from pandas.core.base import DataError, ShallowMixin
+from pandas.core.base import DataError
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.groupby.generic import SeriesGroupBy
-from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
+from pandas.core.groupby.groupby import (
+    BaseGroupBy,
+    GroupBy,
+    _pipe_template,
+    get_groupby,
+)
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.api import Index
@@ -29,13 +39,13 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.period import PeriodIndex, period_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import is_subperiod, is_superperiod
 from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 
 _shared_docs_kwargs: Dict[str, str] = dict()
 
 
-class Resampler(_GroupBy, ShallowMixin):
+class Resampler(BaseGroupBy, ShallowMixin):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -198,7 +208,6 @@ class Resampler(_GroupBy, ShallowMixin):
 
     @Substitution(
         klass="Resampler",
-        versionadded=".. versionadded:: 0.23.0",
         examples="""
     >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
     ...                   index=pd.date_range('2012-08-02', periods=4))
@@ -269,14 +278,13 @@ class Resampler(_GroupBy, ShallowMixin):
     """
     )
 
-    @Substitution(
+    @doc(
+        _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="",
         klass="DataFrame",
         axis="",
     )
-    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
@@ -790,7 +798,7 @@ class Resampler(_GroupBy, ShallowMixin):
         """
         Interpolate values according to different methods.
         """
-        result = self._upsample(None)
+        result = self._upsample("asfreq")
         return result.interpolate(
             method=method,
             axis=axis,
@@ -944,7 +952,7 @@ for method in ["nunique"]:
     setattr(Resampler, method, h)
 
 
-class _GroupByMixin(GroupByMixin):
+class _GroupByMixin(GotItemMixin):
     """
     Provide the groupby facilities.
     """
@@ -1082,7 +1090,11 @@ class DatetimeIndexResampler(Resampler):
         res_index = self._adjust_binner_for_upsample(binner)
 
         # if we have the same frequency as our axis, then we are equal sampling
-        if limit is None and to_offset(ax.inferred_freq) == self.freq:
+        if (
+            limit is None
+            and to_offset(ax.inferred_freq) == self.freq
+            and len(obj) == len(res_index)
+        ):
             result = obj.copy()
             result.index = res_index
         else:
@@ -1548,7 +1560,7 @@ class TimeGrouper(Grouper):
 
         return binner, bins, labels
 
-    def _get_time_period_bins(self, ax):
+    def _get_time_period_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
                 "axis must be a DatetimeIndex, but got "
@@ -1564,13 +1576,13 @@ class TimeGrouper(Grouper):
         labels = binner = period_range(start=ax[0], end=ax[-1], freq=freq, name=ax.name)
 
         end_stamps = (labels + freq).asfreq(freq, "s").to_timestamp()
-        if ax.tzinfo:
-            end_stamps = end_stamps.tz_localize(ax.tzinfo)
+        if ax.tz:
+            end_stamps = end_stamps.tz_localize(ax.tz)
         bins = ax.searchsorted(end_stamps, side="left")
 
         return binner, bins, labels
 
-    def _get_period_bins(self, ax):
+    def _get_period_bins(self, ax: PeriodIndex):
         if not isinstance(ax, PeriodIndex):
             raise TypeError(
                 "axis must be a PeriodIndex, but got "
@@ -1694,11 +1706,15 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    index_tz = first.tz
-    if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
-        raise ValueError("The origin must have the same timezone as the index.")
-
     if isinstance(freq, Tick):
+        index_tz = first.tz
+        if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
+            raise ValueError("The origin must have the same timezone as the index.")
+        elif origin == "epoch":
+            # set the epoch based on the timezone to have similar bins results when
+            # resampling on the same kind of indexes on different timezones
+            origin = Timestamp("1970-01-01", tz=index_tz)
+
         if isinstance(freq, Day):
             # _adjust_dates_anchored assumes 'D' means 24H, but first/last
             # might contain a DST transition (23H, 24H, or 25H).
@@ -1709,7 +1725,7 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset,
+            first, last, freq, closed=closed, origin=origin, offset=offset
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)
@@ -1771,7 +1787,7 @@ def _get_period_range_edges(
     adjust_last = freq.is_on_offset(last)
 
     first, last = _get_timestamp_range_edges(
-        first, last, freq, closed=closed, origin=origin, offset=offset,
+        first, last, freq, closed=closed, origin=origin, offset=offset
     )
 
     first = (first + int(adjust_first) * freq).to_period(freq)
@@ -1889,6 +1905,7 @@ def _asfreq_compat(index, freq):
         raise ValueError(
             "Can only set arbitrary freq for empty DatetimeIndex or TimedeltaIndex"
         )
+    new_index: Index
     if isinstance(index, PeriodIndex):
         new_index = index.asfreq(freq=freq)
     else:

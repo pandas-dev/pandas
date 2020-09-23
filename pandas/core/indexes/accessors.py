@@ -2,6 +2,7 @@
 datetimelike delegation
 """
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
@@ -77,7 +78,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             index = self._parent.index
         # return the result as a Series, which is by definition a copy
-        result = Series(result, index=index, name=self.name)
+        result = Series(result, index=index, name=self.name).__finalize__(self._parent)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -105,7 +106,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self._parent.index, name=self.name)
+        result = Series(result, index=self._parent.index, name=self.name).__finalize__(
+            self._parent
+        )
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -250,6 +253,30 @@ class DatetimeProperties(Properties):
         """
         return self._get_values().isocalendar().set_index(self._parent.index)
 
+    @property
+    def weekofyear(self):
+        """
+        The week ordinal of the year.
+
+        .. deprecated:: 1.1.0
+
+        Series.dt.weekofyear and Series.dt.week have been deprecated.
+        Please use Series.dt.isocalendar().week instead.
+        """
+        warnings.warn(
+            "Series.dt.weekofyear and Series.dt.week have been deprecated.  "
+            "Please use Series.dt.isocalendar().week instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        week_series = self.isocalendar().week
+        week_series.name = self.name
+        if week_series.hasnans:
+            return week_series.astype("float64")
+        return week_series.astype("int64")
+
+    week = weekofyear
+
 
 @delegate_names(
     delegate=TimedeltaArray, accessors=TimedeltaArray._datetimelike_ops, typ="property"
@@ -346,7 +373,11 @@ class TimedeltaProperties(Properties):
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
         """
-        return self._get_values().components.set_index(self._parent.index)
+        return (
+            self._get_values()
+            .components.set_index(self._parent.index)
+            .__finalize__(self._parent)
+        )
 
     @property
     def freq(self):

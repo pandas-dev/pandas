@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -13,7 +15,8 @@ class TestSeriesReplace:
         ser[6:10] = 0
 
         # replace list with a single value
-        ser.replace([np.nan], -1, inplace=True)
+        return_value = ser.replace([np.nan], -1, inplace=True)
+        assert return_value is None
 
         exp = ser.fillna(-1)
         tm.assert_series_equal(ser, exp)
@@ -48,7 +51,8 @@ class TestSeriesReplace:
         tm.assert_series_equal(rs, rs2)
 
         # replace inplace
-        ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
+        return_value = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
+        assert return_value is None
 
         assert (ser[:5] == -1).all()
         assert (ser[6:10] == -1).all()
@@ -124,7 +128,8 @@ class TestSeriesReplace:
         tm.assert_series_equal(result, pd.Series([0, 0, 0, 0, 4]))
 
         s = ser.copy()
-        s.replace([1, 2, 3], inplace=True)
+        return_value = s.replace([1, 2, 3], inplace=True)
+        assert return_value is None
         tm.assert_series_equal(s, pd.Series([0, 0, 0, 0, 4]))
 
         # make sure things don't get corrupted when fillna call fails
@@ -134,7 +139,8 @@ class TestSeriesReplace:
             r"\(bfill\)\. Got crash_cymbal"
         )
         with pytest.raises(ValueError, match=msg):
-            s.replace([1, 2, 3], inplace=True, method="crash_cymbal")
+            return_value = s.replace([1, 2, 3], inplace=True, method="crash_cymbal")
+            assert return_value is None
         tm.assert_series_equal(s, ser)
 
     def test_replace_with_empty_list(self):
@@ -156,7 +162,8 @@ class TestSeriesReplace:
         def check_replace(to_rep, val, expected):
             sc = s.copy()
             r = s.replace(to_rep, val)
-            sc.replace(to_rep, val, inplace=True)
+            return_value = sc.replace(to_rep, val, inplace=True)
+            assert return_value is None
             tm.assert_series_equal(expected, r)
             tm.assert_series_equal(expected, sc)
 
@@ -211,8 +218,9 @@ class TestSeriesReplace:
 
     def test_replace_with_dict_with_bool_keys(self):
         s = pd.Series([True, False, True])
-        with pytest.raises(TypeError, match="Cannot compare types .+"):
-            s.replace({"asdf": "asdb", True: "yes"})
+        result = s.replace({"asdf": "asdb", True: "yes"})
+        expected = pd.Series(["yes", False, "yes"])
+        tm.assert_series_equal(result, expected)
 
     def test_replace2(self):
         N = 100
@@ -242,7 +250,8 @@ class TestSeriesReplace:
         tm.assert_series_equal(rs, rs2)
 
         # replace inplace
-        ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
+        return_value = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
+        assert return_value is None
         assert (ser[:5] == -1).all()
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
@@ -325,11 +334,13 @@ class TestSeriesReplace:
         tm.assert_series_equal(expected, result)
         assert c[2] != "foo"  # ensure non-inplace call does not alter original
 
-        c.replace(c[2], "foo", inplace=True)
+        return_value = c.replace(c[2], "foo", inplace=True)
+        assert return_value is None
         tm.assert_series_equal(expected, c)
 
         first_value = c[0]
-        c.replace(c[1], c[0], inplace=True)
+        return_value = c.replace(c[1], c[0], inplace=True)
+        assert return_value is None
         assert c[0] == c[1] == first_value  # test replacing with existing value
 
     def test_replace_with_no_overflowerror(self):
@@ -387,6 +398,29 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match=msg):
             series.replace(lambda x: x.strip())
 
+    @pytest.mark.parametrize("frame", [False, True])
+    def test_replace_nonbool_regex(self, frame):
+        obj = pd.Series(["a", "b", "c "])
+        if frame:
+            obj = obj.to_frame()
+
+        msg = "'to_replace' must be 'None' if 'regex' is not a bool"
+        with pytest.raises(ValueError, match=msg):
+            obj.replace(to_replace=["a"], regex="foo")
+
+    @pytest.mark.parametrize("frame", [False, True])
+    def test_replace_empty_copy(self, frame):
+        obj = pd.Series([], dtype=np.float64)
+        if frame:
+            obj = obj.to_frame()
+
+        res = obj.replace(4, 5, inplace=True)
+        assert res is None
+
+        res = obj.replace(4, 5, inplace=False)
+        tm.assert_equal(res, obj)
+        assert res is not obj
+
     def test_replace_only_one_dictlike_arg(self):
         # GH#33340
 
@@ -402,3 +436,16 @@ class TestSeriesReplace:
         msg = "Series.replace cannot use dict-value and non-None to_replace"
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
+
+    def test_replace_extension_other(self):
+        # https://github.com/pandas-dev/pandas/issues/34530
+        ser = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
+        ser.replace("", "")  # no exception
+
+    def test_replace_with_compiled_regex(self):
+        # https://github.com/pandas-dev/pandas/issues/35680
+        s = pd.Series(["a", "b", "c"])
+        regex = re.compile("^a$")
+        result = s.replace({regex: "z"}, regex=True)
+        expected = pd.Series(["z", "b", "c"])
+        tm.assert_series_equal(result, expected)

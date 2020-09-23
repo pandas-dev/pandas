@@ -2,9 +2,10 @@ from typing import Type, Union
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas._libs import OutOfBoundsDatetime
-from pandas.compat.numpy import _np_version_under1p18
+from pandas.compat.numpy import np_version_under1p18
 
 import pandas as pd
 import pandas._testing as tm
@@ -204,7 +205,8 @@ class SharedTests:
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
 
-        with pytest.raises(TypeError, match="cannot perform"):
+        msg = f"'{type(arr).__name__}' does not implement reduction 'not a method'"
+        with pytest.raises(TypeError, match=msg):
             arr._reduce("not a method")
 
     @pytest.mark.parametrize("method", ["pad", "backfill"])
@@ -241,10 +243,56 @@ class SharedTests:
         expected = np.array([2, 3], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-        # Following numpy convention, NaT goes at the beginning
-        #  (unlike NaN which goes at the end)
+        # GH#29884 match numpy convention on whether NaT goes
+        #  at the end or the beginning
         result = arr.searchsorted(pd.NaT)
-        assert result == 0
+        if np_version_under1p18:
+            # Following numpy convention, NaT goes at the beginning
+            #  (unlike NaN which goes at the end)
+            assert result == 0
+        else:
+            assert result == 10
+
+    @pytest.mark.parametrize("box", [None, "index", "series"])
+    def test_searchsorted_castable_strings(self, arr1d, box):
+        if isinstance(arr1d, DatetimeArray):
+            tz = arr1d.tz
+            if (
+                tz is not None
+                and tz is not pytz.UTC
+                and not isinstance(tz, pytz._FixedOffset)
+            ):
+                # If we have e.g. tzutc(), when we cast to string and parse
+                #  back we get pytz.UTC, and then consider them different timezones
+                #  so incorrectly raise.
+                pytest.xfail(reason="timezone comparisons inconsistent")
+
+        arr = arr1d
+        if box is None:
+            pass
+        elif box == "index":
+            # Test the equivalent Index.searchsorted method while we're here
+            arr = self.index_cls(arr)
+        else:
+            # Test the equivalent Series.searchsorted method while we're here
+            arr = pd.Series(arr)
+
+        # scalar
+        result = arr.searchsorted(str(arr[1]))
+        assert result == 1
+
+        result = arr.searchsorted(str(arr[2]), side="right")
+        assert result == 3
+
+        result = arr.searchsorted([str(x) for x in arr[1:3]])
+        expected = np.array([1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            arr.searchsorted("foo")
+
+        with pytest.raises(TypeError):
+            arr.searchsorted([str(arr[1]), "baz"])
 
     def test_getitem_2d(self, arr1d):
         # 2d slicing on a 1D array
@@ -277,15 +325,35 @@ class SharedTests:
         expected[:2] = expected[-2:]
         tm.assert_numpy_array_equal(arr.asi8, expected)
 
-    def test_setitem_str_array(self, arr1d):
-        if isinstance(arr1d, DatetimeArray) and arr1d.tz is not None:
-            pytest.xfail(reason="timezone comparisons inconsistent")
+    def test_setitem_strs(self, arr1d):
+        # Check that we parse strs in both scalar and listlike
+        if isinstance(arr1d, DatetimeArray):
+            tz = arr1d.tz
+            if (
+                tz is not None
+                and tz is not pytz.UTC
+                and not isinstance(tz, pytz._FixedOffset)
+            ):
+                # If we have e.g. tzutc(), when we cast to string and parse
+                #  back we get pytz.UTC, and then consider them different timezones
+                #  so incorrectly raise.
+                pytest.xfail(reason="timezone comparisons inconsistent")
+
+        # Setting list-like of strs
         expected = arr1d.copy()
         expected[[0, 1]] = arr1d[-2:]
 
-        arr1d[:2] = [str(x) for x in arr1d[-2:]]
+        result = arr1d.copy()
+        result[:2] = [str(x) for x in arr1d[-2:]]
+        tm.assert_equal(result, expected)
 
-        tm.assert_equal(arr1d, expected)
+        # Same thing but now for just a scalar str
+        expected = arr1d.copy()
+        expected[0] = arr1d[-1]
+
+        result = arr1d.copy()
+        result[0] = str(arr1d[-1])
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_setitem_categorical(self, arr1d, as_index):
@@ -311,6 +379,16 @@ class SharedTests:
 
         with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
             arr[0] = object()
+
+        msg = "cannot set using a list-like indexer with a different length"
+        with pytest.raises(ValueError, match=msg):
+            # GH#36339
+            arr[[]] = [arr[1]]
+
+        msg = "cannot set using a slice indexer with a different length than"
+        with pytest.raises(ValueError, match=msg):
+            # GH#36339
+            arr[1:1] = arr[:3]
 
     @pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
     def test_setitem_numeric_raises(self, arr1d, box):
@@ -511,8 +589,13 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = DatetimeArray(dti)
 
-        expected = dti.to_perioddelta(freq=freqstr)
-        result = arr.to_perioddelta(freq=freqstr)
+        with tm.assert_produces_warning(FutureWarning):
+            # Deprecation GH#34853
+            expected = dti.to_perioddelta(freq=freqstr)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # stacklevel is chosen to be "correct" for DatetimeIndex, not
+            #  DatetimeArray
+            result = arr.to_perioddelta(freq=freqstr)
         assert isinstance(result, TimedeltaArray)
 
         # placeholder until these become actual EA subclasses and we can use
@@ -546,6 +629,9 @@ class TestDatetimeArray(SharedTests):
 
     @pytest.mark.parametrize("propname", pd.DatetimeIndex._field_ops)
     def test_int_properties(self, datetime_index, propname):
+        if propname in ["week", "weekofyear"]:
+            # GH#33595 Deprecate week and weekofyear
+            return
         dti = datetime_index
         arr = DatetimeArray(dti)
 
@@ -947,7 +1033,7 @@ def test_invalid_nat_setitem_array(array, non_casting_nats):
     ],
 )
 def test_to_numpy_extra(array):
-    if _np_version_under1p18:
+    if np_version_under1p18:
         # np.isnan(NaT) raises, so use pandas'
         isnan = pd.isna
     else:
