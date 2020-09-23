@@ -64,10 +64,11 @@ class CSSToExcelConverter:
     #     without monkey-patching.
 
     def __init__(self, inherited: Optional[str] = None):
+        self.inherited: Optional[Dict[str, str]]
         if inherited is not None:
-            inherited = self.compute_css(inherited)
-
-        self.inherited = inherited
+            self.inherited = self.compute_css(inherited)
+        else:
+            self.inherited = None
 
     compute_css = CSSResolver()
 

@@ -3,7 +3,7 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 
 import re
-from typing import Dict, Mapping, Optional
+from typing import Dict, Optional
 import warnings
 
 
@@ -37,8 +37,8 @@ class CSSResolver:
     def __call__(
         self,
         declarations_str: str,
-        inherited: Optional[Mapping[str, str]] = None,
-    ):
+        inherited: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, str]:
         """
         The given declarations to atomic properties.
 
@@ -79,6 +79,7 @@ class CSSResolver:
         props = dict(self.atomize(self.parse(declarations_str)))
         if inherited is None:
             inherited = {}
+        assert inherited is not None
 
         props = self._update_initial(props, inherited)
         props = self._update_font_size(props, inherited)
@@ -86,15 +87,15 @@ class CSSResolver:
 
     def _update_initial(
         self,
-        props: Dict[str, Optional[str]],
-        inherited: Mapping[str, str],
-    ) -> Dict[str, Optional[str]]:
+        props: Dict[str, str],
+        inherited: Dict[str, str],
+    ) -> Dict[str, str]:
         # 1. resolve inherited, initial
         for prop, val in inherited.items():
             if prop not in props:
                 props[prop] = val
 
-        for prop, val in list(props.items()):
+        for prop, val in props.copy().items():
             if val == "inherit":
                 val = inherited.get(prop, "initial")
 
@@ -107,9 +108,9 @@ class CSSResolver:
 
     def _update_font_size(
         self,
-        props: Dict[str, Optional[str]],
-        inherited: Mapping[str, str],
-    ) -> Dict[str, Optional[str]]:
+        props: Dict[str, str],
+        inherited: Dict[str, str],
+    ) -> Dict[str, str]:
         # 2. resolve relative font size
         if props.get("font-size"):
             props["font-size"] = self.size_to_pt(
@@ -119,17 +120,17 @@ class CSSResolver:
             )
         return props
 
-    def _get_font_size(self, props) -> Optional[float]:
+    def _get_font_size(self, props: Dict[str, str]) -> Optional[float]:
         if props.get("font-size"):
             font_size_string = props["font-size"]
             return self._get_float_font_size_from_pt(font_size_string)
         return None
 
-    def _get_float_font_size_from_pt(self, font_size_string):
+    def _get_float_font_size_from_pt(self, font_size_string: str) -> float:
         assert font_size_string.endswith("pt")
         return float(font_size_string.rstrip("pt"))
 
-    def _update_other_units(self, props):
+    def _update_other_units(self, props: Dict[str, str]) -> Dict[str, str]:
         font_size = self._get_font_size(props)
         # 3. TODO: resolve other font-relative units
         for side in self.SIDES:
