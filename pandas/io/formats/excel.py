@@ -201,7 +201,7 @@ class CSSToExcelConverter:
             for side in ["top", "right", "bottom", "left"]
         }
 
-    def _border_style(self, style: Optional[str], width):
+    def _border_style(self, style: Optional[str], width: Optional[str]):
         # convert styles and widths to openxml, one of:
         #       'dashDot'
         #       'dashDotDot'
@@ -221,17 +221,9 @@ class CSSToExcelConverter:
         if style == "none" or style == "hidden":
             return None
 
-        if width is None:
-            width = "2pt"
-        width = float(width[:-2])
-        if width < 1e-5:
+        width_name = self._get_width_name(width)
+        if width_name is None:
             return None
-        elif width < 1.3:
-            width_name = "thin"
-        elif width < 2.8:
-            width_name = "medium"
-        else:
-            width_name = "thick"
 
         if style in (None, "groove", "ridge", "inset", "outset"):
             # not handled
@@ -249,6 +241,21 @@ class CSSToExcelConverter:
             if width_name in ("hair", "thin"):
                 return "dashed"
             return "mediumDashed"
+
+    def _get_width_name(self, width_input: Optional[str]) -> Optional[str]:
+        width = self._width_to_float(width_input)
+        if width < 1e-5:
+            return None
+        elif width < 1.3:
+            return "thin"
+        elif width < 2.8:
+            return "medium"
+        return "thick"
+
+    def _width_to_float(self, width: Optional[str]) -> float:
+        if width is None:
+            width = "2pt"
+        return float(width[:-2])
 
     def build_fill(self, props: Dict[str, str]):
         # TODO: perhaps allow for special properties
