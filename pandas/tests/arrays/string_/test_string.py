@@ -6,8 +6,8 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import is_string_dtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
 
 import pandas as pd
 import pandas._testing as tm
