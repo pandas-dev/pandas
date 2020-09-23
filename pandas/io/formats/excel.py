@@ -265,25 +265,24 @@ class CSSToExcelConverter:
     def build_number_format(self, props: Dict) -> Dict[str, Optional[str]]:
         return {"format_code": props.get("number-format")}
 
-    def build_font(self, props) -> Dict[str, Optional[Union[bool, int, float, str]]]:
+    def build_font(
+        self, props: Mapping[str, str]
+    ) -> Dict[str, Optional[Union[bool, int, float, str]]]:
         font_names = self._get_font_names(props)
         decoration = self._get_decoration(props)
-
         return {
             "name": font_names[0] if font_names else None,
             "family": self._select_font_family(font_names),
             "size": self._get_font_size(props),
-            "bold": self.BOLD_MAP.get(props.get("font-weight")),
-            "italic": self.ITALIC_MAP.get(props.get("font-style")),
+            # Ignored mypy errors because of changed get.
+            # Link to mypy issue: https://github.com/python/mypy/issues/9430
+            "bold": self._get_is_bold(props),
+            "italic": self._get_is_italic(props),
             "underline": ("single" if "underline" in decoration else None),
             "strike": ("line-through" in decoration) or None,
             "color": self.color_to_excel(props.get("color")),
             # shadow if nonzero digit before shadow color
-            "shadow": (
-                bool(re.search("^[^#(]*[1-9]", props["text-shadow"]))
-                if "text-shadow" in props
-                else None
-            ),
+            "shadow": self._get_shadow(props),
             # FIXME: dont leave commented-out
             # 'vertAlign':,
             # 'charset': ,
@@ -292,12 +291,34 @@ class CSSToExcelConverter:
             # 'condense': ,
         }
 
+    def _get_is_bold(self, props: Mapping[str, str]) -> Optional[bool]:
+        weight = props.get("font-weight")
+        if weight:
+            return self.BOLD_MAP.get(weight)
+        return None
+
+    def _get_is_italic(self, props: Mapping[str, str]) -> Optional[bool]:
+        font_style = props.get("font-style")
+        if font_style:
+            return self.ITALIC_MAP.get(font_style)
+        return None
+
     def _get_decoration(self, props: Mapping[str, str]) -> Sequence[str]:
         decoration = props.get("text-decoration")
         if decoration is not None:
             return decoration.split()
         else:
             return ()
+
+    def _get_underline(self, decoration: Sequence[str]) -> Optional[str]:
+        if "underline" in decoration:
+            return "single"
+        return None
+
+    def _get_shadow(self, props: Mapping[str, str]) -> Optional[bool]:
+        if "text-shadow" in props:
+            return bool(re.search("^[^#(]*[1-9]", props["text-shadow"]))
+        return None
 
     def _get_font_names(self, props: Mapping[str, str]) -> Sequence[str]:
         font_names_tmp = re.findall(
