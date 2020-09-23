@@ -80,3 +80,21 @@ class TestSeriesIsIn:
 
         result = s.isin(empty)
         tm.assert_series_equal(expected, result)
+
+    @pytest.mark.parametrize(
+        "values, in_list, expected",
+        [
+            ([""], ["", pd.Timedelta(0)], [True]),
+            (["", pd.Timedelta(0)], [""], [True, False]),
+            ([""], ["", pd.to_datetime("2020-01-01")], [True]),
+            (["", pd.to_datetime("2020-01-01")], [""], [True, False]),
+        ],
+    )
+    def test_empty_string_category(self, values, in_list, expected):
+        # Issue #36550
+        # Mixed empty string with datetimelike
+        s = pd.Series(values)
+        pd.testing.assert_series_equal(
+            s.isin(in_list),
+            pd.Series(expected),
+        )

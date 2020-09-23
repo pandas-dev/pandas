@@ -552,6 +552,10 @@ class TestTimestampConstructors:
         assert result == expected_stdlib
         assert isinstance(result, Timestamp)
 
+    def test_constructior_empty_string(self):
+        with pytest.raises(ValueError):
+            Timestamp("")
+
 
 def test_constructor_ambigous_dst():
     # GH 24329

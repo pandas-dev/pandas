@@ -1090,6 +1090,16 @@ class TestToDatetime:
         result = to_datetime(dates)
         assert result.tz == fixed_off
 
+    def test_to_datetime_empty_string():
+        with pytest.raises(ValueError):
+            pd.to_datetime("", errors="raise")
+
+        result = pd.to_datetime("", errors="ignore")
+        assert result == ""
+
+        result = pd.to_datetime("", errors="coerce")
+        assert result is pd.NaT
+
 
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("cache", [True, False])

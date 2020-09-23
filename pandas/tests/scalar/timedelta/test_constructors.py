@@ -131,6 +131,12 @@ def test_construction():
         Timedelta("foo bar")
 
 
+def test_construction_empty_string():
+    # Issue #36550, empty string
+    with pytest.raises(ValueError):
+        Timedelta("")
+
+
 @pytest.mark.parametrize(
     "item",
     list(
