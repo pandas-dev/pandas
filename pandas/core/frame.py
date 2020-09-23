@@ -4093,9 +4093,10 @@ class DataFrame(NDFrame):
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a
         MultiIndex, labels on different levels can be removed by specifying
-        the level. In case of a MultiIndex either a level must be defined or
-        the labels must be a list of tuples of the same length as the number
-        of levels in the MultiIndex.
+        the level. The now-unused levels remain in the
+        MultiIndex._levels attribute. In case of a MultiIndex either a level
+        must be defined or the labels must be a list of tuples of the same
+        length as the number of levels in the MultiIndex.
 
         Parameters
         ----------
