@@ -264,7 +264,8 @@ class CSSToExcelConverter:
     def _width_to_float(self, width: Optional[str]) -> float:
         if width is None:
             width = "2pt"
-        return float(width[:-2])
+        assert width.endswith("pt")
+        return float(width.rstrip("pt"))
 
     def build_fill(self, props: Mapping[str, str]):
         # TODO: perhaps allow for special properties
