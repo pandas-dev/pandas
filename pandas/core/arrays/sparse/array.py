@@ -677,7 +677,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             a = empty
             b = arr[:-periods]
         else:
-            a = arr[abs(periods) :]
+            a = arr[abs(periods):]
             b = empty
         return arr._concat_same_type([a, b])
 
@@ -1515,7 +1515,7 @@ SparseArray._add_comparison_ops()
 SparseArray._add_unary_ops()
 
 
-def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy=False):
+def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None):
     """
     Convert ndarray to sparse format
 
