@@ -51,6 +51,12 @@ def test_transform_listlike(string_series, ops, names):
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("ops", [[], np.array([])])
+def test_transform_empty_listlike(string_series, ops):
+    with pytest.raises(ValueError, match="no results"):
+        string_series.transform(ops)
+
+
 @pytest.mark.parametrize("box", [dict, Series])
 def test_transform_dictlike(string_series, box):
     # GH 35964
@@ -59,6 +65,22 @@ def test_transform_dictlike(string_series, box):
     expected.columns = ["foo", "bar"]
     result = string_series.transform(box({"foo": np.sqrt, "bar": np.abs}))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {},
+        {"A": []},
+        {"A": [], "B": ["cumsum"]},
+        {"A": ["cumsum"], "B": []},
+        {"A": [], "B": "cumsum"},
+        {"A": "cumsum", "B": []},
+    ],
+)
+def test_transform_empty_dictlike(string_series, ops):
+    with pytest.raises(ValueError, match="no results"):
+        string_series.transform(ops)
 
 
 def test_transform_udf(axis, string_series):

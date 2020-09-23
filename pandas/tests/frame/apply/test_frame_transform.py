@@ -62,6 +62,12 @@ def test_transform_listlike(axis, float_frame, ops, names):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("ops", [[], np.array([])])
+def test_transform_empty_listlike(float_frame, ops):
+    with pytest.raises(ValueError, match="no results"):
+        float_frame.transform(ops)
+
+
 @pytest.mark.parametrize("box", [dict, Series])
 def test_transform_dictlike(axis, float_frame, box):
     # GH 35964
@@ -73,6 +79,22 @@ def test_transform_dictlike(axis, float_frame, box):
         expected = float_frame.iloc[[0]].transform(np.abs)
     result = float_frame.transform(box({e: np.abs}), axis=axis)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {},
+        {"A": []},
+        {"A": [], "B": "cumsum"},
+        {"A": "cumsum", "B": []},
+        {"A": [], "B": ["cumsum"]},
+        {"A": ["cumsum"], "B": []},
+    ],
+)
+def test_transform_empty_dictlike(float_frame, ops):
+    with pytest.raises(ValueError, match="no results"):
+        float_frame.transform(ops)
 
 
 @pytest.mark.parametrize("use_apply", [True, False])

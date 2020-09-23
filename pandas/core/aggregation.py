@@ -481,14 +481,17 @@ def transform_dict_like(
         # GH 15931 - deprecation of renaming keys
         raise SpecificationError("nested renamer is not supported")
 
+    if len(func) == 0:
+        raise ValueError("no results")
+
     results: Dict[Label, FrameOrSeriesUnion] = {}
     for name, how in func.items():
         colg = obj._gotitem(name, ndim=1)
         try:
             results[name] = transform(colg, how, 0, *args, **kwargs)
-        except Exception as e:
-            if str(e) == "Function did not transform":
-                raise e
+        except Exception as err:
+            if str(err) == "Function did not transform" or str(err) == "no results":
+                raise err
 
     # combine results
     if len(results) == 0:
