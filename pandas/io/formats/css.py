@@ -12,8 +12,6 @@ class CSSWarning(UserWarning):
     This CSS syntax cannot currently be parsed.
     """
 
-    pass
-
 
 def _side_expander(prop_fmt: str):
     def expand(self, prop, value: str):
