@@ -29,10 +29,7 @@ from pandas.core.dtypes.missing import notna
 from pandas.core.indexes.api import Index
 
 from pandas.io.common import get_filepath_or_buffer, get_handle
-from pandas.io.formats.format import (
-    DataFrameFormatter,
-    FloatFormatType,
-)
+from pandas.io.formats.format import DataFrameFormatter, FloatFormatType
 
 
 class CSVFormatter:
