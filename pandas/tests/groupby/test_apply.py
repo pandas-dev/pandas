@@ -643,7 +643,7 @@ def test_apply_numeric_coercion_when_datetime():
         {
             "Key": ["B", "B", "A", "A"],
             "State": ["step1", "step2", "step1", "step2"],
-            "oTime": ["", "2016-09-19 05:24:33", "", "2016-09-19 23:59:04"],
+            "oTime": ["NaT", "2016-09-19 05:24:33", "NaT", "2016-09-19 23:59:04"],
             "Machine": ["23", "36L", "36R", "36R"],
         }
     )
