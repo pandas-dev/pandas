@@ -1383,7 +1383,6 @@ class RollingAndExpandingMixin(RollingMixin):
                 args, kwargs, raw, offset, func
             )
             center = self.center
-            # center = False
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
@@ -1404,11 +1403,11 @@ class RollingAndExpandingMixin(RollingMixin):
         from pandas import Series
 
         window_func = partial(
-            self._get_roll_func("roll_generic"),
+            self._get_roll_func("roll_apply"),
+            offset=offset,
             args=args,
             kwargs=kwargs,
             raw=raw,
-            offset=offset,
             func=func,
         )
 

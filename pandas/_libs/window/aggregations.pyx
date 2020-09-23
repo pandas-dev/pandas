@@ -1059,11 +1059,11 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
     return output
 
 
-def roll_generic(object obj,
-                 ndarray[int64_t] start, ndarray[int64_t] end,
-                 int64_t minp,
-                 int offset, object func, bint raw,
-                 object args, object kwargs):
+def roll_apply(object obj,
+               ndarray[int64_t] start, ndarray[int64_t] end,
+               int64_t minp,
+               int offset, object func, bint raw,
+               tuple args, dict kwargs):
     cdef:
         ndarray[float64_t] output, counts
         ndarray[float64_t, cast=True] arr
