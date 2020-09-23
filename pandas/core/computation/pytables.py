@@ -132,6 +132,8 @@ class BinOp(ops.BinOp):
             res = pr(left.value, right.prune(klass))
         elif not (is_term(left) or is_term(right)):
             res = pr(left.prune(klass), right.prune(klass))
+        else:
+            res = None
 
         return res
 
@@ -445,7 +447,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
             # try to get the value to see if we are another expression
             try:
                 resolved = resolved.value
-            except (AttributeError):
+            except AttributeError:
                 pass
 
             try:

@@ -26,7 +26,7 @@ def pyarrow_array_to_numpy_and_mask(arr, dtype):
         a boolean mask (validity mask, so False means missing)
     """
     buflist = arr.buffers()
-    data = np.frombuffer(buflist[1], dtype=dtype)[arr.offset : arr.offset + len(arr)]
+    data = np.frombuffer(buflist[1], dtype=dtype)[arr.offset: arr.offset + len(arr)]
     bitmask = buflist[0]
     if bitmask is not None:
         mask = pyarrow.BooleanArray.from_buffers(

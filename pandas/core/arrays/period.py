@@ -646,7 +646,7 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
 
         new_values = np.array([self.freq.base * x for x in new_values])
         if self._hasnans or other._hasnans:
-            mask = (self._isnan) | (other._isnan)
+            mask = self._isnan | other._isnan
             new_values[mask] = NaT
         return new_values
 

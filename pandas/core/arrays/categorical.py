@@ -1767,7 +1767,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
         """
         num = max_vals // 2
         head = self[:num]._get_repr(length=False, footer=False)
-        tail = self[-(max_vals - num) :]._get_repr(length=False, footer=False)
+        tail = self[-(max_vals - num):]._get_repr(length=False, footer=False)
 
         result = f"{head[:-1]}, ..., {tail[1:]}"
         if footer:

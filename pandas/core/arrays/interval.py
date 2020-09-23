@@ -436,7 +436,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         )
     )
-    def from_tuples(cls, data, closed="right", copy=False, dtype=None):
+    def from_tuples(cls, data, closed="right", dtype=None):
         if len(data):
             left, right = [], []
         else:
@@ -758,7 +758,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             a = empty
             b = self[:-periods]
         else:
-            a = self[abs(periods) :]
+            a = self[abs(periods):]
             b = empty
         return self._concat_same_type([a, b])
 
