@@ -1828,14 +1828,14 @@ class _Tooltips:
 
         mask = (self.tt_data.isna()) | (self.tt_data.eq(""))  # empty string = no ttip
         self.table_styles = [
-            d
+            style
             for sublist in [
                 _pseudo_css(i, j, str(self.tt_data.iloc[i, j]))
                 for i, rn in enumerate(self.tt_data.index)
                 for j, cn in enumerate(self.tt_data.columns)
                 if not mask.iloc[i, j]
             ]
-            for d in sublist
+            for style in sublist
         ]
 
         if self.table_styles:
