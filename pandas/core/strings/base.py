@@ -10,8 +10,8 @@ class BaseStringArrayMethods(abc.ABC):
     """
     Base class for extension arrays implementing string methods.
 
-    This is our ExtensionArrays can override the implementation of
-    Series.str.<method>. We don't currenlty expect this to work with
+    This is where our ExtensionArrays can override the implementation of
+    Series.str.<method>. We don't expect this to work with
     3rd-party extension arrays.
 
     * User calls Series.str.<method>
