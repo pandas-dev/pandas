@@ -2,7 +2,7 @@
 # Special build for python3.9 until numpy puts its own wheels up
 
 pip install --no-deps -U pip wheel setuptools
-pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis
+pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-rerunfailures
 
 python setup.py build_ext -inplace
 python -m pip install --no-build-isolation -e .
