@@ -1,7 +1,14 @@
 codecov:
   branch: master
 
-comment: false
+comment:
+  layout: "diff"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+  branches:
+    - "master"
 
 coverage:
   status:
