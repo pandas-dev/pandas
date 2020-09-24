@@ -168,10 +168,3 @@ def test_roll_qtr_day_mod_equal(other, month, exp_dict, n, day_opt):
 @pytest.mark.parametrize("compare", [29, 1, 31])
 def test_roll_convention(n, expected, compare):
     assert liboffsets.roll_convention(29, n, compare) == expected[compare]
-
-    
-def test_default_value_for_dateoffset_is_a_calender_day():
-    # 36516
-    ts = Timestamp('2011-3-27 00:00:00', tz='Europe/Helsinki')
-    expected = ts + liboffsets.DateOffset(days=1)
-    assert ts + liboffsets.DateOffset() == expected
