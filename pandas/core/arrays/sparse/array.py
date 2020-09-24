@@ -677,7 +677,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             a = empty
             b = arr[:-periods]
         else:
-            a = arr[abs(periods):]
+            a = arr[abs(periods) :]
             b = empty
         return arr._concat_same_type([a, b])
 

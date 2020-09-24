@@ -758,7 +758,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             a = empty
             b = self[:-periods]
         else:
-            a = self[abs(periods):]
+            a = self[abs(periods) :]
             b = empty
         return self._concat_same_type([a, b])
 
