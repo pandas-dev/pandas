@@ -90,6 +90,18 @@ class IsInForObjects:
         self.s_long_floats.isin(self.vals_long_floats)
 
 
+class IsInLongSeries(object):
+    params = [['int64', 'int32', 'float64', 'float32'], [1, 2, 5, 10, 1000, 10**5]]
+    param_names = ['dtype', 'M']
+
+    def setup(self, dtype, M):
+        self.s = Series(np.arange(10**7)).astype(dtype)
+        self.values = np.arange(M).astype(dtype)
+
+    def time_isin(self, dtypes, M):
+        self.s.isin(self.values)
+
+
 class NSort:
 
     params = ["first", "last", "all"]
