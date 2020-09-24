@@ -62,12 +62,13 @@ class CSSToExcelConverter:
     #     and __call__ make use of instance attributes.  We leave them as
     #     instancemethods so that users can easily experiment with extensions
     #     without monkey-patching.
+    inherited: Optional[Dict[str, str]]
 
     def __init__(self, inherited: Optional[str] = None):
         if inherited is not None:
-            inherited = self.compute_css(inherited)
-
-        self.inherited = inherited
+            self.inherited = self.compute_css(inherited)
+        else:
+            self.inherited = None
 
     compute_css = CSSResolver()
 
