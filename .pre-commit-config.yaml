@@ -38,4 +38,3 @@ repos:
         language: system
         entry: python -m scripts.generate_pip_deps_from_conda
         pass_filenames: false
-        args: ["--compare"]
