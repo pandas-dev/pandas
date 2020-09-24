@@ -524,8 +524,8 @@ class Grouping:
                     raise ValueError(f"Grouper for '{t}' not 1-dimensional")
                 self.grouper = self.index.map(self.grouper)
 
-                if isinstance(grouper, MultiIndex):
-                    self.grouper = grouper._values
+                if isinstance(self.grouper, MultiIndex):
+                    self.grouper = self.grouper._values
 
                 if not (
                     hasattr(self.grouper, "__len__")
