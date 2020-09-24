@@ -162,6 +162,13 @@ def test_groupby_dropna_series_by(dropna, expected):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dropna", (False, True))
+def test_Grouper_dropna_propagation(dropna):
+    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
+    gb = df.groupby("A", dropna=dropna)
+    assert gb.grouper.dropna is dropna
+
+
 @pytest.mark.parametrize(
     "dropna,df_expected,s_expected",
     [
