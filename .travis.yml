@@ -7,6 +7,9 @@ addons:
     packages:
       - xvfb
 
+services:
+  - xvfb
+
 # To turn off cached cython files and compiler cache
 # set NOCACHE-true
 # To delete caches go to https://travis-ci.org/OWNER/REPOSITORY/caches or run
@@ -36,8 +39,6 @@ matrix:
       python: 3.9-dev
       env:
         - JOB="3.9-dev" PATTERN="(not slow and not network and not clipboard)"
-      services:
-        - xvfb
 
     - env:
         - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
@@ -47,7 +48,7 @@ matrix:
 
     - arch: arm64
       env:
-        - JOB="3.7, arm64" PYTEST_WORKERS=8 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
+        - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
 
     - env:
         - JOB="3.7, locale" ENV_FILE="ci/deps/travis-37-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
