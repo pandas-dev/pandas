@@ -8,6 +8,7 @@ from numpy cimport import_array
 import_array()
 
 from pandas._libs.util cimport is_array
+from pandas._libs.lib import is_complex
 
 from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.missing import array_equivalent, isna
@@ -32,19 +33,8 @@ cdef NUMERIC_TYPES = (
 )
 
 
-cdef COMPLEX_NUMERIC_TYPES = (
-    complex,
-    np.complex64,
-    np.complex128,
-)
-
-
 cdef bint is_comparable_as_number(obj):
     return isinstance(obj, NUMERIC_TYPES)
-
-
-cdef bint is_comparable_as_complex_number(obj):
-    return isinstance(obj, COMPLEX_NUMERIC_TYPES)
 
 
 cdef bint isiterable(obj):
@@ -222,7 +212,7 @@ cpdef assert_almost_equal(a, b,
                            f"with rtol={rtol}, atol={atol}")
         return True
 
-    if is_comparable_as_complex_number(a) and is_comparable_as_complex_number(b):
+    if is_complex(a) and is_complex(b):
         if array_equivalent(a, b, strict_nan=True):
             # inf comparison
             return True
