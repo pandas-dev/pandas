@@ -130,7 +130,6 @@ class CSSResolver:
         props = dict(self.atomize(self.parse(declarations_str)))
         if inherited is None:
             inherited = {}
-        assert inherited is not None
 
         props = self._update_initial(props, inherited)
         props = self._update_font_size(props, inherited)
