@@ -264,10 +264,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             index = generate_regular_range(start, end, periods, freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype("i8")
-            if len(index) >= 2:
-                # Infer a frequency
-                td = Timedelta(index[1] - index[0])
-                freq = to_offset(td)
 
         if not left_closed:
             index = index[1:]
@@ -620,10 +616,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             if self.freq is not None:
                 # Note: freq gets division, not floor-division
                 freq = self.freq / other
-                if freq.nanos == 0 and self.freq.nanos != 0:
-                    # e.g. if self.freq is Nano(1) then dividing by 2
-                    #  rounds down to zero
-                    freq = None
             return type(self)(result.view("m8[ns]"), freq=freq)
 
         if not hasattr(other, "dtype"):

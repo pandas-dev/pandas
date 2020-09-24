@@ -841,9 +841,9 @@ def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input")
             raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
 
 
-def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
+def assert_attr_equal(attr, left, right, obj="Attributes"):
     """
-    Check attributes are equal. Both objects must have attribute.
+    checks attributes are equal. Both objects must have attribute.
 
     Parameters
     ----------
