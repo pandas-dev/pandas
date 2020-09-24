@@ -145,16 +145,17 @@ class CSSResolver:
             if prop not in props:
                 props[prop] = val
 
-        for prop, val in props.copy().items():
+        new_props = props.copy()
+        for prop, val in props.items():
             if val == "inherit":
                 val = inherited.get(prop, "initial")
 
             if val in ("initial", None):
                 # we do not define a complete initial stylesheet
-                del props[prop]
+                del new_props[prop]
             else:
-                props[prop] = val
-        return props
+                new_props[prop] = val
+        return new_props
 
     def _update_font_size(
         self,
