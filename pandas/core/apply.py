@@ -223,11 +223,13 @@ class FrameApply(metaclass=abc.ABCMeta):
 
             see https://github.com/numpy/numpy/issues/8352
             """
+
             def wrapper(*args, **kwargs):
                 result = func(*args, **kwargs)
                 if isinstance(result, str):
                     result = np.array(result, dtype=object)
                 return result
+
             return wrapper
 
         result = np.apply_along_axis(wrap_function(self.f), self.axis, self.values)
