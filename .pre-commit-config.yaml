@@ -34,4 +34,33 @@ repos:
     rev: v1.6.0
     hooks:
       - id: rst-backticks
-        exclude: (v0\..*|v1\.0\..*|v1\.1\.[012])
+        exclude: (?x)(
+          text\.rst|
+          timeseries\.rst|
+          visualization\.rst|
+          missing_data\.rst|
+          options\.rst|
+          reshaping\.rst|
+          scale\.rst|
+          merging\.rst|
+          cookbook\.rst|
+          enhancingperf\.rst|
+          groupby\.rst|
+          io\.rst|
+          overview\.rst|
+          panel\.rst|
+          plotting\.rst|
+          10min\.rst|
+          basics\.rst|
+          categorical\.rst|
+          contributing\.rst|
+          contributing_docstring\.rst|
+          extending\.rst|
+          ecosystem\.rst|
+          comparison_with_sql\.rst|
+          install\.rst|
+          calculate_statistics\.rst|
+          combine_dataframes\.rst|
+          v0\.|
+          v1\.0\.|
+          v1\.1\.[012])
