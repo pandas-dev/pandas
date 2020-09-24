@@ -17,7 +17,7 @@ dependencies:
   - bottleneck=1.2.*
   - lxml
   - matplotlib=2.2.2
-  - numpy=1.14.*
+  - numpy=1.15.4
   - openpyxl=2.5.7
   - python-dateutil
   - python-blosc
