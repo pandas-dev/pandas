@@ -319,8 +319,7 @@ cdef _determine_offset(kwds):
             # sub-daily offset - use timedelta (tz-aware)
             offset = timedelta(**kwds_no_nanos)
     else:
-        offset = relativedelta(**{'days':1})
-        use_relativedelta = True
+        offset = timedelta(1)
     return offset, use_relativedelta
 
 
