@@ -550,13 +550,9 @@ class _Window(ShallowMixin, SelectionMixin):
             if values.size == 0:
                 return values.copy()
 
-            offset = calculate_center_offset(window) if center else 0
-            additional_nans = np.array([np.nan] * offset)
-
             if not is_weighted:
 
                 def calc(x):
-                    x = np.concatenate((x, additional_nans))
                     if not isinstance(self.window, BaseIndexer):
                         min_periods = calculate_min_periods(
                             window, self.min_periods, len(x), require_min_periods, floor
@@ -580,6 +576,8 @@ class _Window(ShallowMixin, SelectionMixin):
             else:
 
                 def calc(x):
+                    offset = calculate_center_offset(window) if center else 0
+                    additional_nans = np.array([np.nan] * offset)
                     x = np.concatenate((x, additional_nans))
                     return func(x, window, self.min_periods)
 
@@ -593,7 +591,7 @@ class _Window(ShallowMixin, SelectionMixin):
             if use_numba_cache:
                 NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
 
-            if center:
+            if center and is_weighted:
                 result = self._center_window(result, window)
 
             return result
@@ -1371,25 +1369,19 @@ class RollingAndExpandingMixin(RollingMixin):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             apply_func = generate_numba_apply_func(args, kwargs, func, engine_kwargs)
-            center = self.center
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
-            # Cython apply functions handle center, so don't need to use
-            # _apply's center handling
-            window = self._get_window()
-            offset = calculate_center_offset(window) if self.center else 0
             apply_func = self._generate_cython_apply_func(
-                args, kwargs, raw, offset, func
+                args, kwargs, raw, func
             )
-            center = self.center
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
         # name=func & raw=raw for WindowGroupByMixin._apply
         return self._apply(
             apply_func,
-            center=center,
+            center=self.center,
             floor=0,
             name=func,
             use_numba_cache=maybe_use_numba(engine),
@@ -1399,12 +1391,11 @@ class RollingAndExpandingMixin(RollingMixin):
             kwargs=kwargs,
         )
 
-    def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
+    def _generate_cython_apply_func(self, args, kwargs, raw, func):
         from pandas import Series
 
         window_func = partial(
             self._get_roll_func("roll_apply"),
-            offset=offset,
             args=args,
             kwargs=kwargs,
             raw=raw,

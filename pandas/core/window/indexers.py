@@ -89,6 +89,17 @@ class FixedWindowIndexer(BaseIndexer):
         end_s = np.arange(self.window_size, dtype="int64") + 1
         end_e = start_e + self.window_size
         end = np.concatenate([end_s, end_e])[:num_values]
+
+        if center and self.window_size > 2:
+            offset = (self.window_size - 1) // 2
+            start_s_buffer = np.roll(start, -offset)[:-offset]
+            start_e_buffer = np.arange(start[-1] + 1, start[-1] + 1 + offset)
+            start = np.concatenate([start_s_buffer, start_e_buffer])
+
+            end_s_buffer = np.roll(end, -offset)[:-offset]
+            end_e_buffer = np.array([end[-1]] * offset)
+            end = np.concatenate([end_s_buffer, end_e_buffer])
+
         return start, end
 
 

@@ -1062,7 +1062,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
 def roll_apply(object obj,
                ndarray[int64_t] start, ndarray[int64_t] end,
                int64_t minp,
-               int offset, object func, bint raw,
+               object func, bint raw,
                tuple args, dict kwargs):
     cdef:
         ndarray[float64_t] output, counts
@@ -1082,9 +1082,6 @@ def roll_apply(object obj,
     counts = roll_sum(np.isfinite(arr).astype(float), start, end, minp)
 
     output = np.empty(N, dtype=float)
-
-    #if offset != 0:
-    #    raise ValueError("unable to roll_generic with a non-zero offset")
 
     for i in range(N):
 
