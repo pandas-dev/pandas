@@ -110,7 +110,7 @@ def max(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
 
 
 def mean(values: np.ndarray, mask: np.ndarray, skipna: bool = True):
-    if not values.size:
+    if not values.size or mask.all():
         return libmissing.NA
     _sum = _sumprod(np.sum, values=values, mask=mask, skipna=skipna)
     count = np.count_nonzero(~mask)
