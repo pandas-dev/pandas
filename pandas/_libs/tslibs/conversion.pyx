@@ -596,7 +596,9 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
         int out_local = 0, out_tzoffset = 0
         bint do_parse_datetime_string = False
 
-    if len(ts) == 0 or ts in nat_strings:
+    if len(ts) == 0:
+        raise ValueError("Empty string is not a valid timestamp")
+    elif ts in nat_strings:
         ts = NaT
     elif ts == 'now':
         # Issue 9000, we short-circuit rather than going
