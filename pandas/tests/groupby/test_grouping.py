@@ -125,9 +125,9 @@ class TestSelection:
         tm.assert_series_equal(result, expected)
 
     def test_indices_grouped_by_tuple_with_lambda(self):
-        df = pd.DataFrame({'Tuples': ((x, y)
-                                      for x in [0, 1]
-                                      for y in np.random.randint(3, 5, 5))})
+        df = pd.DataFrame(
+            {"Tuples": ((x, y) for x in [0, 1] for y in np.random.randint(3, 5, 5))}
+        )
         gb = df.groupby('Tuples')
         gb_lambda = df.groupby(lambda x: df.iloc[x, 0])
         expected = gb.indices
@@ -785,9 +785,9 @@ class TestGetGroup:
         tm.assert_frame_equal(result, expected)
 
     def test_get_group_grouped_by_tuple_with_lambda(self):
-        df = pd.DataFrame({'Tuples': ((x, y)
-                                      for x in [0, 1]
-                                      for y in np.random.randint(3, 5, 5))})
+        df = pd.DataFrame(
+            {"Tuples": ((x, y) for x in [0, 1] for y in np.random.randint(3, 5, 5))}
+        )
         gb = df.groupby('Tuples')
         gb_lambda = df.groupby(lambda x: df.iloc[x, 0])
         expected = gb.get_group(list(gb.groups.keys())[0])
