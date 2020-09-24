@@ -34,3 +34,4 @@ repos:
     rev: v1.6.0
     hooks:
       - id: rst-backticks
+        exclude: (v0\..*|v1\.0\..*|v1\.1\.[012])
