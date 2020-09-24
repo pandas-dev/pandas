@@ -564,10 +564,3 @@ def test_dt_subclass_add_timedelta(lh, rh):
     result = lh + rh
     expected = SubDatetime(2000, 1, 1, 1)
     assert result == expected
-
-
-def test_normalize_pre_epoch_dates():
-    # GH: 36294
-    result = Timestamp("1969-01-01 09:00:00").normalize()
-    expected = Timestamp("1969-01-01 00:00:00")
-    assert result == expected
