@@ -30,3 +30,7 @@ repos:
     hooks:
     -   id: pyupgrade
         args: [--py37-plus]
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.6.0
+    hooks:
+      - id: rst-backticks
