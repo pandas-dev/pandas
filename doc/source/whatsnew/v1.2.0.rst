@@ -379,7 +379,7 @@ Other
 - Fixed metadata propagation in the :class:`Series.dt` accessor (:issue:`28283`)
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
-- Bug in :meth:`pandas.core.construction.sanitize_array` in which passing a >1d array to the :class:`Series` constructor raises a bare ``Exception``. Now raises a ``ValueError`` (:issue:`35744`)
+- Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError``, from a bare ``Exception`` previously (:issue:`35744`)
 
 .. ---------------------------------------------------------------------------
 
