@@ -691,7 +691,7 @@ If index resolution is second, then the minute-accurate timestamp gives a
 If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``[]`` as well.
 
 .. ipython:: python
-   :okwarning:
+    :okwarning:
 
     dft_minute = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
                               index=series_minute.index)
