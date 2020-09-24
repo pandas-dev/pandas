@@ -213,6 +213,7 @@ Deprecations
 - Date parser functions :func:`~pandas.io.date_converters.parse_date_time`, :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields` and :func:`~pandas.io.date_converters.generic_parser` from ``pandas.io.date_converters`` are deprecated and will be removed in a future version; use :func:`to_datetime` instead (:issue:`35741`)
 - :meth:`DataFrame.lookup` is deprecated and will be removed in a future version, use :meth:`DataFrame.melt` and :meth:`DataFrame.loc` instead (:issue:`18682`)
 - The :meth:`Index.to_native_types` is deprecated. Use ``.astype(str)`` instead (:issue:`28867`)
+- Deprecated indexing :class:`DataFrame` rows with datetime-like strings ``df[string]``, use ``df.loc[string]`` instead (:issue:`36179`)
 
 .. ---------------------------------------------------------------------------
 
@@ -325,6 +326,7 @@ I/O
 - :meth:`to_picke` and :meth:`read_pickle` did not support compression for file-objects (:issue:`26237`, :issue:`29054`, and :issue:`29570`)
 - Bug in :func:`LongTableBuilder.middle_separator` was duplicating LaTeX longtable entires in the List of Tables of a LaTeX document (:issue:`34360`)
 - Bug in :meth:`read_csv` with `engine='python'` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
+- Removed ``private_key`` and ``verbose`` from :func:`read_gbq` as they are no longer supported in `pandas-gbq` (:issue:`34654` :issue:`30200`)
 
 Plotting
 ^^^^^^^^
@@ -372,6 +374,7 @@ ExtensionArray
 
 Other
 ^^^^^
+
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
 - Fixed metadata propagation in the :class:`Series.dt` accessor (:issue:`28283`)
