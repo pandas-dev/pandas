@@ -470,6 +470,9 @@ def transform_dict_like(
     """
     from pandas.core.reshape.concat import concat
 
+    if len(func) == 0:
+        raise ValueError("no results")
+
     if obj.ndim != 1:
         # Check for missing columns on a frame
         cols = sorted(set(func.keys()) - set(obj.columns))
@@ -480,9 +483,6 @@ def transform_dict_like(
     if any(is_dict_like(v) for _, v in func.items()):
         # GH 15931 - deprecation of renaming keys
         raise SpecificationError("nested renamer is not supported")
-
-    if len(func) == 0:
-        raise ValueError("no results")
 
     results: Dict[Label, FrameOrSeriesUnion] = {}
     for name, how in func.items():
