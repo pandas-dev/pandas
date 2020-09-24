@@ -2136,3 +2136,8 @@ class TestTimedelta64ArrayLikeArithmetic:
 
         with pytest.raises(TypeError, match=pattern):
             td1 ** scalar_td
+
+    def test_add_timestamp_to_timedelta(self):
+        # https://github.com/pandas-dev/pandas/issues/35897
+        result = Timestamp.now() + timedelta_range("0s", "1s", periods=31)
+        assert result.freq is None
