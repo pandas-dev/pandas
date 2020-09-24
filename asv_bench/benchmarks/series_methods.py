@@ -91,11 +91,11 @@ class IsInForObjects:
 
 
 class IsInLongSeries(object):
-    params = [['int64', 'int32', 'float64', 'float32'], [1, 2, 5, 10, 1000, 10**5]]
-    param_names = ['dtype', 'M']
+    params = [["int64", "int32", "float64", "float32"], [1, 2, 5, 10, 1000, 10 ** 5]]
+    param_names = ["dtype", "M"]
 
     def setup(self, dtype, M):
-        self.s = Series(np.arange(10**7)).astype(dtype)
+        self.s = Series(np.random.randint(0, M, 10 ** 7)).astype(dtype)
         self.values = np.arange(M).astype(dtype)
 
     def time_isin(self, dtypes, M):
