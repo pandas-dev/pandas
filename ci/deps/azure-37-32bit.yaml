@@ -9,6 +9,7 @@ dependencies:
   ### Cython 0.29.16 and pytest 5.0.1 for 32 bits are not available with conda, installing below with pip instead
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
+  - pytest-rerunfailures
   - pytest-azurepipelines
 
   # pandas dependencies
