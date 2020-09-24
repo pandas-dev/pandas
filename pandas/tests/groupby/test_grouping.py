@@ -125,6 +125,7 @@ class TestSelection:
         tm.assert_series_equal(result, expected)
 
     def test_indices_grouped_by_tuple_with_lambda(self):
+        # GH 36158
         df = pd.DataFrame(
             {"Tuples": ((x, y) for x in [0, 1] for y in np.random.randint(3, 5, 5))}
         )
@@ -785,6 +786,7 @@ class TestGetGroup:
         tm.assert_frame_equal(result, expected)
 
     def test_get_group_grouped_by_tuple_with_lambda(self):
+        # GH 36158
         df = pd.DataFrame(
             {"Tuples": ((x, y) for x in [0, 1] for y in np.random.randint(3, 5, 5))}
         )
