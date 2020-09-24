@@ -275,7 +275,7 @@ ExtensionArray
 
 Other
 ^^^^^
--
+- Bug in :meth:`pandas.core.construction.sanitize_array` in which passing a >1d array to the :class:`Series` constructor raises a bare ``Exception``. Now raises a ``ValueError`` (:issue:`35744`)
 -
 
 .. ---------------------------------------------------------------------------
