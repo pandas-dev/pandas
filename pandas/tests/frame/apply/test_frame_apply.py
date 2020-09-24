@@ -1561,3 +1561,11 @@ def test_apply_no_suffix_index():
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_raw_returns_string():
+    # https://github.com/pandas-dev/pandas/issues/35940
+    df = pd.DataFrame({"A": ["aa", "bbb"]})
+    result = df.apply(lambda x: x[0], axis=1, raw=True)
+    expected = pd.Series(["aa", "bbb"])
+    tm.assert_series_equal(result, expected)
