@@ -140,6 +140,8 @@ class StringMethods(NoNewAttributesMixin):
     dtype: object
     """
 
+    # Note: see the docstring in pandas.core.strings.__init__
+    # for an explanation of the implementation.
     # TODO: Dispatch all the methods
     # Currently the following are not dispatched to the array
     # * cat

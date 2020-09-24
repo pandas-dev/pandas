@@ -2316,6 +2316,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------------
     # String methods interface
     def _str_map(self, f, na_value=np.nan, dtype=np.dtype(object)):
+        # Optimization to apply the callable `f` to the categories once
+        # and rebuild the result by `take`ing from the result with the codes.
+        # Returns the same type as the object-dtype impelmentation though.
         from pandas.core.arrays import PandasArray
 
         categories = self.categories
