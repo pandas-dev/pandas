@@ -37,4 +37,5 @@ repos:
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
         language: system
         entry: python -m scripts.generate_pip_deps_from_conda
+        files: ^environment.yml$
         pass_filenames: false
