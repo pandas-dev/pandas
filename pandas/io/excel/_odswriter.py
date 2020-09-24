@@ -5,11 +5,11 @@ from typing import Any, DefaultDict, Dict, List, Optional, Tuple, Union
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import _validate_freeze_panes
+from pandas.io.excel._util import validate_freeze_panes
 from pandas.io.formats.excel import ExcelCell
 
 
-class _ODSWriter(ExcelWriter):
+class ODSWriter(ExcelWriter):
     engine = "odf"
     supported_extensions = (".ods",)
 
@@ -25,7 +25,7 @@ class _ODSWriter(ExcelWriter):
 
         super().__init__(path, mode=mode, **engine_kwargs)
 
-        self.book: OpenDocumentSpreadsheet = OpenDocumentSpreadsheet()
+        self.book = OpenDocumentSpreadsheet()
         self._style_dict: Dict[str, str] = {}
 
     def save(self) -> None:
@@ -42,7 +42,7 @@ class _ODSWriter(ExcelWriter):
         sheet_name: Optional[str] = None,
         startrow: int = 0,
         startcol: int = 0,
-        freeze_panes: Optional[List] = None,
+        freeze_panes: Optional[Tuple[int, int]] = None,
     ) -> None:
         """
         Write the frame cells using odf
@@ -59,7 +59,7 @@ class _ODSWriter(ExcelWriter):
             wks = Table(name=sheet_name)
             self.sheets[sheet_name] = wks
 
-        if _validate_freeze_panes(freeze_panes):
+        if validate_freeze_panes(freeze_panes):
             assert freeze_panes is not None
             self._create_freeze_panes(sheet_name, freeze_panes)
 
@@ -215,14 +215,17 @@ class _ODSWriter(ExcelWriter):
         self.book.styles.addElement(odf_style)
         return name
 
-    def _create_freeze_panes(self, sheet_name: str, freeze_panes: List[int]) -> None:
-        """Create freeze panes in the sheet
+    def _create_freeze_panes(
+        self, sheet_name: str, freeze_panes: Tuple[int, int]
+    ) -> None:
+        """
+        Create freeze panes in the sheet.
 
         Parameters
         ----------
         sheet_name : str
             Name of the spreadsheet
-        freeze_panes : list
+        freeze_panes : tuple of (int, int)
             Freeze pane location x and y
         """
         from odf.config import (

@@ -30,7 +30,7 @@ import pandas._testing as tm
     ]
 )
 def nontemporal_method(request):
-    """ Fixture that returns an (method name, required kwargs) pair.
+    """Fixture that returns an (method name, required kwargs) pair.
 
     This fixture does not include method 'time' as a parameterization; that
     method requires a Series with a DatetimeIndex, and is generally tested
@@ -60,7 +60,7 @@ def nontemporal_method(request):
     ]
 )
 def interp_methods_ind(request):
-    """ Fixture that returns a (method name, required kwargs) pair to
+    """Fixture that returns a (method name, required kwargs) pair to
     be tested for various Index types.
 
     This fixture does not include methods - 'time', 'index', 'nearest',

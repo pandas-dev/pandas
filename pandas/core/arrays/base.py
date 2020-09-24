@@ -31,7 +31,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.algorithms import _factorize_array, unique
+from pandas.core.algorithms import factorize_array, unique
 from pandas.core.missing import backfill_1d, pad_1d
 from pandas.core.sorting import nargminmax, nargsort
 
@@ -45,8 +45,6 @@ class ExtensionArray:
     pandas will recognize instances of this class as proper arrays
     with a custom type and will not attempt to coerce them to objects. They
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
-
-    .. versionadded:: 0.23.0
 
     Attributes
     ----------
@@ -459,6 +457,11 @@ class ExtensionArray:
         from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
+        if is_dtype_equal(dtype, self.dtype):
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -845,7 +848,7 @@ class ExtensionArray:
         #    Complete control over factorization.
         arr, na_value = self._values_for_factorize()
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             arr, na_sentinel=na_sentinel, na_value=na_value
         )
 
@@ -1168,6 +1171,10 @@ class ExtensionOpsMixin:
     """
 
     @classmethod
+    def _create_arithmetic_method(cls, op):
+        raise AbstractMethodError(cls)
+
+    @classmethod
     def _add_arithmetic_ops(cls):
         cls.__add__ = cls._create_arithmetic_method(operator.add)
         cls.__radd__ = cls._create_arithmetic_method(ops.radd)
@@ -1187,6 +1194,10 @@ class ExtensionOpsMixin:
         cls.__rdivmod__ = cls._create_arithmetic_method(ops.rdivmod)
 
     @classmethod
+    def _create_comparison_method(cls, op):
+        raise AbstractMethodError(cls)
+
+    @classmethod
     def _add_comparison_ops(cls):
         cls.__eq__ = cls._create_comparison_method(operator.eq)
         cls.__ne__ = cls._create_comparison_method(operator.ne)
@@ -1194,6 +1205,10 @@ class ExtensionOpsMixin:
         cls.__gt__ = cls._create_comparison_method(operator.gt)
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
+
+    @classmethod
+    def _create_logical_method(cls, op):
+        raise AbstractMethodError(cls)
 
     @classmethod
     def _add_logical_ops(cls):

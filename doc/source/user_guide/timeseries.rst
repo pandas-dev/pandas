@@ -327,11 +327,11 @@ which can be specified. These are computed from the starting point specified by 
    that was discussed :ref:`above<timeseries.converting.format>`). The
    available units are listed on the documentation for :func:`pandas.to_datetime`.
 
+.. versionchanged:: 1.0.0
+
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
-with the ``tz`` argument specified will currently localize the epoch timestamps to UTC
-first then convert the result to the specified time zone. However, this behavior
-is :ref:`deprecated <whatsnew_0240.deprecations.integer_tz>`, and if you have
-epochs in wall time in another timezone, it is recommended to read the epochs
+with the ``tz`` argument specified will raise a ValueError. If you have
+epochs in wall time in another timezone, you can read the epochs
 as timezone-naive timestamps and then localize to the appropriate timezone:
 
 .. ipython:: python
@@ -460,8 +460,6 @@ of those specified will not be generated:
    pd.bdate_range(end=end, periods=20)
 
    pd.bdate_range(start=start, periods=20)
-
-.. versionadded:: 0.23.0
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 dates from ``start`` to ``end`` inclusively, with ``periods`` number of elements in the
@@ -642,8 +640,6 @@ Slicing with string indexing also honors UTC offset.
 
 Slice vs. exact match
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionchanged:: 0.20.0
 
 The same string used as an indexing parameter can be treated either as a slice or as an exact match depending on the resolution of the index. If the string is less accurate than the index, it will be treated as a slice, otherwise as an exact match.
 
@@ -2321,11 +2317,16 @@ you can use the ``tz_convert`` method.
 
 .. warning::
 
+    Be aware that for times in the future, correct conversion between time zones
+    (and UTC) cannot be guaranteed by any time zone library because a timezone's
+    offset from UTC may be changed by the respective government.
+
+.. warning::
+
     If you are using dates beyond 2038-01-18, due to current deficiencies
     in the underlying libraries caused by the year 2038 problem, daylight saving time (DST) adjustments
     to timezone aware dates will not be applied. If and when the underlying libraries are fixed,
-    the DST transitions will be applied. It should be noted though, that time zone data for far future time zones
-    are likely to be inaccurate, as they are simple extrapolations of the current set of (regularly revised) rules.
+    the DST transitions will be applied.
 
     For example, for two dates that are in British Summer Time (and so would normally be GMT+1), both the following asserts evaluate as true:
 

@@ -80,7 +80,11 @@ cdef class IndexEngine:
             values = self._get_index_values()
 
             self._check_type(val)
-            loc = _bin_search(values, val)  # .searchsorted(val, side='left')
+            try:
+                loc = _bin_search(values, val)  # .searchsorted(val, side='left')
+            except TypeError:
+                # GH#35788 e.g. val=None with float64 values
+                raise KeyError(val)
             if loc >= len(values):
                 raise KeyError(val)
             if values[loc] != val:
@@ -256,13 +260,13 @@ cdef class IndexEngine:
     def get_indexer_non_unique(self, targets):
         """
         Return an indexer suitable for taking from a non unique index
-        return the labels in the same order ast the target
+        return the labels in the same order as the target
         and a missing indexer into the targets (which correspond
         to the -1 indices in the results
         """
         cdef:
             ndarray values, x
-            ndarray[int64_t] result, missing
+            ndarray[intp_t] result, missing
             set stargets, remaining_stargets
             dict d = {}
             object val
@@ -279,8 +283,8 @@ cdef class IndexEngine:
         else:
             n_alloc = n
 
-        result = np.empty(n_alloc, dtype=np.int64)
-        missing = np.empty(n_t, dtype=np.int64)
+        result = np.empty(n_alloc, dtype=np.intp)
+        missing = np.empty(n_t, dtype=np.intp)
 
         # map each starget to its position in the index
         if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
