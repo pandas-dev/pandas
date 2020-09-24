@@ -450,7 +450,7 @@ class TestGetIndexer:
 
         result = idx1.get_indexer_non_unique(idx2)
         expected_indexer = np.array([1, 0, 2, -1, -1], dtype=np.intp)
-        expected_missing = np.array([2, 3], dtype=np.int64)
+        expected_missing = np.array([2, 3], dtype=np.intp)
 
         tm.assert_numpy_array_equal(result[0], expected_indexer)
         tm.assert_numpy_array_equal(result[1], expected_missing)
