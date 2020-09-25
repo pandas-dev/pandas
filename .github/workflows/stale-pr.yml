@@ -12,10 +12,10 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-pr-message: "This pull request is stale because it has been open for thirty days with no activity."
-        skip-stale-pr-message: false
+        skip-stale-pr-message: true
         stale-pr-label: "Stale"
-        exempt-pr-labels: "Needs Review,Blocked"
+        exempt-pr-labels: "Needs Review,Blocked,Needs Discussion"
         days-before-stale: 30
         days-before-close: -1
-        remove-stale-when-updated: true
-        debug-only: true
+        remove-stale-when-updated: false
+        debug-only: false

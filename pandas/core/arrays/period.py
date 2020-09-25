@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
     is_datetime64_dtype,
+    is_dtype_equal,
     is_float_dtype,
     is_period_dtype,
     pandas_dtype,
@@ -582,7 +583,11 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         # We handle Period[T] -> Period[U]
         # Our parent handles everything else.
         dtype = pandas_dtype(dtype)
-
+        if is_dtype_equal(dtype, self._dtype):
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)

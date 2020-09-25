@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
+import warnings
 
 import numpy as np
 
@@ -1256,7 +1257,7 @@ class _LocIndexer(_LocationIndexer):
             )
             return ax[indexer], indexer
 
-        if ax.is_unique and not getattr(ax, "is_overlapping", False):
+        if ax._index_as_unique:
             indexer = ax.get_indexer_for(keyarr)
             keyarr = ax.reindex(keyarr)[0]
         else:
@@ -2191,7 +2192,15 @@ def convert_to_index_sliceable(obj: "DataFrame", key):
         # slice here via partial string indexing
         if idx._supports_partial_string_indexing:
             try:
-                return idx._get_string_slice(key)
+                res = idx._get_string_slice(key)
+                warnings.warn(
+                    "Indexing on datetimelike rows with `frame[string]` is "
+                    "deprecated and will be removed in a future version. "
+                    "Use `frame.loc[string]` instead.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+                return res
             except (KeyError, ValueError, NotImplementedError):
                 return None
 
