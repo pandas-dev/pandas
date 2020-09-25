@@ -251,7 +251,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.slice_locs` where ``datetime.date`` objects were not accepted (:issue:`34077`)
 - Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64``, ``timedelta64`` or ``Period`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`,:issue:`36254`)
 - Inconsistency in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray`  setitem casting arrays of strings to datetimelike scalars but not scalar strings (:issue:`36261`)
--
+- :class:`Timestamp` and :class:`DatetimeIndex` comparisons between timezone-aware and timezone-naive objects now follow the standard library ``datetime`` behavior, returning ``True``/``False`` for ``!=``/``==`` and raising for inequality comparisons (:issue:`28507`)
 
 Timedelta
 ^^^^^^^^^

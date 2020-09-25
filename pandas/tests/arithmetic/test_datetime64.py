@@ -537,26 +537,30 @@ class TestDatetimeIndexComparisons:
         dr = tm.box_expected(dr, box)
         dz = tm.box_expected(dz, box)
 
-        msg = "Cannot compare tz-naive and tz-aware"
-        with pytest.raises(TypeError, match=msg):
-            op(dr, dz)
-
         if box is pd.DataFrame:
             tolist = lambda x: x.astype(object).values.tolist()[0]
         else:
             tolist = list
 
-        with pytest.raises(TypeError, match=msg):
-            op(dr, tolist(dz))
-        with pytest.raises(TypeError, match=msg):
-            op(dr, np.array(tolist(dz), dtype=object))
-        with pytest.raises(TypeError, match=msg):
-            op(dz, dr)
+        if op not in [operator.eq, operator.ne]:
+            msg = (
+                r"Invalid comparison between dtype=datetime64\[ns.*\] "
+                "and (Timestamp|DatetimeArray|list|ndarray)"
+            )
+            with pytest.raises(TypeError, match=msg):
+                op(dr, dz)
 
-        with pytest.raises(TypeError, match=msg):
-            op(dz, tolist(dr))
-        with pytest.raises(TypeError, match=msg):
-            op(dz, np.array(tolist(dr), dtype=object))
+            with pytest.raises(TypeError, match=msg):
+                op(dr, tolist(dz))
+            with pytest.raises(TypeError, match=msg):
+                op(dr, np.array(tolist(dz), dtype=object))
+            with pytest.raises(TypeError, match=msg):
+                op(dz, dr)
+
+            with pytest.raises(TypeError, match=msg):
+                op(dz, tolist(dr))
+            with pytest.raises(TypeError, match=msg):
+                op(dz, np.array(tolist(dr), dtype=object))
 
         # The aware==aware and naive==naive comparisons should *not* raise
         assert np.all(dr == dr)
@@ -588,17 +592,20 @@ class TestDatetimeIndexComparisons:
         ts_tz = pd.Timestamp("2000-03-14 01:59", tz="Europe/Amsterdam")
 
         assert np.all(dr > ts)
-        msg = "Cannot compare tz-naive and tz-aware"
-        with pytest.raises(TypeError, match=msg):
-            op(dr, ts_tz)
+        msg = r"Invalid comparison between dtype=datetime64\[ns.*\] and Timestamp"
+        if op not in [operator.eq, operator.ne]:
+            with pytest.raises(TypeError, match=msg):
+                op(dr, ts_tz)
 
         assert np.all(dz > ts_tz)
-        with pytest.raises(TypeError, match=msg):
-            op(dz, ts)
+        if op not in [operator.eq, operator.ne]:
+            with pytest.raises(TypeError, match=msg):
+                op(dz, ts)
 
-        # GH#12601: Check comparison against Timestamps and DatetimeIndex
-        with pytest.raises(TypeError, match=msg):
-            op(ts, dz)
+        if op not in [operator.eq, operator.ne]:
+            # GH#12601: Check comparison against Timestamps and DatetimeIndex
+            with pytest.raises(TypeError, match=msg):
+                op(ts, dz)
 
     @pytest.mark.parametrize(
         "op",
@@ -618,13 +625,28 @@ class TestDatetimeIndexComparisons:
     ):
         tz = tz_aware_fixture
         dti = pd.date_range("2016-01-01", periods=2, tz=tz)
+        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
 
         dtarr = tm.box_expected(dti, box_with_array)
-        msg = "Cannot compare tz-naive and tz-aware"
-        with pytest.raises(TypeError, match=msg):
-            op(dtarr, other)
-        with pytest.raises(TypeError, match=msg):
-            op(other, dtarr)
+        if op in [operator.eq, operator.ne]:
+            exbool = op is operator.ne
+            expected = np.array([exbool, exbool], dtype=bool)
+            expected = tm.box_expected(expected, xbox)
+
+            result = op(dtarr, other)
+            tm.assert_equal(result, expected)
+
+            result = op(other, dtarr)
+            tm.assert_equal(result, expected)
+        else:
+            msg = (
+                r"Invalid comparison between dtype=datetime64\[ns, .*\] "
+                f"and {type(other).__name__}"
+            )
+            with pytest.raises(TypeError, match=msg):
+                op(dtarr, other)
+            with pytest.raises(TypeError, match=msg):
+                op(other, dtarr)
 
     @pytest.mark.parametrize(
         "op",
@@ -724,10 +746,8 @@ class TestDatetimeIndexComparisons:
         tm.assert_numpy_array_equal(result, expected)
 
         other = dti.tz_localize(None)
-        msg = "Cannot compare tz-naive and tz-aware"
-        with pytest.raises(TypeError, match=msg):
-            # tzawareness failure
-            dti != other
+        result = dti != other
+        tm.assert_numpy_array_equal(result, expected)
 
         other = np.array(list(dti[:5]) + [Timedelta(days=1)] * 5)
         result = dti == other
