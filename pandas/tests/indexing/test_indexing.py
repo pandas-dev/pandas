@@ -868,6 +868,13 @@ class TestMisc:
         del df
         assert wr() is None
 
+    def test_label_indexing_on_nan(self):
+        # GH 32431
+        df = pd.Series([1, "{1,2}", 1, None])
+        vc = df.value_counts(dropna=False)
+        print(vc.loc[np.nan])
+        print(vc[np.nan])
+
 
 class TestSeriesNoneCoercion:
     EXPECTED_RESULTS = [
