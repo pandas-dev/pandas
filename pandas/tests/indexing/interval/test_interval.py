@@ -114,6 +114,10 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match="^$"):
             df.loc[[10, 4]]
 
+    def test_print_intervalindex(self):
+        # GH#32553
+        print(self.s)
+
 
 class TestIntervalIndexInsideMultiIndex:
     def test_mi_intervalindex_slicing_with_scalar(self):
