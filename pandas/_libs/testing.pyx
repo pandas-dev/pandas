@@ -6,33 +6,17 @@ from numpy cimport import_array
 
 import_array()
 
-from pandas._libs.util cimport is_array
+from pandas._libs.util cimport (
+    is_array,
+    is_real_number_object
+)
 
 from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 
-cdef NUMERIC_TYPES = (
-    bool,
-    int,
-    float,
-    np.bool_,
-    np.int8,
-    np.int16,
-    np.int32,
-    np.int64,
-    np.uint8,
-    np.uint16,
-    np.uint32,
-    np.uint64,
-    np.float16,
-    np.float32,
-    np.float64,
-)
-
-
 cdef bint is_comparable_as_number(obj):
-    return isinstance(obj, NUMERIC_TYPES)
+    return is_real_number_object(obj)
 
 
 cdef bint isiterable(obj):
