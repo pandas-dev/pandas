@@ -31,6 +31,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.agg`, :meth:`DataFrame.apply`, :meth:`Series.agg`, and :meth:`Series.apply` where internal suffix is exposed to the users when no relabelling is applied (:issue:`36189`)
 - Fixed regression in :class:`IntegerArray` unary plus and minus operations raising a ``TypeError`` (:issue:`36063`)
+- Fixed regression when adding a :meth:`timedelta_range` to a :class:``Timestamp`` raised an ``ValueError`` (:issue:`35897`)
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a tuple (:issue:`35534`)
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a frozenset (:issue:`35747`)
 - Fixed regression in :meth:`read_excel` with ``engine="odf"`` caused ``UnboundLocalError`` in some cases where cells had nested child nodes (:issue:`36122`, :issue:`35802`)
