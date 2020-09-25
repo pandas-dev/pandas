@@ -296,7 +296,6 @@ class DataFrameInfo(BaseInfo):
         len_id = len(pprint_thing(id_head))
         space_num = max(max_id, len_id) + col_space
 
-        header = _put_str(id_head, space_num) + _put_str(column_head, space)
         if show_counts:
             counts = self.data.count()
             if col_count != len(counts):  # pragma: no cover
@@ -319,8 +318,13 @@ class DataFrameInfo(BaseInfo):
         len_dtype = len(dtype_header)
         max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
         space_dtype = max(len_dtype, max_dtypes)
-        header += _put_str(count_header, space_count) + _put_str(
-            dtype_header, space_dtype
+        header = "".join(
+            [
+                _put_str(id_head, space_num),
+                _put_str(column_head, space),
+                _put_str(count_header, space_count),
+                _put_str(dtype_header, space_dtype),
+            ]
         )
 
         lines.append(header)
