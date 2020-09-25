@@ -1320,6 +1320,7 @@ def test_dataframe_div_silenced():
 
 
 def test_inplace_arithmetic_operation_on_series_updating_parent_dataframe():
+    # https://github.com/pandas-dev/pandas/issues/36373
     df = pd.DataFrame({"A": [1, 2, 3]})
     s = df["A"]
     s += 1
