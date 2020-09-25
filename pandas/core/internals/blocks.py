@@ -175,7 +175,7 @@ class Block(PandasObject):
 
     @property
     def _consolidate_key(self):
-        return (self._can_consolidate, self.dtype.name)
+        return self._can_consolidate, self.dtype.name
 
     @property
     def is_view(self) -> bool:
@@ -1363,6 +1363,7 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
+        try_cast: bool, default False
         axis : int, default 0
 
         Returns
@@ -1633,8 +1634,8 @@ class ExtensionBlock(Block):
     def shape(self):
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
-            return ((len(self.values)),)
-        return (len(self.mgr_locs), len(self.values))
+            return (len(self.values),)
+        return len(self.mgr_locs), len(self.values)
 
     def iget(self, col):
 

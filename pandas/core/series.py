@@ -70,6 +70,7 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
+from pandas.core.aggregation import transform
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
@@ -4042,8 +4043,6 @@ Keep all original rows and also all original values
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> FrameOrSeriesUnion:
-        from pandas.core.aggregation import transform
-
         return transform(self, func, axis, *args, **kwargs)
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
