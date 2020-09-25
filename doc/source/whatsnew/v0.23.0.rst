@@ -1011,7 +1011,7 @@ Datetimelike API changes
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with ``freq=None``, addition or subtraction of integer-dtyped array or ``Index`` will raise ``NullFrequencyError`` instead of ``TypeError`` (:issue:`19895`)
-- :class:``Timestamp`` constructor now accepts a ``nanosecond`` keyword or positional argument (:issue:`18898`)
+- :class:`Timestamp` constructor now accepts a ``nanosecond`` keyword or positional argument (:issue:`18898`)
 - :class:`DatetimeIndex` will now raise an ``AttributeError`` when the ``tz`` attribute is set after instantiation (:issue:`3746`)
 - :class:`DatetimeIndex` with a ``pytz`` timezone will now return a consistent ``pytz`` timezone (:issue:`18595`)
 

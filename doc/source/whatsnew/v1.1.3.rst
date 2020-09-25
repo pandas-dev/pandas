@@ -38,7 +38,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.apply` with ``raw=True`` and user-function returning string (:issue:`35940`)
 - Fixed regression when setting empty :class:`DataFrame` column to a :class:`Series` in preserving name of index in frame (:issue:`36527`)
 - Fixed regression in :class:`Period` incorrect value for ordinal over the maximum timestamp (:issue:`36430`)
-- Fixed regression when adding a :meth:`timedelta_range` to a :class:``Timestamp`` raised an ``ValueError`` (:issue:`35897`)
+- Fixed regression when adding a :meth:`timedelta_range` to a :class:`Timestamp` raised an ``ValueError`` (:issue:`35897`)
 
 .. ---------------------------------------------------------------------------
 

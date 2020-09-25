@@ -1855,7 +1855,7 @@ to apply to the values being sorted.
    s1.sort_values()
    s1.sort_values(key=lambda x: x.str.lower())
 
-``key`` will be given the :class:``Series`` of values and should return a ``Series``
+``key`` will be given the :class:`Series` of values and should return a ``Series``
 or array of the same shape with the transformed values. For ``DataFrame`` objects,
 the key is applied per column, so the key should still expect a Series and return
 a Series, e.g.
