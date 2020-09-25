@@ -461,8 +461,6 @@ of those specified will not be generated:
 
    pd.bdate_range(start=start, periods=20)
 
-.. versionadded:: 0.23.0
-
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 dates from ``start`` to ``end`` inclusively, with ``periods`` number of elements in the
 resulting ``DatetimeIndex``:
@@ -581,7 +579,12 @@ This type of slicing will work on a ``DataFrame`` with a ``DatetimeIndex`` as we
 partial string selection is a form of label slicing, the endpoints **will be** included. This
 would include matching times on an included date:
 
+.. warning::
+
+   Indexing ``DataFrame`` rows with strings is deprecated in pandas 1.2.0 and will be removed in a future version.  Use ``frame.loc[dtstring]`` instead.
+
 .. ipython:: python
+   :okwarning:
 
    dft = pd.DataFrame(np.random.randn(100000, 1), columns=['A'],
                       index=pd.date_range('20130101', periods=100000, freq='T'))
@@ -592,24 +595,28 @@ This starts on the very first time in the month, and includes the last date and
 time for the month:
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1':'2013-2']
 
 This specifies a stop time **that includes all of the times on the last day**:
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1':'2013-2-28']
 
 This specifies an **exact** stop time (and is not the same as the above):
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1':'2013-2-28 00:00:00']
 
 We are stopping on the included end-point as it is part of the index:
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1-15':'2013-1-15 12:30:00']
 
@@ -633,6 +640,7 @@ We are stopping on the included end-point as it is part of the index:
 Slicing with string indexing also honors UTC offset.
 
 .. ipython:: python
+   :okwarning:
 
     df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df
@@ -642,8 +650,6 @@ Slicing with string indexing also honors UTC offset.
 
 Slice vs. exact match
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionchanged:: 0.20.0
 
 The same string used as an indexing parameter can be treated either as a slice or as an exact match depending on the resolution of the index. If the string is less accurate than the index, it will be treated as a slice, otherwise as an exact match.
 
@@ -685,6 +691,7 @@ If index resolution is second, then the minute-accurate timestamp gives a
 If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``[]`` as well.
 
 .. ipython:: python
+    :okwarning:
 
     dft_minute = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
                               index=series_minute.index)
@@ -2031,6 +2038,7 @@ You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodI
 Passing a string representing a lower frequency than ``PeriodIndex`` returns partial sliced data.
 
 .. ipython:: python
+   :okwarning:
 
    ps['2011']
 

@@ -24,6 +24,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Type,
     TypeVar,
@@ -36,7 +37,7 @@ from pandas._config.config import option_context
 
 from pandas._libs import Timestamp, lib
 import pandas._libs.groupby as libgroupby
-from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Scalar
+from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Label, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -214,8 +215,6 @@ Series or DataFrame
 _pipe_template = """
 Apply a function `func` with arguments to this %(klass)s object and return
 the function's result.
-
-%(versionadded)s
 
 Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
@@ -459,7 +458,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def group_selection_context(groupby: "_GroupBy"):
+def group_selection_context(groupby: "BaseGroupBy"):
     """
     Set / reset the group_selection_context.
     """
@@ -479,7 +478,7 @@ _KeysArgType = Union[
 ]
 
 
-class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
+class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection = None
     _apply_allowlist: FrozenSet[str] = frozenset()
 
@@ -490,7 +489,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         axis: int = 0,
         level=None,
         grouper: Optional["ops.BaseGrouper"] = None,
-        exclusions=None,
+        exclusions: Optional[Set[Label]] = None,
         selection=None,
         as_index: bool = True,
         sort: bool = True,
@@ -539,7 +538,7 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
-        self.exclusions = set(exclusions) if exclusions else set()
+        self.exclusions = exclusions or set()
 
     def __len__(self) -> int:
         return len(self.groups)
@@ -709,7 +708,6 @@ class _GroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
     @Substitution(
         klass="GroupBy",
-        versionadded=".. versionadded:: 0.21.0",
         examples="""\
 >>> df = pd.DataFrame({'A': 'a b a b'.split(), 'B': [1, 2, 3, 4]})
 >>> df
@@ -1056,6 +1054,40 @@ b  2""",
 
         return self._wrap_aggregated_output(output, index=self.grouper.result_index)
 
+    def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
+        """
+        Perform groupby transform routine with the numba engine.
+
+        This routine mimics the data splitting routine of the DataSplitter class
+        to generate the indices of each group in the sorted data and then passes the
+        data and indices into a Numba jitted function.
+        """
+        if not callable(func):
+            raise NotImplementedError(
+                "Numba engine can only be used with a single function."
+            )
+        group_keys = self.grouper._get_group_keys()
+        labels, _, n_groups = self.grouper.group_info
+        sorted_index = get_group_index_sorter(labels, n_groups)
+        sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
+        sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
+        starts, ends = lib.generate_slices(sorted_labels, n_groups)
+
+        numba_transform_func = numba_.generate_numba_transform_func(
+            tuple(args), kwargs, func, engine_kwargs
+        )
+        result = numba_transform_func(
+            sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
+        )
+
+        cache_key = (func, "groupby_transform")
+        if cache_key not in NUMBA_FUNC_CACHE:
+            NUMBA_FUNC_CACHE[cache_key] = numba_transform_func
+
+        # result values needs to be resorted to their original positions since we
+        # evaluated the data sorted by group
+        return result.take(np.argsort(sorted_index), axis=0)
+
     def _aggregate_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
         """
         Perform groupby aggregation routine with the numba engine.
@@ -1064,23 +1096,25 @@ b  2""",
         to generate the indices of each group in the sorted data and then passes the
         data and indices into a Numba jitted function.
         """
+        if not callable(func):
+            raise NotImplementedError(
+                "Numba engine can only be used with a single function."
+            )
         group_keys = self.grouper._get_group_keys()
         labels, _, n_groups = self.grouper.group_info
         sorted_index = get_group_index_sorter(labels, n_groups)
         sorted_labels = algorithms.take_nd(labels, sorted_index, allow_fill=False)
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
         starts, ends = lib.generate_slices(sorted_labels, n_groups)
-        cache_key = (func, "groupby_agg")
-        if cache_key in NUMBA_FUNC_CACHE:
-            # Return an already compiled version of roll_apply if available
-            numba_agg_func = NUMBA_FUNC_CACHE[cache_key]
-        else:
-            numba_agg_func = numba_.generate_numba_agg_func(
-                tuple(args), kwargs, func, engine_kwargs
-            )
+
+        numba_agg_func = numba_.generate_numba_agg_func(
+            tuple(args), kwargs, func, engine_kwargs
+        )
         result = numba_agg_func(
             sorted_data, sorted_index, starts, ends, len(group_keys), len(data.columns)
         )
+
+        cache_key = (func, "groupby_agg")
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
 
@@ -1212,7 +1246,7 @@ b  2""",
 OutputFrameOrSeries = TypeVar("OutputFrameOrSeries", bound=NDFrame)
 
 
-class GroupBy(_GroupBy[FrameOrSeries]):
+class GroupBy(BaseGroupBy[FrameOrSeries]):
     """
     Class for grouping and aggregating relational data.
 

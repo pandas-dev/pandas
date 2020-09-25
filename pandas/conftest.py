@@ -55,6 +55,9 @@ def pytest_configure(config):
     )
     config.addinivalue_line("markers", "high_memory: mark a test as a high-memory only")
     config.addinivalue_line("markers", "clipboard: mark a pd.read_clipboard test")
+    config.addinivalue_line(
+        "markers", "arm_slow: mark a test as slow for arm64 architecture"
+    )
 
 
 def pytest_addoption(parser):
@@ -1050,6 +1053,19 @@ def any_nullable_int_dtype(request):
     * 'UInt32'
     * 'Int32'
     * 'UInt64'
+    * 'Int64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.SIGNED_EA_INT_DTYPES)
+def any_signed_nullable_int_dtype(request):
+    """
+    Parameterized fixture for any signed nullable integer dtype.
+
+    * 'Int8'
+    * 'Int16'
+    * 'Int32'
     * 'Int64'
     """
     return request.param

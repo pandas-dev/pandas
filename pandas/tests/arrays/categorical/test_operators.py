@@ -79,10 +79,6 @@ class TestCategoricalOpsWithFactor(TestCategorical):
 
         cat_rev_base2 = Categorical(["b", "b", "b"], categories=["c", "b", "a", "d"])
 
-        msg = (
-            "Categoricals can only be compared if 'categories' are the same. "
-            "Categories are different lengths"
-        )
         with pytest.raises(TypeError, match=msg):
             cat_rev > cat_rev_base2
 
@@ -90,7 +86,6 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         cat_unorderd = cat.set_ordered(False)
         assert not (cat > cat).any()
 
-        msg = "Categoricals can only be compared if 'ordered' is the same"
         with pytest.raises(TypeError, match=msg):
             cat > cat_unorderd
 
@@ -321,7 +316,7 @@ class TestCategoricalOps:
         c1 = Categorical([], categories=["a", "b"])
         c2 = Categorical([], categories=["a"])
 
-        msg = "Categories are different lengths"
+        msg = "Categoricals can only be compared if 'categories' are the same."
         with pytest.raises(TypeError, match=msg):
             c1 == c2
 
@@ -358,7 +353,7 @@ class TestCategoricalOps:
         # min/max)
         s = df["value_group"]
         for op in ["kurt", "skew", "var", "std", "mean", "sum", "median"]:
-            msg = f"Categorical cannot perform the operation {op}"
+            msg = f"'Categorical' does not implement reduction '{op}'"
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
 
@@ -367,7 +362,7 @@ class TestCategoricalOps:
         # numpy ops
         s = Series(Categorical([1, 2, 3, 4]))
         with pytest.raises(
-            TypeError, match="Categorical cannot perform the operation sum"
+            TypeError, match="'Categorical' does not implement reduction 'sum'"
         ):
             np.sum(s)
 

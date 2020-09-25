@@ -278,7 +278,6 @@ def _check_object_for_strings(values) -> str:
     Parameters
     ----------
     values : ndarray
-    ndtype : str
 
     Returns
     -------
@@ -440,7 +439,12 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     if len(comps) > 1_000_000 and not is_object_dtype(comps):
-        f = np.in1d
+        # If the the values include nan we need to check for nan explicitly
+        # since np.nan it not equal to np.nan
+        if np.isnan(values).any():
+            f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
+        else:
+            f = np.in1d
     elif is_integer_dtype(comps):
         try:
             values = values.astype("int64", copy=False)
@@ -1018,11 +1022,10 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
     else:
         to_raise = (
-            ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any()
-            or (
-                (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
-            ).any()
-        )
+            (np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]
+        ).any() or (
+            (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
+        ).any()
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
@@ -1523,8 +1526,6 @@ def _get_take_nd_function(
 def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None):
     """
     Take elements from an array.
-
-    .. versionadded:: 0.23.0
 
     Parameters
     ----------

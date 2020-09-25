@@ -46,8 +46,6 @@ class ExtensionArray:
     with a custom type and will not attempt to coerce them to objects. They
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
 
-    .. versionadded:: 0.23.0
-
     Attributes
     ----------
     dtype
@@ -459,6 +457,11 @@ class ExtensionArray:
         from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
+        if is_dtype_equal(dtype, self.dtype):
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 

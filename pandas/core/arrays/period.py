@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     ensure_object,
     is_datetime64_dtype,
+    is_dtype_equal,
     is_float_dtype,
     is_period_dtype,
     pandas_dtype,
@@ -582,10 +583,21 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
         # We handle Period[T] -> Period[U]
         # Our parent handles everything else.
         dtype = pandas_dtype(dtype)
-
+        if is_dtype_equal(dtype, self._dtype):
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)
+
+    def searchsorted(self, value, side="left", sorter=None):
+        value = self._validate_searchsorted_value(value).view("M8[ns]")
+
+        # Cast to M8 to get datetime-like NaT placement
+        m8arr = self._ndarray.view("M8[ns]")
+        return m8arr.searchsorted(value, side=side, sorter=sorter)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
