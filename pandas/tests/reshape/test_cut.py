@@ -664,3 +664,13 @@ def test_cut_unordered_with_missing_labels_raises_error():
     msg = "'labels' must be provided if 'ordered = False'"
     with pytest.raises(ValueError, match=msg):
         cut([0.5, 3], bins=[0, 1, 2], ordered=False)
+
+
+def test_cut_unordered_with_series_labels():
+    # https://github.com/pandas-dev/pandas/issues/36603
+    s = pd.Series([1, 2, 3, 4, 5])
+    bins = pd.Series([0, 2, 4, 6])
+    labels = pd.Series(["a", "b", "c"])
+    result = pd.cut(s, bins=bins, labels=labels, ordered=False)
+    expected = pd.Series(["a", "a", "b", "b", "c"], dtype="category")
+    tm.assert_series_equal(result, expected)
