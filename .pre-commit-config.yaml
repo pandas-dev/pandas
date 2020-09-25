@@ -30,6 +30,41 @@ repos:
     hooks:
     -   id: pyupgrade
         args: [--py37-plus]
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.6.0
+    hooks:
+      - id: rst-backticks
+        # these exclusions should be removed and the files fixed
+        exclude: (?x)(
+          text\.rst|
+          timeseries\.rst|
+          visualization\.rst|
+          missing_data\.rst|
+          options\.rst|
+          reshaping\.rst|
+          scale\.rst|
+          merging\.rst|
+          cookbook\.rst|
+          enhancingperf\.rst|
+          groupby\.rst|
+          io\.rst|
+          overview\.rst|
+          panel\.rst|
+          plotting\.rst|
+          10min\.rst|
+          basics\.rst|
+          categorical\.rst|
+          contributing\.rst|
+          contributing_docstring\.rst|
+          extending\.rst|
+          ecosystem\.rst|
+          comparison_with_sql\.rst|
+          install\.rst|
+          calculate_statistics\.rst|
+          combine_dataframes\.rst|
+          v0\.|
+          v1\.0\.|
+          v1\.1\.[012])
 -   repo: local
     hooks:
     -   id: pip_to_conda
@@ -37,5 +72,5 @@ repos:
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
         language: system
         entry: python -m scripts.generate_pip_deps_from_conda
-        files: ^environment.yml$
+        files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
