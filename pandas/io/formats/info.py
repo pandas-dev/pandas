@@ -111,7 +111,6 @@ class BaseInfo(metaclass=ABCMeta):
         mem_usage : int
             Object's total memory usage in bytes.
         """
-        pass
 
     @abstractmethod
     def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
@@ -125,7 +124,6 @@ class BaseInfo(metaclass=ABCMeta):
         dtypes : Series
             Dtype of each of the DataFrame's columns.
         """
-        pass
 
     @abstractmethod
     def _verbose_repr(
@@ -145,7 +143,6 @@ class BaseInfo(metaclass=ABCMeta):
         show_counts : bool
             If True, count of non-NA cells for each column will be appended to `lines`.
         """
-        pass
 
     @abstractmethod
     def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
@@ -159,7 +156,6 @@ class BaseInfo(metaclass=ABCMeta):
         ids : Index
             The DataFrame's column names.
         """
-        pass
 
     def info(self) -> None:
         """
