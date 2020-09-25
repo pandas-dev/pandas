@@ -775,12 +775,9 @@ class DataFrameFormatter(TableFormatter):
         assert self.max_rows_fitted is not None
         row_num = self.max_rows_fitted // 2
         if row_num >= 1:
-            self.tr_frame = concat(
-                [
-                    self.tr_frame.iloc[:row_num, :],
-                    self.tr_frame.iloc[-row_num:, :],
-                ]
-            )
+            head = self.tr_frame.iloc[:row_num, :]
+            tail = self.tr_frame.iloc[-row_num:, :]
+            self.tr_frame = concat((head, tail))
         else:
             row_num = cast(int, self.max_rows)
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
