@@ -347,12 +347,18 @@ class Block(PandasObject):
 
         return self._split_op_result(result)
 
-    def reduce(self, func) -> List["Block"]:
+    def reduce(self, func, ignore_failures: bool = False) -> List["Block"]:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
         assert self.ndim == 2
 
-        result = func(self.values)
+        try:
+            result = func(self.values)
+        except (TypeError, NotImplementedError):
+            if ignore_failures:
+                return []
+            raise
+
         if np.ndim(result) == 0:
             # TODO(EA2D): special case not needed with 2D EAs
             res_values = np.array([[result]])
@@ -2453,6 +2459,34 @@ class ObjectBlock(Block):
         object
         """
         return lib.is_bool_array(self.values.ravel("K"))
+
+    def reduce(self, func, ignore_failures: bool = False) -> List[Block]:
+        """
+        For object-dtype, we operate column-wise.
+        """
+        assert self.ndim == 2
+
+        values = self.values
+        if len(values) > 1:
+            # split_and_operate expects func with signature (mask, values, inplace)
+            def mask_func(mask, values, inplace):
+                if values.ndim == 1:
+                    values = values.reshape(1, -1)
+                return func(values)
+
+            return self.split_and_operate(None, mask_func, False)
+
+        try:
+            res = func(values)
+        except TypeError:
+            if not ignore_failures:
+                raise
+            return []
+
+        assert isinstance(res, np.ndarray)
+        assert res.ndim == 1
+        res = res.reshape(1, -1)
+        return [self.make_block_same_class(res)]
 
     def convert(
         self,

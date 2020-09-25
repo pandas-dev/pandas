@@ -348,22 +348,20 @@ class BlockManager(PandasObject):
 
         res_blocks: List[Block] = []
         for blk in self.blocks:
-            try:
-                nbs = blk.reduce(func)
-            except TypeError:
-                if ignore_failures:
-                    continue
-                raise
+            nbs = blk.reduce(func, ignore_failures)
             res_blocks.extend(nbs)
 
         index = Index([None])  # placeholder
-        if res_blocks:
-            indexer = np.concatenate([blk.mgr_locs.as_array for blk in res_blocks])
-            new_mgr = self._combine(res_blocks, copy=False, index=index)
+        if ignore_failures:
+            if res_blocks:
+                indexer = np.concatenate([blk.mgr_locs.as_array for blk in res_blocks])
+                new_mgr = self._combine(res_blocks, copy=False, index=index)
+            else:
+                indexer = []
+                new_mgr = type(self).from_blocks([], [Index([]), index])
         else:
-            indexer = []
-            new_mgr = type(self).from_blocks([], [Index([]), index])
-
+            indexer = np.arange(self.shape[0])
+            new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr, indexer
 
     def operate_blockwise(self, other: "BlockManager", array_op) -> "BlockManager":
