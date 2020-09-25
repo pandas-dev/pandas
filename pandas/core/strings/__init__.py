@@ -7,7 +7,7 @@ Implementation of pandas.Series.str and its interface.
 Most methods on the StringMethods accessor follow the pattern:
 
     1. extract the array from the series (or index)
-    2. Call that array's impelmentation of the string method
+    2. Call that array's implementation of the string method
     3. Wrap the result (in a Series, index, or DataFrame)
 
 Pandas extension arrays implementing string methods should inherit from
