@@ -117,7 +117,7 @@ Other enhancements
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
-- `Styler` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
+- ``Styler`` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
 
@@ -223,12 +223,12 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Performance improvements when creating DataFrame or Series with dtype `str` or :class:`StringDtype` from array with many string elements (:issue:`36304`, :issue:`36317`, :issue:`36325`, :issue:`36432`)
+- Performance improvements when creating DataFrame or Series with dtype ``str`` or :class:`StringDtype` from array with many string elements (:issue:`36304`, :issue:`36317`, :issue:`36325`, :issue:`36432`)
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
 - Performance improvements when creating :meth:`pd.Series.map` from a huge dictionary (:issue:`34717`)
 - Performance improvement in :meth:`GroupBy.transform` with the ``numba`` engine (:issue:`36240`)
 - ``Styler`` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
-- Performance improvement in :meth:`pd.to_datetime` with non-`ns` time unit for `float` `dtype` columns (:issue:`20445`)
+- Performance improvement in :meth:`pd.to_datetime` with non-ns time unit for ``float`` ``dtype`` columns (:issue:`20445`)
 
 .. ---------------------------------------------------------------------------
 
@@ -263,7 +263,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
-- Bug in :func:`date_range` was raising AmbiguousTimeError for valid input with `ambiguous=False` (:issue:`35297`)
+- Bug in :func:`date_range` was raising AmbiguousTimeError for valid input with ``ambiguous=False`` (:issue:`35297`)
 -
 
 
@@ -305,13 +305,13 @@ Indexing
 Missing
 ^^^^^^^
 
-- Bug in :meth:`SeriesGroupBy.transform` now correctly handles missing values for `dropna=False` (:issue:`35014`)
+- Bug in :meth:`SeriesGroupBy.transform` now correctly handles missing values for ``dropna=False`` (:issue:`35014`)
 -
 
 MultiIndex
 ^^^^^^^^^^
 
-- Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message `Expected label or tuple of labels` (:issue:`35301`)
+- Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
 -
 
 I/O
@@ -319,15 +319,15 @@ I/O
 
 - :func:`read_sas` no longer leaks resources on failure (:issue:`35566`)
 - Bug in :meth:`to_csv` caused a ``ValueError`` when it was called with a filename in combination with ``mode`` containing a ``b`` (:issue:`35058`)
-- In :meth:`read_csv` `float_precision='round_trip'` now handles `decimal` and `thousands` parameters (:issue:`35365`)
+- In :meth:`read_csv` ``float_precision='round_trip'`` now handles ``decimal`` and ``thousands`` parameters (:issue:`35365`)
 - :meth:`to_pickle` and :meth:`read_pickle` were closing user-provided file objects (:issue:`35679`)
-- :meth:`to_csv` passes compression arguments for `'gzip'` always to `gzip.GzipFile` (:issue:`28103`)
+- :meth:`to_csv` passes compression arguments for ``'gzip'`` always to ``gzip.GzipFile`` (:issue:`28103`)
 - :meth:`to_csv` did not support zip compression for binary file object not having a filename (:issue:`35058`)
-- :meth:`to_csv` and :meth:`read_csv` did not honor `compression` and `encoding` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
+- :meth:`to_csv` and :meth:`read_csv` did not honor ``compression`` and ``encoding`` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
 - :meth:`to_picke` and :meth:`read_pickle` did not support compression for file-objects (:issue:`26237`, :issue:`29054`, and :issue:`29570`)
 - Bug in :func:`LongTableBuilder.middle_separator` was duplicating LaTeX longtable entires in the List of Tables of a LaTeX document (:issue:`34360`)
-- Bug in :meth:`read_csv` with `engine='python'` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
-- Removed ``private_key`` and ``verbose`` from :func:`read_gbq` as they are no longer supported in `pandas-gbq` (:issue:`34654` :issue:`30200`)
+- Bug in :meth:`read_csv` with ``engine='python'`` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
+- Removed ``private_key`` and ``verbose`` from :func:`read_gbq` as they are no longer supported in ``pandas-gbq`` (:issue:`34654`, :issue:`30200`)
 
 Plotting
 ^^^^^^^^
