@@ -1323,4 +1323,6 @@ def test_inplace_arithmetic_operation_on_series_updating_parent_dataframe():
     df = pd.DataFrame({"A": [1, 2, 3]})
     s = df["A"]
     s += 1
-    tm.assert_series_equal(df["A"], s)
+    assert s is df["A"]
+    expected = pd.DataFrame({"A": [2, 3, 4]})
+    tm.assert_frame_equal(df, expected)
