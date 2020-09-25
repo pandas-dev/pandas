@@ -4,11 +4,12 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Callable, Dict, FrozenSet, Optional, Union
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import AggFuncType, AggFuncTypeBase, Label
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -278,7 +279,7 @@ class SelectionMixin:
             f"'{arg}' is not a valid function for '{type(self).__name__}' object"
         )
 
-    def _aggregate(self, arg, *args, **kwargs):
+    def _aggregate(self, arg: AggFuncType, *args, **kwargs):
         """
         provide an implementation for the aggregators
 
@@ -311,13 +312,13 @@ class SelectionMixin:
             if _axis != 0:  # pragma: no cover
                 raise ValueError("Can only pass dict with axis=0")
 
-            obj = self._selected_obj
+            selected_obj = self._selected_obj
 
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
             if any(is_aggregator(x) for x in arg.values()):
-                new_arg = {}
+                new_arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]] = {}
                 for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -336,9 +337,12 @@ class SelectionMixin:
                     # {'ra' : { 'A' : 'mean' }}
                     if isinstance(v, dict):
                         raise SpecificationError("nested renamer is not supported")
-                    elif isinstance(obj, ABCSeries):
+                    elif isinstance(selected_obj, ABCSeries):
                         raise SpecificationError("nested renamer is not supported")
-                    elif isinstance(obj, ABCDataFrame) and k not in obj.columns:
+                    elif (
+                        isinstance(selected_obj, ABCDataFrame)
+                        and k not in selected_obj.columns
+                    ):
                         raise KeyError(f"Column '{k}' does not exist!")
 
                 arg = new_arg
@@ -347,10 +351,12 @@ class SelectionMixin:
                 # deprecation of renaming keys
                 # GH 15931
                 keys = list(arg.keys())
-                if isinstance(obj, ABCDataFrame) and len(
-                    obj.columns.intersection(keys)
+                if isinstance(selected_obj, ABCDataFrame) and len(
+                    selected_obj.columns.intersection(keys)
                 ) != len(keys):
-                    cols = sorted(set(keys) - set(obj.columns.intersection(keys)))
+                    cols = sorted(
+                        set(keys) - set(selected_obj.columns.intersection(keys))
+                    )
                     raise SpecificationError(f"Column(s) {cols} do not exist")
 
             from pandas.core.reshape.concat import concat
@@ -370,7 +376,7 @@ class SelectionMixin:
                 """
                 aggregate a 2-dim with how
                 """
-                colg = self._gotitem(self._selection, ndim=2, subset=obj)
+                colg = self._gotitem(self._selection, ndim=2, subset=selected_obj)
                 return colg.aggregate(how)
 
             def _agg(arg, func):
@@ -385,7 +391,6 @@ class SelectionMixin:
 
             # set the final keys
             keys = list(arg.keys())
-            result = {}
 
             if self._selection is not None:
 
@@ -484,9 +489,10 @@ class SelectionMixin:
         else:
             result = None
 
-        f = self._get_cython_func(arg)
-        if f and not args and not kwargs:
-            return getattr(self, f)(), None
+        if callable(arg):
+            f = self._get_cython_func(arg)
+            if f and not args and not kwargs:
+                return getattr(self, f)(), None
 
         # caller can react
         return result, True
@@ -498,17 +504,17 @@ class SelectionMixin:
             raise NotImplementedError("axis other than 0 is not supported")
 
         if self._selected_obj.ndim == 1:
-            obj = self._selected_obj
+            selected_obj = self._selected_obj
         else:
-            obj = self._obj_with_exclusions
+            selected_obj = self._obj_with_exclusions
 
         results = []
         keys = []
 
         # degenerate case
-        if obj.ndim == 1:
+        if selected_obj.ndim == 1:
             for a in arg:
-                colg = self._gotitem(obj.name, ndim=1, subset=obj)
+                colg = self._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
                 try:
                     new_res = colg.aggregate(a)
 
@@ -523,8 +529,8 @@ class SelectionMixin:
 
         # multiples
         else:
-            for index, col in enumerate(obj):
-                colg = self._gotitem(col, ndim=1, subset=obj.iloc[:, index])
+            for index, col in enumerate(selected_obj):
+                colg = self._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
                 try:
                     new_res = colg.aggregate(arg)
                 except (TypeError, DataError):
