@@ -1831,8 +1831,8 @@ class _Tooltips:
             style
             for sublist in [
                 _pseudo_css(i, j, str(self.tt_data.iloc[i, j]))
-                for i, rn in enumerate(self.tt_data.index)
-                for j, cn in enumerate(self.tt_data.columns)
+                for i in range(len(self.tt_data.index))
+                for j in range(len(self.tt_data.columns))
                 if not mask.iloc[i, j]
             ]
             for style in sublist
