@@ -279,8 +279,8 @@ iterator : boolean, default ``False``
   Return ``TextFileReader`` object for iteration or getting chunks with
   ``get_chunk()``.
 chunksize : int, default ``None``
-  Return ``TextFileReader`` object for iteration. See :ref:``iterating and chunking
-  <io.chunking>`` below.
+  Return ``TextFileReader`` object for iteration. See :ref:`iterating and chunking
+  <io.chunking>` below.
 
 Quoting, compression, and file format
 +++++++++++++++++++++++++++++++++++++
