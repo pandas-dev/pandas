@@ -667,6 +667,7 @@ def test_cut_unordered_with_missing_labels_raises_error():
 
 
 def test_cut_unordered_with_series_labels():
+    # https://github.com/pandas-dev/pandas/issues/36603
     s = pd.Series([1, 2, 3, 4, 5])
     bins = pd.Series([0, 2, 4, 6])
     labels = pd.Series(["a", "b", "c"])
