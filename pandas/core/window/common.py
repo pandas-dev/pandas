@@ -65,7 +65,6 @@ class WindowGroupByMixin(GotItemMixin):
     def _apply(
         self,
         func: Callable,
-        center: bool,
         require_min_periods: int = 0,
         floor: int = 1,
         is_weighted: bool = False,
