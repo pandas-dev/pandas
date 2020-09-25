@@ -616,6 +616,10 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             if self.freq is not None:
                 # Note: freq gets division, not floor-division
                 freq = self.freq / other
+                if freq.nanos == 0 and self.freq.nanos != 0:
+                    # e.g. if self.freq is Nano(1) then dividing by 2
+                    #  rounds down to zero
+                    freq = None
             return type(self)(result.view("m8[ns]"), freq=freq)
 
         if not hasattr(other, "dtype"):
