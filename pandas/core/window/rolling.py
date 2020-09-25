@@ -72,22 +72,21 @@ if TYPE_CHECKING:
     from pandas.core.internals import Block  # noqa:F401
 
 
-def calculate_center_offset(window) -> int:
+def calculate_center_offset(window: np.ndarray) -> int:
     """
-    Calculate an offset necessary to have the window label to be centered.
+    Calculate an offset necessary to have the window label to be centered
+    for weighted windows.
 
     Parameters
     ----------
-    window: ndarray or int
-        window weights or window
+    window: ndarray
+        window weights
 
     Returns
     -------
     int
     """
-    if not is_integer(window):
-        window = len(window)
-    return int((window - 1) / 2.0)
+    return (len(window) - 1) // 2
 
 
 def calculate_min_periods(
@@ -417,9 +416,9 @@ class _Window(ShallowMixin, SelectionMixin):
                 # insert at the end
                 result[name] = extra_col
 
-    def _center_window(self, result: np.ndarray, window) -> np.ndarray:
+    def _center_window(self, result: np.ndarray, window: np.ndarray) -> np.ndarray:
         """
-        Center the result in the window.
+        Center the result in the window for weighted rolling aggregations.
         """
         if self.axis > result.ndim - 1:
             raise ValueError("Requested axis is larger then no. of argument dimensions")
