@@ -64,7 +64,7 @@ A ``DataFrame`` can now be written to and subsequently read back via JSON while 
    new_df
    new_df.dtypes
 
-Please note that the string `index` is not supported with the round trip format, as it is used by default in ``write_json`` to indicate a missing index name.
+Please note that the string ``index`` is not supported with the round trip format, as it is used by default in ``write_json`` to indicate a missing index name.
 
 .. ipython:: python
    :okwarning:
@@ -457,7 +457,7 @@ These bugs were squashed:
 Previously, :meth:`Series.str.cat` did not -- in contrast to most of ``pandas`` -- align :class:`Series` on their index before concatenation (see :issue:`18657`).
 The method has now gained a keyword ``join`` to control the manner of alignment, see examples below and :ref:`here <text.concatenate>`.
 
-In v.0.23 `join` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.
+In v.0.23 ``join`` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.
 
 .. ipython:: python
    :okwarning:
@@ -836,7 +836,7 @@ Build changes
 Index division by zero fills correctly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Division operations on ``Index`` and subclasses will now fill division of positive numbers by zero with ``np.inf``, division of negative numbers by zero with ``-np.inf`` and `0 / 0` with ``np.nan``.  This matches existing ``Series`` behavior. (:issue:`19322`, :issue:`19347`)
+Division operations on ``Index`` and subclasses will now fill division of positive numbers by zero with ``np.inf``, division of negative numbers by zero with ``-np.inf`` and ``0 / 0`` with ``np.nan``.  This matches existing ``Series`` behavior. (:issue:`19322`, :issue:`19347`)
 
 Previous behavior:
 
@@ -974,7 +974,7 @@ automatically so that the printed data frame fits within the current terminal
 width (``pd.options.display.max_columns=0``) (:issue:`17023`). If Python runs
 as a Jupyter kernel (such as the Jupyter QtConsole or a Jupyter notebook, as
 well as in many IDEs), this value cannot be inferred automatically and is thus
-set to `20` as in previous versions. In a terminal, this results in a much
+set to ``20`` as in previous versions. In a terminal, this results in a much
 nicer output:
 
 .. image:: ../_static/print_df_new.png
@@ -1011,7 +1011,7 @@ Datetimelike API changes
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with ``freq=None``, addition or subtraction of integer-dtyped array or ``Index`` will raise ``NullFrequencyError`` instead of ``TypeError`` (:issue:`19895`)
-- :class:`Timestamp` constructor now accepts a `nanosecond` keyword or positional argument (:issue:`18898`)
+- :class:``Timestamp`` constructor now accepts a ``nanosecond`` keyword or positional argument (:issue:`18898`)
 - :class:`DatetimeIndex` will now raise an ``AttributeError`` when the ``tz`` attribute is set after instantiation (:issue:`3746`)
 - :class:`DatetimeIndex` with a ``pytz`` timezone will now return a consistent ``pytz`` timezone (:issue:`18595`)
 
@@ -1049,7 +1049,7 @@ Other API changes
 - :class:`DateOffset` objects render more simply, e.g. ``<DateOffset: days=1>`` instead of ``<DateOffset: kwds={'days': 1}>`` (:issue:`19403`)
 - ``Categorical.fillna`` now validates its ``value`` and ``method`` keyword arguments. It now raises when both or none are specified, matching the behavior of :meth:`Series.fillna` (:issue:`19682`)
 - ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
-- :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
+- :func:``Series.str.replace`` now takes an optional ``regex`` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
 - :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
 - Constructing a Series from a list of length 1 no longer broadcasts this list when a longer index is specified (:issue:`19714`, :issue:`20391`).
 - :func:`DataFrame.to_dict` with ``orient='index'`` no longer casts int columns to float for a DataFrame with only int and float columns (:issue:`18580`)
@@ -1234,7 +1234,7 @@ Categorical
 - Bug in ``Categorical.__iter__`` not converting to Python types (:issue:`19909`)
 - Bug in :func:`pandas.factorize` returning the unique codes for the ``uniques``. This now returns a ``Categorical`` with the same dtype as the input (:issue:`19721`)
 - Bug in :func:`pandas.factorize` including an item for missing values in the ``uniques`` return value (:issue:`19721`)
-- Bug in :meth:`Series.take` with categorical data interpreting ``-1`` in `indices` as missing value markers, rather than the last element of the Series (:issue:`20664`)
+- Bug in :meth:``Series.take`` with categorical data interpreting ``-1`` in ``indices`` as missing value markers, rather than the last element of the Series (:issue:`20664`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1316,7 +1316,7 @@ Numeric
 
 Strings
 ^^^^^^^
-- Bug in :func:`Series.str.get` with a dictionary in the values and the index not in the keys, raising `KeyError` (:issue:`20671`)
+- Bug in :func:``Series.str.get`` with a dictionary in the values and the index not in the keys, raising ``KeyError`` (:issue:`20671`)
 
 
 Indexing
@@ -1369,7 +1369,7 @@ IO
 ^^
 
 - :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
-- :meth:`DataFrame.to_html` now has an option to add an id to the leading `<table>` tag (:issue:`8496`)
+- :meth:``DataFrame.to_html`` now has an option to add an id to the leading ``<table>`` tag (:issue:`8496`)
 - Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
 - Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
 - Bug in :func:`read_csv` where missing values were not being handled properly when ``keep_default_na=False`` with dictionary ``na_values`` (:issue:`19227`)
@@ -1378,7 +1378,7 @@ IO
 - Bug in :func:`DataFrame.to_latex()` where pairs of braces meant to serve as invisible placeholders were escaped (:issue:`18667`)
 - Bug in :func:`DataFrame.to_latex()` where a ``NaN`` in a ``MultiIndex`` would cause an ``IndexError`` or incorrect output (:issue:`14249`)
 - Bug in :func:`DataFrame.to_latex()` where a non-string index-level name would result in an ``AttributeError`` (:issue:`19981`)
-- Bug in :func:`DataFrame.to_latex()` where the combination of an index name and the `index_names=False` option would result in incorrect output (:issue:`18326`)
+- Bug in :func:`DataFrame.to_latex()` where the combination of an index name and the ``index_names=False`` option would result in incorrect output (:issue:`18326`)
 - Bug in :func:`DataFrame.to_latex()` where a ``MultiIndex`` with an empty string as its name would result in incorrect output (:issue:`18669`)
 - Bug in :func:`DataFrame.to_latex()` where missing space characters caused wrong escaping and produced non-valid latex in some cases (:issue:`20859`)
 - Bug in :func:`read_json` where large numeric values were causing an ``OverflowError`` (:issue:`18842`)
@@ -1412,7 +1412,7 @@ GroupBy/resample/rolling
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
 - Bug in :func:`DataFrame.groupby` where aggregation by ``first``/``last``/``min``/``max`` was causing timestamps to lose precision (:issue:`19526`)
 - Bug in :func:`DataFrame.transform` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
-- Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
+- Bug in :func:`DataFrame.groupby` passing the ``on=`` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
 - Bug in :func:`DataFrame.resample().aggregate <pandas.core.resample.Resampler.aggregate>` not raising a ``KeyError`` when aggregating a non-existent column (:issue:`16766`, :issue:`19566`)
 - Bug in :func:`DataFrameGroupBy.cumsum` and :func:`DataFrameGroupBy.cumprod` when ``skipna`` was passed (:issue:`19806`)
 - Bug in :func:`DataFrame.resample` that dropped timezone information (:issue:`13238`)

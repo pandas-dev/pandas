@@ -66,10 +66,10 @@ For example:
 
 .. _whatsnew_110.dataframe_or_series_comparing:
 
-Comparing two `DataFrame` or two `Series` and summarizing the differences
+Comparing two ``DataFrame`` or two ``Series`` and summarizing the differences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We've added :meth:`DataFrame.compare` and :meth:`Series.compare` for comparing two `DataFrame` or two `Series` (:issue:`30429`)
+We've added :meth:`DataFrame.compare` and :meth:`Series.compare` for comparing two ``DataFrame`` or two ``Series`` (:issue:`30429`)
 
 .. ipython:: python
 
@@ -116,10 +116,10 @@ compatibility (:issue:`3729`)
 
 .. ipython:: python
 
-    # Default `dropna` is set to True, which will exclude NaNs in keys
+    # Default ``dropna`` is set to True, which will exclude NaNs in keys
     df_dropna.groupby(by=["b"], dropna=True).sum()
 
-    # In order to allow NaN in keys, set `dropna` to False
+    # In order to allow NaN in keys, set ``dropna`` to False
     df_dropna.groupby(by=["b"], dropna=False).sum()
 
 The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.
@@ -155,8 +155,8 @@ method, we get
    s.sort_values(key=lambda x: x.str.lower())
 
 
-When applied to a `DataFrame`, they key is applied per-column to all columns or a subset if
-`by` is specified, e.g.
+When applied to a ``DataFrame``, they key is applied per-column to all columns or a subset if
+``by`` is specified, e.g.
 
 .. ipython:: python
 
@@ -217,7 +217,7 @@ Grouper and resample now supports the arguments origin and offset
 
 :class:`Grouper` and :meth:`DataFrame.resample` now supports the arguments ``origin`` and ``offset``. It let the user control the timestamp on which to adjust the grouping. (:issue:`31809`)
 
-The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divides a day (like `90s` or `1min`). But it can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can now specify a fixed timestamp with the argument ``origin``.
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like ``30D``) or that divides a day (like ``90s`` or ``1min``). But it can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can now specify a fixed timestamp with the argument ``origin``.
 
 Two arguments are now deprecated (more information in the documentation of :meth:`DataFrame.resample`):
 
@@ -289,7 +289,7 @@ Other enhancements
 - Added :meth:`api.extensions.ExtensionArray.argmax` and :meth:`api.extensions.ExtensionArray.argmin` (:issue:`24382`)
 - :func:`timedelta_range` will now infer a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
 - Positional slicing on a :class:`IntervalIndex` now supports slices with ``step > 1`` (:issue:`31658`)
-- :class:`Series.str` now has a `fullmatch` method that matches a regular expression against the entire string in each row of the :class:`Series`, similar to `re.fullmatch` (:issue:`32806`).
+- :class:`Series.str` now has a ``fullmatch`` method that matches a regular expression against the entire string in each row of the :class:`Series`, similar to ``re.fullmatch`` (:issue:`32806`).
 - :meth:`DataFrame.sample` will now also allow array-like and BitGenerator objects to be passed to ``random_state`` as seeds (:issue:`32503`)
 - :meth:`Index.union` will now raise ``RuntimeWarning`` for :class:`MultiIndex` objects if the object inside are unsortable. Pass ``sort=False`` to suppress this warning (:issue:`33015`)
 - Added :meth:`Series.dt.isocalendar` and :meth:`DatetimeIndex.isocalendar` that returns a :class:`DataFrame` with year, week, and day calculated according to the ISO 8601 calendar (:issue:`33206`, :issue:`34392`).
@@ -319,7 +319,7 @@ Other enhancements
   :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`,
   and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`26599`).
 - :meth:`HDFStore.put` now accepts a ``track_times`` parameter. This parameter is passed to the ``create_table`` method of ``PyTables`` (:issue:`32682`).
-- :meth:`Series.plot` and :meth:`DataFrame.plot` now accepts `xlabel` and `ylabel` parameters to present labels on x and y axis (:issue:`9093`).
+- :meth:`Series.plot` and :meth:`DataFrame.plot` now accepts ``xlabel`` and ``ylabel`` parameters to present labels on x and y axis (:issue:`9093`).
 - Made :class:`pandas.core.window.rolling.Rolling` and :class:`pandas.core.window.expanding.Expanding` iterable（:issue:`11704`)
 - Made ``option_context`` a :class:`contextlib.ContextDecorator`, which allows it to be used as a decorator over an entire function (:issue:`34253`).
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
@@ -340,7 +340,7 @@ Other enhancements
 - :class:`pandas.core.window.ExponentialMovingWindow` now supports a ``times`` argument that allows ``mean`` to be calculated with observations spaced by the timestamps in ``times`` (:issue:`34839`)
 - :meth:`DataFrame.agg` and :meth:`Series.agg` now accept named aggregation for renaming the output columns/indexes. (:issue:`26513`)
 - ``compute.use_numba`` now exists as a configuration option that utilizes the numba engine when available (:issue:`33966`, :issue:`35374`)
-- :meth:`Series.plot` now supports asymmetric error bars. Previously, if :meth:`Series.plot` received a "2xN" array with error values for `yerr` and/or `xerr`, the left/lower values (first row) were mirrored, while the right/upper values (second row) were ignored. Now, the first row represents the left/lower error values and the second row the right/upper error values. (:issue:`9536`)
+- :meth:`Series.plot` now supports asymmetric error bars. Previously, if :meth:`Series.plot` received a "2xN" array with error values for ``yerr`` and/or ``xerr``, the left/lower values (first row) were mirrored, while the right/upper values (second row) were ignored. Now, the first row represents the left/lower error values and the second row the right/upper error values. (:issue:`9536`)
 
 .. ---------------------------------------------------------------------------
 
