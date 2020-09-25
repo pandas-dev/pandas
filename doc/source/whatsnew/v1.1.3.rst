@@ -61,7 +61,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Reverted enhancement added in pandas-1.1.0 where :func:`timedelta_range` infers a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)
 
 .. ---------------------------------------------------------------------------
 
