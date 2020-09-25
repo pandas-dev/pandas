@@ -67,7 +67,7 @@ On DataFrame, :meth:`~DataFrame.plot` is a convenience to plot all of the column
    @savefig frame_plot_basic.png
    df.plot();
 
-You can plot one column versus another using the `x` and `y` keywords in
+You can plot one column versus another using the ``x`` and ``y`` keywords in
 :meth:`~DataFrame.plot`:
 
 .. ipython:: python
@@ -496,7 +496,7 @@ Area plot
 You can create area plots with :meth:`Series.plot.area` and :meth:`DataFrame.plot.area`.
 Area plots are stacked by default. To produce stacked area plot, each column must be either all positive or all negative values.
 
-When input data contains `NaN`, it will be automatically filled by 0. If you want to drop or fill by different values, use :func:`dataframe.dropna` or :func:`dataframe.fillna` before calling `plot`.
+When input data contains ``NaN``, it will be automatically filled by 0. If you want to drop or fill by different values, use :func:`dataframe.dropna` or :func:`dataframe.fillna` before calling ``plot``.
 
 .. ipython:: python
    :suppress:
@@ -1078,7 +1078,7 @@ layout and formatting of the returned plot:
 
    plt.close('all')
 
-For each kind of plot (e.g. `line`, `bar`, `scatter`) any additional arguments
+For each kind of plot (e.g. ``line``, ``bar``, ``scatter``) any additional arguments
 keywords are passed along to the corresponding matplotlib function
 (:meth:`ax.plot() <matplotlib.axes.Axes.plot>`,
 :meth:`ax.bar() <matplotlib.axes.Axes.bar>`,
@@ -1271,7 +1271,7 @@ Using the ``x_compat`` parameter, you can suppress this behavior:
    plt.close('all')
 
 If you have more than one plot that needs to be suppressed, the ``use`` method
-in ``pandas.plotting.plot_params`` can be used in a `with statement`:
+in ``pandas.plotting.plot_params`` can be used in a ``with statement``:
 
 .. ipython:: python
 
