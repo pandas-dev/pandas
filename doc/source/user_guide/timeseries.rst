@@ -1801,7 +1801,7 @@ See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 .. _timeseries.adjust-the-start-of-the-bins:
 
 Use ``origin`` or ``offset`` to adjust the start of the bins
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 1.1.0
 
