@@ -15,7 +15,7 @@ dependencies:
   - attrs=19.1.0
   - gcc_linux-32
   - gxx_linux-32
-  - numpy=1.14.*
+  - numpy=1.15.4
   - python-dateutil
   - pytz=2017.2
 
