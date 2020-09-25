@@ -5566,7 +5566,7 @@ avoid converting categorical columns into ``pd.Categorical``:
     df = pd.read_spss('spss_data.sav', usecols=['foo', 'bar'],
                       convert_categoricals=False)
 
-More information about the ``sav`` and ``zsav`` file format is available here_.
+More information about the SAV and ZSAV file formats is available here_.
 
 .. _here: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
 
