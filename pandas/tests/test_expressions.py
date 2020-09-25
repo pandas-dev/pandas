@@ -420,6 +420,8 @@ class TestExpressions:
             else:
                 scalar_result = result[i]
             try:
-                assert scalar_result == getattr(int(elem), op)(scalar)
+                expected = getattr(int(elem), op)(scalar)
             except ZeroDivisionError:
                 pass
+            else:
+                assert scalar_result == expected
