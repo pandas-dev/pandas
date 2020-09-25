@@ -318,6 +318,7 @@ class DataFrameInfo(BaseInfo):
         len_dtype = len(dtype_header)
         max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
         space_dtype = max(len_dtype, max_dtypes)
+
         header = "".join(
             [
                 _put_str(id_head, space_num),
@@ -326,14 +327,17 @@ class DataFrameInfo(BaseInfo):
                 _put_str(dtype_header, space_dtype),
             ]
         )
-
         lines.append(header)
-        lines.append(
-            _put_str("-" * len_id, space_num)
-            + _put_str("-" * len_column, space)
-            + _put_str("-" * len_count, space_count)
-            + _put_str("-" * len_dtype, space_dtype)
+
+        top_separator = "".join(
+            [
+                _put_str("-" * len_id, space_num),
+                _put_str("-" * len_column, space),
+                _put_str("-" * len_count, space_count),
+                _put_str("-" * len_dtype, space_dtype),
+            ]
         )
+        lines.append(top_separator)
 
         for i, col in enumerate(ids):
             dtype = dtypes[i]
