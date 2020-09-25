@@ -872,8 +872,12 @@ class TestMisc:
         # GH 32431
         df = pd.Series([1, "{1,2}", 1, None])
         vc = df.value_counts(dropna=False)
-        print(vc.loc[np.nan])
-        print(vc[np.nan])
+        result1 = vc.loc[np.nan]
+        result2 = vc[np.nan]
+
+        expected = 1
+        assert result1 == expected
+        assert result2 == expected
 
 
 class TestSeriesNoneCoercion:
