@@ -6,6 +6,7 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 from collections import defaultdict
 from functools import partial
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -26,7 +27,9 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-from pandas.core.series import Series
+
+if TYPE_CHECKING:
+    from pandas.core.series import Series
 
 
 def reconstruct_func(
@@ -281,7 +284,7 @@ def relabel_result(
     func: Dict[str, List[Union[Callable, str]]],
     columns: Iterable[Label],
     order: Iterable[int],
-) -> Dict[Label, Series]:
+) -> Dict[Label, "Series"]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -308,10 +311,10 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, Series] = {}
+    reordered_result_in_dict: Dict[Label, "Series"] = {}
     idx = 0
 
-    reorder_mask = not isinstance(result, Series) and len(result.columns) > 1
+    reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
     for col, fun in func.items():
         s = result[col].dropna()
 
@@ -387,7 +390,7 @@ def validate_func_kwargs(
 
 
 def transform(
-    obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs,
+    obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs
 ) -> FrameOrSeries:
     """
     Transform a DataFrame or Series
