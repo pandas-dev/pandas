@@ -23,11 +23,11 @@
                     <div class="card-body">
                         <p class="card-text">
 
-For this tutorial, air quality data about :math:`NO_2` is used, made available by
-`openaq <https://openaq.org>`__ and downloaded using the
-`py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
+For this tutorial, air quality data about :math:``NO_2`` is used, made available by
+``openaq <https://openaq.org>``__ and downloaded using the
+``py-openaq <http://dhhagan.github.io/py-openaq/index.html>``__ package.
 
-The ``air_quality_no2_long.csv`` data set provides :math:`NO_2`
+The ``air_quality_no2_long.csv`` data set provides :math:``NO_2``
 values for the measurement stations *FR04014*, *BETR801* and *London
 Westminster* in respectively Paris, Antwerp and London.
 
@@ -59,10 +59,10 @@ Westminster* in respectively Paris, Antwerp and London.
 
 For this tutorial, air quality data about Particulate
 matter less than 2.5 micrometers is used, made available by
-`openaq <https://openaq.org>`__ and downloaded using the
-`py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
+``openaq <https://openaq.org>``__ and downloaded using the
+``py-openaq <http://dhhagan.github.io/py-openaq/index.html>``__ package.
 
-The ``air_quality_pm25_long.csv`` data set provides :math:`PM_{25}`
+The ``air_quality_pm25_long.csv`` data set provides :math:``PM_{25}``
 values for the measurement stations *FR04014*, *BETR801* and *London
 Westminster* in respectively Paris, Antwerp and London.
 
@@ -102,14 +102,14 @@ Concatenating objects
     <ul class="task-bullet">
         <li>
 
-I want to combine the measurements of :math:`NO_2` and :math:`PM_{25}`, two tables with a similar structure, in a single table
+I want to combine the measurements of :math:``NO_2`` and :math:``PM_{25}``, two tables with a similar structure, in a single table
 
 .. ipython:: python
 
     air_quality = pd.concat([air_quality_pm25, air_quality_no2], axis=0)
     air_quality.head()
 
-The :func:`~pandas.concat` function performs concatenation operations of multiple
+The :func:``~pandas.concat`` function performs concatenation operations of multiple
 tables along one of the axis (row-wise or column-wise).
 
 .. raw:: html
@@ -123,9 +123,9 @@ concatenated tables to verify the operation:
 
 .. ipython:: python
 
-    print('Shape of the `air_quality_pm25` table: ', air_quality_pm25.shape)
-    print('Shape of the `air_quality_no2` table: ', air_quality_no2.shape)
-    print('Shape of the resulting `air_quality` table: ', air_quality.shape)
+    print('Shape of the ``air_quality_pm25`` table: ', air_quality_pm25.shape)
+    print('Shape of the ``air_quality_no2`` table: ', air_quality_no2.shape)
+    print('Shape of the resulting ``air_quality`` table: ', air_quality.shape)
 
 Hence, the resulting table has 3178 = 1110 + 2068 rows.
 
@@ -178,7 +178,7 @@ index. For example:
         <div class="d-flex flex-row  gs-torefguide">
             <span class="badge badge-info">To user guide</span>
 
-    Feel free to dive into the world of multi-indexing at the user guide section on :ref:`advanced indexing <advanced>`.
+    Feel free to dive into the world of multi-indexing at the user guide section on :ref:``advanced indexing <advanced>``.
 
     .. raw:: html
 
@@ -192,7 +192,7 @@ index. For example:
 More options on table concatenation (row and column
 wise) and how ``concat`` can be used to define the logic (union or
 intersection) of the indexes on the other axes is provided at the section on
-:ref:`object concatenation <merging.concat>`.
+:ref:``object concatenation <merging.concat>``.
 
 .. raw:: html
 
@@ -214,7 +214,7 @@ Add the station coordinates, provided by the stations metadata table, to the cor
 .. warning::
     The air quality measurement station coordinates are stored in a data
     file ``air_quality_stations.csv``, downloaded using the
-    `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
+    ``py-openaq <http://dhhagan.github.io/py-openaq/index.html>``__ package.
 
 .. ipython:: python
 
@@ -237,7 +237,7 @@ Add the station coordinates, provided by the stations metadata table, to the cor
                            how='left', on='location')
     air_quality.head()
 
-Using the :meth:`~pandas.merge` function, for each of the rows in the
+Using the :meth:``~pandas.merge`` function, for each of the rows in the
 ``air_quality`` table, the corresponding coordinates are added from the
 ``air_quality_stations_coord`` table. Both tables have the column
 ``location`` in common which is used as a key to combine the
@@ -261,7 +261,7 @@ Add the parameter full description and name, provided by the parameters metadata
 .. warning::
     The air quality parameters metadata are stored in a data file
     ``air_quality_parameters.csv``, downloaded using the
-    `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
+    ``py-openaq <http://dhhagan.github.io/py-openaq/index.html>``__ package.
 
 .. ipython:: python
 
@@ -293,8 +293,8 @@ between the two tables.
 
 pandas supports also inner, outer, and right joins.
 More information on join/merge of tables is provided in the user guide section on
-:ref:`database style merging of tables <merging.join>`. Or have a look at the
-:ref:`comparison with SQL<compare_with_sql.join>` page.
+:ref:``database style merging of tables <merging.join>``. Or have a look at the
+:ref:``comparison with SQL<compare_with_sql.join>`` page.
 
 .. raw:: html
 
@@ -319,7 +319,7 @@ More information on join/merge of tables is provided in the user guide section o
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-See the user guide for a full description of the various :ref:`facilities to combine data tables <merging>`.
+See the user guide for a full description of the various :ref:``facilities to combine data tables <merging>``.
 
 .. raw:: html
 

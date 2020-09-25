@@ -16,9 +16,9 @@ Registering custom accessors
 ----------------------------
 
 Libraries can use the decorators
-:func:`pandas.api.extensions.register_dataframe_accessor`,
-:func:`pandas.api.extensions.register_series_accessor`, and
-:func:`pandas.api.extensions.register_index_accessor`, to add additional
+:func:``pandas.api.extensions.register_dataframe_accessor``,
+:func:``pandas.api.extensions.register_series_accessor``, and
+:func:``pandas.api.extensions.register_index_accessor``, to add additional
 "namespaces" to pandas objects. All of these follow a similar convention: you
 decorate a class, providing the name of attribute to add. The class's
 ``__init__`` method gets the object being decorated. For example:
@@ -59,9 +59,9 @@ Now users can access your methods using the ``geo`` namespace:
 
 This can be a convenient way to extend pandas objects without subclassing them.
 If you write a custom accessor, make a pull request adding it to our
-:ref:`ecosystem` page.
+:ref:``ecosystem`` page.
 
-We highly recommend validating the data in your accessor's `__init__`.
+We highly recommend validating the data in your accessor's ``__init__``.
 In our ``GeoAccessor``, we validate that the data contains the expected columns,
 raising an ``AttributeError`` when the validation fails.
 For a ``Series`` accessor, you should validate the ``dtype`` if the accessor
@@ -75,7 +75,7 @@ Extension types
 
 .. warning::
 
-   The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs are new and
+   The :class:``pandas.api.extensions.ExtensionDtype`` and :class:``pandas.api.extensions.ExtensionArray`` APIs are new and
    experimental. They may change between versions without warning.
 
 pandas defines an interface for implementing data types and arrays that *extend*
@@ -85,35 +85,35 @@ timezone).
 
 Libraries can define a custom array and data type. When pandas encounters these
 objects, they will be handled properly (i.e. not converted to an ndarray of
-objects). Many methods like :func:`pandas.isna` will dispatch to the extension
+objects). Many methods like :func:``pandas.isna`` will dispatch to the extension
 type's implementation.
 
 If you're building a library that implements the interface, please publicize it
-on :ref:`ecosystem.extensions`.
+on :ref:``ecosystem.extensions``.
 
 The interface consists of two classes.
 
-:class:`~pandas.api.extensions.ExtensionDtype`
+:class:``~pandas.api.extensions.ExtensionDtype``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A :class:`pandas.api.extensions.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
+A :class:``pandas.api.extensions.ExtensionDtype`` is similar to a ``numpy.dtype`` object. It describes the
 data type. Implementors are responsible for a few unique items like the name.
 
 One particularly important item is the ``type`` property. This should be the
 class that is the scalar type for your data. For example, if you were writing an
 extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
-See the `extension dtype source`_ for interface definition.
+See the ``extension dtype source``_ for interface definition.
 
 .. versionadded:: 0.24.0
 
-:class:`pandas.api.extension.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
+:class:``pandas.api.extension.ExtensionDtype`` can be registered to pandas to allow creation via a string dtype name.
 This allows one to instantiate ``Series`` and ``.astype()`` with a registered string name, for
 example ``'category'`` is a registered string accessor for the ``CategoricalDtype``.
 
-See the `extension dtype dtypes`_ for more on how to register dtypes.
+See the ``extension dtype dtypes``_ for more on how to register dtypes.
 
-:class:`~pandas.api.extensions.ExtensionArray`
+:class:``~pandas.api.extensions.ExtensionArray``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This class provides all the array-like functionality. ExtensionArrays are
@@ -132,17 +132,17 @@ be backed by a NumPy structured array with two fields, one for the
 lower 64 bits and one for the upper 64 bits. Or they may be backed
 by some other storage type, like Python lists.
 
-See the `extension array source`_ for the interface definition. The docstrings
+See the ``extension array source``_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
 
 .. _extending.extension.operator:
 
-:class:`~pandas.api.extensions.ExtensionArray` operator support
+:class:``~pandas.api.extensions.ExtensionArray`` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. versionadded:: 0.24.0
 
-By default, there are no operators defined for the class :class:`~pandas.api.extensions.ExtensionArray`.
+By default, there are no operators defined for the class :class:``~pandas.api.extensions.ExtensionArray``.
 There are two approaches for providing operator support for your ExtensionArray:
 
 1. Define each of the operators on your ``ExtensionArray`` subclass.
@@ -165,11 +165,11 @@ of the class ``MyExtensionElement``, then if the operators are defined
 for ``MyExtensionElement``, the second approach will automatically
 define the operators for ``MyExtensionArray``.
 
-A mixin class, :class:`~pandas.api.extensions.ExtensionScalarOpsMixin` supports this second
+A mixin class, :class:``~pandas.api.extensions.ExtensionScalarOpsMixin`` supports this second
 approach.  If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
 can simply include ``ExtensionScalarOpsMixin`` as a parent class of ``MyExtensionArray``,
-and then call the methods :meth:`~MyExtensionArray._add_arithmetic_ops` and/or
-:meth:`~MyExtensionArray._add_comparison_ops` to hook the operators into
+and then call the methods :meth:``~MyExtensionArray._add_arithmetic_ops`` and/or
+:meth:``~MyExtensionArray._add_comparison_ops`` to hook the operators into
 your ``MyExtensionArray`` class, as follows:
 
 .. code-block:: python
@@ -211,17 +211,17 @@ will
 NumPy universal functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`Series` implements ``__array_ufunc__``. As part of the implementation,
-pandas unboxes the ``ExtensionArray`` from the :class:`Series`, applies the ufunc,
+:class:``Series`` implements ``__array_ufunc__``. As part of the implementation,
+pandas unboxes the ``ExtensionArray`` from the :class:``Series``, applies the ufunc,
 and re-boxes it if necessary.
 
 If applicable, we highly recommend that you implement ``__array_ufunc__`` in your
 extension array to avoid coercion to an ndarray. See
-`the numpy documentation <https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
+``the numpy documentation <https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>``__
 for an example.
 
 As part of your implementation, we require that you defer to pandas when a pandas
-container (:class:`Series`, :class:`DataFrame`, :class:`Index`) is detected in ``inputs``.
+container (:class:``Series``, :class:``DataFrame``, :class:``Index``) is detected in ``inputs``.
 If any of those is present, you should return ``NotImplemented``. pandas will take care of
 unboxing the array from the container and re-calling the ufunc with the unwrapped input.
 
@@ -286,7 +286,7 @@ appropriate pandas ``ExtensionArray`` for this dtype and the passed values:
         def __from_arrow__(self, array: pyarrow.Array/ChunkedArray) -> ExtensionArray:
             ...
 
-See more in the `Arrow documentation <https://arrow.apache.org/docs/python/extending_types.html>`__.
+See more in the ``Arrow documentation <https://arrow.apache.org/docs/python/extending_types.html>``__.
 
 Those methods have been implemented for the nullable integer and string extension
 dtypes included in pandas, and ensure roundtrip to pyarrow and the Parquet file format.
@@ -302,13 +302,13 @@ Subclassing pandas data structures
 
 .. warning:: There are some easier alternatives before considering subclassing ``pandas`` data structures.
 
-  1. Extensible method chains with :ref:`pipe <basics.pipe>`
+  1. Extensible method chains with :ref:``pipe <basics.pipe>``
 
-  2. Use *composition*. See `here <https://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
+  2. Use *composition*. See ``here <https://en.wikipedia.org/wiki/Composition_over_inheritance>``_.
 
-  3. Extending by :ref:`registering an accessor <extending.register-accessors>`
+  3. Extending by :ref:``registering an accessor <extending.register-accessors>``
 
-  4. Extending by :ref:`extension type <extending.extension-types>`
+  4. Extending by :ref:``extension type <extending.extension-types>``
 
 This section describes how to subclass ``pandas`` data structures to meet more specific needs. There are two points that need attention:
 
@@ -317,7 +317,7 @@ This section describes how to subclass ``pandas`` data structures to meet more s
 
 .. note::
 
-   You can find a nice example in `geopandas <https://github.com/geopandas/geopandas>`_ project.
+   You can find a nice example in ``geopandas <https://github.com/geopandas/geopandas>``_ project.
 
 Override constructor properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -481,7 +481,7 @@ This would be more or less equivalent to:
 The backend module can then use other visualization tools (Bokeh, Altair,...)
 to generate the plots.
 
-Libraries implementing the plotting backend should use `entry points <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>`__
+Libraries implementing the plotting backend should use ``entry points <https://setuptools.readthedocs.io/en/latest/setuptools.html#dynamic-discovery-of-services-and-plugins>``__
 to make their backend discoverable to pandas. The key is ``"pandas_plotting_backends"``. For example, pandas
 registers the default "matplotlib" backend as follows.
 

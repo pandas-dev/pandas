@@ -102,7 +102,7 @@ What is the median age and ticket fare price of the Titanic passengers?
     titanic[["Age", "Fare"]].median()
 
 The statistic applied to multiple columns of a ``DataFrame`` (the selection of two columns
-return a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>`) is calculated for each numeric column.
+return a ``DataFrame``, see the :ref:``subset data tutorial <10min_tut_03_subset>``) is calculated for each numeric column.
 
 .. raw:: html
 
@@ -110,7 +110,7 @@ return a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>
     </ul>
 
 The aggregating statistic can be calculated for multiple columns at the
-same time. Remember the ``describe`` function from :ref:`first tutorial <10min_tut_01_tableoriented>` tutorial?
+same time. Remember the ``describe`` function from :ref:``first tutorial <10min_tut_01_tableoriented>`` tutorial?
 
 .. ipython:: python
 
@@ -118,7 +118,7 @@ same time. Remember the ``describe`` function from :ref:`first tutorial <10min_t
 
 Instead of the predefined statistics, specific combinations of
 aggregating statistics for given columns can be defined using the
-:func:`DataFrame.agg` method:
+:func:``DataFrame.agg`` method:
 
 .. ipython:: python
 
@@ -130,7 +130,7 @@ aggregating statistics for given columns can be defined using the
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Details about descriptive statistics are provided in the user guide section on :ref:`descriptive statistics <basics.stats>`.
+Details about descriptive statistics are provided in the user guide section on :ref:``descriptive statistics <basics.stats>``.
 
 .. raw:: html
 
@@ -156,7 +156,7 @@ What is the average age for male versus female Titanic passengers?
 
 As our interest is the average age for each gender, a subselection on
 these two columns is made first: ``titanic[["Sex", "Age"]]``. Next, the
-:meth:`~DataFrame.groupby` method is applied on the ``Sex`` column to make a group per
+:meth:``~DataFrame.groupby`` method is applied on the ``Sex`` column to make a group per
 category. The average age *for each gender* is calculated and
 returned.
 
@@ -197,12 +197,12 @@ on the grouped data as well:
    :align: center
 
 .. note::
-    The `Pclass` column contains numerical data but actually
+    The ``Pclass`` column contains numerical data but actually
     represents 3 categories (or factors) with respectively the labels ‘1’,
     ‘2’ and ‘3’. Calculating statistics on these does not make much sense.
     Therefore, pandas provides a ``Categorical`` data type to handle this
     type of data. More information is provided in the user guide
-    :ref:`categorical` section.
+    :ref:``categorical`` section.
 
 .. raw:: html
 
@@ -216,7 +216,7 @@ What is the mean ticket fare price for each of the sex and cabin class combinati
     titanic.groupby(["Sex", "Pclass"])["Fare"].mean()
 
 Grouping can be done by multiple columns at the same time. Provide the
-column names as a list to the :meth:`~DataFrame.groupby` method.
+column names as a list to the :meth:``~DataFrame.groupby`` method.
 
 .. raw:: html
 
@@ -228,7 +228,7 @@ column names as a list to the :meth:`~DataFrame.groupby` method.
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-A full description on the split-apply-combine approach is provided in the user guide section on :ref:`groupby operations <groupby>`.
+A full description on the split-apply-combine approach is provided in the user guide section on :ref:``groupby operations <groupby>``.
 
 .. raw:: html
 
@@ -251,7 +251,7 @@ What is the number of passengers in each of the cabin classes?
 
     titanic["Pclass"].value_counts()
 
-The :meth:`~Series.value_counts` method counts the number of records for each
+The :meth:``~Series.value_counts`` method counts the number of records for each
 category in a column.
 
 .. raw:: html
@@ -278,7 +278,7 @@ within each group:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-The user guide has a dedicated section on ``value_counts`` , see page on :ref:`discretization <basics.discretization>`.
+The user guide has a dedicated section on ``value_counts`` , see page on :ref:``discretization <basics.discretization>``.
 
 .. raw:: html
 
@@ -303,7 +303,7 @@ The user guide has a dedicated section on ``value_counts`` , see page on :ref:`d
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-A full description on the split-apply-combine approach is provided in the user guide pages about :ref:`groupby operations <groupby>`.
+A full description on the split-apply-combine approach is provided in the user guide pages about :ref:``groupby operations <groupby>``.
 
 .. raw:: html
 

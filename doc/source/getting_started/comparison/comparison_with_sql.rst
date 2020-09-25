@@ -5,10 +5,10 @@
 Comparison with SQL
 ********************
 Since many potential pandas users have some familiarity with
-`SQL <https://en.wikipedia.org/wiki/SQL>`_, this page is meant to provide some examples of how
+``SQL <https://en.wikipedia.org/wiki/SQL>``_, this page is meant to provide some examples of how
 various SQL operations would be performed using pandas.
 
-If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
+If you're new to pandas, you might want to first read through :ref:``10 Minutes to pandas<10min>``
 to familiarize yourself with the library.
 
 As is customary, we import pandas and NumPy as follows:
@@ -19,7 +19,7 @@ As is customary, we import pandas and NumPy as follows:
     import numpy as np
 
 Most of the examples will utilize the ``tips`` dataset found within pandas tests.  We'll read
-the data into a DataFrame called `tips` and assume we have a database table of the same name and
+the data into a DataFrame called ``tips`` and assume we have a database table of the same name and
 structure.
 
 .. ipython:: python
@@ -57,7 +57,7 @@ In SQL, you can add a calculated column:
     FROM tips
     LIMIT 5;
 
-With pandas, you can use the :meth:`DataFrame.assign` method of a DataFrame to append a new column:
+With pandas, you can use the :meth:``DataFrame.assign`` method of a DataFrame to append a new column:
 
 .. ipython:: python
 
@@ -75,7 +75,7 @@ Filtering in SQL is done via a WHERE clause.
     LIMIT 5;
 
 DataFrames can be filtered in multiple ways; the most intuitive of which is using
-:ref:`boolean indexing <indexing.boolean>`
+:ref:``boolean indexing <indexing.boolean>``
 
 .. ipython:: python
 
@@ -117,7 +117,7 @@ Just like SQL's OR and AND, multiple conditions can be passed to a DataFrame usi
     # tips by parties of at least 5 diners OR bill total was more than $45
     tips[(tips['size'] >= 5) | (tips['total_bill'] > 45)]
 
-NULL checking is done using the :meth:`~pandas.Series.notna` and :meth:`~pandas.Series.isna`
+NULL checking is done using the :meth:``~pandas.Series.notna`` and :meth:``~pandas.Series.isna``
 methods.
 
 .. ipython:: python
@@ -139,7 +139,7 @@ where ``col2`` IS NULL with the following query:
 
     frame[frame['col2'].isna()]
 
-Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.notna`.
+Getting items where ``col1`` IS NOT NULL can be done with :meth:``~pandas.Series.notna``.
 
 .. code-block:: sql
 
@@ -155,7 +155,7 @@ Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.
 GROUP BY
 --------
 In pandas, SQL's GROUP BY operations are performed using the similarly named
-:meth:`~pandas.DataFrame.groupby` method. :meth:`~pandas.DataFrame.groupby` typically refers to a
+:meth:``~pandas.DataFrame.groupby`` method. :meth:``~pandas.DataFrame.groupby`` typically refers to a
 process where we'd like to split a dataset into groups, apply some function (typically aggregation)
 , and then combine the groups together.
 
@@ -179,16 +179,16 @@ The pandas equivalent would be:
 
     tips.groupby('sex').size()
 
-Notice that in the pandas code we used :meth:`~pandas.core.groupby.DataFrameGroupBy.size` and not
-:meth:`~pandas.core.groupby.DataFrameGroupBy.count`. This is because
-:meth:`~pandas.core.groupby.DataFrameGroupBy.count` applies the function to each column, returning
+Notice that in the pandas code we used :meth:``~pandas.core.groupby.DataFrameGroupBy.size`` and not
+:meth:``~pandas.core.groupby.DataFrameGroupBy.count``. This is because
+:meth:``~pandas.core.groupby.DataFrameGroupBy.count`` applies the function to each column, returning
 the number of ``not null`` records within each.
 
 .. ipython:: python
 
     tips.groupby('sex').count()
 
-Alternatively, we could have applied the :meth:`~pandas.core.groupby.DataFrameGroupBy.count` method
+Alternatively, we could have applied the :meth:``~pandas.core.groupby.DataFrameGroupBy.count`` method
 to an individual column:
 
 .. ipython:: python
@@ -196,7 +196,7 @@ to an individual column:
     tips.groupby('sex')['total_bill'].count()
 
 Multiple functions can also be applied at once. For instance, say we'd like to see how tip amount
-differs by day of the week - :meth:`~pandas.core.groupby.DataFrameGroupBy.agg` allows you to pass a dictionary
+differs by day of the week - :meth:``~pandas.core.groupby.DataFrameGroupBy.agg`` allows you to pass a dictionary
 to your grouped DataFrame, indicating which functions to apply to specific columns.
 
 .. code-block:: sql
@@ -216,7 +216,7 @@ to your grouped DataFrame, indicating which functions to apply to specific colum
     tips.groupby('day').agg({'tip': np.mean, 'day': np.size})
 
 Grouping by more than one column is done by passing a list of columns to the
-:meth:`~pandas.DataFrame.groupby` method.
+:meth:``~pandas.DataFrame.groupby`` method.
 
 .. code-block:: sql
 
@@ -243,8 +243,8 @@ Grouping by more than one column is done by passing a list of columns to the
 
 JOIN
 ----
-JOINs can be performed with :meth:`~pandas.DataFrame.join` or :meth:`~pandas.merge`. By default,
-:meth:`~pandas.DataFrame.join` will join the DataFrames on their indices. Each method has
+JOINs can be performed with :meth:``~pandas.DataFrame.join`` or :meth:``~pandas.merge``. By default,
+:meth:``~pandas.DataFrame.join`` will join the DataFrames on their indices. Each method has
 parameters allowing you to specify the type of join to perform (LEFT, RIGHT, INNER, FULL) or the
 columns to join on (column names or indices).
 
@@ -273,7 +273,7 @@ INNER JOIN
     # merge performs an INNER JOIN by default
     pd.merge(df1, df2, on='key')
 
-:meth:`~pandas.merge` also offers parameters for cases when you'd like to join one DataFrame's
+:meth:``~pandas.merge`` also offers parameters for cases when you'd like to join one DataFrame's
 column with another DataFrame's index.
 
 .. ipython:: python
@@ -332,7 +332,7 @@ joined columns find a match. As of writing, FULL JOINs are not supported in all 
 
 UNION
 -----
-UNION ALL can be performed using :meth:`~pandas.concat`.
+UNION ALL can be performed using :meth:``~pandas.concat``.
 
 .. ipython:: python
 
@@ -381,8 +381,8 @@ SQL's UNION is similar to UNION ALL, however UNION will remove duplicate rows.
       Los Angeles     5
     */
 
-In pandas, you can use :meth:`~pandas.concat` in conjunction with
-:meth:`~pandas.DataFrame.drop_duplicates`.
+In pandas, you can use :meth:``~pandas.concat`` in conjunction with
+:meth:``~pandas.DataFrame.drop_duplicates``.
 
 .. ipython:: python
 
@@ -429,7 +429,7 @@ Top n rows per group
          .query('rn < 3')
          .sort_values(['day', 'rn']))
 
-the same using `rank(method='first')` function
+the same using ``rank(method='first')`` function
 
 .. ipython:: python
 
@@ -453,7 +453,7 @@ the same using `rank(method='first')` function
 
 Let's find tips with (rank < 3) per gender group for (tips < 2).
 Notice that when using ``rank(method='min')`` function
-`rnk_min` remains the same for the same `tip`
+``rnk_min`` remains the same for the same ``tip``
 (as Oracle's RANK() function)
 
 .. ipython:: python
