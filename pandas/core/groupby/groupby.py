@@ -37,7 +37,14 @@ from pandas._config.config import option_context
 
 from pandas._libs import Timestamp, lib
 import pandas._libs.groupby as libgroupby
-from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Label, Scalar
+from pandas._typing import (
+    F,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    IndexLabel,
+    Label,
+    Scalar,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -67,6 +74,8 @@ from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
+
+from pandas.io.formats.printing import PrettyDict
 
 _common_see_also = """
         See Also
@@ -487,10 +496,10 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         obj: FrameOrSeries,
         keys: Optional[_KeysArgType] = None,
         axis: int = 0,
-        level=None,
+        level: Optional[IndexLabel] = None,
         grouper: Optional["ops.BaseGrouper"] = None,
         exclusions: Optional[Set[Label]] = None,
-        selection=None,
+        selection: Optional[IndexLabel] = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
@@ -499,7 +508,6 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         mutated: bool = False,
         dropna: bool = True,
     ):
-
         self._selection = selection
 
         assert isinstance(obj, NDFrame), type(obj)
@@ -547,7 +555,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         # TODO: Better repr for GroupBy object
         return object.__repr__(self)
 
-    def _assure_grouper(self):
+    def _assure_grouper(self) -> None:
         """
         We create the grouper on instantiation sub-classes may have a
         different policy.
@@ -555,7 +563,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         pass
 
     @property
-    def groups(self):
+    def groups(self) -> PrettyDict[Hashable, np.ndarray]:
         """
         Dict {group name -> group labels}.
         """
