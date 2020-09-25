@@ -3373,8 +3373,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         The object has called back to us saying maybe it has changed.
         """
-        loc = self._info_axis.get_loc(item)
-        self._mgr.iset(loc, value)
+        try:
+            loc = self._info_axis.get_loc(item)
+        except KeyError:
+            pass
+        else:
+            self._mgr.iset(loc, value)
 
     @property
     def _is_cached(self) -> bool_t:
