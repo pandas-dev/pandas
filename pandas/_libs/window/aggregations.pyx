@@ -356,7 +356,7 @@ cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
             result = 0
         else:
             result = ssqdm_x / (nobs - <float64_t>ddof)
-            if result < 0:
+            if result < 1e-15:
                 result = 0
     else:
         result = NaN
