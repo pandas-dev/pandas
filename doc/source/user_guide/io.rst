@@ -5543,7 +5543,7 @@ SPSS formats
 .. versionadded:: 0.25.0
 
 The top-level function :func:`read_spss` can read (but not write) SPSS
-``sav`` (.sav) and  ``zsav`` (.zsav) format files.
+SAV (.sav) and  ZSAV (.zsav) format files.
 
 SPSS files contain column names. By default the
 whole file is read, categorical columns are converted into ``pd.Categorical``,
