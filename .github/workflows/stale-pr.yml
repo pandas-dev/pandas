@@ -11,7 +11,7 @@ jobs:
     - uses: actions/stale@v3
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        stale-pr-message: "This pull request is stale because it has been open for thirty days with no activity. Please update or response to this comment if you're still interested in working on this."
+        stale-pr-message: "This pull request is stale because it has been open for thirty days with no activity. Please update or respond to this comment if you're still interested in working on this."
         skip-stale-pr-message: false
         stale-pr-label: "Stale"
         exempt-pr-labels: "Needs Review,Blocked,Needs Discussion"
