@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
+import warnings
 
 import numpy as np
 
 from pandas._config.config import option_context
 
-from pandas._libs.indexing import _NDFrameIndexerBase
+from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc
@@ -22,7 +23,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
-from pandas.core.dtypes.missing import _infer_fill_value, isna
+from pandas.core.dtypes.missing import infer_fill_value, isna
 
 import pandas.core.common as com
 from pandas.core.construction import array as pd_array
@@ -34,7 +35,7 @@ from pandas.core.indexers import (
 from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:
-    from pandas import DataFrame  # noqa:F401
+    from pandas import DataFrame, Series  # noqa:F401
 
 # "null slice"
 _NS = slice(None, None)
@@ -59,7 +60,7 @@ class _IndexSlice:
     >>> midx = pd.MultiIndex.from_product([['A0','A1'], ['B0','B1','B2','B3']])
     >>> columns = ['foo', 'bar']
     >>> dfmi = pd.DataFrame(np.arange(16).reshape((len(midx), len(columns))),
-                            index=midx, columns=columns)
+    ...                     index=midx, columns=columns)
 
     Using the default slice command:
 
@@ -255,6 +256,8 @@ class IndexingMixin:
 
         - A boolean array of the same length as the axis being sliced,
           e.g. ``[True, False, True]``.
+        - An alignable boolean Series. The index of the key will be aligned before
+          masking.
         - A ``callable`` function with one argument (the calling Series or
           DataFrame) and that returns valid output for indexing (one of the above)
 
@@ -264,6 +267,8 @@ class IndexingMixin:
         ------
         KeyError
             If any items are not found.
+        IndexingError
+            If an indexed key is passed and its index is unalignable to the frame index.
 
         See Also
         --------
@@ -316,6 +321,13 @@ class IndexingMixin:
         Boolean list with the same length as the row axis
 
         >>> df.loc[[False, False, True]]
+                    max_speed  shield
+        sidewinder          7       8
+
+        Alignable boolean Series:
+
+        >>> df.loc[pd.Series([False, True, False],
+        ...        index=['viper', 'sidewinder', 'cobra'])]
                     max_speed  shield
         sidewinder          7       8
 
@@ -572,7 +584,7 @@ class IndexingMixin:
         return _iAtIndexer("iat", self)
 
 
-class _LocationIndexer(_NDFrameIndexerBase):
+class _LocationIndexer(NDFrameIndexerBase):
     _valid_types: str
     axis = None
 
@@ -1245,7 +1257,7 @@ class _LocIndexer(_LocationIndexer):
             )
             return ax[indexer], indexer
 
-        if ax.is_unique and not getattr(ax, "is_overlapping", False):
+        if ax._index_as_unique:
             indexer = ax.get_indexer_for(keyarr)
             keyarr = ax.reindex(keyarr)[0]
         else:
@@ -1532,13 +1544,10 @@ class _iLocIndexer(_LocationIndexer):
         since it goes from positional indexers back to labels when calling
         BlockManager methods, see GH#12991, GH#22046, GH#15686.
         """
-
-        # also has the side effect of consolidating in-place
-        from pandas import Series
-
         info_axis = self.obj._info_axis_number
 
         # maybe partial set
+        # _is_mixed_type has the side effect of consolidating in-place
         take_split_path = self.obj._is_mixed_type
 
         # if there is only one block/type, still have to take split path
@@ -1593,7 +1602,7 @@ class _iLocIndexer(_LocationIndexer):
                             return
 
                         # add a new item with the dtype setup
-                        self.obj[key] = _infer_fill_value(value)
+                        self.obj[key] = infer_fill_value(value)
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
@@ -1631,6 +1640,8 @@ class _iLocIndexer(_LocationIndexer):
 
         # align and set the values
         if take_split_path:
+            # We have to operate column-wise
+
             # Above we only set take_split_path to True for 2D cases
             assert self.ndim == 2
             assert info_axis == 1
@@ -1671,29 +1682,6 @@ class _iLocIndexer(_LocationIndexer):
 
             pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
 
-            def isetter(loc, v):
-                # positional setting on column loc
-                ser = self.obj._ixs(loc, axis=1)
-
-                # perform the equivalent of a setitem on the info axis
-                # as we have a null slice or a slice with full bounds
-                # which means essentially reassign to the columns of a
-                # multi-dim object
-                # GH6149 (null slice), GH10408 (full bounds)
-                if isinstance(pi, tuple) and all(
-                    com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
-                    for idx in pi
-                ):
-                    ser = v
-                else:
-                    # set the item, possibly having a dtype change
-                    ser = ser.copy()
-                    ser._mgr = ser._mgr.setitem(indexer=pi, value=v)
-                    ser._maybe_update_cacher(clear=True)
-
-                # reset the sliced object if unique
-                self.obj._iset_item(loc, ser)
-
             # we need an iterable, with a ndim of at least 1
             # eg. don't pass through np.array(0)
             if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
@@ -1703,18 +1691,42 @@ class _iLocIndexer(_LocationIndexer):
                     sub_indexer = list(indexer)
                     multiindex_indexer = isinstance(labels, ABCMultiIndex)
                     # TODO: we are implicitly assuming value.columns is unique
+                    unique_cols = value.columns.is_unique
 
-                    for loc in ilocs:
-                        item = item_labels[loc]
-                        if item in value:
-                            sub_indexer[info_axis] = item
-                            v = self._align_series(
-                                tuple(sub_indexer), value[item], multiindex_indexer
-                            )
-                        else:
-                            v = np.nan
+                    if not unique_cols and value.columns.equals(self.obj.columns):
+                        # We assume we are already aligned, see
+                        # test_iloc_setitem_frame_duplicate_columns_multiple_blocks
+                        for loc in ilocs:
+                            item = item_labels[loc]
+                            if item in value:
+                                sub_indexer[info_axis] = item
+                                v = self._align_series(
+                                    tuple(sub_indexer),
+                                    value.iloc[:, loc],
+                                    multiindex_indexer,
+                                )
+                            else:
+                                v = np.nan
 
-                        isetter(loc, v)
+                            self._setitem_single_column(loc, v, pi)
+
+                    elif not unique_cols:
+                        raise ValueError(
+                            "Setting with non-unique columns is not allowed."
+                        )
+
+                    else:
+                        for loc in ilocs:
+                            item = item_labels[loc]
+                            if item in value:
+                                sub_indexer[info_axis] = item
+                                v = self._align_series(
+                                    tuple(sub_indexer), value[item], multiindex_indexer
+                                )
+                            else:
+                                v = np.nan
+
+                            self._setitem_single_column(loc, v, pi)
 
                 # we have an equal len ndarray/convertible to our labels
                 # hasattr first, to avoid coercing to ndarray without reason.
@@ -1733,7 +1745,7 @@ class _iLocIndexer(_LocationIndexer):
 
                     for i, loc in enumerate(ilocs):
                         # setting with a list, re-coerces
-                        isetter(loc, value[:, i].tolist())
+                        self._setitem_single_column(loc, value[:, i].tolist(), pi)
 
                 elif (
                     len(labels) == 1
@@ -1742,7 +1754,7 @@ class _iLocIndexer(_LocationIndexer):
                 ):
                     # we have an equal len list/ndarray
                     # We only get here with len(labels) == len(ilocs) == 1
-                    isetter(ilocs[0], value)
+                    self._setitem_single_column(ilocs[0], value, pi)
 
                 elif lplane_indexer == 0 and len(value) == len(self.obj.index):
                     # We get here in one case via .loc with a all-False mask
@@ -1757,50 +1769,87 @@ class _iLocIndexer(_LocationIndexer):
                         )
 
                     for loc, v in zip(ilocs, value):
-                        isetter(loc, v)
+                        self._setitem_single_column(loc, v, pi)
             else:
 
                 # scalar value
                 for loc in ilocs:
-                    isetter(loc, value)
+                    self._setitem_single_column(loc, value, pi)
 
         else:
-            if isinstance(indexer, tuple):
+            self._setitem_single_block_inplace(indexer, value)
 
-                # if we are setting on the info axis ONLY
-                # set using those methods to avoid block-splitting
-                # logic here
-                if (
-                    len(indexer) > info_axis
-                    and is_integer(indexer[info_axis])
-                    and all(
-                        com.is_null_slice(idx)
-                        for i, idx in enumerate(indexer)
-                        if i != info_axis
-                    )
-                    and item_labels.is_unique
-                ):
-                    self.obj[item_labels[indexer[info_axis]]] = value
-                    return
+    def _setitem_single_column(self, loc: int, value, plane_indexer):
+        # positional setting on column loc
+        pi = plane_indexer
 
-                indexer = maybe_convert_ix(*indexer)
+        ser = self.obj._ixs(loc, axis=1)
 
-            if isinstance(value, (ABCSeries, dict)):
-                # TODO(EA): ExtensionBlock.setitem this causes issues with
-                # setting for extensionarrays that store dicts. Need to decide
-                # if it's worth supporting that.
-                value = self._align_series(indexer, Series(value))
+        # perform the equivalent of a setitem on the info axis
+        # as we have a null slice or a slice with full bounds
+        # which means essentially reassign to the columns of a
+        # multi-dim object
+        # GH#6149 (null slice), GH#10408 (full bounds)
+        if isinstance(pi, tuple) and all(
+            com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
+            for idx in pi
+        ):
+            ser = value
+        else:
+            # set the item, possibly having a dtype change
+            ser = ser.copy()
+            ser._mgr = ser._mgr.setitem(indexer=pi, value=value)
+            ser._maybe_update_cacher(clear=True)
 
-            elif isinstance(value, ABCDataFrame):
-                value = self._align_frame(indexer, value)
+        # reset the sliced object if unique
+        self.obj._iset_item(loc, ser)
 
-            # check for chained assignment
-            self.obj._check_is_chained_assignment_possible()
+    def _setitem_single_block_inplace(self, indexer, value):
+        """
+        _setitem_with_indexer for the case when we have a single Block
+        and the value can be set into it without casting.
+        """
+        from pandas import Series
 
-            # actually do the set
-            self.obj._consolidate_inplace()
-            self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
-            self.obj._maybe_update_cacher(clear=True)
+        info_axis = self.obj._info_axis_number
+        item_labels = self.obj._get_axis(info_axis)
+
+        if isinstance(indexer, tuple):
+
+            # if we are setting on the info axis ONLY
+            # set using those methods to avoid block-splitting
+            # logic here
+            if (
+                len(indexer) > info_axis
+                and is_integer(indexer[info_axis])
+                and all(
+                    com.is_null_slice(idx)
+                    for i, idx in enumerate(indexer)
+                    if i != info_axis
+                )
+                and item_labels.is_unique
+            ):
+                self.obj[item_labels[indexer[info_axis]]] = value
+                return
+
+            indexer = maybe_convert_ix(*indexer)
+
+        if isinstance(value, (ABCSeries, dict)):
+            # TODO(EA): ExtensionBlock.setitem this causes issues with
+            # setting for extensionarrays that store dicts. Need to decide
+            # if it's worth supporting that.
+            value = self._align_series(indexer, Series(value))
+
+        elif isinstance(value, ABCDataFrame):
+            value = self._align_frame(indexer, value)
+
+        # check for chained assignment
+        self.obj._check_is_chained_assignment_possible()
+
+        # actually do the set
+        self.obj._consolidate_inplace()
+        self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
+        self.obj._maybe_update_cacher(clear=True)
 
     def _setitem_with_indexer_missing(self, indexer, value):
         """
@@ -1862,7 +1911,7 @@ class _iLocIndexer(_LocationIndexer):
             self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
 
-    def _align_series(self, indexer, ser: ABCSeries, multiindex_indexer: bool = False):
+    def _align_series(self, indexer, ser: "Series", multiindex_indexer: bool = False):
         """
         Parameters
         ----------
@@ -2006,7 +2055,7 @@ class _iLocIndexer(_LocationIndexer):
         raise ValueError("Incompatible indexer with DataFrame")
 
 
-class _ScalarAccessIndexer(_NDFrameIndexerBase):
+class _ScalarAccessIndexer(NDFrameIndexerBase):
     """
     Access scalars quickly.
     """
@@ -2143,7 +2192,15 @@ def convert_to_index_sliceable(obj: "DataFrame", key):
         # slice here via partial string indexing
         if idx._supports_partial_string_indexing:
             try:
-                return idx._get_string_slice(key)
+                res = idx._get_string_slice(key)
+                warnings.warn(
+                    "Indexing on datetimelike rows with `frame[string]` is "
+                    "deprecated and will be removed in a future version. "
+                    "Use `frame.loc[string]` instead.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+                return res
             except (KeyError, ValueError, NotImplementedError):
                 return None
 
@@ -2280,7 +2337,7 @@ def need_slice(obj) -> bool:
     )
 
 
-def _non_reducing_slice(slice_):
+def non_reducing_slice(slice_):
     """
     Ensure that a slice doesn't reduce to a Series or Scalar.
 
@@ -2319,7 +2376,7 @@ def _non_reducing_slice(slice_):
     return tuple(slice_)
 
 
-def _maybe_numeric_slice(df, slice_, include_bool=False):
+def maybe_numeric_slice(df, slice_, include_bool: bool = False):
     """
     Want nice defaults for background_gradient that don't break
     with non-numeric data. But if slice_ is passed go with that.

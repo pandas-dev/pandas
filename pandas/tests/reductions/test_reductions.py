@@ -351,6 +351,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
+                f"'TimedeltaArray' does not implement reduction '{opname}'",
             ]
         )
 
@@ -695,6 +696,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
+                    "'TimedeltaArray' does not implement reduction 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -913,6 +915,13 @@ class TestSeriesReductions:
         )
         tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
         tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+
+    def test_any_axis1_bool_only(self):
+        # GH#32432
+        df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
+        result = df.any(axis=1, bool_only=True)
+        expected = pd.Series([True, False])
+        tm.assert_series_equal(result, expected)
 
     def test_timedelta64_analytics(self):
 

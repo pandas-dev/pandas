@@ -153,13 +153,37 @@ to build the documentation locally before pushing your changes.
 Using a Docker container
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Instead of manually setting up a development environment, you can use Docker to
-automatically create the environment with just several commands. Pandas provides a `DockerFile`
-in the root directory to build a Docker image with a full pandas development environment.
+Instead of manually setting up a development environment, you can use `Docker
+<https://docs.docker.com/get-docker/>`_ to automatically create the environment with just several
+commands. Pandas provides a `DockerFile` in the root directory to build a Docker image
+with a full pandas development environment.
 
-Even easier, you can use the DockerFile to launch a remote session with Visual Studio Code,
+**Docker Commands**
+
+Pass your GitHub username in the `DockerFile` to use your own fork::
+
+    # Build the image pandas-yourname-env
+    docker build --tag pandas-yourname-env .
+    # Run a container and bind your local forked repo, pandas-yourname, to the container
+    docker run -it --rm -v path-to-pandas-yourname:/home/pandas-yourname pandas-yourname-env
+
+Even easier, you can integrate Docker with the following IDEs:
+
+**Visual Studio Code**
+
+You can use the DockerFile to launch a remote session with Visual Studio Code,
 a popular free IDE, using the `.devcontainer.json` file.
 See https://code.visualstudio.com/docs/remote/containers for details.
+
+**PyCharm (Professional)**
+
+Enable Docker support and use the Services tool window to build and manage images as well as
+run and interact with containers.
+See https://www.jetbrains.com/help/pycharm/docker.html for details.
+
+Note that you might need to rebuild the C extensions if/when you merge with upstream/master using::
+
+    python setup.py build_ext --inplace -j 4
 
 .. _contributing.dev_c:
 
@@ -180,6 +204,7 @@ You will need `Build Tools for Visual Studio 2017
 	You DO NOT need to install Visual Studio 2019.
 	You only need "Build Tools for Visual Studio 2019" found by
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
+	In the installer, select the "C++ build tools" workload.
 
 **Mac OS**
 
@@ -609,6 +634,10 @@ do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
 
+In addition to ``./ci/code_checks.sh``, some extra checks are run by
+``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
+run them.
+
 Additional standards are outlined on the :ref:`pandas code style guide <code_style>`
 
 Optional dependencies
@@ -695,7 +724,7 @@ submitting code to run the check yourself::
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
 
-You should use a ``black`` version >= 19.10b0 as previous versions are not compatible
+You should use a ``black`` version 20.8b1 as previous versions are not compatible
 with the pandas codebase.
 
 If you wish to run these checks automatically, we encourage you to use
@@ -751,7 +780,7 @@ Imports are alphabetically sorted within these sections.
 
 As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
 
-    isort --recursive --check-only pandas
+    isort --check-only pandas
 
 to check that imports are correctly formatted as per the `setup.cfg`.
 
@@ -769,8 +798,6 @@ You should run::
     isort pandas/io/pytables.py
 
 to automatically format imports correctly. This will modify your local copy of the files.
-
-The `--recursive` flag can be passed to sort all files in a directory.
 
 Alternatively, you can run a command similar to what was suggested for ``black`` and ``flake8`` :ref:`right above <contributing.code-formatting>`::
 
@@ -802,6 +829,13 @@ In addition, using this pre-commit hook will also allow you to more easily
 remain up-to-date with our code checks as they change.
 
 Note that if needed, you can skip these checks with ``git commit --no-verify``.
+
+If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
+to run its checks by running::
+
+    pre-commit run --files <files you have modified>
+
+without having to have done ``pre-commit install`` beforehand.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~

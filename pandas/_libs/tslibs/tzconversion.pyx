@@ -5,21 +5,27 @@ import cython
 from cython import Py_ssize_t
 
 from cpython.datetime cimport (
-    PyDateTime_IMPORT, PyDelta_Check, datetime, timedelta, tzinfo)
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    datetime,
+    timedelta,
+    tzinfo,
+)
+
 PyDateTime_IMPORT
 
-import pytz
 from dateutil.tz import tzutc
-
 import numpy as np
+import pytz
+
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, uint8_t, intp_t
+from numpy cimport int64_t, intp_t, ndarray, uint8_t
+
 cnp.import_array()
 
 from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
 from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct, dt64_to_dtstruct)
+from pandas._libs.tslibs.np_datetime cimport dt64_to_dtstruct, npy_datetimestruct
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
     get_utcoffset,
@@ -404,7 +410,7 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
         return val + deltas[pos]
 
 
-def tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
+def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     """
     Convert the values (in i8) from UTC to tz
 
@@ -429,7 +435,7 @@ def tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int64_t[:] _tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
+cdef int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     """
     Convert the given values (in i8) either to UTC or from UTC.
 
@@ -451,7 +457,7 @@ cdef int64_t[:] _tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
         str typ
 
     if is_utc(tz):
-        converted = vals
+        converted = vals.copy()
     elif is_tzlocal(tz):
         converted = np.empty(n, dtype=np.int64)
         for i in range(n):

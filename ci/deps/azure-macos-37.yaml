@@ -2,10 +2,10 @@ name: pandas-dev
 channels:
   - defaults
 dependencies:
-  - python=3.6.*
+  - python=3.7.*
 
   # tools
-  - pytest>=5.0.1,<6.0.0rc0
+  - pytest>=5.0.1
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
   - pytest-azurepipelines
@@ -19,9 +19,9 @@ dependencies:
   - matplotlib=2.2.3
   - nomkl
   - numexpr
-  - numpy=1.15.4
+  - numpy=1.16.5
   - openpyxl
-  - pyarrow>=0.13.0
+  - pyarrow>=0.15.0
   - pytables
   - python-dateutil==2.7.3
   - pytz
@@ -31,6 +31,6 @@ dependencies:
   - xlwt
   - pip
   - pip:
-    - cython>=0.29.16
+    - cython>=0.29.21
     - pyreadstat
     - pyxlsb

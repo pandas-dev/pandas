@@ -1,6 +1,7 @@
 """Tests for Table Schema integration."""
 from collections import OrderedDict
 import json
+import sys
 
 import numpy as np
 import pytest
@@ -255,6 +256,9 @@ class TestTableOrient:
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
 
+    @pytest.mark.filterwarnings(
+        "ignore:an integer is required (got type float)*:DeprecationWarning"
+    )
     def test_to_json(self):
         df = self.df.copy()
         df.index.name = "idx"
@@ -431,6 +435,9 @@ class TestTableOrient:
 
         assert result == expected
 
+    @pytest.mark.filterwarnings(
+        "ignore:an integer is required (got type float)*:DeprecationWarning"
+    )
     def test_date_format_raises(self):
         with pytest.raises(ValueError):
             self.df.to_json(orient="table", date_format="epoch")
@@ -671,6 +678,7 @@ class TestTableOrientReader:
             {"bools": [True, False, False, True]},
         ],
     )
+    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")

@@ -6,13 +6,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
-from pandas._libs.tslibs import (
-    Resolution,
-    ints_to_pydatetime,
-    parsing,
-    timezones,
-    to_offset,
-)
+from pandas._libs.tslibs import Resolution, ints_to_pydatetime, parsing, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
@@ -75,7 +69,7 @@ def _new_DatetimeIndex(cls, d):
     + [
         method
         for method in DatetimeArray._datetimelike_methods
-        if method not in ("tz_localize",)
+        if method not in ("tz_localize", "tz_convert")
     ],
     DatetimeArray,
     wrap=True,
@@ -228,6 +222,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in DatetimeIndex
 
+    @doc(DatetimeArray.tz_convert)
+    def tz_convert(self, tz) -> "DatetimeIndex":
+        arr = self._data.tz_convert(tz)
+        return type(self)._simple_new(arr, name=self.name)
+
     @doc(DatetimeArray.tz_localize)
     def tz_localize(
         self, tz, ambiguous="raise", nonexistent="raise"
@@ -307,9 +306,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
-        from pandas.io.formats.format import _is_dates_only
+        from pandas.io.formats.format import is_dates_only
 
-        return self.tz is None and _is_dates_only(self._values)
+        return self.tz is None and is_dates_only(self._values)
 
     def __reduce__(self):
 
@@ -320,13 +319,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         d.update(self._get_attributes_dict())
         return _new_DatetimeIndex, (type(self), d), None
 
-    def _convert_for_op(self, value):
+    def _validate_fill_value(self, value):
         """
         Convert value to be insertable to ndarray.
         """
-        if self._has_same_tz(value):
-            return Timestamp(value).asm8
-        raise ValueError("Passed item and index have different timezone")
+        return self._data._validate_setitem_value(value)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
@@ -349,9 +346,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def _formatter_func(self):
-        from pandas.io.formats.format import _get_format_datetime64
+        from pandas.io.formats.format import get_format_datetime64
 
-        formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
+        formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
         return lambda x: f"'{formatter(x, tz=self.tz)}'"
 
     # --------------------------------------------------------------------
@@ -392,9 +389,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         ndarray[int64_t]
         """
-        values = self.asi8
-        if self.tz is not None and not timezones.is_utc(self.tz):
-            values = self._data._local_timestamps()
+        values = self._data._local_timestamps()
 
         nanos = values % (24 * 3600 * 1_000_000_000)
         micros = nanos // 1000
@@ -503,6 +498,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
+
+    # --------------------------------------------------------------------
+    # Indexing Methods
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         """
@@ -627,7 +625,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise KeyError(orig_key) from err
 
     def _maybe_cast_for_get_loc(self, key) -> Timestamp:
-        # needed to localize naive datetimes
+        # needed to localize naive datetimes or dates (GH 35690)
         key = Timestamp(key)
         if key.tzinfo is None:
             key = key.tz_localize(self.tz)
@@ -672,8 +670,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
-        else:
-            return label
+        return self._maybe_cast_for_get_loc(label)
 
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
@@ -842,7 +839,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return mask.nonzero()[0]
 
 
-DatetimeIndex._add_numeric_methods_disabled()
 DatetimeIndex._add_logical_methods_disabled()
 
 

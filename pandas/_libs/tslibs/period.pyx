@@ -1,37 +1,40 @@
 import warnings
 
-from cpython.object cimport PyObject_RichCompareBool, Py_EQ, Py_NE
+from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompareBool
+from numpy cimport import_array, int64_t, ndarray
 
-from numpy cimport int64_t, import_array, ndarray
 import numpy as np
+
 import_array()
 
 from libc.stdlib cimport free, malloc
+from libc.string cimport memset, strlen
 from libc.time cimport strftime, tm
-from libc.string cimport strlen, memset
 
 import cython
 
 from cpython.datetime cimport (
-    datetime,
     PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
     PyDelta_Check,
+    datetime,
 )
+
 # import datetime C API
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct,
-    dtstruct_to_dt64,
-    dt64_to_dtstruct,
-    pandas_datetime_to_datetimestruct,
-    check_dts_bounds,
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     NPY_FR_us,
+    check_dts_bounds,
+    dt64_to_dtstruct,
+    dtstruct_to_dt64,
+    npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
 )
+
 
 cdef extern from "src/datetime/np_datetime.h":
     int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
@@ -39,58 +42,57 @@ cdef extern from "src/datetime/np_datetime.h":
 
 cimport pandas._libs.tslibs.util as util
 
-from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._libs.tslibs.timedeltas import Timedelta
-from pandas._libs.tslibs.timedeltas cimport (
-    delta_to_nanoseconds,
-    is_any_td_scalar,
-)
+from pandas._libs.tslibs.timestamps import Timestamp
 
 from pandas._libs.tslibs.ccalendar cimport (
+    c_MONTH_NUMBERS,
     dayofweek,
     get_day_of_year,
-    is_leapyear,
-    get_week_of_year,
     get_days_in_month,
+    get_week_of_year,
+    is_leapyear,
 )
-from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds, is_any_td_scalar
+
 from pandas._libs.tslibs.conversion import ensure_datetime64ns
 
 from pandas._libs.tslibs.dtypes cimport (
-    PeriodDtypeBase,
-    FR_UND,
     FR_ANN,
-    FR_QTR,
-    FR_MTH,
-    FR_WK,
     FR_BUS,
     FR_DAY,
     FR_HR,
     FR_MIN,
-    FR_SEC,
     FR_MS,
-    FR_US,
+    FR_MTH,
     FR_NS,
+    FR_QTR,
+    FR_SEC,
+    FR_UND,
+    FR_US,
+    FR_WK,
+    PeriodDtypeBase,
     attrname_to_abbrevs,
 )
-
 from pandas._libs.tslibs.parsing cimport get_rule_month
+
 from pandas._libs.tslibs.parsing import parse_time_string
+
 from pandas._libs.tslibs.nattype cimport (
-    _nat_scalar_rules,
     NPY_NAT,
-    is_null_datetimelike,
+    _nat_scalar_rules,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
+    is_null_datetimelike,
 )
 from pandas._libs.tslibs.offsets cimport (
     BaseOffset,
-    to_offset,
-    is_tick_object,
     is_offset_object,
+    is_tick_object,
+    to_offset,
 )
-from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
+from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
 cdef:
     enum:
@@ -859,6 +861,7 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date, int64_t ordinal) nogil:
     """
     cdef:
         int64_t sub, factor
+        int64_t nanos_in_day = 24 * 3600 * 10**9
 
     freq = get_freq_group(freq)
 
@@ -884,7 +887,7 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date, int64_t ordinal) nogil:
         # We must have freq == FR_HR
         factor = 10**9 * 3600
 
-    sub = ordinal - unix_date * 24 * 3600 * 10**9 / factor
+    sub = ordinal - unix_date * (nanos_in_day / factor)
     return sub * factor
 
 
