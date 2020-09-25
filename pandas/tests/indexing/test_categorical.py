@@ -807,3 +807,31 @@ class TestCategoricalIndex:
         result.loc[sl, "A"] = ["qux", "qux2"]
         expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "categories",
+        [
+            pytest.param(["a", "b", "c"], id="str"),
+            pytest.param(
+                [pd.Interval(0, 1), pd.Interval(1, 2), pd.Interval(2, 3)],
+                id="pd.Interval",
+            ),
+        ],
+    )
+    def test_categorical_index_reorder_categories(self, categories):
+        # GH23452
+        df = DataFrame(
+            {"foo": [1, 2, 3]},
+            index=CategoricalIndex(
+                data=categories, categories=categories, ordered=True
+            ),
+        )
+        df.index = df.index.reorder_categories(df.index.categories[::-1])
+        actual = df.sort_index()
+        expected = DataFrame(
+            {"foo": [3, 2, 1]},
+            index=CategoricalIndex(
+                data=categories[::-1], categories=categories[::-1], ordered=True
+            ),
+        )
+        tm.assert_frame_equal(actual, expected)
