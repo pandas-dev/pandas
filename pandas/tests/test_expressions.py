@@ -406,7 +406,20 @@ class TestExpressions:
         obj = box(data)
         method = getattr(obj, op)
         result = method(scalar)
+
+        # compare result with numpy
         expr.set_use_numexpr(False)
         expected = method(scalar)
         expr.set_use_numexpr(True)
         tester(result, expected)
+
+        # compare result element-wise with Python
+        for i, elem in enumerate(data):
+            if box == DataFrame:
+                scalar_result = result.iloc[i, 0]
+            else:
+                scalar_result = result[i]
+            try:
+                assert scalar_result == getattr(int(elem), op)(scalar)
+            except ZeroDivisionError:
+                pass
