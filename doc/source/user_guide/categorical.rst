@@ -228,7 +228,7 @@ by default.
    CategoricalDtype()
 
 A :class:`~pandas.api.types.CategoricalDtype` can be used in any place pandas
-expects a ``dtype``. For example :func:``pandas.read_csv``,
+expects a ``dtype``. For example :func:`pandas.read_csv`,
 :func:`pandas.DataFrame.astype`, or in the ``Series`` constructor.
 
 .. note::

@@ -974,7 +974,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - The 'outer' method on Numpy ufuncs, e.g. ``np.subtract.outer`` operating on :class:`Series` objects is no longer supported, and will raise ``NotImplementedError`` (:issue:`27198`)
 - Removed ``Series.get_dtype_counts`` and ``DataFrame.get_dtype_counts`` (:issue:`27145`)
 - Changed the default "fill_value" argument in :meth:`Categorical.take` from ``True`` to ``False`` (:issue:`20841`)
-- Changed the default value for the ``raw`` argument in :func:``Series.rolling().apply() <pandas.core.window.Rolling.apply>``, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:``Series.expanding().apply() <pandas.core.window.Expanding.apply>``, and :func:``DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>`` from ``None`` to ``False`` (:issue:`20584`)
+- Changed the default value for the ``raw`` argument in :func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` from ``None`` to ``False`` (:issue:`20584`)
 - Removed deprecated behavior of :meth:`Series.argmin` and :meth:`Series.argmax`, use :meth:`Series.idxmin` and :meth:`Series.idxmax` for the old behavior (:issue:`16955`)
 - Passing a tz-aware ``datetime.datetime`` or :class:`Timestamp` into the :class:`Timestamp` constructor with the ``tz`` argument now raises a ``ValueError`` (:issue:`23621`)
 - Removed ``Series.base``, ``Index.base``, ``Categorical.base``, ``Series.flags``, ``Index.flags``, ``PeriodArray.flags``, ``Series.strides``, ``Index.strides``, ``Series.itemsize``, ``Index.itemsize``, ``Series.data``, ``Index.data`` (:issue:`20721`)
@@ -1244,7 +1244,7 @@ Reshaping
 - Bug in :func:`melt` where supplying mixed strings and numeric values for ``id_vars`` or ``value_vars`` would incorrectly raise a ``ValueError`` (:issue:`29718`)
 - Dtypes are now preserved when transposing a ``DataFrame`` where each column is the same extension dtype (:issue:`30091`)
 - Bug in :func:`merge_asof` merging on a tz-aware ``left_index`` and ``right_on`` a tz-aware column (:issue:`29864`)
-- Improved error message and docstring in :func:`cut` and :func:``qcut`` when ``labels=True`` (:issue:`13318`)
+- Improved error message and docstring in :func:`cut` and :func:`qcut` when ``labels=True`` (:issue:`13318`)
 - Bug in missing ``fill_na`` parameter to :meth:`DataFrame.unstack` with list of levels (:issue:`30740`)
 
 Sparse

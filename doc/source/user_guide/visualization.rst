@@ -496,7 +496,7 @@ Area plot
 You can create area plots with :meth:`Series.plot.area` and :meth:`DataFrame.plot.area`.
 Area plots are stacked by default. To produce stacked area plot, each column must be either all positive or all negative values.
 
-When input data contains ``NaN``, it will be automatically filled by 0. If you want to drop or fill by different values, use :func:``dataframe.dropna`` or :func:``dataframe.fillna`` before calling ``plot``.
+When input data contains ``NaN``, it will be automatically filled by 0. If you want to drop or fill by different values, use :func:`dataframe.dropna` or :func:`dataframe.fillna` before calling ``plot``.
 
 .. ipython:: python
    :suppress:

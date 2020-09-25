@@ -1049,7 +1049,7 @@ Other API changes
 - :class:`DateOffset` objects render more simply, e.g. ``<DateOffset: days=1>`` instead of ``<DateOffset: kwds={'days': 1}>`` (:issue:`19403`)
 - ``Categorical.fillna`` now validates its ``value`` and ``method`` keyword arguments. It now raises when both or none are specified, matching the behavior of :meth:`Series.fillna` (:issue:`19682`)
 - ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
-- :func:``Series.str.replace`` now takes an optional ``regex`` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
+- :func:`Series.str.replace` now takes an optional ``regex`` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
 - :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
 - Constructing a Series from a list of length 1 no longer broadcasts this list when a longer index is specified (:issue:`19714`, :issue:`20391`).
 - :func:`DataFrame.to_dict` with ``orient='index'`` no longer casts int columns to float for a DataFrame with only int and float columns (:issue:`18580`)
@@ -1316,7 +1316,7 @@ Numeric
 
 Strings
 ^^^^^^^
-- Bug in :func:``Series.str.get`` with a dictionary in the values and the index not in the keys, raising ``KeyError`` (:issue:`20671`)
+- Bug in :func:`Series.str.get` with a dictionary in the values and the index not in the keys, raising ``KeyError`` (:issue:`20671`)
 
 
 Indexing
