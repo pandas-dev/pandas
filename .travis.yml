@@ -49,9 +49,6 @@ matrix:
         - mysql
         - postgresql
 
-    - env:
-        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network and not clipboard)"
-
     - arch: arm64
       env:
         - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"

@@ -20,6 +20,11 @@ jobs:
           CONDA_PY: "37"
           PATTERN: "not slow and not network and not clipboard"
 
+        py37:
+          ENV_FILE: ci/deps/azure-37.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network and not clipboard"
+
         py37_locale_slow:
           ENV_FILE: ci/deps/azure-37-locale_slow.yaml
           CONDA_PY: "37"
