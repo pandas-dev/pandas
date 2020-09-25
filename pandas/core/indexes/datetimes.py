@@ -6,13 +6,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
-from pandas._libs.tslibs import (
-    Resolution,
-    ints_to_pydatetime,
-    parsing,
-    timezones,
-    to_offset,
-)
+from pandas._libs.tslibs import Resolution, ints_to_pydatetime, parsing, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
@@ -395,9 +389,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         ndarray[int64_t]
         """
-        values = self.asi8
-        if self.tz is not None and not timezones.is_utc(self.tz):
-            values = self._data._local_timestamps()
+        values = self._data._local_timestamps()
 
         nanos = values % (24 * 3600 * 1_000_000_000)
         micros = nanos // 1000
