@@ -618,7 +618,7 @@ Plotting
   raised if the old ``data`` argument is used by name. (:issue:`6956`)
 
 - :meth:`DataFrame.boxplot` now supports ``layout`` keyword (:issue:`6769`)
-- :meth:``DataFrame.boxplot`` has a new keyword argument, ``return_type``. It accepts ``'dict'``,
+- :meth:`DataFrame.boxplot` has a new keyword argument, ``return_type``. It accepts ``'dict'``,
   ``'axes'``, or ``'both'``, in which case a namedtuple with the matplotlib
   axes and a dict of matplotlib Lines is returned.
 
@@ -721,7 +721,7 @@ Deprecations
 
 - The following ``io.sql`` functions have been deprecated: ``tquery``, ``uquery``, ``read_frame``, ``frame_query``, ``write_frame``.
 
-- The ``percentile_width`` keyword argument in :meth:``~DataFrame.describe`` has been deprecated.
+- The ``percentile_width`` keyword argument in :meth:`~DataFrame.describe` has been deprecated.
   Use the ``percentiles`` keyword instead, which takes a list of percentiles to display. The
   default output is unchanged.
 

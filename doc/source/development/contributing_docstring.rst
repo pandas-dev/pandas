@@ -128,7 +128,7 @@ backticks. The following are considered inline code:
         """
         Add the values in ``arr``.
 
-        This is equivalent to Python ``sum`` of :meth:``pandas.Series.sum``.
+        This is equivalent to Python ``sum`` of :meth:`pandas.Series.sum`.
 
         Some sections are omitted here for simplicity.
         """

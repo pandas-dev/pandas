@@ -1812,8 +1812,8 @@ For information on key sorting by value, see :ref:`value sorting
 By values
 ~~~~~~~~~
 
-The :meth:``Series.sort_values`` method is used to sort a ``Series`` by its values. The
-:meth:``DataFrame.sort_values`` method is used to sort a ``DataFrame`` by its column or row values.
+The :meth:`Series.sort_values` method is used to sort a ``Series`` by its values. The
+:meth:`DataFrame.sort_values` method is used to sort a ``DataFrame`` by its column or row values.
 The optional ``by`` parameter to :meth:`DataFrame.sort_values` may used to specify one or more columns
 to use to determine the sorted order.
 

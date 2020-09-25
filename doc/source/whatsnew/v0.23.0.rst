@@ -1234,7 +1234,7 @@ Categorical
 - Bug in ``Categorical.__iter__`` not converting to Python types (:issue:`19909`)
 - Bug in :func:`pandas.factorize` returning the unique codes for the ``uniques``. This now returns a ``Categorical`` with the same dtype as the input (:issue:`19721`)
 - Bug in :func:`pandas.factorize` including an item for missing values in the ``uniques`` return value (:issue:`19721`)
-- Bug in :meth:``Series.take`` with categorical data interpreting ``-1`` in ``indices`` as missing value markers, rather than the last element of the Series (:issue:`20664`)
+- Bug in :meth:`Series.take` with categorical data interpreting ``-1`` in ``indices`` as missing value markers, rather than the last element of the Series (:issue:`20664`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1369,7 +1369,7 @@ IO
 ^^
 
 - :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
-- :meth:``DataFrame.to_html`` now has an option to add an id to the leading ``<table>`` tag (:issue:`8496`)
+- :meth:`DataFrame.to_html` now has an option to add an id to the leading ``<table>`` tag (:issue:`8496`)
 - Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
 - Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
 - Bug in :func:`read_csv` where missing values were not being handled properly when ``keep_default_na=False`` with dictionary ``na_values`` (:issue:`19227`)
