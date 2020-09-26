@@ -1470,7 +1470,7 @@ def str_pad(arr, width, side="left", fillchar=" "):
         character. Equivalent to ``Series.str.pad(side='left')``.
     Series.str.ljust : Fills the right side of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='right')``.
-    Series.str.center : Fills boths sides of strings with an arbitrary
+    Series.str.center : Fills both sides of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='both')``.
     Series.str.zfill : Pad strings in the Series/Index by prepending '0'
         character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
@@ -2918,7 +2918,7 @@ class StringMethods(NoNewAttributesMixin):
             character.
         Series.str.pad : Fills the specified sides of strings with an arbitrary
             character.
-        Series.str.center : Fills boths sides of strings with an arbitrary
+        Series.str.center : Fills both sides of strings with an arbitrary
             character.
 
         Notes

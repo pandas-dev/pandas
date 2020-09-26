@@ -377,7 +377,7 @@ def validate_func_kwargs(
     (['one', 'two'], ['min', 'max'])
     """
     no_arg_message = "Must provide 'func' or named aggregation **kwargs."
-    tuple_given_message = "func is expected but recieved {} in **kwargs."
+    tuple_given_message = "func is expected but received {} in **kwargs."
     columns = list(kwargs)
     func = []
     for col_func in kwargs.values():

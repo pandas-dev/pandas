@@ -986,7 +986,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # get an identical index as concating the values and then
             # creating a new index. We don't want to spend the time trying
             # to merge blocks across arrays in `to_concat`, so the resulting
-            # BlockIndex may have more blocs.
+            # BlockIndex may have more blocks.
             blengths = []
             blocs = []
 

@@ -1201,7 +1201,7 @@ Modules privacy has changed
 
 Some formerly public python/c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API.
 Furthermore, the ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are now considered to be PRIVATE.
-If indicated, a deprecation warning will be issued if you reference theses modules. (:issue:`12588`)
+If indicated, a deprecation warning will be issued if you reference these modules. (:issue:`12588`)
 
 .. csv-table::
     :header: "Previous Location", "New Location", "Deprecated"
