@@ -591,7 +591,7 @@ class TestAstype:
     def test_astype_tz_conversion(self):
         # GH 35973
         val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
-        result, expected = DataFrame(val), DataFrame(val)
+        expected = DataFrame(val)
 
         result = expected.astype({"tz": "datetime64[ns, Europe/Berlin]"})
         expected["tz"] = expected["tz"].dt.tz_convert("Europe/Berlin")
