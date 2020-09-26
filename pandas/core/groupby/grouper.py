@@ -522,10 +522,7 @@ class Grouping:
                 if getattr(self.grouper, "ndim", 1) != 1:
                     t = self.name or str(type(self.grouper))
                     raise ValueError(f"Grouper for '{t}' not 1-dimensional")
-                self.grouper = self.index.map(self.grouper)
-
-                if isinstance(self.grouper, MultiIndex):
-                    self.grouper = self.grouper._values
+                self.grouper = self.index._transform_index(self.grouper)
 
                 if not (
                     hasattr(self.grouper, "__len__")
