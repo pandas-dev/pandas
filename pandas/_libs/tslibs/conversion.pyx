@@ -830,7 +830,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 # ----------------------------------------------------------------------
 # Normalization
 
-@cython.cdivision
+@cython.cdivision(False)
 cdef inline int64_t normalize_i8_stamp(int64_t local_val) nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
