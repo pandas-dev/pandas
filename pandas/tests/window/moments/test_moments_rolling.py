@@ -856,24 +856,6 @@ def test_rolling_quantile_param():
         ser.rolling(3).quantile("foo")
 
 
-def test_rolling_apply(raw, series, frame):
-    # suppress warnings about empty slices, as we are deliberately testing
-    # with a 0-length Series
-
-    def f(x):
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message=".*(empty slice|0 for slice).*",
-                category=RuntimeWarning,
-            )
-            return x[np.isfinite(x)].mean()
-
-    _check_moment_func(
-        np.mean, name="apply", func=f, raw=raw, series=series, frame=frame
-    )
-
-
 def test_rolling_std(raw, series, frame):
     _check_moment_func(
         lambda x: np.std(x, ddof=1), name="std", raw=raw, series=series, frame=frame
