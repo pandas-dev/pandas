@@ -721,7 +721,7 @@ class TestDataFrameMissingData:
     def test_fillna_after_pivot(self):
         # https://github.com/pandas-dev/pandas/issues/36495
         df = DataFrame(
-            [[1, 1, 1, 1.0], [2, 2, 2, 2.0], [3, 3, 3, 3.0],],
+            [[1, 1, 1, 1.0], [2, 2, 2, 2.0], [3, 3, 3, 3.0]],
             columns=["i1", "i2", "i3", "f1"],
         )
 
