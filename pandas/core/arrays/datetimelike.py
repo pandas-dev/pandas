@@ -530,7 +530,6 @@ class DatetimeLikeArrayMixin(
                 key = np.asarray(key, dtype=bool)
 
             key = check_array_indexer(self, key)
-            key = lib.maybe_booleans_to_slice(key.view(np.uint8))
         elif isinstance(key, list) and len(key) == 1 and isinstance(key[0], slice):
             # see https://github.com/pandas-dev/pandas/issues/31299, need to allow
             # this for now (would otherwise raise in check_array_indexer)
@@ -560,6 +559,10 @@ class DatetimeLikeArrayMixin(
                 # GH#21282 indexing with Ellipsis is similar to a full slice,
                 #  should preserve `freq` attribute
                 freq = self.freq
+            elif com.is_bool_indexer(key):
+                new_key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+                if isinstance(new_key, slice):
+                    return self._get_getitem_freq(new_key)
         return freq
 
     def __setitem__(
