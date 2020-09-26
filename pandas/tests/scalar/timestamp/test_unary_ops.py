@@ -397,6 +397,12 @@ class TestTimestampUnaryOps:
         expected = Timestamp("2013-11-30", tz=tz)
         assert result == expected
 
+    def test_normalize_pre_epoch_dates(self):
+        # GH: 36294
+        result = Timestamp("1969-01-01 09:00:00").normalize()
+        expected = Timestamp("1969-01-01 00:00:00")
+        assert result == expected
+
     # --------------------------------------------------------------
 
     @td.skip_if_windows
