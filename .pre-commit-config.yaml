@@ -65,18 +65,6 @@ repos:
             v0\.|
             v1\.0\.|
             v1\.1\.[012])
-          categorical\.rst|
-          contributing\.rst|
-          contributing_docstring\.rst|
-          extending\.rst|
-          ecosystem\.rst|
-          comparison_with_sql\.rst|
-          install\.rst|
-          calculate_statistics\.rst|
-          combine_dataframes\.rst|
-          v0\.|
-          v1\.0\.|
-          v1\.1\.[012])
 -   repo: local
     hooks:
     -   id: pip_to_conda
