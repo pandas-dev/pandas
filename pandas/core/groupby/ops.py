@@ -87,7 +87,7 @@ class BaseGrouper:
         group_keys: bool = True,
         mutated: bool = False,
         indexer: Optional[np.ndarray] = None,
-        dropna: bool = False,
+        dropna: bool = True,
     ):
         assert isinstance(axis, Index), axis
 

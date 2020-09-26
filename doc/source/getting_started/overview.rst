@@ -40,7 +40,7 @@ Here are just a few of the things that pandas does well:
     higher dimensional objects
   - Automatic and explicit **data alignment**: objects can be explicitly
     aligned to a set of labels, or the user can simply ignore the labels and
-    let `Series`, `DataFrame`, etc. automatically align the data for you in
+    let ``Series``, ``DataFrame``, etc. automatically align the data for you in
     computations
   - Powerful, flexible **group by** functionality to perform
     split-apply-combine operations on data sets, for both aggregating and

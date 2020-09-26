@@ -367,6 +367,7 @@ Enhancements
   - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (:issue:`3070`)
 
     .. ipython:: python
+       :okwarning:
 
         idx = pd.date_range("2001-10-1", periods=5, freq='M')
         ts = pd.Series(np.random.rand(len(idx)), index=idx)
