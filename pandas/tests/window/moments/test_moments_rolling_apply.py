@@ -86,6 +86,10 @@ def test_nans(raw):
     assert isna(result.iloc[3])
     assert notna(result.iloc[4])
 
+    result0 = obj.rolling(20, min_periods=0).apply(f, raw=raw)
+    result1 = obj.rolling(20, min_periods=1).apply(f, raw=raw)
+    tm.assert_almost_equal(result0, result1)
+
 
 @pytest.mark.parametrize("minp", [0, 99, 100])
 def test_min_periods(raw, series, minp):
