@@ -481,6 +481,7 @@ class _Window(ShallowMixin, SelectionMixin):
         obj = self._create_data(self._selected_obj)
 
         try:
+            # GH 12541: Special case for count where we support date-like types
             input = obj.values if name != "count" else notna(obj.values).astype(int)
             values = self._prep_values(input)
         except (TypeError, NotImplementedError) as err:
