@@ -121,15 +121,20 @@ def test_transform_bad_dtype(op):
     s = Series(3 * [object])  # Series that will fail on most transforms
     if op in ("backfill", "shift", "pad", "bfill", "ffill"):
         pytest.xfail("Transform function works on any datatype")
+
     msg = "Transform function failed"
-    with pytest.raises(ValueError, match=msg):
-        s.transform(op)
-    with pytest.raises(ValueError, match=msg):
-        s.transform([op])
-    with pytest.raises(ValueError, match=msg):
-        s.transform({"A": op})
-    with pytest.raises(ValueError, match=msg):
-        s.transform({"A": [op]})
+
+    # tshift is deprecated
+    warn = None if op != "tshift" else FutureWarning
+    with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with pytest.raises(ValueError, match=msg):
+            s.transform(op)
+        with pytest.raises(ValueError, match=msg):
+            s.transform([op])
+        with pytest.raises(ValueError, match=msg):
+            s.transform({"A": op})
+        with pytest.raises(ValueError, match=msg):
+            s.transform({"A": [op]})
 
 
 @pytest.mark.parametrize("use_apply", [True, False])
