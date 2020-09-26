@@ -2119,3 +2119,20 @@ class TestTimedelta64ArrayLikeArithmetic:
 
         with pytest.raises(TypeError, match=pattern):
             td1 ** scalar_td
+
+
+def test_add_timestamp_to_timedelta():
+    # GH: 35897
+    timestamp = pd.Timestamp.now()
+    result = timestamp + pd.timedelta_range("0s", "1s", periods=31)
+    expected = pd.DatetimeIndex(
+        [
+            timestamp
+            + (
+                pd.to_timedelta("0.033333333s") * i
+                + pd.to_timedelta("0.000000001s") * divmod(i, 3)[0]
+            )
+            for i in range(31)
+        ]
+    )
+    tm.assert_index_equal(result, expected)

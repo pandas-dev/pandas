@@ -256,10 +256,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             index = generate_regular_range(start, end, periods, freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype("i8")
-            if len(index) >= 2:
-                # Infer a frequency
-                td = Timedelta(index[1] - index[0])
-                freq = to_offset(td)
 
         if not left_closed:
             index = index[1:]
