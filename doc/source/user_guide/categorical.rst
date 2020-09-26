@@ -999,7 +999,7 @@ Methods for working with missing data, e.g. :meth:`~Series.isna`, :meth:`~Series
     s.fillna("a")
 
 Differences to R's ``factor``
----------------------------~~
+-----------------------------
 
 The following differences to R's factor functions can be observed:
 
