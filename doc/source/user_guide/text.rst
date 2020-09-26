@@ -266,7 +266,7 @@ i.e., from the end of the string to the beginning of the string:
 
 Some caution must be taken to keep regular expressions in mind! For example, the
 following code will cause trouble because of the regular expression meaning of
-`$`:
+``$``:
 
 .. ipython:: python
 
