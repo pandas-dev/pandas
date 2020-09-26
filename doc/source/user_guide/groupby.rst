@@ -216,10 +216,10 @@ in case you want to include ``NA`` values in group keys, you could pass ``dropna
 
 .. ipython:: python
 
-    # Default `dropna` is set to True, which will exclude NaNs in keys
+    # Default ``dropna`` is set to True, which will exclude NaNs in keys
     df_dropna.groupby(by=["b"], dropna=True).sum()
 
-    # In order to allow NaN in keys, set `dropna` to False
+    # In order to allow NaN in keys, set ``dropna`` to False
     df_dropna.groupby(by=["b"], dropna=False).sum()
 
 The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.

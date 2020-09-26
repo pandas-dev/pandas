@@ -14,6 +14,7 @@ from pandas.core import missing
 from pandas.core.algorithms import take, unique
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
@@ -197,6 +198,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return result
 
     def _validate_getitem_key(self, key):
+        key = extract_array(key, extract_numpy=True)
         return check_array_indexer(self, key)
 
     @doc(ExtensionArray.fillna)
