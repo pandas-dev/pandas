@@ -89,7 +89,7 @@ See the :ref:`documentation <dsintro.chained_assignment>` for more. (:issue:`922
 Interaction with scipy.sparse
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Added :meth:`SparseSeries.to_coo`` and :meth:`SparseSeries.from_coo`` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a ``scipy.sparse.coo_matrix`` by specifying the row and column labels as index levels:
+Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a ``scipy.sparse.coo_matrix`` by specifying the row and column labels as index levels:
 
 .. code-block:: python
 
