@@ -887,14 +887,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             value_left, value_right = value.left, value.right
 
         else:
-            try:
-                # list-like of intervals
-                array = IntervalArray(value)
-                value_left, value_right = array.left, array.right
-            except TypeError as err:
-                # wrong type: not interval or NA
-                msg = f"'value' should be an interval type, got {type(value)} instead."
-                raise TypeError(msg) from err
+            return self._validate_listlike(value)
 
         if needs_float_conversion:
             raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
