@@ -226,7 +226,7 @@ class BlockManager(PandasObject):
 
     @property
     def _is_single_block(self) -> bool:
-        # Assumes we are 2D; overriden by SingleBlockManager
+        # Assumes we are 2D; overridden by SingleBlockManager
         return len(self.blocks) == 1
 
     def _rebuild_blknos_and_blklocs(self) -> None:
