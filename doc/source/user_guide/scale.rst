@@ -349,7 +349,7 @@ Now we can do things like fast random access with ``.loc``.
 
    ddf.loc['2002-01-01 12:01':'2002-01-01 12:05'].compute()
 
-Dask knows to just look in the 3rd partition for selecting values in ``2002``. It
+Dask knows to just look in the 3rd partition for selecting values in 2002. It
 doesn't need to look at any other data.
 
 Many workflows involve a large amount of data and processing it in a way that

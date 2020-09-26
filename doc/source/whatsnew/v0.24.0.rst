@@ -419,7 +419,7 @@ Other enhancements
 - :meth:`Index.difference`, :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference` now have an optional ``sort`` parameter to control whether the results should be sorted if possible (:issue:`17839`, :issue:`24471`)
 - :meth:`read_excel()` now accepts ``usecols`` as a list of column names or callable (:issue:`18273`)
 - :meth:`MultiIndex.to_flat_index` has been added to flatten multiple levels into a single-level :class:`Index` object.
-- :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` can write mixed sting columns to Stata strl format (:issue:`23633`)
+- :meth:`DataFrame.to_stata` and :class:`pandas.io.stata.StataWriter117` can write mixed string columns to Stata strl format (:issue:`23633`)
 - :meth:`DataFrame.between_time` and :meth:`DataFrame.at_time` have gained the ``axis`` parameter (:issue:`8839`)
 - :meth:`DataFrame.to_records` now accepts ``index_dtypes`` and ``column_dtypes`` parameters to allow different data types in stored column and index records (:issue:`18146`)
 - :class:`IntervalIndex` has gained the :attr:`~IntervalIndex.is_overlapping` attribute to indicate if the ``IntervalIndex`` contains any overlapping intervals (:issue:`23309`)
@@ -510,7 +510,7 @@ even when ``'\n'`` was passed in ``line_terminator``.
 
 *New behavior* on Windows:
 
-Passing ``line_terminator`` explicitly, set thes ``line terminator`` to that character.
+Passing ``line_terminator`` explicitly, set the ``line terminator`` to that character.
 
 .. code-block:: ipython
 
@@ -1885,7 +1885,7 @@ Reshaping
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - Constructing a DataFrame with an index argument that wasn't already an instance of :class:`~pandas.core.Index` was broken (:issue:`22227`).
 - Bug in :class:`DataFrame` prevented list subclasses to be used to construction (:issue:`21226`)
-- Bug in :func:`DataFrame.unstack` and :func:`DataFrame.pivot_table` returning a missleading error message when the resulting DataFrame has more elements than int32 can handle. Now, the error message is improved, pointing towards the actual problem (:issue:`20601`)
+- Bug in :func:`DataFrame.unstack` and :func:`DataFrame.pivot_table` returning a misleading error message when the resulting DataFrame has more elements than int32 can handle. Now, the error message is improved, pointing towards the actual problem (:issue:`20601`)
 - Bug in :func:`DataFrame.unstack` where a ``ValueError`` was raised when unstacking timezone aware values (:issue:`18338`)
 - Bug in :func:`DataFrame.stack` where timezone aware values were converted to timezone naive values (:issue:`19420`)
 - Bug in :func:`merge_asof` where a ``TypeError`` was raised when ``by_col`` were timezone aware values (:issue:`21184`)

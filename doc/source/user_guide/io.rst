@@ -5495,7 +5495,7 @@ SAS formats
 -----------
 
 The top-level function :func:`read_sas` can read (but not write) SAS
-``xport`` (.XPT) and (since *v0.18.0*) ``SAS7BDAT`` (.sas7bdat) format files.
+XPORT (.xpt) and (since *v0.18.0*) SAS7BDAT (.sas7bdat) format files.
 
 SAS files only contain two value types: ASCII text and floating point
 values (usually 8 bytes but sometimes truncated).  For xport files,
@@ -5543,7 +5543,7 @@ SPSS formats
 .. versionadded:: 0.25.0
 
 The top-level function :func:`read_spss` can read (but not write) SPSS
-``sav`` (.sav) and  ``zsav`` (.zsav) format files.
+SAV (.sav) and  ZSAV (.zsav) format files.
 
 SPSS files contain column names. By default the
 whole file is read, categorical columns are converted into ``pd.Categorical``,
@@ -5566,7 +5566,7 @@ avoid converting categorical columns into ``pd.Categorical``:
     df = pd.read_spss('spss_data.sav', usecols=['foo', 'bar'],
                       convert_categoricals=False)
 
-More information about the ``sav`` and ``zsav`` file format is available here_.
+More information about the SAV and ZSAV file formats is available here_.
 
 .. _here: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
 

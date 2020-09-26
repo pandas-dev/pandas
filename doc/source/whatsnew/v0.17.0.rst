@@ -40,7 +40,7 @@ Highlights include:
 - Plotting methods are now available as attributes of the ``.plot`` accessor, see :ref:`here <whatsnew_0170.plot>`
 - The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
 - Support for a ``datetime64[ns]`` with timezones as a first-class dtype, see :ref:`here <whatsnew_0170.tz>`
-- The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
+- The default for ``to_datetime`` will now be to ``raise`` when presented with unparsable formats,
   previously this would return the original input. Also, date parse
   functions now return consistent results. See :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
 - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even

@@ -282,20 +282,20 @@ You can pass only the columns that you need to assemble.
 Invalid data
 ~~~~~~~~~~~~
 
-The default behavior, ``errors='raise'``, is to raise when unparseable:
+The default behavior, ``errors='raise'``, is to raise when unparsable:
 
 .. code-block:: ipython
 
     In [2]: pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
     ValueError: Unknown string format
 
-Pass ``errors='ignore'`` to return the original input when unparseable:
+Pass ``errors='ignore'`` to return the original input when unparsable:
 
 .. ipython:: python
 
    pd.to_datetime(['2009/07/31', 'asd'], errors='ignore')
 
-Pass ``errors='coerce'`` to convert unparseable data to ``NaT`` (not a time):
+Pass ``errors='coerce'`` to convert unparsable data to ``NaT`` (not a time):
 
 .. ipython:: python
 
@@ -1801,7 +1801,7 @@ See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 .. _timeseries.adjust-the-start-of-the-bins:
 
 Use ``origin`` or ``offset`` to adjust the start of the bins
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 1.1.0
 

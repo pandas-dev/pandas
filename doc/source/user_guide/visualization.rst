@@ -1271,7 +1271,7 @@ Using the ``x_compat`` parameter, you can suppress this behavior:
    plt.close('all')
 
 If you have more than one plot that needs to be suppressed, the ``use`` method
-in ``pandas.plotting.plot_params`` can be used in a ``with statement``:
+in ``pandas.plotting.plot_params`` can be used in a ``with`` statement:
 
 .. ipython:: python
 
