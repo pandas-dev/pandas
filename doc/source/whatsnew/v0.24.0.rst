@@ -475,7 +475,7 @@ and replaced it with references to ``pyarrow`` (:issue:`21639` and :issue:`23053
 .. _whatsnew_0240.api_breaking.csv_line_terminator:
 
 ``os.linesep`` is used for ``line_terminator`` of ``DataFrame.to_csv``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`DataFrame.to_csv` now uses :func:`os.linesep` rather than ``'\n'``
 for the default line terminator (:issue:`20353`).
@@ -557,7 +557,7 @@ You must pass in the ``line_terminator`` explicitly, even in this case.
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
 Proper handling of ``np.NaN`` in a string data-typed column with the Python engine
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There was bug in :func:`read_excel` and :func:`read_csv` with the Python
 engine, where missing values turned to ``'nan'`` with ``dtype=str`` and

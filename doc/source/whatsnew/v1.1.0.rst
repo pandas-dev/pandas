@@ -67,7 +67,7 @@ For example:
 .. _whatsnew_110.dataframe_or_series_comparing:
 
 Comparing two ``DataFrame`` or two ``Series`` and summarizing the differences
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We've added :meth:`DataFrame.compare` and :meth:`Series.compare` for comparing two ``DataFrame`` or two ``Series`` (:issue:`30429`)
 

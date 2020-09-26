@@ -999,7 +999,7 @@ Methods for working with missing data, e.g. :meth:`~Series.isna`, :meth:`~Series
     s.fillna("a")
 
 Differences to R's ``factor``
----------------------------
+---------------------------~~
 
 The following differences to R's factor functions can be observed:
 
@@ -1054,7 +1054,7 @@ an ``object`` dtype is a constant times the length of the data.
 
 
 ``Categorical`` is not a ``numpy`` array
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently, categorical data and the underlying ``Categorical`` is implemented as a Python
 object and not as a low-level NumPy array dtype. This leads to some problems.
