@@ -725,7 +725,7 @@ def _interp_limit(invalid, fw_limit, bw_limit):
     return f_idx & b_idx
 
 
-def _rolling_window(a, window):
+def _rolling_window(a: np.ndarray, window: int):
     """
     [True, True, False, True, False], 2 ->
 
