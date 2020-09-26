@@ -179,7 +179,7 @@ In Linux/Mac you can run ``which python`` on your terminal and it will tell you 
 using. If it's something like "/usr/bin/python", you're using the Python from the system, which is not recommended.
 
 It is highly recommended to use ``conda``, for quick installation and for package and dependency updates.
-You can find simple installation instructions for pandas in this document: `installation instructions </getting_started.html>`.
+You can find simple installation instructions for pandas in this document: ``installation instructions </getting_started.html>``.
 
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
