@@ -236,10 +236,6 @@ def test_rolling_count(raw, series, frame):
     )
 
 
-def test_rolling_mean(raw, series, frame):
-    _check_moment_func(np.mean, name="mean", raw=raw, series=series, frame=frame)
-
-
 @td.skip_if_no_scipy
 def test_cmov_mean():
     # GH 8238
