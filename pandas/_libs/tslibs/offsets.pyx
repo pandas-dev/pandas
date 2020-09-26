@@ -300,15 +300,29 @@ cdef _determine_offset(kwds):
     # timedelta is used for sub-daily plural offsets and all singular
     # offsets relativedelta is used for plural offsets of daily length or
     # more nanosecond(s) are handled by apply_wraps
+
+    if any(k in ('nanosecond', 'nanoseconds') for k in kwds.keys()):
+        raise ValueError("Argument nanosecond(s) is not allowed in "
+                         "DateOffset, use offsets.Nano or nanosecond "
+                         "in Timedelta instead.")
+
     kwds_no_nanos = dict(
         (k, v) for k, v in kwds.items()
         if k not in ('nanosecond', 'nanoseconds')
     )
-    # TODO: Are nanosecond and nanoseconds allowed somewhere?
 
     _kwds_use_relativedelta = ('years', 'months', 'weeks', 'days',
                                'year', 'month', 'week', 'day', 'weekday',
                                'hour', 'minute', 'second', 'microsecond')
+
+    if any(not k.endswith('s') for k in kwds_no_nanos):
+        warnings.warn(
+                "The DateOffset arguments that do not end in 's' replace "
+                "the offset value instead of making an addition. They are "
+                "deprecated now and slated for removal in the future.",
+                FutureWarning,
+                stacklevel=1,
+            )
 
     use_relativedelta = False
     if len(kwds_no_nanos) > 0:
