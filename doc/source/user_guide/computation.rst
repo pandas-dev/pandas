@@ -229,8 +229,17 @@ see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
    The API for window statistics is quite similar to the way one works with ``GroupBy`` objects, see the documentation :ref:`here <groupby>`.
 
+.. warning::
+
+    When using ``rolling()`` and an associated function the results are calculated with rolling sums. As a consequence
+    when having values differing with magnitude :math:`1/np.finfo(np.double).eps` this results in truncation. It must be
+    noted, that large values may have an impact on windows, which do not include these values. `Kahan summation
+    <https://en.wikipedia.org/wiki/Kahan_summation_algorithm>`__ is used
+    to compute the rolling sums to preserve accuracy as much as possible. The same holds true for ``Rolling.var()`` for
+    values differing with magnitude :math:`(1/np.finfo(np.double).eps)^{0.5}`.
+
 We work with ``rolling``, ``expanding`` and ``exponentially weighted`` data through the corresponding
-objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`.
+objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.ExponentialMovingWindow`.
 
 .. ipython:: python
 
@@ -361,6 +370,9 @@ compute the mean absolute deviation on a rolling basis:
    @savefig rolling_apply_ex.png
    s.rolling(window=60).apply(mad, raw=True).plot(style='k')
 
+Using the Numba engine
+~~~~~~~~~~~~~~~~~~~~~~
+
 .. versionadded:: 1.0
 
 Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
@@ -421,7 +433,7 @@ The following methods are available:
 
 The weights used in the window are specified by the ``win_type`` keyword.
 The list of recognized types are the `scipy.signal window functions
-<https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__:
+<https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__:
 
 * ``boxcar``
 * ``triang``
@@ -561,7 +573,7 @@ For example, if we have the following ``DataFrame``:
    df
 
 and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
-1, we can create the following ``BaseIndexer``:
+1, we can create the following ``BaseIndexer`` subclass:
 
 .. code-block:: ipython
 
@@ -593,7 +605,21 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    3     3.0
    4    10.0
 
+You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/master/pandas/core/window/indexers.py>`__
+
 .. versionadded:: 1.1
+
+One subclass of note within those examples is the ``VariableOffsetWindowIndexer`` that allows
+rolling operations over a non-fixed offset like a ``BusinessDay``.
+
+.. ipython:: python
+
+   from pandas.api.indexers import VariableOffsetWindowIndexer
+   df = pd.DataFrame(range(10), index=pd.date_range('2020', periods=10))
+   offset = pd.offsets.BDay(1)
+   indexer = VariableOffsetWindowIndexer(index=df.index, offset=offset)
+   df
+   df.rolling(indexer).sum()
 
 For some problems knowledge of the future is available for analysis. For example, this occurs when
 each data point is a full time series read from an experiment, and the task is to extract underlying
@@ -777,7 +803,7 @@ columns by reshaping and indexing:
 Aggregation
 -----------
 
-Once the ``Rolling``, ``Expanding`` or ``EWM`` objects have been created, several methods are available to
+Once the ``Rolling``, ``Expanding`` or ``ExponentialMovingWindow`` objects have been created, several methods are available to
 perform multiple computations on the data. These operations are similar to the :ref:`aggregating API <basics.aggregate>`,
 :ref:`groupby API <groupby.aggregate>`, and :ref:`resample API <timeseries.aggregate>`.
 
@@ -971,7 +997,7 @@ Exponentially weighted windows
 
 A related set of functions are exponentially weighted versions of several of
 the above statistics. A similar interface to ``.rolling`` and ``.expanding`` is accessed
-through the ``.ewm`` method to receive an :class:`~EWM` object.
+through the ``.ewm`` method to receive an :class:`~ExponentialMovingWindow` object.
 A number of expanding EW (exponentially weighted)
 methods are provided:
 
@@ -980,11 +1006,11 @@ methods are provided:
     :header: "Function", "Description"
     :widths: 20, 80
 
-    :meth:`~EWM.mean`, EW moving average
-    :meth:`~EWM.var`, EW moving variance
-    :meth:`~EWM.std`, EW moving standard deviation
-    :meth:`~EWM.corr`, EW moving correlation
-    :meth:`~EWM.cov`, EW moving covariance
+    :meth:`~ExponentialMovingWindow.mean`, EW moving average
+    :meth:`~ExponentialMovingWindow.var`, EW moving variance
+    :meth:`~ExponentialMovingWindow.std`, EW moving standard deviation
+    :meth:`~ExponentialMovingWindow.corr`, EW moving correlation
+    :meth:`~ExponentialMovingWindow.cov`, EW moving covariance
 
 In general, a weighted moving average is calculated as
 
@@ -1081,6 +1107,25 @@ and **alpha** to the EW functions:
   one half.
 * **Alpha** specifies the smoothing factor directly.
 
+.. versionadded:: 1.1.0
+
+You can also specify ``halflife`` in terms of a timedelta convertible unit to specify the amount of
+time it takes for an observation to decay to half its value when also specifying a sequence
+of ``times``.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    df
+    times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', '2020-01-17']
+    df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
+
+The following formula is used to compute exponentially weighted mean with an input vector of times:
+
+.. math::
+
+    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{0.5^\frac{t_{t} - t_{i}}{\lambda}},
+
 Here is an example for a univariate time series:
 
 .. ipython:: python
@@ -1090,12 +1135,12 @@ Here is an example for a univariate time series:
    @savefig ewma_ex.png
    s.ewm(span=20).mean().plot(style='k')
 
-EWM has a ``min_periods`` argument, which has the same
+ExponentialMovingWindow has a ``min_periods`` argument, which has the same
 meaning it does for all the ``.expanding`` and ``.rolling`` methods:
 no output values will be set until at least ``min_periods`` non-null values
 are encountered in the (expanding) window.
 
-EWM also has an ``ignore_na`` argument, which determines how
+ExponentialMovingWindow also has an ``ignore_na`` argument, which determines how
 intermediate null values affect the calculation of the weights.
 When ``ignore_na=False`` (the default), weights are calculated based on absolute
 positions, so that intermediate null values affect the result.

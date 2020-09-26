@@ -7,16 +7,14 @@ from typing import Union
 
 import numpy as np
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, Timedelta, Timestamp
-
-from pandas.tseries.offsets import DateOffset
+from pandas._libs.tslibs import BaseOffset, OutOfBoundsDatetime, Timedelta, Timestamp
 
 
 def generate_regular_range(
     start: Union[Timestamp, Timedelta],
     end: Union[Timestamp, Timedelta],
     periods: int,
-    freq: DateOffset,
+    freq: BaseOffset,
 ):
     """
     Generate a range of dates or timestamps with the spans between dates

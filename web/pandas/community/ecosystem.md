@@ -42,6 +42,13 @@ datasets into feature matrices for machine learning using reusable
 feature engineering "primitives". Users can contribute their own
 primitives in Python and share them with the rest of the community.
 
+### [Compose](https://github.com/FeatureLabs/compose)
+
+Compose is a machine learning tool for labeling data and prediction engineering.
+It allows you to structure the labeling process by parameterizing
+prediction problems and transforming time-driven relational data into
+target values with cutoff times that can be used for supervised learning.
+
 ## Visualization
 
 ### [Altair](https://altair-viz.github.io/)
@@ -353,13 +360,23 @@ Cyberpandas provides an extension type for storing arrays of IP
 Addresses. These arrays can be stored inside pandas' Series and
 DataFrame.
 
+### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
+
+Pint-Pandas provides an extension type for storing numeric arrays with units.
+These arrays can be stored inside pandas' Series and DataFrame. Operations
+between Series and DataFrame columns which use pint's extension array are then
+units aware.
+
 ## Accessors
 
 A directory of projects providing
 `extension accessors <extending.register-accessors>`. This is for users to discover new accessors and for library
 authors to coordinate on the namespace.
 
-  | Library                                                     | Accessor |  Classes              |
-  | ------------------------------------------------------------|----------|-----------------------|
-  | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest) | `ip`     | `Series`              |
-  | [pdvega](https://altair-viz.github.io/pdvega/)              | `vgplot` | `Series`, `DataFrame` |
+  | Library                                                       | Accessor |  Classes              |
+  | --------------------------------------------------------------|----------|-----------------------|
+  | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)   | `ip`     | `Series`              |
+  | [pdvega](https://altair-viz.github.io/pdvega/)                | `vgplot` | `Series`, `DataFrame` |
+  | [pandas_path](https://github.com/drivendataorg/pandas-path/)  | `path`   | `Index`, `Series` |
+  | [pint-pandas](https://github.com/hgrecco/pint-pandas)         | `pint`   | `Series`, `DataFrame` |
+  | [composeml](https://github.com/FeatureLabs/compose)           | `slice`  | `DataFrame`           |

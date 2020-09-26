@@ -10,14 +10,17 @@
    p = doctools.TablePlotter()
 
 
-****************************
-Merge, join, and concatenate
-****************************
+************************************
+Merge, join, concatenate and compare
+************************************
 
 pandas provides various facilities for easily combining together Series or
 DataFrame with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
+
+In addition, pandas also provides utilities to compare two Series or DataFrame
+and summarize their differences.
 
 .. _merging.concat:
 
@@ -74,7 +77,7 @@ some configurable handling of "what to do with the other axes":
               levels=None, names=None, verify_integrity=False, copy=True)
 
 * ``objs`` : a sequence or mapping of Series or DataFrame objects. If a
-  dict is passed, the sorted keys will be used as the `keys` argument, unless
+  dict is passed, the sorted keys will be used as the ``keys`` argument, unless
   it is passed, in which case the values will be selected (see below). Any None
   objects will be dropped silently unless they are all None in which case a
   ValueError will be raised.
@@ -171,8 +174,6 @@ behavior:
    plt.close('all');
 
 .. warning::
-
-   .. versionchanged:: 0.23.0
 
    The default behavior with ``join='outer'`` is to sort the other axis
    (columns in this case). In a future version of pandas, the default will
@@ -1195,8 +1196,6 @@ done using the following code.
 Merging on a combination of columns and index levels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.23
-
 Strings passed as the ``on``, ``left_on``, and ``right_on`` parameters
 may refer to either column names or index level names.  This enables merging
 ``DataFrame`` instances on a combination of index levels and columns without
@@ -1235,7 +1234,7 @@ resetting indexes.
    DataFrame.
 
 .. note::
-   When DataFrames are merged using only some of the levels of a `MultiIndex`,
+   When DataFrames are merged using only some of the levels of a ``MultiIndex``,
    the extra levels will be dropped from the resulting merge. In order to
    preserve those levels, use ``reset_index`` on those level names to move
    those levels to columns prior to doing the merge.
@@ -1270,7 +1269,7 @@ columns:
 
 .. ipython:: python
 
-   result = pd.merge(left, right, on='k', suffixes=['_l', '_r'])
+   result = pd.merge(left, right, on='k', suffixes=('_l', '_r'))
 
 .. ipython:: python
    :suppress:
@@ -1477,3 +1476,61 @@ exclude exact matches on time. Note that though we exclude the exact matches
                  by='ticker',
                  tolerance=pd.Timedelta('10ms'),
                  allow_exact_matches=False)
+
+.. _merging.compare:
+
+Comparing objects
+-----------------
+
+The :meth:`~Series.compare` and :meth:`~DataFrame.compare` methods allow you to
+compare two DataFrame or Series, respectively, and summarize their differences.
+
+This feature was added in :ref:`V1.1.0 <whatsnew_110.dataframe_or_series_comparing>`.
+
+For example, you might want to compare two ``DataFrame`` and stack their differences
+side by side.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           "col1": ["a", "a", "b", "b", "a"],
+           "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
+           "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
+       },
+       columns=["col1", "col2", "col3"],
+   )
+   df
+
+.. ipython:: python
+
+   df2 = df.copy()
+   df2.loc[0, 'col1'] = 'c'
+   df2.loc[2, 'col3'] = 4.0
+   df2
+
+.. ipython:: python
+
+   df.compare(df2)
+
+By default, if two corresponding values are equal, they will be shown as ``NaN``.
+Furthermore, if all values in an entire row / column, the row / column will be
+omitted from the result. The remaining differences will be aligned on columns.
+
+If you wish, you may choose to stack the differences on rows.
+
+.. ipython:: python
+
+   df.compare(df2, align_axis=0)
+
+If you wish to keep all original rows and columns, set ``keep_shape`` argument
+to ``True``.
+
+.. ipython:: python
+
+   df.compare(df2, keep_shape=True)
+
+You may also keep all the original values even if they are equal.
+
+.. ipython:: python
+   df.compare(df2, keep_shape=True, keep_equal=True)

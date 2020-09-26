@@ -5,14 +5,11 @@ import pytest
 import pytz
 from pytz import utc
 
-from pandas._libs.tslibs import conversion
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs import NaT, Timestamp, conversion, to_offset
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 import pandas.util._test_decorators as td
 
-from pandas import NaT, Timestamp
 import pandas._testing as tm
-
-from pandas.tseries.frequencies import to_offset
 
 
 class TestTimestampUnaryOps:
@@ -398,6 +395,12 @@ class TestTimestampUnaryOps:
         ts = Timestamp(arg, tz=tz)
         result = ts.normalize()
         expected = Timestamp("2013-11-30", tz=tz)
+        assert result == expected
+
+    def test_normalize_pre_epoch_dates(self):
+        # GH: 36294
+        result = Timestamp("1969-01-01 09:00:00").normalize()
+        expected = Timestamp("1969-01-01 00:00:00")
         assert result == expected
 
     # --------------------------------------------------------------

@@ -296,6 +296,22 @@ For instance,
    cheese.melt(id_vars=['first', 'last'])
    cheese.melt(id_vars=['first', 'last'], var_name='quantity')
 
+When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored. The original index values can be kept around by setting the ``ignore_index`` parameter to ``False`` (default is ``True``). This will however duplicate them.
+
+.. versionadded:: 1.1.0
+
+.. ipython:: python
+
+   index = pd.MultiIndex.from_tuples([('person', 'A'), ('person', 'B')])
+   cheese = pd.DataFrame({'first': ['John', 'Mary'],
+                          'last': ['Doe', 'Bo'],
+                          'height': [5.5, 6.0],
+                          'weight': [130, 150]},
+                         index=index)
+   cheese
+   cheese.melt(id_vars=['first', 'last'])
+   cheese.melt(id_vars=['first', 'last'], ignore_index=False)
+
 Another way to transform is to use the :func:`~pandas.wide_to_long` panel data
 convenience function. It is less flexible than :func:`~pandas.melt`, but more
 user-friendly.
@@ -593,8 +609,8 @@ This function is often used along with discretization functions like ``cut``:
 See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
 :func:`get_dummies` also accepts a ``DataFrame``. By default all categorical
-variables (categorical in the statistical sense, those with `object` or
-`categorical` dtype) are encoded as dummy variables.
+variables (categorical in the statistical sense, those with ``object`` or
+``categorical`` dtype) are encoded as dummy variables.
 
 
 .. ipython:: python
@@ -662,8 +678,6 @@ To choose another dtype, use the ``dtype`` argument:
     df = pd.DataFrame({'A': list('abc'), 'B': [1.1, 2.2, 3.3]})
 
     pd.get_dummies(df, dtype=bool).dtypes
-
-.. versionadded:: 0.23.0
 
 
 .. _reshaping.factorize:

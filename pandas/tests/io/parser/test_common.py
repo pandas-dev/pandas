@@ -5,6 +5,7 @@ specific classification into the other test modules.
 import codecs
 import csv
 from datetime import datetime
+from inspect import signature
 from io import StringIO
 import os
 import platform
@@ -17,7 +18,7 @@ from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, MultiIndex, Series, compat, concat
+from pandas import DataFrame, Index, MultiIndex, Series, compat, concat, option_context
 import pandas._testing as tm
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
@@ -1147,7 +1148,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
         result = parser.read_csv(StringIO(data))
 
     assert type(result.a[0]) is np.float64
-    assert result.a.dtype == np.float
+    assert result.a.dtype == float
 
 
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
@@ -1163,7 +1164,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
 
     with tm.assert_produces_warning(warning_type):
         df = parser.read_csv(StringIO(data))
-    assert df.a.dtype == np.object
+    assert df.a.dtype == object
 
 
 @pytest.mark.parametrize("sep", [" ", r"\s+"])
@@ -1723,7 +1724,7 @@ def test_iteration_open_handle(all_parsers):
         with open(path, "w") as f:
             f.write("AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG")
 
-        with open(path, "r") as f:
+        with open(path) as f:
             for line in f:
                 if "CCC" in line:
                     break
@@ -1833,6 +1834,7 @@ def test_raise_on_no_columns(all_parsers, nrows):
         parser.read_csv(StringIO(data))
 
 
+@td.check_file_leaks
 def test_memory_map(all_parsers, csv_dir_path):
     mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
     parser = all_parsers
@@ -2071,6 +2073,39 @@ def test_read_csv_raises_on_header_prefix(all_parsers):
         parser.read_csv(s, header=0, prefix="_X")
 
 
+def test_unexpected_keyword_parameter_exception(all_parsers):
+    # GH-34976
+    parser = all_parsers
+
+    msg = "{}\\(\\) got an unexpected keyword argument 'foo'"
+    with pytest.raises(TypeError, match=msg.format("read_csv")):
+        parser.read_csv("foo.csv", foo=1)
+    with pytest.raises(TypeError, match=msg.format("read_table")):
+        parser.read_table("foo.tsv", foo=1)
+
+
+def test_read_table_same_signature_as_read_csv(all_parsers):
+    # GH-34976
+    parser = all_parsers
+
+    table_sign = signature(parser.read_table)
+    csv_sign = signature(parser.read_csv)
+
+    assert table_sign.parameters.keys() == csv_sign.parameters.keys()
+    assert table_sign.return_annotation == csv_sign.return_annotation
+
+    for key, csv_param in csv_sign.parameters.items():
+        table_param = table_sign.parameters[key]
+        if key == "sep":
+            assert csv_param.default == ","
+            assert table_param.default == "\t"
+            assert table_param.annotation == csv_param.annotation
+            assert table_param.kind == csv_param.kind
+            continue
+        else:
+            assert table_param == csv_param
+
+
 def test_read_table_equivalency_to_read_csv(all_parsers):
     # see gh-21948
     # As of 0.25.0, read_table is undeprecated
@@ -2085,6 +2120,16 @@ def test_first_row_bom(all_parsers):
     # see gh-26545
     parser = all_parsers
     data = '''\ufeff"Head1"	"Head2"	"Head3"'''
+
+    result = parser.read_csv(StringIO(data), delimiter="\t")
+    expected = DataFrame(columns=["Head1", "Head2", "Head3"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_first_row_bom_unquoted(all_parsers):
+    # see gh-36343
+    parser = all_parsers
+    data = """\ufeffHead1	Head2	Head3"""
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
     expected = DataFrame(columns=["Head1", "Head2", "Head3"])
@@ -2135,3 +2180,44 @@ def test_no_header_two_extra_columns(all_parsers):
     parser = all_parsers
     df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
     tm.assert_frame_equal(df, ref)
+
+
+def test_read_csv_names_not_accepting_sets(all_parsers):
+    # GH 34946
+    data = """\
+    1,2,3
+    4,5,6\n"""
+    parser = all_parsers
+    with pytest.raises(ValueError, match="Names should be an ordered collection."):
+        parser.read_csv(StringIO(data), names=set("QAZ"))
+
+
+def test_read_csv_with_use_inf_as_na(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/35493
+    parser = all_parsers
+    data = "1.0\nNaN\n3.0"
+    with option_context("use_inf_as_na", True):
+        result = parser.read_csv(StringIO(data), header=None)
+    expected = DataFrame([1.0, np.nan, 3.0])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_table_delim_whitespace_default_sep(all_parsers):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    result = parser.read_table(f, delim_whitespace=True)
+    expected = DataFrame({"a": [1, 4], "b": [-2, 5], "c": [-3, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_table_delim_whitespace_non_default_sep(all_parsers):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    msg = (
+        "Specified a delimiter with both sep and "
+        "delim_whitespace=True; you can only specify one."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, sep=",")

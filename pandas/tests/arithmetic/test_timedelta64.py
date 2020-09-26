@@ -1733,6 +1733,27 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
+    def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
+        # GH#35529
+        box = box_with_array
+
+        left = pd.Series([1000, 222330, 30], dtype="timedelta64[ns]")
+        right = pd.Series([1000, 222330, None], dtype="timedelta64[ns]")
+
+        left = tm.box_expected(left, box)
+        right = tm.box_expected(right, box)
+
+        expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
+        expected = tm.box_expected(expected, box)
+
+        result = left // right
+
+        tm.assert_equal(result, expected)
+
+        # case that goes through __rfloordiv__ with arraylike
+        result = np.asarray(left) // right
+        tm.assert_equal(result, expected)
+
     def test_td64arr_floordiv_tdscalar(self, box_with_array, scalar_td):
         # GH#18831
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
@@ -2119,3 +2140,20 @@ class TestTimedelta64ArrayLikeArithmetic:
 
         with pytest.raises(TypeError, match=pattern):
             td1 ** scalar_td
+
+
+def test_add_timestamp_to_timedelta():
+    # GH: 35897
+    timestamp = pd.Timestamp.now()
+    result = timestamp + pd.timedelta_range("0s", "1s", periods=31)
+    expected = pd.DatetimeIndex(
+        [
+            timestamp
+            + (
+                pd.to_timedelta("0.033333333s") * i
+                + pd.to_timedelta("0.000000001s") * divmod(i, 3)[0]
+            )
+            for i in range(31)
+        ]
+    )
+    tm.assert_index_equal(result, expected)

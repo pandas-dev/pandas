@@ -89,6 +89,26 @@ class TestNumericComparisons:
         b.name = pd.Timestamp("2000-01-01")
         tm.assert_series_equal(a / b, 1 / (b / a))
 
+    def test_numeric_cmp_string_numexpr_path(self, box):
+        # GH#36377, GH#35700
+        xbox = box if box is not pd.Index else np.ndarray
+
+        obj = pd.Series(np.random.randn(10 ** 5))
+        obj = tm.box_expected(obj, box, transpose=False)
+
+        result = obj == "a"
+
+        expected = pd.Series(np.zeros(10 ** 5, dtype=bool))
+        expected = tm.box_expected(expected, xbox, transpose=False)
+        tm.assert_equal(result, expected)
+
+        result = obj != "a"
+        tm.assert_equal(result, ~expected)
+
+        msg = "Invalid comparison between dtype=float64 and str"
+        with pytest.raises(TypeError, match=msg):
+            obj < "a"
+
 
 # ------------------------------------------------------------------
 # Numeric dtypes Arithmetic with Datetime/Timedelta Scalar
@@ -99,7 +119,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
     def test_mul_td64arr(self, left, box_cls):
         # GH#22390
@@ -119,7 +139,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
     def test_div_td64arr(self, left, box_cls):
         # GH#22390
@@ -234,7 +254,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             "unsupported operand type|"
             "Addition/subtraction of integers and integer-arrays|"
             "Instead of adding/subtracting|"
-            "cannot use operands with types dtype"
+            "cannot use operands with types dtype|"
+            "Concatenation operation is not implemented for NumPy arrays"
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -263,7 +284,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         msg = (
             "unsupported operand type|"
             "Cannot (add|subtract) NaT (to|from) ndarray|"
-            "Addition/subtraction of integers and integer-arrays"
+            "Addition/subtraction of integers and integer-arrays|"
+            "Concatenation operation is not implemented for NumPy arrays"
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -546,20 +568,6 @@ class TestMultiplicationDivision:
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
     # for non-timestamp/timedelta/period dtypes
 
-    @pytest.mark.parametrize(
-        "box",
-        [
-            pytest.param(
-                pd.Index,
-                marks=pytest.mark.xfail(
-                    reason="Index.__div__ always raises", raises=TypeError
-                ),
-            ),
-            pd.Series,
-            pd.DataFrame,
-        ],
-        ids=lambda x: x.__name__,
-    )
     def test_divide_decimal(self, box):
         # resolves issue GH#9787
         ser = Series([Decimal(10)])

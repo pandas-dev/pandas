@@ -16,7 +16,7 @@ deprecations, API compatibility, and version numbering.
 
 A pandas release number is made up of ``MAJOR.MINOR.PATCH``.
 
-API breaking changes should only occur in **major** releases. Theses changes
+API breaking changes should only occur in **major** releases. These changes
 will be documented, with clear guidance on what is changing, why it's changing,
 and how to migrate existing code to the new behavior.
 
@@ -52,6 +52,6 @@ Python support
 ~~~~~~~~~~~~~~
 
 pandas will only drop support for specific Python versions (e.g. 3.6.x, 3.7.x) in
-pandas **major** releases.
+pandas **major** or **minor** releases.
 
 .. _SemVer: https://semver.org

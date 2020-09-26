@@ -156,9 +156,7 @@ class TestComparison:
         expected = self.elementwise_comparison(op, array, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_list_like_interval(
-        self, op, array, interval_constructor,
-    ):
+    def test_compare_list_like_interval(self, op, array, interval_constructor):
         # same endpoints
         other = interval_constructor(array.left, array.right)
         result = op(array, other)
@@ -284,3 +282,11 @@ class TestComparison:
         result = op(index, other)
         expected = expected_type(self.elementwise_comparison(op, index, other))
         assert_func(result, expected)
+
+    @pytest.mark.parametrize("scalars", ["a", False, 1, 1.0, None])
+    def test_comparison_operations(self, scalars):
+        # GH #28981
+        expected = Series([False, False])
+        s = pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval")
+        result = s == scalars
+        tm.assert_series_equal(result, expected)

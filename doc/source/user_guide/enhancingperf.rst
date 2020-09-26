@@ -13,6 +13,14 @@ when we use Cython and Numba on a test function operating row-wise on the
 ``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of
 ~2.
 
+.. note::
+
+   In addition to following the steps in this tutorial, users interested in enhancing
+   performance are highly encouraged to install the
+   :ref:`recommended dependencies<install.recommended_dependencies>` for pandas.
+   These dependencies are often not installed by default, but will offer speed
+   improvements if present.
+
 .. _enhancingperf.cython:
 
 Cython (writing C extensions for pandas)
@@ -365,6 +373,13 @@ nicer interface by passing/returning pandas objects.
 
 In this example, using Numba was faster than Cython.
 
+Numba as an argument
+~~~~~~~~~~~~~~~~~~~~
+
+Additionally, we can leverage the power of `Numba <https://numba.pydata.org/>`__
+by calling it as an argument in :meth:`~Rolling.apply`. See :ref:`Computation tools
+<stats.rolling_apply>` for an extensive example.
+
 Vectorize
 ~~~~~~~~~
 
@@ -473,9 +488,9 @@ These operations are supported by :func:`pandas.eval`:
 * Attribute access, e.g., ``df.a``
 * Subscript expressions, e.g., ``df[0]``
 * Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
-* Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
-  `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
-  `arcsinh`, `arctanh`, `abs`, `arctan2` and `log10`.
+* Math functions: ``sin``, ``cos``, ``exp``, ``log``, ``expm1``, ``log1p``,
+  ``sqrt``, ``sinh``, ``cosh``, ``tanh``, ``arcsin``, ``arccos``, ``arctan``, ``arccosh``,
+  ``arcsinh``, ``arctanh``, ``abs``, ``arctan2`` and ``log10``.
 
 This Python syntax is **not** allowed:
 

@@ -235,6 +235,8 @@ inferred frequency upon creation:
 
     pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'], freq='infer')
 
+.. _timeseries.converting.format:
+
 Providing a format argument
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -280,20 +282,20 @@ You can pass only the columns that you need to assemble.
 Invalid data
 ~~~~~~~~~~~~
 
-The default behavior, ``errors='raise'``, is to raise when unparseable:
+The default behavior, ``errors='raise'``, is to raise when unparsable:
 
 .. code-block:: ipython
 
     In [2]: pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
     ValueError: Unknown string format
 
-Pass ``errors='ignore'`` to return the original input when unparseable:
+Pass ``errors='ignore'`` to return the original input when unparsable:
 
 .. ipython:: python
 
    pd.to_datetime(['2009/07/31', 'asd'], errors='ignore')
 
-Pass ``errors='coerce'`` to convert unparseable data to ``NaT`` (not a time):
+Pass ``errors='coerce'`` to convert unparsable data to ``NaT`` (not a time):
 
 .. ipython:: python
 
@@ -319,11 +321,17 @@ which can be specified. These are computed from the starting point specified by 
    pd.to_datetime([1349720105100, 1349720105200, 1349720105300,
                    1349720105400, 1349720105500], unit='ms')
 
+.. note::
+
+   The ``unit`` parameter does not use the same strings as the ``format`` parameter
+   that was discussed :ref:`above<timeseries.converting.format>`). The
+   available units are listed on the documentation for :func:`pandas.to_datetime`.
+
+.. versionchanged:: 1.0.0
+
 Constructing a :class:`Timestamp` or :class:`DatetimeIndex` with an epoch timestamp
-with the ``tz`` argument specified will currently localize the epoch timestamps to UTC
-first then convert the result to the specified time zone. However, this behavior
-is :ref:`deprecated <whatsnew_0240.deprecations.integer_tz>`, and if you have
-epochs in wall time in another timezone, it is recommended to read the epochs
+with the ``tz`` argument specified will raise a ValueError. If you have
+epochs in wall time in another timezone, you can read the epochs
 as timezone-naive timestamps and then localize to the appropriate timezone:
 
 .. ipython:: python
@@ -453,8 +461,6 @@ of those specified will not be generated:
 
    pd.bdate_range(start=start, periods=20)
 
-.. versionadded:: 0.23.0
-
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 dates from ``start`` to ``end`` inclusively, with ``periods`` number of elements in the
 resulting ``DatetimeIndex``:
@@ -516,7 +522,7 @@ The ``DatetimeIndex`` class contains many time series related optimizations:
 * A large range of dates for various offsets are pre-computed and cached
   under the hood in order to make generating subsequent date ranges very fast
   (just have to grab a slice).
-* Fast shifting using the ``shift`` and ``tshift`` method on pandas objects.
+* Fast shifting using the ``shift`` method on pandas objects.
 * Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
   very fast (important for fast data alignment).
 * Quick access to date fields via properties such as ``year``, ``month``, etc.
@@ -573,7 +579,12 @@ This type of slicing will work on a ``DataFrame`` with a ``DatetimeIndex`` as we
 partial string selection is a form of label slicing, the endpoints **will be** included. This
 would include matching times on an included date:
 
+.. warning::
+
+   Indexing ``DataFrame`` rows with strings is deprecated in pandas 1.2.0 and will be removed in a future version.  Use ``frame.loc[dtstring]`` instead.
+
 .. ipython:: python
+   :okwarning:
 
    dft = pd.DataFrame(np.random.randn(100000, 1), columns=['A'],
                       index=pd.date_range('20130101', periods=100000, freq='T'))
@@ -584,24 +595,28 @@ This starts on the very first time in the month, and includes the last date and
 time for the month:
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1':'2013-2']
 
 This specifies a stop time **that includes all of the times on the last day**:
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1':'2013-2-28']
 
 This specifies an **exact** stop time (and is not the same as the above):
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1':'2013-2-28 00:00:00']
 
 We are stopping on the included end-point as it is part of the index:
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1-15':'2013-1-15 12:30:00']
 
@@ -625,6 +640,7 @@ We are stopping on the included end-point as it is part of the index:
 Slicing with string indexing also honors UTC offset.
 
 .. ipython:: python
+   :okwarning:
 
     df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df
@@ -634,8 +650,6 @@ Slicing with string indexing also honors UTC offset.
 
 Slice vs. exact match
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionchanged:: 0.20.0
 
 The same string used as an indexing parameter can be treated either as a slice or as an exact match depending on the resolution of the index. If the string is less accurate than the index, it will be treated as a slice, otherwise as an exact match.
 
@@ -677,6 +691,7 @@ If index resolution is second, then the minute-accurate timestamp gives a
 If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``[]`` as well.
 
 .. ipython:: python
+    :okwarning:
 
     dft_minute = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
                               index=series_minute.index)
@@ -793,6 +808,7 @@ You may obtain the year, week and day components of the ISO year from the ISO 86
 .. ipython:: python
 
    idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
+   idx.isocalendar()
    idx.to_series().dt.isocalendar()
 
 .. _timeseries.offsets:
@@ -1461,23 +1477,19 @@ the pandas objects.
 
 The ``shift`` method accepts an ``freq`` argument which can accept a
 ``DateOffset`` class or other ``timedelta``-like object or also an
-:ref:`offset alias <timeseries.offset_aliases>`:
+:ref:`offset alias <timeseries.offset_aliases>`.
+
+When ``freq`` is specified, ``shift`` method changes all the dates in the index
+rather than changing the alignment of the data and the index:
 
 .. ipython:: python
 
+   ts.shift(5, freq='D')
    ts.shift(5, freq=pd.offsets.BDay())
    ts.shift(5, freq='BM')
 
-Rather than changing the alignment of the data and the index, ``DataFrame`` and
-``Series`` objects also have a :meth:`~Series.tshift` convenience method that
-changes all the dates in the index by a specified number of offsets:
-
-.. ipython:: python
-
-   ts.tshift(5, freq='D')
-
-Note that with ``tshift``, the leading entry is no longer NaN because the data
-is not being realigned.
+Note that with when ``freq`` is specified, the leading entry is no longer NaN
+because the data is not being realigned.
 
 Frequency conversion
 ~~~~~~~~~~~~~~~~~~~~
@@ -1788,12 +1800,12 @@ See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
 .. _timeseries.adjust-the-start-of-the-bins:
 
-Use `origin` or `offset` to adjust the start of the bins
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Use ``origin`` or ``offset`` to adjust the start of the bins
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 1.1.0
 
-The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divide a day evenly (like `90s` or `1min`). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed Timestamp with the argument ``origin``.
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like ``30D``) or that divide a day evenly (like ``90s`` or ``1min``). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed Timestamp with the argument ``origin``.
 
 For example:
 
@@ -2026,6 +2038,7 @@ You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodI
 Passing a string representing a lower frequency than ``PeriodIndex`` returns partial sliced data.
 
 .. ipython:: python
+   :okwarning:
 
    ps['2011']
 
@@ -2316,11 +2329,16 @@ you can use the ``tz_convert`` method.
 
 .. warning::
 
+    Be aware that for times in the future, correct conversion between time zones
+    (and UTC) cannot be guaranteed by any time zone library because a timezone's
+    offset from UTC may be changed by the respective government.
+
+.. warning::
+
     If you are using dates beyond 2038-01-18, due to current deficiencies
     in the underlying libraries caused by the year 2038 problem, daylight saving time (DST) adjustments
     to timezone aware dates will not be applied. If and when the underlying libraries are fixed,
-    the DST transitions will be applied. It should be noted though, that time zone data for far future time zones
-    are likely to be inaccurate, as they are simple extrapolations of the current set of (regularly revised) rules.
+    the DST transitions will be applied.
 
     For example, for two dates that are in British Summer Time (and so would normally be GMT+1), both the following asserts evaluate as true:
 

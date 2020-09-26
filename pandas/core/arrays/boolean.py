@@ -9,7 +9,6 @@ from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_extension_array_dtype,
@@ -21,7 +20,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -287,9 +285,9 @@ class BooleanArray(BaseMaskedArray):
         def map_string(s):
             if isna(s):
                 return s
-            elif s in ["True", "TRUE", "true"]:
+            elif s in ["True", "TRUE", "true", "1", "1.0"]:
                 return True
-            elif s in ["False", "FALSE", "false"]:
+            elif s in ["False", "FALSE", "false", "0", "0.0"]:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
@@ -371,11 +369,18 @@ class BooleanArray(BaseMaskedArray):
             if incompatible type with an BooleanDtype, equivalent of same_kind
             casting
         """
+        from pandas.core.arrays.string_ import StringDtype
+
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
-            return BooleanArray(values, mask, copy=False)
+            if not copy:
+                return self
+            else:
+                return BooleanArray(values, mask, copy=False)
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
@@ -399,8 +404,7 @@ class BooleanArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-        data = self.to_numpy(na_value=na_value)
-        return astype_nansafe(data, dtype, copy=False)
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """
@@ -557,13 +561,10 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _create_logical_method(cls, op):
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def logical_method(self, other):
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
 
             assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
-            other = lib.item_from_zerodim(other)
             other_is_booleanarray = isinstance(other, BooleanArray)
             other_is_scalar = lib.is_scalar(other)
             mask = None
@@ -603,16 +604,14 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _create_comparison_method(cls, op):
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
             from pandas.arrays import IntegerArray
 
-            if isinstance(
-                other, (ABCDataFrame, ABCSeries, ABCIndexClass, IntegerArray)
-            ):
+            if isinstance(other, IntegerArray):
                 # Rely on pandas to unbox and dispatch to us.
                 return NotImplemented
 
-            other = lib.item_from_zerodim(other)
             mask = None
 
             if isinstance(other, BooleanArray):
@@ -691,13 +690,8 @@ class BooleanArray(BaseMaskedArray):
     def _create_arithmetic_method(cls, op):
         op_name = op.__name__
 
+        @ops.unpack_zerodim_and_defer(op_name)
         def boolean_arithmetic_method(self, other):
-
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-            other = lib.item_from_zerodim(other)
             mask = None
 
             if isinstance(other, BooleanArray):
@@ -715,11 +709,22 @@ class BooleanArray(BaseMaskedArray):
             # nans propagate
             if mask is None:
                 mask = self._mask
+                if other is libmissing.NA:
+                    mask |= True
             else:
                 mask = self._mask | mask
 
-            with np.errstate(all="ignore"):
-                result = op(self._data, other)
+            if other is libmissing.NA:
+                # if other is NA, the result will be all NA and we can't run the
+                # actual op, so we need to choose the resulting dtype manually
+                if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
+                    dtype = "int8"
+                else:
+                    dtype = "bool"
+                result = np.zeros(len(self._data), dtype=dtype)
+            else:
+                with np.errstate(all="ignore"):
+                    result = op(self._data, other)
 
             # divmod returns a tuple
             if op_name == "divmod":

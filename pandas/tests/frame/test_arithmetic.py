@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 import pandas.core.common as com
+from pandas.core.computation.expressions import _MIN_ELEMENTS, NUMEXPR_INSTALLED
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
 # -------------------------------------------------------------------
@@ -374,13 +375,13 @@ class TestFrameFlexArithmetic:
         result2 = df.floordiv(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
-    @pytest.mark.slow
+    @pytest.mark.skipif(not NUMEXPR_INSTALLED, reason="numexpr not installed")
     @pytest.mark.parametrize("opname", ["floordiv", "pow"])
     def test_floordiv_axis0_numexpr_path(self, opname):
         # case that goes through numexpr and has to fall back to masked_arith_op
         op = getattr(operator, opname)
 
-        arr = np.arange(10 ** 6).reshape(100, -1)
+        arr = np.arange(_MIN_ELEMENTS + 100).reshape(_MIN_ELEMENTS // 100 + 1, -1) * 100
         df = pd.DataFrame(arr)
         df["C"] = 1.0
 
@@ -1416,7 +1417,7 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
-        align = pd.core.ops._align_method_FRAME
+        align = pd.core.ops.align_method_FRAME
         for val in [
             [1, 2, 3],
             (1, 2, 3),
@@ -1513,4 +1514,50 @@ def test_dataframe_series_extension_dtypes():
     result = df_ea + ser
     tm.assert_frame_equal(result, expected)
     result = df_ea + ser.astype("Int64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dataframe_blockwise_slicelike():
+    # GH#34367
+    arr = np.random.randint(0, 1000, (100, 10))
+    df1 = pd.DataFrame(arr)
+    df2 = df1.copy()
+    df2.iloc[0, [1, 3, 7]] = np.nan
+
+    df3 = df1.copy()
+    df3.iloc[0, [5]] = np.nan
+
+    df4 = df1.copy()
+    df4.iloc[0, np.arange(2, 5)] = np.nan
+    df5 = df1.copy()
+    df5.iloc[0, np.arange(4, 7)] = np.nan
+
+    for left, right in [(df1, df2), (df2, df3), (df4, df5)]:
+        res = left + right
+
+        expected = pd.DataFrame({i: left[i] + right[i] for i in left.columns})
+        tm.assert_frame_equal(res, expected)
+
+
+@pytest.mark.parametrize(
+    "df, col_dtype",
+    [
+        (pd.DataFrame([[1.0, 2.0], [4.0, 5.0]], columns=list("ab")), "float64"),
+        (pd.DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")), "object"),
+    ],
+)
+def test_dataframe_operation_with_non_numeric_types(df, col_dtype):
+    # GH #22663
+    expected = pd.DataFrame([[0.0, np.nan], [3.0, np.nan]], columns=list("ab"))
+    expected = expected.astype({"b": col_dtype})
+    result = df + pd.Series([-1.0], index=list("a"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arith_reindex_with_duplicates():
+    # https://github.com/pandas-dev/pandas/issues/35194
+    df1 = pd.DataFrame(data=[[0]], columns=["second"])
+    df2 = pd.DataFrame(data=[[0, 0, 0]], columns=["first", "second", "second"])
+    result = df1 + df2
+    expected = pd.DataFrame([[np.nan, 0, 0]], columns=["first", "second", "second"])
     tm.assert_frame_equal(result, expected)

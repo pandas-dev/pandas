@@ -181,9 +181,7 @@ class TestFloatIndexers:
         expected = 3
         assert result == expected
 
-    @pytest.mark.parametrize(
-        "index_func", [tm.makeIntIndex, tm.makeRangeIndex],
-    )
+    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
     @pytest.mark.parametrize("klass", [Series, DataFrame])
     def test_scalar_integer(self, index_func, klass):
 
@@ -405,7 +403,7 @@ class TestFloatIndexers:
 
     @pytest.mark.parametrize("l", [slice(2, 4.0), slice(2.0, 4), slice(2.0, 4.0)])
     def test_integer_positional_indexing(self, l):
-        """ make sure that we are raising on positional indexing
+        """make sure that we are raising on positional indexing
         w.r.t. an integer index
         """
         s = Series(range(2, 6), index=range(2, 6))
@@ -425,9 +423,7 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[l]
 
-    @pytest.mark.parametrize(
-        "index_func", [tm.makeIntIndex, tm.makeRangeIndex],
-    )
+    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
     def test_slice_integer_frame_getitem(self, index_func):
 
         # similar to above, but on the getitem dim (of a DataFrame)
@@ -486,9 +482,7 @@ class TestFloatIndexers:
                 s[l]
 
     @pytest.mark.parametrize("l", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
-    @pytest.mark.parametrize(
-        "index_func", [tm.makeIntIndex, tm.makeRangeIndex],
-    )
+    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
     def test_float_slice_getitem_with_integer_index_raises(self, l, index_func):
 
         # similar to above, but on the getitem dim (of a DataFrame)

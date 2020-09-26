@@ -164,7 +164,7 @@ class TestDataFrameIsIn:
         tm.assert_frame_equal(result, expected)
 
         df2.index = idx
-        expected = df2.values.astype(np.bool)
+        expected = df2.values.astype(bool)
         expected[:, 1] = ~expected[:, 1]
         expected = DataFrame(expected, columns=["A", "B"], index=idx)
 
@@ -188,4 +188,19 @@ class TestDataFrameIsIn:
         result = df1_td.isin(df2)
         tm.assert_frame_equal(result, expected)
         result = df1_td.isin(df3)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            pd.DataFrame({"a": [1, 2, 3]}, dtype="category"),
+            pd.Series([1, 2, 3], dtype="category"),
+        ],
+    )
+    def test_isin_category_frame(self, values):
+        # GH#34256
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        expected = DataFrame({"a": [True, True, True], "b": [False, False, False]})
+
+        result = df.isin(values)
         tm.assert_frame_equal(result, expected)

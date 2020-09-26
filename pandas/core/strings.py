@@ -155,7 +155,7 @@ def _map_stringarray(
         an ndarray.
 
     """
-    from pandas.arrays import IntegerArray, StringArray, BooleanArray
+    from pandas.arrays import BooleanArray, IntegerArray, StringArray
 
     mask = isna(arr)
 
@@ -570,9 +570,9 @@ def str_endswith(arr, pat, na=np.nan):
 
 def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     r"""
-    Replace occurrences of pattern/regex in the Series/Index with
-    some other string. Equivalent to :meth:`str.replace` or
-    :func:`re.sub`, depending on the regex value.
+    Replace each occurrence of pattern/regex in the Series/Index.
+
+    Equivalent to :meth:`str.replace` or :func:`re.sub`, depending on the regex value.
 
     Parameters
     ----------
@@ -601,8 +601,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         - If False, treats the pattern as a literal string
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
           a callable.
-
-        .. versionadded:: 0.23.0
 
     Returns
     -------
@@ -1063,6 +1061,8 @@ def str_extract(arr, pat, flags=0, expand=True):
 
 def str_extractall(arr, pat, flags=0):
     r"""
+    Extract capture groups in the regex `pat` as columns in DataFrame.
+
     For each subject string in the Series, extract groups from all
     matches of regular expression pat. When each subject string in the
     Series has exactly one match, extractall(pat).xs(0, level='match')
@@ -1174,7 +1174,9 @@ def str_extractall(arr, pat, flags=0):
 
 def str_get_dummies(arr, sep="|"):
     """
-    Split each string in the Series by sep and return a DataFrame
+    Return DataFrame of dummy/indicator variables for Series.
+
+    Each string in Series is split by sep and returned as a DataFrame
     of dummy/indicator variables.
 
     Parameters
@@ -1468,7 +1470,7 @@ def str_pad(arr, width, side="left", fillchar=" "):
         character. Equivalent to ``Series.str.pad(side='left')``.
     Series.str.ljust : Fills the right side of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='right')``.
-    Series.str.center : Fills boths sides of strings with an arbitrary
+    Series.str.center : Fills both sides of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='both')``.
     Series.str.zfill : Pad strings in the Series/Index by prepending '0'
         character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
@@ -1743,8 +1745,7 @@ def str_strip(arr, to_strip=None, side="both"):
 
 def str_wrap(arr, width, **kwargs):
     r"""
-    Wrap long strings in the Series/Index to be formatted in
-    paragraphs with length less than a given width.
+    Wrap strings in Series/Index at specified line width.
 
     This method has the same keyword parameters and defaults as
     :class:`textwrap.TextWrapper`.
@@ -1807,6 +1808,7 @@ def str_wrap(arr, width, **kwargs):
 def str_translate(arr, table):
     """
     Map all characters in the string through the given mapping table.
+
     Equivalent to standard :meth:`str.translate`.
 
     Parameters
@@ -1889,6 +1891,7 @@ def str_get(arr, i):
 def str_decode(arr, encoding, errors="strict"):
     """
     Decode character string in the Series/Index using indicated encoding.
+
     Equivalent to :meth:`str.decode` in python2 and :meth:`bytes.decode` in
     python3.
 
@@ -1913,6 +1916,7 @@ def str_decode(arr, encoding, errors="strict"):
 def str_encode(arr, encoding, errors="strict"):
     """
     Encode character string in the Series/Index using indicated encoding.
+
     Equivalent to :meth:`str.encode`.
 
     Parameters
@@ -2044,7 +2048,7 @@ def _pat_wrapper(
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper3(self, pat, na=np.nan):
         result = f(self._parent, pat, na=na)
-        return self._wrap_result(result, returns_string=returns_string)
+        return self._wrap_result(result, returns_string=returns_string, fill_value=na)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
 
@@ -2068,9 +2072,11 @@ def copy(source):
 
 class StringMethods(NoNewAttributesMixin):
     """
-    Vectorized string functions for Series and Index. NAs stay NA unless
-    handled otherwise by a particular method. Patterned after Python's string
-    methods, with some inspiration from R's stringr package.
+    Vectorized string functions for Series and Index.
+
+    NAs stay NA unless handled otherwise by a particular method.
+    Patterned after Python's string methods, with some inspiration from
+    R's stringr package.
 
     Examples
     --------
@@ -2178,7 +2184,7 @@ class StringMethods(NoNewAttributesMixin):
         returns_string=True,
     ):
 
-        from pandas import Index, Series, MultiIndex
+        from pandas import Index, MultiIndex, Series
 
         # for category, we do the stuff on the categories, so blow it up
         # to the full series again
@@ -2284,7 +2290,7 @@ class StringMethods(NoNewAttributesMixin):
         list of Series
             Others transformed into list of Series.
         """
-        from pandas import Series, DataFrame
+        from pandas import DataFrame, Series
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, ABCIndexClass) else self._orig.index
@@ -2366,7 +2372,6 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-            .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
                 Changed default of `join` from None to `'left'`.
 
@@ -2853,8 +2858,9 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "str_pad"
     ] = """
-    Filling %(side)s side of strings in the Series/Index with an
-    additional character. Equivalent to :meth:`str.%(method)s`.
+    Pad %(side)s side of strings in the Series/Index.
+
+    Equivalent to :meth:`str.%(method)s`.
 
     Parameters
     ----------
@@ -2912,7 +2918,7 @@ class StringMethods(NoNewAttributesMixin):
             character.
         Series.str.pad : Fills the specified sides of strings with an arbitrary
             character.
-        Series.str.center : Fills boths sides of strings with an arbitrary
+        Series.str.center : Fills both sides of strings with an arbitrary
             character.
 
         Notes
@@ -3117,9 +3123,11 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "find"
     ] = """
-    Return %(side)s indexes in each strings in the Series/Index
-    where the substring is fully contained between [start:end].
-    Return -1 on failure. Equivalent to standard :meth:`str.%(method)s`.
+    Return %(side)s indexes in each strings in the Series/Index.
+
+    Each of returned indexes corresponds to the position where the
+    substring is fully contained between [start:end]. Return -1 on
+    failure. Equivalent to standard :meth:`str.%(method)s`.
 
     Parameters
     ----------
@@ -3169,6 +3177,7 @@ class StringMethods(NoNewAttributesMixin):
     def normalize(self, form):
         """
         Return the Unicode normal form for the strings in the Series/Index.
+
         For more information on the forms, see the
         :func:`unicodedata.normalize`.
 
@@ -3190,10 +3199,13 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "index"
     ] = """
-    Return %(side)s indexes in each strings where the substring is
-    fully contained between [start:end]. This is the same as
-    ``str.%(similar)s`` except instead of returning -1, it raises a ValueError
-    when the substring is not found. Equivalent to standard ``str.%(method)s``.
+    Return %(side)s indexes in each string in Series/Index.
+
+    Each of the returned indexes corresponds to the position where the
+    substring is fully contained between [start:end]. This is the same
+    as ``str.%(similar)s`` except instead of returning -1, it raises a
+    ValueError when the substring is not found. Equivalent to standard
+    ``str.%(method)s``.
 
     Parameters
     ----------
@@ -3244,8 +3256,9 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs[
         "len"
     ] = """
-    Compute the length of each element in the Series/Index. The element may be
-    a sequence (such as a string, tuple or list) or a collection
+    Compute the length of each element in the Series/Index.
+
+    The element may be a sequence (such as a string, tuple or list) or a collection
     (such as a dictionary).
 
     Returns

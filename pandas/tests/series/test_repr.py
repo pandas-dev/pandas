@@ -270,7 +270,7 @@ class TestCategoricalRepr:
             "0     a\n1     b\n"
             + "     ..\n"
             + "48    a\n49    b\n"
-            + "Length: 50, dtype: category\nCategories (2, object): [a, b]"
+            + "Length: 50, dtype: category\nCategories (2, object): ['a', 'b']"
         )
         with option_context("display.max_rows", 5):
             assert exp == repr(a)
@@ -279,7 +279,7 @@ class TestCategoricalRepr:
         a = Series(Categorical(["a", "b"], categories=levs, ordered=True))
         exp = (
             "0    a\n1    b\n" + "dtype: category\n"
-            "Categories (26, object): [a < b < c < d ... w < x < y < z]"
+            "Categories (26, object): ['a' < 'b' < 'c' < 'd' ... 'w' < 'x' < 'y' < 'z']"
         )
         assert exp == a.__str__()
 
