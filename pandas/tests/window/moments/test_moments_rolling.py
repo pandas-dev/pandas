@@ -1,5 +1,4 @@
 import copy
-import warnings
 
 import numpy as np
 from numpy.random import randn
@@ -843,24 +842,6 @@ def test_rolling_quantile_param():
     msg = "must be real number, not str"
     with pytest.raises(TypeError, match=msg):
         ser.rolling(3).quantile("foo")
-
-
-def test_rolling_apply(raw, series, frame):
-    # suppress warnings about empty slices, as we are deliberately testing
-    # with a 0-length Series
-
-    def f(x):
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message=".*(empty slice|0 for slice).*",
-                category=RuntimeWarning,
-            )
-            return x[np.isfinite(x)].mean()
-
-    _check_moment_func(
-        np.mean, name="apply", func=f, raw=raw, series=series, frame=frame
-    )
 
 
 def test_rolling_std(raw, series, frame):
