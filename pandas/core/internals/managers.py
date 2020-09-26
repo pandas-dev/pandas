@@ -382,6 +382,8 @@ class BlockManager(PandasObject):
         result_blocks: List[Block] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
 
+        self._consolidate_inplace()
+
         aligned_args = {k: kwargs[k] for k in align_keys}
 
         for b in self.blocks:

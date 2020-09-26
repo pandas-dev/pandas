@@ -717,3 +717,31 @@ class TestDataFrameMissingData:
 
         # TODO(wesm): unused?
         result = empty_float.fillna(value=0)  # noqa
+
+    def test_fillna_after_pivot(self):
+        # https://github.com/pandas-dev/pandas/issues/36495
+        df = DataFrame(
+            [
+                [1, 1, 1, 1.0],
+                [2, 2, 2, 2.0],
+                [3, 3, 3, 3.0],
+            ],
+            columns=["i1", "i2", "i3", "f1"],
+        )
+
+        result = df.pivot("i1", "i2").fillna(0)
+
+        expected = DataFrame(
+            [
+                [1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                [0.0, 2.0, 0.0, 0.0, 2.0, 0.0],
+                [0.0, 0.0, 3.0, 0.0, 0.0, 3.0],
+            ],
+            index=pd.Int64Index([1, 2, 3], dtype="int64", name="i1"),
+            columns=pd.MultiIndex.from_tuples(
+                [("i3", 1), ("i3", 2), ("i3", 3), ("f1", 1), ("f1", 2), ("f1", 3)],
+                names=[None, "i2"],
+            ),
+        )
+
+        tm.assert_frame_equal(result, expected)
