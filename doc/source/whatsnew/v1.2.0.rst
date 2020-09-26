@@ -215,6 +215,7 @@ Deprecations
 - The :meth:`Index.to_native_types` is deprecated. Use ``.astype(str)`` instead (:issue:`28867`)
 - Deprecated indexing :class:`DataFrame` rows with datetime-like strings ``df[string]``, use ``df.loc[string]`` instead (:issue:`36179`)
 - :meth:`Rolling.count` with ``min_periods=None`` will default to the size of the window in a future version (:issue:`31302`)
+
 .. ---------------------------------------------------------------------------
 
 
