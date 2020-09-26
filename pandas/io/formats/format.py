@@ -591,6 +591,7 @@ class DataFrameFormatter(TableFormatter):
         self.max_cols_fitted = self._calc_max_cols_fitted()
         self.max_rows_fitted = self._calc_max_rows_fitted()
 
+        self.tr_frame = self.frame
         self._truncate()
         self.adj = get_adjustment()
 
@@ -729,8 +730,6 @@ class DataFrameFormatter(TableFormatter):
         """
         Check whether the frame should be truncated. If so, slice the frame up.
         """
-        self.tr_frame = self.frame.copy()
-
         if self.is_truncated_horizontally:
             self._truncate_horizontally()
 
