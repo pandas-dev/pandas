@@ -1181,12 +1181,15 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
+            if fill_value is not None:
+                # similar to validate_fillna_kwargs
+                raise ValueError("Cannot pass both fill_value and method")
+
             return self._interpolate_with_fill(
                 method=m,
                 axis=axis,
                 inplace=inplace,
                 limit=limit,
-                fill_value=fill_value,
                 coerce=coerce,
                 downcast=downcast,
             )
@@ -1214,7 +1217,6 @@ class Block(PandasObject):
         axis: int = 0,
         inplace: bool = False,
         limit: Optional[int] = None,
-        fill_value: Optional[Any] = None,
         coerce: bool = False,
         downcast: Optional[str] = None,
     ) -> List["Block"]:
@@ -1232,16 +1234,11 @@ class Block(PandasObject):
 
         values = self.values if inplace else self.values.copy()
 
-        # We only get here for non-ExtensionBlock
-        fill_value = convert_scalar_for_putitemlike(fill_value, self.values.dtype)
-
         values = missing.interpolate_2d(
             values,
             method=method,
             axis=axis,
             limit=limit,
-            fill_value=fill_value,
-            dtype=self.dtype,
         )
 
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]
