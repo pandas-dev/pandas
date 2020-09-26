@@ -300,7 +300,6 @@ cdef _determine_offset(kwds):
     # timedelta is used for sub-daily plural offsets and all singular
     # offsets relativedelta is used for plural offsets of daily length or
     # more nanosecond(s) are handled by apply_wraps
-
     kwds_no_nanos = dict(
         (k, v) for k, v in kwds.items()
         if k not in ('nanosecond', 'nanoseconds')
