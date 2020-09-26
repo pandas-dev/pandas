@@ -607,7 +607,9 @@ def test_indexing():
     expected.name = "A"
 
     df = DataFrame(dict(A=ts))
-    result = df["2001"]["A"]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#36179 string indexing on rows for DataFrame deprecated
+        result = df["2001"]["A"]
     tm.assert_series_equal(expected, result)
 
     # setting
@@ -617,7 +619,9 @@ def test_indexing():
 
     df.loc["2001", "A"] = 1
 
-    result = df["2001"]["A"]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#36179 string indexing on rows for DataFrame deprecated
+        result = df["2001"]["A"]
     tm.assert_series_equal(expected, result)
 
     # GH3546 (not including times on the last day)
