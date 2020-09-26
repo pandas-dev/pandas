@@ -1295,9 +1295,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._reindex_output(result)
 
     def _transform_general(self, func, *args, **kwargs):
-        """
-        Transform with a non-str `func`.
-        """
         from pandas.core.reshape.concat import concat
 
         applied = []
@@ -1340,6 +1337,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 applied.append(r)
             else:
                 applied.append(res)
+
         concat_index = obj.columns if self.axis == 0 else obj.index
         other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
         concatenated = concat(applied, axis=self.axis, verify_integrity=False)
