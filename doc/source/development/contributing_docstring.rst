@@ -290,7 +290,7 @@ used. Instead of "str, default None", it is preferred to write "str, optional".
 When ``None`` is a value being used, we will keep the form "str, default None".
 For example, in ``df.to_csv(compression=None)``, ``None`` is not a value being used,
 but means that compression is optional, and no compression is being used if not
-provided. In this case we will use ``str, optional``. Only in cases like
+provided. In this case we will use ``"str, optional"``. Only in cases like
 ``func(value=None)`` and ``None`` is being used in the same way as ``0`` or ``foo``
 would be used, then we will specify "str, int or None, default None".
 
