@@ -243,14 +243,14 @@ class TestRangeIndexSetOps:
     def test_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may
         #  get back another RangeIndex
-        obj = RangeIndex.from_range(range(1, 10))
+        obj = RangeIndex.from_range(range(1, 10), name="foo")
 
         result = obj.difference(obj)
-        expected = RangeIndex.from_range(range(0))
+        expected = RangeIndex.from_range(range(0), name="foo")
         tm.assert_index_equal(result, expected)
 
-        result = obj.difference(expected)
-        tm.assert_index_equal(result, obj)
+        result = obj.difference(expected.rename("bar"))
+        tm.assert_index_equal(result, obj.rename(None))
 
         result = obj.difference(obj[:3])
         tm.assert_index_equal(result, obj[3:])
@@ -259,23 +259,23 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(result, obj[:-3])
 
         result = obj.difference(obj[2:6])
-        expected = Int64Index([1, 2, 7, 8, 9])
+        expected = Int64Index([1, 2, 7, 8, 9], name="foo")
         tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may
         #  get back another RangeIndex
-        left = RangeIndex.from_range(range(1, 10))
+        left = RangeIndex.from_range(range(1, 10), name="foo")
 
         result = left.symmetric_difference(left)
-        expected = RangeIndex.from_range(range(0))
+        expected = RangeIndex.from_range(range(0), name="foo")
         tm.assert_index_equal(result, expected)
 
-        result = left.symmetric_difference(expected)
-        tm.assert_index_equal(result, left)
+        result = left.symmetric_difference(expected.rename("bar"))
+        tm.assert_index_equal(result, left.rename(None))
 
         result = left[:-2].symmetric_difference(left[2:])
-        expected = Int64Index([1, 2, 8, 9])
+        expected = Int64Index([1, 2, 8, 9], name="foo")
         tm.assert_index_equal(result, expected)
 
         right = RangeIndex.from_range(range(10, 15))
