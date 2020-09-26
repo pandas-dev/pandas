@@ -40,6 +40,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.apply` with ``raw=True`` and user-function returning string (:issue:`35940`)
 - Fixed regression when setting empty :class:`DataFrame` column to a :class:`Series` in preserving name of index in frame (:issue:`36527`)
 - Fixed regression in :class:`Period` incorrect value for ordinal over the maximum timestamp (:issue:`36430`)
+- Fixed regression in :func:`read_table` raised ``ValueError`` when ``delim_whitespace`` was set to ``True`` (:issue:`35958`)
 - Fixed regression in :meth:`Series.dt.normalize` when normalizing pre-epoch dates the result was shifted one day (:issue:`36294`)
 
 .. ---------------------------------------------------------------------------
