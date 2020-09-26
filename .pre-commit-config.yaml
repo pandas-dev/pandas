@@ -48,3 +48,12 @@ repos:
           v0\.|
           v1\.0\.|
           v1\.1\.[012])
+-   repo: local
+    hooks:
+    -   id: pip_to_conda
+        name: Generate pip dependency from conda
+        description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
+        language: system
+        entry: python -m scripts.generate_pip_deps_from_conda
+        files: ^(environment.yml|requirements-dev.txt)$
+        pass_filenames: false
