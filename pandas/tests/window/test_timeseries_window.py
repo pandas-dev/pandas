@@ -600,6 +600,7 @@ class TestRollingTS:
             "max",
         ],
     )
+    @pytest.mark.filterwarnings("ignore:min_periods:DeprecationWarning")
     def test_all(self, f):
 
         # simple comparison of integer vs time-based windowing
