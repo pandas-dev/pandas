@@ -34,7 +34,6 @@ repos:
     rev: v1.6.0
     hooks:
       - id: rst-backticks
-        # these exclusions should be removed and the files fixed
         
 -   repo: local
     hooks:
