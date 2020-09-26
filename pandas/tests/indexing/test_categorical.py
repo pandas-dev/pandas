@@ -818,7 +818,7 @@ class TestCategoricalIndex:
             ),
         ],
     )
-    def test_categorical_index_reorder_categories(self, categories):
+    def test_reorder_index_with_categories(self, categories):
         # GH23452
         df = DataFrame(
             {"foo": range(len(categories))},
@@ -827,11 +827,11 @@ class TestCategoricalIndex:
             ),
         )
         df.index = df.index.reorder_categories(df.index.categories[::-1])
-        actual = df.sort_index()
+        result = df.sort_index()
         expected = DataFrame(
             {"foo": reversed(range(len(categories)))},
             index=CategoricalIndex(
                 data=categories[::-1], categories=categories[::-1], ordered=True
             ),
         )
-        tm.assert_frame_equal(actual, expected)
+        tm.assert_frame_equal(result, expected)
