@@ -191,7 +191,7 @@ class Take:
         }
         index = indexes[index]
         self.s = Series(np.random.rand(N), index=index)
-        self.indexer = list(np.random.randint(0, N, size=N))
+        self.indexer = np.random.randint(0, N, size=N)
 
     def time_take(self, index):
         self.s.take(self.indexer)
