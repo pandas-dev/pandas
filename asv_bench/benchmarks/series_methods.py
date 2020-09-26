@@ -90,8 +90,11 @@ class IsInForObjects:
         self.s_long_floats.isin(self.vals_long_floats)
 
 
-class IsInLongSeries(object):
-    params = [["int64", "int32", "float64", "float32"], [1, 2, 5, 10, 1000, 10 ** 5]]
+class IsInLongSeries:
+    params = [
+        ["int64", "int32", "float64", "float32", "object"],
+        [1, 2, 5, 10, 1000, 10 ** 5],
+    ]
     param_names = ["dtype", "M"]
 
     def setup(self, dtype, M):
