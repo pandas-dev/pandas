@@ -1430,7 +1430,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         except AssertionError:
             raise
         except Exception:
-            # GH#29631 For user-defined function, we cant predict what may be
+            # GH#29631 For user-defined function, we can't predict what may be
             #  raised; see test_transform.test_transform_fastpath_raises
             return path, res
 
