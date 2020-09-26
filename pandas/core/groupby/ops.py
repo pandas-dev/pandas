@@ -87,6 +87,7 @@ class BaseGrouper:
         group_keys: bool = True,
         mutated: bool = False,
         indexer: Optional[np.ndarray] = None,
+        dropna: bool = True,
     ):
         assert isinstance(axis, Index), axis
 
@@ -97,6 +98,7 @@ class BaseGrouper:
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
+        self.dropna = dropna
 
     @property
     def groupings(self) -> List["grouper.Grouping"]:
