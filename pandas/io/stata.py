@@ -499,7 +499,7 @@ One or more series with value labels are not fully labeled. Reading this
 dataset with an iterator results in categorical variable with different
 categories. This occurs since it is not possible to know all possible values
 until the entire dataset has been read. To avoid this warning, you can either
-read dataset without an interator, or manually convert categorical data by
+read dataset without an iterator, or manually convert categorical data by
 ``convert_categoricals`` to False and then accessing the variable labels
 through the value_labels method of the reader.
 """
