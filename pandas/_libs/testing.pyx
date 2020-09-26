@@ -12,10 +12,6 @@ from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.missing import array_equivalent, isna
 
 
-cdef bint is_comparable_as_real_number(obj):
-    return is_real_number_object(obj)
-
-
 cdef bint isiterable(obj):
     return hasattr(obj, '__iter__')
 
@@ -179,7 +175,7 @@ cpdef assert_almost_equal(a, b,
         # object comparison
         return True
 
-    if is_comparable_as_real_number(a) and is_comparable_as_real_number(b):
+    if is_real_number_object(a) and is_real_number_object(b):
         if array_equivalent(a, b, strict_nan=True):
             # inf comparison
             return True
