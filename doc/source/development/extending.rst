@@ -61,7 +61,7 @@ This can be a convenient way to extend pandas objects without subclassing them.
 If you write a custom accessor, make a pull request adding it to our
 :ref:`ecosystem` page.
 
-We highly recommend validating the data in your accessor's `__init__`.
+We highly recommend validating the data in your accessor's ``__init__``.
 In our ``GeoAccessor``, we validate that the data contains the expected columns,
 raising an ``AttributeError`` when the validation fails.
 For a ``Series`` accessor, you should validate the ``dtype`` if the accessor

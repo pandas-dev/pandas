@@ -89,7 +89,7 @@ See the :ref:`documentation <dsintro.chained_assignment>` for more. (:issue:`922
 Interaction with scipy.sparse
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a `scipy.sparse.coo_matrix` by specifying the row and column labels as index levels:
+Added :meth:`SparseSeries.to_coo` and :meth:`SparseSeries.from_coo` methods (:issue:`8048`) for converting to and from ``scipy.sparse.coo_matrix`` instances (see :ref:`here <sparse.scipysparse>`). For example, given a SparseSeries with MultiIndex we can convert to a ``scipy.sparse.coo_matrix`` by specifying the row and column labels as index levels:
 
 .. code-block:: python
 
@@ -630,7 +630,7 @@ Bug fixes
 - Bug in ``Series.values_counts`` with excluding ``NaN`` for categorical type ``Series`` with ``dropna=True`` (:issue:`9443`)
 - Fixed missing numeric_only option for ``DataFrame.std/var/sem`` (:issue:`9201`)
 - Support constructing ``Panel`` or ``Panel4D`` with scalar data (:issue:`8285`)
-- ``Series`` text representation disconnected from `max_rows`/`max_columns` (:issue:`7508`).
+- ``Series`` text representation disconnected from ``max_rows``/``max_columns`` (:issue:`7508`).
 
 \
 

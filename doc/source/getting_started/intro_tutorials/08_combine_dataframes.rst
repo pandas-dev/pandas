@@ -123,9 +123,9 @@ concatenated tables to verify the operation:
 
 .. ipython:: python
 
-    print('Shape of the `air_quality_pm25` table: ', air_quality_pm25.shape)
-    print('Shape of the `air_quality_no2` table: ', air_quality_no2.shape)
-    print('Shape of the resulting `air_quality` table: ', air_quality.shape)
+    print('Shape of the ``air_quality_pm25`` table: ', air_quality_pm25.shape)
+    print('Shape of the ``air_quality_no2`` table: ', air_quality_no2.shape)
+    print('Shape of the resulting ``air_quality`` table: ', air_quality.shape)
 
 Hence, the resulting table has 3178 = 1110 + 2068 rows.
 

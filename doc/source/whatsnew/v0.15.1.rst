@@ -249,7 +249,7 @@ Enhancements
 
      dfi.memory_usage(index=True)
 
-- Added Index properties `is_monotonic_increasing` and `is_monotonic_decreasing` (:issue:`8680`).
+- Added Index properties ``is_monotonic_increasing`` and ``is_monotonic_decreasing`` (:issue:`8680`).
 
 - Added option to select columns when importing Stata files (:issue:`7935`)
 
@@ -305,7 +305,7 @@ Bug fixes
 - Fixed a bug where plotting a column ``y`` and specifying a label would mutate the index name of the original DataFrame (:issue:`8494`)
 - Fix regression in plotting of a DatetimeIndex directly with matplotlib (:issue:`8614`).
 - Bug in ``date_range`` where partially-specified dates would incorporate current date (:issue:`6961`)
-- Bug in Setting by indexer to a scalar value with a mixed-dtype `Panel4d` was failing (:issue:`8702`)
+- Bug in Setting by indexer to a scalar value with a mixed-dtype ``Panel4d`` was failing (:issue:`8702`)
 - Bug where ``DataReader``'s would fail if one of the symbols passed was invalid.  Now returns data for valid symbols and np.nan for invalid (:issue:`8494`)
 - Bug in ``get_quote_yahoo`` that wouldn't allow non-float return values (:issue:`5229`).
 

@@ -290,7 +290,7 @@ A new, friendlier ``ValueError`` is added to protect against the mistake of supp
 .. code-block:: ipython
 
     In [2]: pd.Series(['a', 'b', np.nan, 'c']).str.cat(' ')
-    ValueError: Did you mean to supply a `sep` keyword?
+    ValueError: Did you mean to supply a ``sep`` keyword?
 
 
 .. _whatsnew_0180.enhancements.rounding:

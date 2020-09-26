@@ -29,7 +29,7 @@ Performance improvements
 - Fixed performance regression in ``Series.asof(where)`` when ``where`` is a scalar (:issue:`14461`)
 - Improved performance in ``DataFrame.asof(where)`` when ``where`` is a scalar (:issue:`14461`)
 - Improved performance in ``.to_json()`` when ``lines=True`` (:issue:`14408`)
-- Improved performance in certain types of `loc` indexing with a MultiIndex (:issue:`14551`).
+- Improved performance in certain types of ``loc`` indexing with a MultiIndex (:issue:`14551`).
 
 
 .. _whatsnew_0191.bug_fixes:

@@ -9,9 +9,9 @@ Categorical data
 This is an introduction to pandas categorical data type, including a short comparison
 with R's ``factor``.
 
-`Categoricals` are a pandas data type corresponding to categorical variables in
+``Categoricals`` are a pandas data type corresponding to categorical variables in
 statistics. A categorical variable takes on a limited, and usually fixed,
-number of possible values (`categories`; `levels` in R). Examples are gender,
+number of possible values (``categories``; ``levels`` in R). Examples are gender,
 social class, blood type, country affiliation, observation time or rating via
 Likert scales.
 
@@ -19,10 +19,10 @@ In contrast to statistical categorical variables, categorical data might have an
 'strongly agree' vs 'agree' or 'first observation' vs. 'second observation'), but numerical
 operations (additions, divisions, ...) are not possible.
 
-All values of categorical data are either in `categories` or `np.nan`. Order is defined by
-the order of `categories`, not lexical order of the values. Internally, the data structure
-consists of a `categories` array and an integer array of `codes` which point to the real value in
-the `categories` array.
+All values of categorical data are either in ``categories`` or ``np.nan``. Order is defined by
+the order of ``categories``, not lexical order of the values. Internally, the data structure
+consists of a ``categories`` array and an integer array of ``codes`` which point to the real value in
+the ``categories`` array.
 
 The categorical data type is useful in the following cases:
 
@@ -196,13 +196,13 @@ To get back to the original ``Series`` or NumPy array, use
 
 .. note::
 
-    In contrast to R's `factor` function, categorical data is not converting input values to
+    In contrast to R's ``factor`` function, categorical data is not converting input values to
     strings; categories will end up the same data type as the original values.
 
 .. note::
 
-    In contrast to R's `factor` function, there is currently no way to assign/change labels at
-    creation time. Use `categories` to change the categories after creation time.
+    In contrast to R's ``factor`` function, there is currently no way to assign/change labels at
+    creation time. Use ``categories`` to change the categories after creation time.
 
 .. _categorical.categoricaldtype:
 
@@ -228,7 +228,7 @@ by default.
    CategoricalDtype()
 
 A :class:`~pandas.api.types.CategoricalDtype` can be used in any place pandas
-expects a `dtype`. For example :func:`pandas.read_csv`,
+expects a ``dtype``. For example :func:`pandas.read_csv`,
 :func:`pandas.DataFrame.astype`, or in the ``Series`` constructor.
 
 .. note::
@@ -288,7 +288,7 @@ output to a ``Series`` or ``DataFrame`` of type ``string``.
 Working with categories
 -----------------------
 
-Categorical data has a `categories` and a `ordered` property, which list their
+Categorical data has a ``categories`` and a ``ordered`` property, which list their
 possible values and whether the ordering matters or not. These properties are
 exposed as ``s.cat.categories`` and ``s.cat.ordered``. If you don't manually
 specify categories and ordering, they are inferred from the passed arguments.
@@ -353,14 +353,14 @@ Renaming categories is done by assigning new values to the
 
 .. note::
 
-    In contrast to R's `factor`, categorical data can have categories of other types than string.
+    In contrast to R's ``factor``, categorical data can have categories of other types than string.
 
 .. note::
 
     Be aware that assigning new categories is an inplace operation, while most other operations
-    under ``Series.cat`` per default return a new ``Series`` of dtype `category`.
+    under ``Series.cat`` per default return a new ``Series`` of dtype ``category``.
 
-Categories must be unique or a `ValueError` is raised:
+Categories must be unique or a ``ValueError`` is raised:
 
 .. ipython:: python
 
@@ -369,7 +369,7 @@ Categories must be unique or a `ValueError` is raised:
     except ValueError as e:
         print("ValueError:", str(e))
 
-Categories must also not be ``NaN`` or a `ValueError` is raised:
+Categories must also not be ``NaN`` or a ``ValueError`` is raised:
 
 .. ipython:: python
 
@@ -535,7 +535,7 @@ Comparing categorical data with other objects is possible in three cases:
 * Comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
   ...) of the same length as the categorical data.
 * All comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
-  another categorical Series, when ``ordered==True`` and the `categories` are the same.
+  another categorical Series, when ``ordered==True`` and the ``categories`` are the same.
 * All comparisons of a categorical data to a scalar.
 
 All other comparisons, especially "non-equality" comparisons of two categoricals with different
@@ -657,7 +657,7 @@ Data munging
 
 The optimized pandas data access methods  ``.loc``, ``.iloc``, ``.at``, and ``.iat``,
 work as normal. The only difference is the return type (for getting) and
-that only values already in `categories` can be assigned.
+that only values already in ``categories`` can be assigned.
 
 Getting
 ~~~~~~~
@@ -695,8 +695,8 @@ of length "1".
     df.at["h", "cats"]  # returns a string
 
 .. note::
-    The is in contrast to R's `factor` function, where ``factor(c(1,2,3))[1]``
-    returns a single value `factor`.
+    The is in contrast to R's ``factor`` function, where ``factor(c(1,2,3))[1]``
+    returns a single value ``factor``.
 
 To get a single value ``Series`` of type ``category``, you pass in a list with
 a single value:
@@ -732,7 +732,7 @@ an appropriate type:
 
 That means, that the returned values from methods and properties on the accessors of a
 ``Series`` and the returned values from methods and properties on the accessors of this
-``Series`` transformed to one of type `category` will be equal:
+``Series`` transformed to one of type ``category`` will be equal:
 
 .. ipython:: python
 
@@ -753,7 +753,7 @@ Setting
 ~~~~~~~
 
 Setting values in a categorical column (or ``Series``) works as long as the
-value is included in the `categories`:
+value is included in the ``categories``:
 
 .. ipython:: python
 
@@ -770,7 +770,7 @@ value is included in the `categories`:
     except ValueError as e:
         print("ValueError:", str(e))
 
-Setting values by assigning categorical data will also check that the `categories` match:
+Setting values by assigning categorical data will also check that the ``categories`` match:
 
 .. ipython:: python
 
@@ -941,7 +941,7 @@ See :ref:`here <io.stata-categorical>` for an example and caveats.
 
 Writing to a CSV file will convert the data, effectively removing any information about the
 categorical (categories and ordering). So if you read back the CSV file you have to convert the
-relevant columns back to `category` and assign the right categories and categories ordering.
+relevant columns back to ``category`` and assign the right categories and categories ordering.
 
 .. ipython:: python
 
@@ -970,7 +970,7 @@ The same holds for writing to a SQL database with ``to_sql``.
 Missing data
 ------------
 
-pandas primarily uses the value `np.nan` to represent missing data. It is by
+pandas primarily uses the value ``np.nan`` to represent missing data. It is by
 default not included in computations. See the :ref:`Missing Data section
 <missing_data>`.
 
@@ -998,20 +998,20 @@ Methods for working with missing data, e.g. :meth:`~Series.isna`, :meth:`~Series
     pd.isna(s)
     s.fillna("a")
 
-Differences to R's `factor`
----------------------------
+Differences to R's ``factor``
+-----------------------------
 
 The following differences to R's factor functions can be observed:
 
-* R's `levels` are named `categories`.
-* R's `levels` are always of type string, while `categories` in pandas can be of any dtype.
+* R's ``levels`` are named ``categories``.
+* R's ``levels`` are always of type string, while ``categories`` in pandas can be of any dtype.
 * It's not possible to specify labels at creation time. Use ``s.cat.rename_categories(new_labels)``
   afterwards.
-* In contrast to R's `factor` function, using categorical data as the sole input to create a
+* In contrast to R's ``factor`` function, using categorical data as the sole input to create a
   new categorical series will *not* remove unused categories but create a new categorical series
   which is equal to the passed in one!
-* R allows for missing values to be included in its `levels` (pandas' `categories`). Pandas
-  does not allow `NaN` categories, but missing values can still be in the `values`.
+* R allows for missing values to be included in its ``levels`` (pandas' ``categories``). Pandas
+  does not allow ``NaN`` categories, but missing values can still be in the ``values``.
 
 
 Gotchas
@@ -1053,13 +1053,13 @@ an ``object`` dtype is a constant times the length of the data.
       s.astype('category').nbytes
 
 
-`Categorical` is not a `numpy` array
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``Categorical`` is not a ``numpy`` array
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently, categorical data and the underlying ``Categorical`` is implemented as a Python
 object and not as a low-level NumPy array dtype. This leads to some problems.
 
-NumPy itself doesn't know about the new `dtype`:
+NumPy itself doesn't know about the new ``dtype``:
 
 .. ipython:: python
 
@@ -1088,7 +1088,7 @@ To check if a Series contains Categorical data, use ``hasattr(s, 'cat')``:
     hasattr(pd.Series(['a'], dtype='category'), 'cat')
     hasattr(pd.Series(['a']), 'cat')
 
-Using NumPy functions on a ``Series`` of type ``category`` should not work as `Categoricals`
+Using NumPy functions on a ``Series`` of type ``category`` should not work as ``Categoricals``
 are not numeric data (even in the case that ``.categories`` is numeric).
 
 .. ipython:: python
@@ -1107,7 +1107,7 @@ dtype in apply
 ~~~~~~~~~~~~~~
 
 Pandas currently does not preserve the dtype in apply functions: If you apply along rows you get
-a `Series` of ``object`` `dtype` (same as getting a row -> getting one element will return a
+a ``Series`` of ``object`` ``dtype`` (same as getting a row -> getting one element will return a
 basic type) and applying along columns will also convert to object. ``NaN`` values are unaffected.
 You can use ``fillna`` to handle missing values before applying a function.
 
