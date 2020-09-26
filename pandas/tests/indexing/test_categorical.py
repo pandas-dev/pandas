@@ -821,7 +821,7 @@ class TestCategoricalIndex:
     def test_categorical_index_reorder_categories(self, categories):
         # GH23452
         df = DataFrame(
-            {"foo": [1, 2, 3]},
+            {"foo": range(len(categories))},
             index=CategoricalIndex(
                 data=categories, categories=categories, ordered=True
             ),
@@ -829,7 +829,7 @@ class TestCategoricalIndex:
         df.index = df.index.reorder_categories(df.index.categories[::-1])
         actual = df.sort_index()
         expected = DataFrame(
-            {"foo": [3, 2, 1]},
+            {"foo": reversed(range(len(categories)))},
             index=CategoricalIndex(
                 data=categories[::-1], categories=categories[::-1], ordered=True
             ),
