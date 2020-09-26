@@ -17,6 +17,7 @@ from typing import (
     Type,
     Union,
 )
+import warnings
 
 import numpy as np
 
@@ -471,14 +472,17 @@ class _Window(ShallowMixin, SelectionMixin):
             return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
         return FixedWindowIndexer(window_size=window)
 
-    def _apply_series(self, homogeneous_func: Callable[..., ArrayLike]) -> "Series":
+    def _apply_series(
+        self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
+    ) -> "Series":
         """
         Series version of _apply_blockwise
         """
         obj = self._create_data(self._selected_obj)
 
         try:
-            values = self._prep_values(obj.values)
+            input = obj.values if name != "count" else notna(obj.values).astype(int)
+            values = self._prep_values(input)
         except (TypeError, NotImplementedError) as err:
             raise DataError("No numeric types to aggregate") from err
 
@@ -486,16 +490,20 @@ class _Window(ShallowMixin, SelectionMixin):
         return obj._constructor(result, index=obj.index, name=obj.name)
 
     def _apply_blockwise(
-        self, homogeneous_func: Callable[..., ArrayLike]
+        self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
     ) -> FrameOrSeriesUnion:
         """
         Apply the given function to the DataFrame broken down into homogeneous
         sub-frames.
         """
         if self._selected_obj.ndim == 1:
-            return self._apply_series(homogeneous_func)
+            return self._apply_series(homogeneous_func, name)
 
         obj = self._create_data(self._selected_obj)
+        if name == "count":
+            # GH 12541: Special case for count where we support date-like types
+            obj = notna(obj).astype(int)
+            obj._mgr = obj._mgr.consolidate()
         mgr = obj._mgr
 
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
@@ -608,7 +616,7 @@ class _Window(ShallowMixin, SelectionMixin):
 
             return result
 
-        return self._apply_blockwise(homogeneous_func)
+        return self._apply_blockwise(homogeneous_func, name)
 
     def aggregate(self, func, *args, **kwargs):
         result, how = self._aggregate(func, *args, **kwargs)
@@ -1269,33 +1277,8 @@ class RollingAndExpandingMixin(RollingMixin):
     )
 
     def count(self):
-        # GH 32865. Using count with custom BaseIndexer subclass
-        # implementations shouldn't end up here
-        assert not isinstance(self.window, BaseIndexer)
-
-        obj = self._create_data(self._selected_obj)
-
-        def hfunc(values: np.ndarray) -> np.ndarray:
-            result = notna(values)
-            result = result.astype(int)
-            frame = type(obj)(result.T)
-            result = self._constructor(
-                frame,
-                window=self._get_window(),
-                min_periods=self.min_periods or 0,
-                center=self.center,
-                axis=self.axis,
-                closed=self.closed,
-            ).sum()
-            return result.values.T
-
-        new_mgr = obj._mgr.apply(hfunc)
-        out = obj._constructor(new_mgr)
-        if obj.ndim == 1:
-            out.name = obj.name
-        else:
-            self._insert_on_column(out, obj)
-        return out
+        window_func = self._get_cython_func_type("roll_sum")
+        return self._apply(window_func, center=self.center, name="count")
 
     _shared_docs["apply"] = dedent(
         r"""
@@ -2050,14 +2033,16 @@ class Rolling(RollingAndExpandingMixin):
     @Substitution(name="rolling")
     @Appender(_shared_docs["count"])
     def count(self):
-
-        # different impl for freq counting
-        # GH 32865. Use a custom count function implementation
-        # when using a BaseIndexer subclass as a window
-        if self.is_freq_type or isinstance(self.window, BaseIndexer):
-            window_func = self._get_roll_func("roll_count")
-            return self._apply(window_func, center=self.center, name="count")
-
+        if self.min_periods is None:
+            warnings.warn(
+                (
+                    "min_periods=None will default to the size of window "
+                    "consistent with other methods in a future version. "
+                    "Specify min_periods=0 instead."
+                ),
+                DeprecationWarning,
+            )
+            self.min_periods = 0
         return super().count()
 
     @Substitution(name="rolling")

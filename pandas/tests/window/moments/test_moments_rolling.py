@@ -223,6 +223,7 @@ def test_rolling_sum(raw, series, frame):
     )
 
 
+@pytest.mark.filterwarnings("ignore:min_periods:DeprecationWarning")
 def test_rolling_count(raw, series, frame):
     counter = lambda x: np.isfinite(x).astype(float).sum()
     _check_moment_func(

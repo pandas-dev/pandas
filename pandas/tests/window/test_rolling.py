@@ -455,7 +455,9 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
     values = [1, 2, 3, np.nan, 4, 5, 6]
     expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
-    result = constructor(values).rolling(3).count()
+    # GH 31302
+    with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        result = constructor(values).rolling(3).count()
     expected = constructor(expected_counts)
     tm.assert_equal(result, expected)
 

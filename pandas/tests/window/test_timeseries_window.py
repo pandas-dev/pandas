@@ -585,14 +585,9 @@ class TestRollingTS:
 
         tm.assert_series_equal(result, expected)
 
-    def test_all(self):
-
-        # simple comparison of integer vs time-based windowing
-        df = self.regular * 2
-        er = df.rolling(window=1)
-        r = df.rolling(window="1s")
-
-        for f in [
+    @pytest.mark.parametrize(
+        "f",
+        [
             "sum",
             "mean",
             "count",
@@ -603,11 +598,18 @@ class TestRollingTS:
             "skew",
             "min",
             "max",
-        ]:
+        ],
+    )
+    def test_all(self, f):
 
-            result = getattr(r, f)()
-            expected = getattr(er, f)()
-            tm.assert_frame_equal(result, expected)
+        # simple comparison of integer vs time-based windowing
+        df = self.regular * 2
+        er = df.rolling(window=1)
+        r = df.rolling(window="1s")
+
+        result = getattr(r, f)()
+        expected = getattr(er, f)()
+        tm.assert_frame_equal(result, expected)
 
         result = r.quantile(0.5)
         expected = er.quantile(0.5)
