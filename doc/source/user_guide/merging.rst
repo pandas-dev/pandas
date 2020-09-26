@@ -77,7 +77,7 @@ some configurable handling of "what to do with the other axes":
               levels=None, names=None, verify_integrity=False, copy=True)
 
 * ``objs`` : a sequence or mapping of Series or DataFrame objects. If a
-  dict is passed, the sorted keys will be used as the `keys` argument, unless
+  dict is passed, the sorted keys will be used as the ``keys`` argument, unless
   it is passed, in which case the values will be selected (see below). Any None
   objects will be dropped silently unless they are all None in which case a
   ValueError will be raised.
@@ -1234,7 +1234,7 @@ resetting indexes.
    DataFrame.
 
 .. note::
-   When DataFrames are merged using only some of the levels of a `MultiIndex`,
+   When DataFrames are merged using only some of the levels of a ``MultiIndex``,
    the extra levels will be dropped from the resulting merge. In order to
    preserve those levels, use ``reset_index`` on those level names to move
    those levels to columns prior to doing the merge.
@@ -1487,7 +1487,7 @@ compare two DataFrame or Series, respectively, and summarize their differences.
 
 This feature was added in :ref:`V1.1.0 <whatsnew_110.dataframe_or_series_comparing>`.
 
-For example, you might want to compare two `DataFrame` and stack their differences
+For example, you might want to compare two ``DataFrame`` and stack their differences
 side by side.
 
 .. ipython:: python
@@ -1523,7 +1523,7 @@ If you wish, you may choose to stack the differences on rows.
 
    df.compare(df2, align_axis=0)
 
-If you wish to keep all original rows and columns, set `keep_shape` argument
+If you wish to keep all original rows and columns, set ``keep_shape`` argument
 to ``True``.
 
 .. ipython:: python
