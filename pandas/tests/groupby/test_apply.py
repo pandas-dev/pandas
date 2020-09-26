@@ -1095,3 +1095,20 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
 
     tm.assert_frame_equal(by_cols, by_rows.T)
     tm.assert_frame_equal(by_cols, df)
+
+
+def test_apply_groupby_datetimeindex():
+    # GH 26182
+    # groupby apply failed on dataframe with DatetimeIndex
+
+    data = [["A", 10], ["B", 20], ["B", 30], ["C", 40], ["C", 50]]
+    df = pd.DataFrame(
+        data, columns=["Name", "Value"], index=pd.date_range("2020-09-01", "2020-09-05")
+    )
+
+    result = df.groupby("Name").sum()
+
+    expected = pd.DataFrame({"Name": ["A", "B", "C"], "Value": [10, 50, 90]})
+    expected.set_index("Name", inplace=True)
+
+    tm.assert_frame_equal(result, expected)
