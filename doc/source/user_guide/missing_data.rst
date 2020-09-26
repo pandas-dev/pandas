@@ -251,7 +251,7 @@ can propagate non-NA values forward or backward:
 **Limit the amount of filling**
 
 If we only want consecutive gaps filled up to a certain number of data points,
-we can use the `limit` keyword:
+we can use the ``limit`` keyword:
 
 .. ipython:: python
    :suppress:

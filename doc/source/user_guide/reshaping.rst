@@ -609,8 +609,8 @@ This function is often used along with discretization functions like ``cut``:
 See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
 :func:`get_dummies` also accepts a ``DataFrame``. By default all categorical
-variables (categorical in the statistical sense, those with `object` or
-`categorical` dtype) are encoded as dummy variables.
+variables (categorical in the statistical sense, those with ``object`` or
+``categorical`` dtype) are encoded as dummy variables.
 
 
 .. ipython:: python
