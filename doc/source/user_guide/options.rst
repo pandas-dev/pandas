@@ -109,7 +109,7 @@ It's also possible to reset multiple options at once (using a regex):
 
 ``option_context`` context manager has been exposed through
 the top-level API, allowing you to execute code with given option values. Option values
-are restored automatically when you exit the `with` block:
+are restored automatically when you exit the ``with`` block:
 
 .. ipython:: python
 
@@ -306,10 +306,10 @@ display.encoding                        UTF-8        Defaults to the detected en
                                                      meant to be displayed on the console.
 display.expand_frame_repr               True         Whether to print out the full DataFrame
                                                      repr for wide DataFrames across
-                                                     multiple lines, `max_columns` is
+                                                     multiple lines, ``max_columns`` is
                                                      still respected, but the output will
                                                      wrap-around across multiple "pages"
-                                                     if its width exceeds `display.width`.
+                                                     if its width exceeds ``display.width``.
 display.float_format                    None         The callable should accept a floating
                                                      point number and return a string with
                                                      the desired format of the number.
@@ -371,11 +371,11 @@ display.max_rows                        60           This sets the maximum numbe
                                                      fully or just a truncated or summary repr.
                                                      'None' value means unlimited.
 display.min_rows                        10           The numbers of rows to show in a truncated
-                                                     repr (when `max_rows` is exceeded). Ignored
-                                                     when `max_rows` is set to None or 0. When set
-                                                     to None, follows the value of `max_rows`.
+                                                     repr (when ``max_rows`` is exceeded). Ignored
+                                                     when ``max_rows`` is set to None or 0. When set
+                                                     to None, follows the value of ``max_rows``.
 display.max_seq_items                   100          when pretty-printing a long sequence,
-                                                     no more then `max_seq_items` will
+                                                     no more then ``max_seq_items`` will
                                                      be printed. If items are omitted,
                                                      they will be denoted by the addition
                                                      of "..." to the resulting string.
