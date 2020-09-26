@@ -328,7 +328,7 @@ I/O
 - Bug in :func:`LongTableBuilder.middle_separator` was duplicating LaTeX longtable entries in the List of Tables of a LaTeX document (:issue:`34360`)
 - Bug in :meth:`read_csv` with ``engine='python'`` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
 - Removed ``private_key`` and ``verbose`` from :func:`read_gbq` as they are no longer supported in ``pandas-gbq`` (:issue:`34654`, :issue:`30200`)
-- :meth:``~pandas.io.sql.get_schema`` now accepts ``index`` parameter to include index of the DataFrame in the schema (:issue:`9084`).
+- :meth:`~pandas.io.sql.get_schema` now accepts ``index`` parameter to include index of the DataFrame in the schema (:issue:`9084`).
 
 Plotting
 ^^^^^^^^
