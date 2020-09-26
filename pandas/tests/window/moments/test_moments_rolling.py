@@ -212,17 +212,6 @@ def test_centered_axis_validation():
         (DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=2).mean())
 
 
-def test_rolling_sum(raw, series, frame):
-    _check_moment_func(
-        np.nansum,
-        name="sum",
-        zero_min_periods_equal=False,
-        raw=raw,
-        series=series,
-        frame=frame,
-    )
-
-
 def test_rolling_count(raw, series, frame):
     counter = lambda x: np.isfinite(x).astype(float).sum()
     _check_moment_func(
