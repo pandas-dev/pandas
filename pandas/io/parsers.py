@@ -752,6 +752,16 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
+    # TODO: validation duplicated in read_csv
+    if delim_whitespace and (delimiter is not None or sep != "\t"):
+        raise ValueError(
+            "Specified a delimiter with both sep and "
+            "delim_whitespace=True; you can only specify one."
+        )
+    if delim_whitespace:
+        # In this case sep is not used so we set it to the read_csv
+        # default to avoid a ValueError
+        sep = ","
     return read_csv(**locals())
 
 
