@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Dict, FrozenSet, List, Optional, Union
+from typing import Any, Callable, Dict, FrozenSet, Optional, Union
 
 import numpy as np
 
@@ -470,9 +470,12 @@ class SelectionMixin:
             try:
                 result = DataFrame(result)
             except ValueError:
-
                 # we have a dict of scalars
-                result = Series(result, name=getattr(self, "name", None))
+
+                # GH 36212 use name only if self is a series
+                name = self.name if (self.ndim == 1) else None
+
+                result = Series(result, name=name)
 
             return result, True
         elif is_list_like(arg):
@@ -560,7 +563,7 @@ class SelectionMixin:
                 ) from err
             return result
 
-    def _get_cython_func(self, arg: str) -> Optional[str]:
+    def _get_cython_func(self, arg: Callable) -> Optional[str]:
         """
         if we define an internal function for this argument, return it
         """
@@ -572,21 +575,6 @@ class SelectionMixin:
         otherwise return the arg
         """
         return self._builtin_table.get(arg, arg)
-
-
-class ShallowMixin:
-    _attributes: List[str] = []
-
-    def _shallow_copy(self, obj, **kwargs):
-        """
-        return a new object with the replacement attributes
-        """
-        if isinstance(obj, self._constructor):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return self._constructor(obj, **kwargs)
 
 
 class IndexOpsMixin:
@@ -1444,7 +1432,7 @@ class IndexOpsMixin:
             """
         ),
     )
-    def factorize(self, sort=False, na_sentinel=-1):
+    def factorize(self, sort: bool = False, na_sentinel: Optional[int] = -1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs[

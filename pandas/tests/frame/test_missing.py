@@ -135,13 +135,20 @@ class TestDataFrameMissingData:
         df2 = df.copy()
         df["A"].dropna()
         tm.assert_series_equal(df["A"], original)
-        return_value = df["A"].dropna(inplace=True)
-        tm.assert_series_equal(df["A"], expected)
+
+        ser = df["A"]
+        return_value = ser.dropna(inplace=True)
+        tm.assert_series_equal(ser, expected)
+        tm.assert_series_equal(df["A"], original)
         assert return_value is None
+
         df2["A"].drop([1])
         tm.assert_series_equal(df2["A"], original)
-        return_value = df2["A"].drop([1], inplace=True)
-        tm.assert_series_equal(df2["A"], original.drop([1]))
+
+        ser = df2["A"]
+        return_value = ser.drop([1], inplace=True)
+        tm.assert_series_equal(ser, original.drop([1]))
+        tm.assert_series_equal(df2["A"], original)
         assert return_value is None
 
     def test_dropna_corner(self, float_frame):
@@ -355,7 +362,8 @@ class TestDataFrameMissingData:
         res = df.fillna(value={"cats": 3, "vals": "b"})
         tm.assert_frame_equal(res, df_exp_fill)
 
-        with pytest.raises(ValueError, match=("fill value must be in categories")):
+        msg = "'fill_value=4' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
             df.fillna(value={"cats": 4, "vals": "c"})
 
         res = df.fillna(method="pad")

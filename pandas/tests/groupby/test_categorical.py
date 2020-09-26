@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37, is_platform_windows
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -13,14 +11,13 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
-    _np_version_under1p17,
     qcut,
 )
 import pandas._testing as tm
 
 
 def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
-    """ Reindex to a cartesian production for the groupers,
+    """Reindex to a cartesian production for the groupers,
     preserving the nature (Categorical) of each grouper
     """
 
@@ -244,12 +241,6 @@ def test_level_get_group(observed):
     tm.assert_frame_equal(result, expected)
 
 
-# GH#21636 flaky on py37; may be related to older numpy, see discussion
-#  https://github.com/MacPython/pandas-wheels/pull/64
-@pytest.mark.xfail(
-    PY37 and _np_version_under1p17 and not is_platform_windows(),
-    reason="Flaky, GH-27902",
-)
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -1458,7 +1449,7 @@ def test_groupby_agg_categorical_columns(func, expected_values):
     result = df.groupby("groups").agg(func)
 
     expected = pd.DataFrame(
-        {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups"),
+        {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups")
     )
     tm.assert_frame_equal(result, expected)
 

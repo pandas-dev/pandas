@@ -1,5 +1,5 @@
 import numbers
-from typing import Optional, Tuple, Type, Union
+from typing import Tuple, Type, Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -7,22 +7,15 @@ from numpy.lib.mixins import NDArrayOperatorsMixin
 from pandas._libs import lib
 from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas import compat
 from pandas.core import nanops, ops
-from pandas.core.algorithms import searchsorted
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
-from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
-from pandas.core.missing import backfill_1d, pad_1d
+from pandas.core.arrays.base import ExtensionOpsMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -189,10 +182,6 @@ class PandasArray(
     def _from_factorized(cls, values, original) -> "PandasArray":
         return cls(values)
 
-    @classmethod
-    def _concat_same_type(cls, to_concat) -> "PandasArray":
-        return cls(np.concatenate(to_concat))
-
     def _from_backing_data(self, arr: np.ndarray) -> "PandasArray":
         return type(self)(arr)
 
@@ -254,59 +243,8 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
-    def __getitem__(self, item):
-        if isinstance(item, type(self)):
-            item = item._ndarray
-
-        item = check_array_indexer(self, item)
-
-        result = self._ndarray[item]
-        if not lib.is_scalar(item):
-            result = type(self)(result)
-        return result
-
-    def __setitem__(self, key, value) -> None:
-        value = extract_array(value, extract_numpy=True)
-
-        key = check_array_indexer(self, key)
-        scalar_value = lib.is_scalar(value)
-
-        if not scalar_value:
-            value = np.asarray(value, dtype=self._ndarray.dtype)
-
-        self._ndarray[key] = value
-
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
-
-    def fillna(
-        self, value=None, method: Optional[str] = None, limit: Optional[int] = None,
-    ) -> "PandasArray":
-        # TODO(_values_for_fillna): remove this
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                func = pad_1d if method == "pad" else backfill_1d
-                new_values = func(self._ndarray, limit=limit, mask=mask)
-                new_values = self._from_sequence(new_values, dtype=self.dtype)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     def _validate_fill_value(self, fill_value):
         if fill_value is None:
@@ -314,22 +252,11 @@ class PandasArray(
             fill_value = self.dtype.na_value
         return fill_value
 
-    def _values_for_argsort(self) -> np.ndarray:
-        return self._ndarray
-
     def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
         return self._ndarray, -1
 
     # ------------------------------------------------------------------------
     # Reductions
-
-    def _reduce(self, name, skipna=True, **kwargs):
-        meth = getattr(self, name, None)
-        if meth:
-            return meth(skipna=skipna, **kwargs)
-        else:
-            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
-            raise TypeError(msg)
 
     def any(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
@@ -422,10 +349,6 @@ class PandasArray(
             result[self.isna()] = na_value
 
         return result
-
-    @doc(ExtensionArray.searchsorted)
-    def searchsorted(self, value, side="left", sorter=None):
-        return searchsorted(self.to_numpy(), value, side=side, sorter=sorter)
 
     # ------------------------------------------------------------------------
     # Ops

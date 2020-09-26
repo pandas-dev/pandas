@@ -765,7 +765,7 @@ Timeseries
 <https://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__
 
 `Aggregation and plotting time series
-<http://nipunbatra.github.io/2015/06/timeseries/>`__
+<https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html>`__
 
 Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
 `How to rearrange a Python pandas DataFrame?
@@ -1270,7 +1270,7 @@ Often it's useful to obtain the lower (or upper) triangular form of a correlatio
 
     corr_mat.where(mask)
 
-The `method` argument within `DataFrame.corr` can accept a callable in addition to the named correlation types.  Here we compute the `distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>`__ matrix for a `DataFrame` object.
+The ``method`` argument within ``DataFrame.corr`` can accept a callable in addition to the named correlation types.  Here we compute the ``distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>``__ matrix for a ``DataFrame`` object.
 
 .. ipython:: python
 

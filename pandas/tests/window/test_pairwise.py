@@ -41,7 +41,7 @@ class TestPairwise:
     @pytest.mark.parametrize("f", [lambda x: x.cov(), lambda x: x.corr()])
     def test_no_flex(self, f):
 
-        # DataFrame methods (which do not call _flex_binary_moment())
+        # DataFrame methods (which do not call flex_binary_moment())
 
         results = [f(df) for df in self.df1s]
         for (df, result) in zip(self.df1s, results):
@@ -195,7 +195,7 @@ class TestPairwise:
 
         columns = MultiIndex.from_product([list("ab"), list("xy"), list("AB")])
         index = range(3)
-        df = DataFrame(np.arange(24).reshape(3, 8), index=index, columns=columns,)
+        df = DataFrame(np.arange(24).reshape(3, 8), index=index, columns=columns)
 
         result = df.ewm(alpha=0.1).cov()
 

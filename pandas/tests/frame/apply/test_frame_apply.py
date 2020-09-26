@@ -1,7 +1,6 @@
 from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
-import operator
 import warnings
 
 import numpy as np
@@ -14,6 +13,7 @@ from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, notna
 import pandas._testing as tm
 from pandas.core.apply import frame_apply
 from pandas.core.base import SpecificationError
+from pandas.tests.frame.common import zip_frames
 
 
 @pytest.fixture
@@ -630,6 +630,22 @@ class TestDataFrameApply:
                 result = frame.applymap(func)
                 tm.assert_frame_equal(result, frame)
 
+    def test_applymap_na_ignore(self, float_frame):
+        # GH 23803
+        strlen_frame = float_frame.applymap(lambda x: len(str(x)))
+        float_frame_with_na = float_frame.copy()
+        mask = np.random.randint(0, 2, size=float_frame.shape, dtype=bool)
+        float_frame_with_na[mask] = pd.NA
+        strlen_frame_na_ignore = float_frame_with_na.applymap(
+            lambda x: len(str(x)), na_action="ignore"
+        )
+        strlen_frame_with_na = strlen_frame.copy()
+        strlen_frame_with_na[mask] = pd.NA
+        tm.assert_frame_equal(strlen_frame_na_ignore, strlen_frame_with_na)
+
+        with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
+            float_frame_with_na.applymap(lambda x: len(str(x)), na_action="abc")
+
     def test_applymap_box_timestamps(self):
         # GH 2689, GH 2627
         ser = pd.Series(date_range("1/1/2000", periods=10))
@@ -1058,25 +1074,6 @@ class TestInferOutputShape:
         tm.assert_frame_equal(result, expected)
 
 
-def zip_frames(frames, axis=1):
-    """
-    take a list of frames, zip them together under the
-    assumption that these all have the first frames' index/columns.
-
-    Returns
-    -------
-    new_frame : DataFrame
-    """
-    if axis == 1:
-        columns = frames[0].columns
-        zipped = [f.loc[:, c] for c in columns for f in frames]
-        return pd.concat(zipped, axis=1)
-    else:
-        index = frames[0].index
-        zipped = [f.loc[i, :] for i in index for f in frames]
-        return pd.DataFrame(zipped)
-
-
 class TestDataFrameAggregate:
     def test_agg_transform(self, axis, float_frame):
         other_axis = 1 if axis in {0, "index"} else 0
@@ -1087,14 +1084,8 @@ class TestDataFrameAggregate:
             f_sqrt = np.sqrt(float_frame)
 
             # ufunc
-            result = float_frame.transform(np.sqrt, axis=axis)
             expected = f_sqrt.copy()
-            tm.assert_frame_equal(result, expected)
-
             result = float_frame.apply(np.sqrt, axis=axis)
-            tm.assert_frame_equal(result, expected)
-
-            result = float_frame.transform(np.sqrt, axis=axis)
             tm.assert_frame_equal(result, expected)
 
             # list-like
@@ -1108,9 +1099,6 @@ class TestDataFrameAggregate:
                 expected.index = pd.MultiIndex.from_product(
                     [float_frame.index, ["sqrt"]]
                 )
-            tm.assert_frame_equal(result, expected)
-
-            result = float_frame.transform([np.sqrt], axis=axis)
             tm.assert_frame_equal(result, expected)
 
             # multiple items in list
@@ -1128,37 +1116,18 @@ class TestDataFrameAggregate:
                 )
             tm.assert_frame_equal(result, expected)
 
-            result = float_frame.transform([np.abs, "sqrt"], axis=axis)
-            tm.assert_frame_equal(result, expected)
-
     def test_transform_and_agg_err(self, axis, float_frame):
         # cannot both transform and agg
-        msg = "transforms cannot produce aggregated results"
-        with pytest.raises(ValueError, match=msg):
-            float_frame.transform(["max", "min"], axis=axis)
-
         msg = "cannot combine transform and aggregation operations"
         with pytest.raises(ValueError, match=msg):
             with np.errstate(all="ignore"):
                 float_frame.agg(["max", "sqrt"], axis=axis)
-
-        with pytest.raises(ValueError, match=msg):
-            with np.errstate(all="ignore"):
-                float_frame.transform(["max", "sqrt"], axis=axis)
 
         df = pd.DataFrame({"A": range(5), "B": 5})
 
         def f():
             with np.errstate(all="ignore"):
                 df.agg({"A": ["abs", "sum"], "B": ["mean", "max"]}, axis=axis)
-
-    @pytest.mark.parametrize("method", ["abs", "shift", "pct_change", "cumsum", "rank"])
-    def test_transform_method_name(self, method):
-        # GH 19760
-        df = pd.DataFrame({"A": [-1, 2]})
-        result = df.transform(method)
-        expected = operator.methodcaller(method)(df)
-        tm.assert_frame_equal(result, expected)
 
     def test_demo(self):
         # demonstration tests
@@ -1177,6 +1146,21 @@ class TestDataFrameAggregate:
             index=["max", "min", "sum"],
         )
         tm.assert_frame_equal(result.reindex_like(expected), expected)
+
+    def test_agg_with_name_as_column_name(self):
+        # GH 36212 - Column name is "name"
+        data = {"name": ["foo", "bar"]}
+        df = pd.DataFrame(data)
+
+        # result's name should be None
+        result = df.agg({"name": "count"})
+        expected = pd.Series({"name": 2})
+        tm.assert_series_equal(result, expected)
+
+        # Check if name is still preserved when aggregating series instead
+        result = df["name"].agg({"name": "count"})
+        expected = pd.Series({"name": 2}, name="name")
+        tm.assert_series_equal(result, expected)
 
     def test_agg_multiple_mixed_no_warning(self):
         # GH 20909
@@ -1522,3 +1506,50 @@ class TestDataFrameAggregate:
         expected = df.dtypes
 
         tm.assert_series_equal(result, expected)
+
+
+def test_apply_mutating():
+    # GH#35462 case where applied func pins a new BlockManager to a row
+    df = pd.DataFrame({"a": range(100), "b": range(100, 200)})
+
+    def func(row):
+        mgr = row._mgr
+        row.loc["a"] += 1
+        assert row._mgr is not mgr
+        return row
+
+    expected = df.copy()
+    expected["a"] += 1
+
+    result = df.apply(func, axis=1)
+
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, result)
+
+
+def test_apply_empty_list_reduce():
+    # GH#35683 get columns correct
+    df = pd.DataFrame([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]], columns=["a", "b"])
+
+    result = df.apply(lambda x: [], result_type="reduce")
+    expected = pd.Series({"a": [], "b": []}, dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_no_suffix_index():
+    # GH36189
+    pdf = pd.DataFrame([[4, 9]] * 3, columns=["A", "B"])
+    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    expected = pd.DataFrame(
+        {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_raw_returns_string():
+    # https://github.com/pandas-dev/pandas/issues/35940
+    df = pd.DataFrame({"A": ["aa", "bbb"]})
+    result = df.apply(lambda x: x[0], axis=1, raw=True)
+    expected = pd.Series(["aa", "bbb"])
+    tm.assert_series_equal(result, expected)

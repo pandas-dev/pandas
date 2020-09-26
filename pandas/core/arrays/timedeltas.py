@@ -1,10 +1,19 @@
 from datetime import timedelta
-from typing import List
+from typing import List, Union
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
-from pandas._libs.tslibs import NaT, Period, Tick, Timedelta, Timestamp, iNaT, to_offset
+from pandas._libs.tslibs import (
+    NaT,
+    NaTType,
+    Period,
+    Tick,
+    Timedelta,
+    Timestamp,
+    iNaT,
+    to_offset,
+)
 from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64, parse_timedelta_unit
@@ -108,9 +117,8 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Note: ndim must be defined to ensure NaT.__richcmp(TimedeltaArray)
     #  operates pointwise.
 
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit="ns")
+    def _box_func(self, x) -> Union[Timedelta, NaTType]:
+        return Timedelta(x, unit="ns")
 
     @property
     def dtype(self):
@@ -256,10 +264,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             index = generate_regular_range(start, end, periods, freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype("i8")
-            if len(index) >= 2:
-                # Infer a frequency
-                td = Timedelta(index[1] - index[0])
-                freq = to_offset(td)
 
         if not left_closed:
             index = index[1:]
@@ -271,10 +275,14 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # DatetimeLike Interface
 
-    def _unbox_scalar(self, value):
+    @classmethod
+    def _rebox_native(cls, value: int) -> np.timedelta64:
+        return np.int64(value).view("m8[ns]")
+
+    def _unbox_scalar(self, value, setitem: bool = False):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timedelta.")
-        self._check_compatible_with(value)
+        self._check_compatible_with(value, setitem=setitem)
         return value.value
 
     def _scalar_from_string(self, value):
@@ -379,14 +387,14 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # Rendering Methods
 
     def _formatter(self, boxed=False):
-        from pandas.io.formats.format import _get_format_timedelta64
+        from pandas.io.formats.format import get_format_timedelta64
 
-        return _get_format_timedelta64(self, box=True)
+        return get_format_timedelta64(self, box=True)
 
     def _format_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        from pandas.io.formats.format import _get_format_timedelta64
+        from pandas.io.formats.format import get_format_timedelta64
 
-        formatter = _get_format_timedelta64(self._data, na_rep)
+        formatter = get_format_timedelta64(self._data, na_rep)
         return np.array([formatter(x) for x in self._data.ravel()]).reshape(self.shape)
 
     # ----------------------------------------------------------------
@@ -677,13 +685,12 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         elif is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
-
             # numpy timedelta64 does not natively support floordiv, so operate
             #  on the i8 values
             result = other.asi8 // self.asi8
             mask = self._isnan | other._isnan
             if mask.any():
-                result = result.astype(np.int64)
+                result = result.astype(np.float64)
                 result[mask] = np.nan
             return result
 

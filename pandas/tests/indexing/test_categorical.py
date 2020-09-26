@@ -76,9 +76,10 @@ class TestCategoricalIndex:
             "cannot insert an item into a CategoricalIndex that is not "
             "already an existing category"
         )
-        with pytest.raises(TypeError, match=msg):
+        msg = "'fill_value=d' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
             df.loc["d", "A"] = 10
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             df.loc["d", "C"] = 10
 
         with pytest.raises(KeyError, match="^1$"):

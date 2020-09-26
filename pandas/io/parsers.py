@@ -20,7 +20,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer, Union
+from pandas._typing import FilePathOrBuffer, StorageOptions, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -63,12 +63,7 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import (
-    get_filepath_or_buffer,
-    get_handle,
-    infer_compression,
-    validate_header_arg,
-)
+from pandas.io.common import get_filepath_or_buffer, get_handle, validate_header_arg
 from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
@@ -232,7 +227,7 @@ default False
       result 'foo'
 
     If a column or index cannot be represented as an array of datetimes,
-    say because of an unparseable value or a mixture of timezones, the column
+    say because of an unparsable value or a mixture of timezones, the column
     or index will be returned unaltered as an object data type. For
     non-standard datetime parsing, use ``pd.to_datetime`` after
     ``pd.read_csv``. To parse an index or column with a mixture of timezones,
@@ -343,9 +338,21 @@ memory_map : bool, default False
     option can improve performance because there is no longer any I/O overhead.
 float_precision : str, optional
     Specifies which converter the C engine should use for floating-point
-    values. The options are `None` for the ordinary converter,
-    `high` for the high-precision converter, and `round_trip` for the
-    round-trip converter.
+    values. The options are ``None`` or 'high' for the ordinary converter,
+    'legacy' for the original lower precision pandas converter, and
+    'round_trip' for the round-trip converter.
+
+    .. versionchanged:: 1.2
+
+storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc., if using a URL that will
+    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+    will be raised if providing this argument with a local path or
+    a file-like buffer. See the fsspec and backend storage implementation
+    docs for the set of allowed keys and values.
+
+    .. versionadded:: 1.2
 
 Returns
 -------
@@ -366,7 +373,7 @@ Examples
 )
 
 
-def _validate_integer(name, val, min_val=0):
+def validate_integer(name, val, min_val=0):
     """
     Checks whether the 'name' parameter for parsing is either
     an integer OR float that can SAFELY be cast to an integer
@@ -420,21 +427,16 @@ def _validate_names(names):
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get("encoding", None)
+    storage_options = kwds.get("storage_options", None)
     if encoding is not None:
         encoding = re.sub("_", "-", encoding).lower()
         kwds["encoding"] = encoding
-
     compression = kwds.get("compression", "infer")
-    compression = infer_compression(filepath_or_buffer, compression)
 
-    # TODO: get_filepath_or_buffer could return
-    # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
-    # though mypy handling of conditional imports is difficult.
-    # See https://github.com/python/mypy/issues/1297
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression
+    ioargs = get_filepath_or_buffer(
+        filepath_or_buffer, encoding, compression, storage_options=storage_options
     )
-    kwds["compression"] = compression
+    kwds["compression"] = ioargs.compression
 
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
@@ -442,14 +444,14 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
-    chunksize = _validate_integer("chunksize", kwds.get("chunksize", None), 1)
+    chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
     nrows = kwds.get("nrows", None)
 
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
     # Create the parser.
-    parser = TextFileReader(fp_or_buf, **kwds)
+    parser = TextFileReader(ioargs.filepath_or_buffer, **kwds)
 
     if chunksize or iterator:
         return parser
@@ -459,9 +461,10 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     finally:
         parser.close()
 
-    if should_close:
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
         try:
-            fp_or_buf.close()
+            ioargs.filepath_or_buffer.close()
         except ValueError:
             pass
 
@@ -595,6 +598,7 @@ def read_csv(
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
+    storage_options: StorageOptions = None,
 ):
     # gh-23761
     #
@@ -681,6 +685,7 @@ def read_csv(
         mangle_dupe_cols=mangle_dupe_cols,
         infer_datetime_format=infer_datetime_format,
         skip_blank_lines=skip_blank_lines,
+        storage_options=storage_options,
     )
 
     return _read(filepath_or_buffer, kwds)
@@ -752,6 +757,16 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
+    # TODO: validation duplicated in read_csv
+    if delim_whitespace and (delimiter is not None or sep != "\t"):
+        raise ValueError(
+            "Specified a delimiter with both sep and "
+            "delim_whitespace=True; you can only specify one."
+        )
+    if delim_whitespace:
+        # In this case sep is not used so we set it to the read_csv
+        # default to avoid a ValueError
+        sep = ","
     return read_csv(**locals())
 
 
@@ -917,7 +932,6 @@ class TextFileReader(abc.Iterator):
 
         # miscellanea
         self.engine = engine
-        self._engine = None
         self._currow = 0
 
         options = self._get_options_with_defaults(engine)
@@ -926,14 +940,13 @@ class TextFileReader(abc.Iterator):
         self.nrows = options.pop("nrows", None)
         self.squeeze = options.pop("squeeze", False)
 
-        # might mutate self.engine
-        self.engine = self._check_file_or_buffer(f, engine)
+        self._check_file_or_buffer(f, engine)
         self.options, self.engine = self._clean_options(options, engine)
 
         if "has_index_names" in kwds:
             self.options["has_index_names"] = kwds["has_index_names"]
 
-        self._make_engine(self.engine)
+        self._engine = self._make_engine(self.engine)
 
     def close(self):
         self._engine.close()
@@ -990,16 +1003,11 @@ class TextFileReader(abc.Iterator):
                 msg = "The 'python' engine cannot iterate through this file buffer."
                 raise ValueError(msg)
 
-        return engine
-
     def _clean_options(self, options, engine):
         result = options.copy()
 
         engine_specified = self._engine_specified
         fallback_reason = None
-
-        sep = options["delimiter"]
-        delim_whitespace = options["delim_whitespace"]
 
         # C engine not supported yet
         if engine == "c":
@@ -1007,7 +1015,9 @@ class TextFileReader(abc.Iterator):
                 fallback_reason = "the 'c' engine does not support skipfooter"
                 engine = "python"
 
-        encoding = sys.getfilesystemencoding() or "utf-8"
+        sep = options["delimiter"]
+        delim_whitespace = options["delim_whitespace"]
+
         if sep is None and not delim_whitespace:
             if engine == "c":
                 fallback_reason = (
@@ -1032,6 +1042,7 @@ class TextFileReader(abc.Iterator):
                 result["delimiter"] = r"\s+"
         elif sep is not None:
             encodeable = True
+            encoding = sys.getfilesystemencoding() or "utf-8"
             try:
                 if len(sep.encode(encoding)) > 1:
                     encodeable = False
@@ -1164,29 +1175,26 @@ class TextFileReader(abc.Iterator):
             raise
 
     def _make_engine(self, engine="c"):
-        if engine == "c":
-            self._engine = CParserWrapper(self.f, **self.options)
+        mapping = {
+            "c": CParserWrapper,
+            "python": PythonParser,
+            "python-fwf": FixedWidthFieldParser,
+        }
+        try:
+            klass = mapping[engine]
+        except KeyError:
+            raise ValueError(
+                f"Unknown engine: {engine} (valid options are {mapping.keys()})"
+            )
         else:
-            if engine == "python":
-                klass = PythonParser
-            elif engine == "python-fwf":
-                klass = FixedWidthFieldParser
-            else:
-                raise ValueError(
-                    f"Unknown engine: {engine} (valid options "
-                    'are "c", "python", or "python-fwf")'
-                )
-            self._engine = klass(self.f, **self.options)
+            return klass(self.f, **self.options)
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
-        nrows = _validate_integer("nrows", nrows)
-        ret = self._engine.read(nrows)
-
-        # May alter columns / col_dict
-        index, columns, col_dict = self._create_index(ret)
+        nrows = validate_integer("nrows", nrows)
+        index, columns, col_dict = self._engine.read(nrows)
 
         if index is None:
             if col_dict:
@@ -1205,10 +1213,6 @@ class TextFileReader(abc.Iterator):
         if self.squeeze and len(df.columns) == 1:
             return df[df.columns[0]].copy()
         return df
-
-    def _create_index(self, ret):
-        index, columns, col_dict = ret
-        return index, columns, col_dict
 
     def get_chunk(self, size=None):
         if size is None:
@@ -1964,10 +1968,6 @@ class ParserBase:
 
 
 class CParserWrapper(ParserBase):
-    """
-
-    """
-
     def __init__(self, src, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
@@ -1975,6 +1975,10 @@ class CParserWrapper(ParserBase):
         ParserBase.__init__(self, kwds)
 
         encoding = kwds.get("encoding")
+
+        # parsers.TextReader doesn't support compression dicts
+        if isinstance(kwds.get("compression"), dict):
+            kwds["compression"] = kwds["compression"]["method"]
 
         if kwds.get("compression") is None and encoding:
             if isinstance(src, str):
@@ -2158,9 +2162,7 @@ class CParserWrapper(ParserBase):
                 if self.usecols is not None:
                     columns = self._filter_usecols(columns)
 
-                col_dict = dict(
-                    filter(lambda item: item[0] in columns, col_dict.items())
-                )
+                col_dict = {k: v for k, v in col_dict.items() if k in columns}
 
                 return index, columns, col_dict
 
@@ -2301,9 +2303,11 @@ def TextParser(*args, **kwds):
         can be inferred, there often will be a large parsing speed-up.
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
-        values. The options are None for the ordinary converter,
-        'high' for the high-precision converter, and 'round_trip' for the
-        round-trip converter.
+        values. The options are `None` or `high` for the ordinary converter,
+        `legacy` for the original lower precision pandas converter, and
+        `round_trip` for the round-trip converter.
+
+        .. versionchanged:: 1.2
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)
@@ -2892,14 +2896,12 @@ class PythonParser(ParserBase):
             # quotation mark.
             if len(first_row_bom) > end + 1:
                 new_row += first_row_bom[end + 1 :]
-            return [new_row] + first_row[1:]
 
-        elif len(first_row_bom) > 1:
-            return [first_row_bom[1:]]
         else:
-            # First row is just the BOM, so we
-            # return an empty string.
-            return [""]
+
+            # No quotation so just remove BOM from first element
+            new_row = first_row_bom[1:]
+        return [new_row] + first_row[1:]
 
     def _is_line_empty(self, line):
         """

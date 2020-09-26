@@ -1724,7 +1724,7 @@ def test_iteration_open_handle(all_parsers):
         with open(path, "w") as f:
             f.write("AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG")
 
-        with open(path, "r") as f:
+        with open(path) as f:
             for line in f:
                 if "CCC" in line:
                     break
@@ -1834,6 +1834,7 @@ def test_raise_on_no_columns(all_parsers, nrows):
         parser.read_csv(StringIO(data))
 
 
+@td.check_file_leaks
 def test_memory_map(all_parsers, csv_dir_path):
     mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
     parser = all_parsers
@@ -2125,6 +2126,16 @@ def test_first_row_bom(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_first_row_bom_unquoted(all_parsers):
+    # see gh-36343
+    parser = all_parsers
+    data = """\ufeffHead1	Head2	Head3"""
+
+    result = parser.read_csv(StringIO(data), delimiter="\t")
+    expected = DataFrame(columns=["Head1", "Head2", "Head3"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_integer_precision(all_parsers):
     # Gh 7072
     s = """1,1;0;0;0;1;1;3844;3844;3844;1;1;1;1;1;1;0;0;1;1;0;0,,,4321583677327450765
@@ -2189,3 +2200,24 @@ def test_read_csv_with_use_inf_as_na(all_parsers):
         result = parser.read_csv(StringIO(data), header=None)
     expected = DataFrame([1.0, np.nan, 3.0])
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_table_delim_whitespace_default_sep(all_parsers):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    result = parser.read_table(f, delim_whitespace=True)
+    expected = DataFrame({"a": [1, 4], "b": [-2, 5], "c": [-3, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_table_delim_whitespace_non_default_sep(all_parsers):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    msg = (
+        "Specified a delimiter with both sep and "
+        "delim_whitespace=True; you can only specify one."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, sep=",")

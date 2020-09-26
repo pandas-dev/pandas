@@ -81,6 +81,21 @@ class TestCaching:
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
 
+    def test_altering_series_clears_parent_cache(self):
+        # GH #33675
+        df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
+        ser = df["A"]
+
+        assert "A" in df._item_cache
+
+        # Adding a new entry to ser swaps in a new array, so "A" needs to
+        #  be removed from df._item_cache
+        ser["c"] = 5
+        assert len(ser) == 3
+        assert "A" not in df._item_cache
+        assert df["A"] is not ser
+        assert len(df["A"]) == 2
+
 
 class TestChaining:
     def test_setitem_chained_setfault(self):
@@ -117,6 +132,7 @@ class TestChaining:
         result = df.head()
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.arm_slow
     def test_detect_chained_assignment(self):
 
         pd.set_option("chained_assignment", "raise")
@@ -319,11 +335,13 @@ class TestChaining:
         # this should not raise
         df2["y"] = ["g", "h", "i"]
 
-    def test_detect_chained_assignment_warnings(self):
+    def test_detect_chained_assignment_warnings_errors(self):
+        df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
         with option_context("chained_assignment", "warn"):
-            df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
-
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                df.loc[0]["A"] = 111
+        with option_context("chained_assignment", "raise"):
+            with pytest.raises(com.SettingWithCopyError):
                 df.loc[0]["A"] = 111
 
     def test_detect_chained_assignment_warnings_filter_and_dupe_cols(self):

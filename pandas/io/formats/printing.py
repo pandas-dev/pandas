@@ -243,7 +243,7 @@ def pprint_thing_encoded(
     return value.encode(encoding, errors)
 
 
-def _enable_data_resource_formatter(enable: bool) -> None:
+def enable_data_resource_formatter(enable: bool) -> None:
     if "IPython" not in sys.modules:
         # definitely not in IPython
         return
@@ -321,7 +321,7 @@ def format_object_summary(
     summary string
     """
     from pandas.io.formats.console import get_console_size
-    from pandas.io.formats.format import _get_adjustment
+    from pandas.io.formats.format import get_adjustment
 
     display_width, _ = get_console_size()
     if display_width is None:
@@ -350,7 +350,7 @@ def format_object_summary(
     is_truncated = n > max_seq_items
 
     # adj can optionally handle unicode eastern asian width
-    adj = _get_adjustment()
+    adj = get_adjustment()
 
     def _extend_line(
         s: str, line: str, value: str, display_width: int, next_line_prefix: str

@@ -10,7 +10,7 @@ import numpy.ma.mrecords as mrecords
 import pytest
 import pytz
 
-from pandas.compat import PY37, is_platform_little_endian
+from pandas.compat import is_platform_little_endian
 from pandas.compat.numpy import _np_version_under1p19
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -71,7 +71,7 @@ class TestDataFrameConstructors:
             lambda: DataFrame({}),
             lambda: DataFrame(()),
             lambda: DataFrame([]),
-            lambda: DataFrame((_ for _ in [])),
+            lambda: DataFrame(_ for _ in []),
             lambda: DataFrame(range(0)),
             lambda: DataFrame(data=None),
             lambda: DataFrame(data={}),
@@ -720,6 +720,24 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "data,dtype",
         [
+            (pd.Period("2012-01", freq="M"), "period[M]"),
+            (pd.Period("2012-02-01", freq="D"), "period[D]"),
+            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
+        ],
+    )
+    def test_constructor_period_dict_scalar(self, data, dtype):
+        # scalar periods
+        df = DataFrame({"a": data}, index=[0])
+        assert df["a"].dtype == dtype
+
+        expected = DataFrame(index=[0], columns=["a"], data=data)
+
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "data,dtype",
+        [
             (Period("2020-01"), PeriodDtype("M")),
             (Interval(left=0, right=5), IntervalDtype("int64")),
             (
@@ -932,7 +950,7 @@ class TestDataFrameConstructors:
         # from GH3479
 
         assert_fr_equal = functools.partial(
-            tm.assert_frame_equal, check_index_type=True, check_column_type=True,
+            tm.assert_frame_equal, check_index_type=True, check_column_type=True
         )
         arrays = [
             ("float", np.array([1.5, 2.0])),
@@ -1418,7 +1436,6 @@ class TestDataFrameConstructors:
         result = DataFrame(tuples, columns=["y", "z"])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
     def test_constructor_list_of_dataclasses(self):
         # GH21910
         from dataclasses import make_dataclass
@@ -1430,7 +1447,6 @@ class TestDataFrameConstructors:
         result = DataFrame(datas)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
     def test_constructor_list_of_dataclasses_with_varying_types(self):
         # GH21910
         from dataclasses import make_dataclass
@@ -1447,7 +1463,6 @@ class TestDataFrameConstructors:
         result = DataFrame(datas)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.skipif(not PY37, reason="Requires Python >= 3.7")
     def test_constructor_list_of_dataclasses_error_thrown(self):
         # GH21910
         from dataclasses import make_dataclass
@@ -2573,6 +2588,7 @@ class TestDataFrameConstructors:
         result = DataFrame(Series(name=0, dtype=object)).dtypes
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.arm_slow
     @pytest.mark.parametrize("dtype", [None, "uint8", "category"])
     def test_constructor_range_dtype(self, dtype):
         expected = DataFrame({"A": [0, 1, 2, 3, 4]}, dtype=dtype or "int64")

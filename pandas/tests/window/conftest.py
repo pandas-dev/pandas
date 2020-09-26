@@ -308,3 +308,34 @@ def which(request):
 def halflife_with_times(request):
     """Halflife argument for EWM when times is specified."""
     return request.param
+
+
+@pytest.fixture(
+    params=[
+        "object",
+        "category",
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "float16",
+        "float32",
+        "float64",
+        "m8[ns]",
+        "M8[ns]",
+        pytest.param(
+            "datetime64[ns, UTC]",
+            marks=pytest.mark.skip(
+                "direct creation of extension dtype datetime64[ns, UTC] "
+                "is not supported ATM"
+            ),
+        ),
+    ]
+)
+def dtypes(request):
+    """Dtypes for window tests"""
+    return request.param

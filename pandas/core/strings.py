@@ -602,8 +602,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
           a callable.
 
-        .. versionadded:: 0.23.0
-
     Returns
     -------
     Series or Index of object
@@ -1472,7 +1470,7 @@ def str_pad(arr, width, side="left", fillchar=" "):
         character. Equivalent to ``Series.str.pad(side='left')``.
     Series.str.ljust : Fills the right side of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='right')``.
-    Series.str.center : Fills boths sides of strings with an arbitrary
+    Series.str.center : Fills both sides of strings with an arbitrary
         character. Equivalent to ``Series.str.pad(side='both')``.
     Series.str.zfill : Pad strings in the Series/Index by prepending '0'
         character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
@@ -2050,7 +2048,7 @@ def _pat_wrapper(
     @forbid_nonstring_types(forbidden_types, name=name)
     def wrapper3(self, pat, na=np.nan):
         result = f(self._parent, pat, na=na)
-        return self._wrap_result(result, returns_string=returns_string)
+        return self._wrap_result(result, returns_string=returns_string, fill_value=na)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
 
@@ -2374,7 +2372,6 @@ class StringMethods(NoNewAttributesMixin):
             to match the length of the calling Series/Index). To disable
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
-            .. versionadded:: 0.23.0
             .. versionchanged:: 1.0.0
                 Changed default of `join` from None to `'left'`.
 
@@ -2921,7 +2918,7 @@ class StringMethods(NoNewAttributesMixin):
             character.
         Series.str.pad : Fills the specified sides of strings with an arbitrary
             character.
-        Series.str.center : Fills boths sides of strings with an arbitrary
+        Series.str.center : Fills both sides of strings with an arbitrary
             character.
 
         Notes
