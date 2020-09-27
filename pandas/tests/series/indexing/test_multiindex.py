@@ -1,5 +1,6 @@
 """ test get/set & misc """
 
+import pytest
 
 import pandas as pd
 from pandas import MultiIndex, Series
@@ -23,11 +24,21 @@ def test_access_none_value_in_multiindex():
     assert result == 1
 
 
-def test_nat_multi_index():
+@pytest.mark.parametrize('ix_data, exp_data', [(
+    [(pd.NaT, 1), (pd.NaT, 2)],
+    {"a": [pd.NaT, pd.NaT], "b": [1, 2], "x": [11, 12]}
+), (
+    [(pd.NaT, 1), (pd.Timestamp("2020-01-01"), 2)],
+    {"a": [pd.NaT, pd.Timestamp("2020-01-01")], "b": [1, 2], "x": [11, 12]}
+), (
+    [(pd.NaT, 1), (pd.Timedelta(123, 'd'), 2)],
+    {"a": [pd.NaT, pd.Timedelta(123, 'd')], "b": [1, 2], "x": [11, 12]}
+)])
+def test_nat_multi_index(ix_data, exp_data):
     # GH36541: that reset_index() does not raise ValueError
-    ix = pd.MultiIndex.from_tuples([(pd.NaT, 1), (pd.NaT, 2)], names=["a", "b"])
+    ix = pd.MultiIndex.from_tuples(ix_data, names=["a", "b"])
     result = pd.DataFrame({"x": [11, 12]}, index=ix)
     result = result.reset_index()
 
-    expected = pd.DataFrame({"a": [pd.NaT, pd.NaT], "b": [1, 2], "x": [11, 12]})
+    expected = pd.DataFrame(exp_data)
     tm.assert_frame_equal(result, expected)
