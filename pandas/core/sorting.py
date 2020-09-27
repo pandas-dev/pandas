@@ -469,7 +469,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     levels : Optional[List], if values is a MultiIndex, list of levels to
     apply the key to.
     """
-    from pandas.core.indexes.api import Index  # noqa:F811
+    from pandas.core.indexes.api import Index
 
     if not key:
         return values

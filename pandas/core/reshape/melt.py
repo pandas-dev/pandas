@@ -19,7 +19,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa: F401
+    from pandas import DataFrame, Series
 
 
 @Appender(_shared_docs["melt"] % dict(caller="pd.melt(df, ", other="DataFrame.melt"))

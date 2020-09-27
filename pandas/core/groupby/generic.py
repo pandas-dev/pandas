@@ -83,7 +83,7 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
-    from pandas.core.internals import Block  # noqa:F401
+    from pandas.core.internals import Block
 
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])

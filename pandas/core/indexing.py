@@ -35,7 +35,7 @@ from pandas.core.indexers import (
 from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa:F401
+    from pandas import DataFrame, Series
 
 # "null slice"
 _NS = slice(None, None)

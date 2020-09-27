@@ -33,7 +33,7 @@ from pandas.core.tools.numeric import to_numeric
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 class _IntegerDtype(BaseMaskedDtype):
@@ -115,7 +115,7 @@ class _IntegerDtype(BaseMaskedDtype):
         """
         Construct IntegerArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
