@@ -341,10 +341,4 @@ class GroupbyRollingIndexer(BaseIndexer):
             end_arrays.append(window_indicies.take(ensure_platform_int(end)))
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
-        # GH 35552: Need to adjust start and end based on the nans appended to values
-        # when center=True
-        if num_values > len(start):
-            offset = num_values - len(start)
-            start = np.concatenate([start, np.array([end[-1]] * offset)])
-            end = np.concatenate([end, np.array([end[-1]] * offset)])
         return start, end
