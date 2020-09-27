@@ -264,10 +264,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             index = generate_regular_range(start, end, periods, freq)
         else:
             index = np.linspace(start.value, end.value, periods).astype("i8")
-            if len(index) >= 2:
-                # Infer a frequency
-                td = Timedelta(index[1] - index[0])
-                freq = to_offset(td)
 
         if not left_closed:
             index = index[1:]
@@ -450,7 +446,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         result = checked_add_with_arr(i8, other.value, arr_mask=self._isnan)
         result = self._maybe_mask_results(result)
         dtype = DatetimeTZDtype(tz=other.tz) if other.tz else DT64NS_DTYPE
-        return DatetimeArray._simple_new(result, dtype=dtype, freq=self.freq)
+        return DatetimeArray(result, dtype=dtype, freq=self.freq)
 
     def _addsub_object_array(self, other, op):
         # Add or subtract Array-like of objects
@@ -689,13 +685,12 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         elif is_timedelta64_dtype(other.dtype):
             other = type(self)(other)
-
             # numpy timedelta64 does not natively support floordiv, so operate
             #  on the i8 values
             result = other.asi8 // self.asi8
             mask = self._isnan | other._isnan
             if mask.any():
-                result = result.astype(np.int64)
+                result = result.astype(np.float64)
                 result[mask] = np.nan
             return result
 

@@ -1750,6 +1750,10 @@ class TestTimedeltaArraylikeMulDivOps:
 
         tm.assert_equal(result, expected)
 
+        # case that goes through __rfloordiv__ with arraylike
+        result = np.asarray(left) // right
+        tm.assert_equal(result, expected)
+
     def test_td64arr_floordiv_tdscalar(self, box_with_array, scalar_td):
         # GH#18831
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
