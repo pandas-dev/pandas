@@ -57,7 +57,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
 
 if TYPE_CHECKING:
-    from pandas import CategoricalIndex  # noqa:F401
+    from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
