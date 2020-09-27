@@ -30,7 +30,7 @@ dependencies:
   - pyarrow>=0.17
   - psycopg2=2.7
   - pymysql=0.7.11
-  - pytables
+  - pytables>=3.5.1
   - python-dateutil
   - pytz
   - scipy
