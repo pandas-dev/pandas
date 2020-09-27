@@ -139,5 +139,4 @@ def read_sas(
     try:
         return reader.read()
     finally:
-        if ioargs.should_close:
-            reader.close()
+        reader.close()
