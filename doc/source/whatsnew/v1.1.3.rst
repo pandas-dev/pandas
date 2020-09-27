@@ -73,4 +73,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.1.2..v1.1.3|HEAD
+.. contributors:: v1.1.2..v1.1.3
