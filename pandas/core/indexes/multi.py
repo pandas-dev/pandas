@@ -1594,7 +1594,7 @@ class MultiIndex(Index):
             raise ValueError(f"invalid how option: {how}")
 
         new_codes = [level_codes[~indexer] for level_codes in self.codes]
-        return self.copy(deep=True).set_codes(codes=new_codes)
+        return self.set_codes(codes=new_codes)
 
     def _get_level_values(self, level, unique=False):
         """
