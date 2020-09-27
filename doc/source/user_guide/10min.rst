@@ -431,9 +431,9 @@ See more at :ref:`Histogramming and Discretization <basics.discretization>`.
 String Methods
 ~~~~~~~~~~~~~~
 
-Series is equipped with a set of string processing methods in the `str`
+Series is equipped with a set of string processing methods in the ``str``
 attribute that make it easy to operate on each element of the array, as in the
-code snippet below. Note that pattern-matching in `str` generally uses `regular
+code snippet below. Note that pattern-matching in ``str`` generally uses `regular
 expressions <https://docs.python.org/3/library/re.html>`__ by default (and in
 some cases always uses them). See more at :ref:`Vectorized String Methods
 <text.string_methods>`.
