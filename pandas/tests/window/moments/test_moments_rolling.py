@@ -1,5 +1,3 @@
-import copy
-
 import numpy as np
 from numpy.random import randn
 import pytest
