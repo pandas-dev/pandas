@@ -94,7 +94,7 @@ def test_copy_method_kwargs(deep, kwarg, value):
     ],
 )
 def test_copy_deprecated_parameters(deep, param_name, param_value):
-    # gh-xxxxx
+    # gh-36685
     idx = MultiIndex(
         levels=[["foo", "bar"], ["fizz", "buzz"]],
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
