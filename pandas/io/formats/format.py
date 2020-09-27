@@ -1530,16 +1530,19 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
         return formatted_values
 
-    def _format_strings(self) -> np.ndarray:
+    def _format_strings(self) -> List[str]:
         # shortcut
         if self.formatter is not None:
-            arr = np.array([self.formatter(x) for x in self.values])
-            if self.na_rep is not None:
+            if self.na_rep is None:
+                return [self.formatter(x) for x in self.values]
+            else:
                 na_mask = isna(self.values)
-                arr[na_mask] = self.na_rep
-            return arr
+                return [
+                    self.formatter(x) if not m else self.na_rep
+                    for x, m in zip(self.values, na_mask)
+                ]
 
-        return self.get_result_as_array()
+        return list(self.get_result_as_array())
 
 
 class IntArrayFormatter(GenericArrayFormatter):
