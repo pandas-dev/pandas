@@ -26,12 +26,6 @@ def _check_moment_func(
     frame=None,
     **kwargs,
 ):
-
-    # inject raw
-    if name == "apply":
-        kwargs = copy.copy(kwargs)
-        kwargs["raw"] = raw
-
     def get_result(obj, window, min_periods=None, center=False):
         r = obj.rolling(window=window, min_periods=min_periods, center=center)
         return getattr(r, name)(**kwargs)
