@@ -1234,3 +1234,36 @@ class TestReadHtml:
         while helper_thread1.is_alive() or helper_thread2.is_alive():
             pass
         assert None is helper_thread1.err is helper_thread2.err
+
+    def test_to_html_na_rep_and_float_format(self):
+        # https://github.com/pandas-dev/pandas/issues/13828
+        df = DataFrame(
+            [
+                ["A", 1.2225],
+                ["A", None],
+            ],
+            columns=["Group", "Data"],
+        )
+        result = df.to_html(na_rep="Ted", float_format="{:.2f}".format)
+        expected = """<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Group</th>
+      <th>Data</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>A</td>
+      <td>1.22</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>A</td>
+      <td>Ted</td>
+    </tr>
+  </tbody>
+</table>"""
+        assert result == expected
