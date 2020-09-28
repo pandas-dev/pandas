@@ -2210,7 +2210,7 @@ Time zone handling
 ------------------
 
 pandas provides rich support for working with timestamps in different time
-zones using the ``pytz`` and ``dateutil`` libraries or class:`datetime.timezone`
+zones using the ``pytz`` and ``dateutil`` libraries or :class:`datetime.timezone`
 objects from the standard library.
 
 
