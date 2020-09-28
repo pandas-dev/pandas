@@ -34,7 +34,7 @@ class DatetimeLike(Base):
 
     def test_shift_empty(self):
         # GH#14811
-        idx = self.create_index()
+        idx = self.create_index()[:0]
         tm.assert_index_equal(idx, idx.shift(1))
 
     def test_str(self):
