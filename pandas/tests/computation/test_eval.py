@@ -48,7 +48,7 @@ from pandas.core.computation.ops import (
         )
         for engine in ENGINES
     )
-)  # noqa
+)
 def engine(request):
     return request.param
 
@@ -1885,7 +1885,7 @@ class TestScope:
         )
 
     def test_no_new_locals(self, engine, parser):
-        x = 1  # noqa
+        x = 1
         lcls = locals().copy()
         pd.eval("x + 1", local_dict=lcls, engine=engine, parser=parser)
         lcls2 = locals().copy()
@@ -1995,8 +1995,8 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
     mid = gen[lhs]()  # noqa
-    lhs = gen[lhs]()  # noqa
-    rhs = gen[rhs]()  # noqa
+    lhs = gen[lhs]()
+    rhs = gen[rhs]()
 
     ex1 = f"lhs {cmp} mid {cmp} rhs"
     ex2 = f"lhs {cmp} mid and mid {cmp} rhs"
