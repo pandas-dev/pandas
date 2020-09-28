@@ -144,7 +144,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
     no_op = False
 
     if isinstance(indexer, (np.ndarray, list)):
-        # We can ignore other listlikes becasue they are either
+        # We can ignore other listlikes because they are either
         #  a) not necessarily 1-D indexers, e.g. tuple
         #  b) boolean indexers e.g. BoolArray
         if is_list_like(value):
