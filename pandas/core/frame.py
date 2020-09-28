@@ -7284,7 +7284,7 @@ NaN 12.3   33.0
         bm_axis = self._get_block_manager_axis(axis)
 
         if bm_axis == 0 and periods != 0:
-            return self - self.shift(periods, axis=axis)
+            return self - self.shift(periods, axis=axis)  # type: ignore[operator]
 
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
