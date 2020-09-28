@@ -14,7 +14,7 @@ from packaging import version
 def check_tag(tag):
     assert tag.startswith("v"), "Invalid tag '{}', must " "start with 'v'".format(tag)
     ver = version.parse(tag.lstrip("v"))
-    assert isinstance(ver, version.Version), "Invalid tag '{}'".format(tag)
+    assert isinstance(ver, version.Version), f"Invalid tag '{tag}'"
     if "rc" in tag:
         assert ".rc" not in tag, "RC tags should be formatted like '.0rcX' "
     return tag
@@ -33,7 +33,7 @@ def checkout(tag):
 
 def commit(tag):
     subprocess.check_call(["git", "clean", "-xdf"])
-    print("Creating tag {}".format(tag))
+    print(f"Creating tag {tag}")
     subprocess.check_call(
         [
             "git",
