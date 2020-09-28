@@ -527,6 +527,7 @@ class TestReductions:
         with pytest.raises(ValueError, match=msg):
             arr.median(axis=1)
 
+    @pytest.mark.filterwarnings("ignore:All-NaN slice encountered:RuntimeWarning")
     def test_median_2d(self, arr1d):
         arr = arr1d.reshape(1, -1)
 
