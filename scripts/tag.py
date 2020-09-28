@@ -12,7 +12,7 @@ from packaging import version
 
 
 def check_tag(tag):
-    assert tag.startswith("v"), "Invalid tag '{}', must " "start with 'v'".format(tag)
+    assert tag.startswith("v"), "Invalid tag '{}', must start with 'v'".format(tag)
     ver = version.parse(tag.lstrip("v"))
     assert isinstance(ver, version.Version), f"Invalid tag '{tag}'"
     if "rc" in tag:
