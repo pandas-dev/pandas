@@ -341,8 +341,9 @@ class GroupbyExpandingIndexer(BaseIndexer):
 
     def __init__(
         self,
-        index_array: Optional[np.ndarray],
-        groupby_indicies: Dict,
+        index_array: Optional[np.ndarray] = None,
+        window_size: int = 0,
+        groupby_indicies: Optional[Dict] = None,
         **kwargs,
     ):
         """
@@ -351,8 +352,8 @@ class GroupbyExpandingIndexer(BaseIndexer):
         **kwargs :
             keyword arguments that will be available when get_window_bounds is called
         """
-        self.groupby_indicies = groupby_indicies
-        super().__init__(index_array, **kwargs)
+        self.groupby_indicies = groupby_indicies or {}
+        super().__init__(index_array, window_size, **kwargs)
 
     @Appender(get_window_bounds_doc)
     def get_window_bounds(

@@ -335,9 +335,7 @@ class ExpandingGroupby(WindowGroupByMixin, Expanding):
         -------
         GroupbyRollingIndexer
         """
-        index_array = self.obj.index.asi8
         window_indexer = GroupbyExpandingIndexer(
-            index_array=index_array,
             groupby_indicies=self._groupby.indices,
         )
         return window_indexer
