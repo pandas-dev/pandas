@@ -42,8 +42,18 @@ def arithmetic_win_operators(request):
     return request.param
 
 
+@pytest.fixture(params=["right", "left", "both", "neither"])
+def closed(request):
+    return request.param
+
+
 @pytest.fixture(params=[True, False])
 def center(request):
+    return request.param
+
+
+@pytest.fixture(params=[None, 1])
+def min_periods(request):
     return request.param
 
 
@@ -62,6 +72,14 @@ def nogil(request):
 @pytest.fixture(params=[True, False])
 def nopython(request):
     """nopython keyword argument for numba.jit"""
+    return request.param
+
+
+@pytest.fixture(
+    params=[pytest.param("numba", marks=td.skip_if_no("numba", "0.46.0")), "cython"]
+)
+def engine(request):
+    """engine keyword argument for rolling.apply"""
     return request.param
 
 
