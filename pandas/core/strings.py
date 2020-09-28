@@ -2839,7 +2839,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def replace(self, pat, repl, n=-1, case=None, flags=0, regex=None):
         if regex is None:
-            if len(pat) > 1 and any(c in pat for c in ".+*|^$&[](){}\\"):
+            if len(pat) > 1 and any(c in pat for c in ".+*|^$[](){}\\"):
                 # warn only in cases where regex behavior would differ from literal
                 msg = (
                     "The default value of regex will change from "
