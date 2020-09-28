@@ -450,7 +450,7 @@ class TestSeriesReplace:
         expected = pd.Series(["z", "b", "c"])
         tm.assert_series_equal(result, expected)
 
-    def test_str_replace_regex_default(self):
+    def test_str_replace_regex_default_raises_warning(self):
         s = pd.Series(["a", "b", "c"])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             s.str.replace(".", "")
