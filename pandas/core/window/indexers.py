@@ -372,7 +372,6 @@ class GroupbyExpandingIndexer(BaseIndexer):
             start, end = ExpandingIndexer().get_window_bounds(
                 len(indices), min_periods, center, closed
             )
-
             # Cannot use groupby_indicies as they might not be monotonic with the object
             # we're rolling over
             window_indicies = np.arange(

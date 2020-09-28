@@ -1,6 +1,9 @@
 from textwrap import dedent
 from typing import Callable, Dict, Optional
 
+import numpy as np
+
+from pandas._typing import FrameOrSeries
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
@@ -305,6 +308,20 @@ class ExpandingGroupby(WindowGroupByMixin, Expanding):
         result.index = result_index
         return result
 
+    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+        """
+        Split data into blocks & return conformed data.
+        """
+        # Ensure the object we're rolling over is monotonically sorted relative
+        # to the groups
+        # GH 36197
+        if not obj.empty:
+            groupby_order = np.concatenate(
+                list(self._groupby.grouper.indices.values())
+            ).astype(np.int64)
+            obj = obj.take(groupby_order)
+        return super()._create_data(obj)
+
     def _get_window_indexer(self, window: int) -> GroupbyExpandingIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -324,3 +341,13 @@ class ExpandingGroupby(WindowGroupByMixin, Expanding):
             groupby_indicies=self._groupby.indices,
         )
         return window_indexer
+
+    def _get_cython_func_type(self, func: str) -> Callable:
+        """
+        Return the cython function type.
+
+        RollingGroupby needs to always use "variable" algorithms since processing
+        the data in group order may not be monotonic with the data which
+        "fixed" algorithms assume
+        """
+        return self._get_roll_func(f"{func}_variable")
