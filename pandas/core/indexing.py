@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
 import warnings
 
@@ -610,17 +611,13 @@ class _LocationIndexer(NDFrameIndexerBase):
         ax = self.obj._get_axis(0)
 
         if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
-            try:
-                return ax.get_loc(key)
-            except (TypeError, KeyError, InvalidIndexError):
+            with suppress(TypeError, KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
-                pass
+                return ax.get_loc(key)
 
         if isinstance(key, tuple):
-            try:
+            with suppress(IndexingError):
                 return self._convert_tuple(key, is_setter=True)
-            except IndexingError:
-                pass
 
         if isinstance(key, range):
             return list(key)
@@ -782,11 +779,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
         if isinstance(ax0, ABCMultiIndex) and self.name != "iloc":
-            try:
+            with suppress(IndexingError):
                 result = self._handle_lowerdim_multi_index_axis0(tup)
                 return result
-            except IndexingError:
-                pass
 
         if len(tup) > self.ndim:
             raise IndexingError("Too many indexers. handle elsewhere")
@@ -834,11 +829,9 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            try:
+            with suppress(IndexingError):
                 result = self._handle_lowerdim_multi_index_axis0(tup)
                 return result
-            except IndexingError:
-                pass
 
             # this is a series with a multi-index specified a tuple of
             # selectors
@@ -877,11 +870,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         if type(key) is tuple:
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
-                try:
-                    return self.obj._get_value(*key, takeable=self._takeable)
-                except (KeyError, IndexError, AttributeError):
+                with suppress(KeyError, IndexError, AttributeError):
                     # AttributeError for IntervalTree get_value
-                    pass
+                    return self.obj._get_value(*key, takeable=self._takeable)
             return self._getitem_tuple(key)
         else:
             # we by definition only have the 0th axis
@@ -1052,10 +1043,8 @@ class _LocIndexer(_LocationIndexer):
         )
 
     def _getitem_tuple(self, tup: Tuple):
-        try:
+        with suppress(IndexingError):
             return self._getitem_lowerdim(tup)
-        except IndexingError:
-            pass
 
         # no multi-index, so validate all of the indexers
         self._has_valid_tuple(tup)
@@ -1453,10 +1442,8 @@ class _iLocIndexer(_LocationIndexer):
     def _getitem_tuple(self, tup: Tuple):
 
         self._has_valid_tuple(tup)
-        try:
+        with suppress(IndexingError):
             return self._getitem_lowerdim(tup)
-        except IndexingError:
-            pass
 
         return self._getitem_tuple_same_dim(tup)
 
