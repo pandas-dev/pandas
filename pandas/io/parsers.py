@@ -542,7 +542,7 @@ _deprecated_args: Set[str] = set()
 )
 def read_csv(
     filepath_or_buffer: FilePathOrBuffer,
-    sep=",",
+    sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
@@ -612,10 +612,8 @@ def read_csv(
     # Thus, we need a flag to indicate that we need to "override"
     # the comparison to dialect values by checking if default values
     # for BOTH "delimiter" and "sep" were provided.
-    default_sep = ","
-
     if dialect is not None:
-        sep_override = delimiter is None and sep == default_sep
+        sep_override = (delimiter is None) and (sep is lib.no_default)
         kwds = dict(sep_override=sep_override)
     else:
         kwds = dict()
@@ -624,11 +622,15 @@ def read_csv(
     if delimiter is None:
         delimiter = sep
 
-    if delim_whitespace and delimiter != default_sep:
+    if delim_whitespace and (delimiter is not lib.no_default):
         raise ValueError(
             "Specified a delimiter with both sep and "
             "delim_whitespace=True; you can only specify one."
         )
+
+    if delimiter is lib.no_default:
+        # assign default separator value
+        delimiter = ","
 
     if engine is not None:
         engine_specified = True
@@ -700,7 +702,7 @@ def read_csv(
 )
 def read_table(
     filepath_or_buffer: FilePathOrBuffer,
-    sep="\t",
+    sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
@@ -758,15 +760,17 @@ def read_table(
     float_precision=None,
 ):
     # TODO: validation duplicated in read_csv
-    if delim_whitespace and (delimiter is not None or sep != "\t"):
-        raise ValueError(
-            "Specified a delimiter with both sep and "
-            "delim_whitespace=True; you can only specify one."
-        )
     if delim_whitespace:
-        # In this case sep is not used so we set it to the read_csv
-        # default to avoid a ValueError
-        sep = ","
+        if (delimiter is not None) or (sep is not lib.no_default):
+            raise ValueError(
+                "Specified a delimiter with both sep and "
+                "delim_whitespace=True; you can only specify one."
+            )
+    else:
+        if sep is lib.no_default:
+            # assign default delimeter value
+            sep = "\t"
+
     return read_csv(**locals())
 
 
