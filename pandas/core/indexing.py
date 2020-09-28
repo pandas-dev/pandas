@@ -1071,7 +1071,7 @@ class _LocIndexer(_LocationIndexer):
         except KeyError as ek:
             # raise KeyError if number of indexers match
             # else IndexingError will be raised
-            if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
+            if self.ndim < len(tup) <= self.obj.index.nlevels:
                 raise ek
 
         raise IndexingError("No label returned")
