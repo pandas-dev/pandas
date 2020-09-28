@@ -6,6 +6,7 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 from collections import defaultdict
 from functools import partial
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -26,7 +27,9 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-from pandas.core.series import Series
+
+if TYPE_CHECKING:
+    from pandas.core.series import Series
 
 
 def reconstruct_func(
@@ -281,7 +284,7 @@ def relabel_result(
     func: Dict[str, List[Union[Callable, str]]],
     columns: Iterable[Label],
     order: Iterable[int],
-) -> Dict[Label, Series]:
+) -> Dict[Label, "Series"]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -308,10 +311,10 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, Series] = {}
+    reordered_result_in_dict: Dict[Label, "Series"] = {}
     idx = 0
 
-    reorder_mask = not isinstance(result, Series) and len(result.columns) > 1
+    reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
     for col, fun in func.items():
         s = result[col].dropna()
 
@@ -374,7 +377,7 @@ def validate_func_kwargs(
     (['one', 'two'], ['min', 'max'])
     """
     no_arg_message = "Must provide 'func' or named aggregation **kwargs."
-    tuple_given_message = "func is expected but recieved {} in **kwargs."
+    tuple_given_message = "func is expected but received {} in **kwargs."
     columns = list(kwargs)
     func = []
     for col_func in kwargs.values():
@@ -387,7 +390,7 @@ def validate_func_kwargs(
 
 
 def transform(
-    obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs,
+    obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs
 ) -> FrameOrSeries:
     """
     Transform a DataFrame or Series
@@ -415,8 +418,6 @@ def transform(
     ValueError
         If the transform function fails or does not transform.
     """
-    from pandas.core.reshape.concat import concat
-
     is_series = obj.ndim == 1
 
     if obj._get_axis_number(axis) == 1:
@@ -430,42 +431,11 @@ def transform(
             func = {col: func for col in obj}
 
     if isinstance(func, dict):
-        if not is_series:
-            cols = sorted(set(func.keys()) - set(obj.columns))
-            if len(cols) > 0:
-                raise SpecificationError(f"Column(s) {cols} do not exist")
-
-        if any(isinstance(v, dict) for v in func.values()):
-            # GH 15931 - deprecation of renaming keys
-            raise SpecificationError("nested renamer is not supported")
-
-        results = {}
-        for name, how in func.items():
-            colg = obj._gotitem(name, ndim=1)
-            try:
-                results[name] = transform(colg, how, 0, *args, **kwargs)
-            except Exception as e:
-                if str(e) == "Function did not transform":
-                    raise e
-
-        # combine results
-        if len(results) == 0:
-            raise ValueError("Transform function failed")
-        return concat(results, axis=1)
+        return transform_dict_like(obj, func, *args, **kwargs)
 
     # func is either str or callable
     try:
-        if isinstance(func, str):
-            result = obj._try_aggregate_string_function(func, *args, **kwargs)
-        else:
-            f = obj._get_cython_func(func)
-            if f and not args and not kwargs:
-                result = getattr(obj, f)()
-            else:
-                try:
-                    result = obj.apply(func, args=args, **kwargs)
-                except Exception:
-                    result = func(obj, *args, **kwargs)
+        result = transform_str_or_callable(obj, func, *args, **kwargs)
     except Exception:
         raise ValueError("Transform function failed")
 
@@ -479,3 +449,52 @@ def transform(
         raise ValueError("Function did not transform")
 
     return result
+
+
+def transform_dict_like(obj, func, *args, **kwargs):
+    """
+    Compute transform in the case of a dict-like func
+    """
+    from pandas.core.reshape.concat import concat
+
+    if obj.ndim != 1:
+        cols = sorted(set(func.keys()) - set(obj.columns))
+        if len(cols) > 0:
+            raise SpecificationError(f"Column(s) {cols} do not exist")
+
+    if any(isinstance(v, dict) for v in func.values()):
+        # GH 15931 - deprecation of renaming keys
+        raise SpecificationError("nested renamer is not supported")
+
+    results = {}
+    for name, how in func.items():
+        colg = obj._gotitem(name, ndim=1)
+        try:
+            results[name] = transform(colg, how, 0, *args, **kwargs)
+        except Exception as e:
+            if str(e) == "Function did not transform":
+                raise e
+
+    # combine results
+    if len(results) == 0:
+        raise ValueError("Transform function failed")
+    return concat(results, axis=1)
+
+
+def transform_str_or_callable(obj, func, *args, **kwargs):
+    """
+    Compute transform in the case of a string or callable func
+    """
+    if isinstance(func, str):
+        return obj._try_aggregate_string_function(func, *args, **kwargs)
+
+    if not args and not kwargs:
+        f = obj._get_cython_func(func)
+        if f:
+            return getattr(obj, f)()
+
+    # Two possible ways to use a UDF - apply or call directly
+    try:
+        return obj.apply(func, args=args, **kwargs)
+    except Exception:
+        return func(obj, *args, **kwargs)

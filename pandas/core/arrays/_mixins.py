@@ -6,10 +6,15 @@ from pandas._libs import lib
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
+from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.inference import is_array_like
+
+from pandas.core import missing
 from pandas.core.algorithms import take, unique
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
@@ -193,4 +198,42 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return result
 
     def _validate_getitem_key(self, key):
+        key = extract_array(key, extract_numpy=True)
         return check_array_indexer(self, key)
+
+    @doc(ExtensionArray.fillna)
+    def fillna(self: _T, value=None, method=None, limit=None) -> _T:
+        value, method = validate_fillna_kwargs(value, method)
+
+        mask = self.isna()
+
+        # TODO: share this with EA base class implementation
+        if is_array_like(value):
+            if len(value) != len(self):
+                raise ValueError(
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f" expected {len(self)}"
+                )
+            value = value[mask]
+
+        if mask.any():
+            if method is not None:
+                func = missing.get_fill_func(method)
+                new_values = func(self._ndarray.copy(), limit=limit, mask=mask)
+                # TODO: PandasArray didnt used to copy, need tests for this
+                new_values = self._from_backing_data(new_values)
+            else:
+                # fill with value
+                new_values = self.copy()
+                new_values[mask] = value
+        else:
+            new_values = self.copy()
+        return new_values
+
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+        meth = getattr(self, name, None)
+        if meth:
+            return meth(skipna=skipna, **kwargs)
+        else:
+            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
+            raise TypeError(msg)

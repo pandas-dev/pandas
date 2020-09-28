@@ -96,7 +96,7 @@ For example:
    buffer = io.BytesIO()
    data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
 
-:.. _whatsnew_read_csv_table_precision_default:
+.. _whatsnew_120.read_csv_table_precision_default:
 
 Change in default floating precision for ``read_csv`` and ``read_table``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -117,7 +117,7 @@ Other enhancements
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
-- `Styler` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
+- ``Styler`` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
 - :meth:`to_json` now implements timezones parsing for when orient structure is `table`.
@@ -213,10 +213,11 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated parameter ``inplace`` in :meth:`MultiIndex.set_codes` and :meth:`MultiIndex.set_levels` (:issue:`35626`)
-- Deprecated parameter ``dtype`` in :~meth:`Index.copy` on method all index classes. Use the :meth:`Index.astype` method instead for changing dtype(:issue:`35853`)
+- Deprecated parameter ``dtype`` in :meth:`~Index.copy` on method all index classes. Use the :meth:`~Index.astype` method instead for changing dtype (:issue:`35853`)
 - Date parser functions :func:`~pandas.io.date_converters.parse_date_time`, :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields` and :func:`~pandas.io.date_converters.generic_parser` from ``pandas.io.date_converters`` are deprecated and will be removed in a future version; use :func:`to_datetime` instead (:issue:`35741`)
 - :meth:`DataFrame.lookup` is deprecated and will be removed in a future version, use :meth:`DataFrame.melt` and :meth:`DataFrame.loc` instead (:issue:`18682`)
 - The :meth:`Index.to_native_types` is deprecated. Use ``.astype(str)`` instead (:issue:`28867`)
+- Deprecated indexing :class:`DataFrame` rows with datetime-like strings ``df[string]``, use ``df.loc[string]`` instead (:issue:`36179`)
 
 .. ---------------------------------------------------------------------------
 
@@ -226,12 +227,12 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Performance improvements when creating DataFrame or Series with dtype `str` or :class:`StringDtype` from array with many string elements (:issue:`36304`, :issue:`36317`, :issue:`36325`, :issue:`36432`)
+- Performance improvements when creating DataFrame or Series with dtype ``str`` or :class:`StringDtype` from array with many string elements (:issue:`36304`, :issue:`36317`, :issue:`36325`, :issue:`36432`)
 - Performance improvement in :meth:`GroupBy.agg` with the ``numba`` engine (:issue:`35759`)
 - Performance improvements when creating :meth:`pd.Series.map` from a huge dictionary (:issue:`34717`)
 - Performance improvement in :meth:`GroupBy.transform` with the ``numba`` engine (:issue:`36240`)
 - ``Styler`` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
-- Performance improvement in :meth:`pd.to_datetime` with non-`ns` time unit for `float` `dtype` columns (:issue:`20445`)
+- Performance improvement in :meth:`pd.to_datetime` with non-ns time unit for ``float`` ``dtype`` columns (:issue:`20445`)
 
 .. ---------------------------------------------------------------------------
 
@@ -242,7 +243,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
-
+- :meth:`Categorical.fillna` will always return a copy, will validate a passed fill value regardless of whether there are any NAs to fill, and will disallow a ``NaT`` as a fill value for numeric categories (:issue:`36530`)
 -
 -
 
@@ -253,7 +254,7 @@ Datetimelike
 - Bug in :class:`DateOffset` where attributes reconstructed from pickle files differ from original objects when input values exceed normal ranges (e.g months=12) (:issue:`34511`)
 - Bug in :meth:`DatetimeIndex.get_slice_bound` where ``datetime.date`` objects were not accepted or naive :class:`Timestamp` with a tz-aware :class:`DatetimeIndex` (:issue:`35690`)
 - Bug in :meth:`DatetimeIndex.slice_locs` where ``datetime.date`` objects were not accepted (:issue:`34077`)
-- Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64``, ``timedelta64`` or ``Period`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`,:issue:`36254`)
+- Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64``, ``timedelta64`` or ``Period`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`, :issue:`36254`)
 - Inconsistency in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray`  setitem casting arrays of strings to datetimelike scalars but not scalar strings (:issue:`36261`)
 -
 
@@ -266,7 +267,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
-- Bug in :func:`date_range` was raising AmbiguousTimeError for valid input with `ambiguous=False` (:issue:`35297`)
+- Bug in :func:`date_range` was raising AmbiguousTimeError for valid input with ``ambiguous=False`` (:issue:`35297`)
 -
 
 
@@ -275,6 +276,7 @@ Numeric
 - Bug in :func:`to_numeric` where float precision was incorrect (:issue:`31364`)
 - Bug in :meth:`DataFrame.any` with ``axis=1`` and ``bool_only=True`` ignoring the ``bool_only`` keyword (:issue:`32432`)
 - Bug in :meth:`Series.equals` where a ``ValueError`` was raised when numpy arrays were compared to scalars (:issue:`35267`)
+- Bug in :class:`Series` where two :class:`Series` each have a :class:`DatetimeIndex` with different timezones having those indexes incorrectly changed when performing arithmetic operations (:issue:`33671`)
 -
 
 Conversion
@@ -307,13 +309,13 @@ Indexing
 Missing
 ^^^^^^^
 
-- Bug in :meth:`SeriesGroupBy.transform` now correctly handles missing values for `dropna=False` (:issue:`35014`)
+- Bug in :meth:`SeriesGroupBy.transform` now correctly handles missing values for ``dropna=False`` (:issue:`35014`)
 -
 
 MultiIndex
 ^^^^^^^^^^
 
-- Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message `Expected label or tuple of labels` (:issue:`35301`)
+- Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
 -
 
 I/O
@@ -321,14 +323,15 @@ I/O
 
 - :func:`read_sas` no longer leaks resources on failure (:issue:`35566`)
 - Bug in :meth:`to_csv` caused a ``ValueError`` when it was called with a filename in combination with ``mode`` containing a ``b`` (:issue:`35058`)
-- In :meth:`read_csv` `float_precision='round_trip'` now handles `decimal` and `thousands` parameters (:issue:`35365`)
+- In :meth:`read_csv` ``float_precision='round_trip'`` now handles ``decimal`` and ``thousands`` parameters (:issue:`35365`)
 - :meth:`to_pickle` and :meth:`read_pickle` were closing user-provided file objects (:issue:`35679`)
-- :meth:`to_csv` passes compression arguments for `'gzip'` always to `gzip.GzipFile` (:issue:`28103`)
+- :meth:`to_csv` passes compression arguments for ``'gzip'`` always to ``gzip.GzipFile`` (:issue:`28103`)
 - :meth:`to_csv` did not support zip compression for binary file object not having a filename (:issue:`35058`)
-- :meth:`to_csv` and :meth:`read_csv` did not honor `compression` and `encoding` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
+- :meth:`to_csv` and :meth:`read_csv` did not honor ``compression`` and ``encoding`` for path-like objects that are internally converted to file-like objects (:issue:`35677`, :issue:`26124`, and :issue:`32392`)
 - :meth:`to_picke` and :meth:`read_pickle` did not support compression for file-objects (:issue:`26237`, :issue:`29054`, and :issue:`29570`)
-- Bug in :func:`LongTableBuilder.middle_separator` was duplicating LaTeX longtable entires in the List of Tables of a LaTeX document (:issue:`34360`)
-- Bug in :meth:`read_csv` with `engine='python'` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
+- Bug in :func:`LongTableBuilder.middle_separator` was duplicating LaTeX longtable entries in the List of Tables of a LaTeX document (:issue:`34360`)
+- Bug in :meth:`read_csv` with ``engine='python'`` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
+- Removed ``private_key`` and ``verbose`` from :func:`read_gbq` as they are no longer supported in ``pandas-gbq`` (:issue:`34654`, :issue:`30200`)
 
 Plotting
 ^^^^^^^^
@@ -370,13 +373,16 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 
 - Fixed Bug where :class:`DataFrame` column set to scalar extension type via a dict instantion was considered an object type rather than the extension type (:issue:`35965`)
+- Fixed bug where ``astype()`` with equal dtype and ``copy=False`` would return a new object (:issue:`284881`)
 -
 
 
 Other
 ^^^^^
+
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
+- Fixed metadata propagation in the :class:`Series.dt` accessor (:issue:`28283`)
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 

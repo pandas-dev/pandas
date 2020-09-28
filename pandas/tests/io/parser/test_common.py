@@ -1138,7 +1138,6 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="ResourceWarning #35660", strict=False)
 def test_chunks_have_consistent_numerical_type(all_parsers):
     parser = all_parsers
     integers = [str(i) for i in range(499999)]
@@ -1152,7 +1151,6 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
     assert result.a.dtype == float
 
 
-@pytest.mark.xfail(reason="ResourceWarning #35660", strict=False)
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
     warning_type = None
     parser = all_parsers
@@ -2202,3 +2200,24 @@ def test_read_csv_with_use_inf_as_na(all_parsers):
         result = parser.read_csv(StringIO(data), header=None)
     expected = DataFrame([1.0, np.nan, 3.0])
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_table_delim_whitespace_default_sep(all_parsers):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    result = parser.read_table(f, delim_whitespace=True)
+    expected = DataFrame({"a": [1, 4], "b": [-2, 5], "c": [-3, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_table_delim_whitespace_non_default_sep(all_parsers):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    msg = (
+        "Specified a delimiter with both sep and "
+        "delim_whitespace=True; you can only specify one."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, sep=",")
