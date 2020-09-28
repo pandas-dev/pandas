@@ -1,10 +1,13 @@
 from textwrap import dedent
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
+import pandas.core.common as com
+from pandas.core.indexes.api import MultiIndex
 from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
+from pandas.core.window.indexers import GroupbyExpandingIndexer
 from pandas.core.window.rolling import RollingAndExpandingMixin
 
 
@@ -256,3 +259,68 @@ class ExpandingGroupby(WindowGroupByMixin, Expanding):
     @property
     def _constructor(self):
         return Expanding
+
+    def _apply(
+        self,
+        func: Callable,
+        center: bool,
+        require_min_periods: int = 0,
+        floor: int = 1,
+        is_weighted: bool = False,
+        name: Optional[str] = None,
+        use_numba_cache: bool = False,
+        **kwargs,
+    ):
+        result = Expanding._apply(
+            self,
+            func,
+            center,
+            require_min_periods,
+            floor,
+            is_weighted,
+            name,
+            use_numba_cache,
+            **kwargs,
+        )
+        # Cannot use _wrap_outputs because we calculate the result all at once
+        # Compose MultiIndex result from grouping levels then rolling level
+        # Aggregate the MultiIndex data as tuples then the level names
+        grouped_object_index = self.obj.index
+        grouped_index_name = [*grouped_object_index.names]
+        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
+        result_index_names = groupby_keys + grouped_index_name
+
+        result_index_data = []
+        for key, values in self._groupby.grouper.indices.items():
+            for value in values:
+                data = [
+                    *com.maybe_make_list(key),
+                    *com.maybe_make_list(grouped_object_index[value]),
+                ]
+                result_index_data.append(tuple(data))
+
+        result_index = MultiIndex.from_tuples(
+            result_index_data, names=result_index_names
+        )
+        result.index = result_index
+        return result
+
+    def _get_window_indexer(self, window: int) -> GroupbyExpandingIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+
+        Parameters
+        ----------
+        window : int
+            window size for FixedWindowIndexer
+
+        Returns
+        -------
+        GroupbyRollingIndexer
+        """
+        index_array = self.obj.index.asi8
+        window_indexer = GroupbyExpandingIndexer(
+            index_array=index_array,
+            groupby_indicies=self._groupby.indices,
+        )
+        return window_indexer
