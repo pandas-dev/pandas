@@ -18,7 +18,7 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 @register_extension_dtype
@@ -79,7 +79,7 @@ class StringDtype(ExtensionDtype):
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
