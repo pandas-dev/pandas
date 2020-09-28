@@ -1,0 +1,135 @@
+name: Release Readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The pandas version to release.'
+        default: '1.1.3'
+        required: true
+      # push-tag:
+      #   description: 'Push tag on success?'
+      #   default: 'false'
+      #   required: true
+
+jobs:
+  build-sdist:
+    name: Build the sdist and maybe push the tag
+    runs-on: ubuntu-latest
+    env:
+      TAG: v${{ github.event.inputs.version }}
+    steps:
+    - name: Setting git user to Pandas Development Team
+      run: |
+       git config --global user.email "pandas-dev@python.org"
+       git config --global user.name "Pandas Development Team"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install packaging
+    - name: Checkout pandas
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Tag the release. (This doesn't push the tag)
+      run: |
+        python ./scripts/tag.py $TAG
+        git log -n 5
+    - name: Update for build environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+        sudo apt-get clean
+    - name: Setting conda path
+      run: echo ::add-path::$CONDA/bin
+    - name: Update conda
+      run: |
+        conda config --set quiet true --set always_yes true
+        conda update -n base -c defaults conda
+        conda list
+    - name: Update conda environment for build process
+      run: |
+        conda install -y cython
+        conda clean --all
+        conda list
+    - name: build the sdist
+      run: |
+        rm -rf dist
+        git clean -xfd
+        python setup.py clean --quiet
+        python setup.py sdist --formats=gztar --quiet
+    - name: Store sdist archive as artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: pandas-${{ github.event.inputs.version }}.tar.gz
+        path: dist/pandas-${{ github.event.inputs.version }}.tar.gz
+        if-no-files-found: error
+
+  pip-test:
+    name: Pip Test
+    needs: build-sdist
+    runs-on: ubuntu-latest
+    steps:
+    - name: Setting conda path
+      run: echo ::add-path::$CONDA/bin
+    - name: Update conda
+      run: |
+        conda config --set quiet true --set always_yes true
+        conda update -n base -c defaults conda
+        conda list
+    - name: Create conda environment
+      run: |
+        conda create -n pip-test -y python=3.7 numpy pytz python-dateutil pytest pytest-mock hypothesis nomkl
+        conda clean --all
+        conda list
+    - name: get sdist from artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: pandas-${{ github.event.inputs.version }}.tar.gz
+        path: pandas/dist/
+    - name: Create wheel
+      run: |
+        source activate pip-test
+        python -m pip wheel --no-deps --wheel-dir=pandas/dist pandas/dist/pandas-${{ github.event.inputs.version }}.tar.gz
+    - name: Install pandas
+      run: |
+        source activate pip-test
+        python -m pip install --no-deps --no-index --find-links=pandas/dist --only-binary=pandas pandas
+        conda list
+    - name: Test
+      # test_missing_required_dependencies: https://github.com/pandas-dev/pandas/issues/33999
+      run: |
+        source activate pip-test
+        python -c "import pandas; pandas.test(extra_args=['-m not clipboard', '--skip-slow', '--skip-network', '--skip-db', '-k not test_missing_required_dependency'])"
+
+  conda-test:
+    name: Conda Test
+    needs: build-sdist
+    runs-on: ubuntu-latest
+    env:
+      PANDAS_VERSION: ${{ github.event.inputs.version }}
+    steps:
+    - name: Setting conda path
+      run: echo ::add-path::$CONDA/bin
+    - name: Update conda
+      run: |
+        conda config --set quiet true --set always_yes true
+        conda update -n base -c defaults conda
+        conda list
+    - name: Create conda environment
+      run: |
+        conda create -n conda-build -y conda-build conda-verify gcc_linux-64 gxx_linux-64
+        conda clean --all
+        conda list
+    - name: Checkout pandas
+      uses: actions/checkout@v2
+    - name: get sdist from artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: pandas-${{ github.event.inputs.version }}.tar.gz
+        path: dist/
+    - name: Conda Build and Test
+      run: |
+        source activate conda-build
+        conda build --numpy=1.17.3 --python=3.8 ./recipe --output-folder=dist
+
