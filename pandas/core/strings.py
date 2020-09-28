@@ -2837,7 +2837,18 @@ class StringMethods(NoNewAttributesMixin):
 
     @copy(str_replace)
     @forbid_nonstring_types(["bytes"])
-    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
+    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=None):
+        if regex is None:
+            msg = (
+                "The default value of regex will change from "
+                "True to False in a future version."
+            )
+            warnings.warn(
+                msg,
+                FutureWarning,
+                stacklevel=2,
+            )
+            regex = True
         result = str_replace(
             self._parent, pat, repl, n=n, case=case, flags=flags, regex=regex
         )
