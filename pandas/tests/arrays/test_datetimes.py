@@ -445,8 +445,8 @@ class TestSequenceToDT64NS:
 
 
 class TestReductions:
-    @pytest.mark.parametrize("tz", [None, "US/Central"])
-    def test_min_max(self, tz):
+    @pytest.fixture
+    def arr1d(self, tz_naive_fixture):
         arr = DatetimeArray._from_sequence(
             [
                 "2000-01-03",
@@ -456,8 +456,13 @@ class TestReductions:
                 "2000-01-05",
                 "2000-01-04",
             ],
-            tz=tz,
+            tz=tz_naive_fixture,
         )
+        return arr
+
+    def test_min_max(self, arr1d):
+        arr = arr1d
+        tz = arr.tz
 
         result = arr.min()
         expected = pd.Timestamp("2000-01-02", tz=tz)
@@ -482,3 +487,68 @@ class TestReductions:
 
         result = arr.max(skipna=skipna)
         assert result is pd.NaT
+
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_median_empty(self, skipna, tz):
+        arr = DatetimeArray._from_sequence([], tz=tz)
+        result = arr.median(skipna=skipna)
+        assert result is pd.NaT
+
+        arr = arr.reshape(0, 3)
+        result = arr.median(axis=0, skipna=skipna)
+        expected = type(arr)._from_sequence([pd.NaT, pd.NaT, pd.NaT], dtype=arr.dtype)
+        tm.assert_equal(result, expected)
+
+        result = arr.median(axis=1, skipna=skipna)
+        expected = type(arr)._from_sequence([pd.NaT], dtype=arr.dtype)
+        tm.assert_equal(result, expected)
+
+    def test_median(self, arr1d):
+        arr = arr1d
+
+        result = arr.median()
+        assert result == arr[0]
+        result = arr.median(skipna=False)
+        assert result is pd.NaT
+
+        result = arr.dropna().median(skipna=False)
+        assert result == arr[0]
+
+        result = arr.median(axis=0)
+        assert result == arr[0]
+
+    def test_median_axis(self, arr1d):
+        arr = arr1d
+        assert arr.median(axis=0) == arr.median()
+        assert arr.median(axis=0, skipna=False) is pd.NaT
+
+        msg = r"abs\(axis\) must be less than ndim"
+        with pytest.raises(ValueError, match=msg):
+            arr.median(axis=1)
+
+    def test_median_2d(self, arr1d):
+        arr = arr1d.reshape(1, -1)
+
+        # axis = None
+        assert arr.median() == arr1d.median()
+        assert arr.median(skipna=False) is pd.NaT
+
+        # axis = 0
+        result = arr.median(axis=0)
+        expected = arr1d
+        tm.assert_equal(result, expected)
+
+        # Since column 3 is all-NaT, we get NaT there with or without skipna
+        result = arr.median(axis=0, skipna=False)
+        expected = arr1d
+        tm.assert_equal(result, expected)
+
+        # axis = 1
+        result = arr.median(axis=1)
+        expected = type(arr)._from_sequence([arr1d.median()])
+        tm.assert_equal(result, expected)
+
+        result = arr.median(axis=1, skipna=False)
+        expected = type(arr)._from_sequence([pd.NaT], dtype=arr.dtype)
+        tm.assert_equal(result, expected)
