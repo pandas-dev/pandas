@@ -786,8 +786,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 result = self._handle_lowerdim_multi_index_axis0(tup)
                 return result
 
-        if len(tup) > self.ndim:
-            raise IndexingError("Too many indexers. handle elsewhere")
+        self._validate_key_length(tup)
 
         for i, key in enumerate(tup):
             if is_label_like(key):
