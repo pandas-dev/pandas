@@ -451,6 +451,7 @@ class TestSeriesReplace:
         tm.assert_series_equal(result, expected)
 
     def test_str_replace_regex_default_raises_warning(self):
+        # https://github.com/pandas-dev/pandas/pull/24809
         s = pd.Series(["a", "b", "c"])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             s.str.replace(".", "")
