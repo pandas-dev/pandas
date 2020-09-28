@@ -137,112 +137,6 @@ class TestToLatex:
         )
         assert result == expected
 
-    def test_to_latex_no_header_with_index(self):
-        # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(header=False)
-        expected = _dedent(
-            r"""
-            \begin{tabular}{lrl}
-            \toprule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
-            \bottomrule
-            \end{tabular}
-            """
-        )
-        assert result == expected
-
-    def test_to_latex_no_header_without_index(self):
-        # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(index=False, header=False)
-        expected = _dedent(
-            r"""
-            \begin{tabular}{rl}
-            \toprule
-            1 & b1 \\
-            2 & b2 \\
-            \bottomrule
-            \end{tabular}
-            """
-        )
-        assert result == expected
-
-    def test_to_latex_specified_header_with_index(self):
-        # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(header=["AA", "BB"])
-        expected = _dedent(
-            r"""
-            \begin{tabular}{lrl}
-            \toprule
-            {} & AA &  BB \\
-            \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
-            \bottomrule
-            \end{tabular}
-            """
-        )
-        assert result == expected
-
-    def test_to_latex_specified_header_without_index(self):
-        # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(header=["AA", "BB"], index=False)
-        expected = _dedent(
-            r"""
-            \begin{tabular}{rl}
-            \toprule
-            AA & BB \\
-            \midrule
-             1 & b1 \\
-             2 & b2 \\
-            \bottomrule
-            \end{tabular}
-            """
-        )
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        "header, num_aliases",
-        [
-            (["A"], 1),
-            (("B",), 1),
-            (("Col1", "Col2", "Col3"), 3),
-            (("Col1", "Col2", "Col3", "Col4"), 4),
-        ],
-    )
-    def test_to_latex_number_of_items_in_header_missmatch_raises(
-        self,
-        header,
-        num_aliases,
-    ):
-        # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        msg = f"Writing 2 cols but got {num_aliases} aliases"
-        with pytest.raises(ValueError, match=msg):
-            df.to_latex(header=header)
-
-    def test_to_latex_decimal(self):
-        # GH 12031
-        df = DataFrame({"a": [1.0, 2.1], "b": ["b1", "b2"]})
-        result = df.to_latex(decimal=",")
-        expected = _dedent(
-            r"""
-            \begin{tabular}{lrl}
-            \toprule
-            {} &    a &   b \\
-            \midrule
-            0 &  1,0 &  b1 \\
-            1 &  2,1 &  b2 \\
-            \bottomrule
-            \end{tabular}
-            """
-        )
-        assert result == expected
-
     def test_to_latex_series(self):
         s = Series(["a", "b", "c"])
         result = s.to_latex()
@@ -255,42 +149,6 @@ class TestToLatex:
             0 &  a \\
             1 &  b \\
             2 &  c \\
-            \bottomrule
-            \end{tabular}
-            """
-        )
-        assert result == expected
-
-    def test_to_latex_bold_rows(self):
-        # GH 16707
-        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(bold_rows=True)
-        expected = _dedent(
-            r"""
-            \begin{tabular}{lrl}
-            \toprule
-            {} &  a &   b \\
-            \midrule
-            \textbf{0} &  1 &  b1 \\
-            \textbf{1} &  2 &  b2 \\
-            \bottomrule
-            \end{tabular}
-            """
-        )
-        assert result == expected
-
-    def test_to_latex_no_bold_rows(self):
-        # GH 16707
-        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(bold_rows=False)
-        expected = _dedent(
-            r"""
-            \begin{tabular}{lrl}
-            \toprule
-            {} &  a &   b \\
-            \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -402,6 +260,152 @@ class TestToLatexLongtable:
     def test_to_latex_longtable_continued_on_next_page(self, df, expected_number):
         result = df.to_latex(index=False, longtable=True)
         assert fr"\multicolumn{{{expected_number}}}" in result
+
+
+class TestToLatexHeader:
+    def test_to_latex_no_header_with_index(self):
+        # GH 7124
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        result = df.to_latex(header=False)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_no_header_without_index(self):
+        # GH 7124
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        result = df.to_latex(index=False, header=False)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{rl}
+            \toprule
+            1 & b1 \\
+            2 & b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_specified_header_with_index(self):
+        # GH 7124
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        result = df.to_latex(header=["AA", "BB"])
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            {} & AA &  BB \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_specified_header_without_index(self):
+        # GH 7124
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        result = df.to_latex(header=["AA", "BB"], index=False)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{rl}
+            \toprule
+            AA & BB \\
+            \midrule
+             1 & b1 \\
+             2 & b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "header, num_aliases",
+        [
+            (["A"], 1),
+            (("B",), 1),
+            (("Col1", "Col2", "Col3"), 3),
+            (("Col1", "Col2", "Col3", "Col4"), 4),
+        ],
+    )
+    def test_to_latex_number_of_items_in_header_missmatch_raises(
+        self,
+        header,
+        num_aliases,
+    ):
+        # GH 7124
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        msg = f"Writing 2 cols but got {num_aliases} aliases"
+        with pytest.raises(ValueError, match=msg):
+            df.to_latex(header=header)
+
+    def test_to_latex_decimal(self):
+        # GH 12031
+        df = DataFrame({"a": [1.0, 2.1], "b": ["b1", "b2"]})
+        result = df.to_latex(decimal=",")
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            {} &    a &   b \\
+            \midrule
+            0 &  1,0 &  b1 \\
+            1 &  2,1 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+
+class TestToLatexBold:
+    def test_to_latex_bold_rows(self):
+        # GH 16707
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        result = df.to_latex(bold_rows=True)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \textbf{0} &  1 &  b1 \\
+            \textbf{1} &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_no_bold_rows(self):
+        # GH 16707
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        result = df.to_latex(bold_rows=False)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
 
 
 class TestToLatexCaptionLabel:
