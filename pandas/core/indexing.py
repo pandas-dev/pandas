@@ -704,9 +704,10 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         Check the key for valid keys across my indexer.
         """
+        if len(key) > self.ndim:
+            raise IndexingError("Too many indexers")
+
         for i, k in enumerate(key):
-            if i >= self.ndim:
-                raise IndexingError("Too many indexers")
             try:
                 self._validate_key(k, i)
             except ValueError as err:
@@ -737,11 +738,13 @@ class _LocationIndexer(NDFrameIndexerBase):
                 else:
                     keyidx.append(slice(None))
         else:
+            if len(key) > self.ndim:
+                raise IndexingError("Too many indexers")
+
             for i, k in enumerate(key):
-                if i >= self.ndim:
-                    raise IndexingError("Too many indexers")
                 idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
                 keyidx.append(idx)
+
         return tuple(keyidx)
 
     def _getitem_tuple_same_dim(self, tup: Tuple):
