@@ -55,7 +55,7 @@ from pandas.core.ops.roperator import (  # noqa:F401
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa:F401
+    from pandas import DataFrame, Series
 
 # -----------------------------------------------------------------------------
 # constants
