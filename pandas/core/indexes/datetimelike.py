@@ -97,9 +97,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     )
     _hasnans = hasnans  # for index / array -agnostic code
 
-    @property
-    def is_all_dates(self) -> bool:
-        return True
+    _is_all_dates = True
 
     # ------------------------------------------------------------------------
     # Abstract data attributes
