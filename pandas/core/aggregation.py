@@ -445,6 +445,7 @@ def transform(
         return transform_dict_like(obj, func, *args, **kwargs)
 
     # func is either str or callable
+    func = cast(AggFuncTypeBase, func)
     try:
         result = transform_str_or_callable(obj, func, *args, **kwargs)
     except Exception:
