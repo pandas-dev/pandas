@@ -114,7 +114,7 @@ parser by default should have no impact on performance. (:issue:`17154`)
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
-- :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin`, :meth:`Series.idxmax`, :meth:`Series.idxmax`, :meth:`Series.argmax` and :meth:`Series.argmin` all now have gained a new `keep` parameter. The functionality of this parameter is similar to the keep parameter in :meth:`Series.nlargest`. (:issue:`34205`)
+- :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin`, :meth:`Series.idxmax`, :meth:`Series.idxmax`, :meth:`Series.argmax` and :meth:`Series.argmin` all now have gained a new ``keep`` parameter. The functionality of this parameter is similar to the keep parameter in :meth:`Series.nlargest`. (:issue:`34205`)
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
