@@ -53,10 +53,12 @@ class RangeIndex(Int64Index):
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)
-    name : object, optional
-        Name to be stored in the index.
+    dtype : np.int64
+        Unused, accepted for homogeneity with other index types.
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
+    name : object, optional
+        Name to be stored in the index.
 
     Attributes
     ----------

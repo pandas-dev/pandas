@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Validate that the titles in the rst files follow the proper capitalization convention.
 
