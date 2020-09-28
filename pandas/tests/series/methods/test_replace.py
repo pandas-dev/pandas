@@ -454,4 +454,4 @@ class TestSeriesReplace:
         # https://github.com/pandas-dev/pandas/pull/24809
         s = pd.Series(["a", "b", "c"])
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            s.str.replace(".", "")
+            s.str.replace("^.$", "")

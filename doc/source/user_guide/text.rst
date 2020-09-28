@@ -264,23 +264,25 @@ i.e., from the end of the string to the beginning of the string:
    s3
    s3.str.replace('^.a|dog', 'XX-XX ', case=False)
 
-Some caution must be taken to keep regular expressions in mind! For example, the
-following code will cause trouble because of the regular expression meaning of
-``$``:
+Some caution must be taken when dealing with regular expressions! The current behavior
+is to treat single character patterns as literal strings, even when ``regex`` is set
+to ``True``. (This behavior is deprecated and will be removed in a future version so
+that the ``regex`` keyword is always respected.) For example, the following code will
+cause trouble because of the regular expression meaning of ``$``:
 
 .. ipython:: python
 
    # Consider the following badly formatted financial data
    dollars = pd.Series(['12', '-$10', '$10,000'], dtype="string")
 
-   # This does what you'd naively expect:
-   dollars.str.replace('$', '')
+   # Here ``$`` is treated as a literal character:
+   dollars.str.replace('$', '', regex=True)
 
-   # But this doesn't:
-   dollars.str.replace('-$', '-')
+   # But here it is not:
+   dollars.str.replace('-$', '-', regex=True)
 
    # We need to escape the special character (for >1 len patterns)
-   dollars.str.replace(r'-\$', '-')
+   dollars.str.replace(r'-\$', '-', regex=True)
 
 If you do want literal replacement of a string (equivalent to
 :meth:`str.replace`), you can set the optional ``regex`` parameter to
