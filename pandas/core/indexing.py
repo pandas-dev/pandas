@@ -1284,8 +1284,6 @@ class _LocIndexer(_LocationIndexer):
             If at least one key was requested but none was found, and
             raise_missing=True.
         """
-        ax = self.obj._get_axis(axis)
-
         if len(key) == 0:
             return
 
@@ -1297,6 +1295,8 @@ class _LocIndexer(_LocationIndexer):
             if missing == len(indexer):
                 axis_name = self.obj._get_axis_name(axis)
                 raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+            ax = self.obj._get_axis(axis)
 
             # We (temporarily) allow for some missing keys with .loc, except in
             # some cases (e.g. setting) in which "raise_missing" will be False
