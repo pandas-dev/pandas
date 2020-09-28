@@ -100,10 +100,11 @@ class TestToLatex:
         with pytest.raises(ValueError, match=msg):
             df.to_latex(column_format=bad_column_format)
 
-    def test_to_latex_column_format(self, float_frame):
+    def test_to_latex_column_format_just_works(self, float_frame):
         # GH Bug #9402
         float_frame.to_latex(column_format="lcr")
 
+    def test_to_latex_column_format(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(column_format="lcr")
         expected = _dedent(
