@@ -394,7 +394,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # types
     @property
-    def _can_hold_na(self):
+    def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
     _index = None
@@ -4898,10 +4898,7 @@ Keep all original rows and also all original values
 
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        # error: "PeriodIndex" has no attribute "to_timestamp"
-        new_index = self.index.to_timestamp(  # type: ignore[attr-defined]
-            freq=freq, how=how
-        )
+        new_index = self.index.to_timestamp(freq=freq, how=how)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
         )
