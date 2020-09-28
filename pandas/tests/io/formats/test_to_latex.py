@@ -204,12 +204,25 @@ class TestToLatex:
         )
         assert result == expected
 
-    def test_to_latex_number_of_items_in_header_missmatch_raises(self):
+    @pytest.mark.parametrize(
+        "header, num_aliases",
+        [
+            (["A"], 1),
+            (("B",), 1),
+            (("Col1", "Col2", "Col3"), 3),
+            (("Col1", "Col2", "Col3", "Col4"), 4),
+        ],
+    )
+    def test_to_latex_number_of_items_in_header_missmatch_raises(
+        self,
+        header,
+        num_aliases,
+    ):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        msg = "Writing 2 cols but got 1 aliases"
+        msg = f"Writing 2 cols but got {num_aliases} aliases"
         with pytest.raises(ValueError, match=msg):
-            df.to_latex(header=["A"])
+            df.to_latex(header=header)
 
     def test_to_latex_decimal(self):
         # GH 12031
