@@ -2843,7 +2843,7 @@ class StringMethods(NoNewAttributesMixin):
                 "The default value of regex will change from "
                 "True to False in a future version."
             )
-            warnings.warn(msg, FutureWarning, stacklevel=2)
+            warnings.warn(msg, FutureWarning, stacklevel=3)
             regex = True
         result = str_replace(
             self._parent, pat, repl, n=n, case=case, flags=flags, regex=regex
