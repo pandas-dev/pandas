@@ -2277,15 +2277,10 @@ def maybe_convert_ix(*args):
     """
     We likely want to take the cross-product.
     """
-    ixify = True
     for arg in args:
         if not isinstance(arg, (np.ndarray, list, ABCSeries, Index)):
-            ixify = False
-
-    if ixify:
-        return np.ix_(*args)
-    else:
-        return args
+            return args
+    return np.ix_(*args)
 
 
 def is_nested_tuple(tup, labels) -> bool:
