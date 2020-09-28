@@ -93,7 +93,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
         unit = parse_timedelta_unit(unit)
 
     if errors not in ("ignore", "raise", "coerce"):
-        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'}")
+        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'.")
 
     if unit in {"Y", "y", "M"}:
         raise ValueError(
