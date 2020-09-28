@@ -6,6 +6,7 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 from collections import defaultdict
 from functools import partial
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
@@ -34,7 +35,9 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-from pandas.core.series import Series
+
+if TYPE_CHECKING:
+    from pandas.core.series import Series
 
 
 def reconstruct_func(
@@ -289,7 +292,7 @@ def relabel_result(
     func: Dict[str, List[Union[Callable, str]]],
     columns: Iterable[Label],
     order: Iterable[int],
-) -> Dict[Label, Series]:
+) -> Dict[Label, "Series"]:
     """
     Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
@@ -316,10 +319,10 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, Series] = {}
+    reordered_result_in_dict: Dict[Label, "Series"] = {}
     idx = 0
 
-    reorder_mask = not isinstance(result, Series) and len(result.columns) > 1
+    reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
     for col, fun in func.items():
         s = result[col].dropna()
 
@@ -382,7 +385,7 @@ def validate_func_kwargs(
     (['one', 'two'], ['min', 'max'])
     """
     no_arg_message = "Must provide 'func' or named aggregation **kwargs."
-    tuple_given_message = "func is expected but recieved {} in **kwargs."
+    tuple_given_message = "func is expected but received {} in **kwargs."
     columns = list(kwargs)
     func = []
     for col_func in kwargs.values():
@@ -424,6 +427,7 @@ def transform(
         If the transform function fails or does not transform.
     """
     is_series = obj.ndim == 1
+
     if obj._get_axis_number(axis) == 1:
         assert not is_series
         return transform(obj.T, func, 0, *args, **kwargs).T
@@ -438,19 +442,18 @@ def transform(
 
     if is_dict_like(func):
         func = cast(Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], func)
-        result = transform_dict_like(obj, func, *args, **kwargs)
-    else:
-        func = cast(AggFuncTypeBase, func)
-        try:
-            result = transform_str_or_callable(obj, func, *args, **kwargs)
-        except Exception:
-            raise ValueError("Transform function failed")
+        return transform_dict_like(obj, func, *args, **kwargs)
+
+    # func is either str or callable
+    try:
+        result = transform_str_or_callable(obj, func, *args, **kwargs)
+    except Exception:
+        raise ValueError("Transform function failed")
 
     # Functions that transform may return empty Series/DataFrame
     # when the dtype is not appropriate
     if isinstance(result, (ABCSeries, ABCDataFrame)) and result.empty:
         raise ValueError("Transform function failed")
-
     if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
         obj.index
     ):
