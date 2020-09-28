@@ -259,26 +259,38 @@ class FixedForwardWindowIndexer(BaseIndexer):
         return start, end
 
 
-class GroupbyRollingIndexer(BaseIndexer):
+class GroupbyIndexer(BaseIndexer):
     """Calculate bounds to compute groupby rolling, mimicking df.groupby().rolling()"""
 
     def __init__(
         self,
-        index_array: Optional[np.ndarray],
-        window_size: int,
-        groupby_indicies: Dict,
-        rolling_indexer: Type[BaseIndexer],
-        indexer_kwargs: Optional[Dict],
+        index_array: Optional[np.ndarray] = None,
+        window_size: int = 0,
+        groupby_indicies: Optional[Dict] = None,
+        window_indexer: Type[BaseIndexer] = BaseIndexer,
+        indexer_kwargs: Optional[Dict] = None,
         **kwargs,
     ):
         """
         Parameters
         ----------
+        index_array : np.ndarray or None
+            np.ndarray of the index of the original object that we are performing
+            a chained groupby operation over. This index has been pre-sorted relative to
+            the groups
+        window_size : int
+            window size during the windowing operation
+        groupby_indicies : dict or None
+            dict of {group label: [positional index of rows belonging to the group]}
+        window_indexer : BaseIndexer
+            BaseIndexer class determining the start and end bounds of each group
+        indexer_kwargs : dict or None
+            Custom kwargs to be passed to window_indexer
         **kwargs :
             keyword arguments that will be available when get_window_bounds is called
         """
-        self.groupby_indicies = groupby_indicies
-        self.rolling_indexer = rolling_indexer
+        self.groupby_indicies = groupby_indicies or {}
+        self.window_indexer = window_indexer
         self.indexer_kwargs = indexer_kwargs or {}
         super().__init__(
             index_array, self.indexer_kwargs.pop("window_size", window_size), **kwargs
@@ -303,7 +315,7 @@ class GroupbyRollingIndexer(BaseIndexer):
                 index_array = self.index_array.take(ensure_platform_int(indices))
             else:
                 index_array = self.index_array
-            indexer = self.rolling_indexer(
+            indexer = self.window_indexer(
                 index_array=index_array,
                 window_size=self.window_size,
                 **self.indexer_kwargs,
@@ -333,58 +345,4 @@ class GroupbyRollingIndexer(BaseIndexer):
             offset = num_values - len(start)
             start = np.concatenate([start, np.array([end[-1]] * offset)])
             end = np.concatenate([end, np.array([end[-1]] * offset)])
-        return start, end
-
-
-class GroupbyExpandingIndexer(BaseIndexer):
-    """Calculate bounds to compute groupby rolling, mimicking df.groupby().rolling()"""
-
-    def __init__(
-        self,
-        index_array: Optional[np.ndarray] = None,
-        window_size: int = 0,
-        groupby_indicies: Optional[Dict] = None,
-        **kwargs,
-    ):
-        """
-        Parameters
-        ----------
-        **kwargs :
-            keyword arguments that will be available when get_window_bounds is called
-        """
-        self.groupby_indicies = groupby_indicies or {}
-        super().__init__(index_array, window_size, **kwargs)
-
-    @Appender(get_window_bounds_doc)
-    def get_window_bounds(
-        self,
-        num_values: int = 0,
-        min_periods: Optional[int] = None,
-        center: Optional[bool] = None,
-        closed: Optional[str] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        # 1) For each group, get the indices that belong to the group
-        # 2) Use the indices to calculate the start & end bounds of the window
-        # 3) Append the window bounds in group order
-        start_arrays = []
-        end_arrays = []
-        window_indicies_start = 0
-        for key, indices in self.groupby_indicies.items():
-            start, end = ExpandingIndexer().get_window_bounds(
-                len(indices), min_periods, center, closed
-            )
-            # Cannot use groupby_indicies as they might not be monotonic with the object
-            # we're rolling over
-            window_indicies = np.arange(
-                window_indicies_start, window_indicies_start + len(indices)
-            )
-            window_indicies_start += len(indices)
-            # Extend as we'll be slicing window like [start, end)
-            window_indicies = np.append(
-                window_indicies, [window_indicies[-1] + 1]
-            ).astype(np.int64)
-            start_arrays.append(window_indicies.take(ensure_platform_int(start)))
-            end_arrays.append(window_indicies.take(ensure_platform_int(end)))
-        start = np.concatenate(start_arrays)
-        end = np.concatenate(end_arrays)
         return start, end

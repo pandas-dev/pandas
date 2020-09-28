@@ -62,7 +62,7 @@ from pandas.core.window.common import (
 from pandas.core.window.indexers import (
     BaseIndexer,
     FixedWindowIndexer,
-    GroupbyRollingIndexer,
+    GroupbyIndexer,
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
@@ -2253,7 +2253,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         """
         return self._get_roll_func(f"{func}_variable")
 
-    def _get_window_indexer(self, window: int) -> GroupbyRollingIndexer:
+    def _get_window_indexer(self, window: int) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
 
@@ -2264,7 +2264,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
 
         Returns
         -------
-        GroupbyRollingIndexer
+        GroupbyIndexer
         """
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict] = None
@@ -2280,11 +2280,11 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         else:
             rolling_indexer = FixedWindowIndexer
             index_array = None
-        window_indexer = GroupbyRollingIndexer(
+        window_indexer = GroupbyIndexer(
             index_array=index_array,
             window_size=window,
             groupby_indicies=self._groupby.indices,
-            rolling_indexer=rolling_indexer,
+            window_indexer=rolling_indexer,
             indexer_kwargs=indexer_kwargs,
         )
         return window_indexer

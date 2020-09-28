@@ -10,7 +10,7 @@ from pandas.util._decorators import Appender, Substitution, doc
 import pandas.core.common as com
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
-from pandas.core.window.indexers import GroupbyExpandingIndexer
+from pandas.core.window.indexers import ExpandingIndexer, GroupbyIndexer
 from pandas.core.window.rolling import RollingAndExpandingMixin
 
 
@@ -322,21 +322,22 @@ class ExpandingGroupby(WindowGroupByMixin, Expanding):
             obj = obj.take(groupby_order)
         return super()._create_data(obj)
 
-    def _get_window_indexer(self, window: int) -> GroupbyExpandingIndexer:
+    def _get_window_indexer(self, window: int) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
 
         Parameters
         ----------
         window : int
-            window size for FixedWindowIndexer
+            window size for FixedWindowIndexer (unused)
 
         Returns
         -------
-        GroupbyRollingIndexer
+        GroupbyIndexer
         """
-        window_indexer = GroupbyExpandingIndexer(
+        window_indexer = GroupbyIndexer(
             groupby_indicies=self._groupby.indices,
+            window_indexer=ExpandingIndexer,
         )
         return window_indexer
 
