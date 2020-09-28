@@ -1,5 +1,5 @@
 from contextlib import suppress
-from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
+from typing import TYPE_CHECKING, Any, Hashable, List, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
@@ -704,9 +704,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         Check the key for valid keys across my indexer.
         """
-        if len(key) > self.ndim:
-            raise IndexingError("Too many indexers")
-
+        self._validate_key_length(key)
         for i, k in enumerate(key):
             try:
                 self._validate_key(k, i)
@@ -738,14 +736,16 @@ class _LocationIndexer(NDFrameIndexerBase):
                 else:
                     keyidx.append(slice(None))
         else:
-            if len(key) > self.ndim:
-                raise IndexingError("Too many indexers")
-
+            self._validate_key_length(key)
             for i, k in enumerate(key):
                 idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
                 keyidx.append(idx)
 
         return tuple(keyidx)
+
+    def _validate_key_length(self, key: Sequence[Any]) -> None:
+        if len(key) > self.ndim:
+            raise IndexingError("Too many indexers")
 
     def _getitem_tuple_same_dim(self, tup: Tuple):
         """
