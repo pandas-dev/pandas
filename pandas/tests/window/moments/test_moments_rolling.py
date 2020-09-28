@@ -1,5 +1,3 @@
-import copy
-
 import numpy as np
 from numpy.random import randn
 import pytest
@@ -26,12 +24,6 @@ def _check_moment_func(
     frame=None,
     **kwargs,
 ):
-
-    # inject raw
-    if name == "apply":
-        kwargs = copy.copy(kwargs)
-        kwargs["raw"] = raw
-
     def get_result(obj, window, min_periods=None, center=False):
         r = obj.rolling(window=window, min_periods=min_periods, center=center)
         return getattr(r, name)(**kwargs)
@@ -209,34 +201,6 @@ def test_centered_axis_validation():
     msg = "No axis named 2 for object type DataFrame"
     with pytest.raises(ValueError, match=msg):
         (DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=2).mean())
-
-
-def test_rolling_sum(raw, series, frame):
-    _check_moment_func(
-        np.nansum,
-        name="sum",
-        zero_min_periods_equal=False,
-        raw=raw,
-        series=series,
-        frame=frame,
-    )
-
-
-def test_rolling_count(raw, series, frame):
-    counter = lambda x: np.isfinite(x).astype(float).sum()
-    _check_moment_func(
-        counter,
-        name="count",
-        has_min_periods=False,
-        fill_value=0,
-        raw=raw,
-        series=series,
-        frame=frame,
-    )
-
-
-def test_rolling_mean(raw, series, frame):
-    _check_moment_func(np.mean, name="mean", raw=raw, series=series, frame=frame)
 
 
 @td.skip_if_no_scipy
@@ -733,13 +697,7 @@ def test_cmov_window_special_linear_range(win_types_special):
     tm.assert_series_equal(xp, rs)
 
 
-def test_rolling_median(raw, series, frame):
-    _check_moment_func(np.median, name="median", raw=raw, series=series, frame=frame)
-
-
-def test_rolling_min(raw, series, frame):
-    _check_moment_func(np.min, name="min", raw=raw, series=series, frame=frame)
-
+def test_rolling_min_min_periods():
     a = pd.Series([1, 2, 3, 4, 5])
     result = a.rolling(window=100, min_periods=1).min()
     expected = pd.Series(np.ones(len(a)))
@@ -749,9 +707,7 @@ def test_rolling_min(raw, series, frame):
         pd.Series([1, 2, 3]).rolling(window=3, min_periods=5).min()
 
 
-def test_rolling_max(raw, series, frame):
-    _check_moment_func(np.max, name="max", raw=raw, series=series, frame=frame)
-
+def test_rolling_max_min_periods():
     a = pd.Series([1, 2, 3, 4, 5], dtype=np.float64)
     b = a.rolling(window=100, min_periods=1).max()
     tm.assert_almost_equal(a, b)
@@ -855,20 +811,6 @@ def test_rolling_quantile_param():
         ser.rolling(3).quantile("foo")
 
 
-def test_rolling_std(raw, series, frame):
-    _check_moment_func(
-        lambda x: np.std(x, ddof=1), name="std", raw=raw, series=series, frame=frame
-    )
-    _check_moment_func(
-        lambda x: np.std(x, ddof=0),
-        name="std",
-        ddof=0,
-        raw=raw,
-        series=series,
-        frame=frame,
-    )
-
-
 def test_rolling_std_1obs():
     vals = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0])
 
@@ -903,20 +845,6 @@ def test_rolling_std_neg_sqrt():
 
     b = a.ewm(span=3).std()
     assert np.isfinite(b[2:]).all()
-
-
-def test_rolling_var(raw, series, frame):
-    _check_moment_func(
-        lambda x: np.var(x, ddof=1), name="var", raw=raw, series=series, frame=frame
-    )
-    _check_moment_func(
-        lambda x: np.var(x, ddof=0),
-        name="var",
-        ddof=0,
-        raw=raw,
-        series=series,
-        frame=frame,
-    )
 
 
 @td.skip_if_no_scipy
