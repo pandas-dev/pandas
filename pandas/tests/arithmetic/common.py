@@ -77,7 +77,7 @@ def assert_invalid_comparison(left, right, box):
             "not supported between",
             "invalid type promotion",
             (
-                # GH#?? npdev 1.20.0 2020-09-28
+                # GH#36706 npdev 1.20.0 2020-09-28
                 r"The DTypes <class 'numpy.dtype\[datetime64\]'> and "
                 r"<class 'numpy.dtype\[int64\]'> do not have a common DType. "
                 "For example they cannot be stored in a single array unless the "
