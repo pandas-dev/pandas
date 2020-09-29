@@ -432,9 +432,10 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         encoding = re.sub("_", "-", encoding).lower()
         kwds["encoding"] = encoding
     compression = kwds.get("compression", "infer")
+    headers = kwds.get("headers", {})
 
     ioargs = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression, storage_options=storage_options
+        filepath_or_buffer, encoding, compression, storage_options=storage_options, headers=headers
     )
     kwds["compression"] = ioargs.compression
 
@@ -599,6 +600,7 @@ def read_csv(
     memory_map=False,
     float_precision=None,
     storage_options: StorageOptions = None,
+    headers={}
 ):
     # gh-23761
     #
@@ -686,6 +688,7 @@ def read_csv(
         infer_datetime_format=infer_datetime_format,
         skip_blank_lines=skip_blank_lines,
         storage_options=storage_options,
+        headers=headers
     )
 
     return _read(filepath_or_buffer, kwds)

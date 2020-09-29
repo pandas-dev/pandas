@@ -150,7 +150,14 @@ def urlopen(*args, **kwargs):
     """
     import urllib.request
 
-    return urllib.request.urlopen(*args, **kwargs)
+    # Request class is only available in Python3, which 
+    # allows headers to be specified
+    if hasattr(urllib.request, 'Request'):
+        r = urllib.request.urlopen(urllib.request.Request(*args, **kwargs))
+    else:
+        r = urllib.request.urlopen(*args, **kwargs)
+
+    return r
 
 
 def is_fsspec_url(url: FilePathOrBuffer) -> bool:
@@ -176,6 +183,7 @@ def get_filepath_or_buffer(
     compression: CompressionOptions = None,
     mode: ModeVar = None,  # type: ignore[assignment]
     storage_options: StorageOptions = None,
+    headers: dict = {}
 ) -> IOargs[ModeVar, EncodingVar]:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -251,7 +259,7 @@ def get_filepath_or_buffer(
             raise ValueError(
                 "storage_options passed with file object or non-fsspec file path"
             )
-        req = urlopen(filepath_or_buffer)
+        req = urlopen(filepath_or_buffer, headers=headers)
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
             # Override compression based on Content-Encoding header
