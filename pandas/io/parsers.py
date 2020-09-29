@@ -613,8 +613,7 @@ def read_csv(
     # the comparison to dialect values by checking if default values
     # for BOTH "delimiter" and "sep" were provided.
     if dialect is not None:
-        sep_override = (delimiter is None) and (sep is lib.no_default
-                                                or sep == ",")
+        sep_override = (delimiter is None) and (sep is lib.no_default or sep == ",")
         kwds = dict(sep_override=sep_override)
     else:
         kwds = dict()
