@@ -368,7 +368,6 @@ class StringArray(PandasArray, ObjectStringArrayMixin):
             na_value = self.dtype.na_value
 
         mask = isna(self)
-        arr = self
         arr = np.asarray(self)
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
