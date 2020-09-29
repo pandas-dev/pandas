@@ -832,7 +832,7 @@ def test_rolling_axis_1_non_numeric_dtypes(value):
 def test_rolling_period_index(func, values):
     # GH: 34225
     index = pd.period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="T")
-    ds = pd.Series([i for i in range(0, len(index))], index=index)
+    ds = pd.Series([0, 1, 2, 3, 4, 5, 6, 7, 8], index=index)
     result = getattr(ds.rolling("2T", closed="left"), func)()
     expected = pd.Series(values, index=index)
     tm.assert_series_equal(result, expected)
