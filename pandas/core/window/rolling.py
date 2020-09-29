@@ -1934,6 +1934,10 @@ class Rolling(RollingAndExpandingMixin):
                 "must be a column (of DataFrame), an Index or None"
             )
 
+    @property
+    def _constructor(self):
+        return Rolling
+
     def validate(self):
         super().validate()
 
