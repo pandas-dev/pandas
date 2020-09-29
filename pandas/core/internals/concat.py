@@ -374,23 +374,8 @@ def _get_empty_dtype_and_na(join_units):
         else:
             dtypes[i] = unit.dtype
 
-    upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
-    null_upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
-    for dtype, unit in zip(dtypes, join_units):
-        if dtype is None:
-            continue
+    upcast_classes = _get_upcast_classes(join_units, dtypes)
 
-        upcast_cls = _select_upcast_cls_from_dtype(dtype)
-        # Null blocks should not influence upcast class selection, unless there
-        # are only null blocks, when same upcasting rules must be applied to
-        # null upcast classes.
-        if unit.is_na:
-            null_upcast_classes[upcast_cls].append(dtype)
-        else:
-            upcast_classes[upcast_cls].append(dtype)
-
-    if not upcast_classes:
-        upcast_classes = null_upcast_classes
     # TODO: de-duplicate with maybe_promote?
     # create the result
     if "extension" in upcast_classes:
@@ -434,6 +419,28 @@ def _get_empty_dtype_and_na(join_units):
 
     msg = "invalid dtype determination in get_concat_dtype"
     raise AssertionError(msg)
+
+
+def _get_upcast_classes(join_units, dtypes):
+    upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
+    null_upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
+    for dtype, unit in zip(dtypes, join_units):
+        if dtype is None:
+            continue
+
+        upcast_cls = _select_upcast_cls_from_dtype(dtype)
+        # Null blocks should not influence upcast class selection, unless there
+        # are only null blocks, when same upcasting rules must be applied to
+        # null upcast classes.
+        if unit.is_na:
+            null_upcast_classes[upcast_cls].append(dtype)
+        else:
+            upcast_classes[upcast_cls].append(dtype)
+
+    if not upcast_classes:
+        upcast_classes = null_upcast_classes
+
+    return upcast_classes
 
 
 def _select_upcast_cls_from_dtype(dtype):
