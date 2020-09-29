@@ -2,12 +2,12 @@
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
-from typing import Dict, Hashable, List, Optional, Tuple
+from typing import Dict, Hashable, List, Optional, Set, Tuple
 import warnings
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import FrameOrSeries, Label
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 
@@ -98,6 +98,13 @@ class Grouper:
         An offset timedelta added to the origin.
 
         .. versionadded:: 1.1.0
+
+    dropna : bool, default True
+        If True, and if group keys contain NA values, NA values together with
+        row/column will be dropped. If False, NA values will also be treated as
+        the key in groups.
+
+        .. versionadded:: 1.2.0
 
     Returns
     -------
@@ -614,7 +621,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> Tuple["ops.BaseGrouper", List[Hashable], FrameOrSeries]:
+) -> Tuple["ops.BaseGrouper", Set[Label], FrameOrSeries]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -690,13 +697,13 @@ def get_grouper(
     if isinstance(key, Grouper):
         binner, grouper, obj = key._get_grouper(obj, validate=False)
         if key.key is None:
-            return grouper, [], obj
+            return grouper, set(), obj
         else:
-            return grouper, [key.key], obj
+            return grouper, {key.key}, obj
 
     # already have a BaseGrouper, just return it
     elif isinstance(key, ops.BaseGrouper):
-        return key, [], obj
+        return key, set(), obj
 
     if not isinstance(key, list):
         keys = [key]
@@ -739,7 +746,7 @@ def get_grouper(
         levels = [level] * len(keys)
 
     groupings: List[Grouping] = []
-    exclusions: List[Hashable] = []
+    exclusions: Set[Label] = set()
 
     # if the actual grouper should be obj[key]
     def is_in_axis(key) -> bool:
@@ -769,21 +776,21 @@ def get_grouper(
 
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis, name = True, gpr.name
-            exclusions.append(name)
+            exclusions.add(name)
 
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
                 if validate:
                     obj._check_label_or_level_ambiguity(gpr, axis=axis)
                 in_axis, name, gpr = True, gpr, obj[gpr]
-                exclusions.append(name)
+                exclusions.add(name)
             elif obj._is_level_reference(gpr, axis=axis):
                 in_axis, name, level, gpr = False, None, gpr, None
             else:
                 raise KeyError(gpr)
         elif isinstance(gpr, Grouper) and gpr.key is not None:
             # Add key to exclusions
-            exclusions.append(gpr.key)
+            exclusions.add(gpr.key)
             in_axis, name = False, None
         else:
             in_axis, name = False, None
@@ -820,7 +827,9 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated)
+    grouper = ops.BaseGrouper(
+        group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
+    )
     return grouper, exclusions, obj
 
 

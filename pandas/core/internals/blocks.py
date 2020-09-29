@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_float,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -175,7 +176,7 @@ class Block(PandasObject):
 
     @property
     def _consolidate_key(self):
-        return (self._can_consolidate, self.dtype.name)
+        return self._can_consolidate, self.dtype.name
 
     @property
     def is_view(self) -> bool:
@@ -581,14 +582,19 @@ class Block(PandasObject):
 
         # force the copy here
         if self.is_extension:
-            # TODO: Should we try/except this astype?
-            values = self.values.astype(dtype)
+            try:
+                values = self.values.astype(dtype)
+            except (ValueError, TypeError):
+                if errors == "ignore":
+                    values = self.values
+                else:
+                    raise
         else:
             if issubclass(dtype.type, str):
 
                 # use native type formatting for datetime/tz/timedelta
                 if self.is_datelike:
-                    values = self.to_native_types()
+                    values = self.to_native_types().values
 
                 # astype formatting
                 else:
@@ -679,7 +685,7 @@ class Block(PandasObject):
             values = np.array(values, dtype="object")
 
         values[mask] = na_rep
-        return values
+        return self.make_block(values)
 
     # block actions #
     def copy(self, deep: bool = True):
@@ -1176,12 +1182,15 @@ class Block(PandasObject):
             m = None
 
         if m is not None:
+            if fill_value is not None:
+                # similar to validate_fillna_kwargs
+                raise ValueError("Cannot pass both fill_value and method")
+
             return self._interpolate_with_fill(
                 method=m,
                 axis=axis,
                 inplace=inplace,
                 limit=limit,
-                fill_value=fill_value,
                 coerce=coerce,
                 downcast=downcast,
             )
@@ -1209,7 +1218,6 @@ class Block(PandasObject):
         axis: int = 0,
         inplace: bool = False,
         limit: Optional[int] = None,
-        fill_value: Optional[Any] = None,
         coerce: bool = False,
         downcast: Optional[str] = None,
     ) -> List["Block"]:
@@ -1227,16 +1235,11 @@ class Block(PandasObject):
 
         values = self.values if inplace else self.values.copy()
 
-        # We only get here for non-ExtensionBlock
-        fill_value = convert_scalar_for_putitemlike(fill_value, self.values.dtype)
-
         values = missing.interpolate_2d(
             values,
             method=method,
             axis=axis,
             limit=limit,
-            fill_value=fill_value,
-            dtype=self.dtype,
         )
 
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]
@@ -1358,6 +1361,7 @@ class Block(PandasObject):
         errors : str, {'raise', 'ignore'}, default 'raise'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
+        try_cast: bool, default False
         axis : int, default 0
 
         Returns
@@ -1628,8 +1632,8 @@ class ExtensionBlock(Block):
     def shape(self):
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
-            return ((len(self.values)),)
-        return (len(self.mgr_locs), len(self.values))
+            return (len(self.values),)
+        return len(self.mgr_locs), len(self.values)
 
     def iget(self, col):
 
@@ -1673,7 +1677,7 @@ class ExtensionBlock(Block):
         if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
             new = new[mask]
 
-        mask = _safe_reshape(mask, new_values.shape)
+        mask = safe_reshape(mask, new_values.shape)
 
         new_values[mask] = new
         return [self.make_block(values=new_values)]
@@ -1769,7 +1773,7 @@ class ExtensionBlock(Block):
 
         # TODO(EA2D): reshape not needed with 2D EAs
         # we are expected to return a 2-d ndarray
-        return values.reshape(1, len(values))
+        return self.make_block(values)
 
     def take_nd(
         self, indexer, axis: int = 0, new_mgr_locs=None, fill_value=lib.no_default
@@ -2016,7 +2020,7 @@ class FloatBlock(FloatOrComplexBlock):
                 values = np.array(values, dtype="object")
 
             values[mask] = na_rep
-            return values
+            return self.make_block(values)
 
         from pandas.io.formats.format import FloatArrayFormatter
 
@@ -2028,7 +2032,8 @@ class FloatBlock(FloatOrComplexBlock):
             quoting=quoting,
             fixed_width=False,
         )
-        return formatter.get_result_as_array()
+        res = formatter.get_result_as_array()
+        return self.make_block(res)
 
 
 class ComplexBlock(FloatOrComplexBlock):
@@ -2060,7 +2065,9 @@ class IntBlock(NumericBlock):
                 and not issubclass(tipo.type, (np.datetime64, np.timedelta64))
                 and self.dtype.itemsize >= tipo.itemsize
             )
-        return is_integer(element)
+        # We have not inferred an integer from the dtype
+        # check if we have a builtin int or a float equal to an int
+        return is_integer(element) or (is_float(element) and element.is_integer())
 
 
 class DatetimeLikeBlockMixin:
@@ -2187,7 +2194,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         result = dta._format_native_types(
             na_rep=na_rep, date_format=date_format, **kwargs
         )
-        return np.atleast_2d(result)
+        return self.make_block(result)
 
     def set(self, locs, values):
         """
@@ -2403,7 +2410,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """
         tda = self.array_values()
-        return tda._format_native_types(na_rep, **kwargs)
+        res = tda._format_native_types(na_rep, **kwargs)
+        return self.make_block(res)
 
 
 class BoolBlock(NumericBlock):
@@ -2815,7 +2823,7 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     return values
 
 
-def _safe_reshape(arr, new_shape):
+def safe_reshape(arr, new_shape):
     """
     If possible, reshape `arr` to have shape `new_shape`,
     with a couple of exceptions (see gh-13012):

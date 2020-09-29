@@ -53,10 +53,12 @@ class RangeIndex(Int64Index):
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)
-    name : object, optional
-        Name to be stored in the index.
+    dtype : np.int64
+        Unused, accepted for homogeneity with other index types.
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
+    name : object, optional
+        Name to be stored in the index.
 
     Attributes
     ----------
@@ -338,6 +340,9 @@ class RangeIndex(Int64Index):
             return False
         return key in self._range
 
+    # --------------------------------------------------------------------
+    # Indexing Methods
+
     @doc(Int64Index.get_loc)
     def get_loc(self, key, method=None, tolerance=None):
         if method is None and tolerance is None:
@@ -378,6 +383,8 @@ class RangeIndex(Int64Index):
             # We reversed this range: transform to original locs
             locs[valid] = len(self) - 1 - locs[valid]
         return ensure_platform_int(locs)
+
+    # --------------------------------------------------------------------
 
     def tolist(self):
         return list(self._range)

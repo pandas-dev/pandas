@@ -59,7 +59,6 @@ from pandas.core.ops import get_op_result_name
 if TYPE_CHECKING:
     from pandas import CategoricalIndex
 
-_VALID_CLOSED = {"left", "right", "both", "neither"}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _index_doc_kwargs.update(
@@ -334,7 +333,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
 
     @Appender(Index._shallow_copy.__doc__)
-    def _shallow_copy(self, values=None, name: Label = lib.no_default):
+    def _shallow_copy(
+        self, values: Optional[IntervalArray] = None, name: Label = lib.no_default
+    ):
         name = self.name if name is lib.no_default else name
         cache = self._cache.copy() if values is None else {}
         if values is None:
@@ -515,44 +516,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         # GH 23309
         return self._engine.is_overlapping
 
-    def _should_fallback_to_positional(self) -> bool:
-        # integer lookups in Series.__getitem__ are unambiguously
-        #  positional in this case
-        return self.dtype.subtype.kind in ["m", "M"]
-
-    def _maybe_cast_slice_bound(self, label, side, kind):
-        return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
-
-    @Appender(Index._convert_list_indexer.__doc__)
-    def _convert_list_indexer(self, keyarr):
-        """
-        we are passed a list-like indexer. Return the
-        indexer for matching intervals.
-        """
-        locs = self.get_indexer_for(keyarr)
-
-        # we have missing values
-        if (locs == -1).any():
-            raise KeyError
-
-        return locs
-
-    def _can_reindex(self, indexer: np.ndarray) -> None:
-        """
-        Check if we are allowing reindexing with this particular indexer.
-
-        Parameters
-        ----------
-        indexer : an integer indexer
-
-        Raises
-        ------
-        ValueError if its a duplicate axis
-        """
-        # trying to reindex on an axis with duplicates
-        if self.is_overlapping and len(indexer):
-            raise ValueError("cannot reindex from an overlapping axis")
-
     def _needs_i8_conversion(self, key) -> bool:
         """
         Check if a given key needs i8 conversion. Conversion is necessary for
@@ -612,6 +575,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if scalar:
             # Timestamp/Timedelta
             key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
+            if lib.is_period(key):
+                key_i8 = key.ordinal
         else:
             # DatetimeIndex/TimedeltaIndex
             key_dtype, key_i8 = key.dtype, Index(key.asi8)
@@ -667,6 +632,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                 label = _get_prev_label(label)
 
         return sub_idx._searchsorted_monotonic(label, side)
+
+    # --------------------------------------------------------------------
+    # Indexing Methods
 
     def get_loc(
         self, key, method: Optional[str] = None, tolerance=None
@@ -855,21 +823,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    def get_indexer_for(self, target: AnyArrayLike, **kwargs) -> np.ndarray:
-        """
-        Guaranteed return of an indexer even when overlapping.
-
-        This dispatches to get_indexer or get_indexer_non_unique
-        as appropriate.
-
-        Returns
-        -------
-        numpy.ndarray
-            List of indices.
-        """
-        if self.is_overlapping:
-            return self.get_indexer_non_unique(target)[0]
-        return self.get_indexer(target, **kwargs)
+    @property
+    def _index_as_unique(self):
+        return not self.is_overlapping
 
     def _convert_slice_indexer(self, key: slice, kind: str):
         if not (key.step is None or key.step == 1):
@@ -884,6 +840,30 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
                     raise ValueError(msg)
 
         return super()._convert_slice_indexer(key, kind)
+
+    def _should_fallback_to_positional(self) -> bool:
+        # integer lookups in Series.__getitem__ are unambiguously
+        #  positional in this case
+        return self.dtype.subtype.kind in ["m", "M"]
+
+    def _maybe_cast_slice_bound(self, label, side, kind):
+        return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
+
+    @Appender(Index._convert_list_indexer.__doc__)
+    def _convert_list_indexer(self, keyarr):
+        """
+        we are passed a list-like indexer. Return the
+        indexer for matching intervals.
+        """
+        locs = self.get_indexer_for(keyarr)
+
+        # we have missing values
+        if (locs == -1).any():
+            raise KeyError
+
+        return locs
+
+    # --------------------------------------------------------------------
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
@@ -921,20 +901,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         -------
         IntervalIndex
         """
-        if isinstance(item, Interval):
-            if item.closed != self.closed:
-                raise ValueError(
-                    "inserted item must be closed on the same side as the index"
-                )
-            left_insert = item.left
-            right_insert = item.right
-        elif is_scalar(item) and isna(item):
-            # GH 18295
-            left_insert = right_insert = item
-        else:
-            raise ValueError(
-                "can only insert Interval objects and NA into an IntervalIndex"
-            )
+        left_insert, right_insert = self._data._validate_insert_value(item)
 
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
@@ -1030,6 +997,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             and self.closed == other.closed
         )
 
+    # --------------------------------------------------------------------
+    # Set Operations
+
     @Appender(Index.intersection.__doc__)
     @SetopCheck(op_name="intersection")
     def intersection(
@@ -1053,7 +1023,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _intersection_unique(self, other: "IntervalIndex") -> "IntervalIndex":
         """
         Used when the IntervalIndex does not have any common endpoint,
-        no mater left or right.
+        no matter left or right.
         Return the intersection with another IntervalIndex.
 
         Parameters
@@ -1115,6 +1085,12 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         return func
 
+    union = _setop("union")
+    difference = _setop("difference")
+    symmetric_difference = _setop("symmetric_difference")
+
+    # --------------------------------------------------------------------
+
     @property
     def is_all_dates(self) -> bool:
         """
@@ -1122,10 +1098,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         as the check is done on the Interval itself
         """
         return False
-
-    union = _setop("union")
-    difference = _setop("difference")
-    symmetric_difference = _setop("symmetric_difference")
 
     # TODO: arithmetic operations
 

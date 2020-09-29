@@ -21,10 +21,10 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna_all
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import DatetimeArray, ExtensionArray
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
 
@@ -223,13 +223,8 @@ class JoinUnit:
             values_flat = values
         else:
             values_flat = values.ravel(order="K")
-        total_len = values_flat.shape[0]
-        chunk_len = max(total_len // 40, 1000)
-        for i in range(0, total_len, chunk_len):
-            if not isna(values_flat[i : i + chunk_len]).all():
-                return False
 
-        return True
+        return isna_all(values_flat)
 
     def get_reindexed_values(self, empty_dtype, upcasted_na):
         if upcasted_na is None:
@@ -335,9 +330,13 @@ def _concatenate_join_units(join_units, concat_axis, copy):
         # the non-EA values are 2D arrays with shape (1, n)
         to_concat = [t if isinstance(t, ExtensionArray) else t[0, :] for t in to_concat]
         concat_values = concat_compat(to_concat, axis=0)
-        if not isinstance(concat_values, ExtensionArray):
+        if not isinstance(concat_values, ExtensionArray) or (
+            isinstance(concat_values, DatetimeArray) and concat_values.tz is None
+        ):
             # if the result of concat is not an EA but an ndarray, reshape to
             # 2D to put it a non-EA Block
+            # special case DatetimeArray, which *is* an EA, but is put in a
+            # consolidated 2D block
             concat_values = np.atleast_2d(concat_values)
     else:
         concat_values = concat_compat(to_concat, axis=concat_axis)
@@ -470,8 +469,8 @@ def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
     #  cannot necessarily join
     return (
         # all blocks need to have the same type
-        all(type(ju.block) is type(join_units[0].block) for ju in join_units)
-        and  # noqa
+        all(type(ju.block) is type(join_units[0].block) for ju in join_units)  # noqa
+        and
         # no blocks that would get missing values (can lead to type upcasts)
         # unless we're an extension dtype.
         all(not ju.is_na or ju.block.is_extension for ju in join_units)

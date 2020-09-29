@@ -31,6 +31,7 @@ from pandas.core.internals import concatenate_block_managers
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas.core.generic import NDFrame
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -54,7 +55,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
+    objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -69,7 +70,7 @@ def concat(
 
 
 def concat(
-    objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
+    objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -122,7 +123,6 @@ def concat(
         This has no effect when ``join='inner'``, which already preserves
         the order of the non-concatenation axis.
 
-        .. versionadded:: 0.23.0
         .. versionchanged:: 1.0.0
 
            Changed to not sort by default.

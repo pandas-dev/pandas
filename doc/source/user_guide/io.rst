@@ -117,9 +117,9 @@ index_col : int, str, sequence of int / str, or False, default ``None``
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
-  that correspond to column names provided either by the user in `names` or
+  that correspond to column names provided either by the user in ``names`` or
   inferred from the document header row(s). For example, a valid list-like
-  `usecols` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
+  ``usecols`` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
 
   Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``. To
   instantiate a DataFrame from ``data`` with element order preserved use
@@ -157,7 +157,7 @@ General parsing configuration
 
 dtype : Type name or dict of column -> type, default ``None``
   Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32}``
-  (unsupported with ``engine='python'``). Use `str` or `object` together
+  (unsupported with ``engine='python'``). Use ``str`` or ``object`` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
 engine : {``'c'``, ``'python'``}
@@ -215,19 +215,19 @@ na_values : scalar, str, list-like, or dict, default ``None``
 
 keep_default_na : boolean, default ``True``
   Whether or not to include the default NaN values when parsing the data.
-  Depending on whether `na_values` is passed in, the behavior is as follows:
+  Depending on whether ``na_values`` is passed in, the behavior is as follows:
 
-  * If `keep_default_na` is ``True``, and `na_values` are specified, `na_values`
+  * If ``keep_default_na`` is ``True``, and ``na_values`` are specified, ``na_values``
     is appended to the default NaN values used for parsing.
-  * If `keep_default_na` is ``True``, and `na_values` are not specified, only
+  * If ``keep_default_na`` is ``True``, and ``na_values`` are not specified, only
     the default NaN values are used for parsing.
-  * If `keep_default_na` is ``False``, and `na_values` are specified, only
-    the NaN values specified `na_values` are used for parsing.
-  * If `keep_default_na` is ``False``, and `na_values` are not specified, no
+  * If ``keep_default_na`` is ``False``, and ``na_values`` are specified, only
+    the NaN values specified ``na_values`` are used for parsing.
+  * If ``keep_default_na`` is ``False``, and ``na_values`` are not specified, no
     strings will be parsed as NaN.
 
-  Note that if `na_filter` is passed in as ``False``, the `keep_default_na` and
-  `na_values` parameters will be ignored.
+  Note that if ``na_filter`` is passed in as ``False``, the ``keep_default_na`` and
+  ``na_values`` parameters will be ignored.
 na_filter : boolean, default ``True``
   Detect missing value markers (empty strings and the value of na_values). In
   data without any NAs, passing ``na_filter=False`` can improve the performance
@@ -276,10 +276,10 @@ Iteration
 +++++++++
 
 iterator : boolean, default ``False``
-  Return `TextFileReader` object for iteration or getting chunks with
+  Return ``TextFileReader`` object for iteration or getting chunks with
   ``get_chunk()``.
 chunksize : int, default ``None``
-  Return `TextFileReader` object for iteration. See :ref:`iterating and chunking
+  Return ``TextFileReader`` object for iteration. See :ref:`iterating and chunking
   <io.chunking>` below.
 
 Quoting, compression, and file format
@@ -299,7 +299,7 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``
 
   .. versionchanged:: 0.24.0 'infer' option added and set to default.
   .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
-  .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to `gzip.open`.
+  .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to ``gzip.open``.
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
@@ -327,17 +327,17 @@ comment : str, default ``None``
   Indicates remainder of line should not be parsed. If found at the beginning of
   a line, the line will be ignored altogether. This parameter must be a single
   character. Like empty lines (as long as ``skip_blank_lines=True``), fully
-  commented lines are ignored by the parameter `header` but not by `skiprows`.
+  commented lines are ignored by the parameter ``header`` but not by ``skiprows``.
   For example, if ``comment='#'``, parsing '#empty\\na,b,c\\n1,2,3' with
-  `header=0` will result in 'a,b,c' being treated as the header.
+  ``header=0`` will result in 'a,b,c' being treated as the header.
 encoding : str, default ``None``
   Encoding to use for UTF when reading/writing (e.g. ``'utf-8'``). `List of
   Python standard encodings
   <https://docs.python.org/3/library/codecs.html#standard-encodings>`_.
 dialect : str or :class:`python:csv.Dialect` instance, default ``None``
   If provided, this parameter will override values (default or not) for the
-  following parameters: `delimiter`, `doublequote`, `escapechar`,
-  `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
+  following parameters: ``delimiter``, ``doublequote``, ``escapechar``,
+  ``skipinitialspace``, ``quotechar``, and ``quoting``. If it is necessary to
   override values, a ParserWarning will be issued. See :class:`python:csv.Dialect`
   documentation for more details.
 
@@ -436,7 +436,7 @@ worth trying.
         mixed_df['col_1'].apply(type).value_counts()
         mixed_df['col_1'].dtype
 
-   will result with `mixed_df` containing an ``int`` dtype for certain chunks
+   will result with ``mixed_df`` containing an ``int`` dtype for certain chunks
    of the column, and ``str`` for others due to the mixed dtypes from the
    data that was read in. It is important to note that the overall column will be
    marked with a ``dtype`` of ``object``, which is used for columns with mixed dtypes.
@@ -896,7 +896,7 @@ You can also use a dict to specify custom name columns:
    df
 
 It is important to remember that if multiple text columns are to be parsed into
-a single date column, then a new column is prepended to the data. The `index_col`
+a single date column, then a new column is prepended to the data. The ``index_col``
 specification is based off of this new set of columns rather than the original
 data columns:
 
@@ -930,22 +930,17 @@ take full advantage of the flexibility of the date parsing API:
 .. ipython:: python
 
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
-                    date_parser=pd.io.date_converters.parse_date_time)
+                    date_parser=pd.to_datetime)
    df
 
 Pandas will try to call the ``date_parser`` function in three different ways. If
 an exception is raised, the next one is tried:
 
 1. ``date_parser`` is first called with one or more arrays as arguments,
-   as defined using `parse_dates` (e.g., ``date_parser(['2013', '2013'], ['1', '2'])``).
+   as defined using ``parse_dates`` (e.g., ``date_parser(['2013', '2013'], ['1', '2'])``).
 
 2. If #1 fails, ``date_parser`` is called with all the columns
    concatenated row-wise into a single array (e.g., ``date_parser(['2013 1', '2013 2'])``).
-
-3. If #2 fails, ``date_parser`` is called once for every row with one or more
-   string arguments from the columns indicated with `parse_dates`
-   (e.g., ``date_parser('2013', '1')`` for the first row, ``date_parser('2013', '2')``
-   for the second, etc.).
 
 Note that performance-wise, you should try these methods of parsing dates in order:
 
@@ -958,14 +953,6 @@ Note that performance-wise, you should try these methods of parsing dates in ord
    For optimal performance, this should be vectorized, i.e., it should accept arrays
    as arguments.
 
-You can explore the date parsing functionality in
-`date_converters.py <https://github.com/pandas-dev/pandas/blob/master/pandas/io/date_converters.py>`__
-and add your own. We would love to turn this module into a community supported
-set of date/time parsers. To get you started, ``date_converters.py`` contains
-functions to parse dual date and time columns, year/month/day columns,
-and year/month/day/hour/minute/second columns. It also contains a
-``generic_parser`` function so you can curry it with a function that deals with
-a single date rather than the entire array.
 
 .. ipython:: python
    :suppress:
@@ -1382,7 +1369,7 @@ Files with fixed width columns
 
 While :func:`read_csv` reads delimited data, the :func:`read_fwf` function works
 with data files that have known and fixed column widths. The function parameters
-to ``read_fwf`` are largely the same as `read_csv` with two extra parameters, and
+to ``read_fwf`` are largely the same as ``read_csv`` with two extra parameters, and
 a different usage of the ``delimiter`` parameter:
 
 * ``colspecs``: A list of pairs (tuples) giving the extents of the
@@ -1415,7 +1402,7 @@ Consider a typical fixed-width data file:
    print(open('bar.csv').read())
 
 In order to parse this file into a ``DataFrame``, we simply need to supply the
-column specifications to the `read_fwf` function along with the file name:
+column specifications to the ``read_fwf`` function along with the file name:
 
 .. ipython:: python
 
@@ -1731,7 +1718,7 @@ The ``Series`` and ``DataFrame`` objects have an instance method ``to_csv`` whic
 allows storing the contents of the object as a comma-separated-values file. The
 function takes a number of arguments. Only the first is required.
 
-* ``path_or_buf``: A string path to the file to write or a file object.  If a file object it must be opened with `newline=''`
+* ``path_or_buf``: A string path to the file to write or a file object.  If a file object it must be opened with ``newline=''``
 * ``sep`` : Field delimiter for the output file (default ",")
 * ``na_rep``: A string representation of a missing value (default '')
 * ``float_format``: Format string for floating point numbers
@@ -1739,13 +1726,13 @@ function takes a number of arguments. Only the first is required.
 * ``header``: Whether to write out the column names (default True)
 * ``index``: whether to write row (index) names (default True)
 * ``index_label``: Column label(s) for index column(s) if desired. If None
-  (default), and `header` and `index` are True, then the index names are
+  (default), and ``header`` and ``index`` are True, then the index names are
   used. (A sequence should be given if the ``DataFrame`` uses MultiIndex).
 * ``mode`` : Python write mode, default 'w'
 * ``encoding``: a string representing the encoding to use if the contents are
   non-ASCII, for Python versions prior to 3
-* ``line_terminator``: Character sequence denoting line end (default `os.linesep`)
-* ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a `float_format` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
+* ``line_terminator``: Character sequence denoting line end (default ``os.linesep``)
+* ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a ``float_format`` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
 * ``quotechar``: Character used to quote fields (default '"')
 * ``doublequote``: Control quoting of ``quotechar`` in fields (default True)
 * ``escapechar``: Character used to escape ``sep`` and ``quotechar`` when
@@ -1898,7 +1885,7 @@ preservation of metadata including but not limited to dtypes and index names.
 
   Any orient option that encodes to a JSON object will not preserve the ordering of
   index and column labels during round-trip serialization. If you wish to preserve
-  label ordering use the `split` option as it uses ordered containers.
+  label ordering use the ``split`` option as it uses ordered containers.
 
 Date handling
 +++++++++++++
@@ -2253,7 +2240,7 @@ For line-delimited json files, pandas can also return an iterator which reads in
   df
   df.to_json(orient='records', lines=True)
 
-  # reader is an iterator that returns `chunksize` lines each iteration
+  # reader is an iterator that returns ``chunksize`` lines each iteration
   reader = pd.read_json(StringIO(jsonl), lines=True, chunksize=1)
   reader
   for chunk in reader:
@@ -2373,8 +2360,6 @@ A few notes on the generated table schema:
       then ``level_<i>`` is used.
 
 
-.. versionadded:: 0.23.0
-
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
 round-trippable manner.
@@ -2412,7 +2397,7 @@ indicate missing values and the subsequent read cannot distinguish the intent.
 
    os.remove('test.json')
 
-.. _Table Schema: https://specs.frictionlessdata.io/json-table-schema/
+.. _Table Schema: https://specs.frictionlessdata.io/table-schema/
 
 HTML
 ----
@@ -3024,19 +3009,12 @@ It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. ``read_excel`` takes
 a ``usecols`` keyword to allow you to specify a subset of columns to parse.
 
-.. deprecated:: 0.24.0
+.. versionchanged:: 1.0.0
 
-Passing in an integer for ``usecols`` has been deprecated. Please pass in a list
+Passing in an integer for ``usecols`` will no longer work. Please pass in a list
 of ints from 0 to ``usecols`` inclusive instead.
 
-If ``usecols`` is an integer, then it is assumed to indicate the last column
-to be parsed.
-
-.. code-block:: python
-
-   pd.read_excel('path_to_file.xls', 'Sheet1', usecols=2)
-
-You can also specify a comma-delimited set of Excel columns and ranges as a string:
+You can specify a comma-delimited set of Excel columns and ranges as a string:
 
 .. code-block:: python
 
@@ -3114,7 +3092,7 @@ Dtype specifications
 ++++++++++++++++++++
 
 As an alternative to converters, the type for an entire column can
-be specified using the `dtype` keyword, which takes a dictionary
+be specified using the ``dtype`` keyword, which takes a dictionary
 mapping column names to types.  To interpret data with
 no type inference, use the type ``str`` or ``object``.
 
@@ -3770,8 +3748,8 @@ Passing ``min_itemsize={`values`: size}`` as a parameter to append
 will set a larger minimum for the string columns. Storing ``floats,
 strings, ints, bools, datetime64`` are currently supported. For string
 columns, passing ``nan_rep = 'nan'`` to append will change the default
-nan representation on disk (which converts to/from `np.nan`), this
-defaults to `nan`.
+nan representation on disk (which converts to/from ``np.nan``), this
+defaults to ``nan``.
 
 .. ipython:: python
 
@@ -4067,7 +4045,7 @@ Query via data columns
 ++++++++++++++++++++++
 
 You can designate (and index) certain columns that you want to be able
-to perform queries (other than the `indexable` columns, which you can
+to perform queries (other than the ``indexable`` columns, which you can
 always query). For instance say you want to perform this common
 operation, on-disk, and return just the frame that matches this
 query. You can specify ``data_columns = True`` to force all columns to
@@ -4098,7 +4076,7 @@ be ``data_columns``.
    store.root.df_dc.table
 
 There is some performance degradation by making lots of columns into
-`data columns`, so it is up to the user to designate these. In addition,
+``data columns``, so it is up to the user to designate these. In addition,
 you cannot change data columns (nor indexables) after the first
 append/put operation (Of course you can simply read in the data and
 create a new table!).
@@ -4225,7 +4203,7 @@ having a very wide table, but enables more efficient queries.
 
 The ``append_to_multiple`` method splits a given single DataFrame
 into multiple tables according to ``d``, a dictionary that maps the
-table names to a list of 'columns' you want in that table. If `None`
+table names to a list of 'columns' you want in that table. If ``None``
 is used in place of a list, that table will have the remaining
 unspecified columns of the given DataFrame. The argument ``selector``
 defines which table is the selector table (which you can make queries from).
@@ -4865,8 +4843,8 @@ Parquet supports partitioning of data based on the values of one or more columns
     df.to_parquet(path='test', engine='pyarrow',
                   partition_cols=['a'], compression=None)
 
-The `path` specifies the parent directory to which data will be saved.
-The `partition_cols` are the column names by which the dataset will be partitioned.
+The ``path`` specifies the parent directory to which data will be saved.
+The ``partition_cols`` are the column names by which the dataset will be partitioned.
 Columns are partitioned in the order they are given. The partition splits are
 determined by the unique values in the partition columns.
 The above example creates a partitioned dataset that may look like:
@@ -5517,7 +5495,7 @@ SAS formats
 -----------
 
 The top-level function :func:`read_sas` can read (but not write) SAS
-`xport` (.XPT) and (since *v0.18.0*) `SAS7BDAT` (.sas7bdat) format files.
+XPORT (.xpt) and (since *v0.18.0*) SAS7BDAT (.sas7bdat) format files.
 
 SAS files only contain two value types: ASCII text and floating point
 values (usually 8 bytes but sometimes truncated).  For xport files,
@@ -5565,7 +5543,7 @@ SPSS formats
 .. versionadded:: 0.25.0
 
 The top-level function :func:`read_spss` can read (but not write) SPSS
-`sav` (.sav) and  `zsav` (.zsav) format files.
+SAV (.sav) and  ZSAV (.zsav) format files.
 
 SPSS files contain column names. By default the
 whole file is read, categorical columns are converted into ``pd.Categorical``,
@@ -5588,7 +5566,7 @@ avoid converting categorical columns into ``pd.Categorical``:
     df = pd.read_spss('spss_data.sav', usecols=['foo', 'bar'],
                       convert_categoricals=False)
 
-More information about the `sav` and `zsav` file format is available here_.
+More information about the SAV and ZSAV file formats is available here_.
 
 .. _here: https://www.ibm.com/support/knowledgecenter/en/SSLVMB_22.0.0/com.ibm.spss.statistics.help/spss/base/savedatatypes.htm
 
