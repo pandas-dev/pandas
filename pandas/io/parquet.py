@@ -384,8 +384,6 @@ def read_parquet(
         'pyarrow' is unavailable.
     columns : list, default=None
         If not None, only these columns will be read from the file.
-
-        .. versionadded:: 0.21.1
     use_nullable_dtypes : bool, default False
         If True, use dtypes that use ``pd.NA`` as missing value indicator
         for the resulting DataFrame (only applicable for ``engine="pyarrow"``).
