@@ -45,7 +45,6 @@ __version__ = "1.7.0"
 import contextlib
 from ctypes import (
     CDLL,
-    WinError,
     c_size_t,
     c_wchar,
     c_wchar_p,
@@ -59,6 +58,8 @@ import platform
 import subprocess
 import time
 import warnings
+
+from pandas.compat import is_platform_windows
 
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
 # Thus, we need to detect the presence of $DISPLAY manually
@@ -74,10 +75,7 @@ EXCEPT_MSG = """
 ENCODING = "utf-8"
 
 # The "which" unix command finds where a command is.
-if platform.system() == "Windows":
-    WHICH_CMD = "where"
-else:
-    WHICH_CMD = "which"
+WHICH_CMD = "where" if is_platform_windows else "which"
 
 
 def _executable_exists(name):
@@ -96,6 +94,8 @@ class PyperclipException(RuntimeError):
 
 class PyperclipWindowsException(PyperclipException):
     def __init__(self, message):
+        from ctypes import WinError
+
         message += f" ({WinError()})"
         super().__init__(message)
 
