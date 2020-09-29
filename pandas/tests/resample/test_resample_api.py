@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 
 import numpy as np
@@ -428,7 +427,7 @@ def test_agg_misc():
     msg = r"Column\(s\) \['result1', 'result2'\] do not exist"
     for t in cases:
         with pytest.raises(pd.core.base.SpecificationError, match=msg):
-            t[["A", "B"]].agg(OrderedDict([("result1", np.sum), ("result2", np.mean)]))
+            t[["A", "B"]].agg(dict([("result1", np.sum), ("result2", np.mean)]))
 
     # agg with different hows
     expected = pd.concat(
@@ -438,7 +437,7 @@ def test_agg_misc():
         [("A", "sum"), ("A", "std"), ("B", "mean"), ("B", "std")]
     )
     for t in cases:
-        result = t.agg(OrderedDict([("A", ["sum", "std"]), ("B", ["mean", "std"])]))
+        result = t.agg(dict([("A", ["sum", "std"]), ("B", ["mean", "std"])]))
         tm.assert_frame_equal(result, expected, check_like=True)
 
     # equivalent of using a selection list / or not
