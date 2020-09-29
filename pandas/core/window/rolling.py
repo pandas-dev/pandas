@@ -185,10 +185,6 @@ class _Window(ShallowMixin, SelectionMixin):
         self.validate()
 
     @property
-    def _constructor(self):
-        return Window
-
-    @property
     def is_datetimelike(self) -> Optional[bool]:
         return None
 
@@ -1040,6 +1036,10 @@ class Window(_Window):
     2013-01-01 09:00:06  4.0
     """
 
+    @property
+    def _constructor(self):
+        return Window
+
     def validate(self):
         super().validate()
 
@@ -1220,13 +1220,7 @@ class Window(_Window):
         return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
 
-class RollingMixin(_Window):
-    @property
-    def _constructor(self):
-        return Rolling
-
-
-class RollingAndExpandingMixin(RollingMixin):
+class RollingAndExpandingMixin(_Window):
 
     _shared_docs["count"] = dedent(
         r"""
