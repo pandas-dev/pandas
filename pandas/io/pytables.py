@@ -310,7 +310,7 @@ def read_hdf(
         Alternatively, pandas accepts an open :class:`pandas.HDFStore` object.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file

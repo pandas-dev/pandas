@@ -60,7 +60,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Categorical, DataFrame, Series  # noqa:F401
+    from pandas import Categorical, DataFrame, Series
 
 _shared_docs: Dict[str, str] = {}
 
