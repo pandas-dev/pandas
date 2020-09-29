@@ -1,6 +1,6 @@
 from collections import defaultdict
 import copy
-from typing import Dict, List
+from typing import Any, Dict, List, Sequence, Tuple
 
 import numpy as np
 
@@ -344,7 +344,7 @@ def _concatenate_join_units(join_units, concat_axis, copy):
     return concat_values
 
 
-def _get_empty_dtype_and_na(join_units):
+def _get_empty_dtype_and_na(join_units: Sequence[JoinUnit]) -> Tuple[DtypeObj, Any]:
     """
     Return dtype and N/A values to use when concatenating specified units.
 
@@ -421,7 +421,10 @@ def _get_empty_dtype_and_na(join_units):
     raise AssertionError(msg)
 
 
-def _get_upcast_classes(join_units, dtypes):
+def _get_upcast_classes(
+    join_units: Sequence[JoinUnit],
+    dtypes: Sequence[DtypeObj],
+) -> Dict[str, List[DtypeObj]]:
     upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
     null_upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
     for dtype, unit in zip(dtypes, join_units):
@@ -443,7 +446,7 @@ def _get_upcast_classes(join_units, dtypes):
     return upcast_classes
 
 
-def _select_upcast_cls_from_dtype(dtype):
+def _select_upcast_cls_from_dtype(dtype: DtypeObj) -> str:
     if is_categorical_dtype(dtype):
         return "category"
     elif is_datetime64tz_dtype(dtype):
@@ -459,7 +462,9 @@ def _select_upcast_cls_from_dtype(dtype):
     elif is_timedelta64_dtype(dtype):
         return "timedelta"
     elif is_sparse(dtype):
-        return dtype.subtype.name
+        # parent class ExtensionDtypes does not have attribute 'subtype',
+        # only some subclasses do (like SparseDtype), thus mypy error.
+        return dtype.subtype.name  # type: ignore [union-attr]
     elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
         return dtype.name
     else:
