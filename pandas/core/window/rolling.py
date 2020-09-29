@@ -149,6 +149,7 @@ def get_weighted_roll_func(cfunc: Callable) -> Callable:
 
 class BaseWindow(ShallowMixin, SelectionMixin):
     """Provides utilities for performing windowing operations."""
+
     _attributes: List[str] = [
         "window",
         "min_periods",
