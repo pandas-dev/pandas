@@ -404,18 +404,18 @@ def _get_empty_dtype_and_na(join_units):
         return np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")
     else:  # pragma
         try:
-            g = np.find_common_type(upcast_classes, [])
+            common_dtype = np.find_common_type(upcast_classes, [])
         except TypeError:
             # At least one is an ExtensionArray
             return np.dtype(np.object_), np.nan
         else:
-            if is_float_dtype(g):
-                return g, g.type(np.nan)
-            elif is_numeric_dtype(g):
+            if is_float_dtype(common_dtype):
+                return common_dtype, common_dtype.type(np.nan)
+            elif is_numeric_dtype(common_dtype):
                 if has_none_blocks:
                     return np.dtype(np.float64), np.nan
                 else:
-                    return g, None
+                    return common_dtype, None
 
     msg = "invalid dtype determination in get_concat_dtype"
     raise AssertionError(msg)
