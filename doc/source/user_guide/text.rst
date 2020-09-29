@@ -253,7 +253,7 @@ i.e., from the end of the string to the beginning of the string:
 
    s2.str.rsplit('_', expand=True, n=1)
 
-``replace`` by default replaces `regular expressions
+``replace`` optionally uses `regular expressions
 <https://docs.python.org/3/library/re.html>`__:
 
 .. ipython:: python
