@@ -275,7 +275,7 @@ cause trouble because of the regular expression meaning of ``$``:
    # Consider the following badly formatted financial data
    dollars = pd.Series(['12', '-$10', '$10,000'], dtype="string")
 
-   # Here ``$`` is treated as a literal character
+   # Here $ is treated as a literal character
    dollars.str.replace('$', '', regex=True)
 
    # But here it is not
@@ -284,7 +284,7 @@ cause trouble because of the regular expression meaning of ``$``:
    # We need to escape the special character (for >1 len patterns)
    dollars.str.replace(r'-\$', '-', regex=True)
 
-   # Or set ``regex`` equal to ``False``
+   # Or set regex equal to False
    dollars.str.replace('-$', '-', regex=False)
 
 If you do want literal replacement of a string (equivalent to
