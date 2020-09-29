@@ -820,3 +820,38 @@ def test_html_repr_min_rows(datapath, max_rows, min_rows, expected):
     with option_context("display.max_rows", max_rows, "display.min_rows", min_rows):
         result = df._repr_html_()
     assert result == expected
+
+
+@pytest.mark.parametrize("na_rep, value", [(None, "nan"), ("Ted", "Ted")])
+def test_to_html_na_rep_and_float_format(na_rep, value):
+    # https://github.com/pandas-dev/pandas/issues/13828
+    df = DataFrame(
+        [
+            ["A", 1.2225],
+            ["A", None],
+        ],
+        columns=["Group", "Data"],
+    )
+    result = df.to_html(na_rep=na_rep, float_format="{:.2f}".format)
+    expected = f"""<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Group</th>
+      <th>Data</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>A</td>
+      <td>1.22</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>A</td>
+      <td>{value}</td>
+    </tr>
+  </tbody>
+</table>"""
+    assert result == expected
