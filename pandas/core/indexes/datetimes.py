@@ -6,13 +6,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
-from pandas._libs.tslibs import (
-    Resolution,
-    ints_to_pydatetime,
-    parsing,
-    timezones,
-    to_offset,
-)
+from pandas._libs.tslibs import Resolution, ints_to_pydatetime, parsing, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
@@ -312,9 +306,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
-        from pandas.io.formats.format import _is_dates_only
+        from pandas.io.formats.format import is_dates_only
 
-        return self.tz is None and _is_dates_only(self._values)
+        return self.tz is None and is_dates_only(self._values)
 
     def __reduce__(self):
 
@@ -325,13 +319,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         d.update(self._get_attributes_dict())
         return _new_DatetimeIndex, (type(self), d), None
 
-    def _convert_for_op(self, value):
+    def _validate_fill_value(self, value):
         """
         Convert value to be insertable to ndarray.
         """
-        if self._has_same_tz(value):
-            return Timestamp(value).asm8
-        raise ValueError("Passed item and index have different timezone")
+        return self._data._validate_setitem_value(value)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         """
@@ -354,9 +346,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def _formatter_func(self):
-        from pandas.io.formats.format import _get_format_datetime64
+        from pandas.io.formats.format import get_format_datetime64
 
-        formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
+        formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
         return lambda x: f"'{formatter(x, tz=self.tz)}'"
 
     # --------------------------------------------------------------------
@@ -397,9 +389,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         ndarray[int64_t]
         """
-        values = self.asi8
-        if self.tz is not None and not timezones.is_utc(self.tz):
-            values = self._data._local_timestamps()
+        values = self._data._local_timestamps()
 
         nanos = values % (24 * 3600 * 1_000_000_000)
         micros = nanos // 1000
@@ -508,6 +498,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         dta = DatetimeArray(snapped, dtype=self.dtype)
         return DatetimeIndex._simple_new(dta, name=self.name)
+
+    # --------------------------------------------------------------------
+    # Indexing Methods
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         """

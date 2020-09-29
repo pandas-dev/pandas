@@ -291,7 +291,7 @@ def to_parquet(
     path : str or file-like object
         If a string, it will be used as Root Directory path
         when writing a partitioned dataset. By file-like object,
-        we refer to objects with a write() method, such as a file handler
+        we refer to objects with a write() method, such as a file handle
         (e.g. via builtin open function) or io.BytesIO. The engine
         fastparquet does not accept file-like objects.
 
@@ -375,7 +375,7 @@ def read_parquet(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option

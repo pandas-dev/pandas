@@ -3,11 +3,13 @@ import datetime
 from distutils.version import LooseVersion
 from io import BytesIO
 import os
+import pathlib
 from warnings import catch_warnings
 
 import numpy as np
 import pytest
 
+from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -564,8 +566,19 @@ class TestParquetPyArrow(Base):
             write_kwargs=s3so,
         )
 
-    @td.skip_if_no("s3fs")
-    @pytest.mark.parametrize("partition_col", [["A"], []])
+    @td.skip_if_no("s3fs")  # also requires flask
+    @pytest.mark.parametrize(
+        "partition_col",
+        [
+            pytest.param(
+                ["A"],
+                marks=pytest.mark.xfail(
+                    PY38, reason="Getting back empty DataFrame", raises=AssertionError
+                ),
+            ),
+            [],
+        ],
+    )
     def test_s3_roundtrip_for_dir(
         self, df_compat, s3_resource, pa, partition_col, s3so
     ):
@@ -650,6 +663,20 @@ class TestParquetPyArrow(Base):
             dataset = pq.ParquetDataset(path, validate_schema=False)
             assert len(dataset.partitions.partition_names) == 1
             assert dataset.partitions.partition_names == set(partition_cols_list)
+
+    @pytest.mark.parametrize(
+        "path_type", [lambda path: path, lambda path: pathlib.Path(path)]
+    )
+    def test_partition_cols_pathlib(self, pa, df_compat, path_type):
+        # GH 35902
+
+        partition_cols = "B"
+        partition_cols_list = [partition_cols]
+        df = df_compat
+
+        with tm.ensure_clean_dir() as path_str:
+            path = path_type(path_str)
+            df.to_parquet(path, partition_cols=partition_cols_list)
 
     def test_empty_dataframe(self, pa):
         # GH #27339
