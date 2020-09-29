@@ -50,7 +50,7 @@ from pandas.core.internals import concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame  # noqa:F401
+    from pandas import DataFrame
 
 
 @Substitution("\nleft : DataFrame")

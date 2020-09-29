@@ -452,7 +452,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return cls._simple_new(arr, index, dtype)
 
-    def __array__(self, dtype=None, copy=True) -> np.ndarray:
+    def __array__(self, dtype=None) -> np.ndarray:
         fill_value = self.fill_value
 
         if self.sp_index.ngaps == 0:
@@ -986,7 +986,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # get an identical index as concating the values and then
             # creating a new index. We don't want to spend the time trying
             # to merge blocks across arrays in `to_concat`, so the resulting
-            # BlockIndex may have more blocs.
+            # BlockIndex may have more blocks.
             blengths = []
             blocs = []
 
@@ -1063,6 +1063,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
+        if is_dtype_equal(dtype, self._dtype):
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
@@ -1510,7 +1515,7 @@ SparseArray._add_comparison_ops()
 SparseArray._add_unary_ops()
 
 
-def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy=False):
+def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None):
     """
     Convert ndarray to sparse format
 

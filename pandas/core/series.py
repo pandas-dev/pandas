@@ -70,6 +70,7 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
+from pandas.core.aggregation import transform
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
@@ -198,7 +199,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Constructors
 
     def __init__(
-        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False,
+        self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False
     ):
 
         if (
@@ -208,9 +209,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             and copy is False
         ):
             # GH#33357 called with just the SingleBlockManager
-            NDFrame.__init__(
-                self, data,
-            )
+            NDFrame.__init__(self, data)
             self.name = name
             return
 
@@ -329,9 +328,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
                 data = SingleBlockManager.from_array(data, index)
 
-        generic.NDFrame.__init__(
-            self, data,
-        )
+        generic.NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
@@ -4046,8 +4043,6 @@ Keep all original rows and also all original values
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> FrameOrSeriesUnion:
-        from pandas.core.aggregation import transform
-
         return transform(self, func, axis, *args, **kwargs)
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):

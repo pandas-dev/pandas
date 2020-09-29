@@ -83,7 +83,7 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
-    from pandas.core.internals import Block  # noqa:F401
+    from pandas.core.internals import Block
 
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
@@ -1210,64 +1210,77 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 self._insert_inaxis_grouper_inplace(result)
                 return result
         else:
-            # this is to silence a DeprecationWarning
-            # TODO: Remove when default dtype of empty Series is object
-            kwargs = first_not_none._construct_axes_dict()
-            backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
-            values = [x if (x is not None) else backup for x in values]
+            # values are Series
+            return self._wrap_applied_output_series(
+                keys, values, not_indexed_same, first_not_none, key_index
+            )
 
-            all_indexed_same = all_indexes_same(x.index for x in values)
+    def _wrap_applied_output_series(
+        self,
+        keys,
+        values: List[Series],
+        not_indexed_same: bool,
+        first_not_none,
+        key_index,
+    ) -> FrameOrSeriesUnion:
+        # this is to silence a DeprecationWarning
+        # TODO: Remove when default dtype of empty Series is object
+        kwargs = first_not_none._construct_axes_dict()
+        backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
+        values = [x if (x is not None) else backup for x in values]
 
-            # GH3596
-            # provide a reduction (Frame -> Series) if groups are
-            # unique
-            if self.squeeze:
-                applied_index = self._selected_obj._get_axis(self.axis)
-                singular_series = len(values) == 1 and applied_index.nlevels == 1
+        all_indexed_same = all_indexes_same(x.index for x in values)
 
-                # assign the name to this series
-                if singular_series:
-                    values[0].name = keys[0]
+        # GH3596
+        # provide a reduction (Frame -> Series) if groups are
+        # unique
+        if self.squeeze:
+            applied_index = self._selected_obj._get_axis(self.axis)
+            singular_series = len(values) == 1 and applied_index.nlevels == 1
 
-                    # GH2893
-                    # we have series in the values array, we want to
-                    # produce a series:
-                    # if any of the sub-series are not indexed the same
-                    # OR we don't have a multi-index and we have only a
-                    # single values
-                    return self._concat_objects(
-                        keys, values, not_indexed_same=not_indexed_same
-                    )
+            # assign the name to this series
+            if singular_series:
+                values[0].name = keys[0]
 
-                # still a series
-                # path added as of GH 5545
-                elif all_indexed_same:
-                    from pandas.core.reshape.concat import concat
+                # GH2893
+                # we have series in the values array, we want to
+                # produce a series:
+                # if any of the sub-series are not indexed the same
+                # OR we don't have a multi-index and we have only a
+                # single values
+                return self._concat_objects(
+                    keys, values, not_indexed_same=not_indexed_same
+                )
 
-                    return concat(values)
+            # still a series
+            # path added as of GH 5545
+            elif all_indexed_same:
+                from pandas.core.reshape.concat import concat
 
-            if not all_indexed_same:
-                # GH 8467
-                return self._concat_objects(keys, values, not_indexed_same=True)
+                return concat(values)
 
-            # Combine values
-            # vstack+constructor is faster than concat and handles MI-columns
-            stacked_values = np.vstack([np.asarray(v) for v in values])
+        if not all_indexed_same:
+            # GH 8467
+            return self._concat_objects(keys, values, not_indexed_same=True)
 
-            if self.axis == 0:
-                index = key_index
-                columns = first_not_none.index.copy()
-                if columns.name is None:
-                    # GH6124 - propagate name of Series when it's consistent
-                    names = {v.name for v in values}
-                    if len(names) == 1:
-                        columns.name = list(names)[0]
-            else:
-                index = first_not_none.index
-                columns = key_index
-                stacked_values = stacked_values.T
+        # Combine values
+        # vstack+constructor is faster than concat and handles MI-columns
+        stacked_values = np.vstack([np.asarray(v) for v in values])
 
-            result = self.obj._constructor(stacked_values, index=index, columns=columns)
+        if self.axis == 0:
+            index = key_index
+            columns = first_not_none.index.copy()
+            if columns.name is None:
+                # GH6124 - propagate name of Series when it's consistent
+                names = {v.name for v in values}
+                if len(names) == 1:
+                    columns.name = list(names)[0]
+        else:
+            index = first_not_none.index
+            columns = key_index
+            stacked_values = stacked_values.T
+
+        result = self.obj._constructor(stacked_values, index=index, columns=columns)
 
         # if we have date/time like in the original, then coerce dates
         # as we are stacking can easily have object dtypes here
@@ -1417,7 +1430,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         except AssertionError:
             raise
         except Exception:
-            # GH#29631 For user-defined function, we cant predict what may be
+            # GH#29631 For user-defined function, we can't predict what may be
             #  raised; see test_transform.test_transform_fastpath_raises
             return path, res
 

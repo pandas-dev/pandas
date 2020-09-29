@@ -19,7 +19,7 @@ As is customary, we import pandas and NumPy as follows:
     import numpy as np
 
 Most of the examples will utilize the ``tips`` dataset found within pandas tests.  We'll read
-the data into a DataFrame called `tips` and assume we have a database table of the same name and
+the data into a DataFrame called ``tips`` and assume we have a database table of the same name and
 structure.
 
 .. ipython:: python
@@ -429,7 +429,7 @@ Top n rows per group
          .query('rn < 3')
          .sort_values(['day', 'rn']))
 
-the same using `rank(method='first')` function
+the same using ``rank(method='first')`` function
 
 .. ipython:: python
 
@@ -453,7 +453,7 @@ the same using `rank(method='first')` function
 
 Let's find tips with (rank < 3) per gender group for (tips < 2).
 Notice that when using ``rank(method='min')`` function
-`rnk_min` remains the same for the same `tip`
+``rnk_min`` remains the same for the same ``tip``
 (as Oracle's RANK() function)
 
 .. ipython:: python
