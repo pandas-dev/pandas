@@ -106,7 +106,7 @@ class FloatingDtype(BaseMaskedDtype):
 
 
 def coerce_to_array(
-    values, dtype=None, mask=None, copy: bool = False,
+    values, dtype=None, mask=None, copy: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask
