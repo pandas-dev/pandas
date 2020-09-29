@@ -43,8 +43,17 @@ Pyperclip into running them with whatever permissions the Python process has.
 __version__ = "1.7.0"
 
 import contextlib
-import ctypes
-from ctypes import c_size_t, c_wchar, c_wchar_p, get_errno, sizeof
+from ctypes import (
+    CDLL,
+    WinError,
+    c_size_t,
+    c_wchar,
+    c_wchar_p,
+    get_errno,
+    memmove,
+    sizeof,
+    windll,
+)
 import os
 import platform
 import subprocess
@@ -87,7 +96,7 @@ class PyperclipException(RuntimeError):
 
 class PyperclipWindowsException(PyperclipException):
     def __init__(self, message):
-        message += f" ({ctypes.WinError()})"
+        message += f" ({WinError()})"
         super().__init__(message)
 
 
@@ -324,8 +333,7 @@ def init_windows_clipboard():
         UINT,
     )
 
-    windll = ctypes.windll
-    msvcrt = ctypes.CDLL("msvcrt")
+    msvcrt = CDLL("msvcrt")
 
     safeCreateWindowExA = CheckedCall(windll.user32.CreateWindowExA)
     safeCreateWindowExA.argtypes = [
@@ -450,7 +458,7 @@ def init_windows_clipboard():
                     handle = safeGlobalAlloc(GMEM_MOVEABLE, count * sizeof(c_wchar))
                     locked_handle = safeGlobalLock(handle)
 
-                    ctypes.memmove(
+                    memmove(
                         c_wchar_p(locked_handle),
                         c_wchar_p(text),
                         count * sizeof(c_wchar),
