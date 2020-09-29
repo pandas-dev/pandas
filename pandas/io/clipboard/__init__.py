@@ -43,23 +43,14 @@ Pyperclip into running them with whatever permissions the Python process has.
 __version__ = "1.7.0"
 
 import contextlib
-from ctypes import (
-    CDLL,
-    c_size_t,
-    c_wchar,
-    c_wchar_p,
-    get_errno,
-    memmove,
-    sizeof,
-    windll,
-)
+from ctypes import c_size_t, c_wchar, c_wchar_p, get_errno, memmove, sizeof
 import os
 import platform
 import subprocess
 import time
 import warnings
 
-from pandas.compat import is_platform_windows
+from pandas.compat import is_platform_linux, is_platform_mac, is_platform_windows
 
 # `import PyQt4` sys.exit()s if DISPLAY is not in the environment.
 # Thus, we need to detect the presence of $DISPLAY manually
@@ -319,6 +310,7 @@ class CheckedCall:
 def init_windows_clipboard():
     global HGLOBAL, LPVOID, DWORD, LPCSTR, INT
     global HWND, HINSTANCE, HMENU, BOOL, UINT, HANDLE
+    from ctypes import CDLL, windll
     from ctypes.wintypes import (
         BOOL,
         DWORD,
@@ -525,16 +517,16 @@ def determine_clipboard():
             return init_dev_clipboard_clipboard()
 
     # Setup for the WINDOWS platform:
-    elif os.name == "nt" or platform.system() == "Windows":
+    elif is_platform_windows():
         return init_windows_clipboard()
 
-    if platform.system() == "Linux":
+    if is_platform_linux():
         with open("/proc/version") as f:
             if "Microsoft" in f.read():
                 return init_wsl_clipboard()
 
     # Setup for the MAC OS X platform:
-    if os.name == "mac" or platform.system() == "Darwin":
+    if is_platform_mac:
         try:
             import AppKit
             import Foundation  # check if pyobjc is installed
