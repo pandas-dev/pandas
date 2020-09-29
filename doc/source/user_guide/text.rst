@@ -262,7 +262,7 @@ i.e., from the end of the string to the beginning of the string:
                    '', np.nan, 'CABA', 'dog', 'cat'],
                   dtype="string")
    s3
-   s3.str.replace('^.a|dog', 'XX-XX ', case=False)
+   s3.str.replace('^.a|dog', 'XX-XX ', case=False, regex=True)
 
 Some caution must be taken when dealing with regular expressions! The current behavior
 is to treat single character patterns as literal strings, even when ``regex`` is set
@@ -295,7 +295,7 @@ and ``repl`` must be strings:
 .. ipython:: python
 
     # These lines are equivalent
-    dollars.str.replace(r'-\$', '-')
+    dollars.str.replace(r'-\$', '-', regex=True)
     dollars.str.replace('-$', '-', regex=False)
 
 The ``replace`` method can also take a callable as replacement. It is called
@@ -311,7 +311,7 @@ positional argument (a regex object) and return a string.
        return m.group(0)[::-1]
 
    pd.Series(['foo 123', 'bar baz', np.nan],
-             dtype="string").str.replace(pat, repl)
+             dtype="string").str.replace(pat, repl, regex=True)
 
    # Using regex groups
    pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
@@ -320,7 +320,7 @@ positional argument (a regex object) and return a string.
        return m.group('two').swapcase()
 
    pd.Series(['Foo Bar Baz', np.nan],
-             dtype="string").str.replace(pat, repl)
+             dtype="string").str.replace(pat, repl, regex=True)
 
 The ``replace`` method also accepts a compiled regular expression object
 from :func:`re.compile` as a pattern. All flags should be included in the
@@ -330,7 +330,7 @@ compiled regular expression object.
 
    import re
    regex_pat = re.compile(r'^.a|dog', flags=re.IGNORECASE)
-   s3.str.replace(regex_pat, 'XX-XX ')
+   s3.str.replace(regex_pat, 'XX-XX ', regex=True)
 
 Including a ``flags`` argument when calling ``replace`` with a compiled
 regular expression object will raise a ``ValueError``.
