@@ -783,8 +783,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         # instead of checking it as multiindex representation (GH 13797)
         if isinstance(ax0, ABCMultiIndex) and self.name != "iloc":
             with suppress(IndexingError):
-                result = self._handle_lowerdim_multi_index_axis0(tup)
-                return result
+                return self._handle_lowerdim_multi_index_axis0(tup)
 
         self._validate_key_length(tup)
 
@@ -832,8 +831,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
             with suppress(IndexingError):
-                result = self._handle_lowerdim_multi_index_axis0(tup)
-                return result
+                return self._handle_lowerdim_multi_index_axis0(tup)
 
             # this is a series with a multi-index specified a tuple of
             # selectors
