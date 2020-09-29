@@ -47,7 +47,7 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.base import ExtensionArray, NoNewAttributesMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
-from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
+from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
@@ -1643,7 +1643,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
             # TODO: dispatch when self.categories is EA-dtype
             values = np.asarray(self).reshape(-1, len(self))
-            values = interpolate_2d(values, method, 0, None, value).astype(
+            values = interpolate_2d(values, method, 0, None).astype(
                 self.categories.dtype
             )[0]
             codes = _get_codes_for_values(values, self.categories)
@@ -1923,8 +1923,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         # else: array of True/False in Series or Categorical
 
-        key = check_array_indexer(self, key)
-        return key
+        return super()._validate_setitem_key(key)
 
     def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
         """
@@ -1962,12 +1961,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
     # ------------------------------------------------------------------
     # Reductions
-
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
-        func = getattr(self, name, None)
-        if func is None:
-            raise TypeError(f"Categorical cannot perform the operation {name}")
-        return func(skipna=skipna, **kwargs)
 
     @deprecate_kwarg(old_arg_name="numeric_only", new_arg_name="skipna")
     def min(self, skipna=True, **kwargs):

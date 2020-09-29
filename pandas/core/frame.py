@@ -2299,7 +2299,7 @@ class DataFrame(NDFrame):
         path : str or file-like object
             If a string, it will be used as Root Directory path
             when writing a partitioned dataset. By file-like object,
-            we refer to objects with a write() method, such as a file handler
+            we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function) or io.BytesIO. The engine
             fastparquet does not accept file-like objects.
 
@@ -5134,7 +5134,7 @@ class DataFrame(NDFrame):
         0  Yum Yum   cup     4.0
         2  Indomie   cup     3.5
 
-        To remove duplicates and keep last occurences, use ``keep``.
+        To remove duplicates and keep last occurrences, use ``keep``.
 
         >>> df.drop_duplicates(subset=['brand', 'style'], keep='last')
             brand style  rating
@@ -5892,13 +5892,22 @@ DataFrame
     The resulting index will be a MultiIndex with 'self' and 'other'
     stacked alternately at the inner level.
 
+Raises
+------
+ValueError
+    When the two DataFrames don't have identical labels or shape.
+
 See Also
 --------
 Series.compare : Compare with another Series and show differences.
+DataFrame.equals : Test whether two objects contain the same elements.
 
 Notes
 -----
 Matching NaNs will not appear as a difference.
+
+Can only compare identically-labeled
+(i.e. same shape, identical row and column labels) DataFrames
 
 Examples
 --------

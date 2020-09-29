@@ -4503,7 +4503,7 @@ class Index(IndexOpsMixin, PandasObject):
         idx = ensure_key_mapped(self, key)
 
         # GH 35584. Sort missing values according to na_position kwarg
-        # ignore na_position for MutiIndex
+        # ignore na_position for MultiIndex
         if not isinstance(
             self, (ABCMultiIndex, ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
         ):

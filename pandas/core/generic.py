@@ -3403,7 +3403,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if cacher is not None:
             ref = cacher[1]()
 
-            # we are trying to reference a dead referant, hence
+            # we are trying to reference a dead referent, hence
             # a copy
             if ref is None:
                 del self._cacher
@@ -3417,7 +3417,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     ref._item_cache.pop(cacher[0], None)
 
         if verify_is_copy:
-            self._check_setitem_copy(stacklevel=5, t="referant")
+            self._check_setitem_copy(stacklevel=5, t="referent")
 
         if clear:
             self._clear_item_cache()
@@ -3778,10 +3778,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if self._is_view and self._is_cached:
             ref = self._get_cacher()
             if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t="referant", force=True)
+                self._check_setitem_copy(stacklevel=4, t="referent", force=True)
             return True
         elif self._is_copy:
-            self._check_setitem_copy(stacklevel=4, t="referant")
+            self._check_setitem_copy(stacklevel=4, t="referent")
         return False
 
     def _check_setitem_copy(self, stacklevel=4, t="setting", force=False):
@@ -3834,7 +3834,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if isinstance(self._is_copy, str):
             t = self._is_copy
 
-        elif t == "referant":
+        elif t == "referent":
             t = (
                 "\n"
                 "A value is trying to be set on a copy of a slice from a "
@@ -8745,6 +8745,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if is_datetime64tz_dtype(left.index.dtype):
             if left.index.tz != right.index.tz:
                 if join_index is not None:
+                    # GH#33671 ensure we don't change the index on
+                    #  our original Series (NB: by default deep=False)
+                    left = left.copy()
+                    right = right.copy()
                     left.index = join_index
                     right.index = join_index
 
@@ -8832,6 +8836,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if is_datetime64tz_dtype(left.index.dtype):
                 if left.index.tz != right.index.tz:
                     if join_index is not None:
+                        # GH#33671 ensure we don't change the index on
+                        #  our original Series (NB: by default deep=False)
+                        left = left.copy()
+                        right = right.copy()
                         left.index = join_index
                         right.index = join_index
 

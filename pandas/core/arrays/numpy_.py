@@ -16,7 +16,6 @@ from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
-from pandas.core.construction import extract_array
 
 
 class PandasDtype(ExtensionDtype):
@@ -244,19 +243,6 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
-    def _validate_getitem_key(self, key):
-        if isinstance(key, type(self)):
-            key = key._ndarray
-
-        return super()._validate_getitem_key(key)
-
-    def _validate_setitem_value(self, value):
-        value = extract_array(value, extract_numpy=True)
-
-        if not lib.is_scalar(value):
-            value = np.asarray(value, dtype=self._ndarray.dtype)
-        return value
-
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
@@ -271,14 +257,6 @@ class PandasArray(
 
     # ------------------------------------------------------------------------
     # Reductions
-
-    def _reduce(self, name, skipna=True, **kwargs):
-        meth = getattr(self, name, None)
-        if meth:
-            return meth(skipna=skipna, **kwargs)
-        else:
-            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
-            raise TypeError(msg)
 
     def any(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
