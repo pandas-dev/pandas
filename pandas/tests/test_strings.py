@@ -999,7 +999,7 @@ class TestStringMethods:
         exp = Series(["foobar", np.nan])
         tm.assert_series_equal(result, exp)
 
-        result = values.str.replace("BAD[_]*", "", regex=True, n=1)
+        result = values.str.replace("BAD[_]*", "", n=1, regex=True)
         exp = Series(["foobarBAD", np.nan])
         tm.assert_series_equal(result, exp)
 
