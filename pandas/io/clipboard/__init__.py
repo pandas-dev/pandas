@@ -66,7 +66,7 @@ EXCEPT_MSG = """
 ENCODING = "utf-8"
 
 # The "which" unix command finds where a command is.
-WHICH_CMD = "where" if is_platform_windows else "which"
+WHICH_CMD = "where" if is_platform_windows() else "which"
 
 
 def _executable_exists(name):
@@ -516,8 +516,7 @@ def determine_clipboard():
             )
             return init_dev_clipboard_clipboard()
 
-    # Setup for the WINDOWS platform:
-    elif is_platform_windows():
+    if is_platform_windows():
         return init_windows_clipboard()
 
     if is_platform_linux():
@@ -526,7 +525,7 @@ def determine_clipboard():
                 return init_wsl_clipboard()
 
     # Setup for the MAC OS X platform:
-    if is_platform_mac:
+    if is_platform_mac():
         try:
             import AppKit
             import Foundation  # check if pyobjc is installed
