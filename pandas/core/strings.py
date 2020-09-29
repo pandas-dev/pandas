@@ -2842,7 +2842,7 @@ class StringMethods(NoNewAttributesMixin):
             if (
                 isinstance(pat, str)
                 and len(pat) > 1
-                and any(c in pat for c in ".+*|^$[](){}\\")
+                and any(c in pat for c in ".+*|^$?[](){}\\")
             ):
                 # warn only in cases where regex behavior would differ from literal
                 msg = (
