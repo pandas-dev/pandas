@@ -172,5 +172,6 @@ Reading from a url
 .. code-block:: python
 
     from pandas.io.common import urlopen
-    with urlopen('http://www.google.com') as url:
+
+    with urlopen("http://www.google.com") as url:
         raw_text = url.read()
