@@ -37,12 +37,6 @@ jobs:
         ci/code_checks.sh lint
       if: always()
 
-    - name: Dependencies consistency
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh dependencies
-      if: always()
-
     - name: Checks on imported code
       run: |
         source activate pandas-dev
