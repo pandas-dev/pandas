@@ -819,3 +819,20 @@ def test_rolling_axis_1_non_numeric_dtypes(value):
     result = df.rolling(window=2, min_periods=1, axis=1).sum()
     expected = pd.DataFrame({"a": [1.0, 2.0]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("func", "values"),
+    [
+        ("min", [np.nan, 0, 0, 1, 2, 3, 4, 5, 6]),
+        ("max", [np.nan, 0, 1, 2, 3, 4, 5, 6, 7]),
+        ("sum", [np.nan, 0, 1, 3, 5, 7, 9, 11, 13]),
+    ],
+)
+def test_rolling_period_index(func, values):
+    # GH: 34225
+    index = pd.period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="T")
+    ds = pd.Series([i for i in range(0, len(index))], index=index)
+    result = getattr(ds.rolling("2T", closed="left"), func)()
+    expected = pd.Series(values, index=index)
+    tm.assert_series_equal(result, expected)
