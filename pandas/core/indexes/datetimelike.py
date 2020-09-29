@@ -622,6 +622,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # --------------------------------------------------------------------
     # Join/Set Methods
 
+    def _can_union_without_object_cast(self, other) -> bool:
+        return is_dtype_equal(self.dtype, other.dtype)
+
     def _wrap_joined_index(self, joined: np.ndarray, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
         name = get_op_result_name(self, other)

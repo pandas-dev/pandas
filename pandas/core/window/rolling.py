@@ -147,7 +147,9 @@ def get_weighted_roll_func(cfunc: Callable) -> Callable:
     return func
 
 
-class _Window(ShallowMixin, SelectionMixin):
+class BaseWindow(ShallowMixin, SelectionMixin):
+    """Provides utilities for performing windowing operations."""
+
     _attributes: List[str] = [
         "window",
         "min_periods",
@@ -183,10 +185,6 @@ class _Window(ShallowMixin, SelectionMixin):
         self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
-
-    @property
-    def _constructor(self):
-        return Window
 
     @property
     def is_datetimelike(self) -> Optional[bool]:
@@ -243,7 +241,13 @@ class _Window(ShallowMixin, SelectionMixin):
         if self.on is not None and not isinstance(self.on, Index):
             if obj.ndim == 2:
                 obj = obj.reindex(columns=obj.columns.difference([self.on]), copy=False)
-
+        if self.axis == 1:
+            # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
+            # to float to calculate the complete row at once. We exclude all non-numeric
+            # dtypes.
+            obj = obj.select_dtypes(include=["integer", "float"], exclude=["timedelta"])
+            obj = obj.astype("float64", copy=False)
+            obj._mgr = obj._mgr.consolidate()
         return obj
 
     def _gotitem(self, key, ndim, subset=None):
@@ -856,7 +860,7 @@ class _Window(ShallowMixin, SelectionMixin):
     )
 
 
-class Window(_Window):
+class Window(BaseWindow):
     """
     Provide rolling window calculations.
 
@@ -934,7 +938,7 @@ class Window(_Window):
 
     If ``win_type=None`` all points are evenly weighted. To learn more about
     different window types see `scipy.signal window functions
-    <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__.
+    <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
 
     Certain window types require additional parameters to be passed. Please see
     the third example below on how to add the additional parameters.
@@ -1033,6 +1037,10 @@ class Window(_Window):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
     """
+
+    @property
+    def _constructor(self):
+        return Window
 
     def validate(self):
         super().validate()
@@ -1214,13 +1222,7 @@ class Window(_Window):
         return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
 
-class RollingMixin(_Window):
-    @property
-    def _constructor(self):
-        return Rolling
-
-
-class RollingAndExpandingMixin(RollingMixin):
+class RollingAndExpandingMixin(BaseWindow):
 
     _shared_docs["count"] = dedent(
         r"""
@@ -1934,6 +1936,10 @@ class Rolling(RollingAndExpandingMixin):
                 f"invalid on specified as {self.on}, "
                 "must be a column (of DataFrame), an Index or None"
             )
+
+    @property
+    def _constructor(self):
+        return Rolling
 
     def validate(self):
         super().validate()

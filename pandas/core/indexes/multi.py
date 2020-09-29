@@ -65,7 +65,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Series  # noqa:F401
+    from pandas import Series
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -3596,6 +3596,15 @@ class MultiIndex(Index):
             return self._shallow_copy()
         return self
 
+    def _validate_insert_value(self, item):
+        if not isinstance(item, tuple):
+            # Pad the key with empty strings if lower levels of the key
+            # aren't specified:
+            item = (item,) + ("",) * (self.nlevels - 1)
+        elif len(item) != self.nlevels:
+            raise ValueError("Item must have length equal to number of levels.")
+        return item
+
     def insert(self, loc: int, item):
         """
         Make new MultiIndex inserting new item at location
@@ -3610,12 +3619,7 @@ class MultiIndex(Index):
         -------
         new_index : Index
         """
-        # Pad the key with empty strings if lower levels of the key
-        # aren't specified:
-        if not isinstance(item, tuple):
-            item = (item,) + ("",) * (self.nlevels - 1)
-        elif len(item) != self.nlevels:
-            raise ValueError("Item must have length equal to number of levels.")
+        item = self._validate_insert_value(item)
 
         new_levels = []
         new_codes = []

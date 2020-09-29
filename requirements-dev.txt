@@ -6,14 +6,16 @@ python-dateutil>=2.7.3
 pytz
 asv
 cython>=0.29.21
-black==19.10b0
+black==20.8b1
 cpplint
 flake8<3.8.0
 flake8-comprehensions>=3.1.0
 flake8-rst>=0.6.0,<=0.7.0
 isort>=5.2.1
 mypy==0.782
+pre-commit
 pycodestyle
+pyupgrade
 gitpython
 gitdb
 sphinx
@@ -37,6 +39,7 @@ pytest>=5.0.1
 pytest-cov
 pytest-xdist>=1.21
 pytest-asyncio
+pytest-instafail
 seaborn
 statsmodels
 ipywidgets
