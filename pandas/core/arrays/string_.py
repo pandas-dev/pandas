@@ -22,7 +22,6 @@ from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
-from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if TYPE_CHECKING:
     import pyarrow
@@ -103,7 +102,7 @@ class StringDtype(ExtensionDtype):
         return StringArray._concat_same_type(results)
 
 
-class StringArray(PandasArray, ObjectStringArrayMixin):
+class StringArray(PandasArray):
     """
     Extension array for string data.
 
