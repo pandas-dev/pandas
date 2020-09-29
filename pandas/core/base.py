@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Callable, Dict, FrozenSet, List, Optional, Union, cast
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, Union
 
 import numpy as np
 
@@ -478,11 +478,7 @@ class SelectionMixin:
                 # we have a dict of scalars
 
                 # GH 36212 use name only if self is a series
-                if self.ndim == 1:
-                    self = cast(Series, self)
-                    name = self.name
-                else:
-                    name = None
+                name = self.name if isinstance(self, ABCSeries) else None
 
                 result = Series(result, name=name)
 
