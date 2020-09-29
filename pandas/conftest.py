@@ -298,7 +298,9 @@ unique_nulls_fixture2 = unique_nulls_fixture
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
-@pytest.fixture(params=[pd.Index, pd.Series], ids=["index", "series"])
+@pytest.fixture(
+    params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
+)
 def index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
