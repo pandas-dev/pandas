@@ -1017,7 +1017,7 @@ class TestStringMethods:
         values = Series([b"abcd,\xc3\xa0".decode("utf-8")])
         exp = Series([b"abcd, \xc3\xa0".decode("utf-8")])
         result = values.str.replace(
-            r"(?<=\w),(?=\w)", ", ", regex=True, flags=re.UNICODE
+            r"(?<=\w),(?=\w)", ", ", flags=re.UNICODE, regex=True
         )
         tm.assert_series_equal(result, exp)
 
