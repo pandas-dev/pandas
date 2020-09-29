@@ -71,11 +71,13 @@ descriptor format for these as is follows:
 .. code-block:: python
 
    index = pd.RangeIndex(0, 10, 2)
-   {'kind': 'range',
-    'name': index.name,
-    'start': index.start,
-    'stop': index.stop,
-    'step': index.step}
+   {
+       "kind": "range",
+       "name": index.name,
+       "start": index.start,
+       "stop": index.stop,
+       "step": index.step,
+   }
 
 Other index types must be serialized as data columns along with the other
 DataFrame columns. The metadata for these is a string indicating the name of
