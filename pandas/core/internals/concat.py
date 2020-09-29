@@ -425,6 +425,7 @@ def _get_upcast_classes(
     join_units: Sequence[JoinUnit],
     dtypes: Sequence[DtypeObj],
 ) -> Dict[str, List[DtypeObj]]:
+    """Create mapping between upcast class names and lists of dtypes."""
     upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
     null_upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
     for dtype, unit in zip(dtypes, join_units):
@@ -447,6 +448,7 @@ def _get_upcast_classes(
 
 
 def _select_upcast_cls_from_dtype(dtype: DtypeObj) -> str:
+    """Select upcast class name based on dtype."""
     if is_categorical_dtype(dtype):
         return "category"
     elif is_datetime64tz_dtype(dtype):
