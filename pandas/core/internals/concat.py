@@ -380,29 +380,7 @@ def _get_empty_dtype_and_na(join_units):
         if dtype is None:
             continue
 
-        if is_categorical_dtype(dtype):
-            upcast_cls = "category"
-        elif is_datetime64tz_dtype(dtype):
-            upcast_cls = "datetimetz"
-
-        elif is_extension_array_dtype(dtype):
-            upcast_cls = "extension"
-
-        elif issubclass(dtype.type, np.bool_):
-            upcast_cls = "bool"
-        elif issubclass(dtype.type, np.object_):
-            upcast_cls = "object"
-        elif is_datetime64_dtype(dtype):
-            upcast_cls = "datetime"
-        elif is_timedelta64_dtype(dtype):
-            upcast_cls = "timedelta"
-        elif is_sparse(dtype):
-            upcast_cls = dtype.subtype.name
-        elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
-            upcast_cls = dtype.name
-        else:
-            upcast_cls = "float"
-
+        upcast_cls = _select_upcast_cls_from_dtype(dtype)
         # Null blocks should not influence upcast class selection, unless there
         # are only null blocks, when same upcasting rules must be applied to
         # null upcast classes.
@@ -456,6 +434,29 @@ def _get_empty_dtype_and_na(join_units):
 
     msg = "invalid dtype determination in get_concat_dtype"
     raise AssertionError(msg)
+
+
+def _select_upcast_cls_from_dtype(dtype):
+    if is_categorical_dtype(dtype):
+        return "category"
+    elif is_datetime64tz_dtype(dtype):
+        return "datetimetz"
+    elif is_extension_array_dtype(dtype):
+        return "extension"
+    elif issubclass(dtype.type, np.bool_):
+        return "bool"
+    elif issubclass(dtype.type, np.object_):
+        return "object"
+    elif is_datetime64_dtype(dtype):
+        return "datetime"
+    elif is_timedelta64_dtype(dtype):
+        return "timedelta"
+    elif is_sparse(dtype):
+        return dtype.subtype.name
+    elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
+        return dtype.name
+    else:
+        return "float"
 
 
 def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:
