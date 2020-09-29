@@ -822,8 +822,8 @@ def test_html_repr_min_rows(datapath, max_rows, min_rows, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize("na_rep, value", [(None, "nan"), ("Ted", "Ted")])
-def test_to_html_na_rep_and_float_format(na_rep, value):
+@pytest.mark.parametrize("na_rep, string", [(None, "nan"), ("Ted", "Ted")])
+def test_to_html_na_rep_and_float_format(na_rep, string):
     # https://github.com/pandas-dev/pandas/issues/13828
     df = DataFrame(
         [
@@ -850,7 +850,7 @@ def test_to_html_na_rep_and_float_format(na_rep, value):
     <tr>
       <th>1</th>
       <td>A</td>
-      <td>{value}</td>
+      <td>{string}</td>
     </tr>
   </tbody>
 </table>"""
