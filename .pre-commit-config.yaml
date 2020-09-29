@@ -43,3 +43,7 @@ repos:
         entry: python -m scripts.generate_pip_deps_from_conda
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
+-   repo: https://github.com/MarcoGorelli/flake8-rst-mirror
+    rev: v0.7.0
+    hooks:
+    -   id: flake8-rst

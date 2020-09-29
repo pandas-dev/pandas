@@ -8,9 +8,8 @@ asv
 cython>=0.29.21
 black==20.8b1
 cpplint
-flake8<3.8.0
+flake8
 flake8-comprehensions>=3.1.0
-flake8-rst>=0.6.0,<=0.7.0
 isort>=5.2.1
 mypy==0.782
 pre-commit
