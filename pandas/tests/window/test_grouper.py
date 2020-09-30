@@ -56,7 +56,21 @@ class TestGrouperGrouping:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "f", ["sum", "mean", "min", "max", pytest.param("count", marks=pytest.mark.filterwarnings("ignore:min_periods:DeprecationWarning")), "kurt", "skew"]
+        "f",
+        [
+            "sum",
+            "mean",
+            "min",
+            "max",
+            pytest.param(
+                "count",
+                marks=pytest.mark.filterwarnings(
+                    "ignore:min_periods:DeprecationWarning"
+                ),
+            ),
+            "kurt",
+            "skew",
+        ],
     )
     def test_rolling(self, f):
         g = self.frame.groupby("A")
