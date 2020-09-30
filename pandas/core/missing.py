@@ -199,7 +199,7 @@ def interpolate_1d(
         return yvalues
 
     if method == "time":
-        if not getattr(xvalues, "is_all_dates", None):
+        if not getattr(xvalues, "_is_all_dates", None):
             # if not issubclass(xvalues.dtype.type, np.datetime64):
             raise ValueError(
                 "time-weighted interpolation only works "
@@ -327,7 +327,7 @@ def _interpolate_scipy_wrapper(
         "piecewise_polynomial": _from_derivatives,
     }
 
-    if getattr(x, "is_all_dates", False):
+    if getattr(x, "_is_all_dates", False):
         # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 

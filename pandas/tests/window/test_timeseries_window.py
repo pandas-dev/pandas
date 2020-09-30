@@ -50,41 +50,44 @@ class TestRollingTS:
         df
         df.rolling("2s").sum()
 
-    def test_valid(self):
-
-        df = self.regular
+    def test_invalid_window_non_int(self):
 
         # not a valid freq
         msg = "passed window foobar is not compatible with a datetimelike index"
         with pytest.raises(ValueError, match=msg):
-            df.rolling(window="foobar")
+            self.regular.rolling(window="foobar")
         # not a datetimelike index
         msg = "window must be an integer"
         with pytest.raises(ValueError, match=msg):
-            df.reset_index().rolling(window="foobar")
+            self.regular.reset_index().rolling(window="foobar")
+
+    @pytest.mark.parametrize("freq", ["2MS", offsets.MonthBegin(2)])
+    def test_invalid_window_nonfixed(self, freq):
 
         # non-fixed freqs
         msg = "\\<2 \\* MonthBegins\\> is a non-fixed frequency"
-        for freq in ["2MS", offsets.MonthBegin(2)]:
-            with pytest.raises(ValueError, match=msg):
-                df.rolling(window=freq)
+        with pytest.raises(ValueError, match=msg):
+            self.regular.rolling(window=freq)
 
-        for freq in ["1D", offsets.Day(2), "2ms"]:
-            df.rolling(window=freq)
+    @pytest.mark.parametrize("freq", ["1D", offsets.Day(2), "2ms"])
+    def test_valid_window(self, freq):
+        self.regular.rolling(window=freq)
 
+    @pytest.mark.parametrize("minp", [1.0, "foo", np.array([1, 2, 3])])
+    def test_invalid_minp(self, minp):
         # non-integer min_periods
         msg = (
             r"local variable 'minp' referenced before assignment|"
             "min_periods must be an integer"
         )
-        for minp in [1.0, "foo", np.array([1, 2, 3])]:
-            with pytest.raises(ValueError, match=msg):
-                df.rolling(window="1D", min_periods=minp)
+        with pytest.raises(ValueError, match=msg):
+            self.regular.rolling(window="1D", min_periods=minp)
 
+    def test_invalid_center_datetimelike(self):
         # center is not implemented
         msg = "center is not implemented for datetimelike and offset based windows"
         with pytest.raises(NotImplementedError, match=msg):
-            df.rolling(window="1D", center=True)
+            self.regular.rolling(window="1D", center=True)
 
     def test_on(self):
 
@@ -590,7 +593,7 @@ class TestRollingTS:
         [
             "sum",
             "mean",
-            "count",
+            pytest.param("count", marks=pytest.mark.filterwarnings("ignore:min_periods:DeprecationWarning")),
             "median",
             "std",
             "var",
@@ -600,7 +603,6 @@ class TestRollingTS:
             "max",
         ],
     )
-    @pytest.mark.filterwarnings("ignore:min_periods:DeprecationWarning")
     def test_all(self, f):
 
         # simple comparison of integer vs time-based windowing
@@ -616,7 +618,22 @@ class TestRollingTS:
         expected = er.quantile(0.5)
         tm.assert_frame_equal(result, expected)
 
-    def test_all2(self):
+    @pytest.mark.parametrize(
+        "f",
+        [
+            "sum",
+            "mean",
+            "count",
+            "median",
+            "std",
+            "var",
+            "kurt",
+            "skew",
+            "min",
+            "max",
+        ],
+    )
+    def test_all2(self, f):
 
         # more sophisticated comparison of integer vs.
         # time-based windowing
@@ -628,36 +645,21 @@ class TestRollingTS:
 
         r = dft.rolling(window="5H")
 
-        for f in [
-            "sum",
-            "mean",
-            "count",
-            "median",
-            "std",
-            "var",
-            "kurt",
-            "skew",
-            "min",
-            "max",
-        ]:
+        result = getattr(r, f)()
 
-            result = getattr(r, f)()
+        # we need to roll the days separately
+        # to compare with a time-based roll
+        # finally groupby-apply will return a multi-index
+        # so we need to drop the day
+        def agg_by_day(x):
+            x = x.between_time("09:00", "16:00")
+            return getattr(x.rolling(5, min_periods=1), f)()
 
-            # we need to roll the days separately
-            # to compare with a time-based roll
-            # finally groupby-apply will return a multi-index
-            # so we need to drop the day
-            def agg_by_day(x):
-                x = x.between_time("09:00", "16:00")
-                return getattr(x.rolling(5, min_periods=1), f)()
+        expected = (
+            df.groupby(df.index.day).apply(agg_by_day).reset_index(level=0, drop=True)
+        )
 
-            expected = (
-                df.groupby(df.index.day)
-                .apply(agg_by_day)
-                .reset_index(level=0, drop=True)
-            )
-
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_monotonic(self):
 
