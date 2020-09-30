@@ -264,6 +264,7 @@ Deprecations
 - Deprecated indexing :class:`DataFrame` rows with datetime-like strings ``df[string]``, use ``df.loc[string]`` instead (:issue:`36179`)
 - Deprecated casting an object-dtype index of ``datetime`` objects to :class:`DatetimeIndex` in the :class:`Series` constructor (:issue:`23598`)
 - Deprecated :meth:`Index.is_all_dates` (:issue:`27744`)
+- The default value of ``regex`` for :meth:`Series.str.replace` will change from ``True`` to ``False`` in a future release (:issue:`24804`)
 
 .. ---------------------------------------------------------------------------
 
