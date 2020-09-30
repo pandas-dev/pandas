@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
+import warnings
 
 import numpy as np
 
@@ -34,7 +35,7 @@ from pandas.core.indexers import (
 from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa:F401
+    from pandas import DataFrame, Series
 
 # "null slice"
 _NS = slice(None, None)
@@ -2191,7 +2192,15 @@ def convert_to_index_sliceable(obj: "DataFrame", key):
         # slice here via partial string indexing
         if idx._supports_partial_string_indexing:
             try:
-                return idx._get_string_slice(key)
+                res = idx._get_string_slice(key)
+                warnings.warn(
+                    "Indexing on datetimelike rows with `frame[string]` is "
+                    "deprecated and will be removed in a future version. "
+                    "Use `frame.loc[string]` instead.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+                return res
             except (KeyError, ValueError, NotImplementedError):
                 return None
 

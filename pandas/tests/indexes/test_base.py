@@ -1153,7 +1153,8 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_all_dates(self, index, expected):
-        assert index.is_all_dates is expected
+        with tm.assert_produces_warning(FutureWarning):
+            assert index.is_all_dates is expected
 
     def test_summary(self, index):
         self._check_method_works(Index._summary, index)
@@ -2607,7 +2608,7 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
         ex1 = np.array([0, 3, 1, 4, 2, 5] * 2, dtype=np.intp)
         ex2 = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(result[0], ex1)
-        tm.assert_numpy_array_equal(result[1], ex2.astype(np.int64))
+        tm.assert_numpy_array_equal(result[1], ex2)
 
     else:
         no_matches = np.array([-1] * 6, dtype=np.intp)
