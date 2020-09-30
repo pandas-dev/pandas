@@ -1960,7 +1960,7 @@ class Rolling(RollingAndExpandingMixin):
             # this will raise ValueError on non-fixed freqs
             self.win_freq = self.window
             if isinstance(self._on, ABCPeriodIndex):
-                self.window = freq.n
+                self.window = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
             else:
                 self.window = freq.nanos
             self.win_type = "freq"
