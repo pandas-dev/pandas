@@ -1,6 +1,7 @@
 from datetime import date, datetime, time, timedelta, tzinfo
+import functools
 import operator
-from typing import Optional
+from typing import TYPE_CHECKING, Callable, Optional, cast
 import warnings
 
 import numpy as np
@@ -8,9 +9,9 @@ import numpy as np
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
 from pandas._libs.tslibs import Resolution, ints_to_pydatetime, parsing, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import DtypeObj, Label
+from pandas._typing import DtypeObj, F, Label
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -21,6 +22,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
 )
+from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
@@ -29,6 +31,29 @@ from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, PeriodIndex, TimedeltaIndex
+
+
+def dispatch_to_array_and_wrap(delegate) -> Callable[[F], F]:
+    def decorator(func: F) -> F:
+        name = func.__name__
+
+        @functools.wraps(func)
+        def method_wrapper(self, *args, **kwargs):
+
+            result = getattr(self._data, name)(*args, **kwargs)
+            if isinstance(result, type(self._data)):
+                return type(self)._simple_new(result, name=self.name)
+            elif isinstance(result, ABCDataFrame):
+                return result.set_index(self)
+            return Index(result, name=self.name)
+
+        method_wrapper.__doc__ = getattr(delegate, name).__doc__
+        return cast(F, method_wrapper)
+
+    return decorator
 
 
 def _new_DatetimeIndex(cls, d):
@@ -64,8 +89,7 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    ["to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
-    + DatetimeArray._field_ops
+    DatetimeArray._field_ops
     + [
         method
         for method in DatetimeArray._datetimelike_methods
@@ -185,6 +209,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     ceil
     to_period
     to_perioddelta
+    to_julian_date
+    isocalendar
     to_pydatetime
     to_series
     to_frame
@@ -220,24 +246,37 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     tz: Optional[tzinfo]
 
     # --------------------------------------------------------------------
-    # methods that dispatch to array and wrap result in DatetimeIndex
+    # methods that dispatch to DatetimeArray and wrap result
 
-    @doc(DatetimeArray.tz_convert)
+    @dispatch_to_array_and_wrap(DatetimeArray)
+    def strftime(self, date_format) -> Index:
+        pass
+
+    @dispatch_to_array_and_wrap(DatetimeArray)
     def tz_convert(self, tz) -> "DatetimeIndex":
-        arr = self._data.tz_convert(tz)
-        return type(self)._simple_new(arr, name=self.name)
+        pass
 
-    @doc(DatetimeArray.tz_localize)
+    @dispatch_to_array_and_wrap(DatetimeArray)
     def tz_localize(
         self, tz, ambiguous="raise", nonexistent="raise"
     ) -> "DatetimeIndex":
-        arr = self._data.tz_localize(tz, ambiguous, nonexistent)
-        return type(self)._simple_new(arr, name=self.name)
+        pass
 
-    @doc(DatetimeArray.to_period)
-    def to_period(self, freq=None) -> "DatetimeIndex":
-        arr = self._data.to_period(freq)
-        return type(self)._simple_new(arr, name=self.name)
+    @dispatch_to_array_and_wrap(DatetimeArray)
+    def to_period(self, freq=None) -> "PeriodIndex":
+        pass
+
+    @dispatch_to_array_and_wrap(DatetimeArray)
+    def to_perioddelta(self, freq) -> "TimedeltaIndex":
+        pass
+
+    @dispatch_to_array_and_wrap(DatetimeArray)
+    def to_julian_date(self) -> Index:
+        pass
+
+    @dispatch_to_array_and_wrap(DatetimeArray)
+    def isocalendar(self) -> "DataFrame":
+        pass
 
     # --------------------------------------------------------------------
     # Constructors
