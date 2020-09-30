@@ -442,6 +442,6 @@ class TestGrouperGrouping:
                 ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9), 1.0],
                 ["E", "group_2", pd.Timestamp(2019, 1, 20, 9), 1.0],
             ],
-            columns=["index", "group", "eventTime", "count_to_date"]
+            columns=["index", "group", "eventTime", "count_to_date"],
         ).set_index(["group", "index"])
         tm.assert_frame_equal(result, expected)
