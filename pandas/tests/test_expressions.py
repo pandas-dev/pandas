@@ -390,16 +390,9 @@ class TestExpressions:
             "__rfloordiv__",
         ],
     )
-    @pytest.mark.parametrize(
-        "box, tester",
-        [
-            (DataFrame, tm.assert_frame_equal),
-            (Series, tm.assert_series_equal),
-            (Index, tm.assert_index_equal),
-        ],
-    )
+    @pytest.mark.parametrize("box", [DataFrame, Series, Index])
     @pytest.mark.parametrize("scalar", [-5, 5])
-    def test_python_semantics_with_numexpr_installed(self, op, box, tester, scalar):
+    def test_python_semantics_with_numexpr_installed(self, op, box, scalar):
         # https://github.com/pandas-dev/pandas/issues/36047
         expr._MIN_ELEMENTS = 0
         data = np.arange(-50, 50)
@@ -411,7 +404,7 @@ class TestExpressions:
         expr.set_use_numexpr(False)
         expected = method(scalar)
         expr.set_use_numexpr(True)
-        tester(result, expected)
+        tm.assert_equal(result, expected)
 
         # compare result element-wise with Python
         for i, elem in enumerate(data):
