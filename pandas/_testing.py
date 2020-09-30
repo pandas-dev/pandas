@@ -84,6 +84,7 @@ ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
 FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
+FLOAT_EA_DTYPES: List[Dtype] = ["Float32", "Float64"]
 COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: List[Dtype] = [str, "str", "U"]
 

@@ -204,10 +204,20 @@ class StringArray(PandasArray):
         if dtype:
             assert dtype == "string"
 
-        # convert non-na-likes to str, and nan-likes to StringDtype.na_value
-        result = lib.ensure_string_array(
-            scalars, na_value=StringDtype.na_value, copy=copy
-        )
+        from pandas.core.arrays.masked import BaseMaskedArray
+
+        if isinstance(scalars, BaseMaskedArray):
+            # avoid costly conversion to object dtype
+            na_values = scalars._mask
+            result = scalars._data
+            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result[na_values] = StringDtype.na_value
+
+        else:
+            # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+            result = lib.ensure_string_array(
+                scalars, na_value=StringDtype.na_value, copy=copy
+            )
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?

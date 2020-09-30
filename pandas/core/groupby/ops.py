@@ -20,6 +20,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
+    ensure_float,
     ensure_float64,
     ensure_int64,
     ensure_int_or_float,
@@ -491,7 +492,7 @@ class BaseGrouper:
             else:
                 values = ensure_int_or_float(values)
         elif is_numeric and not is_complex_dtype(values):
-            values = ensure_float64(values)
+            values = ensure_float64(ensure_float(values))
         else:
             values = values.astype(object)
 
