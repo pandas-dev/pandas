@@ -3427,7 +3427,7 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
     assert df == expected
 
 
-@pytest.mark.parametrize("na_rep, string", [(None, "nan"), ("Ted", "Ted")])
+@pytest.mark.parametrize("na_rep, string", [("NaN", "nan"), ("Ted", "Ted")])
 def test_to_string_na_rep_and_float_format(na_rep, string):
     # GH 13828
     df = DataFrame([["A", 1.2225], ["A", None]], columns=["Group", "Data"])

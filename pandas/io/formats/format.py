@@ -1533,7 +1533,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
         # shortcut
         if self.formatter is not None:
-            if self.na_rep is None:
+            if self.na_rep == "NaN":
                 return [self.formatter(x) for x in self.values]
             else:
                 na_mask = isna(self.values)

@@ -1253,7 +1253,7 @@ class TestRowStringConverter:
 
         assert row_string_converter.get_strrow(row_num=row_num) == expected
 
-    @pytest.mark.parametrize("na_rep, string", [(None, "nan"), ("Ted", "Ted")])
+    @pytest.mark.parametrize("na_rep, string", [("NaN", "nan"), ("Ted", "Ted")])
     def test_to_latex_na_rep_and_float_format(self, na_rep, string):
         df = DataFrame(
             [
