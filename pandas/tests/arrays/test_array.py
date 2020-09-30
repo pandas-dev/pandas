@@ -14,6 +14,7 @@ from pandas.api.types import is_scalar
 from pandas.arrays import (
     BooleanArray,
     DatetimeArray,
+    FloatingArray,
     IntegerArray,
     IntervalArray,
     SparseArray,
@@ -36,6 +37,11 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
             PandasArray(np.array([1.0, 2.0], dtype=np.dtype("float32"))),
         ),
         (np.array([1, 2], dtype="int64"), None, IntegerArray._from_sequence([1, 2])),
+        (
+            np.array([1.0, 2.0], dtype="float64"),
+            None,
+            FloatingArray._from_sequence([1.0, 2.0]),
+        ),
         # String alias passes through to NumPy
         ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
         # Period alias
@@ -224,6 +230,19 @@ cet = pytz.timezone("CET")
         ([1, None], IntegerArray._from_sequence([1, None])),
         ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA])),
         ([1, np.nan], IntegerArray._from_sequence([1, np.nan])),
+        # float
+        ([0.1, 0.2], FloatingArray._from_sequence([0.1, 0.2])),
+        ([0.1, None], FloatingArray._from_sequence([0.1, pd.NA])),
+        ([0.1, np.nan], FloatingArray._from_sequence([0.1, pd.NA])),
+        ([0.1, pd.NA], FloatingArray._from_sequence([0.1, pd.NA])),
+        # integer-like float
+        ([1.0, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
+        ([1.0, None], FloatingArray._from_sequence([1.0, pd.NA])),
+        ([1.0, np.nan], FloatingArray._from_sequence([1.0, pd.NA])),
+        ([1.0, pd.NA], FloatingArray._from_sequence([1.0, pd.NA])),
+        # mixed-integer-float
+        ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
+        ([1, np.nan, 2.0], FloatingArray._from_sequence([1.0, None, 2.0])),
         # string
         (["a", "b"], StringArray._from_sequence(["a", "b"])),
         (["a", None], StringArray._from_sequence(["a", None])),
