@@ -181,7 +181,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | pymysql         | 0.7.11          |    X    |
 +-----------------+-----------------+---------+
-| pytables        | 3.4.4           |    X    |
+| pytables        | 3.5.1           |    X    |
 +-----------------+-----------------+---------+
 | s3fs            | 0.4.0           |         |
 +-----------------+-----------------+---------+
@@ -331,6 +331,7 @@ I/O
 - Bug in :func:`LongTableBuilder.middle_separator` was duplicating LaTeX longtable entries in the List of Tables of a LaTeX document (:issue:`34360`)
 - Bug in :meth:`read_csv` with ``engine='python'`` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
 - Removed ``private_key`` and ``verbose`` from :func:`read_gbq` as they are no longer supported in ``pandas-gbq`` (:issue:`34654`, :issue:`30200`)
+- Bumped minimum pytables version to 3.5.1 to avoid a ``ValueError`` in :meth:`read_hdf` (:issue:`24839`)
 
 Plotting
 ^^^^^^^^
