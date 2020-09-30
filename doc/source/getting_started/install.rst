@@ -266,7 +266,7 @@ PyTables                  3.4.4              HDF5-based reading / writing
 SQLAlchemy                1.2.8              SQL support for databases other than sqlite
 SciPy                     1.12.0             Miscellaneous statistical functions
 xlsxwriter                1.0.2              Excel writing
-blosc                     1.14.3             Compression for HDF5
+blosc                     1.15.0             Compression for HDF5
 fsspec                    0.7.4              Handling files aside from local and HTTP
 fastparquet               0.3.2              Parquet reading / writing
 gcsfs                     0.6.0              Google Cloud Storage access
@@ -280,7 +280,7 @@ psycopg2                  2.7                PostgreSQL engine for sqlalchemy
 pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
 pymysql                   0.7.11             MySQL engine for sqlalchemy
 pyreadstat                                   SPSS files (.sav) reading
-pytables                  3.4.4              HDF5 reading / writing
+pytables                  3.5.1              HDF5 reading / writing
 pyxlsb                    1.0.6              Reading for xlsb files
 qtpy                                         Clipboard I/O
 s3fs                      0.4.0              Amazon S3 access

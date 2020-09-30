@@ -13,7 +13,7 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
-  - blosc=1.14.3
+  - blosc=1.15.0
   - python-blosc
   - fastparquet=0.3.2
   - html5lib
@@ -30,7 +30,7 @@ dependencies:
   - pyarrow>=0.17
   - psycopg2=2.7
   - pymysql=0.7.11
-  - pytables
+  - pytables>=3.5.1
   - python-dateutil
   - pytz
   - scipy
