@@ -622,8 +622,13 @@ even if some categories are not present in the data:
 
 .. ipython:: python
 
-    columns = pd.Categorical(['One','One', 'Two'], categories=['One', 'Two', 'Three'], ordered=True)
-    df = pd.DataFrame(data=[[1, 2, 3], [4, 5, 6]], columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]))
+    columns = pd.Categorical(
+            ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
+        )
+    df = pd.DataFrame(
+        data=[[1, 2, 3], [4, 5, 6]],
+        columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]),
+    )
     df.sum(axis=1, level=1)
 
 Groupby will also show "unused" categories:
