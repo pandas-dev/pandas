@@ -39,22 +39,27 @@ def test_constructor(which):
     with pytest.raises(ValueError, match=msg):
         c(-1)
 
+
+@pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
+def test_invalid_constructor(which, w):
     # not valid
-    for w in [2.0, "foo", np.array([2])]:
-        msg = (
-            "window must be an integer|"
-            "passed window foo is not compatible with a datetimelike index"
-        )
-        with pytest.raises(ValueError, match=msg):
-            c(window=w)
 
-        msg = "min_periods must be an integer"
-        with pytest.raises(ValueError, match=msg):
-            c(window=2, min_periods=w)
+    c = which.rolling
 
-        msg = "center must be a boolean"
-        with pytest.raises(ValueError, match=msg):
-            c(window=2, min_periods=1, center=w)
+    msg = (
+        "window must be an integer|"
+        "passed window foo is not compatible with a datetimelike index"
+    )
+    with pytest.raises(ValueError, match=msg):
+        c(window=w)
+
+    msg = "min_periods must be an integer"
+    with pytest.raises(ValueError, match=msg):
+        c(window=2, min_periods=w)
+
+    msg = "center must be a boolean"
+    with pytest.raises(ValueError, match=msg):
+        c(window=2, min_periods=1, center=w)
 
 
 @td.skip_if_no_scipy

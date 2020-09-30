@@ -155,8 +155,6 @@ def test_rolling_apply_args_kwargs(args_kwargs):
     result = df.rolling(1).apply(foo, args=args_kwargs[0], kwargs=args_kwargs[1])
     tm.assert_frame_equal(result, expected)
 
-    result = df.rolling(1).apply(foo, args=(10,))
-
     midx = MultiIndex.from_tuples([(1, 0), (1, 1)], names=["gr", None])
     expected = Series([11.0, 12.0], index=midx, name="a")
 
