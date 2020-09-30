@@ -1276,8 +1276,8 @@ class DatetimeLikeArrayMixin(
             result = self + offset
             return result
 
-        if periods == 0:
-            # immutable so OK
+        if periods == 0 or len(self) == 0:
+            # GH#14811 empty case
             return self.copy()
 
         if self.freq is None:
