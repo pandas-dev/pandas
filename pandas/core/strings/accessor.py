@@ -1170,7 +1170,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
+    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=None):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
 
@@ -1288,6 +1288,19 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
+        if regex is None:
+            if (
+                isinstance(pat, str)
+                and len(pat) > 1
+                and any(c in pat for c in ".+*|^$?[](){}\\")
+            ):
+                # warn only in cases where regex behavior would differ from literal
+                msg = (
+                    "The default value of regex will change from "
+                    "True to False in a future version."
+                )
+                warnings.warn(msg, FutureWarning, stacklevel=3)
+            regex = True
         result = self._array._str_replace(
             pat, repl, n=n, case=case, flags=flags, regex=regex
         )
