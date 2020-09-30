@@ -623,7 +623,7 @@ even if some categories are not present in the data:
 .. ipython:: python
 
     columns = pd.Categorical(
-            ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
+        ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
     )
     df = pd.DataFrame(
         data=[[1, 2, 3], [4, 5, 6]],
