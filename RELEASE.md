@@ -1,4 +1,4 @@
-Release Notes
+Notes released by pandas
 =============
 
 The list of changes to Pandas between each release can be found
