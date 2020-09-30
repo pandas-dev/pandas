@@ -153,6 +153,9 @@ has been under active development since then.
 For usage questions, the best place to go to is [StackOverflow](https://stackoverflow.com/questions/tagged/pandas).
 Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
 
+## Notes
+If you are using Jupyter notebook or Google's Colaboratory then pandas are pre-installed in it.
+
 ## Discussion and Development
 Most development discussions take place on github in this repo. Further, the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) can also be used for specialized discussions or design issues, and a [Gitter channel](https://gitter.im/pydata/pandas) is available for quick development related questions.
 
