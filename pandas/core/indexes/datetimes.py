@@ -1,7 +1,6 @@
 from datetime import date, datetime, time, timedelta, tzinfo
-import functools
 import operator
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, Optional
 import warnings
 
 import numpy as np
@@ -9,7 +8,7 @@ import numpy as np
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
 from pandas._libs.tslibs import Resolution, ints_to_pydatetime, parsing, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
-from pandas._typing import DtypeObj, F, Label
+from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly, doc
 
@@ -22,7 +21,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
@@ -33,23 +31,7 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, PeriodIndex, TimedeltaIndex
-
-
-def dispatch_to_array_and_wrap(func: F) -> F:
-    name = func.__name__
-
-    @functools.wraps(func)
-    def method_wrapper(self, *args, **kwargs):
-
-        result = getattr(self._data, name)(*args, **kwargs)
-        if isinstance(result, type(self._data)):
-            return type(self)._simple_new(result, name=self.name)
-        elif isinstance(result, ABCDataFrame):
-            return result.set_index(self)
-        return Index(result, name=self.name)
-
-    return cast(F, method_wrapper)
+    from pandas import DataFrame, Float64Index, PeriodIndex, TimedeltaIndex
 
 
 def _new_DatetimeIndex(cls, d):
@@ -243,41 +225,47 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # methods that dispatch to DatetimeArray and wrap result
 
     @doc(DatetimeArray.strftime)
-    @dispatch_to_array_and_wrap
     def strftime(self, date_format) -> Index:
-        pass
+        arr = self._data.strftime(date_format)
+        return Index(arr, name=self.name)
 
     @doc(DatetimeArray.tz_convert)
-    @dispatch_to_array_and_wrap
     def tz_convert(self, tz) -> "DatetimeIndex":
-        pass
+        arr = self._data.tz_convert(tz)
+        return type(self)._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.tz_localize)
-    @dispatch_to_array_and_wrap
     def tz_localize(
         self, tz, ambiguous="raise", nonexistent="raise"
     ) -> "DatetimeIndex":
-        pass
+        arr = self._data.tz_localize(tz, ambiguous, nonexistent)
+        return type(self)._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_period)
-    @dispatch_to_array_and_wrap
     def to_period(self, freq=None) -> "PeriodIndex":
-        pass
+        from pandas.core.indexes.api import PeriodIndex
+
+        arr = self._data.to_period(freq)
+        return PeriodIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_perioddelta)
-    @dispatch_to_array_and_wrap
     def to_perioddelta(self, freq) -> "TimedeltaIndex":
-        pass
+        from pandas.core.indexes.api import TimedeltaIndex
+
+        arr = self._data.to_perioddelta(freq)
+        return TimedeltaIndex._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_julian_date)
-    @dispatch_to_array_and_wrap
-    def to_julian_date(self) -> Index:
-        pass
+    def to_julian_date(self) -> "Float64Index":
+        from pandas.core.indexes.api import Float64Index
+
+        arr = self._data.to_julian_date()
+        return Float64Index._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.isocalendar)
-    @dispatch_to_array_and_wrap
     def isocalendar(self) -> "DataFrame":
-        pass
+        df = self._data.isocalendar()
+        return df.set_index(self)
 
     # --------------------------------------------------------------------
     # Constructors
