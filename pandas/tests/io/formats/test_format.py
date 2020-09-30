@@ -2846,6 +2846,13 @@ class TestSeriesFormatting:
         exp = "    r1 r2\na b      \n0 1  2  3"
         assert res == exp
 
+    def test_to_string_empty_col(self):
+        # GH 13653
+        s = pd.Series(["", "Hello", "World", "", "", "Mooooo", "", ""])
+        res = s.to_string(index=False)
+        exp = "      \n Hello\n World\n      \n      \nMooooo\n      \n      "
+        assert re.match(exp, res)
+
 
 class TestGenericArrayFormatter:
     def test_1d_array(self):
