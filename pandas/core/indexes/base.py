@@ -2086,11 +2086,24 @@ class Index(IndexOpsMixin, PandasObject):
         return lib.infer_dtype(self._values, skipna=False)
 
     @cache_readonly
-    def is_all_dates(self) -> bool:
+    def _is_all_dates(self) -> bool:
         """
         Whether or not the index values only consist of dates.
         """
         return is_datetime_array(ensure_object(self._values))
+
+    @cache_readonly
+    def is_all_dates(self):
+        """
+        Whether or not the index values only consist of dates.
+        """
+        warnings.warn(
+            "Index.is_all_dates is deprecated, will be removed in a future version.  "
+            "check index.inferred_type instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._is_all_dates
 
     # --------------------------------------------------------------------
     # Pickle Methods
