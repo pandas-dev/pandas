@@ -109,7 +109,7 @@ Beginning with this version, the default is now to use the more accurate parser 
 ``floating_precision="legacy"`` to use the legacy parser. The change to using the higher precision
 parser by default should have no impact on performance. (:issue:`17154`)
 
-.. _whatsnew_110.floating:
+.. _whatsnew_120.floating:
 
 Experimental nullable data types for float data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
