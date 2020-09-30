@@ -721,7 +721,7 @@ class DatetimeLikeArrayMixin(
             f"Got '{str(fill_value)}'."
         )
         try:
-            fill_value = self._validate_scalar(fill_value, msg)
+            fill_value = self._validate_scalar(fill_value, msg, cast_str=True)
         except TypeError as err:
             raise ValueError(msg) from err
         rv = self._unbox(fill_value)
@@ -858,7 +858,7 @@ class DatetimeLikeArrayMixin(
 
     def _validate_insert_value(self, value):
         msg = f"cannot insert {type(self).__name__} with incompatible label"
-        value = self._validate_scalar(value, msg, cast_str=False)
+        value = self._validate_scalar(value, msg, cast_str=True)
 
         self._check_compatible_with(value, setitem=True)
         # TODO: if we dont have compat, should we raise or astype(object)?
@@ -870,9 +870,9 @@ class DatetimeLikeArrayMixin(
     def _validate_where_value(self, other):
         msg = f"Where requires matching dtype, not {type(other)}"
         if not is_list_like(other):
-            other = self._validate_scalar(other, msg)
+            other = self._validate_scalar(other, msg, cast_str=True)
         else:
-            other = self._validate_listlike(other, "where")
+            other = self._validate_listlike(other, "where", cast_str=True)
 
         return self._unbox(other, setitem=True)
 
