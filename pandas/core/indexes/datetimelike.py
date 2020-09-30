@@ -136,7 +136,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             return False
         elif not isinstance(other, type(self)):
             try:
-                other = type(self)(other)  # FIXME: this will mess up on eg i8
+                other = type(self)(other)
             except (ValueError, TypeError, OverflowError):
                 # e.g.
                 #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
@@ -157,7 +157,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             res = self.get_loc(key)
         except (KeyError, TypeError, ValueError):
             return False
-        return True
         return bool(
             is_scalar(res) or isinstance(res, slice) or (is_list_like(res) and len(res))
         )
