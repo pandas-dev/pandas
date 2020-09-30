@@ -2041,7 +2041,7 @@ class Rolling(RollingAndExpandingMixin):
                     "consistent with other methods in a future version. "
                     "Specify min_periods=0 instead."
                 ),
-                DeprecationWarning,
+                FutureWarning,
             )
             self.min_periods = 0
         return super().count()

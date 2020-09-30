@@ -64,9 +64,7 @@ class TestGrouperGrouping:
             "max",
             pytest.param(
                 "count",
-                marks=pytest.mark.filterwarnings(
-                    "ignore:min_periods:DeprecationWarning"
-                ),
+                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
             ),
             "kurt",
             "skew",

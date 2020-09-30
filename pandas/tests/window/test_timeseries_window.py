@@ -595,9 +595,7 @@ class TestRollingTS:
             "mean",
             pytest.param(
                 "count",
-                marks=pytest.mark.filterwarnings(
-                    "ignore:min_periods:DeprecationWarning"
-                ),
+                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
             ),
             "median",
             "std",
