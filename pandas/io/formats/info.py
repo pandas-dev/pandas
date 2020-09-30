@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import sys
-from typing import IO, TYPE_CHECKING, List, Optional, Union
+from typing import IO, List, Optional, Union
 
 from pandas._config import get_option
 
