@@ -190,7 +190,7 @@ When there's agreement that an implementation
 would be welcome, the roadmap should be updated to include the summary and a
 link to the discussion issue.
 
-Completed Items
+Completed items
 ---------------
 
 This section records now completed items from the pandas roadmap.
