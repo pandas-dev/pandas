@@ -76,7 +76,12 @@ def nopython(request):
 
 
 @pytest.fixture(
-    params=[pytest.param("numba", marks=td.skip_if_no("numba", "0.46.0")), "cython"]
+    params=[
+        pytest.param(
+            "numba", marks=td.skip_if_no("numba", "0.46.0")
+        ),  # type: ignore[list-item]
+        "cython",
+    ]
 )
 def engine(request):
     """engine keyword argument for rolling.apply"""
@@ -327,7 +332,7 @@ def halflife_with_times(request):
         "float64",
         "m8[ns]",
         "M8[ns]",
-        pytest.param(
+        pytest.param(  # type: ignore[list-item]
             "datetime64[ns, UTC]",
             marks=pytest.mark.skip(
                 "direct creation of extension dtype datetime64[ns, UTC] "
