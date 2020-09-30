@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas.core.common as common
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
-from pandas.core.window.rolling import RollingMixin, flex_binary_moment
+from pandas.core.window.rolling import BaseWindow, flex_binary_moment
 
 _bias_template = """
         Parameters
@@ -60,7 +60,7 @@ def get_center_of_mass(
     return float(comass)
 
 
-class ExponentialMovingWindow(RollingMixin):
+class ExponentialMovingWindow(BaseWindow):
     r"""
     Provide exponential weighted (EW) functions.
 
