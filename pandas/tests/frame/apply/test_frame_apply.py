@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
 import warnings
@@ -1225,7 +1224,7 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result, expected)
 
         # dict input with scalars
-        func = OrderedDict([(name1, "mean"), (name2, "sum")])
+        func = dict([(name1, "mean"), (name2, "sum")])
         result = float_frame.agg(func, axis=axis)
         expected = Series(
             [
@@ -1237,7 +1236,7 @@ class TestDataFrameAggregate:
         tm.assert_series_equal(result, expected)
 
         # dict input with lists
-        func = OrderedDict([(name1, ["mean"]), (name2, ["sum"])])
+        func = dict([(name1, ["mean"]), (name2, ["sum"])])
         result = float_frame.agg(func, axis=axis)
         expected = DataFrame(
             {
@@ -1253,10 +1252,10 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result, expected)
 
         # dict input with lists with multiple
-        func = OrderedDict([(name1, ["mean", "sum"]), (name2, ["sum", "max"])])
+        func = dict([(name1, ["mean", "sum"]), (name2, ["sum", "max"])])
         result = float_frame.agg(func, axis=axis)
         expected = DataFrame(
-            OrderedDict(
+            dict(
                 [
                     (
                         name1,
@@ -1545,3 +1544,11 @@ def test_apply_no_suffix_index():
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_raw_returns_string():
+    # https://github.com/pandas-dev/pandas/issues/35940
+    df = pd.DataFrame({"A": ["aa", "bbb"]})
+    result = df.apply(lambda x: x[0], axis=1, raw=True)
+    expected = pd.Series(["aa", "bbb"])
+    tm.assert_series_equal(result, expected)
