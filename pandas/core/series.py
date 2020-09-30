@@ -70,6 +70,7 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
+from pandas.core.aggregation import transform
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
@@ -408,14 +409,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if not fastpath:
             labels = ensure_index(labels)
 
-        is_all_dates = labels.is_all_dates
-        if is_all_dates:
+        if labels._is_all_dates:
             if not isinstance(labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
                 try:
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
                     if fastpath:
                         self._mgr.set_axis(axis, labels)
+                    warnings.warn(
+                        "Automatically casting object-dtype Index of datetimes to "
+                        "DatetimeIndex is deprecated and will be removed in a "
+                        "future version.  Explicitly cast to DatetimeIndex instead.",
+                        FutureWarning,
+                        stacklevel=3,
+                    )
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
@@ -4042,8 +4049,6 @@ Keep all original rows and also all original values
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> FrameOrSeriesUnion:
-        from pandas.core.aggregation import transform
-
         return transform(self, func, axis, *args, **kwargs)
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):

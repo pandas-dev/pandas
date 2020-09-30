@@ -52,7 +52,7 @@ from pandas.core.internals.managers import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Series  # noqa:F401
+    from pandas import Series
 
 # ---------------------------------------------------------------------
 # BlockManager Interface
@@ -244,7 +244,7 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
     arrays: Union[Sequence[Any], "Series"]
 
     if columns is not None:
-        from pandas.core.series import Series  # noqa:F811
+        from pandas.core.series import Series
 
         arrays = Series(data, index=columns, dtype=object)
         data_names = arrays.index
