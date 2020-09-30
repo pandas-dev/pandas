@@ -136,7 +136,7 @@ usecols : list-like or callable, default ``None``
      import pandas as pd
      from io import StringIO
 
-     data = "col1,col2,col3\n" "a,b,1\n" "a,b,2\n" "c,d,3"
+     data = "col1,col2,col3\na,b,1\na,b,2\nc,d,3"
      pd.read_csv(StringIO(data))
      pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ["COL1", "COL3"])
 
@@ -179,7 +179,7 @@ skiprows : list-like or integer, default ``None``
 
   .. ipython:: python
 
-     data = "col1,col2,col3\n" "a,b,1\n" "a,b,2\n" "c,d,3"
+     data = "col1,col2,col3\na,b,1\na,b,2\nc,d,3"
      pd.read_csv(StringIO(data))
      pd.read_csv(StringIO(data), skiprows=lambda x: x % 2 != 0)
 
@@ -361,7 +361,7 @@ columns:
 
     import numpy as np
 
-    data = "a,b,c,d\n" "1,2,3,4\n" "5,6,7,8\n" "9,10,11"
+    data = "a,b,c,d\n1,2,3,4\n5,6,7,8\n9,10,11"
     print(data)
 
     df = pd.read_csv(StringIO(data), dtype=object)
@@ -382,7 +382,7 @@ of :func:`~pandas.read_csv`:
 
 .. ipython:: python
 
-    data = "col_1\n" "1\n" "2\n" "'A'\n" "4.22"
+    data = "col_1\n1\n2\n'A'\n4.22"
     df = pd.read_csv(StringIO(data), converters={"col_1": str})
     df
     df["col_1"].apply(type).value_counts()
@@ -446,7 +446,7 @@ Specifying categorical dtype
 
 .. ipython:: python
 
-   data = "col1,col2,col3\n" "a,b,1\n" "a,b,2\n" "c,d,3"
+   data = "col1,col2,col3\na,b,1\na,b,2\nc,d,3"
 
    pd.read_csv(StringIO(data))
    pd.read_csv(StringIO(data)).dtypes
@@ -514,7 +514,7 @@ used as the column names:
 
 .. ipython:: python
 
-    data = "a,b,c\n" "1,2,3\n" "4,5,6\n" "7,8,9"
+    data = "a,b,c\n1,2,3\n4,5,6\n7,8,9"
     print(data)
     pd.read_csv(StringIO(data))
 
@@ -533,7 +533,7 @@ If the header is in a row other than the first, pass the row number to
 
 .. ipython:: python
 
-    data = "skip this skip it\n" "a,b,c\n" "1,2,3\n" "4,5,6\n" "7,8,9"
+    data = "skip this skip it\na,b,c\n1,2,3\n4,5,6\n7,8,9"
     pd.read_csv(StringIO(data), header=1)
 
 .. note::
@@ -554,7 +554,7 @@ distinguish between them so as to prevent overwriting data:
 
 .. ipython:: python
 
-   data = "a,b,a\n" "0,1,2\n" "3,4,5"
+   data = "a,b,a\n0,1,2\n3,4,5"
    pd.read_csv(StringIO(data))
 
 There is no more duplicate data because ``mangle_dupe_cols=True`` by default,
@@ -620,7 +620,7 @@ be ignored. By default, completely blank lines will be ignored as well.
 
 .. ipython:: python
 
-   data = "\n" "a,b,c\n" "  \n" "# commented line\n" "1,2,3\n" "\n" "4,5,6"
+   data = "\na,b,c\n  \n# commented line\n1,2,3\n\n4,5,6"
    print(data)
    pd.read_csv(StringIO(data), comment="#")
 
@@ -628,7 +628,7 @@ If ``skip_blank_lines=False``, then ``read_csv`` will not ignore blank lines:
 
 .. ipython:: python
 
-   data = "a,b,c\n" "\n" "1,2,3\n" "\n" "\n" "4,5,6"
+   data = "a,b,c\n\n1,2,3\n\n\n4,5,6"
    pd.read_csv(StringIO(data), skip_blank_lines=False)
 
 .. warning::
@@ -639,9 +639,9 @@ If ``skip_blank_lines=False``, then ``read_csv`` will not ignore blank lines:
 
    .. ipython:: python
 
-      data = "#comment\n" "a,b,c\n" "A,B,C\n" "1,2,3"
+      data = "#comment\na,b,c\nA,B,C\n1,2,3"
       pd.read_csv(StringIO(data), comment="#", header=1)
-      data = "A,B,C\n" "#comment\n" "a,b,c\n" "1,2,3"
+      data = "A,B,C\n#comment\na,b,c\n1,2,3"
       pd.read_csv(StringIO(data), comment="#", skiprows=2)
 
    If both ``header`` and ``skiprows`` are specified, ``header`` will be
@@ -738,12 +738,12 @@ first column will be used as the ``DataFrame``'s row names:
 
 .. ipython:: python
 
-    data = "a,b,c\n" "4,apple,bat,5.7\n" "8,orange,cow,10"
+    data = "a,b,c\n4,apple,bat,5.7\n8,orange,cow,10"
     pd.read_csv(StringIO(data))
 
 .. ipython:: python
 
-    data = "index,a,b,c\n" "4,apple,bat,5.7\n" "8,orange,cow,10"
+    data = "index,a,b,c\n4,apple,bat,5.7\n8,orange,cow,10"
     pd.read_csv(StringIO(data), index_col=0)
 
 Ordinarily, you can achieve this behavior using the ``index_col`` option.
@@ -754,7 +754,7 @@ index column inference and discard the last column, pass ``index_col=False``:
 
 .. ipython:: python
 
-    data = "a,b,c\n" "4,apple,bat,\n" "8,orange,cow,"
+    data = "a,b,c\n4,apple,bat,\n8,orange,cow,"
     print(data)
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), index_col=False)
@@ -764,7 +764,7 @@ If a subset of data is being parsed using the ``usecols`` option, the
 
 .. ipython:: python
 
-    data = "a,b,c\n" "4,apple,bat,\n" "8,orange,cow,"
+    data = "a,b,c\n4,apple,bat,\n8,orange,cow,"
     print(data)
     pd.read_csv(StringIO(data), usecols=["b", "c"])
     pd.read_csv(StringIO(data), usecols=["b", "c"], index_col=0)
@@ -1003,7 +1003,7 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 .. ipython:: python
    :suppress:
 
-   data = "date,value,cat\n" "1/6/2000,5,a\n" "2/6/2000,10,b\n" "3/6/2000,15,c"
+   data = "date,value,cat\n1/6/2000,5,a\n2/6/2000,10,b\n3/6/2000,15,c"
    with open("tmp.csv", "w") as fh:
        fh.write(data)
 
@@ -1169,7 +1169,7 @@ as a ``Series``:
 .. ipython:: python
    :suppress:
 
-   data = "level\n" "Patient1,123000\n" "Patient2,23000\n" "Patient3,1234018"
+   data = "level\nPatient1,123000\nPatient2,23000\nPatient3,1234018"
 
    with open("tmp.csv", "w") as fh:
        fh.write(data)
@@ -1200,7 +1200,7 @@ options as follows:
 
 .. ipython:: python
 
-    data = "a,b,c\n" "1,Yes,2\n" "3,No,4"
+    data = "a,b,c\n1,Yes,2\n3,No,4"
     print(data)
     pd.read_csv(StringIO(data))
     pd.read_csv(StringIO(data), true_values=["Yes"], false_values=["No"])
@@ -1217,7 +1217,7 @@ too many fields will raise an error by default:
 .. ipython:: python
     :okexcept:
 
-    data = "a,b,c\n" "1,2,3\n" "4,5,6,7\n" "8,9,10"
+    data = "a,b,c\n1,2,3\n4,5,6,7\n8,9,10"
     pd.read_csv(StringIO(data))
 
 You can elect to skip bad lines:
