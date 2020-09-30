@@ -871,7 +871,7 @@ class TestIntervalIndex:
             pd.Timestamp("2017-01-01 00:00:00"), pd.Timestamp("2018-01-01 00:00:00")
         )
         year_2017_index = pd.IntervalIndex([year_2017])
-        assert not year_2017_index.is_all_dates
+        assert not year_2017_index._is_all_dates
 
     @pytest.mark.parametrize("key", [[5], (2, 3)])
     def test_get_value_non_scalar_errors(self, key):
