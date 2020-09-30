@@ -6,7 +6,7 @@ from numpy.random import randn
 import pytest
 
 import pandas._testing as tm
-from pandas.core.api import DataFrame
+from pandas.core.api import DataFrame, Index, Series
 from pandas.core.computation import expressions as expr
 
 _frame = DataFrame(randn(10000, 4), columns=list("ABCD"), dtype="float64")
@@ -380,3 +380,41 @@ class TestExpressions:
 
         result = op_func(other, axis=axis)
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize(
+        "op",
+        [
+            "__mod__",
+            pytest.param("__rmod__", marks=pytest.mark.xfail(reason="GH-36552")),
+            "__floordiv__",
+            "__rfloordiv__",
+        ],
+    )
+    @pytest.mark.parametrize("box", [DataFrame, Series, Index])
+    @pytest.mark.parametrize("scalar", [-5, 5])
+    def test_python_semantics_with_numexpr_installed(self, op, box, scalar):
+        # https://github.com/pandas-dev/pandas/issues/36047
+        expr._MIN_ELEMENTS = 0
+        data = np.arange(-50, 50)
+        obj = box(data)
+        method = getattr(obj, op)
+        result = method(scalar)
+
+        # compare result with numpy
+        expr.set_use_numexpr(False)
+        expected = method(scalar)
+        expr.set_use_numexpr(True)
+        tm.assert_equal(result, expected)
+
+        # compare result element-wise with Python
+        for i, elem in enumerate(data):
+            if box == DataFrame:
+                scalar_result = result.iloc[i, 0]
+            else:
+                scalar_result = result[i]
+            try:
+                expected = getattr(int(elem), op)(scalar)
+            except ZeroDivisionError:
+                pass
+            else:
+                assert scalar_result == expected
