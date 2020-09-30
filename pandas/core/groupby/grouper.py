@@ -2,7 +2,7 @@
 Provide user facing operators for doing the split part of the
 split-apply-combine paradigm.
 """
-from typing import Hashable, List, Optional, Set, Tuple
+from typing import Dict, Hashable, List, Optional, Set, Tuple
 import warnings
 
 import numpy as np
@@ -29,7 +29,7 @@ from pandas.core.groupby.categorical import recode_for_groupby, recode_from_grou
 from pandas.core.indexes.api import CategoricalIndex, Index, MultiIndex
 from pandas.core.series import Series
 
-from pandas.io.formats.printing import PrettyDict, pprint_thing
+from pandas.io.formats.printing import pprint_thing
 
 
 class Grouper:
@@ -607,7 +607,7 @@ class Grouping:
             self._group_index = uniques
 
     @cache_readonly
-    def groups(self) -> PrettyDict[Hashable, np.ndarray]:
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 

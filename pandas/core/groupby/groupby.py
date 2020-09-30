@@ -75,8 +75,6 @@ from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
-from pandas.io.formats.printing import PrettyDict
-
 _common_see_also = """
         See Also
         --------
@@ -508,6 +506,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         mutated: bool = False,
         dropna: bool = True,
     ):
+
         self._selection = selection
 
         assert isinstance(obj, NDFrame), type(obj)
@@ -563,7 +562,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         pass
 
     @property
-    def groups(self) -> PrettyDict[Hashable, np.ndarray]:
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         """
         Dict {group name -> group labels}.
         """

@@ -7,7 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import Hashable, List, Optional, Sequence, Tuple, Type
+from typing import Dict, Hashable, List, Optional, Sequence, Tuple, Type
 
 import numpy as np
 
@@ -55,8 +55,6 @@ from pandas.core.sorting import (
     get_group_index_sorter,
     get_indexer_dict,
 )
-
-from pandas.io.formats.printing import PrettyDict
 
 
 class BaseGrouper:
@@ -250,7 +248,7 @@ class BaseGrouper:
         return Series(out, index=self.result_index, dtype="int64")
 
     @cache_readonly
-    def groups(self) -> PrettyDict[Hashable, np.ndarray]:
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         """ dict {group name -> group labels} """
         if len(self.groupings) == 1:
             return self.groupings[0].groups
