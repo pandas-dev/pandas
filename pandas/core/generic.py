@@ -1764,7 +1764,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Iteration
 
-    __hash__ = None
+    # to indicate this object is unhashable (https://lgtm.com/rules/1780095/)
+    __hash__ = None  # type: ignore
 
     def __iter__(self):
         """
