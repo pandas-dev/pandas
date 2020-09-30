@@ -1,18 +1,16 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 import sys
-from typing import IO, TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import IO, TYPE_CHECKING, List, Optional, Union
 
 from pandas._config import get_option
 
 from pandas._typing import Dtype, FrameOrSeries
 
 from pandas.core.indexes.api import Index
+from pandas.core.series import Series
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
-
-if TYPE_CHECKING:
-    from pandas.core.series import Series  # noqa: F401
 
 
 def _put_str(s: Union[str, Dtype], space: int) -> str:
@@ -72,32 +70,48 @@ def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
     return f"{num:3.1f}{size_qualifier} PB"
 
 
-class BaseInfo(metaclass=ABCMeta):
+class DataFrameInfo:
     def __init__(
         self,
         data: FrameOrSeries,
-        verbose: Optional[bool] = None,
-        buf: Optional[IO[str]] = None,
-        max_cols: Optional[int] = None,
         memory_usage: Optional[Union[bool, str]] = None,
-        null_counts: Optional[bool] = None,
     ):
-        if buf is None:  # pragma: no cover
-            buf = sys.stdout
+        self.data = data
+        self.memory_usage = self._initialize_memory_usage(memory_usage)
+
+    def _initialize_memory_usage(
+        self,
+        memory_usage: Optional[Union[bool, str]] = None,
+    ) -> Union[bool, str]:
         if memory_usage is None:
             memory_usage = get_option("display.memory_usage")
+        return memory_usage
 
-        self.data = data
-        self.verbose = verbose
-        self.buf = buf
-        self.max_cols = max_cols
-        self.memory_usage = memory_usage
-        self.null_counts = null_counts
+    @property
+    def ids(self) -> Index:
+        """Column names.
 
-    @abstractmethod
-    def _get_mem_usage(self, deep: bool) -> int:
+        Returns
+        -------
+        ids : Index
+            DataFrame's column names.
         """
-        Get memory usage in bytes.
+        return self.data.columns
+
+    @property
+    def dtypes(self) -> Series:
+        """Dtypes.
+
+        Returns
+        -------
+        dtypes : Series
+            Dtype of each of the DataFrame's columns.
+        """
+        return self.data.dtypes
+
+    @property
+    def mem_usage(self) -> int:
+        """Memory usage in bytes.
 
         Parameters
         ----------
@@ -111,53 +125,33 @@ class BaseInfo(metaclass=ABCMeta):
         mem_usage : int
             Object's total memory usage in bytes.
         """
+        if self.memory_usage == "deep":
+            deep = True
+        else:
+            deep = False
+        return self.data.memory_usage(index=True, deep=deep).sum()
 
-    @abstractmethod
-    def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
-        """
-        Get column names and dtypes.
+    @property
+    def size_qualifier(self) -> str:
+        size_qualifier = ""
+        if self.memory_usage:
+            if self.memory_usage != "deep":
+                # size_qualifier is just a best effort; not guaranteed to catch
+                # all cases (e.g., it misses categorical data even with object
+                # categories)
+                if (
+                    "object" in self.counts
+                    or self.data.index._is_memory_usage_qualified()
+                ):
+                    size_qualifier = "+"
+        return size_qualifier
 
-        Returns
-        -------
-        ids : Index
-            DataFrame's column names.
-        dtypes : Series
-            Dtype of each of the DataFrame's columns.
-        """
+    @property
+    def counts(self):
+        # groupby dtype.name to collect e.g. Categorical columns
+        return self.dtypes.value_counts().groupby(lambda x: x.name).sum()
 
-    @abstractmethod
-    def _verbose_repr(
-        self, lines: List[str], ids: "Index", dtypes: "Series", show_counts: bool
-    ) -> None:
-        """
-        Append name, non-null count (optional), and dtype for each column to `lines`.
-
-        Parameters
-        ----------
-        lines : List[str]
-            Lines that will contain `info` representation.
-        ids : Index
-            The DataFrame's column names.
-        dtypes : Series
-            The DataFrame's columns' dtypes.
-        show_counts : bool
-            If True, count of non-NA cells for each column will be appended to `lines`.
-        """
-
-    @abstractmethod
-    def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
-        """
-        Append short summary of columns' names to `lines`.
-
-        Parameters
-        ----------
-        lines : List[str]
-            Lines that will contain `info` representation.
-        ids : Index
-            The DataFrame's column names.
-        """
-
-    def info(self) -> None:
+    def to_buffer(self, *, buf, max_cols, verbose, null_counts) -> None:
         """
         Print a concise summary of a %(klass)s.
 
@@ -209,147 +203,279 @@ class BaseInfo(metaclass=ABCMeta):
         --------
         %(examples_sub)s
         """
-        lines = []
+        printer = InfoPrinter(
+            info=self,
+            max_cols=max_cols,
+            verbose=verbose,
+            null_counts=null_counts,
+        )
+        printer.to_buffer(buf)
 
-        lines.append(str(type(self.data)))
-        lines.append(self.data.index._summary())
 
-        ids, dtypes = self._get_ids_and_dtypes()
-        col_count = len(ids)
+class InfoPrinter:
+    def __init__(
+        self,
+        info: DataFrameInfo,
+        max_cols: Optional[int] = None,
+        verbose: Optional[bool] = None,
+        null_counts: Optional[bool] = None,
+    ):
+        self.info = info
+        self.data = info.data
+        self.max_cols = max_cols
+        self.verbose = verbose
+        self.null_counts = null_counts
 
-        if col_count == 0:
-            lines.append(f"Empty {type(self.data).__name__}")
-            fmt.buffer_put_lines(self.buf, lines)
-            return
+    @property
+    def max_cols(self):
+        return self._max_cols
 
+    @max_cols.setter
+    def max_cols(self, max_cols):
         # hack
-        max_cols = self.max_cols
         if max_cols is None:
-            max_cols = get_option("display.max_info_columns", col_count + 1)
+            max_cols = get_option("display.max_info_columns", self.col_count + 1)
+        self._max_cols = max_cols
 
-        max_rows = get_option("display.max_info_rows", len(self.data) + 1)
+    @property
+    def max_rows(self):
+        return get_option("display.max_info_rows", len(self.data) + 1)
 
+    @property
+    def exceeds_info_cols(self):
+        return self.col_count > self.max_cols
+
+    @property
+    def show_counts(self) -> bool:
         if self.null_counts is None:
-            show_counts = (col_count <= max_cols) and (len(self.data) < max_rows)
-        else:
-            show_counts = self.null_counts
-        exceeds_info_cols = col_count > max_cols
-
-        if self.verbose:
-            self._verbose_repr(lines, ids, dtypes, show_counts)
-        elif self.verbose is False:  # specifically set to False, not necessarily None
-            self._non_verbose_repr(lines, ids)
-        else:
-            if exceeds_info_cols:
-                self._non_verbose_repr(lines, ids)
-            else:
-                self._verbose_repr(lines, ids, dtypes, show_counts)
-
-        # groupby dtype.name to collect e.g. Categorical columns
-        counts = dtypes.value_counts().groupby(lambda x: x.name).sum()
-        collected_dtypes = [f"{k[0]}({k[1]:d})" for k in sorted(counts.items())]
-        lines.append(f"dtypes: {', '.join(collected_dtypes)}")
-
-        if self.memory_usage:
-            # append memory usage of df to display
-            size_qualifier = ""
-            if self.memory_usage == "deep":
-                deep = True
-            else:
-                # size_qualifier is just a best effort; not guaranteed to catch
-                # all cases (e.g., it misses categorical data even with object
-                # categories)
-                deep = False
-                if "object" in counts or self.data.index._is_memory_usage_qualified():
-                    size_qualifier = "+"
-            mem_usage = self._get_mem_usage(deep=deep)
-            lines.append(f"memory usage: {_sizeof_fmt(mem_usage, size_qualifier)}\n")
-        fmt.buffer_put_lines(self.buf, lines)
-
-
-class DataFrameInfo(BaseInfo):
-    def _get_mem_usage(self, deep: bool) -> int:
-        return self.data.memory_usage(index=True, deep=deep).sum()
-
-    def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
-        return self.data.columns, self.data.dtypes
-
-    def _verbose_repr(
-        self, lines: List[str], ids: "Index", dtypes: "Series", show_counts: bool
-    ) -> None:
-        col_count = len(ids)
-        lines.append(f"Data columns (total {col_count} columns):")
-
-        id_head = " # "
-        column_head = "Column"
-        col_space = 2
-
-        max_col = max(len(pprint_thing(k)) for k in ids)
-        len_column = len(pprint_thing(column_head))
-        space = max(max_col, len_column) + col_space
-
-        max_id = len(pprint_thing(col_count))
-        len_id = len(pprint_thing(id_head))
-        space_num = max(max_id, len_id) + col_space
-
-        if show_counts:
-            counts = self.data.count()
-            if col_count != len(counts):  # pragma: no cover
-                raise AssertionError(
-                    f"Columns must equal counts ({col_count} != {len(counts)})"
-                )
-            count_header = "Non-Null Count"
-            len_count = len(count_header)
-            non_null = " non-null"
-            max_count = max(len(pprint_thing(k)) for k in counts) + len(non_null)
-            space_count = max(len_count, max_count) + col_space
-            count_temp = "{count}" + non_null
-        else:
-            count_header = ""
-            space_count = len(count_header)
-            len_count = space_count
-            count_temp = "{count}"
-
-        dtype_header = "Dtype"
-        len_dtype = len(dtype_header)
-        max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
-        space_dtype = max(len_dtype, max_dtypes)
-
-        header = "".join(
-            [
-                _put_str(id_head, space_num),
-                _put_str(column_head, space),
-                _put_str(count_header, space_count),
-                _put_str(dtype_header, space_dtype),
-            ]
-        )
-        lines.append(header)
-
-        top_separator = "".join(
-            [
-                _put_str("-" * len_id, space_num),
-                _put_str("-" * len_column, space),
-                _put_str("-" * len_count, space_count),
-                _put_str("-" * len_dtype, space_dtype),
-            ]
-        )
-        lines.append(top_separator)
-
-        for i, col in enumerate(ids):
-            dtype = dtypes[i]
-            col = pprint_thing(col)
-
-            line_no = _put_str(f" {i}", space_num)
-            count = ""
-            if show_counts:
-                count = counts[i]
-
-            lines.append(
-                line_no
-                + _put_str(col, space)
-                + _put_str(count_temp.format(count=count), space_count)
-                + _put_str(dtype, space_dtype)
+            return bool(
+                (self.col_count <= self.max_cols) and (len(self.data) < self.max_rows)
             )
+        else:
+            return self.null_counts
 
-    def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
-        lines.append(ids._summary(name="Columns"))
+    @property
+    def col_count(self):
+        return len(self.info.ids)
+
+    def to_buffer(self, buf: Optional[IO[str]] = None) -> None:
+        klass = self._select_table_builder()
+        table_builder = klass(info=self.info, printer=self)
+        lines = table_builder.get_lines()
+        if buf is None:  # pragma: no cover
+            buf = sys.stdout
+        fmt.buffer_put_lines(buf, lines)
+
+    def _select_table_builder(self):
+        if self.verbose:
+            return self._select_verbose_table_builder()
+        elif self.verbose is False:  # specifically set to False, not necessarily None
+            return TableBuilderNonVerbose
+        else:
+            if self.exceeds_info_cols:
+                return TableBuilderNonVerbose
+            else:
+                return self._select_verbose_table_builder()
+
+    def _select_verbose_table_builder(self):
+        if self.show_counts:
+            return TableBuilderVerboseWithCounts
+        else:
+            return TableBuilderVerboseNoCounts
+
+
+class TableBuilderAbstract:
+    _lines: List[str]
+
+    def __init__(self, *, info, printer):
+        self.info = info
+        self.printer = printer
+
+    def get_lines(self):
+        self._lines = []
+        self.add_object_type_line()
+        self.add_index_range_line()
+        self.add_columns_summary_line()
+        self.add_header_line()
+        self.add_separator_line()
+        self.add_body_lines()
+        self.add_dtypes_line()
+        if self.memory_usage:
+            self.add_memory_usage_line()
+        return self._lines
+
+    @property
+    def data(self):
+        return self.info.data
+
+    @property
+    def counts(self):
+        return self.info.counts
+
+    @property
+    def memory_usage(self):
+        return self.info.memory_usage
+
+    @property
+    def ids(self):
+        return self.info.ids
+
+    @property
+    def dtypes(self):
+        return self.info.dtypes
+
+    @property
+    def show_counts(self):
+        return self.printer.show_counts
+
+    @property
+    def col_count(self):
+        return self.printer.col_count
+
+    def add_object_type_line(self):
+        self._lines.append(str(type(self.data)))
+
+    def add_index_range_line(self):
+        self._lines.append(self.data.index._summary())
+
+    @abstractmethod
+    def add_columns_summary_line(self):
+        pass
+
+    @abstractmethod
+    def add_header_line(self):
+        pass
+
+    @abstractmethod
+    def add_separator_line(self):
+        pass
+
+    def add_body_lines(self):
+        if self.col_count == 0:
+            self._lines.append(f"Empty {type(self.data).__name__}")
+
+    def add_dtypes_line(self):
+        collected_dtypes = [
+            f"{key}({val:d})" for key, val in sorted(self.counts.items())
+        ]
+        self._lines.append(f"dtypes: {', '.join(collected_dtypes)}")
+
+    def add_memory_usage_line(self):
+        self._lines.append(
+            "memory usage: "
+            f"{_sizeof_fmt(self.info.mem_usage, self.info.size_qualifier)}\n"
+        )
+
+
+class TableBuilderNonVerbose(TableBuilderAbstract):
+    def add_columns_summary_line(self):
+        self._lines.append(self.ids._summary(name="Columns"))
+
+    def add_header_line(self):
+        pass
+
+    def add_separator_line(self):
+        pass
+
+
+class TableBuilderVerbose(TableBuilderAbstract):
+    COL_SPACE = 2
+    SPACING = " " * COL_SPACE
+    HEADERS: List[str]
+
+    def __init__(self, *, info, printer):
+        super().__init__(info=info, printer=printer)
+        self.strcols: List[List[str]] = self._get_strcols()
+
+    @abstractmethod
+    def _get_strcols(self) -> List[List[str]]:
+        pass
+
+    def add_columns_summary_line(self):
+        self._lines.append(f"Data columns (total {self.col_count} columns):")
+
+    @property
+    def header_column_widths(self):
+        return [len(col) for col in self.HEADERS]
+
+    @property
+    def body_column_widths(self):
+        return [max(len(x) for x in col) for col in self.strcols]
+
+    @property
+    def gross_column_widths(self):
+        return [
+            max(header_colwidth, body_colwidth)
+            for header_colwidth, body_colwidth in zip(
+                self.header_column_widths, self.body_column_widths
+            )
+        ]
+
+    def add_header_line(self):
+        header_line = self.SPACING.join(
+            [
+                _put_str(header, col_width)
+                for header, col_width in zip(self.HEADERS, self.gross_column_widths)
+            ]
+        )
+        self._lines.append(header_line)
+
+    def add_separator_line(self):
+        separator_line = self.SPACING.join(
+            [
+                _put_str("-" * header_colwidth, gross_colwidth)
+                for header_colwidth, gross_colwidth in zip(
+                    self.header_column_widths, self.gross_column_widths
+                )
+            ]
+        )
+        self._lines.append(separator_line)
+
+    def add_body_lines(self):
+        strrows = list(zip(*self.strcols))
+        for row in strrows:
+            body_line = self.SPACING.join(
+                [
+                    _put_str(col, gross_colwidth)
+                    for col, gross_colwidth in zip(row, self.gross_column_widths)
+                ]
+            )
+            self._lines.append(body_line)
+
+
+class TableBuilderVerboseNoCounts(TableBuilderVerbose):
+
+    HEADERS = [
+        " # ",
+        "Column",
+        "Dtype",
+    ]
+
+    def _get_strcols(self) -> List[List[str]]:
+        line_numbers = [f" {i}" for i, _ in enumerate(self.ids)]
+        columns = [pprint_thing(col) for col in self.ids]
+        dtypes = [pprint_thing(dtype) for dtype in self.dtypes]
+        return [line_numbers, columns, dtypes]
+
+
+class TableBuilderVerboseWithCounts(TableBuilderVerbose):
+
+    HEADERS = [
+        " # ",
+        "Column",
+        "Non-Null Count",
+        "Dtype",
+    ]
+
+    @property
+    def count_non_null(self):
+        return "{count} non-null"
+
+    def _get_strcols(self) -> List[List[str]]:
+        line_numbers = [f" {i}" for i, _ in enumerate(self.ids)]
+        columns = [pprint_thing(col) for col in self.ids]
+        non_null_counts = [
+            self.count_non_null.format(count=count) for count in self.data.count()
+        ]
+        dtypes = [pprint_thing(dtype) for dtype in self.dtypes]
+        return [line_numbers, columns, non_null_counts, dtypes]
