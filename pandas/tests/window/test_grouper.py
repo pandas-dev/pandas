@@ -423,8 +423,8 @@ class TestGrouperGrouping:
             [
                 ["A", "group_1", pd.Timestamp(2019, 1, 1, 9)],
                 ["B", "group_1", pd.Timestamp(2019, 1, 2, 9)],
-                ["C", "group_2", pd.Timestamp(2019, 1, 3, 9)],
-                ["D", "group_1", pd.Timestamp(2019, 1, 6, 9)],
+                ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9)],
+                ["H", "group_1", pd.Timestamp(2019, 1, 6, 9)],
                 ["E", "group_2", pd.Timestamp(2019, 1, 20, 9)],
             ],
             columns=["index", "group", "eventTime"],
@@ -438,8 +438,8 @@ class TestGrouperGrouping:
             [
                 ["A", "group_1", pd.Timestamp(2019, 1, 1, 9), 1.0],
                 ["B", "group_1", pd.Timestamp(2019, 1, 2, 9), 2.0],
-                ["D", "group_1", pd.Timestamp(2019, 1, 6, 9), 3.0],
-                ["C", "group_2", pd.Timestamp(2019, 1, 3, 9), 1.0],
+                ["H", "group_1", pd.Timestamp(2019, 1, 6, 9), 3.0],
+                ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9), 1.0],
                 ["E", "group_2", pd.Timestamp(2019, 1, 20, 9), 1.0],
             ],
             columns=["index", "group", "eventTime", "count_to_date"]
