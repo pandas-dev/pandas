@@ -4118,7 +4118,7 @@ chunks.
 
 
    def chunks(l, n):
-       return [l[i : i + n] for i in range(0, len(l), n)]
+       return [l[i: i + n] for i in range(0, len(l), n)]
 
 
    evens = [2, 4, 6, 8, 10]
