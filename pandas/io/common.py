@@ -150,9 +150,9 @@ def urlopen(*args, **kwargs):
     """
     import urllib.request
 
-    # Request class is only available in Python3, which 
+    # Request class is only available in Python3, which
     # allows headers to be specified
-    if hasattr(urllib.request, 'Request'):
+    if hasattr(urllib.request, "Request"):
         r = urllib.request.urlopen(urllib.request.Request(*args, **kwargs))
     else:
         r = urllib.request.urlopen(*args, **kwargs)
@@ -183,7 +183,7 @@ def get_filepath_or_buffer(
     compression: CompressionOptions = None,
     mode: ModeVar = None,  # type: ignore[assignment]
     storage_options: StorageOptions = None,
-    headers: dict = {}
+    headers: dict = {},
 ) -> IOargs[ModeVar, EncodingVar]:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
