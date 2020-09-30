@@ -151,3 +151,9 @@ class TestDatetimeIndexShift:
         with tm.assert_produces_warning(pd.errors.PerformanceWarning):
             shifted = rng.shift(1, freq=pd.offsets.CDay())
             assert shifted[0] == rng[0] + pd.offsets.CDay()
+
+    def test_shift_empty(self):
+        # GH#14811
+        dti = date_range(start="2016-10-21", end="2016-10-21", freq="BM")
+        result = dti.shift(1)
+        tm.assert_index_equal(result, dti)
