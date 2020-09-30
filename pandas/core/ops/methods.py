@@ -171,8 +171,6 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         mul=arith_method(cls, operator.mul, special),
         truediv=arith_method(cls, operator.truediv, special),
         floordiv=arith_method(cls, operator.floordiv, special),
-        # Causes a floating point exception in the tests when numexpr enabled,
-        # so for now no speedup
         mod=arith_method(cls, operator.mod, special),
         pow=arith_method(cls, operator.pow, special),
         # not entirely sure why this is necessary, but previously was included
