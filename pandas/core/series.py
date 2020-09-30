@@ -746,8 +746,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # GH#27198
                     raise NotImplementedError
                 return result
-            # TODO: When we support multiple values in __finalize__, this should
-            # pass alignable instead of self.
+            # TODO: When we support multiple values in __finalize__, this
+            # should pass alignable as `other` instead of self.
+            # Then `np.add(a, b)` would consider attrs from both a and b
+            # when a and b are NDFrames.
             return self._constructor(
                 result, index=index, name=name, copy=False
             ).__finalize__(self)

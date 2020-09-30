@@ -3,6 +3,7 @@ An exhaustive list of pandas methods exercising NDFrame.__finalize__.
 """
 import operator
 import re
+from typing import Any, List, Tuple
 
 import numpy as np
 import pytest
@@ -29,7 +30,7 @@ frame_mi_data = ({"A": [1, 2, 3, 4]}, mi)
 # - Tuple: Constructor args
 # - Callable: pass the constructed value with attrs set to this.
 
-_all_methods = [
+_all_methods: List[Tuple[Any, Any, Any]] = [
     (
         pd.Series,
         (np.array([0], dtype="float64")),
