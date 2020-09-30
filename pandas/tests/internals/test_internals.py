@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import date, datetime
 import itertools
 import operator
@@ -165,7 +164,7 @@ def create_mgr(descr, item_shape=None):
 
     offset = 0
     mgr_items = []
-    block_placements = OrderedDict()
+    block_placements = {}
     for d in descr.split(";"):
         d = d.strip()
         if not len(d):

@@ -58,8 +58,9 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
+    # mypy: https://github.com/python/mypy/issues/4125
     @property
-    def type(self) -> Type[np.bool_]:
+    def type(self) -> Type:  # type: ignore[override]
         return np.bool_
 
     @property
@@ -606,10 +607,9 @@ class BooleanArray(BaseMaskedArray):
     def _create_comparison_method(cls, op):
         @ops.unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
-            from pandas.arrays import IntegerArray
+            from pandas.arrays import FloatingArray, IntegerArray
 
-            if isinstance(other, IntegerArray):
-                # Rely on pandas to unbox and dispatch to us.
+            if isinstance(other, (IntegerArray, FloatingArray)):
                 return NotImplemented
 
             mask = None
