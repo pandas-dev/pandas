@@ -113,15 +113,14 @@ parser by default should have no impact on performance. (:issue:`17154`)
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
-- :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin`, :meth:`Series.idxmax`, :meth:`Series.idxmax`, :meth:`Series.argmax` and :meth:`Series.argmin` all now have gained a new ``keep`` parameter. The functionality of this parameter is similar to the keep parameter in :meth:`Series.nlargest`. (:issue:`34205`)
+- Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
 - ``Styler`` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
-- Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
+- :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin`, :meth:`Series.idxmax`, :meth:`Series.idxmax`, :meth:`Series.argmax` and :meth:`Series.argmin` all now have gained a new ``keep`` parameter. The functionality of this parameter is similar to the keep parameter in :meth:`Series.nlargest`. (:issue:`34205`)
 
 .. _whatsnew_120.api_breaking.python:
 
