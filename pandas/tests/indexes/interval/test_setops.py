@@ -5,11 +5,6 @@ from pandas import Index, IntervalIndex, Timestamp, interval_range
 import pandas._testing as tm
 
 
-@pytest.fixture(scope="class", params=[None, "foo"])
-def name(request):
-    return request.param
-
-
 def monotonic_index(start, end, dtype="int64", closed="right"):
     return IntervalIndex.from_breaks(np.arange(start, end, dtype=dtype), closed=closed)
 

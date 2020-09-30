@@ -14,11 +14,6 @@ import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 
-@pytest.fixture(params=["integer", "block"])
-def kind(request):
-    return request.param
-
-
 class TestSparseArray:
     def setup_method(self, method):
         self.arr_data = np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
