@@ -68,8 +68,9 @@ integer **codes** (until version 0.24 named *labels*), and the level **names**:
 
 .. ipython:: python
 
-   index = pd.MultiIndex.from_product([range(3), ['one', 'two']],
-                                      names=['first', 'second'])
+   index = pd.MultiIndex.from_product(
+       [range(3), ["one", "two"]], names=["first", "second"]
+   )
    index
    index.levels
    index.codes

@@ -147,7 +147,9 @@ def get_weighted_roll_func(cfunc: Callable) -> Callable:
     return func
 
 
-class _Window(ShallowMixin, SelectionMixin):
+class BaseWindow(ShallowMixin, SelectionMixin):
+    """Provides utilities for performing windowing operations."""
+
     _attributes: List[str] = [
         "window",
         "min_periods",
@@ -183,10 +185,6 @@ class _Window(ShallowMixin, SelectionMixin):
         self.win_freq = None
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.validate()
-
-    @property
-    def _constructor(self):
-        return Window
 
     @property
     def is_datetimelike(self) -> Optional[bool]:
@@ -862,7 +860,7 @@ class _Window(ShallowMixin, SelectionMixin):
     )
 
 
-class Window(_Window):
+class Window(BaseWindow):
     """
     Provide rolling window calculations.
 
@@ -1039,6 +1037,10 @@ class Window(_Window):
     2013-01-01 09:00:05  NaN
     2013-01-01 09:00:06  4.0
     """
+
+    @property
+    def _constructor(self):
+        return Window
 
     def validate(self):
         super().validate()
@@ -1220,13 +1222,7 @@ class Window(_Window):
         return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
 
-class RollingMixin(_Window):
-    @property
-    def _constructor(self):
-        return Rolling
-
-
-class RollingAndExpandingMixin(RollingMixin):
+class RollingAndExpandingMixin(BaseWindow):
 
     _shared_docs["count"] = dedent(
         r"""
@@ -1938,6 +1934,10 @@ class Rolling(RollingAndExpandingMixin):
                 f"invalid on specified as {self.on}, "
                 "must be a column (of DataFrame), an Index or None"
             )
+
+    @property
+    def _constructor(self):
+        return Rolling
 
     def validate(self):
         super().validate()
