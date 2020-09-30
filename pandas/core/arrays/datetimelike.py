@@ -168,7 +168,7 @@ class AttributesMixin:
         value : Period, Timestamp, Timedelta, or NaT
             Depending on subclass.
         setitem : bool, default False
-            Whether to check compatiblity with setitem strictness.
+            Whether to check compatibility with setitem strictness.
 
         Returns
         -------
@@ -1123,7 +1123,7 @@ class DatetimeLikeArrayMixin(
         raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
     def _add_period(self, other: Period):
-        # Overriden by TimedeltaArray
+        # Overridden by TimedeltaArray
         raise TypeError(f"cannot add Period to a {type(self).__name__}")
 
     def _add_offset(self, offset):
@@ -1276,8 +1276,8 @@ class DatetimeLikeArrayMixin(
             result = self + offset
             return result
 
-        if periods == 0:
-            # immutable so OK
+        if periods == 0 or len(self) == 0:
+            # GH#14811 empty case
             return self.copy()
 
         if self.freq is None:

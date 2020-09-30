@@ -24,7 +24,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
-    from pandas import Series  # noqa:F401
+    from pandas import Series
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):

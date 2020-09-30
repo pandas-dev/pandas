@@ -77,7 +77,7 @@ from pandas.core.dtypes.missing import isna, notna
 
 if TYPE_CHECKING:
     from pandas import Series
-    from pandas.core.arrays import ExtensionArray  # noqa: F401
+    from pandas.core.arrays import ExtensionArray
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
@@ -1156,9 +1156,9 @@ def convert_dtypes(
             target_int_dtype = "Int64"
 
             if is_integer_dtype(input_array.dtype):
-                from pandas.core.arrays.integer import STR_TO_DTYPE
+                from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 
-                inferred_dtype = STR_TO_DTYPE.get(
+                inferred_dtype = INT_STR_TO_DTYPE.get(
                     input_array.dtype.name, target_int_dtype
                 )
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(

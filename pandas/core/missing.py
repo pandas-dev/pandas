@@ -199,7 +199,7 @@ def interpolate_1d(
         return yvalues
 
     if method == "time":
-        if not getattr(xvalues, "is_all_dates", None):
+        if not getattr(xvalues, "_is_all_dates", None):
             # if not issubclass(xvalues.dtype.type, np.datetime64):
             raise ValueError(
                 "time-weighted interpolation only works "
@@ -327,7 +327,7 @@ def _interpolate_scipy_wrapper(
         "piecewise_polynomial": _from_derivatives,
     }
 
-    if getattr(x, "is_all_dates", False):
+    if getattr(x, "_is_all_dates", False):
         # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
@@ -545,8 +545,6 @@ def interpolate_2d(
     method="pad",
     axis=0,
     limit=None,
-    fill_value=None,
-    dtype: Optional[DtypeObj] = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
@@ -563,18 +561,11 @@ def interpolate_2d(
             raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
-    if fill_value is None:
-        mask = None
-    else:  # todo create faster fill func without masking
-        mask = mask_missing(transf(values), fill_value)
-
     method = clean_fill_method(method)
     if method == "pad":
-        values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
+        values = transf(pad_2d(transf(values), limit=limit))
     else:
-        values = transf(
-            backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype)
-        )
+        values = transf(backfill_2d(transf(values), limit=limit))
 
     # reshape back
     if ndim == 1:
