@@ -163,6 +163,16 @@ class TestHashTable:
         assert "n_buckets" in state
         assert "upper_bound" in state
 
+    def test_no_reallocation(self, table_type, dtype):
+        N = 110
+        keys = np.arange(N).astype(dtype)
+        table = table_type(N)
+        n_buckets_start = table.get_state()["n_buckets"]
+        table.map_locations(keys)
+        n_buckets_end = table.get_state()["n_buckets"]
+        # orgininal number of buckets was enough:
+        assert n_buckets_start == n_buckets_end
+
 
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
@@ -196,6 +206,17 @@ def test_tracemalloc_for_empty_StringHashTable():
         assert used == my_size
         del table
         assert get_allocated_khash_memory() == 0
+
+
+def test_no_reallocation_StringHashTable():
+    N = 110
+    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    table = ht.StringHashTable(N)
+    n_buckets_start = table.get_state()["n_buckets"]
+    table.map_locations(keys)
+    n_buckets_end = table.get_state()["n_buckets"]
+    # orgininal number of buckets was enough:
+    assert n_buckets_start == n_buckets_end
 
 
 @pytest.mark.parametrize(

@@ -392,9 +392,8 @@ cdef class {{name}}HashTable(HashTable):
 
     def __cinit__(self, int64_t size_hint=1):
         self.table = kh_init_{{dtype}}()
-        if size_hint is not None:
-            size_hint = min(size_hint, SIZE_HINT_LIMIT)
-            kh_resize_{{dtype}}(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_{{dtype}}(self.table, size_hint)
 
     def __len__(self) -> int:
         return self.table.size
@@ -740,9 +739,8 @@ cdef class StringHashTable(HashTable):
 
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_str()
-        if size_hint is not None:
-            size_hint = min(size_hint, SIZE_HINT_LIMIT)
-            kh_resize_str(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
@@ -1062,9 +1060,8 @@ cdef class PyObjectHashTable(HashTable):
 
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_pymap()
-        if size_hint is not None:
-            size_hint = min(size_hint, SIZE_HINT_LIMIT)
-            kh_resize_pymap(self.table, size_hint)
+        size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
+        kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
