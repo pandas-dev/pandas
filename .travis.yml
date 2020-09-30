@@ -52,6 +52,10 @@ matrix:
         - mysql
         - postgresql
 
+    - arch: arm64
+      env:
+        - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
+
     - env:
         # Enabling Deprecations when running tests
         # PANDAS_TESTING_MODE="deprecate" causes DeprecationWarning messages to be displayed in the logs
