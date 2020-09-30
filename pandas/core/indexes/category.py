@@ -24,7 +24,6 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
 
 from pandas.core import accessor
 from pandas.core.arrays.categorical import Categorical, contains
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
@@ -573,15 +572,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             )
 
         return self.get_indexer(keyarr)
-
-    @doc(Index._convert_arr_indexer)
-    def _convert_arr_indexer(self, keyarr):
-        keyarr = com.asarray_tuplesafe(keyarr)
-
-        if self.categories._defer_to_indexing:
-            return keyarr
-
-        return self._shallow_copy(keyarr)
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side, kind):
