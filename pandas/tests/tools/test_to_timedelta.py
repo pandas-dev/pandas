@@ -179,3 +179,9 @@ class TestTimedeltas:
         result = to_timedelta(Series([1, None], dtype="Int64"), unit="days")
 
         tm.assert_series_equal(result, expected)
+
+    def test_to_timedelta_precision_over_nanos(self):
+        # GH: 36738
+        result = to_timedelta("8:53:08.71800000001")
+        expected = pd.Timedelta("8:53:08.718")
+        assert result == expected

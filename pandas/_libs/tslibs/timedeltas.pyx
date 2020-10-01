@@ -404,9 +404,11 @@ cdef inline int64_t parse_timedelta_string(str ts) except? -1:
             m = 10**(3 -len(frac)) * 1000 * 1000
         elif len(frac) > 3 and len(frac) <= 6:
             m = 10**(6 -len(frac)) * 1000
-        else:
+        elif len(frac) > 6 and len(frac) <= 9:
             m = 10**(9 -len(frac))
-
+        else:
+            m = 1
+            frac = frac[:9]
         r = <int64_t>int(''.join(frac)) * m
         result += timedelta_as_neg(r, neg)
 
