@@ -865,11 +865,11 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     @cache_readonly
     def left(self) -> Index:
-        return Index(self._values.left, copy=False)
+        return Index(self._data.left, copy=False)
 
     @cache_readonly
     def right(self) -> Index:
-        return Index(self._values.right, copy=False)
+        return Index(self._data.right, copy=False)
 
     @cache_readonly
     def mid(self):

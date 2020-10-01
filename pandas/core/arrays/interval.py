@@ -564,7 +564,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         key = check_array_indexer(self, key)
 
         self._left[key] = value_left
-        self._right[key] = value_right  # TODO: needs tests for not breaking views
+        self._right[key] = value_right
 
     def __eq__(self, other):
         # ensure pandas array for list-like and eliminate non-interval scalars

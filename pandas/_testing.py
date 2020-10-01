@@ -982,7 +982,6 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
         # We have a DatetimeArray or TimedeltaArray
         kwargs["check_freq"] = False
 
-    # TODO: `exact` keyword?
     assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
     assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
 
