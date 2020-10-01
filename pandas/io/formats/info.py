@@ -91,8 +91,8 @@ class BaseInfo(ABC):
         self.data = data
         self.memory_usage = self._initialize_memory_usage(memory_usage)
 
+    @staticmethod
     def _initialize_memory_usage(
-        self,
         memory_usage: Optional[Union[bool, str]] = None,
     ) -> Union[bool, str]:
         if memory_usage is None:
