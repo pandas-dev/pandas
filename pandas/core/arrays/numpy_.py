@@ -374,9 +374,17 @@ class PandasArray(
 
             if op is divmod or op is ops.rdivmod:
                 a, b = result
-                return cls(a), cls(b)
+                if isinstance(a, np.ndarray):
+                    # for e.g. op vs TimedeltaArray, we may already
+                    #  have an ExtensionArray, in which case we do not wrap
+                    return cls(a), cls(b)
+                return a, b
 
-            return cls(result)
+            if isinstance(result, np.ndarray):
+                # for e.g. multiplication vs TimedeltaArray, we may already
+                #  have an ExtensionArray, in which case we do not wrap
+                return cls(result)
+            return result
 
         return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
 
