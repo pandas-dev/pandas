@@ -1128,7 +1128,7 @@ You can use ``fillna`` to handle missing values before applying a function.
         {
             "a": [1, 2, 3, 4],
             "b": ["a", "b", "c", "d"],
-            "cats": pd.Categorical([1, 2, 3, 2])
+            "cats": pd.Categorical([1, 2, 3, 2]),
         }
     )
     df.apply(lambda row: type(row["cats"]), axis=1)

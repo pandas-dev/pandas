@@ -1055,14 +1055,14 @@ writing to a file). For example:
        pd.read_csv(
            StringIO(data),
            engine="c",
-           float_precision=None
+           float_precision=None,
        )["c"][0] - float(val)
    )
    abs(
        pd.read_csv(
            StringIO(data),
            engine="c",
-           float_precision="high"
+           float_precision="high",
        )["c"][0] - float(val)
    )
    abs(
@@ -3593,7 +3593,7 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    df_with_missing = pd.DataFrame(
        {
            "col1": [0, np.nan, 2],
-           "col2": [1, np.nan, np.nan]
+           "col2": [1, np.nan, np.nan],
        }
    )
    df_with_missing
