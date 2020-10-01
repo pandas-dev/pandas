@@ -148,16 +148,9 @@ def urlopen(*args, **kwargs):
     Lazy-import wrapper for stdlib urlopen, as that imports a big chunk of
     the stdlib.
     """
-    import urllib.request
+    from urllib.request import Request, urlopen as _urlopen
 
-    # Request class is only available in Python3, which
-    # allows headers to be specified
-    if hasattr(urllib.request, "Request"):
-        r = urllib.request.urlopen(urllib.request.Request(*args, **kwargs))
-    else:
-        r = urllib.request.urlopen(*args, **kwargs)
-
-    return r
+    return _urlopen(Request(*args, **kwargs))
 
 
 def is_fsspec_url(url: FilePathOrBuffer) -> bool:
