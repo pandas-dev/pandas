@@ -1311,7 +1311,7 @@ class GenericArrayFormatter:
             float_format = get_option("display.float_format")
             if float_format is None:
                 precision = get_option("display.precision")
-                float_format = lambda x: f"{x: .{precision:d}g}"
+                float_format = lambda x: f"{x: .{precision:d}f}"
         else:
             float_format = self.float_format
 
@@ -1371,6 +1371,8 @@ class GenericArrayFormatter:
                 else:
                     tpl = " {v}"
                 fmt_values.append(tpl.format(v=_format(v)))
+
+        fmt_values = _trim_zeros_float(str_floats=fmt_values, decimal=".")
 
         return fmt_values
 
@@ -1473,9 +1475,9 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             if self.fixed_width:
                 if is_complex:
-                    result = _trim_zeros_complex(values, self.decimal, na_rep)
+                    result = _trim_zeros_complex(values, self.decimal)
                 else:
-                    result = _trim_zeros_float(values, self.decimal, na_rep)
+                    result = _trim_zeros_float(values, self.decimal)
                 return np.asarray(result, dtype="object")
 
             return values
@@ -1855,21 +1857,19 @@ def _make_fixed_width(
     return result
 
 
-def _trim_zeros_complex(
-    str_complexes: np.ndarray, decimal: str = ".", na_rep: str = "NaN"
-) -> List[str]:
+def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[str]:
     """
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
     return [
-        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal, na_rep))
+        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal))
         for x in str_complexes
     ]
 
 
 def _trim_zeros_float(
-    str_floats: Union[np.ndarray, List[str]], decimal: str = ".", na_rep: str = "NaN"
+    str_floats: Union[np.ndarray, List[str]], decimal: str = "."
 ) -> List[str]:
     """
     Trims zeros, leaving just one before the decimal points if need be.
@@ -1877,7 +1877,7 @@ def _trim_zeros_float(
     trimmed = str_floats
 
     def _is_number(x):
-        return x != na_rep and not x.endswith("inf")
+        return re.match(r"-?[0-9]+(\.[0-9]+)?", x.strip()) is not None
 
     def _cond(values):
         finite = [x for x in values if _is_number(x)]
