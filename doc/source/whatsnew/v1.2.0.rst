@@ -168,7 +168,6 @@ Other enhancements
 - ``Styler`` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
-- :func:`pandas._testing.assert_datetime_array_equal` and :func:`pandas._testing.assert_timedelta_array_equal` now have a ``check_freq=True`` keyword that allows disabling the check for matching ``freq`` attribute (:issue:`36310`)
 
 .. _whatsnew_120.api_breaking.python:
 
