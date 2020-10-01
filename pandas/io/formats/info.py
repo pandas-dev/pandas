@@ -77,8 +77,10 @@ class BaseInfo(ABC):
     ----------
     data : FrameOrSeries
         Either dataframe or series.
-    memory_usage : bool
-
+    memory_usage : bool or str, optional
+        If "deep", introspect the data deeply by interrogating object dtypes
+        for system-level memory consumption, and include it in the returned
+        values.
     """
 
     def __init__(
@@ -117,13 +119,6 @@ class BaseInfo(ABC):
     @property
     def mem_usage(self) -> int:
         """Memory usage in bytes.
-
-        Parameters
-        ----------
-        deep : bool
-            If True, introspect the data deeply by interrogating object dtypes
-            for system-level memory consumption, and include it in the returned
-            values.
 
         Returns
         -------
