@@ -303,7 +303,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64``, ``timedelta64`` or ``Period`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`, :issue:`36254`)
 - Inconsistency in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray`  setitem casting arrays of strings to datetimelike scalars but not scalar strings (:issue:`36261`)
 - Bug in :class:`DatetimeIndex.shift` incorrectly raising when shifting empty indexes (:issue:`14811`)
-- Bug in :class:`Timedelta` incorrectly deleted all decimals when input had more decimals than nanoseconds (:issue:`36738`)
+- Bug in :class:`Timedelta` incorrectly deleted all decimals when input had a higher precision than nanoseconds (:issue:`36738`)
 
 Timedelta
 ^^^^^^^^^
