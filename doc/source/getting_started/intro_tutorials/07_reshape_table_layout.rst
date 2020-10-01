@@ -102,9 +102,7 @@ measurement.
 .. ipython:: python
 
     air_quality = pd.read_csv(
-        "data/air_quality_long.csv",
-        index_col="date.utc",
-        parse_dates=True
+        "data/air_quality_long.csv", index_col="date.utc", parse_dates=True
     )
     air_quality.head()
 
@@ -251,9 +249,8 @@ I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of 
 .. ipython:: python
 
     air_quality.pivot_table(
-        values="value", index="location",
-        columns="parameter", aggfunc="mean"
-)
+        values="value", index="location", columns="parameter", aggfunc="mean"
+    )
 
 In the case of :meth:`~DataFrame.pivot`, the data is only rearranged. When multiple
 values need to be aggregated (in this specific case, the values on
@@ -356,13 +353,9 @@ The :func:`pandas.melt` method can be defined in more detail:
 
     no_2 = no2_pivoted.melt(
         id_vars="date.utc",
-        value_vars=[
-            "BETR801",
-            "FR04014",
-            "London Westminster"
-        ],
+        value_vars=["BETR801", "FR04014", "London Westminster"],
         value_name="NO_2",
-        var_name="id_location"
+        var_name="id_location",
     )
     no_2.head()
 

@@ -224,9 +224,7 @@ In the "Sex" column, replace values of "male" by "M" and values of "female" by "
 
 .. ipython:: python
 
-    titanic["Sex_short"] = titanic["Sex"].replace({
-        "male": "M", "female": "F"
-    })
+    titanic["Sex_short"] = titanic["Sex"].replace({"male": "M", "female": "F"})
     titanic["Sex_short"]
 
 Whereas :meth:`~Series.replace` is not a string method, it provides a convenient way
