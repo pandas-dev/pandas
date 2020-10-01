@@ -122,8 +122,10 @@ aggregating statistics for given columns can be defined using the
 
 .. ipython:: python
 
-    titanic.agg({'Age': ['min', 'max', 'median', 'skew'],
-                 'Fare': ['min', 'max', 'median', 'mean']})
+    titanic.agg({
+        "Age": ["min", "max", "median", "skew"],
+        "Fare": ["min", "max", "median", "mean"]
+    })
 
 .. raw:: html
 
