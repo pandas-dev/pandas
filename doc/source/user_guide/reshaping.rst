@@ -432,7 +432,12 @@ We can produce pivot tables from this data very easily:
 
    pd.pivot_table(df, values="D", index=["A", "B"], columns=["C"])
    pd.pivot_table(df, values="D", index=["B"], columns=["A", "C"], aggfunc=np.sum)
-   pd.pivot_table(df, values=["D", "E"], index=["B"], columns=["A", "C"], aggfunc=np.sum)
+   pd.pivot_table(
+       df, values=["D", "E"],
+       index=["B"],
+       columns=["A", "C"],
+       aggfunc=np.sum,
+   )
 
 The result object is a ``DataFrame`` having potentially hierarchical indexes on the
 rows and columns. If the ``values`` column name is not given, the pivot table
