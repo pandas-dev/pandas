@@ -678,14 +678,12 @@ class TestGetSliceBounds:
         tz = tz_aware_fixture
         index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
         key = box(year=2000, month=1, day=7)
-        if tz is None:
+
+        warn = None if tz is None else FutureWarning
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            # GH#36148 will require tzawareness-compat
             result = index.get_slice_bound(key, kind=kind, side=side)
-            assert result == expected
-        else:
-            # We require tzawareness-compat in indexing
-            msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
-            with pytest.raises(TypeError, match=msg):
-                index.get_slice_bound(key, kind=kind, side=side)
+        assert result == expected
 
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
@@ -698,14 +696,12 @@ class TestGetSliceBounds:
         tz = tz_aware_fixture
         index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
         key = box(year=year, month=1, day=7)
-        if tz is None:
+
+        warn = None if tz is None else FutureWarning
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            # GH#36148 will require tzawareness-compat
             result = index.get_slice_bound(key, kind=kind, side=side)
-            assert result == expected
-        else:
-            # We require tzawareness compat in indexing
-            msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
-            with pytest.raises(TypeError, match=msg):
-                index.get_slice_bound(key, kind=kind, side=side)
+        assert result == expected
 
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
@@ -714,12 +710,10 @@ class TestGetSliceBounds:
         tz = tz_aware_fixture
         index = DatetimeIndex(["2010-01-01", "2010-01-03"]).tz_localize(tz)
         key = box(2010, 1, 1)
-        if tz is None:
+
+        warn = None if tz is None else FutureWarning
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            # GH#36148 will require tzawareness-compat
             result = index.slice_locs(key, box(2010, 1, 2))
-            expected = (0, 1)
-            assert result == expected
-        else:
-            # We require tzawareness-compat in indexing
-            msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
-            with pytest.raises(TypeError, match=msg):
-                index.slice_locs(key, box(2010, 1, 2))
+        expected = (0, 1)
+        assert result == expected

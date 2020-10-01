@@ -600,6 +600,28 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # _parsed_string_to_bounds allows it.
             raise KeyError
 
+    def _deprecate_mismatched_indexing(self, key):
+        # GH#36148
+        # we get here with isinstance(key, self._data._recognized_scalars)
+        try:
+            self._data._assert_tzawareness_compat(key)
+        except TypeError:
+            if self.tz is None:
+                msg = (
+                    "Indexing a timezone-naive DatetimeIndex with a "
+                    "timezone-aware datetime is deprecated and will "
+                    "raise KeyError in a future version.  "
+                    "Use a timezone-naive object instead."
+                )
+            else:
+                msg = (
+                    "Indexing a timezone-aware DatetimeIndex with a "
+                    "timezone-naive datetime is deprecated and will "
+                    "raise KeyError in a future version.  "
+                    "Use a timezone-aware object instead."
+                )
+            warnings.warn(msg, FutureWarning, stacklevel=5)
+
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -617,10 +639,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
-            try:
-                self._data._assert_tzawareness_compat(key)
-            except TypeError as err:
-                raise KeyError(key) from err
+            self._deprecate_mismatched_indexing(key)
             key = self._maybe_cast_for_get_loc(key)
 
         elif isinstance(key, str):
@@ -679,10 +698,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         label : object
 
-        Raises
-        ------
-        TypeError : indexing timezone-aware DatetimeIndex with tz-naive datetime
-
         Notes
         -----
         Value of `side` parameter should be validated in caller.
@@ -707,7 +722,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
         elif isinstance(label, (self._data._recognized_scalars, date)):
-            self._data._assert_tzawareness_compat(label)
+            self._deprecate_mismatched_indexing(label)
         return self._maybe_cast_for_get_loc(label)
 
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
