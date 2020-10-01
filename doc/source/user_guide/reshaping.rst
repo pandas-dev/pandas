@@ -238,7 +238,13 @@ calling ``sort_index``, of course). Here is a more complex example:
 .. ipython:: python
 
    columns = pd.MultiIndex.from_tuples(
-       [("A", "cat"), ("B", "dog"), ("B", "cat"), ("A", "dog")], names=["exp", "animal"]
+       [
+           ("A", "cat"),
+           ("B", "dog"),
+           ("B", "cat"),
+           ("A", "dog"),
+       ],
+       names=["exp", "animal"],
    )
    index = pd.MultiIndex.from_product(
        [("bar", "baz", "foo", "qux"), ("one", "two")], names=["first", "second"]
@@ -800,14 +806,26 @@ parameter.
 
 .. ipython:: python
 
-   df.pivot_table(values="val0", index="row", columns="col", aggfunc="mean", fill_value=0)
+   df.pivot_table(
+       values="val0",
+       index="row",
+       columns="col",
+       aggfunc="mean",
+       fill_value=0,
+   )
 
 Also note that we can pass in other aggregation functions as well. For example,
 we can also pass in ``sum``.
 
 .. ipython:: python
 
-   df.pivot_table(values="val0", index="row", columns="col", aggfunc="sum", fill_value=0)
+   df.pivot_table(
+       values="val0",
+       index="row",
+       columns="col",
+       aggfunc="sum",
+       fill_value=0,
+   )
 
 Another aggregation we can do is calculate the frequency in which the columns
 and rows occur together a.k.a. "cross tabulation". To do this, we can pass
@@ -825,7 +843,12 @@ We can also perform multiple aggregations. For example, to perform both a
 
 .. ipython:: python
 
-   df.pivot_table(values="val0", index="row", columns="col", aggfunc=["mean", "sum"])
+   df.pivot_table(
+       values="val0",
+       index="row",
+       columns="col",
+       aggfunc=["mean", "sum"],
+   )
 
 Note to aggregate over multiple value columns, we can pass in a list to the
 ``values`` parameter.
@@ -839,7 +862,12 @@ Note to subdivide over multiple columns we can pass in a list to the
 
 .. ipython:: python
 
-   df.pivot_table(values=["val0"], index="row", columns=["item", "col"], aggfunc=["mean"])
+   df.pivot_table(
+       values=["val0"],
+       index="row",
+       columns=["item", "col"],
+       aggfunc=["mean"],
+   )
 
 .. _reshaping.explode:
 
