@@ -845,25 +845,3 @@ def test_rolling_std_neg_sqrt():
 
     b = a.ewm(span=3).std()
     assert np.isfinite(b[2:]).all()
-
-
-@td.skip_if_no_scipy
-def test_rolling_skew(raw, series, frame):
-    from scipy.stats import skew
-
-    _check_moment_func(
-        lambda x: skew(x, bias=False), name="skew", raw=raw, series=series, frame=frame
-    )
-
-
-@td.skip_if_no_scipy
-def test_rolling_kurt(raw, series, frame):
-    from scipy.stats import kurtosis
-
-    _check_moment_func(
-        lambda x: kurtosis(x, bias=False),
-        name="kurt",
-        raw=raw,
-        series=series,
-        frame=frame,
-    )

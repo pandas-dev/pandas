@@ -11,20 +11,22 @@ import pandas.tseries.offsets as offsets
 
 
 @td.skip_if_no_scipy
-@pytest.mark.parametrize("roll_func", ['kurt', 'skew'])
-def test_series(series, roll_func):
+@pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
+def test_series(series, sp_func, roll_func):
     import scipy.stats
-    compare_func = partial(getattr(scipy.stats, roll_func), bias=False)
+
+    compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
     result = getattr(series.rolling(50), roll_func)()
     assert isinstance(result, Series)
     tm.assert_almost_equal(result.iloc[-1], compare_func(series[-50:]))
 
 
 @td.skip_if_no_scipy
-@pytest.mark.parametrize("roll_func", ['kurt', 'skew'])
-def test_frame(raw, frame, roll_func):
+@pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
+def test_frame(raw, frame, sp_func, roll_func):
     import scipy.stats
-    compare_func = partial(getattr(scipy.stats, roll_func), bias=False)
+
+    compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
     result = getattr(frame.rolling(50), roll_func)()
     assert isinstance(result, DataFrame)
     tm.assert_series_equal(
@@ -35,13 +37,14 @@ def test_frame(raw, frame, roll_func):
 
 
 @td.skip_if_no_scipy
-@pytest.mark.parametrize("roll_func", ['kurt', 'skew'])
-def test_time_rule_series(series, roll_func):
+@pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
+def test_time_rule_series(series, sp_func, roll_func):
     import scipy.stats
-    compare_func = partial(getattr(scipy.stats, roll_func), bias=False)
+
+    compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
     win = 25
     ser = series[::2].resample("B").mean()
-    series_result = getattr(ser.rolling(window=win), roll_func)()
+    series_result = getattr(ser.rolling(window=win, min_periods=10), roll_func)()
     last_date = series_result.index[-1]
     prev_date = last_date - 24 * offsets.BDay()
 
@@ -50,13 +53,14 @@ def test_time_rule_series(series, roll_func):
 
 
 @td.skip_if_no_scipy
-@pytest.mark.parametrize("roll_func", ['kurt', 'skew'])
-def test_time_rule_frame(raw, frame, roll_func):
+@pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
+def test_time_rule_frame(raw, frame, sp_func, roll_func):
     import scipy.stats
-    compare_func = partial(getattr(scipy.stats, roll_func), bias=False)
+
+    compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
     win = 25
     frm = frame[::2].resample("B").mean()
-    frame_result = getattr(frm.rolling(window=win), roll_func)()
+    frame_result = getattr(frm.rolling(window=win, min_periods=10), roll_func)()
     last_date = frame_result.index[-1]
     prev_date = last_date - 24 * offsets.BDay()
 
@@ -68,10 +72,11 @@ def test_time_rule_frame(raw, frame, roll_func):
     )
 
 
-@pytest.mark.parametrize("roll_func", ['kurt', 'skew'])
-def test_nans(roll_func):
+@pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
+def test_nans(sp_func, roll_func):
     import scipy.stats
-    compare_func = partial(getattr(scipy.stats, roll_func), bias=False)
+
+    compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
     obj = Series(np.random.randn(50))
     obj[:10] = np.NaN
     obj[-10:] = np.NaN
@@ -92,14 +97,13 @@ def test_nans(roll_func):
     assert isna(result.iloc[3])
     assert notna(result.iloc[4])
 
-    if roll_func != "sum":
-        result0 = getattr(obj.rolling(20, min_periods=0), roll_func)()
-        result1 = getattr(obj.rolling(20, min_periods=1), roll_func)()
-        tm.assert_almost_equal(result0, result1)
+    result0 = getattr(obj.rolling(20, min_periods=0), roll_func)()
+    result1 = getattr(obj.rolling(20, min_periods=1), roll_func)()
+    tm.assert_almost_equal(result0, result1)
 
 
 @pytest.mark.parametrize("minp", [0, 99, 100])
-@pytest.mark.parametrize("roll_func", ['kurt', 'skew'])
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_min_periods(series, minp, roll_func):
     result = getattr(series.rolling(len(series) + 1, min_periods=minp), roll_func)()
     expected = getattr(series.rolling(len(series), min_periods=minp), roll_func)()
@@ -110,38 +114,37 @@ def test_min_periods(series, minp, roll_func):
     tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
 
 
-@pytest.mark.parametrize("roll_func", ['kurt', 'skew'])
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_center(roll_func):
     obj = Series(np.random.randn(50))
     obj[:10] = np.NaN
     obj[-10:] = np.NaN
 
     result = getattr(obj.rolling(20, center=True), roll_func)()
-    expected = getattr(
-        concat([obj, Series([np.NaN] * 9)]).rolling(20), roll_func)()[9:].reset_index(drop=True)
+    expected = getattr(concat([obj, Series([np.NaN] * 9)]).rolling(20), roll_func)()[
+        9:
+    ].reset_index(drop=True)
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("roll_func", ['kurt', 'skew'])
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_center_reindex_series(series, roll_func):
     # shifter index
     s = [f"x{x:d}" for x in range(12)]
 
     series_xp = (
         getattr(
-            series.reindex(list(series.index) + s).rolling(window=25, min_periods=minp),
+            series.reindex(list(series.index) + s).rolling(window=25),
             roll_func,
         )()
         .shift(-12)
         .reindex(series.index)
     )
-    series_rs = getattr(
-        series.rolling(window=25, center=True), roll_func
-    )()
+    series_rs = getattr(series.rolling(window=25, center=True), roll_func)()
     tm.assert_series_equal(series_xp, series_rs)
 
 
-@pytest.mark.parametrize("roll_func", ['kurt', 'skew'])
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_center_reindex_frame(frame, roll_func):
     # shifter index
     s = [f"x{x:d}" for x in range(12)]
@@ -154,7 +157,5 @@ def test_center_reindex_frame(frame, roll_func):
         .shift(-12)
         .reindex(frame.index)
     )
-    frame_rs = getattr(
-        frame.rolling(window=25, center=True), roll_func
-    )()
+    frame_rs = getattr(frame.rolling(window=25, center=True), roll_func)()
     tm.assert_frame_equal(frame_xp, frame_rs)
