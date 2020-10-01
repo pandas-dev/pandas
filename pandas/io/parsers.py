@@ -604,7 +604,7 @@ def read_csv(
     memory_map=False,
     float_precision=None,
     storage_options: StorageOptions = None,
-    headers={},
+    headers: Dict[str, Any] = {},
 ):
     # gh-23761
     #

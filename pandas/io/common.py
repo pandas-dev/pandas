@@ -176,7 +176,7 @@ def get_filepath_or_buffer(
     compression: CompressionOptions = None,
     mode: ModeVar = None,  # type: ignore[assignment]
     storage_options: StorageOptions = None,
-    headers: dict = {},
+    headers: Dict[str, Any] = {},
 ) -> IOargs[ModeVar, EncodingVar]:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.

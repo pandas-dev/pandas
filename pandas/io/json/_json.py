@@ -3,7 +3,7 @@ import functools
 from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import IO, Any, Callable, List, Optional, Type
+from typing import IO, Any, Callable, Dict, List, Optional, Type
 
 import numpy as np
 
@@ -377,7 +377,7 @@ def read_json(
     compression: CompressionOptions = "infer",
     nrows: Optional[int] = None,
     storage_options: StorageOptions = None,
-    headers: dict = {},
+    headers: Dict[str, Any] = {},
 ):
     """
     Convert a JSON string to pandas object.
