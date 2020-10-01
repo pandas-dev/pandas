@@ -1347,7 +1347,7 @@ class IndexOpsMixin:
 
         Parameters
         ----------
-        deep : bool
+        deep : bool, default False
             Introspect the data deeply, interrogate
             `object` dtypes for system-level memory consumption.
 

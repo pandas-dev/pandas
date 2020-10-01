@@ -68,6 +68,8 @@ class ArrowStringDtype(ExtensionDtype):
 
 
 class ArrowExtensionArray(ExtensionArray):
+    _data: pa.ChunkedArray
+
     @classmethod
     def from_scalars(cls, values):
         arr = pa.chunked_array([pa.array(np.asarray(values))])
@@ -129,7 +131,7 @@ class ArrowExtensionArray(ExtensionArray):
         return self._boolean_op(other, operator.or_)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return sum(
             x.size
             for chunk in self._data.chunks
