@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
+    BaseOffset,
     NaT,
     NaTType,
     Resolution,
@@ -283,7 +284,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             type(self)._validate_frequency(self, freq)
 
     @classmethod
-    def _simple_new(cls, values, freq=None, dtype=DT64NS_DTYPE):
+    def _simple_new(
+        cls, values, freq: Optional[BaseOffset] = None, dtype=DT64NS_DTYPE
+    ) -> "DatetimeArray":
         assert isinstance(values, np.ndarray)
         if values.dtype != DT64NS_DTYPE:
             assert values.dtype == "i8"
