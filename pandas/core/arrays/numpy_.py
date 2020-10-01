@@ -1,5 +1,5 @@
 import numbers
-from typing import Optional, Tuple, Type, Union
+from typing import Tuple, Type, Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -7,10 +7,8 @@ from numpy.lib.mixins import NDArrayOperatorsMixin
 from pandas._libs import lib
 from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas import compat
@@ -18,8 +16,7 @@ from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
-from pandas.core.construction import extract_array
-from pandas.core.missing import backfill_1d, pad_1d
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -118,7 +115,10 @@ class PandasDtype(ExtensionDtype):
 
 
 class PandasArray(
-    NDArrayBackedExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin
+    NDArrayBackedExtensionArray,
+    ExtensionOpsMixin,
+    NDArrayOperatorsMixin,
+    ObjectStringArrayMixin,
 ):
     """
     A pandas ExtensionArray for NumPy data.
@@ -247,50 +247,8 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
-    def _validate_getitem_key(self, key):
-        if isinstance(key, type(self)):
-            key = key._ndarray
-
-        return super()._validate_getitem_key(key)
-
-    def _validate_setitem_value(self, value):
-        value = extract_array(value, extract_numpy=True)
-
-        if not lib.is_scalar(value):
-            value = np.asarray(value, dtype=self._ndarray.dtype)
-        return value
-
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
-
-    def fillna(
-        self, value=None, method: Optional[str] = None, limit: Optional[int] = None
-    ) -> "PandasArray":
-        # TODO(_values_for_fillna): remove this
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                func = pad_1d if method == "pad" else backfill_1d
-                new_values = func(self._ndarray, limit=limit, mask=mask)
-                new_values = self._from_sequence(new_values, dtype=self.dtype)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     def _validate_fill_value(self, fill_value):
         if fill_value is None:
@@ -303,14 +261,6 @@ class PandasArray(
 
     # ------------------------------------------------------------------------
     # Reductions
-
-    def _reduce(self, name, skipna=True, **kwargs):
-        meth = getattr(self, name, None)
-        if meth:
-            return meth(skipna=skipna, **kwargs)
-        else:
-            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
-            raise TypeError(msg)
 
     def any(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
@@ -429,6 +379,10 @@ class PandasArray(
         return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
 
     _create_comparison_method = _create_arithmetic_method
+
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = np.nan
 
 
 PandasArray._add_arithmetic_ops()

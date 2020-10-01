@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_float_dtype,
     is_integer_dtype,
-    is_interval,
     is_interval_dtype,
     is_list_like,
     is_object_dtype,
@@ -824,53 +823,52 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return self._shallow_copy(left_take, right_take)
 
-    def _validate_fill_value(self, value):
-        if is_interval(value):
-            self._check_closed_matches(value, name="fill_value")
-            fill_left, fill_right = value.left, value.right
-        elif not is_scalar(value) and notna(value):
-            msg = (
-                "'IntervalArray.fillna' only supports filling with a "
-                "'scalar pandas.Interval or NA'. "
-                f"Got a '{type(value).__name__}' instead."
-            )
-            raise ValueError(msg)
+    def _validate_listlike(self, value):
+        # list-like of intervals
+        try:
+            array = IntervalArray(value)
+            # TODO: self._check_closed_matches(array, name="value")
+            value_left, value_right = array.left, array.right
+        except TypeError as err:
+            # wrong type: not interval or NA
+            msg = f"'value' should be an interval type, got {type(value)} instead."
+            raise TypeError(msg) from err
+        return value_left, value_right
+
+    def _validate_scalar(self, value):
+        if isinstance(value, Interval):
+            self._check_closed_matches(value, name="value")
+            left, right = value.left, value.right
+        elif is_valid_nat_for_dtype(value, self.left.dtype):
+            # GH#18295
+            left = right = value
         else:
-            fill_left = fill_right = self.left._na_value
-        return fill_left, fill_right
+            raise ValueError(
+                "can only insert Interval objects and NA into an IntervalArray"
+            )
+        return left, right
+
+    def _validate_fill_value(self, value):
+        return self._validate_scalar(value)
 
     def _validate_fillna_value(self, value):
-        if not isinstance(value, Interval):
+        # This mirrors Datetimelike._validate_fill_value
+        try:
+            return self._validate_scalar(value)
+        except ValueError as err:
             msg = (
                 "'IntervalArray.fillna' only supports filling with a "
                 f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
             )
-            raise TypeError(msg)
-
-        self._check_closed_matches(value, name="value")
-        return value.left, value.right
+            raise TypeError(msg) from err
 
     def _validate_insert_value(self, value):
-        if isinstance(value, Interval):
-            if value.closed != self.closed:
-                raise ValueError(
-                    "inserted item must be closed on the same side as the index"
-                )
-            left_insert = value.left
-            right_insert = value.right
-        elif is_valid_nat_for_dtype(value, self.left.dtype):
-            # GH#18295
-            left_insert = right_insert = value
-        else:
-            raise ValueError(
-                "can only insert Interval objects and NA into an IntervalIndex"
-            )
-        return left_insert, right_insert
+        return self._validate_scalar(value)
 
     def _validate_setitem_value(self, value):
         needs_float_conversion = False
 
-        if is_scalar(value) and isna(value):
+        if is_valid_nat_for_dtype(value, self.left.dtype):
             # na value: need special casing to set directly on numpy arrays
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
@@ -889,14 +887,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             value_left, value_right = value.left, value.right
 
         else:
-            try:
-                # list-like of intervals
-                array = IntervalArray(value)
-                value_left, value_right = array.left, array.right
-            except TypeError as err:
-                # wrong type: not interval or NA
-                msg = f"'value' should be an interval type, got {type(value)} instead."
-                raise TypeError(msg) from err
+            return self._validate_listlike(value)
 
         if needs_float_conversion:
             raise ValueError("Cannot set float NaN to integer-backed IntervalArray")

@@ -511,7 +511,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Returns
         -------
-        string
+        str
         """
         return self._get_date_name_field("day_name", locale)
 
@@ -526,7 +526,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Returns
         -------
-        string
+        str
         """
         return self._get_date_name_field("month_name", locale)
 

@@ -31,8 +31,6 @@ def read_gbq(
     credentials=None,
     use_bqstorage_api: Optional[bool] = None,
     max_results: Optional[int] = None,
-    private_key=None,
-    verbose=None,
     progress_bar_type: Optional[str] = None,
 ) -> "DataFrame":
     """
@@ -208,8 +206,6 @@ def to_gbq(
     location: Optional[str] = None,
     progress_bar: bool = True,
     credentials=None,
-    verbose=None,
-    private_key=None,
 ) -> None:
     pandas_gbq = _try_import()
     pandas_gbq.to_gbq(
@@ -224,6 +220,4 @@ def to_gbq(
         location=location,
         progress_bar=progress_bar,
         credentials=credentials,
-        verbose=verbose,
-        private_key=private_key,
     )

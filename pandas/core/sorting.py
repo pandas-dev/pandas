@@ -72,7 +72,7 @@ def get_indexer_indexer(
         )
     elif isinstance(target, ABCMultiIndex):
         indexer = lexsort_indexer(
-            target._get_codes_for_sorting(), orders=ascending, na_position=na_position,
+            target._get_codes_for_sorting(), orders=ascending, na_position=na_position
         )
     else:
         # Check monotonic-ness before sort an index (GH 11080)
@@ -469,7 +469,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     levels : Optional[List], if values is a MultiIndex, list of levels to
     apply the key to.
     """
-    from pandas.core.indexes.api import Index  # noqa:F811
+    from pandas.core.indexes.api import Index
 
     if not key:
         return values

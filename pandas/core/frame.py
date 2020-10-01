@@ -449,9 +449,7 @@ class DataFrame(NDFrame):
         if isinstance(data, BlockManager):
             if index is None and columns is None and dtype is None and copy is False:
                 # GH#33357 fastpath
-                NDFrame.__init__(
-                    self, data,
-                )
+                NDFrame.__init__(self, data)
                 return
 
             mgr = self._init_mgr(
@@ -2300,7 +2298,7 @@ class DataFrame(NDFrame):
         path : str or file-like object
             If a string, it will be used as Root Directory path
             when writing a partitioned dataset. By file-like object,
-            we refer to objects with a write() method, such as a file handler
+            we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function) or io.BytesIO. The engine
             fastparquet does not accept file-like objects.
 
@@ -3190,7 +3188,8 @@ class DataFrame(NDFrame):
 
             # GH31368 preserve name of index
             index_copy = value.index.copy()
-            index_copy.name = self.index.name
+            if self.index.name is not None:
+                index_copy.name = self.index.name
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
@@ -5134,7 +5133,7 @@ class DataFrame(NDFrame):
         0  Yum Yum   cup     4.0
         2  Indomie   cup     3.5
 
-        To remove duplicates and keep last occurences, use ``keep``.
+        To remove duplicates and keep last occurrences, use ``keep``.
 
         >>> df.drop_duplicates(subset=['brand', 'style'], keep='last')
             brand style  rating
@@ -5747,7 +5746,7 @@ class DataFrame(NDFrame):
                   population    GDP alpha-2
         Tuvalu         11300     38      TV
         Anguilla       11300    311      AI
-        Iceland       337000  17036	     IS
+        Iceland       337000  17036      IS
 
         When using ``keep='last'``, ties are resolved in reverse order:
 
@@ -5892,13 +5891,22 @@ DataFrame
     The resulting index will be a MultiIndex with 'self' and 'other'
     stacked alternately at the inner level.
 
+Raises
+------
+ValueError
+    When the two DataFrames don't have identical labels or shape.
+
 See Also
 --------
 Series.compare : Compare with another Series and show differences.
+DataFrame.equals : Test whether two objects contain the same elements.
 
 Notes
 -----
 Matching NaNs will not appear as a difference.
+
+Can only compare identically-labeled
+(i.e. same shape, identical row and column labels) DataFrames
 
 Examples
 --------
@@ -7142,7 +7150,7 @@ NaN 12.3   33.0
 
         return unstack(self, level, fill_value)
 
-    @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt",))
+    @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt"))
     def melt(
         self,
         id_vars=None,
@@ -8624,7 +8632,7 @@ NaN 12.3   33.0
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
             res = df._mgr.reduce(blk_func)
-            out = df._constructor(res,).iloc[0].rename(None)
+            out = df._constructor(res).iloc[0].rename(None)
             if out_dtype is not None:
                 out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):

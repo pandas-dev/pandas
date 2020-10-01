@@ -60,7 +60,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Categorical, DataFrame, Series  # noqa:F401
+    from pandas import Categorical, DataFrame, Series
 
 _shared_docs: Dict[str, str] = {}
 
@@ -278,7 +278,6 @@ def _check_object_for_strings(values) -> str:
     Parameters
     ----------
     values : ndarray
-    ndtype : str
 
     Returns
     -------
@@ -1023,11 +1022,10 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
     else:
         to_raise = (
-            ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any()
-            or (
-                (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
-            ).any()
-        )
+            (np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]
+        ).any() or (
+            (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
+        ).any()
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
