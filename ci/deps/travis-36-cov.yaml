@@ -6,48 +6,48 @@ dependencies:
   - python=3.6.*
 
   # tools
-  - cython>=0.29.21
-  - pytest>=5.0.1
-  - pytest-xdist>=1.21
-  - hypothesis>=3.58.0
-  - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
+  # - cython>=0.29.21
+  # - pytest>=5.0.1
+  # - pytest-xdist>=1.21
+  # - hypothesis>=3.58.0
+  # - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
 
   # pandas dependencies
-  - beautifulsoup4
-  - botocore>=1.11
-  - dask
-  - fastparquet>=0.3.2
-  - fsspec>=0.7.4
-  - gcsfs>=0.6.0
-  - geopandas
-  - html5lib
-  - matplotlib
-  - moto
+  # - beautifulsoup4
+  # - botocore>=1.11
+  # - dask
+  # - fastparquet>=0.3.2
+  # - fsspec>=0.7.4
+  # - gcsfs>=0.6.0
+  # - geopandas
+  # - html5lib
+  # - matplotlib
+  # - moto
   - nomkl
-  - numexpr
+  # - numexpr
   - numpy=1.15.*
-  - odfpy
-  - openpyxl
-  - pandas-gbq
-  - psycopg2
-  - pyarrow>=0.13.0
-  - pymysql
-  - pytables
-  - python-snappy
-  - pytz
-  - s3fs>=0.4.0
+  # - odfpy
+  # - openpyxl
+  # - pandas-gbq
+  # - psycopg2
+  # - pyarrow>=0.13.0
+  # - pymysql
+  # - pytables
+  # - python-snappy
+  # - pytz
+  # - s3fs>=0.4.0
   - scikit-learn
-  - scipy
-  - sqlalchemy
-  - statsmodels
-  - xarray
-  - xlrd
-  - xlsxwriter
-  - xlwt
-  - pip
-  - pip:
-    - brotlipy
-    - coverage
-    - pandas-datareader
-    - python-dateutil
-    - pyxlsb
+  # - scipy
+  # - sqlalchemy
+  # - statsmodels
+  # - xarray
+  # - xlrd
+  # - xlsxwriter
+  # - xlwt
+  # - pip
+  # - pip:
+  #   - brotlipy
+  #   - coverage
+  #   - pandas-datareader
+  #   - python-dateutil
+  #   - pyxlsb
