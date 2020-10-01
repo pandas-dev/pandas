@@ -265,6 +265,7 @@ Deprecations
 - Deprecated indexing :class:`DataFrame` rows with datetime-like strings ``df[string]``, use ``df.loc[string]`` instead (:issue:`36179`)
 - Deprecated casting an object-dtype index of ``datetime`` objects to :class:`DatetimeIndex` in the :class:`Series` constructor (:issue:`23598`)
 - Deprecated :meth:`Index.is_all_dates` (:issue:`27744`)
+- Deprecated slice-indexing on timezone-aware :class:`DatetimeIndex` with naive ``datetime`` objects, to match scalar indexing behavior (:issue:`36148`)
 
 .. ---------------------------------------------------------------------------
 
