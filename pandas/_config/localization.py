@@ -88,12 +88,14 @@ def _valid_locales(locales, normalize):
     valid_locales : list
         A list of valid locales.
     """
-    if normalize:
-        normalizer = lambda x: locale.normalize(x.strip())
-    else:
-        normalizer = lambda x: x.strip()
-
-    return list(filter(can_set_locale, map(normalizer, locales)))
+    return [
+        loc
+        for loc in (
+            locale.normalize(loc.strip()) if normalize else loc.strip()
+            for loc in locales
+        )
+        if can_set_locale(loc)
+    ]
 
 
 def _default_locale_getter():

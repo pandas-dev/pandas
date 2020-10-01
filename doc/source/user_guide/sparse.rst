@@ -87,14 +87,15 @@ The :attr:`SparseArray.dtype` property stores two pieces of information
    sparr.dtype
 
 
-A :class:`SparseDtype` may be constructed by passing each of these
+A :class:`SparseDtype` may be constructed by passing only a dtype
 
 .. ipython:: python
 
    pd.SparseDtype(np.dtype('datetime64[ns]'))
 
-The default fill value for a given NumPy dtype is the "missing" value for that dtype,
-though it may be overridden.
+in which case a default fill value will be used (for NumPy dtypes this is often the
+"missing" value for that dtype). To override this default an explicit fill value may be
+passed instead
 
 .. ipython:: python
 

@@ -228,6 +228,12 @@ class TestTake:
 
 
 class TestContains:
+    @pytest.mark.parametrize("klass", [Float64Index, Int64Index, UInt64Index])
+    def test_contains_none(self, klass):
+        # GH#35788 should return False, not raise TypeError
+        index = klass([0, 1, 2, 3, 4])
+        assert None not in index
+
     def test_contains_float64_nans(self):
         index = Float64Index([1.0, 2.0, np.nan])
         assert np.nan in index

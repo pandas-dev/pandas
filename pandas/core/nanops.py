@@ -11,9 +11,9 @@ from pandas._libs import NaT, Timedelta, Timestamp, iNaT, lib
 from pandas._typing import ArrayLike, Dtype, DtypeObj, F, Scalar
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
+from pandas.core.dtypes.cast import maybe_upcast_putmask
 from pandas.core.dtypes.common import (
-    _get_dtype,
+    get_dtype,
     is_any_int_dtype,
     is_bool_dtype,
     is_complex,
@@ -185,7 +185,7 @@ def _get_fill_value(
         else:
             if fill_value_typ == "+inf":
                 # need the max int here
-                return _int64_max
+                return np.iinfo(np.int64).max
             else:
                 return iNaT
 
@@ -346,7 +346,7 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
                 result = np.nan
 
             # raise if we have a timedelta64[ns] which is too large
-            if np.fabs(result) > _int64_max:
+            if np.fabs(result) > np.iinfo(np.int64).max:
                 raise ValueError("overflow in timedelta operation")
 
             result = Timedelta(result, unit="ns")
@@ -678,7 +678,7 @@ def _get_counts_nanvar(
     count : scalar or array
     d : scalar or array
     """
-    dtype = _get_dtype(dtype)
+    dtype = get_dtype(dtype)
     count = _get_counts(value_counts, mask, axis, dtype=dtype)
     d = count - dtype.type(ddof)
 
@@ -1234,7 +1234,7 @@ def _get_counts(
     -------
     count : scalar or array
     """
-    dtype = _get_dtype(dtype)
+    dtype = get_dtype(dtype)
     if axis is None:
         if mask is not None:
             n = mask.size - mask.sum()
@@ -1329,7 +1329,7 @@ def _zero_out_fperr(arg):
 
 @disallow("M8", "m8")
 def nancorr(
-    a: np.ndarray, b: np.ndarray, method="pearson", min_periods: Optional[int] = None,
+    a: np.ndarray, b: np.ndarray, method="pearson", min_periods: Optional[int] = None
 ):
     """
     a, b: ndarrays

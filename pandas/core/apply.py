@@ -1,12 +1,12 @@
 import abc
 import inspect
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Tuple, Type
 
 import numpy as np
 
 from pandas._config import option_context
 
-from pandas._typing import Axis
+from pandas._typing import Axis, FrameOrSeriesUnion
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like, is_sequence
@@ -73,7 +73,7 @@ class FrameApply(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def wrap_results_for_axis(
         self, results: ResType, res_index: "Index"
-    ) -> Union["Series", "DataFrame"]:
+    ) -> FrameOrSeriesUnion:
         pass
 
     # ---------------------------------------------------------------
@@ -216,7 +216,23 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-        result = np.apply_along_axis(self.f, self.axis, self.values)
+
+        def wrap_function(func):
+            """
+            Wrap user supplied function to work around numpy issue.
+
+            see https://github.com/numpy/numpy/issues/8352
+            """
+
+            def wrapper(*args, **kwargs):
+                result = func(*args, **kwargs)
+                if isinstance(result, str):
+                    result = np.array(result, dtype=object)
+                return result
+
+            return wrapper
+
+        result = np.apply_along_axis(wrap_function(self.f), self.axis, self.values)
 
         # TODO: mixed type case
         if result.ndim == 2:
@@ -289,9 +305,7 @@ class FrameApply(metaclass=abc.ABCMeta):
 
         return results, res_index
 
-    def wrap_results(
-        self, results: ResType, res_index: "Index"
-    ) -> Union["Series", "DataFrame"]:
+    def wrap_results(self, results: ResType, res_index: "Index") -> FrameOrSeriesUnion:
         from pandas import Series
 
         # see if we can infer the results
@@ -335,12 +349,15 @@ class FrameRowApply(FrameApply):
 
     def wrap_results_for_axis(
         self, results: ResType, res_index: "Index"
-    ) -> Union["Series", "DataFrame"]:
+    ) -> FrameOrSeriesUnion:
         """ return the results for the rows """
 
         if self.result_type == "reduce":
             # e.g. test_apply_dict GH#8735
-            return self.obj._constructor_sliced(results)
+            res = self.obj._constructor_sliced(results)
+            res.index = res_index
+            return res
+
         elif self.result_type is None and all(
             isinstance(x, dict) for x in results.values()
         ):
@@ -405,9 +422,9 @@ class FrameColumnApply(FrameApply):
 
     def wrap_results_for_axis(
         self, results: ResType, res_index: "Index"
-    ) -> Union["Series", "DataFrame"]:
+    ) -> FrameOrSeriesUnion:
         """ return the results for the columns """
-        result: Union["Series", "DataFrame"]
+        result: FrameOrSeriesUnion
 
         # we have requested to expand
         if self.result_type == "expand":

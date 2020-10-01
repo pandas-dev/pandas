@@ -34,12 +34,6 @@ def downsample_method(request):
     return request.param
 
 
-@pytest.fixture(params=upsample_methods)
-def upsample_method(request):
-    """Fixture for parametrization of Grouper upsample methods."""
-    return request.param
-
-
 @pytest.fixture(params=resample_methods)
 def resample_method(request):
     """Fixture for parametrization of Grouper resample methods."""
