@@ -106,6 +106,11 @@ class BaseInfo(ABC):
 
     @property
     @abstractmethod
+    def counts(self):
+        pass
+
+    @property
+    @abstractmethod
     def dtypes(self) -> Series:
         """Dtypes.
 
@@ -321,6 +326,14 @@ class TableBuilderAbstract(ABC):
         self.info = info
         self.printer = printer
 
+    @abstractmethod
+    def get_lines(self):
+        pass
+
+
+class DataFrameTableBuilder(TableBuilderAbstract):
+    """Abstract builder for dataframe info table."""
+
     def get_lines(self):
         self._lines = []
         if self.col_count == 0:
@@ -328,18 +341,6 @@ class TableBuilderAbstract(ABC):
         else:
             self._fill_non_empty_info()
         return self._lines
-
-    @abstractmethod
-    def _fill_empty_info(self):
-        pass
-
-    @abstractmethod
-    def _fill_non_empty_info(self):
-        pass
-
-
-class DataFrameTableBuilder(TableBuilderAbstract):
-    """Abstract builder for dataframe info table."""
 
     def _fill_empty_info(self):
         self.add_object_type_line()
@@ -502,6 +503,18 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
             )
             self._lines.append(body_line)
 
+    def _get_line_numbers(self):
+        for i, _ in enumerate(self.ids):
+            yield f" {i}"
+
+    def _get_columns(self):
+        for col in self.ids:
+            yield pprint_thing(col)
+
+    def _get_dtypes(self):
+        for dtype in self.dtypes:
+            yield pprint_thing(dtype)
+
 
 class DataFrameTableBuilderVerboseNoCounts(DataFrameTableBuilderVerbose):
     """Verbose info table builder without non-null counts column."""
@@ -513,9 +526,9 @@ class DataFrameTableBuilderVerboseNoCounts(DataFrameTableBuilderVerbose):
     ]
 
     def _get_strcols(self) -> List[List[str]]:
-        line_numbers = [f" {i}" for i, _ in enumerate(self.ids)]
-        columns = [pprint_thing(col) for col in self.ids]
-        dtypes = [pprint_thing(dtype) for dtype in self.dtypes]
+        line_numbers = list(self._get_line_numbers())
+        columns = list(self._get_columns())
+        dtypes = list(self._get_dtypes())
         return [line_numbers, columns, dtypes]
 
 
@@ -534,10 +547,10 @@ class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
         return "{count} non-null"
 
     def _get_strcols(self) -> List[List[str]]:
-        line_numbers = [f" {i}" for i, _ in enumerate(self.ids)]
-        columns = [pprint_thing(col) for col in self.ids]
+        line_numbers = list(self._get_line_numbers())
+        columns = list(self._get_columns())
+        dtypes = list(self._get_dtypes())
         non_null_counts = [
             self.count_non_null.format(count=count) for count in self.data.count()
         ]
-        dtypes = [pprint_thing(dtype) for dtype in self.dtypes]
         return [line_numbers, columns, non_null_counts, dtypes]
