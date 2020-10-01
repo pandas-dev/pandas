@@ -169,7 +169,7 @@ def test_floating_array_min_max(skipna, method, any_nullable_float_dtype):
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("min_count", [0, 9])
-def test_integer_array_prod(skipna, min_count, any_nullable_float_dtype):
+def test_floating_array_prod(skipna, min_count, any_nullable_float_dtype):
     dtype = any_nullable_float_dtype
     arr = pd.array([1.0, 2.0, None], dtype=dtype)
     result = arr.prod(skipna=skipna, min_count=min_count)
