@@ -325,6 +325,7 @@ Numeric
 - Bug in :meth:`DataFrame.any` with ``axis=1`` and ``bool_only=True`` ignoring the ``bool_only`` keyword (:issue:`32432`)
 - Bug in :meth:`Series.equals` where a ``ValueError`` was raised when numpy arrays were compared to scalars (:issue:`35267`)
 - Bug in :class:`Series` where two :class:`Series` each have a :class:`DatetimeIndex` with different timezones having those indexes incorrectly changed when performing arithmetic operations (:issue:`33671`)
+- Bug in :meth:`pd._testing.assert_almost_equal` was incorrect for complex numeric types (:issue:`28235`)
 -
 
 Conversion
