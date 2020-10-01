@@ -618,6 +618,19 @@ even if some categories are not present in the data:
     s = pd.Series(pd.Categorical(["a", "b", "c", "c"], categories=["c", "a", "b", "d"]))
     s.value_counts()
 
+``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories.
+
+.. ipython:: python
+
+    columns = pd.Categorical(
+        ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
+    )
+    df = pd.DataFrame(
+        data=[[1, 2, 3], [4, 5, 6]],
+        columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]),
+    )
+    df.sum(axis=1, level=1)
+
 Groupby will also show "unused" categories:
 
 .. ipython:: python
