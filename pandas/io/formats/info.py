@@ -149,6 +149,10 @@ class BaseInfo(ABC):
         return self.data.memory_usage(index=True, deep=deep).sum()
 
     @property
+    def memory_usage_string(self) -> str:
+        return f"{_sizeof_fmt(self.mem_usage, self.size_qualifier)}\n"
+
+    @property
     def size_qualifier(self) -> str:
         size_qualifier = ""
         if self.memory_usage:
@@ -316,6 +320,7 @@ class InfoPrinter:
         return len(self.info.ids)
 
     def to_buffer(self, buf: Optional[IO[str]] = None) -> None:
+        """Save dataframe info into buffer."""
         klass = self._select_table_builder()
         table_builder = klass(info=self.info, printer=self)
         lines = table_builder.get_lines()
@@ -408,6 +413,11 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         return self.info.memory_usage
 
     @property
+    def memory_usage_string(self) -> str:
+        """Memory usage string with proper size qualifier."""
+        return self.info.memory_usage_string
+
+    @property
     def ids(self) -> Index:
         """Dataframe columns."""
         return self.info.ids
@@ -455,10 +465,7 @@ class DataFrameTableBuilder(TableBuilderAbstract):
 
     def add_memory_usage_line(self) -> None:
         """Add line containing memory usage."""
-        self._lines.append(
-            "memory usage: "
-            f"{_sizeof_fmt(self.info.mem_usage, self.info.size_qualifier)}\n"
-        )
+        self._lines.append(f"memory usage: {self.memory_usage_string}")
 
 
 class DataFrameTableBuilderNonVerbose(DataFrameTableBuilder):
