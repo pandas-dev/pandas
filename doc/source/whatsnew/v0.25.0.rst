@@ -14,7 +14,7 @@ What's new in 0.25.0 (July 18, 2019)
 
 .. warning::
 
-   `Panel` has been fully removed. For N-D labeled data structures, please
+   ``Panel`` has been fully removed. For N-D labeled data structures, please
    use `xarray <https://xarray.pydata.org/en/stable/>`_
 
 .. warning::
@@ -540,7 +540,7 @@ with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397
 
 .. ipython:: python
 
-    df.describe()
+   df.describe()
 
 ``__str__`` methods now call ``__repr__`` rather than vice versa
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1167,7 +1167,7 @@ I/O
 - Fixed bug in :func:`pandas.read_csv` where a BOM would result in incorrect parsing using engine='python' (:issue:`26545`)
 - :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
-- Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. `PeriodIndex`) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
+- Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. ``PeriodIndex``) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
 - Bug in :meth:`read_hdf` where reading a timezone aware :class:`DatetimeIndex` would raise a ``TypeError`` (:issue:`11926`)
 - Bug in :meth:`to_msgpack` and :meth:`read_msgpack` which would raise a ``ValueError`` rather than a ``FileNotFoundError`` for an invalid path (:issue:`27160`)
 - Fixed bug in :meth:`DataFrame.to_parquet` which would raise a ``ValueError`` when the dataframe had no columns (:issue:`27339`)
@@ -1262,7 +1262,7 @@ Other
 - Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
 - Allow :class:`Index` and :class:`RangeIndex` to be passed to numpy ``min`` and ``max`` functions (:issue:`26125`)
 - Use actual class name in repr of empty objects of a ``Series`` subclass (:issue:`27001`).
-- Bug in :class:`DataFrame` where passing an object array of timezone-aware `datetime` objects would incorrectly raise ``ValueError`` (:issue:`13287`)
+- Bug in :class:`DataFrame` where passing an object array of timezone-aware ``datetime`` objects would incorrectly raise ``ValueError`` (:issue:`13287`)
 
 .. _whatsnew_0.250.contributors:
 

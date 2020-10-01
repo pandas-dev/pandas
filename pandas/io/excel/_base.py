@@ -24,11 +24,11 @@ from pandas.io.common import (
     validate_header_arg,
 )
 from pandas.io.excel._util import (
-    _fill_mi_header,
-    _get_default_writer,
-    _maybe_convert_usecols,
-    _pop_header_name,
+    fill_mi_header,
+    get_default_writer,
     get_writer,
+    maybe_convert_usecols,
+    pop_header_name,
 )
 from pandas.io.parsers import TextParser
 
@@ -50,7 +50,7 @@ io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
     By file-like object, we refer to objects with a ``read()`` method,
-    such as a file handler (e.g. via builtin ``open`` function)
+    such as a file handle (e.g. via builtin ``open`` function)
     or ``StringIO``.
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
@@ -120,13 +120,14 @@ true_values : list, default None
     Values to consider as True.
 false_values : list, default None
     Values to consider as False.
-skiprows : list-like
-    Rows to skip at the beginning (0-indexed).
+skiprows : list-like, int, or callable, optional
+    Line numbers to skip (0-indexed) or number of lines to skip (int) at the
+    start of the file. If callable, the callable function will be evaluated
+    against the row indices, returning True if the row should be skipped and
+    False otherwise. An example of a valid callable argument would be ``lambda
+    x: x in [0, 2]``.
 nrows : int, default None
     Number of rows to parse.
-
-    .. versionadded:: 0.23.0
-
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
@@ -200,13 +201,13 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
-storage_options : StorageOptions
+storage_options : dict, optional
     Extra options that make sense for a particular storage connection, e.g.
     host, port, username, password, etc., if using a URL that will
     be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
     will be raised if providing this argument with a local path or
     a file-like buffer. See the fsspec and backend storage implementation
-    docs for the set of allowed keys and values
+    docs for the set of allowed keys and values.
 
     .. versionadded:: 1.2.0
 
@@ -346,15 +347,15 @@ def read_excel(
     )
 
 
-class _BaseExcelReader(metaclass=abc.ABCMeta):
+class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
         # If filepath_or_buffer is a url, load the data into a BytesIO
         if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
-            filepath_or_buffer, _, _, _ = get_filepath_or_buffer(
+            filepath_or_buffer = get_filepath_or_buffer(
                 filepath_or_buffer, storage_options=storage_options
-            )
+            ).filepath_or_buffer
 
         if isinstance(filepath_or_buffer, self._workbook_class):
             self.book = filepath_or_buffer
@@ -454,7 +455,7 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
                 sheet = self.get_sheet_by_index(asheetname)
 
             data = self.get_sheet_data(sheet, convert_float)
-            usecols = _maybe_convert_usecols(usecols)
+            usecols = maybe_convert_usecols(usecols)
 
             if not data:
                 output[asheetname] = DataFrame()
@@ -473,10 +474,10 @@ class _BaseExcelReader(metaclass=abc.ABCMeta):
                     if is_integer(skiprows):
                         row += skiprows
 
-                    data[row], control_row = _fill_mi_header(data[row], control_row)
+                    data[row], control_row = fill_mi_header(data[row], control_row)
 
                     if index_col is not None:
-                        header_name, _ = _pop_header_name(data[row], index_col)
+                        header_name, _ = pop_header_name(data[row], index_col)
                         header_names.append(header_name)
 
             if is_list_like(index_col):
@@ -554,7 +555,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     Parameters
     ----------
-    path : str
+    path : str or typing.BinaryIO
         Path to xls or xlsx or ods file.
     engine : str (optional)
         Engine to use for writing. If None, defaults to
@@ -601,14 +602,29 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     You can set the date format or datetime format:
 
     >>> with ExcelWriter('path_to_file.xlsx',
-                          date_format='YYYY-MM-DD',
-                          datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
+    ...                   date_format='YYYY-MM-DD',
+    ...                   datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
     ...     df.to_excel(writer)
 
     You can also append to an existing Excel file:
 
     >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
     ...     df.to_excel(writer, sheet_name='Sheet3')
+
+    You can store Excel file in RAM:
+
+    >>> import io
+    >>> buffer = io.BytesIO()
+    >>> with pd.ExcelWriter(buffer) as writer:
+    ...     df.to_excel(writer)
+
+    You can pack Excel file into zip archive:
+
+    >>> import zipfile
+    >>> with zipfile.ZipFile('path_to_file.zip', 'w') as zf:
+    ...     with zf.open('filename.xlsx', 'w') as buffer:
+    ...         with pd.ExcelWriter(buffer) as writer:
+    ...             df.to_excel(writer)
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)
@@ -645,7 +661,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                 try:
                     engine = config.get_option(f"io.excel.{ext}.writer")
                     if engine == "auto":
-                        engine = _get_default_writer(ext)
+                        engine = get_default_writer(ext)
                 except KeyError as err:
                     raise ValueError(f"No engine for filetype: '{ext}'") from err
             cls = get_writer(engine)
@@ -653,7 +669,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return object.__new__(cls)
 
     # declare external properties you can count on
-    book = None
     curr_sheet = None
     path = None
 
@@ -845,16 +860,16 @@ class ExcelFile:
         - ``pyxlsb`` supports Binary Excel files.
     """
 
-    from pandas.io.excel._odfreader import _ODFReader
-    from pandas.io.excel._openpyxl import _OpenpyxlReader
-    from pandas.io.excel._pyxlsb import _PyxlsbReader
-    from pandas.io.excel._xlrd import _XlrdReader
+    from pandas.io.excel._odfreader import ODFReader
+    from pandas.io.excel._openpyxl import OpenpyxlReader
+    from pandas.io.excel._pyxlsb import PyxlsbReader
+    from pandas.io.excel._xlrd import XlrdReader
 
     _engines: Mapping[str, Any] = {
-        "xlrd": _XlrdReader,
-        "openpyxl": _OpenpyxlReader,
-        "odf": _ODFReader,
-        "pyxlsb": _PyxlsbReader,
+        "xlrd": XlrdReader,
+        "openpyxl": OpenpyxlReader,
+        "odf": ODFReader,
+        "pyxlsb": PyxlsbReader,
     }
 
     def __init__(

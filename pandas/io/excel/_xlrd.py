@@ -5,10 +5,10 @@ import numpy as np
 from pandas._typing import StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.io.excel._base import _BaseExcelReader
+from pandas.io.excel._base import BaseExcelReader
 
 
-class _XlrdReader(_BaseExcelReader):
+class XlrdReader(BaseExcelReader):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
         """
         Reader using xlrd engine.
@@ -17,7 +17,7 @@ class _XlrdReader(_BaseExcelReader):
         ----------
         filepath_or_buffer : string, path object or Workbook
             Object to be parsed.
-        storage_options : StorageOptions
+        storage_options : dict, optional
             passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
         """
         err_msg = "Install xlrd >= 1.0.0 for Excel support"

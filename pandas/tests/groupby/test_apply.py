@@ -381,6 +381,16 @@ def test_apply_frame_to_series(df):
     tm.assert_numpy_array_equal(result.values, expected.values)
 
 
+def test_apply_frame_not_as_index_column_name(df):
+    # GH 35964 - path within _wrap_applied_output not hit by a test
+    grouped = df.groupby(["A", "B"], as_index=False)
+    result = grouped.apply(len)
+    expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
+    # TODO: Use assert_frame_equal when column name is not np.nan (GH 36306)
+    tm.assert_index_equal(result.index, expected.index)
+    tm.assert_numpy_array_equal(result.values, expected.values)
+
+
 def test_apply_frame_concat_series():
     def trans(group):
         return group.groupby("B")["C"].sum().sort_values()[:2]
@@ -861,13 +871,14 @@ def test_apply_multi_level_name(category):
     b = [1, 2] * 5
     if category:
         b = pd.Categorical(b, categories=[1, 2, 3])
+        expected_index = pd.CategoricalIndex([1, 2], categories=[1, 2, 3], name="B")
+    else:
+        expected_index = pd.Index([1, 2], name="B")
     df = pd.DataFrame(
         {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
     ).set_index(["A", "B"])
     result = df.groupby("B").apply(lambda x: x.sum())
-    expected = pd.DataFrame(
-        {"C": [20, 25], "D": [20, 25]}, index=pd.Index([1, 2], name="B")
-    )
+    expected = pd.DataFrame({"C": [20, 25], "D": [20, 25]}, index=expected_index)
     tm.assert_frame_equal(result, expected)
     assert df.index.names == ["A", "B"]
 
@@ -945,9 +956,7 @@ def test_apply_function_returns_numpy_array():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "function", [lambda gr: gr.index, lambda gr: gr.index + 1 - 1],
-)
+@pytest.mark.parametrize("function", [lambda gr: gr.index, lambda gr: gr.index + 1 - 1])
 def test_apply_function_index_return(function):
     # GH: 22541
     df = pd.DataFrame([1, 2, 2, 2, 1, 2, 3, 1, 3, 1], columns=["id"])
