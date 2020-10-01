@@ -852,15 +852,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._validate_scalar(value)
 
     def _validate_fillna_value(self, value):
-        if not isinstance(value, Interval):
+        # This mirrors Datetimelike._validate_fill_value
+        try:
+            return self._validate_scalar(value)
+        except ValueError as err:
             msg = (
                 "'IntervalArray.fillna' only supports filling with a "
                 f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
             )
-            raise TypeError(msg)
-
-        self._check_closed_matches(value, name="value")
-        return value.left, value.right
+            raise TypeError(msg) from err
 
     def _validate_insert_value(self, value):
         return self._validate_scalar(value)
@@ -887,14 +887,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             value_left, value_right = value.left, value.right
 
         else:
-            try:
-                # list-like of intervals
-                array = IntervalArray(value)
-                value_left, value_right = array.left, array.right
-            except TypeError as err:
-                # wrong type: not interval or NA
-                msg = f"'value' should be an interval type, got {type(value)} instead."
-                raise TypeError(msg) from err
+            return self._validate_listlike(value)
 
         if needs_float_conversion:
             raise ValueError("Cannot set float NaN to integer-backed IntervalArray")
