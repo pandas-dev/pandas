@@ -2222,6 +2222,31 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             with pytest.raises(AttributeError, match=msg):
                 index.contains(1)
 
+    def test_sortlevel(self):
+        index = pd.Index([5, 4, 3, 2, 1])
+        with pytest.raises(Exception, match="ascending must be a single bool value or"):
+            index.sortlevel(ascending="True")
+
+        with pytest.raises(
+            Exception, match="ascending must be a list of bool values of length 1"
+        ):
+            index.sortlevel(ascending=[True, True])
+
+        with pytest.raises(Exception, match="ascending must be a bool value"):
+            index.sortlevel(ascending=["True"])
+
+        expected = pd.Index([1, 2, 3, 4, 5])
+        result = index.sortlevel(ascending=[True])
+        tm.assert_index_equal(result[0], expected)
+
+        expected = pd.Index([1, 2, 3, 4, 5])
+        result = index.sortlevel(ascending=True)
+        tm.assert_index_equal(result[0], expected)
+
+        expected = pd.Index([5, 4, 3, 2, 1])
+        result = index.sortlevel(ascending=False)
+        tm.assert_index_equal(result[0], expected)
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
