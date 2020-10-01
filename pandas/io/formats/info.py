@@ -1,16 +1,28 @@
 from abc import ABC, abstractmethod
 import sys
-from typing import IO, List, Optional, Union
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+)
 
 from pandas._config import get_option
 
 from pandas._typing import Dtype, FrameOrSeries
 
 from pandas.core.indexes.api import Index
-from pandas.core.series import Series
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
 
 
 def _put_str(s: Union[str, Dtype], space: int) -> str:
@@ -106,12 +118,12 @@ class BaseInfo(ABC):
 
     @property
     @abstractmethod
-    def counts(self):
+    def counts(self) -> Mapping[str, int]:
         pass
 
     @property
     @abstractmethod
-    def dtypes(self) -> Series:
+    def dtypes(self) -> "Series":
         """Dtypes.
 
         Returns
@@ -167,7 +179,7 @@ class DataFrameInfo(BaseInfo):
         return self.data.columns
 
     @property
-    def dtypes(self) -> Series:
+    def dtypes(self) -> "Series":
         """Dtypes.
 
         Returns
@@ -178,7 +190,7 @@ class DataFrameInfo(BaseInfo):
         return self.data.dtypes
 
     @property
-    def counts(self):
+    def counts(self) -> Mapping[str, int]:
         # groupby dtype.name to collect e.g. Categorical columns
         return self.dtypes.value_counts().groupby(lambda x: x.name).sum()
 
@@ -244,7 +256,19 @@ class DataFrameInfo(BaseInfo):
 
 
 class InfoPrinter:
-    """Class for printing dataframe or series info."""
+    """Class for printing dataframe or series info.
+
+    Parameters
+    ----------
+    info : DataFrameInfo
+        Instance of DataFrameInfo.
+    max_cols : int, optional
+        When to switch from the verbose to the truncated output.
+    verbose : bool, optional
+        Whether to print the full summary.
+    null_counts : bool, optional
+        Whether to show the non-null counts.
+    """
 
     def __init__(
         self,
@@ -271,12 +295,12 @@ class InfoPrinter:
         self._max_cols = max_cols
 
     @property
-    def max_rows(self):
+    def max_rows(self) -> int:
         return get_option("display.max_info_rows", len(self.data) + 1)
 
     @property
-    def exceeds_info_cols(self):
-        return self.col_count > self.max_cols
+    def exceeds_info_cols(self) -> bool:
+        return bool(self.col_count > self.max_cols)
 
     @property
     def show_counts(self) -> bool:
@@ -288,7 +312,7 @@ class InfoPrinter:
             return self.null_counts
 
     @property
-    def col_count(self):
+    def col_count(self) -> int:
         return len(self.info.ids)
 
     def to_buffer(self, buf: Optional[IO[str]] = None) -> None:
@@ -299,7 +323,7 @@ class InfoPrinter:
             buf = sys.stdout
         fmt.buffer_put_lines(buf, lines)
 
-    def _select_table_builder(self):
+    def _select_table_builder(self) -> Type["DataFrameTableBuilder"]:
         if self.verbose:
             return self._select_verbose_table_builder()
         elif self.verbose is False:  # specifically set to False, not necessarily None
@@ -310,7 +334,7 @@ class InfoPrinter:
             else:
                 return self._select_verbose_table_builder()
 
-    def _select_verbose_table_builder(self):
+    def _select_verbose_table_builder(self) -> Type["DataFrameTableBuilderVerbose"]:
         if self.show_counts:
             return DataFrameTableBuilderVerboseWithCounts
         else:
@@ -318,7 +342,15 @@ class InfoPrinter:
 
 
 class TableBuilderAbstract(ABC):
-    """Abstract builder for info table."""
+    """Abstract builder for info table.
+
+    Parameters
+    ----------
+    info : BaseInfo
+        Instance of DataFrameInfo or SeriesInfo.
+    printer : InfoPrinter
+        Instance of InfoPrinter.
+    """
 
     _lines: List[str]
 
@@ -327,14 +359,14 @@ class TableBuilderAbstract(ABC):
         self.printer = printer
 
     @abstractmethod
-    def get_lines(self):
-        pass
+    def get_lines(self) -> List[str]:
+        """Product in a form of list of lines (strings)."""
 
 
 class DataFrameTableBuilder(TableBuilderAbstract):
     """Abstract builder for dataframe info table."""
 
-    def get_lines(self):
+    def get_lines(self) -> List[str]:
         self._lines = []
         if self.col_count == 0:
             self._fill_empty_info()
@@ -342,12 +374,14 @@ class DataFrameTableBuilder(TableBuilderAbstract):
             self._fill_non_empty_info()
         return self._lines
 
-    def _fill_empty_info(self):
+    def _fill_empty_info(self) -> None:
+        """Add lines to the info table, pertaining to empty dataframe."""
         self.add_object_type_line()
         self.add_index_range_line()
         self._lines.append(f"Empty {type(self.data).__name__}")
 
-    def _fill_non_empty_info(self):
+    def _fill_non_empty_info(self) -> None:
+        """Add lines to the info table, pertaining to non-empty dataframe."""
         self.add_object_type_line()
         self.add_index_range_line()
         self.add_columns_summary_line()
@@ -355,66 +389,72 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         self.add_separator_line()
         self.add_body_lines()
         self.add_dtypes_line()
-        if self.memory_usage:
+        if self.display_memory_usage:
             self.add_memory_usage_line()
 
     @property
-    def data(self):
+    def data(self) -> "DataFrame":
+        """DataFrame."""
         return self.info.data
 
     @property
-    def counts(self):
+    def counts(self) -> Mapping[str, int]:
+        """Mapping column - number of counts."""
         return self.info.counts
 
     @property
-    def memory_usage(self):
+    def display_memory_usage(self) -> bool:
+        """Whether to display memory usage."""
         return self.info.memory_usage
 
     @property
-    def ids(self):
+    def ids(self) -> Index:
+        """Dataframe columns."""
         return self.info.ids
 
     @property
-    def dtypes(self):
+    def dtypes(self) -> "Series":
+        """Dtypes of each of the DataFrame's columns."""
         return self.info.dtypes
 
     @property
-    def show_counts(self):
-        return self.printer.show_counts
-
-    @property
-    def col_count(self):
+    def col_count(self) -> int:
+        """Number of dataframe columns."""
         return self.printer.col_count
 
-    def add_object_type_line(self):
+    def add_object_type_line(self) -> None:
+        """Add line with string representation of dataframe to the table."""
         self._lines.append(str(type(self.data)))
 
-    def add_index_range_line(self):
+    def add_index_range_line(self) -> None:
+        """Add line with range of indices to the table."""
         self._lines.append(self.data.index._summary())
 
     @abstractmethod
-    def add_columns_summary_line(self):
-        pass
+    def add_columns_summary_line(self) -> None:
+        """Add line with columns summary to the table."""
 
     @abstractmethod
-    def add_header_line(self):
-        pass
+    def add_header_line(self) -> None:
+        """Add header line to the table."""
 
     @abstractmethod
-    def add_separator_line(self):
-        pass
+    def add_separator_line(self) -> None:
+        """Add separator line between header and body of the table."""
 
     @abstractmethod
-    def add_body_lines(self):
-        pass
+    def add_body_lines(self) -> None:
+        """Add content of the table body."""
 
-    def add_dtypes_line(self):
+    def add_dtypes_line(self) -> None:
+        """Add summary line with dtypes present in dataframe."""
         collected_dtypes = [
             f"{key}({val:d})" for key, val in sorted(self.counts.items())
         ]
         self._lines.append(f"dtypes: {', '.join(collected_dtypes)}")
 
-    def add_memory_usage_line(self):
+    def add_memory_usage_line(self) -> None:
+        """Add line containing memory usage."""
         self._lines.append(
             "memory usage: "
             f"{_sizeof_fmt(self.info.mem_usage, self.info.size_qualifier)}\n"
@@ -424,16 +464,16 @@ class DataFrameTableBuilder(TableBuilderAbstract):
 class DataFrameTableBuilderNonVerbose(DataFrameTableBuilder):
     """Info table builder for non-verbose output."""
 
-    def add_columns_summary_line(self):
+    def add_columns_summary_line(self) -> None:
         self._lines.append(self.ids._summary(name="Columns"))
 
-    def add_header_line(self):
+    def add_header_line(self) -> None:
         pass
 
-    def add_separator_line(self):
+    def add_separator_line(self) -> None:
         pass
 
-    def add_body_lines(self):
+    def add_body_lines(self) -> None:
         pass
 
 
@@ -442,29 +482,35 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
 
     COL_SPACE = 2
     SPACING = " " * COL_SPACE
-    HEADERS: List[str]
+    HEADERS: Sequence[str]
 
     def __init__(self, *, info, printer):
         super().__init__(info=info, printer=printer)
-        self.strcols: List[List[str]] = self._get_strcols()
+        self.strcols: Sequence[Sequence[str]] = self._get_strcols()
 
     @abstractmethod
-    def _get_strcols(self) -> List[List[str]]:
-        pass
+    def _get_strcols(self) -> Sequence[Sequence[str]]:
+        """Get columns content.
 
-    def add_columns_summary_line(self):
+        Each element of the list represents a column data (list of rows).
+        """
+
+    def add_columns_summary_line(self) -> None:
         self._lines.append(f"Data columns (total {self.col_count} columns):")
 
     @property
-    def header_column_widths(self):
+    def header_column_widths(self) -> Sequence[int]:
+        """Widths of header columns (only titles)."""
         return [len(col) for col in self.HEADERS]
 
     @property
-    def body_column_widths(self):
+    def body_column_widths(self) -> Sequence[int]:
+        """Widths of table content columns."""
         return [max(len(x) for x in col) for col in self.strcols]
 
     @property
-    def gross_column_widths(self):
+    def gross_column_widths(self) -> Sequence[int]:
+        """Widths of columns containing both headers and actual content."""
         return [
             max(header_colwidth, body_colwidth)
             for header_colwidth, body_colwidth in zip(
@@ -472,7 +518,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
             )
         ]
 
-    def add_header_line(self):
+    def add_header_line(self) -> None:
         header_line = self.SPACING.join(
             [
                 _put_str(header, col_width)
@@ -481,7 +527,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
         )
         self._lines.append(header_line)
 
-    def add_separator_line(self):
+    def add_separator_line(self) -> None:
         separator_line = self.SPACING.join(
             [
                 _put_str("-" * header_colwidth, gross_colwidth)
@@ -492,7 +538,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
         )
         self._lines.append(separator_line)
 
-    def add_body_lines(self):
+    def add_body_lines(self) -> None:
         strrows = list(zip(*self.strcols))
         for row in strrows:
             body_line = self.SPACING.join(
@@ -503,15 +549,18 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
             )
             self._lines.append(body_line)
 
-    def _get_line_numbers(self):
+    def _get_line_numbers(self) -> Iterator[str]:
+        """Iterator with string representation of column numbers."""
         for i, _ in enumerate(self.ids):
             yield f" {i}"
 
-    def _get_columns(self):
+    def _get_columns(self) -> Iterator[str]:
+        """Iterator with string representation of column names."""
         for col in self.ids:
             yield pprint_thing(col)
 
-    def _get_dtypes(self):
+    def _get_dtypes(self) -> Iterator[str]:
+        """Iterator with string representation of column dtypes."""
         for dtype in self.dtypes:
             yield pprint_thing(dtype)
 
@@ -521,7 +570,7 @@ class DataFrameTableBuilderVerboseNoCounts(DataFrameTableBuilderVerbose):
 
     HEADERS = [" # ", "Column", "Dtype"]
 
-    def _get_strcols(self) -> List[List[str]]:
+    def _get_strcols(self) -> Sequence[Sequence[str]]:
         line_numbers = list(self._get_line_numbers())
         columns = list(self._get_columns())
         dtypes = list(self._get_dtypes())
@@ -534,10 +583,11 @@ class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
     HEADERS = [" # ", "Column", "Non-Null Count", "Dtype"]
 
     @property
-    def count_non_null(self):
+    def count_non_null(self) -> str:
+        """String representation of non-null count column data."""
         return "{count} non-null"
 
-    def _get_strcols(self) -> List[List[str]]:
+    def _get_strcols(self) -> Sequence[Sequence[str]]:
         line_numbers = list(self._get_line_numbers())
         columns = list(self._get_columns())
         dtypes = list(self._get_dtypes())
