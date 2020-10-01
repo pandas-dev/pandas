@@ -34,6 +34,7 @@ Fixed regressions
 - Fixed regression when adding a :meth:`timedelta_range` to a :class:`Timestamp` raised a ``ValueError`` (:issue:`35897`)
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a tuple (:issue:`35534`)
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a frozenset (:issue:`35747`)
+- Fixed regression in modulo of :class:`Index`, :class:`Series` and :class:`DataFrame` using ``numexpr`` using C not Python semantics (:issue:`36047`, :issue:`36526`)
 - Fixed regression in :meth:`read_excel` with ``engine="odf"`` caused ``UnboundLocalError`` in some cases where cells had nested child nodes (:issue:`36122`, :issue:`35802`)
 - Fixed regression in :meth:`DataFrame.replace` inconsistent replace when using a float in the replace method (:issue:`35376`)
 - Fixed regression in :class:`DataFrame` and :class:`Series` comparisons between numeric arrays and strings (:issue:`35700`, :issue:`36377`)

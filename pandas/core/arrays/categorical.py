@@ -288,6 +288,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = PandasObject._deprecations | frozenset(["tolist"])
     _typ = "categorical"
+    _can_hold_na = True
 
     def __init__(
         self, values, categories=None, ordered=None, dtype=None, fastpath=False
@@ -1268,10 +1269,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             setattr(self, k, v)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self._codes.nbytes + self.dtype.categories.values.nbytes
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of my values
 
@@ -2143,10 +2144,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             other_codes = self._validate_listlike(other)
             return np.array_equal(self._codes, other_codes)
         return False
-
-    @property
-    def _can_hold_na(self):
-        return True
 
     @classmethod
     def _concat_same_type(self, to_concat):

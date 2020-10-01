@@ -60,7 +60,7 @@ def _new_PeriodIndex(cls, **d):
 
 
 @inherit_names(
-    ["strftime", "to_timestamp", "start_time", "end_time"] + PeriodArray._field_ops,
+    ["strftime", "start_time", "end_time"] + PeriodArray._field_ops,
     PeriodArray,
     wrap=True,
 )
@@ -149,11 +149,17 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in PeriodIndex
+    # These are defined here instead of via inherit_names for mypy
 
     @doc(PeriodArray.asfreq)
     def asfreq(self, freq=None, how: str = "E") -> "PeriodIndex":
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
+
+    @doc(PeriodArray.to_timestamp)
+    def to_timestamp(self, freq=None, how="start") -> DatetimeIndex:
+        arr = self._data.to_timestamp(freq, how)
+        return DatetimeIndex._simple_new(arr, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -244,11 +250,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     # Data
 
     @property
-    def values(self):
+    def values(self) -> np.ndarray:
         return np.asarray(self)
 
     @property
-    def _has_complex_internals(self):
+    def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 
@@ -402,7 +408,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return result
 
     @doc(Index.astype)
-    def astype(self, dtype, copy=True, how="start"):
+    def astype(self, dtype, copy: bool = True, how="start"):
         dtype = pandas_dtype(dtype)
 
         if is_datetime64_any_dtype(dtype):
@@ -421,7 +427,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         if len(self) == 0:
             return True
-        if not self.is_monotonic:
+        if not self.is_monotonic_increasing:
             raise ValueError("Index is not monotonic")
         values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
@@ -432,7 +438,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # indexing
         return "period"
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         if not isinstance(item, Period) or self.freq != item.freq:
             return self.astype(object).insert(loc, item)
 
@@ -706,7 +712,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # ------------------------------------------------------------------------
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         result = super().memory_usage(deep=deep)
         if hasattr(self, "_cache") and "_int64index" in self._cache:
             result += self._int64index.memory_usage(deep=deep)
