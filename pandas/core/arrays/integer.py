@@ -552,7 +552,7 @@ class IntegerArray(BaseMaskedArray):
         return super()._reduce("sum", skipna=skipna, min_count=min_count)
 
     def prod(self, skipna=True, min_count=0, **kwargs):
-        nv.validate_sum((), kwargs)
+        nv.validate_prod((), kwargs)
         return super()._reduce("prod", skipna=skipna, min_count=min_count)
 
     def min(self, skipna=True, **kwargs):
