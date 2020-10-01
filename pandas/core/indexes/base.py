@@ -1522,7 +1522,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if isinstance(ascending, list):
-            if len(ascending) > 1:
+            if len(ascending) != 1:
                 raise TypeError("ascending must be a list of bool values of length 1")
             ascending = ascending[0]
 
