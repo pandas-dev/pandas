@@ -274,3 +274,12 @@ def test_value_counts_datetime64(index_or_series):
     td2 = klass(td2, name="dt")
     result2 = td2.value_counts()
     tm.assert_series_equal(result2, expected_s)
+
+
+def test_value_counts_nan(index_or_series):
+    """Test that nan value counts are included when dropna=False. GH#31944"""
+    klass = index_or_series
+    s_values = [True, pd.NA, np.nan]
+    s = klass(s_values)
+    expected = Series([2, 1], index=[pd.NA, True])
+    tm.assert_series_equal(s.value_counts(dropna=False), expected)
