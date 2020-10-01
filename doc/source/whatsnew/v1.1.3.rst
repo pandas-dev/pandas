@@ -58,6 +58,7 @@ Bug fixes
 - Bug in :meth:`Series.astype` showing too much precision when casting from ``np.float32`` to string dtype (:issue:`36451`)
 - Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` when using ``NaN`` and a row length above 1,000,000 (:issue:`22205`)
 - Bug in :func:`cut` raising a ``ValueError`` when passed a :class:`Series` of labels with ``ordered=False`` (:issue:`36603`)
+- Bug in :meth:`DataFrameGroupBy.ffill` where a ``NaN`` group would return foward-filled values instead of ``NaN`` when ``dropna=True`` (:issue:`34725`)
 
 .. ---------------------------------------------------------------------------
 
