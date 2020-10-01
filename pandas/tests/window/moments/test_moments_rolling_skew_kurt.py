@@ -73,6 +73,7 @@ def test_time_rule_frame(raw, frame, sp_func, roll_func):
     )
 
 
+@td.skip_if_no_scipy
 @pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
 def test_nans(sp_func, roll_func):
     import scipy.stats
