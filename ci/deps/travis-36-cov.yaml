@@ -32,6 +32,7 @@ dependencies:
   - pyarrow>=0.13.0
   - pymysql
   - pytables
+  - python-dateutil
   - python-snappy
   - pytz
   - s3fs>=0.4.0
@@ -48,5 +49,4 @@ dependencies:
     - brotlipy
     - coverage
     - pandas-datareader
-    - python-dateutil
     - pyxlsb
