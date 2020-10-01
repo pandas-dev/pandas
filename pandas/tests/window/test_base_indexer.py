@@ -253,3 +253,12 @@ def test_non_fixed_variable_window_indexer(closed, expected_data):
     result = df.rolling(indexer, closed=closed).sum()
     expected = DataFrame(expected_data, index=index)
     tm.assert_frame_equal(result, expected)
+
+
+def test_fixed_forward_indexer_count():
+    # GH: 35579
+    df = DataFrame({"b": [None, None, None, 7]})
+    indexer = FixedForwardWindowIndexer(window_size=2)
+    result = df.rolling(window=indexer, min_periods=0).count()
+    expected = DataFrame({"b": [0.0, 0.0, 1.0, 1.0]})
+    tm.assert_frame_equal(result, expected)

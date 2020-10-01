@@ -2056,7 +2056,7 @@ class Rolling(RollingAndExpandingMixin):
         # when using a BaseIndexer subclass as a window
         if self.is_freq_type or isinstance(self.window, BaseIndexer):
             window_func = self._get_roll_func("roll_count")
-            return self._apply(window_func, center=self.center, name="count")
+            return self._apply(window_func, center=self.center, name="count", floor=0)
 
         return super().count()
 
