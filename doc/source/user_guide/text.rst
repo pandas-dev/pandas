@@ -662,7 +662,10 @@ You can check whether elements contain a pattern:
 .. ipython:: python
 
    pattern = r"[0-9][a-z]"
-   pd.Series(["1", "2", "3a", "3b", "03c", "4dx"], dtype="string").str.contains(pattern)
+   pd.Series(
+       ["1", "2", "3a", "3b", "03c", "4dx"],
+       dtype="string",
+   ).str.contains(pattern)
 
 Or whether elements match a pattern:
 

@@ -855,7 +855,12 @@ Note to aggregate over multiple value columns, we can pass in a list to the
 
 .. ipython:: python
 
-   df.pivot_table(values=["val0", "val1"], index="row", columns="col", aggfunc=["mean"])
+   df.pivot_table(
+       values=["val0", "val1"],
+       index="row",
+       columns="col",
+       aggfunc=["mean"],
+   )
 
 Note to subdivide over multiple columns we can pass in a list to the
 ``columns`` parameter.
