@@ -691,7 +691,7 @@ Reorder the categories and simultaneously add the missing categories (methods un
 .. ipython:: python
 
     df["grade"] = df["grade"].cat.set_categories(
-        ["very bad", "bad", "medium","good", "very good"]
+        ["very bad", "bad", "medium", "good", "very good"]
     )
     df["grade"]
 
