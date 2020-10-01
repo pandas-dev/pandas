@@ -479,7 +479,7 @@ class SelectionMixin:
 
                 # GH 36212 use name only if self is a series
                 if self.ndim == 1:
-                    self = cast('Series', self)
+                    self = cast("Series", self)
                     name = self.name
                 else:
                     name = None
