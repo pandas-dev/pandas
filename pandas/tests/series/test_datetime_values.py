@@ -702,3 +702,11 @@ def test_week_and_weekofyear_are_deprecated():
         series.dt.week
     with tm.assert_produces_warning(FutureWarning):
         series.dt.weekofyear
+
+
+def test_normalize_pre_epoch_dates():
+    # GH: 36294
+    s = pd.to_datetime(pd.Series(["1969-01-01 09:00:00", "2016-01-01 09:00:00"]))
+    result = s.dt.normalize()
+    expected = pd.to_datetime(pd.Series(["1969-01-01", "2016-01-01"]))
+    tm.assert_series_equal(result, expected)
