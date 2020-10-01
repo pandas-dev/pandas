@@ -334,9 +334,8 @@ def arith_method_SERIES(cls, op, special):
 
     @unpack_zerodim_and_defer(op_name)
     def wrapper(left, right):
-
-        left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
+        left, right = _align_method_SERIES(left, right)
 
         lvalues = extract_array(left, extract_numpy=True)
         rvalues = extract_array(right, extract_numpy=True)
@@ -385,8 +384,8 @@ def bool_method_SERIES(cls, op, special):
 
     @unpack_zerodim_and_defer(op_name)
     def wrapper(self, other):
-        self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
+        self, other = _align_method_SERIES(self, other, align_asobject=True)
 
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
@@ -409,13 +408,17 @@ def flex_method_SERIES(cls, op, special):
         if axis is not None:
             self._get_axis_number(axis)
 
+        res_name = get_op_result_name(self, other)
+
         if isinstance(other, ABCSeries):
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif isinstance(other, (np.ndarray, list, tuple)):
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index)
-            return self._binop(other, op, level=level, fill_value=fill_value)
+            result = self._binop(other, op, level=level, fill_value=fill_value)
+            result.name = res_name
+            return result
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)
