@@ -120,8 +120,8 @@ Other enhancements
 - ``Styler`` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
-- :meth:`to_json` now implements timezones parsing for when orient structure is 'table'.
-- :meth:`read_json` now implements timezones parsing for when orient structure is 'table'.
+- :meth:`to_json` now implements timezones parsing when orient structure is 'table'.
+- :meth:`read_json` now implements timezones parsing when orient structure is 'table'.
 - :meth:`astype` now attempts to convert to 'datetime64[ns, tz]' directly from 'object' with inferred timezone from string (:issue:`35973`).
 -
 
