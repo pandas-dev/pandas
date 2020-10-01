@@ -616,7 +616,7 @@ class HDFStore:
 
         include : str, default 'pandas'
                 When kind equals 'pandas' return pandas objects
-                When kind equals 'native' return native HDF5 Table objects
+                When kind equals 'native' return native HDF5 Table objects.
 
                 .. versionadded:: 1.1.0
 

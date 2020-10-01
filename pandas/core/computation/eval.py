@@ -212,7 +212,7 @@ def eval(
 
     truediv : bool, optional
         Whether to use true division, like in Python >= 3.
-        deprecated:: 1.0.0
+        deprecated:: 1.0.0.
 
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
