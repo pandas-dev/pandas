@@ -273,7 +273,7 @@ the ``margin`` parameter to ``True``:
         index="location",
         columns="parameter",
         aggfunc="mean",
-        margins=True
+        margins=True,
     )
 
 .. raw:: html
