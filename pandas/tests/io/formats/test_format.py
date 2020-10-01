@@ -3432,3 +3432,7 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
     # GH: 24980
     df = pd.DataFrame(input_array).to_string(index=False)
     assert df == expected
+
+
+def test_to_string_nullable_float():
+    assert False
