@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import sys
 from typing import IO, List, Optional, Union
 
@@ -70,7 +70,17 @@ def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
     return f"{num:3.1f}{size_qualifier} PB"
 
 
-class DataFrameInfo:
+class BaseInfo(ABC):
+    """Base class for DataFrameInfo and SeriesInfo.
+
+    Parameters
+    ----------
+    data : FrameOrSeries
+        Either dataframe or series.
+    memory_usage : bool
+
+    """
+
     def __init__(
         self,
         data: FrameOrSeries,
@@ -88,17 +98,12 @@ class DataFrameInfo:
         return memory_usage
 
     @property
+    @abstractmethod
     def ids(self) -> Index:
-        """Column names.
-
-        Returns
-        -------
-        ids : Index
-            DataFrame's column names.
-        """
-        return self.data.columns
+        pass
 
     @property
+    @abstractmethod
     def dtypes(self) -> Series:
         """Dtypes.
 
@@ -145,6 +150,32 @@ class DataFrameInfo:
                 ):
                     size_qualifier = "+"
         return size_qualifier
+
+
+class DataFrameInfo(BaseInfo):
+    """Class storing dataframe-specific info."""
+
+    @property
+    def ids(self) -> Index:
+        """Column names.
+
+        Returns
+        -------
+        ids : Index
+            DataFrame's column names.
+        """
+        return self.data.columns
+
+    @property
+    def dtypes(self) -> Series:
+        """Dtypes.
+
+        Returns
+        -------
+        dtypes : Series
+            Dtype of each of the DataFrame's columns.
+        """
+        return self.data.dtypes
 
     @property
     def counts(self):
@@ -213,6 +244,8 @@ class DataFrameInfo:
 
 
 class InfoPrinter:
+    """Class for printing dataframe or series info."""
+
     def __init__(
         self,
         info: DataFrameInfo,
@@ -270,21 +303,23 @@ class InfoPrinter:
         if self.verbose:
             return self._select_verbose_table_builder()
         elif self.verbose is False:  # specifically set to False, not necessarily None
-            return TableBuilderNonVerbose
+            return DataFrameTableBuilderNonVerbose
         else:
             if self.exceeds_info_cols:
-                return TableBuilderNonVerbose
+                return DataFrameTableBuilderNonVerbose
             else:
                 return self._select_verbose_table_builder()
 
     def _select_verbose_table_builder(self):
         if self.show_counts:
-            return TableBuilderVerboseWithCounts
+            return DataFrameTableBuilderVerboseWithCounts
         else:
-            return TableBuilderVerboseNoCounts
+            return DataFrameTableBuilderVerboseNoCounts
 
 
-class TableBuilderAbstract:
+class TableBuilderAbstract(ABC):
+    """Abstract builder for info table."""
+
     _lines: List[str]
 
     def __init__(self, *, info, printer):
@@ -298,6 +333,18 @@ class TableBuilderAbstract:
         else:
             self._fill_non_empty_info()
         return self._lines
+
+    @abstractmethod
+    def _fill_empty_info(self):
+        pass
+
+    @abstractmethod
+    def _fill_non_empty_info(self):
+        pass
+
+
+class DataFrameTableBuilder(TableBuilderAbstract):
+    """Abstract builder for dataframe info table."""
 
     def _fill_empty_info(self):
         self.add_object_type_line()
@@ -378,7 +425,9 @@ class TableBuilderAbstract:
         )
 
 
-class TableBuilderNonVerbose(TableBuilderAbstract):
+class DataFrameTableBuilderNonVerbose(DataFrameTableBuilder):
+    """Info table builder for non-verbose output."""
+
     def add_columns_summary_line(self):
         self._lines.append(self.ids._summary(name="Columns"))
 
@@ -392,7 +441,9 @@ class TableBuilderNonVerbose(TableBuilderAbstract):
         pass
 
 
-class TableBuilderVerbose(TableBuilderAbstract):
+class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
+    """Info table builder for verbose output."""
+
     COL_SPACE = 2
     SPACING = " " * COL_SPACE
     HEADERS: List[str]
@@ -457,7 +508,8 @@ class TableBuilderVerbose(TableBuilderAbstract):
             self._lines.append(body_line)
 
 
-class TableBuilderVerboseNoCounts(TableBuilderVerbose):
+class DataFrameTableBuilderVerboseNoCounts(DataFrameTableBuilderVerbose):
+    """Verbose info table builder without non-null counts column."""
 
     HEADERS = [
         " # ",
@@ -472,7 +524,8 @@ class TableBuilderVerboseNoCounts(TableBuilderVerbose):
         return [line_numbers, columns, dtypes]
 
 
-class TableBuilderVerboseWithCounts(TableBuilderVerbose):
+class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
+    """Verbose info table builder with non-null counts column."""
 
     HEADERS = [
         " # ",
