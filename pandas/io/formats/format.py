@@ -1862,6 +1862,7 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[s
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
+    # somehow pad to same length?
     return [
         "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal))
         for x in str_complexes
@@ -1877,7 +1878,7 @@ def _trim_zeros_float(
     trimmed = str_floats
 
     def _is_number(x):
-        return re.match(r"-?[0-9]+(\.[0-9]+)?", x.strip()) is not None
+        return re.match(r"\s*-?[0-9]+(\.[0-9]+)?\s*", x) is not None
 
     def _cond(values):
         finite = [x for x in values if _is_number(x)]
