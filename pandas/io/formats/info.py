@@ -519,11 +519,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
 class DataFrameTableBuilderVerboseNoCounts(DataFrameTableBuilderVerbose):
     """Verbose info table builder without non-null counts column."""
 
-    HEADERS = [
-        " # ",
-        "Column",
-        "Dtype",
-    ]
+    HEADERS = [" # ", "Column", "Dtype"]
 
     def _get_strcols(self) -> List[List[str]]:
         line_numbers = list(self._get_line_numbers())
@@ -535,12 +531,7 @@ class DataFrameTableBuilderVerboseNoCounts(DataFrameTableBuilderVerbose):
 class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
     """Verbose info table builder with non-null counts column."""
 
-    HEADERS = [
-        " # ",
-        "Column",
-        "Non-Null Count",
-        "Dtype",
-    ]
+    HEADERS = [" # ", "Column", "Non-Null Count", "Dtype"]
 
     @property
     def count_non_null(self):
