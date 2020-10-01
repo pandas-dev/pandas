@@ -152,3 +152,28 @@ def test_preserve_dtypes(op):
         index=pd.Index(["a", "b"], name="A"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_floating_array_min_max(skipna, method, any_nullable_float_dtype):
+    dtype = any_nullable_float_dtype
+    arr = pd.array([0.0, 1.0, None], dtype=dtype)
+    func = getattr(arr, method)
+    result = func(skipna=skipna)
+    if skipna:
+        assert result == (0 if method == "min" else 1)
+    else:
+        assert result is pd.NA
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("min_count", [0, 9])
+def test_integer_array_prod(skipna, min_count, any_nullable_float_dtype):
+    dtype = any_nullable_float_dtype
+    arr = pd.array([1.0, 2.0, None], dtype=dtype)
+    result = arr.prod(skipna=skipna, min_count=min_count)
+    if skipna and min_count == 0:
+        assert result == 2
+    else:
+        assert result is pd.NA

@@ -475,10 +475,19 @@ class FloatingArray(BaseMaskedArray):
 
     def sum(self, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
-        result = masked_reductions.sum(
-            values=self._data, mask=self._mask, skipna=skipna, min_count=min_count
-        )
-        return result
+        return self._reduce("sum", skipna=skipna, min_count=min_count)
+
+    def prod(self, skipna=True, min_count=0, **kwargs):
+        nv.validate_prod((), kwargs)
+        return self._reduce("prod", skipna=skipna, min_count=min_count)
+
+    def min(self, skipna=True, **kwargs):
+        nv.validate_min((), kwargs)
+        return self._reduce("min", skipna=skipna)
+
+    def max(self, skipna=True, **kwargs):
+        nv.validate_max((), kwargs)
+        return self._reduce("max", skipna=skipna)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
