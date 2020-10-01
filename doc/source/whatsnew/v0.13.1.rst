@@ -379,7 +379,7 @@ Performance improvements for 0.13.1
 
 - Series datetime/timedelta binary operations (:issue:`5801`)
 - DataFrame ``count/dropna`` for ``axis=1``
-- Series.str.contains now has a `regex=False` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)
+- Series.str.contains now has a ``regex=False`` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)
 - Series.str.extract (:issue:`5944`)
 - ``dtypes/ftypes`` methods (:issue:`5968`)
 - indexing with object dtypes (:issue:`5968`)
@@ -399,7 +399,7 @@ Bug fixes
 
 - Bug in ``io.wb.get_countries`` not including all countries (:issue:`6008`)
 - Bug in Series replace with timestamp dict (:issue:`5797`)
-- read_csv/read_table now respects the `prefix` kwarg (:issue:`5732`).
+- read_csv/read_table now respects the ``prefix`` kwarg (:issue:`5732`).
 - Bug in selection with missing values via ``.ix`` from a duplicate indexed DataFrame failing (:issue:`5835`)
 - Fix issue of boolean comparison on empty DataFrames (:issue:`5808`)
 - Bug in isnull handling ``NaT`` in an object array (:issue:`5443`)

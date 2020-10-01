@@ -110,7 +110,7 @@ filepath_or_buffer : str, path object or file-like object
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
     By file-like object, we refer to objects with a ``read()`` method,
-    such as a file handler (e.g. via builtin ``open`` function)
+    such as a file handle (e.g. via builtin ``open`` function)
     or ``StringIO``.
 {_statafile_processing_params1}
 {_statafile_processing_params2}
@@ -499,7 +499,7 @@ One or more series with value labels are not fully labeled. Reading this
 dataset with an iterator results in categorical variable with different
 categories. This occurs since it is not possible to know all possible values
 until the entire dataset has been read. To avoid this warning, you can either
-read dataset without an interator, or manually convert categorical data by
+read dataset without an iterator, or manually convert categorical data by
 ``convert_categoricals`` to False and then accessing the variable labels
 through the value_labels method of the reader.
 """

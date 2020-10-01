@@ -394,7 +394,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # types
     @property
-    def _can_hold_na(self):
+    def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
     _index = None
@@ -409,14 +409,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if not fastpath:
             labels = ensure_index(labels)
 
-        is_all_dates = labels.is_all_dates
-        if is_all_dates:
+        if labels._is_all_dates:
             if not isinstance(labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
                 try:
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
                     if fastpath:
                         self._mgr.set_axis(axis, labels)
+                    warnings.warn(
+                        "Automatically casting object-dtype Index of datetimes to "
+                        "DatetimeIndex is deprecated and will be removed in a "
+                        "future version.  Explicitly cast to DatetimeIndex instead.",
+                        FutureWarning,
+                        stacklevel=3,
+                    )
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
@@ -4898,10 +4904,7 @@ Keep all original rows and also all original values
 
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        # error: "PeriodIndex" has no attribute "to_timestamp"
-        new_index = self.index.to_timestamp(  # type: ignore[attr-defined]
-            freq=freq, how=how
-        )
+        new_index = self.index.to_timestamp(freq=freq, how=how)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
         )
