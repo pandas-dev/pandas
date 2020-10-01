@@ -977,49 +977,74 @@ def test_ffill_bfill_non_unique_multilevel(func, expected_status):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('dropna', [True, False])
-@pytest.mark.parametrize('limit', [None, 1])
-@pytest.mark.parametrize('method', ['ffill', 'bfill', 'pad'])
-@pytest.mark.parametrize('by', ['grp1', ['grp1'], ['grp1', 'grp2']])
-@pytest.mark.parametrize('has_nan', [[], ['grp1'], ['grp1', 'grp2']])
+@pytest.mark.parametrize("dropna", [True, False])
+@pytest.mark.parametrize("limit", [None, 1])
+@pytest.mark.parametrize("method", ["ffill", "bfill", "pad", "backfill"])
+@pytest.mark.parametrize("by", ["grp1", ["grp1"], ["grp1", "grp2"]])
+@pytest.mark.parametrize("has_nan", [[], ["grp1"], ["grp1", "grp2"]])
 def test_pad_handles_nan_groups(dropna, limit, method, by, has_nan):
-    
-    rows = pd.DataFrame({
-        'int' : pd.array([1,2], dtype='Int64'),
-        'float' : [.1, .2], 
-        'bool' : pd.array([True, False], dtype='bool'),
-        'date' : [pd.Timestamp(2010,1,1), pd.Timestamp(2020,2,2)],
-        'period' : pd.array([pd.Period('2010-01'), pd.Period('2020-2')], dtype='period[M]'),
-        'obj' : ['hello', 'world'],
-        'cat' : pd.Categorical(['a', 'b'], categories=['a', 'b', 'c']),
-        })
+    # GH 34725
 
-    ridx = pd.Series([None]*10)
+    # Create two rows with many different dytypes. The first row will be in
+    # the 'good' group which never has a nan in the grouping column(s). The
+    # second row will be in the 'bad' grouping which sometimes has a nan in
+    # the group column(s).
+    rows = pd.DataFrame(
+        {
+            "int": pd.array([1, 2], dtype="Int64"),
+            "float": [0.1, 0.2],
+            "bool": pd.array([True, False], dtype="bool"),
+            "date": [pd.Timestamp(2010, 1, 1), pd.Timestamp(2020, 2, 2)],
+            "period": pd.array(
+                [pd.Period("2010-01"), pd.Period("2020-2")], dtype="period[M]"
+            ),
+            "obj": ["hello", "world"],
+            "cat": pd.Categorical(["a", "b"], categories=["a", "b", "c"]),
+        }
+    )
+
+    # Put those rows into a 10-row dataframe at rows 2 and 7. This will
+    # allows us to ffill and bfill the rows and confirm that our method is
+    # behaving as expected
+    ridx = pd.Series([None] * 10)
     ridx[2] = 0
     ridx[7] = 1
     df = rows.reindex(ridx).reset_index(drop=True)
-    
-    grps = pd.Series(['good']*5 + ['bad']*5)
+
+    # Add the grouping column(s).
+    grps = pd.Series(["good"] * 5 + ["bad"] * 5)
     if type(by) is list:
-        grps = pd.concat([grps]*len(by), axis=1)
+        grps = pd.concat([grps] * len(by), axis=1)
     df[by] = grps
-    
+
+    # Our 'has_nan' arg sometimes lists more columns than we are actually
+    # grouping by (our 'by' arg), i.e. has_nan=['grp1', 'grp2'] when
+    # by=['grp1']. We can just reduce 'has_nan' to its intersection with 'by'.
     by = [by] if type(by) is not list else by
     has_nan = list(set(has_nan).intersection(set(by)))
-    df[has_nan] = df[has_nan].replace('bad', np.nan)
-    
+
+    # For the colunms that are in 'has_nan' replace 'bad' with 'nan'
+    df[has_nan] = df[has_nan].replace("bad", np.nan)
+
     grouped = df.groupby(by=by, dropna=dropna)
     result = getattr(grouped, method)(limit=limit)
-    
+
+    # If dropna=True and 'bad' has been replaced by 'nan', then the second
+    # 5 rows will all be nan, which is what we want: the nan group contains
+    # only nan values
     if dropna and (len(has_nan) > 0):
         ridx[7] = None
+
+    # To get our expected/benchmark output, we ffill/bfill the rows directly
+    # (not via a groupby), so we don't want limit=None for this part. With 5
+    # rows per group and the value rows in positions 2&7, we ffill/bfill
+    #  with limit=2. If we use limit=None rows 2&7 will ffill/bfill into the
+    # other group
     lim = 2 if limit is None else limit
-    
     ridx = getattr(ridx, method)(limit=lim)
     expected = rows.reindex(ridx).reset_index(drop=True)
 
     tm.assert_frame_equal(result, expected)
-
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])

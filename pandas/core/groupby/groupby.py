@@ -1847,18 +1847,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if limit is None:
             limit = -1
 
-        def _post(values, inferences):
+        def _nan_group_gets_nan_values(values, *args):
             if not self.dropna:
                 return values
-            mask = DataFrame(self.grouper.codes).eq(-1).any()
-            if mask.any():
-                try:
-                    values[mask] = np.nan
-                except ValueError:
-                    values[mask] = np.datetime64('NaT') 
-                
+            in_nan_group = DataFrame(self.grouper.codes).eq(-1).any()
+            if in_nan_group.any():
+                filler = {np.datetime64: np.datetime64("NaT")}.get(
+                    values.dtype.type, np.nan
+                )
+                values[in_nan_group] = filler
             return values
-        
+
         res = self._get_cythonized_result(
             "group_fillna_indexer",
             numeric_only=False,
@@ -1867,9 +1866,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result_is_index=True,
             direction=direction,
             limit=limit,
-            post_processing=_post,
+            post_processing=_nan_group_gets_nan_values,
         )
-        
+
         return res
 
     @Substitution(name="groupby")
@@ -2605,7 +2604,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # error_msg is "" on an frame/series with no rows or columns
         if len(output) == 0 and error_msg != "":
             raise TypeError(error_msg)
-        
+
         if aggregate:
             return self._wrap_aggregated_output(output, index=self.grouper.result_index)
         else:
