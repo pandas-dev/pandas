@@ -293,6 +293,18 @@ class TableBuilderAbstract:
 
     def get_lines(self):
         self._lines = []
+        if self.col_count == 0:
+            self._fill_empty_info()
+        else:
+            self._fill_non_empty_info()
+        return self._lines
+
+    def _fill_empty_info(self):
+        self.add_object_type_line()
+        self.add_index_range_line()
+        self._lines.append(f"Empty {type(self.data).__name__}")
+
+    def _fill_non_empty_info(self):
         self.add_object_type_line()
         self.add_index_range_line()
         self.add_columns_summary_line()
@@ -302,7 +314,6 @@ class TableBuilderAbstract:
         self.add_dtypes_line()
         if self.memory_usage:
             self.add_memory_usage_line()
-        return self._lines
 
     @property
     def data(self):
@@ -350,9 +361,9 @@ class TableBuilderAbstract:
     def add_separator_line(self):
         pass
 
+    @abstractmethod
     def add_body_lines(self):
-        if self.col_count == 0:
-            self._lines.append(f"Empty {type(self.data).__name__}")
+        pass
 
     def add_dtypes_line(self):
         collected_dtypes = [
@@ -375,6 +386,9 @@ class TableBuilderNonVerbose(TableBuilderAbstract):
         pass
 
     def add_separator_line(self):
+        pass
+
+    def add_body_lines(self):
         pass
 
 
