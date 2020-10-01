@@ -1,10 +1,11 @@
 from datetime import timedelta
-from typing import List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 
 from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import (
+    BaseOffset,
     NaT,
     NaTType,
     Period,
@@ -45,8 +46,8 @@ from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 
-def _field_accessor(name, alias, docstring=None):
-    def f(self):
+def _field_accessor(name: str, alias: str, docstring: str):
+    def f(self) -> np.ndarray:
         values = self.asi8
         result = get_timedelta_field(values, alias)
         if self._hasnans:
@@ -121,7 +122,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return Timedelta(x, unit="ns")
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         """
         The dtype for the TimedeltaArray.
 
@@ -196,7 +197,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             type(self)._validate_frequency(self, freq)
 
     @classmethod
-    def _simple_new(cls, values, freq=None, dtype=TD64NS_DTYPE):
+    def _simple_new(
+        cls, values, freq: Optional[BaseOffset] = None, dtype=TD64NS_DTYPE
+    ) -> "TimedeltaArray":
         assert dtype == TD64NS_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
         if values.dtype != TD64NS_DTYPE:
@@ -210,7 +213,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
     @classmethod
-    def _from_sequence(cls, data, dtype=TD64NS_DTYPE, copy: bool = False):
+    def _from_sequence(
+        cls, data, dtype=TD64NS_DTYPE, copy: bool = False
+    ) -> "TimedeltaArray":
         if dtype:
             _validate_td64_dtype(dtype)
 
@@ -228,7 +233,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         copy: bool = False,
         freq=lib.no_default,
         unit=None,
-    ):
+    ) -> "TimedeltaArray":
         if dtype:
             _validate_td64_dtype(dtype)
 
@@ -256,7 +261,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
     @classmethod
-    def _generate_range(cls, start, end, periods, freq, closed=None):
+    def _generate_range(
+        cls, start, end, periods, freq, closed=None
+    ) -> "TimedeltaArray":
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -314,7 +321,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         # We handle
         #   --> timedelta64[ns]
         #   --> timedelta64
@@ -477,7 +484,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             ) from err
 
     @unpack_zerodim_and_defer("__mul__")
-    def __mul__(self, other):
+    def __mul__(self, other) -> "TimedeltaArray":
         if is_scalar(other):
             # numpy will accept float and int, raise TypeError for others
             result = self._data * other
@@ -753,22 +760,22 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         res2 = other - res1 * self
         return res1, res2
 
-    def __neg__(self):
+    def __neg__(self) -> "TimedeltaArray":
         if self.freq is not None:
             return type(self)(-self._data, freq=-self.freq)
         return type(self)(-self._data)
 
-    def __pos__(self):
+    def __pos__(self) -> "TimedeltaArray":
         return type(self)(self._data, freq=self.freq)
 
-    def __abs__(self):
+    def __abs__(self) -> "TimedeltaArray":
         # Note: freq is not preserved
         return type(self)(np.abs(self._data))
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods
 
-    def total_seconds(self):
+    def total_seconds(self) -> np.ndarray:
         """
         Return total duration of each element expressed in seconds.
 

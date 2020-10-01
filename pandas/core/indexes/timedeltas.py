@@ -184,7 +184,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # -------------------------------------------------------------------
 
     @doc(Index.astype)
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
         if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
             # Have to repeat the check for 'timedelta64' (not ns) dtype
