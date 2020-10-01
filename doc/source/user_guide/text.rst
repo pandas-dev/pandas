@@ -314,7 +314,10 @@ positional argument (a regex object) and return a string.
        return m.group(0)[::-1]
 
 
-   pd.Series(["foo 123", "bar baz", np.nan], dtype="string").str.replace(pat, repl, regex=True)
+   pd.Series(
+       ["foo 123", "bar baz", np.nan],
+       dtype="string"
+   ).str.replace(pat, repl, regex=True)
 
    # Using regex groups
    pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
