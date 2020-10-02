@@ -670,6 +670,8 @@ pandas can include categorical data in a :class:`DataFrame`. For full docs, see 
     df = pd.DataFrame(
         {"id": [1, 2, 3, 4, 5, 6], "raw_grade": ["a", "b", "b", "a", "a", "e"]}
     )
+    
+
 
 Convert the raw grades to a categorical data type.
 
@@ -722,8 +724,7 @@ We use the standard convention for referencing the matplotlib API:
 
 .. ipython:: python
 
-   ts = pd.Series(np.random.randn(1000),
-                  index=pd.date_range('1/1/2000', periods=1000))
+   ts = pd.Series(np.random.randn(1000), index=pd.date_range("1/1/2000", periods=1000))
    ts = ts.cumsum()
 
    @savefig series_plot_basic.png
@@ -734,8 +735,10 @@ of the columns with labels:
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index,
-                     columns=['A', 'B', 'C', 'D'])
+   df = pd.DataFrame(
+       np.random.randn(1000, 4), index=ts.index, columns=["A", "B", "C", "D"]
+   )
+
    df = df.cumsum()
 
    plt.figure()

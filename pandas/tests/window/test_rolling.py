@@ -460,7 +460,9 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
     values = [1, 2, 3, np.nan, 4, 5, 6]
     expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
-    result = constructor(values).rolling(3).count()
+    # GH 31302
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = constructor(values).rolling(3).count()
     expected = constructor(expected_counts)
     tm.assert_equal(result, expected)
 
@@ -823,4 +825,15 @@ def test_rolling_axis_1_non_numeric_dtypes(value):
     df["b"] = value
     result = df.rolling(window=2, min_periods=1, axis=1).sum()
     expected = pd.DataFrame({"a": [1.0, 2.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_on_df_transposed():
+    # GH: 32724
+    df = pd.DataFrame({"A": [1, None], "B": [4, 5], "C": [7, 8]})
+    expected = pd.DataFrame({"A": [1.0, np.nan], "B": [5.0, 5.0], "C": [11.0, 13.0]})
+    result = df.rolling(min_periods=1, window=2, axis=1).sum()
+    tm.assert_frame_equal(result, expected)
+
+    result = df.T.rolling(min_periods=1, window=2).sum().T
     tm.assert_frame_equal(result, expected)
