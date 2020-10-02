@@ -28,7 +28,9 @@ class TestPeriodArrayLikeComparisons:
 
     def test_compare_zerodim(self, box_with_array):
         # GH#26689 make sure we unbox zero-dimensional arrays
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+        xbox = (
+            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
+        )
 
         pi = pd.period_range("2000", periods=4)
         other = np.array(pi.to_numpy()[0])
@@ -68,7 +70,7 @@ class TestPeriodArrayLikeComparisons:
         pi = pd.period_range("2000", periods=5)
         parr = tm.box_expected(pi, box_with_array)
 
-        xbox = np.ndarray if box_with_array is pd.Index else box_with_array
+        xbox = np.ndarray if box_with_array in [pd.Index, pd.array] else box_with_array
 
         other = other_box(pi)
 
@@ -175,7 +177,9 @@ class TestPeriodIndexComparisons:
 
     # TODO: moved from test_datetime64; de-duplicate with version below
     def test_parr_cmp_period_scalar2(self, box_with_array):
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+        xbox = (
+            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
+        )
 
         pi = pd.period_range("2000-01-01", periods=10, freq="D")
 
@@ -196,7 +200,7 @@ class TestPeriodIndexComparisons:
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_parr_cmp_period_scalar(self, freq, box_with_array):
         # GH#13200
-        xbox = np.ndarray if box_with_array is pd.Index else box_with_array
+        xbox = np.ndarray if box_with_array in [pd.Index, pd.array] else box_with_array
 
         base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=freq)
         base = tm.box_expected(base, box_with_array)
@@ -235,7 +239,7 @@ class TestPeriodIndexComparisons:
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_parr_cmp_pi(self, freq, box_with_array):
         # GH#13200
-        xbox = np.ndarray if box_with_array is pd.Index else box_with_array
+        xbox = np.ndarray if box_with_array in [pd.Index, pd.array] else box_with_array
 
         base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=freq)
         base = tm.box_expected(base, box_with_array)
@@ -284,7 +288,7 @@ class TestPeriodIndexComparisons:
         # TODO: Could parametrize over boxes for idx?
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="A")
         rev_msg = r"Input has different freq=(M|2M|3M) from PeriodArray\(freq=A-DEC\)"
-        idx_msg = rev_msg if box_with_array is tm.to_array else msg
+        idx_msg = rev_msg if box_with_array in [tm.to_array, pd.array] else msg
         with pytest.raises(IncompatibleFrequency, match=idx_msg):
             base <= idx
 
@@ -298,7 +302,7 @@ class TestPeriodIndexComparisons:
 
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="4M")
         rev_msg = r"Input has different freq=(M|2M|3M) from PeriodArray\(freq=4M\)"
-        idx_msg = rev_msg if box_with_array is tm.to_array else msg
+        idx_msg = rev_msg if box_with_array in [tm.to_array, pd.array] else msg
         with pytest.raises(IncompatibleFrequency, match=idx_msg):
             base <= idx
 
@@ -779,7 +783,7 @@ class TestPeriodIndexArithmetic:
     @pytest.mark.parametrize("tdi_freq", [None, "H"])
     def test_parr_sub_td64array(self, box_with_array, tdi_freq, pi_freq):
         box = box_with_array
-        xbox = box if box is not tm.to_array else pd.Index
+        xbox = box if box not in [pd.array, tm.to_array] else pd.Index
 
         tdi = TimedeltaIndex(["1 hours", "2 hours"], freq=tdi_freq)
         dti = Timestamp("2018-03-07 17:16:40") + tdi
