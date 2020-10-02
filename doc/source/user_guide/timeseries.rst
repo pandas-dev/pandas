@@ -2448,7 +2448,7 @@ This will fail as there are ambiguous times (``'11/06/2011 01:00'``)
 
 Handle these ambiguous times by specifying the following.
 
-.. ipython:: python
+.. ipython :: python
 
    rng_hourly.tz_localize('US/Eastern', ambiguous='infer')
    rng_hourly.tz_localize('US/Eastern', ambiguous='NaT')
@@ -2476,7 +2476,7 @@ can be controlled by the ``nonexistent`` argument. The following options are ava
 
 Localization of nonexistent times will raise an error by default.
 
-.. code-block:: ipython
+.. code-block :: ipython
 
    In [2]: dti.tz_localize('Europe/Warsaw')
    NonExistentTimeError: 2015-03-29 02:30:00
