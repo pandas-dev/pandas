@@ -522,7 +522,6 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
     def __init__(self, *, info, printer):
         super().__init__(info=info, printer=printer)
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
-        self.strcols: Sequence[Sequence[str]] = list(zip(*self.strrows))
 
     @abstractmethod
     def _gen_rows(self) -> Iterator[Sequence[str]]:
@@ -542,7 +541,8 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
     @property
     def body_column_widths(self) -> Sequence[int]:
         """Widths of table content columns."""
-        return [max(len(x) for x in col) for col in self.strcols]
+        strcols: Sequence[Sequence[str]] = list(zip(*self.strrows))
+        return [max(len(x) for x in col) for col in strcols]
 
     @property
     def gross_column_widths(self) -> Sequence[int]:
