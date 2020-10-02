@@ -1216,7 +1216,14 @@ class DataFrame(NDFrame):
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
-        return self.T.dot(np.transpose(other)).T
+        try:
+            return self.T.dot(np.transpose(other)).T
+        except ValueError as err:
+            if "shape mismatch" not in str(err):
+                raise
+            # GH#21581 give exception message for original shapes
+            msg = f"shapes {np.shape(other)} and {self.shape} not aligned"
+            raise ValueError(msg) from err
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
@@ -2337,7 +2344,7 @@ class DataFrame(NDFrame):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
