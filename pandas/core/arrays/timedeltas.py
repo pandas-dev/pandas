@@ -214,6 +214,19 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     @classmethod
     def _from_sequence(
+        cls, data, dtype=TD64NS_DTYPE, copy: bool = False
+    ) -> "TimedeltaArray":
+        if dtype:
+            _validate_td64_dtype(dtype)
+
+        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
+        freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
+
+        result = cls._simple_new(data, freq=freq)
+        return result
+
+    @classmethod
+    def _from_sequence_not_strict(
         cls,
         data,
         dtype=TD64NS_DTYPE,
