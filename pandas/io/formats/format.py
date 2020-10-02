@@ -1871,11 +1871,17 @@ def _post_process_complex(complex_strings: List[str]) -> List[str]:
     """
     Zero pad complex number strings produced by _trim_zeros_complex.
     """
-    max_length = max(len(x) for x in complex_strings)
-    half_deltas = [(max_length - len(x)) // 2 for x in complex_strings]
+    lengths = [len(s) for s in complex_strings]
+    max_length = max(lengths)
+    half_deltas = [(max_length - k) // 2 for k in lengths]
     padded = [
-        s[: -(d + 1)] + d * "0" + s[-(d + 1) : -1] + d * "0" + s[-1]
-        for s, d in zip(complex_strings, half_deltas)
+        s[: -((k - 1) // 2 + 1)]
+        + d * "0"
+        + s[-((k - 1) // 2 + 1) : -((k - 1) // 2)]
+        + s[-((k - 1) // 2) : -1]
+        + d * "0"
+        + s[-1]
+        for s, k, d in zip(complex_strings, lengths, half_deltas)
     ]
     return padded
 
