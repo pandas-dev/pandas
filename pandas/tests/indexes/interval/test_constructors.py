@@ -262,6 +262,12 @@ class TestFromBreaks(Base):
         expected = IntervalIndex.from_breaks([])
         tm.assert_index_equal(result, expected)
 
+    def test_left_right_dont_share_data(self):
+        # GH#36310
+        breaks = np.arange(5)
+        result = IntervalIndex.from_breaks(breaks)._data
+        assert result._left.base is None or result._left.base is not result._right.base
+
 
 class TestFromTuples(Base):
     """Tests specific to IntervalIndex.from_tuples"""
