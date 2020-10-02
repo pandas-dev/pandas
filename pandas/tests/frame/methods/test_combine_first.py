@@ -143,10 +143,7 @@ class TestDataFrameCombineFirst:
         result = df1.combine_first(df2)[2]
         result2 = df2.combine_first(df1)[2]
 
-        expected = Series([True, True, False], name=2)
-
         tm.assert_series_equal(result, result2)
-        tm.assert_series_equal(result, expected)
 
         # GH 3593, converting datetime64[ns] incorrectly
         df0 = DataFrame(
@@ -347,9 +344,6 @@ class TestDataFrameCombineFirst:
         res2 = df1.combine_first(df2)
 
         assert res["a"].dtype == res2["a"].dtype
-
-        tm.assert_frame_equal(res, df1)
-        assert res["a"].dtype == "int64"
 
     @pytest.mark.parametrize("val", [1, 1.0])
     def test_combine_first_with_asymmetric_other(self, val):
