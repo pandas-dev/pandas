@@ -204,7 +204,7 @@ class DataFrameInfo(BaseInfo):
         buf: Optional[IO[str]],
         max_cols: Optional[int],
         verbose: Optional[bool],
-        null_counts: Optional[bool],
+        show_counts: Optional[bool],
     ) -> None:
         """
         Print a concise summary of a %(klass)s.
@@ -261,7 +261,7 @@ class DataFrameInfo(BaseInfo):
             info=self,
             max_cols=max_cols,
             verbose=verbose,
-            null_counts=null_counts,
+            show_counts=show_counts,
         )
         printer.to_buffer(buf)
 
@@ -277,7 +277,7 @@ class InfoPrinter:
         When to switch from the verbose to the truncated output.
     verbose : bool, optional
         Whether to print the full summary.
-    null_counts : bool, optional
+    show_counts : bool, optional
         Whether to show the non-null counts.
     """
 
@@ -286,13 +286,13 @@ class InfoPrinter:
         info: DataFrameInfo,
         max_cols: Optional[int] = None,
         verbose: Optional[bool] = None,
-        null_counts: Optional[bool] = None,
+        show_counts: Optional[bool] = None,
     ):
         self.info = info
         self.data = info.data
         self.max_cols = max_cols
         self.verbose = verbose
-        self.null_counts = null_counts
+        self.show_counts = self._initialize_show_counts(show_counts)
 
     @property
     def max_cols(self):
@@ -313,14 +313,13 @@ class InfoPrinter:
     def exceeds_info_cols(self) -> bool:
         return bool(self.col_count > self.max_cols)
 
-    @property
-    def show_counts(self) -> bool:
-        if self.null_counts is None:
+    def _initialize_show_counts(self, show_counts: Optional[bool]) -> bool:
+        if show_counts is None:
             return bool(
                 (self.col_count <= self.max_cols) and (len(self.data) < self.max_rows)
             )
         else:
-            return self.null_counts
+            return show_counts
 
     @property
     def col_count(self) -> int:

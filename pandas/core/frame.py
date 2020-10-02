@@ -2610,7 +2610,7 @@ class DataFrame(NDFrame):
             buf=buf,
             max_cols=max_cols,
             verbose=verbose,
-            null_counts=null_counts,
+            show_counts=null_counts,
         )
 
     def memory_usage(self, index=True, deep=False) -> Series:
