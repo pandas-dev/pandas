@@ -4,20 +4,16 @@ from pandas import Series
 import pandas._testing as tm
 
 
-def ew_func(A, B, com, name, **kwargs):
-    return getattr(A.ewm(com, **kwargs), name)(B)
-
-
 def check_binary_ew(name, A, B):
 
-    result = ew_func(A=A, B=B, com=20, name=name, min_periods=5)
+    result = getattr(A.ewm(com=20, min_periods=5), name)(B)
     assert np.isnan(result.values[:14]).all()
     assert not np.isnan(result.values[14:]).any()
 
 
 def check_binary_ew_min_periods(name, min_periods, A, B):
     # GH 7898
-    result = ew_func(A, B, 20, name=name, min_periods=min_periods)
+    result = getattr(A.ewm(com=20, min_periods=min_periods), name)(B)
     # binary functions (ewmcov, ewmcorr) with bias=False require at
     # least two values
     assert np.isnan(result.values[:11]).all()
@@ -25,12 +21,12 @@ def check_binary_ew_min_periods(name, min_periods, A, B):
 
     # check series of length 0
     empty = Series([], dtype=np.float64)
-    result = ew_func(empty, empty, 50, name=name, min_periods=min_periods)
+    result = getattr(empty.ewm(com=50, min_periods=min_periods), name)(empty)
     tm.assert_series_equal(result, empty)
 
     # check series of length 1
-    result = ew_func(
-        Series([1.0]), Series([1.0]), 50, name=name, min_periods=min_periods
+    result = getattr(Series([1.0]).ewm(com=50, min_periods=min_periods), name)(
+        Series([1.0])
     )
     tm.assert_series_equal(result, Series([np.NaN]))
 

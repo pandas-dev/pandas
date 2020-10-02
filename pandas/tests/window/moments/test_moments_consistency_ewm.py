@@ -7,7 +7,6 @@ import pandas._testing as tm
 from pandas.tests.window.common import (
     check_binary_ew,
     check_binary_ew_min_periods,
-    ew_func,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
@@ -43,7 +42,7 @@ def test_different_input_array_raise_exception(name, binary_ew_data):
     msg = "Input arrays must be of the same type!"
     # exception raised is Exception
     with pytest.raises(Exception, match=msg):
-        ew_func(A, randn(50), 20, name=name, min_periods=5)
+        getattr(A.ewm(com=20, min_periods=5), name)(randn(50))
 
 
 @pytest.mark.slow
