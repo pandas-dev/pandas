@@ -452,7 +452,7 @@ def test_moment_functions_zero_length():
     df2_expected = df2
 
     functions = [
-        lambda x: x.rolling(window=10).count(),
+        lambda x: x.rolling(window=10, min_periods=0).count(),
         lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=False),
         lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=False),
         lambda x: x.rolling(window=10, min_periods=5).max(),

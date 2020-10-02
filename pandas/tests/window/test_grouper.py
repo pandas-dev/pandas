@@ -45,9 +45,9 @@ class TestGrouperGrouping:
 
         # GH 13174
         g = self.frame.groupby("A")
-        r = g.rolling(2)
+        r = g.rolling(2, min_periods=0)
         g_mutated = get_groupby(self.frame, by="A", mutated=True)
-        expected = g_mutated.B.apply(lambda x: x.rolling(2).count())
+        expected = g_mutated.B.apply(lambda x: x.rolling(2, min_periods=0).count())
 
         result = r.B.count()
         tm.assert_series_equal(result, expected)
@@ -56,7 +56,19 @@ class TestGrouperGrouping:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
+        "f",
+        [
+            "sum",
+            "mean",
+            "min",
+            "max",
+            pytest.param(
+                "count",
+                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
+            ),
+            "kurt",
+            "skew",
+        ],
     )
     def test_rolling(self, f):
         g = self.frame.groupby("A")
