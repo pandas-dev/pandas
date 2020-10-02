@@ -3435,7 +3435,7 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
 
 
 def test_to_string_complex_number_trims_zeros():
-    s = pd.Series([1.0000 + 1.0000j, 1.0 + 1.0j])
+    s = pd.Series([1.000000 + 1.000000j, 1.0 + 1.0j, 1.0005 + 1.0j])
     result = s.to_string()
-    expected = "0    1.0+1.0j\n1    1.0+1.0j"
+    expected = "0    1.0000+1.0j\n1    1.0000+1.0j\n2    1.0005+1.0j"
     assert result == expected
