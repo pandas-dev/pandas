@@ -71,7 +71,7 @@ class TestDatetimeArrayConstructor:
     def test_from_pandas_array(self):
         arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10 ** 9
 
-        result = DatetimeArray._from_sequence(arr, freq="infer")
+        result = DatetimeArray._from_sequence(arr)._with_freq("infer")
 
         expected = pd.date_range("1970-01-01", periods=5, freq="H")._data
         tm.assert_datetime_array_equal(result, expected)
@@ -162,7 +162,9 @@ class TestDatetimeArrayComparisons:
 
 class TestDatetimeArray:
     def test_astype_to_same(self):
-        arr = DatetimeArray._from_sequence(["2000"], tz="US/Central")
+        arr = DatetimeArray._from_sequence(
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
+        )
         result = arr.astype(DatetimeTZDtype(tz="US/Central"), copy=False)
         assert result is arr
 
@@ -193,7 +195,9 @@ class TestDatetimeArray:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_tz_setter_raises(self):
-        arr = DatetimeArray._from_sequence(["2000"], tz="US/Central")
+        arr = DatetimeArray._from_sequence(
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
+        )
         with pytest.raises(AttributeError, match="tz_localize"):
             arr.tz = "UTC"
 
@@ -282,7 +286,8 @@ class TestDatetimeArray:
 
         fill_val = dti[1] if method == "pad" else dti[3]
         expected = DatetimeArray._from_sequence(
-            [dti[0], dti[1], fill_val, dti[3], dti[4]], freq=None, tz="US/Central"
+            [dti[0], dti[1], fill_val, dti[3], dti[4]],
+            dtype=DatetimeTZDtype(tz="US/Central"),
         )
 
         result = arr.fillna(method=method)
@@ -434,12 +439,16 @@ class TestDatetimeArray:
 
 class TestSequenceToDT64NS:
     def test_tz_dtype_mismatch_raises(self):
-        arr = DatetimeArray._from_sequence(["2000"], tz="US/Central")
+        arr = DatetimeArray._from_sequence(
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
+        )
         with pytest.raises(TypeError, match="data is already tz-aware"):
             sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="UTC"))
 
     def test_tz_dtype_matches(self):
-        arr = DatetimeArray._from_sequence(["2000"], tz="US/Central")
+        arr = DatetimeArray._from_sequence(
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
+        )
         result, _, _ = sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="US/Central"))
         tm.assert_numpy_array_equal(arr._data, result)
 
@@ -447,6 +456,7 @@ class TestSequenceToDT64NS:
 class TestReductions:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_min_max(self, tz):
+        dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence(
             [
                 "2000-01-03",
@@ -456,7 +466,7 @@ class TestReductions:
                 "2000-01-05",
                 "2000-01-04",
             ],
-            tz=tz,
+            dtype=dtype,
         )
 
         result = arr.min()
@@ -476,7 +486,8 @@ class TestReductions:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_empty(self, skipna, tz):
-        arr = DatetimeArray._from_sequence([], tz=tz)
+        dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
+        arr = DatetimeArray._from_sequence([], dtype=dtype)
         result = arr.min(skipna=skipna)
         assert result is pd.NaT
 

@@ -1616,7 +1616,9 @@ def na_accum_func(values: ArrayLike, accum_func, skipna: bool) -> ArrayLike:
             result = result.view(orig_dtype)
         else:
             # DatetimeArray
-            result = type(values)._from_sequence(result, dtype=orig_dtype)
+            result = type(values)._simple_new(  # type: ignore[attr-defined]
+                result, dtype=orig_dtype
+            )
 
     elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
         vals = values.copy()
