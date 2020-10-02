@@ -1875,10 +1875,10 @@ def _post_process_complex(complex_strings: List[str]) -> List[str]:
     max_length = max(lengths)
     half_deltas = [(max_length - k) // 2 for k in lengths]
     padded = [
-        s[: -((k - 1) // 2 + 1)]
+        s[: -((k - 1) // 2 + 1)]  # real part
         + d * "0"
-        + s[-((k - 1) // 2 + 1) : -((k - 1) // 2)]
-        + s[-((k - 1) // 2) : -1]
+        + s[-((k - 1) // 2 + 1) : -((k - 1) // 2)]  # + / -
+        + s[-((k - 1) // 2) : -1]  # imaginary part
         + d * "0"
         + s[-1]
         for s, k, d in zip(complex_strings, lengths, half_deltas)
