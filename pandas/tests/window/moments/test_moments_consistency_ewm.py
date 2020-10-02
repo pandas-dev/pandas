@@ -3,11 +3,8 @@ from numpy.random import randn
 import pytest
 
 from pandas import DataFrame, Series, concat
+import pandas._testing as tm
 from pandas.tests.window.common import (
-    check_binary_ew,
-    check_binary_ew_min_periods,
-    check_pairwise_moment,
-    ew_func,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
@@ -20,15 +17,43 @@ from pandas.tests.window.common import (
 
 @pytest.mark.parametrize("func", ["cov", "corr"])
 def test_ewm_pairwise_cov_corr(func, frame):
-    check_pairwise_moment(frame, "ewm", func, span=10, min_periods=5)
+    result = getattr(frame.ewm(span=10, min_periods=5), func)()
+    result = result.loc[(slice(None), 1), 5]
+    result.index = result.index.droplevel(1)
+    expected = getattr(frame[1].ewm(span=10, min_periods=5), func)(frame[5])
+    expected.index = expected.index._with_freq(None)
+    tm.assert_series_equal(result, expected, check_names=False)
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
-def test_ewm_corr_cov(name, min_periods, binary_ew_data):
+def test_ewm_corr_cov(name, binary_ew_data):
     A, B = binary_ew_data
 
-    check_binary_ew(name="corr", A=A, B=B)
-    check_binary_ew_min_periods("corr", min_periods, A, B)
+    result = getattr(A.ewm(com=20, min_periods=5), name)(B)
+    assert np.isnan(result.values[:14]).all()
+    assert not np.isnan(result.values[14:]).any()
+
+
+@pytest.mark.parametrize("name", ["cov", "corr"])
+def test_ewm_corr_cov_min_periods(name, min_periods, binary_ew_data):
+    # GH 7898
+    A, B = binary_ew_data
+    result = getattr(A.ewm(com=20, min_periods=min_periods), name)(B)
+    # binary functions (ewmcov, ewmcorr) with bias=False require at
+    # least two values
+    assert np.isnan(result.values[:11]).all()
+    assert not np.isnan(result.values[11:]).any()
+
+    # check series of length 0
+    empty = Series([], dtype=np.float64)
+    result = getattr(empty.ewm(com=50, min_periods=min_periods), name)(empty)
+    tm.assert_series_equal(result, empty)
+
+    # check series of length 1
+    result = getattr(Series([1.0]).ewm(com=50, min_periods=min_periods), name)(
+        Series([1.0])
+    )
+    tm.assert_series_equal(result, Series([np.NaN]))
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
@@ -38,7 +63,7 @@ def test_different_input_array_raise_exception(name, binary_ew_data):
     msg = "Input arrays must be of the same type!"
     # exception raised is Exception
     with pytest.raises(Exception, match=msg):
-        ew_func(A, randn(50), 20, name=name, min_periods=5)
+        getattr(A.ewm(com=20, min_periods=5), name)(randn(50))
 
 
 @pytest.mark.slow
