@@ -337,7 +337,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.to_string`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` adding a leading space when ``index=False`` (:issue:`24980`)
--
+- Bug in :meth:`DataFrame.to_html`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` ignoring the ``na_rep`` argument when ``float_format`` was also specified (:issue:`9046`, :issue:`13828`)
 -
 
 
