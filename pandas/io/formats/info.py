@@ -584,17 +584,17 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
             )
             self._lines.append(body_line)
 
-    def _get_line_numbers(self) -> Iterator[str]:
+    def _gen_line_numbers(self) -> Iterator[str]:
         """Iterator with string representation of column numbers."""
         for i, _ in enumerate(self.ids):
             yield f" {i}"
 
-    def _get_columns(self) -> Iterator[str]:
+    def _gen_columns(self) -> Iterator[str]:
         """Iterator with string representation of column names."""
         for col in self.ids:
             yield pprint_thing(col)
 
-    def _get_dtypes(self) -> Iterator[str]:
+    def _gen_dtypes(self) -> Iterator[str]:
         """Iterator with string representation of column dtypes."""
         for dtype in self.dtypes:
             yield pprint_thing(dtype)
@@ -607,9 +607,9 @@ class DataFrameTableBuilderVerboseNoCounts(DataFrameTableBuilderVerbose):
 
     def _gen_rows(self) -> Iterator[Sequence[str]]:
         for items in zip(
-            self._get_line_numbers(),
-            self._get_columns(),
-            self._get_dtypes(),
+            self._gen_line_numbers(),
+            self._gen_columns(),
+            self._gen_dtypes(),
         ):
             yield items
 
@@ -621,13 +621,13 @@ class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
 
     def _gen_rows(self) -> Iterator[Sequence[str]]:
         for items in zip(
-            self._get_line_numbers(),
-            self._get_columns(),
-            self._get_non_null_counts(),
-            self._get_dtypes(),
+            self._gen_line_numbers(),
+            self._gen_columns(),
+            self._gen_non_null_counts(),
+            self._gen_dtypes(),
         ):
             yield items
 
-    def _get_non_null_counts(self) -> Iterator[str]:
+    def _gen_non_null_counts(self) -> Iterator[str]:
         for count in self.non_null_counts:
             yield f"{count} non-null"
