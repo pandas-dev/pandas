@@ -118,7 +118,7 @@ class BaseInfo(ABC):
 
     @property
     @abstractmethod
-    def counts(self) -> Mapping[str, int]:
+    def dtype_counts(self) -> Mapping[str, int]:
         pass
 
     @property
@@ -161,7 +161,7 @@ class BaseInfo(ABC):
                 # all cases (e.g., it misses categorical data even with object
                 # categories)
                 if (
-                    "object" in self.counts
+                    "object" in self.dtype_counts
                     or self.data.index._is_memory_usage_qualified()
                 ):
                     size_qualifier = "+"
@@ -194,7 +194,8 @@ class DataFrameInfo(BaseInfo):
         return self.data.dtypes
 
     @property
-    def counts(self) -> Mapping[str, int]:
+    def dtype_counts(self) -> Mapping[str, int]:
+        """Mapping dtype - number of counts."""
         # groupby dtype.name to collect e.g. Categorical columns
         return self.dtypes.value_counts().groupby(lambda x: x.name).sum()
 
@@ -417,9 +418,9 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         return self.info.data
 
     @property
-    def counts(self) -> Mapping[str, int]:
-        """Mapping column - number of counts."""
-        return self.info.counts
+    def dtype_counts(self) -> Mapping[str, int]:
+        """Mapping dtype - number of counts."""
+        return self.info.dtype_counts
 
     @property
     def display_memory_usage(self) -> bool:
@@ -473,7 +474,7 @@ class DataFrameTableBuilder(TableBuilderAbstract):
     def add_dtypes_line(self) -> None:
         """Add summary line with dtypes present in dataframe."""
         collected_dtypes = [
-            f"{key}({val:d})" for key, val in sorted(self.counts.items())
+            f"{key}({val:d})" for key, val in sorted(self.dtype_counts.items())
         ]
         self._lines.append(f"dtypes: {', '.join(collected_dtypes)}")
 
