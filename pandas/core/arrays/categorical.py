@@ -51,6 +51,7 @@ from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 from pandas.io.formats import console
 
@@ -176,7 +177,7 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-class Categorical(NDArrayBackedExtensionArray, PandasObject):
+class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
@@ -287,6 +288,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = PandasObject._deprecations | frozenset(["tolist"])
     _typ = "categorical"
+    _can_hold_na = True
 
     def __init__(
         self, values, categories=None, ordered=None, dtype=None, fastpath=False
@@ -1267,10 +1269,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             setattr(self, k, v)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self._codes.nbytes + self.dtype.categories.values.nbytes
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of my values
 
@@ -2143,10 +2145,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             return np.array_equal(self._codes, other_codes)
         return False
 
-    @property
-    def _can_hold_na(self):
-        return True
-
     @classmethod
     def _concat_same_type(self, to_concat):
         from pandas.core.dtypes.concat import union_categoricals
@@ -2304,6 +2302,25 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     cat.rename_categories(categories, inplace=True)
         if not inplace:
             return cat
+
+    # ------------------------------------------------------------------------
+    # String methods interface
+    def _str_map(self, f, na_value=np.nan, dtype=np.dtype(object)):
+        # Optimization to apply the callable `f` to the categories once
+        # and rebuild the result by `take`ing from the result with the codes.
+        # Returns the same type as the object-dtype implementation though.
+        from pandas.core.arrays import PandasArray
+
+        categories = self.categories
+        codes = self.codes
+        result = PandasArray(categories.to_numpy())._str_map(f, na_value, dtype)
+        return take_1d(result, codes, fill_value=na_value)
+
+    def _str_get_dummies(self, sep="|"):
+        # sep may not be in categories. Just bail on this.
+        from pandas.core.arrays import PandasArray
+
+        return PandasArray(self.astype(str))._str_get_dummies(sep)
 
 
 # The Series.cat accessor
