@@ -123,6 +123,11 @@ class BaseInfo(ABC):
 
     @property
     @abstractmethod
+    def non_null_counts(self) -> Sequence[int]:
+        pass
+
+    @property
+    @abstractmethod
     def dtypes(self) -> "Series":
         """Dtypes.
 
@@ -198,6 +203,11 @@ class DataFrameInfo(BaseInfo):
         """Mapping dtype - number of counts."""
         # groupby dtype.name to collect e.g. Categorical columns
         return self.dtypes.value_counts().groupby(lambda x: x.name).sum()
+
+    @property
+    def non_null_counts(self) -> Sequence[int]:
+        """Sequence of non-null counts for all columns."""
+        return self.data.count()
 
     def to_buffer(
         self,
@@ -423,6 +433,10 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         return self.info.dtype_counts
 
     @property
+    def non_null_counts(self) -> Sequence[int]:
+        return self.info.non_null_counts
+
+    @property
     def display_memory_usage(self) -> bool:
         """Whether to display memory usage."""
         return self.info.memory_usage
@@ -614,6 +628,6 @@ class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
         columns = list(self._get_columns())
         dtypes = list(self._get_dtypes())
         non_null_counts = [
-            self.count_non_null.format(count=count) for count in self.data.count()
+            self.count_non_null.format(count=count) for count in self.non_null_counts
         ]
         return [line_numbers, columns, non_null_counts, dtypes]
