@@ -52,8 +52,8 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-from pandas.io import pytables as pytables  # noqa: E402 isort:skip
-from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
+from pandas.io import pytables as pytables  # isort:skip
+from pandas.io.pytables import TableIterator  # isort:skip
 
 
 _default_compressor = "blosc"
@@ -512,7 +512,7 @@ class TestHDFStore:
                 # context
                 if mode in ["r", "r+"]:
                     with pytest.raises(IOError):
-                        with HDFStore(path, mode=mode) as store:  # noqa
+                        with HDFStore(path, mode=mode) as store:
                             pass
                 else:
                     with HDFStore(path, mode=mode) as store:
@@ -2350,7 +2350,7 @@ class TestHDFStore:
             store.put("df", df, format="table")
             expected = df[df.index > pd.Timestamp("20130105")]
 
-            import datetime  # noqa
+            import datetime
 
             result = store.select("df", "index>datetime.datetime(2013,1,5)")
             tm.assert_frame_equal(result, expected)
