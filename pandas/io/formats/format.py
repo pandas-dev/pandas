@@ -1869,12 +1869,7 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[s
 
 def _post_process_complex(complex_strings: List[str]) -> List[str]:
     """
-    Zero pad complex number strings to equal length.
-
-    This helper is needed because _trim_zeros_complex handles each complex
-    number independently and therefore can't pad to equal length. The input
-    strings here are assumed to be of the form " 1.000+1.000j", where the
-    real and imaginary parts have equal length.
+    Zero pad complex number strings produced by _trim_zeros_complex.
     """
     max_length = max(len(x) for x in complex_strings)
     half_deltas = [(max_length - len(x)) // 2 for x in complex_strings]
