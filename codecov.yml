@@ -1,6 +1,8 @@
 codecov:
   branch: master
 
+comments: off
+
 coverage:
   status:
     project:
