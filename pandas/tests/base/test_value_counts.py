@@ -276,11 +276,15 @@ def test_value_counts_datetime64(index_or_series):
     tm.assert_series_equal(result2, expected_s)
 
 
-def test_value_counts_with_nan(index_or_series):
+@pytest.mark.parametrize("dropna", [True, False])
+def test_value_counts_with_nan(dropna, index_or_series):
     # GH31944
     klass = index_or_series
     values = [True, pd.NA, np.nan]
     s = klass(values)
-    expected = Series([2, 1], index=[pd.NA, True])
-    res = s.value_counts(dropna=False)
+    res = s.value_counts(dropna=dropna)
+    if dropna is True:
+        expected = Series([1], index=[True])
+    else:
+        expected = Series([2, 1], index=[pd.NA, True])
     tm.assert_series_equal(res, expected)
