@@ -114,17 +114,17 @@ class BaseInfo(ABC):
     @property
     @abstractmethod
     def ids(self) -> Index:
-        pass
+        """Column names or index names."""
 
     @property
     @abstractmethod
     def dtype_counts(self) -> Mapping[str, int]:
-        pass
+        """Mapping dtype - number of counts."""
 
     @property
     @abstractmethod
     def non_null_counts(self) -> Sequence[int]:
-        pass
+        """Sequence of non-null counts for all columns or column (if series)."""
 
     @property
     @abstractmethod
