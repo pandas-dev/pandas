@@ -258,6 +258,7 @@ Deprecations
 ~~~~~~~~~~~~
 - Deprecated parameter ``inplace`` in :meth:`MultiIndex.set_codes` and :meth:`MultiIndex.set_levels` (:issue:`35626`)
 - Deprecated parameter ``dtype`` in :meth:`~Index.copy` on method all index classes. Use the :meth:`~Index.astype` method instead for changing dtype (:issue:`35853`)
+- Deprecated parameters ``levels`` and ``codes`` in :meth:`~MultiIndex.copy`. Use the :meth:`~MultiIndex.set_levels` and :meth:`~MultiIndex.set_codes` methods instead (:issue:`36685`)
 - Date parser functions :func:`~pandas.io.date_converters.parse_date_time`, :func:`~pandas.io.date_converters.parse_date_fields`, :func:`~pandas.io.date_converters.parse_all_fields` and :func:`~pandas.io.date_converters.generic_parser` from ``pandas.io.date_converters`` are deprecated and will be removed in a future version; use :func:`to_datetime` instead (:issue:`35741`)
 - :meth:`DataFrame.lookup` is deprecated and will be removed in a future version, use :meth:`DataFrame.melt` and :meth:`DataFrame.loc` instead (:issue:`18682`)
 - The :meth:`Index.to_native_types` is deprecated. Use ``.astype(str)`` instead (:issue:`28867`)
@@ -324,6 +325,7 @@ Numeric
 - Bug in :meth:`DataFrame.any` with ``axis=1`` and ``bool_only=True`` ignoring the ``bool_only`` keyword (:issue:`32432`)
 - Bug in :meth:`Series.equals` where a ``ValueError`` was raised when numpy arrays were compared to scalars (:issue:`35267`)
 - Bug in :class:`Series` where two :class:`Series` each have a :class:`DatetimeIndex` with different timezones having those indexes incorrectly changed when performing arithmetic operations (:issue:`33671`)
+- Bug in :meth:`pd._testing.assert_almost_equal` was incorrect for complex numeric types (:issue:`28235`)
 -
 
 Conversion
@@ -351,7 +353,7 @@ Indexing
 - Bug in :meth:`PeriodIndex.get_loc` incorrectly raising ``ValueError`` on non-datelike strings instead of ``KeyError``, causing similar errors in :meth:`Series.__geitem__`, :meth:`Series.__contains__`, and :meth:`Series.loc.__getitem__` (:issue:`34240`)
 - Bug in :meth:`Index.sort_values` where, when empty values were passed, the method would break by trying to compare missing values instead of pushing them to the end of the sort order. (:issue:`35584`)
 - Bug in :meth:`Index.get_indexer` and :meth:`Index.get_indexer_non_unique` where int64 arrays are returned instead of intp. (:issue:`36359`)
--
+- Bug in :meth:`DataFrame.sort_index` where parameter ascending passed as a list on a single level index gives wrong result. (:issue:`32334`)
 
 Missing
 ^^^^^^^
