@@ -2253,7 +2253,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -2777,7 +2777,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -3286,7 +3286,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -9195,7 +9195,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             extend the index when shifting and preserve the original data.
             If `freq` is specified as "infer" then it will be inferred from
             the freq or inferred_freq attributes of the index. If neither of
-            those attributes exist, a ValueError is thrown
+            those attributes exist, a ValueError is thrown.
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Shift direction.
         fill_value : object, optional

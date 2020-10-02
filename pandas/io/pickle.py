@@ -49,7 +49,7 @@ def to_pickle(
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -146,7 +146,7 @@ def read_pickle(
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
