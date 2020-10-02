@@ -4,18 +4,6 @@ from pandas import Series
 import pandas._testing as tm
 
 
-def check_pairwise_moment(frame, dispatch, name, **kwargs):
-    def get_result(obj, obj2=None):
-        return getattr(getattr(obj, dispatch)(**kwargs), name)(obj2)
-
-    result = get_result(frame)
-    result = result.loc[(slice(None), 1), 5]
-    result.index = result.index.droplevel(1)
-    expected = get_result(frame[1], frame[5])
-    expected.index = expected.index._with_freq(None)
-    tm.assert_series_equal(result, expected, check_names=False)
-
-
 def ew_func(A, B, com, name, **kwargs):
     return getattr(A.ewm(com, **kwargs), name)(B)
 

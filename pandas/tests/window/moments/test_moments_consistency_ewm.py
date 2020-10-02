@@ -3,10 +3,10 @@ from numpy.random import randn
 import pytest
 
 from pandas import DataFrame, Series, concat
+import pandas._testing as tm
 from pandas.tests.window.common import (
     check_binary_ew,
     check_binary_ew_min_periods,
-    check_pairwise_moment,
     ew_func,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
@@ -20,7 +20,12 @@ from pandas.tests.window.common import (
 
 @pytest.mark.parametrize("func", ["cov", "corr"])
 def test_ewm_pairwise_cov_corr(func, frame):
-    check_pairwise_moment(frame, "ewm", func, span=10, min_periods=5)
+    result = getattr(frame.ewm(span=10, min_periods=5), func)()
+    result = result.loc[(slice(None), 1), 5]
+    result.index = result.index.droplevel(1)
+    expected = getattr(frame[1].ewm(span=10, min_periods=5), func)(frame[5])
+    expected.index = expected.index._with_freq(None)
+    tm.assert_series_equal(result, expected, check_names=False)
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
