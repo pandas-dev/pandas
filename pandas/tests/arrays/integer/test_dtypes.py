@@ -207,6 +207,13 @@ def test_astype_specific_casting(dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_astype_floating():
+    arr = pd.array([1, 2, None], dtype="Int64")
+    result = arr.astype("Float64")
+    expected = pd.array([1.0, 2.0, None], dtype="Float64")
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_astype_dt64():
     # GH#32435
     arr = pd.array([1, 2, 3, pd.NA]) * 10 ** 9

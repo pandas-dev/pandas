@@ -1153,7 +1153,8 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_all_dates(self, index, expected):
-        assert index.is_all_dates is expected
+        with tm.assert_produces_warning(FutureWarning):
+            assert index.is_all_dates is expected
 
     def test_summary(self, index):
         self._check_method_works(Index._summary, index)
@@ -2221,6 +2222,31 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             with pytest.raises(AttributeError, match=msg):
                 index.contains(1)
 
+    def test_sortlevel(self):
+        index = pd.Index([5, 4, 3, 2, 1])
+        with pytest.raises(Exception, match="ascending must be a single bool value or"):
+            index.sortlevel(ascending="True")
+
+        with pytest.raises(
+            Exception, match="ascending must be a list of bool values of length 1"
+        ):
+            index.sortlevel(ascending=[True, True])
+
+        with pytest.raises(Exception, match="ascending must be a bool value"):
+            index.sortlevel(ascending=["True"])
+
+        expected = pd.Index([1, 2, 3, 4, 5])
+        result = index.sortlevel(ascending=[True])
+        tm.assert_index_equal(result[0], expected)
+
+        expected = pd.Index([1, 2, 3, 4, 5])
+        result = index.sortlevel(ascending=True)
+        tm.assert_index_equal(result[0], expected)
+
+        expected = pd.Index([5, 4, 3, 2, 1])
+        result = index.sortlevel(ascending=False)
+        tm.assert_index_equal(result[0], expected)
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
@@ -2607,7 +2633,7 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
         ex1 = np.array([0, 3, 1, 4, 2, 5] * 2, dtype=np.intp)
         ex2 = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(result[0], ex1)
-        tm.assert_numpy_array_equal(result[1], ex2.astype(np.int64))
+        tm.assert_numpy_array_equal(result[1], ex2)
 
     else:
         no_matches = np.array([-1] * 6, dtype=np.intp)
