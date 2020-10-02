@@ -313,15 +313,19 @@ class InfoPrinter:
     def exceeds_info_cols(self) -> bool:
         return bool(self.col_count > self.max_cols)
 
-    def _initialize_show_counts(self, show_counts: Optional[bool]) -> bool:
-        if show_counts is None:
-            return bool(not self.exceeds_info_cols and (len(self.data) < self.max_rows))
-        else:
-            return show_counts
+    @property
+    def exceeds_info_rows(self) -> bool:
+        return bool(len(self.data) > self.max_rows)
 
     @property
     def col_count(self) -> int:
         return len(self.info.ids)
+
+    def _initialize_show_counts(self, show_counts: Optional[bool]) -> bool:
+        if show_counts is None:
+            return bool(not self.exceeds_info_cols and not self.exceeds_info_rows)
+        else:
+            return show_counts
 
     def to_buffer(self, buf: Optional[IO[str]] = None) -> None:
         """Save dataframe info into buffer."""
