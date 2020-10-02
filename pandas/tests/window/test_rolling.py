@@ -675,9 +675,7 @@ def test_iter_rolling_datetime(expected, expected_index, window):
     [
         (
             {"level": 0},
-            pd.MultiIndex.from_tuples(
-                [(0, 0), (0, 0), (1, 1), (1, 1), (1, 1)], names=[None, None]
-            ),
+            pd.Index([0, 0, 1, 1, 1]),
         ),
         (
             {"by": "X"},

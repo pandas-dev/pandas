@@ -2209,6 +2209,20 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         grouped_index_name = [*grouped_object_index.names]
         groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
         result_index_names = groupby_keys + grouped_index_name
+        drop_levels = []
+        obj = self._groupby._selected_obj
+        # We have to handle a unnamed Series different, because we can not say, if
+        # grouping column was index or Series column.
+        if (
+            isinstance(obj, ABCDataFrame)
+            or obj.name is not None
+            or obj.index.names != [None]
+        ):
+            drop_levels = [
+                i for i, name in enumerate(groupby_keys) if name in grouped_index_name
+            ]
+        elif self._groupby.level is not None:
+            drop_levels = com.maybe_make_list(self._groupby.level)
 
         result_index_data = []
         for key, values in self._groupby.grouper.indices.items():
@@ -2222,6 +2236,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         result_index = MultiIndex.from_tuples(
             result_index_data, names=result_index_names
         )
+        result_index = result_index.droplevel(drop_levels)
         result.index = result_index
         return result
 

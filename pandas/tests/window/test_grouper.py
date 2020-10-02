@@ -416,3 +416,41 @@ class TestGrouperGrouping:
         result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
         expected.index = pd.MultiIndex.from_tuples([], names=["s1", "s2", None])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("groupings", [{"level": 0}, {"by": "groupby_col"}])
+    def test_groupby_rolling_index_in_by_columns(self, groupings):
+        # GH: 36794
+        df = pd.DataFrame(
+            {"groupby_col": [1, 1, 1, 2, 2, 2], "agg_col": [1, 1, 0, 0, 1, 0]}
+        ).set_index("groupby_col")
+        result = df.groupby(**groupings).rolling(2).sum()
+        expected = pd.DataFrame(
+            {
+                "groupby_col": [1, 1, 1, 2, 2, 2],
+                "agg_col": [np.nan, 2.0, 1.0, np.nan, 1.0, 1.0],
+            }
+        ).set_index("groupby_col")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("index_name", ["index", None])
+    def test_groupby_rolling_unnamed_series(self, index_name):
+        # GH: 36794
+        ds = pd.Series([1, 2, 3, 4], index=pd.Index([0, 1, 2, 3], name=index_name))
+        result = ds.groupby(ds).rolling(2).sum()
+        expected = pd.Series(
+            [np.nan] * 4,
+            index=pd.MultiIndex.from_tuples(
+                [(1, 0), (2, 1), (3, 2), (4, 3)], names=[None, index_name]
+            ),
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("groupings", [{"level": 0}, {"by": "index"}])
+    def test_groupby_rolling_index_of_unnamed_series(self, groupings):
+        # GH: 36794
+        ds = pd.Series([1, 2, 3, 4], index=pd.Index([0, 0, 1, 1], name="index"))
+        result = ds.groupby(**groupings).rolling(2).sum()
+        expected = pd.Series(
+            [np.nan, 3.0, np.nan, 7.0], index=pd.Index([0, 0, 1, 1], name="index")
+        )
+        tm.assert_series_equal(result, expected)
