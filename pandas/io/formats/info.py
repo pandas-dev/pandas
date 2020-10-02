@@ -522,13 +522,14 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
 
     def __init__(self, *, info, printer):
         super().__init__(info=info, printer=printer)
-        self.strcols: Sequence[Sequence[str]] = self._get_strcols()
+        self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
+        self.strcols: Sequence[Sequence[str]] = list(zip(*self.strrows))
 
     @abstractmethod
-    def _get_strcols(self) -> Sequence[Sequence[str]]:
-        """Get columns content.
+    def _gen_rows(self) -> Iterator[Sequence[str]]:
+        """Generator function yielding rows content.
 
-        Each element of the list represents a column data (list of rows).
+        Each element represents a row comprising a sequence of strings.
         """
 
     def add_columns_summary_line(self) -> None:
@@ -575,8 +576,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
         self._lines.append(separator_line)
 
     def add_body_lines(self) -> None:
-        strrows = list(zip(*self.strcols))
-        for row in strrows:
+        for row in self.strrows:
             body_line = self.SPACING.join(
                 [
                     _put_str(col, gross_colwidth)
@@ -606,11 +606,13 @@ class DataFrameTableBuilderVerboseNoCounts(DataFrameTableBuilderVerbose):
 
     HEADERS = [" # ", "Column", "Dtype"]
 
-    def _get_strcols(self) -> Sequence[Sequence[str]]:
-        line_numbers = list(self._get_line_numbers())
-        columns = list(self._get_columns())
-        dtypes = list(self._get_dtypes())
-        return [line_numbers, columns, dtypes]
+    def _gen_rows(self) -> Iterator[Sequence[str]]:
+        for line_no, col, dtype in zip(
+            self._get_line_numbers(),
+            self._get_columns(),
+            self._get_dtypes(),
+        ):
+            yield line_no, col, dtype
 
 
 class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
@@ -618,13 +620,15 @@ class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
 
     HEADERS = [" # ", "Column", "Non-Null Count", "Dtype"]
 
+    def _gen_rows(self) -> Iterator[Sequence[str]]:
+        for line_no, col, count, dtype in zip(
+            self._get_line_numbers(),
+            self._get_columns(),
+            self._get_non_null_counts(),
+            self._get_dtypes(),
+        ):
+            yield line_no, col, count, dtype
+
     def _get_non_null_counts(self) -> Iterator[str]:
         for count in self.non_null_counts:
             yield f"{count} non-null"
-
-    def _get_strcols(self) -> Sequence[Sequence[str]]:
-        line_numbers = list(self._get_line_numbers())
-        columns = list(self._get_columns())
-        dtypes = list(self._get_dtypes())
-        non_null_counts = list(self._get_non_null_counts())
-        return [line_numbers, columns, non_null_counts, dtypes]
