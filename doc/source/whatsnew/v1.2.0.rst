@@ -280,7 +280,7 @@ Performance improvements
 - Performance improvement in :meth:`GroupBy.transform` with the ``numba`` engine (:issue:`36240`)
 - ``Styler`` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
 - Performance improvement in :meth:`pd.to_datetime` with non-ns time unit for ``float`` ``dtype`` columns (:issue:`20445`)
-- Small performance decrease to :meth:`~Rolling.min` and :meth:`~Rolling.max` for fixed windows (:issue:`36567`)
+- Small performance decrease to :meth:`Rolling.min` and :meth:`Rolling.max` for fixed windows (:issue:`36567`)
 
 .. ---------------------------------------------------------------------------
 
