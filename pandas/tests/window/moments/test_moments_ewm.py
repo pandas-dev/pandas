@@ -7,12 +7,16 @@ from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
-def test_ewma(series, frame):
-    series_result = series.ewm(com=10).mean()
+@pytest.mark.parametrize("name", ["var", "vol", "mean"])
+def test_ewma_series(series, name):
+    series_result = getattr(series.ewm(com=10), name)()
     assert isinstance(series_result, Series)
 
-    frame_result = frame.ewm(com=10).mean()
-    assert type(frame_result) == DataFrame
+
+@pytest.mark.parametrize("name", ["var", "vol", "mean"])
+def test_ewma_frame(frame, name):
+    frame_result = getattr(frame.ewm(com=10), name)()
+    assert isinstance(frame_result, DataFrame)
 
 
 def test_ewma_adjust():
@@ -194,15 +198,6 @@ def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
         # check that ignore_na defaults to False
         result = s.ewm(com=2.0, adjust=adjust).mean()
         tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("name", ["var", "vol"])
-def test_ewmvar_ewmvol(series, frame, name):
-    series_result = getattr(series.ewm(com=10), name)()
-    assert isinstance(series_result, Series)
-
-    frame_result = getattr(frame.ewm(com=10), name)()
-    assert type(frame_result) == DataFrame
 
 
 def test_ewma_span_com_args(series):
