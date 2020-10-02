@@ -128,8 +128,8 @@ the data set if presented with a url.
 .. ipython:: python
 
    url = (
-      "https://raw.github.com/pandas-dev"
-      "/pandas/master/pandas/tests/io/data/csv/tips.csv"
+       "https://raw.github.com/pandas-dev"
+       "/pandas/master/pandas/tests/io/data/csv/tips.csv"
    )
    tips = pd.read_csv(url)
    tips.head()
@@ -281,18 +281,18 @@ see the :ref:`timeseries documentation<timeseries>` for more details.
    tips["date2_month"] = tips["date2"].dt.month
    tips["date1_next"] = tips["date1"] + pd.offsets.MonthBegin()
    tips["months_between"] = tips["date2"].dt.to_period("M") - tips[
-      "date1"
+       "date1"
    ].dt.to_period("M")
 
    tips[
-      ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"]
+       ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"]
    ].head()
 
 .. ipython:: python
    :suppress:
 
    tips = tips.drop(
-      ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"],
+       ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"],
       axis=1,
    )
 
