@@ -1,3 +1,5 @@
+import pytest
+
 import pandas as pd
 
 
@@ -8,10 +10,6 @@ class SubclassedDataFrame2(pd.DataFrame):
     [guidelines]: https://pandas.pydata.org/pandas-docs/stable/development/extending.html#override-constructor-properties  # noqa
     """
 
-    # temporary properties
-    _internal_names = pd.DataFrame._internal_names + ["internal_cache"]
-    _internal_names_set = set(_internal_names)
-
     # normal properties
     _metadata = ["added_property"]
 
@@ -20,6 +18,10 @@ class SubclassedDataFrame2(pd.DataFrame):
         return SubclassedDataFrame2
 
 
+@pytest.mark.xfail(
+    reason="Missing high-performance implementation of metadata support for groupby. "
+    "__finalize__ is not called for grouped dataframes"
+)
 def test_groupby_with_custom_metadata():
     custom_df = SubclassedDataFrame2(
         [[11, 12, 0], [21, 22, 0], [31, 32, 1]], columns=["a", "b", "g"]
