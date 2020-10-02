@@ -516,8 +516,7 @@ class DataFrameTableBuilderNonVerbose(DataFrameTableBuilder):
 class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
     """Info table builder for verbose output."""
 
-    COL_SPACE = 2
-    SPACING = " " * COL_SPACE
+    SPACING = " " * 2
     HEADERS: Sequence[str]
 
     def __init__(self, *, info, printer):
