@@ -155,6 +155,7 @@ class BaseInfo(ABC):
 
     @property
     def memory_usage_string(self) -> str:
+        """Memory usage in a form of human readable string."""
         return f"{_sizeof_fmt(self.mem_usage, self.size_qualifier)}\n"
 
     @property
@@ -301,20 +302,9 @@ class InfoPrinter:
     ):
         self.info = info
         self.data = info.data
-        self.max_cols = max_cols
         self.verbose = verbose
+        self.max_cols = self._initialize_max_cols(max_cols)
         self.show_counts = self._initialize_show_counts(show_counts)
-
-    @property
-    def max_cols(self):
-        return self._max_cols
-
-    @max_cols.setter
-    def max_cols(self, max_cols):
-        # hack
-        if max_cols is None:
-            max_cols = get_option("display.max_info_columns", self.col_count + 1)
-        self._max_cols = max_cols
 
     @property
     def max_rows(self) -> int:
@@ -335,6 +325,11 @@ class InfoPrinter:
     def col_count(self) -> int:
         """Number of columns to be summarized."""
         return len(self.info.ids)
+
+    def _initialize_max_cols(self, max_cols: Optional[int]) -> int:
+        if max_cols is None:
+            return get_option("display.max_info_columns", self.col_count + 1)
+        return max_cols
 
     def _initialize_show_counts(self, show_counts: Optional[bool]) -> bool:
         if show_counts is None:
