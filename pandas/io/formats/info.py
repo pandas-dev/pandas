@@ -548,10 +548,8 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
     def gross_column_widths(self) -> Sequence[int]:
         """Widths of columns containing both headers and actual content."""
         return [
-            max(header_colwidth, body_colwidth)
-            for header_colwidth, body_colwidth in zip(
-                self.header_column_widths, self.body_column_widths
-            )
+            max(*widths)
+            for widths in zip(self.header_column_widths, self.body_column_widths)
         ]
 
     def add_header_line(self) -> None:
