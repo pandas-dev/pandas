@@ -7,6 +7,7 @@ import collections
 from collections import namedtuple
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from enum import IntEnum
 from fractions import Fraction
 from io import StringIO
 from numbers import Number
@@ -587,6 +588,24 @@ class TestInference:
         ind = pd.Index([True, False, np.nan], dtype=object)
         exp = np.array([True, False, np.nan], dtype=object)
         out = lib.maybe_convert_objects(ind.values, safe=1)
+        tm.assert_numpy_array_equal(out, exp)
+
+    def test_maybe_convert_objects_intenum(self):
+        class Colors(IntEnum):
+            red = 1
+            blue = 2
+
+        ind = pd.Index([Colors.red, Colors.blue], dtype=object)
+        exp = np.array([Colors.red, Colors.blue], dtype=object)
+        out = lib.maybe_convert_objects(ind.values)
+
+        # by default, we should not convert IntEnums to ints
+        tm.assert_numpy_array_equal(out, exp)
+
+        exp = np.array([1, 2], dtype=int)
+        out = lib.maybe_convert_objects(ind.values, convert_intenum=True)
+
+        # still coverts to int if convert_intenum set to True
         tm.assert_numpy_array_equal(out, exp)
 
     def test_mixed_dtypes_remain_object_array(self):
