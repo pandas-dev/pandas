@@ -306,7 +306,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64``, ``timedelta64`` or ``Period`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`, :issue:`36254`)
 - Inconsistency in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray`  setitem casting arrays of strings to datetimelike scalars but not scalar strings (:issue:`36261`)
 - Bug in :class:`DatetimeIndex.shift` incorrectly raising when shifting empty indexes (:issue:`14811`)
-
+- Bug in :meth:`DatetimeIndex.equals` and :meth:`TimedeltaIndex.equals` incorrectly considering ``int64`` indexes as equal (:issue:`36744`)
 
 Timedelta
 ^^^^^^^^^
@@ -328,7 +328,7 @@ Numeric
 - Bug in :meth:`Series.equals` where a ``ValueError`` was raised when numpy arrays were compared to scalars (:issue:`35267`)
 - Bug in :class:`Series` where two :class:`Series` each have a :class:`DatetimeIndex` with different timezones having those indexes incorrectly changed when performing arithmetic operations (:issue:`33671`)
 - Bug in :meth:`pd._testing.assert_almost_equal` was incorrect for complex numeric types (:issue:`28235`)
--
+- Bug in :meth:`DataFrame.__rmatmul__` error handling reporting transposed shapes (:issue:`21581`)
 
 Conversion
 ^^^^^^^^^^
