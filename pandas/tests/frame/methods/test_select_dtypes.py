@@ -82,6 +82,12 @@ class TestSelectDtypes:
         e = df[["b", "c", "e"]]
         tm.assert_frame_equal(r, e)
 
+        exclude = (np.datetime64,)
+        include = np.bool_, "int"
+        r = df.select_dtypes(include=include, exclude=exclude)
+        e = df[["b", "e"]]
+        tm.assert_frame_equal(r, e)
+
         exclude = ("datetime",)
         include = "bool", "int64", "int32"
         r = df.select_dtypes(include=include, exclude=exclude)

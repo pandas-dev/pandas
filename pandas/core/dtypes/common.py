@@ -1796,6 +1796,11 @@ def pandas_dtype(dtype) -> DtypeObj:
     # try a numpy dtype
     # raise a consistent TypeError if failed
     try:
+        # int is mapped to different types (int32, in64) on Windows and Linux
+        # see https://github.com/numpy/numpy/issues/9464
+        if (isinstance(dtype, str) and dtype == "int") or (dtype is int):
+            dtype = "int64"
+
         npdtype = np.dtype(dtype)
     except SyntaxError as err:
         # np.dtype uses `eval` which can raise SyntaxError

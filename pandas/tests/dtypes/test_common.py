@@ -43,20 +43,22 @@ class TestPandasDtype:
             com.pandas_dtype(box)
 
     @pytest.mark.parametrize(
-        "dtype",
+        "dtype_input,dtype_output",
         [
-            object,
-            "float64",
-            np.object_,
-            np.dtype("object"),
-            "O",
-            np.float64,
-            float,
-            np.dtype("float64"),
+            (object, object),
+            ("float64", np.float64),
+            (np.object_, np.object_),
+            (np.dtype("object"), np.object_),
+            ("O", object),
+            (np.float64, np.float64),
+            (float, float),
+            (np.dtype("float64"), np.float64),
+            ("int", np.int64),
+            (int, np.int64)
         ],
     )
-    def test_pandas_dtype_valid(self, dtype):
-        assert com.pandas_dtype(dtype) == dtype
+    def test_pandas_dtype_valid(self, dtype_input, dtype_output):
+        assert com.pandas_dtype(dtype_input) == dtype_output
 
     @pytest.mark.parametrize(
         "dtype", ["M8[ns]", "m8[ns]", "object", "float64", "int64"]
