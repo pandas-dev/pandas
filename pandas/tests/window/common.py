@@ -4,33 +4,6 @@ from pandas import Series
 import pandas._testing as tm
 
 
-def check_binary_ew(name, A, B):
-
-    result = getattr(A.ewm(com=20, min_periods=5), name)(B)
-    assert np.isnan(result.values[:14]).all()
-    assert not np.isnan(result.values[14:]).any()
-
-
-def check_binary_ew_min_periods(name, min_periods, A, B):
-    # GH 7898
-    result = getattr(A.ewm(com=20, min_periods=min_periods), name)(B)
-    # binary functions (ewmcov, ewmcorr) with bias=False require at
-    # least two values
-    assert np.isnan(result.values[:11]).all()
-    assert not np.isnan(result.values[11:]).any()
-
-    # check series of length 0
-    empty = Series([], dtype=np.float64)
-    result = getattr(empty.ewm(com=50, min_periods=min_periods), name)(empty)
-    tm.assert_series_equal(result, empty)
-
-    # check series of length 1
-    result = getattr(Series([1.0]).ewm(com=50, min_periods=min_periods), name)(
-        Series([1.0])
-    )
-    tm.assert_series_equal(result, Series([np.NaN]))
-
-
 def moments_consistency_mock_mean(x, mean, mock_mean):
     mean_x = mean(x)
     # check that correlation of a series with itself is either 1 or NaN

@@ -5,8 +5,6 @@ import pytest
 from pandas import DataFrame, Series, concat
 import pandas._testing as tm
 from pandas.tests.window.common import (
-    check_binary_ew,
-    check_binary_ew_min_periods,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
@@ -28,11 +26,34 @@ def test_ewm_pairwise_cov_corr(func, frame):
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
-def test_ewm_corr_cov(name, min_periods, binary_ew_data):
+def test_ewm_corr_cov(name, binary_ew_data):
     A, B = binary_ew_data
 
-    check_binary_ew(name="corr", A=A, B=B)
-    check_binary_ew_min_periods("corr", min_periods, A, B)
+    result = getattr(A.ewm(com=20, min_periods=5), name)(B)
+    assert np.isnan(result.values[:14]).all()
+    assert not np.isnan(result.values[14:]).any()
+
+
+@pytest.mark.parametrize("name", ["cov", "corr"])
+def test_ewm_corr_cov_min_periods(name, min_periods, binary_ew_data):
+    # GH 7898
+    A, B = binary_ew_data
+    result = getattr(A.ewm(com=20, min_periods=min_periods), name)(B)
+    # binary functions (ewmcov, ewmcorr) with bias=False require at
+    # least two values
+    assert np.isnan(result.values[:11]).all()
+    assert not np.isnan(result.values[11:]).any()
+
+    # check series of length 0
+    empty = Series([], dtype=np.float64)
+    result = getattr(empty.ewm(com=50, min_periods=min_periods), name)(empty)
+    tm.assert_series_equal(result, empty)
+
+    # check series of length 1
+    result = getattr(Series([1.0]).ewm(com=50, min_periods=min_periods), name)(
+        Series([1.0])
+    )
+    tm.assert_series_equal(result, Series([np.NaN]))
 
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
