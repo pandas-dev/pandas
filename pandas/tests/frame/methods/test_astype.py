@@ -8,6 +8,7 @@ from pandas import (
     CategoricalDtype,
     DataFrame,
     DatetimeTZDtype,
+    Interval,
     IntervalDtype,
     NaT,
     Series,
@@ -565,3 +566,24 @@ class TestAstype:
         result = df.astype(dict())
         tm.assert_frame_equal(result, df)
         assert result is not df
+
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame(Series(["x", "y", "z"], dtype="string")),
+            DataFrame(Series(["x", "y", "z"], dtype="category")),
+            DataFrame(Series(3 * [Timestamp("2020-01-01", tz="UTC")])),
+            DataFrame(Series(3 * [Interval(0, 1)])),
+        ],
+    )
+    @pytest.mark.parametrize("errors", ["raise", "ignore"])
+    def test_astype_ignores_errors_for_extension_dtypes(self, df, errors):
+        # https://github.com/pandas-dev/pandas/issues/35471
+        if errors == "ignore":
+            expected = df
+            result = df.astype(float, errors=errors)
+            tm.assert_frame_equal(result, expected)
+        else:
+            msg = "(Cannot cast)|(could not convert)"
+            with pytest.raises((ValueError, TypeError), match=msg):
+                df.astype(float, errors=errors)

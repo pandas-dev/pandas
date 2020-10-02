@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_under1p17, np_version_under1p18
+
 from pandas import (
     DatetimeIndex,
     Float64Index,
@@ -9,8 +11,6 @@ from pandas import (
     PeriodIndex,
     TimedeltaIndex,
     UInt64Index,
-    _np_version_under1p17,
-    _np_version_under1p18,
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -83,12 +83,12 @@ def test_numpy_ufuncs_other(index, func):
             if func in [np.isfinite, np.isnan, np.isinf]:
                 pytest.xfail(reason="__array_ufunc__ is not defined")
 
-        if not _np_version_under1p18 and func in [np.isfinite, np.isinf, np.isnan]:
+        if not np_version_under1p18 and func in [np.isfinite, np.isinf, np.isnan]:
             # numpy 1.18(dev) changed isinf and isnan to not raise on dt64/tfd64
             result = func(index)
             assert isinstance(result, np.ndarray)
 
-        elif not _np_version_under1p17 and func in [np.isfinite]:
+        elif not np_version_under1p17 and func in [np.isfinite]:
             # ok under numpy >= 1.17
             # Results in bool array
             result = func(index)
@@ -114,18 +114,3 @@ def test_numpy_ufuncs_other(index, func):
         else:
             with pytest.raises(Exception):
                 func(index)
-
-
-def test_elementwise_comparison_warning():
-    # https://github.com/pandas-dev/pandas/issues/22698#issuecomment-458968300
-    # np.array([1, 2]) == 'a' returns False, and produces a
-    # FutureWarning that it'll be [False, False] in the future.
-    # We just want to ensure that comes through.
-    # When NumPy dev actually enforces this change, we'll need to skip
-    # this test.
-    idx = Index([1, 2])
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = idx == "a"
-
-    expected = np.array([False, False])
-    tm.assert_numpy_array_equal(result, expected)

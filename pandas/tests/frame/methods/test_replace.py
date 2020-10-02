@@ -974,6 +974,31 @@ class TestDataFrameReplace:
                     }
                 ),
             ),
+            # GH 35376
+            (
+                DataFrame([[1, 1.0], [2, 2.0]]),
+                1.0,
+                5,
+                DataFrame([[5, 5.0], [2, 2.0]]),
+            ),
+            (
+                DataFrame([[1, 1.0], [2, 2.0]]),
+                1,
+                5,
+                DataFrame([[5, 5.0], [2, 2.0]]),
+            ),
+            (
+                DataFrame([[1, 1.0], [2, 2.0]]),
+                1.0,
+                5.0,
+                DataFrame([[5, 5.0], [2, 2.0]]),
+            ),
+            (
+                DataFrame([[1, 1.0], [2, 2.0]]),
+                1,
+                5.0,
+                DataFrame([[5, 5.0], [2, 2.0]]),
+            ),
         ],
     )
     def test_replace_dtypes(self, frame, to_replace, value, expected):
@@ -1598,4 +1623,12 @@ class TestDataFrameReplace:
         df = pd.DataFrame({"a": [pd.Interval(0, 1), pd.Interval(0, 1)]})
         result = df.replace({"a": {pd.Interval(0, 1): "x"}})
         expected = pd.DataFrame({"a": ["x", "x"]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_replace_unicode(self):
+        # GH: 16784
+        columns_values_map = {"positive": {"正面": 1, "中立": 1, "负面": 0}}
+        df1 = pd.DataFrame({"positive": np.ones(3)})
+        result = df1.replace(columns_values_map)
+        expected = pd.DataFrame({"positive": np.ones(3)})
         tm.assert_frame_equal(result, expected)

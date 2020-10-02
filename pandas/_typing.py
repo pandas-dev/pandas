@@ -15,6 +15,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Sequence,
     Type,
     TypeVar,
     Union,
@@ -82,6 +83,7 @@ FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 
 Axis = Union[str, int]
 Label = Optional[Hashable]
+IndexLabel = Union[Label, Sequence[Label]]
 Level = Union[Label, int]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]

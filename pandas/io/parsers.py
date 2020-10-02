@@ -92,7 +92,7 @@ filepath_or_buffer : str, path object or file-like object
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
     By file-like object, we refer to objects with a ``read()`` method, such as
-    a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
+    a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
 sep : str, default {_default_sep}
     Delimiter to use. If sep is None, the C engine cannot automatically detect
     the separator, but the Python parsing engine can, meaning the latter will
@@ -227,7 +227,7 @@ default False
       result 'foo'
 
     If a column or index cannot be represented as an array of datetimes,
-    say because of an unparseable value or a mixture of timezones, the column
+    say because of an unparsable value or a mixture of timezones, the column
     or index will be returned unaltered as an object data type. For
     non-standard datetime parsing, use ``pd.to_datetime`` after
     ``pd.read_csv``. To parse an index or column with a mixture of timezones,
@@ -338,9 +338,21 @@ memory_map : bool, default False
     option can improve performance because there is no longer any I/O overhead.
 float_precision : str, optional
     Specifies which converter the C engine should use for floating-point
-    values. The options are `None` for the ordinary converter,
-    `high` for the high-precision converter, and `round_trip` for the
-    round-trip converter.
+    values. The options are ``None`` or 'high' for the ordinary converter,
+    'legacy' for the original lower precision pandas converter, and
+    'round_trip' for the round-trip converter.
+
+    .. versionchanged:: 1.2
+
+storage_options : dict, optional
+    Extra options that make sense for a particular storage connection, e.g.
+    host, port, username, password, etc., if using a URL that will
+    be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
+    will be raised if providing this argument with a local path or
+    a file-like buffer. See the fsspec and backend storage implementation
+    docs for the set of allowed keys and values.
+
+    .. versionadded:: 1.2
 
 Returns
 -------
@@ -361,7 +373,7 @@ Examples
 )
 
 
-def _validate_integer(name, val, min_val=0):
+def validate_integer(name, val, min_val=0):
     """
     Checks whether the 'name' parameter for parsing is either
     an integer OR float that can SAFELY be cast to an integer
@@ -421,10 +433,6 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         kwds["encoding"] = encoding
     compression = kwds.get("compression", "infer")
 
-    # TODO: get_filepath_or_buffer could return
-    # Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
-    # though mypy handling of conditional imports is difficult.
-    # See https://github.com/python/mypy/issues/1297
     ioargs = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression, storage_options=storage_options
     )
@@ -436,7 +444,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
-    chunksize = _validate_integer("chunksize", kwds.get("chunksize", None), 1)
+    chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
     nrows = kwds.get("nrows", None)
 
     # Check for duplicates in names.
@@ -749,6 +757,16 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
+    # TODO: validation duplicated in read_csv
+    if delim_whitespace and (delimiter is not None or sep != "\t"):
+        raise ValueError(
+            "Specified a delimiter with both sep and "
+            "delim_whitespace=True; you can only specify one."
+        )
+    if delim_whitespace:
+        # In this case sep is not used so we set it to the read_csv
+        # default to avoid a ValueError
+        sep = ","
     return read_csv(**locals())
 
 
@@ -780,7 +798,7 @@ def read_fwf(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
@@ -914,7 +932,6 @@ class TextFileReader(abc.Iterator):
 
         # miscellanea
         self.engine = engine
-        self._engine = None
         self._currow = 0
 
         options = self._get_options_with_defaults(engine)
@@ -923,14 +940,13 @@ class TextFileReader(abc.Iterator):
         self.nrows = options.pop("nrows", None)
         self.squeeze = options.pop("squeeze", False)
 
-        # might mutate self.engine
-        self.engine = self._check_file_or_buffer(f, engine)
+        self._check_file_or_buffer(f, engine)
         self.options, self.engine = self._clean_options(options, engine)
 
         if "has_index_names" in kwds:
             self.options["has_index_names"] = kwds["has_index_names"]
 
-        self._make_engine(self.engine)
+        self._engine = self._make_engine(self.engine)
 
     def close(self):
         self._engine.close()
@@ -987,16 +1003,11 @@ class TextFileReader(abc.Iterator):
                 msg = "The 'python' engine cannot iterate through this file buffer."
                 raise ValueError(msg)
 
-        return engine
-
     def _clean_options(self, options, engine):
         result = options.copy()
 
         engine_specified = self._engine_specified
         fallback_reason = None
-
-        sep = options["delimiter"]
-        delim_whitespace = options["delim_whitespace"]
 
         # C engine not supported yet
         if engine == "c":
@@ -1004,7 +1015,9 @@ class TextFileReader(abc.Iterator):
                 fallback_reason = "the 'c' engine does not support skipfooter"
                 engine = "python"
 
-        encoding = sys.getfilesystemencoding() or "utf-8"
+        sep = options["delimiter"]
+        delim_whitespace = options["delim_whitespace"]
+
         if sep is None and not delim_whitespace:
             if engine == "c":
                 fallback_reason = (
@@ -1029,6 +1042,7 @@ class TextFileReader(abc.Iterator):
                 result["delimiter"] = r"\s+"
         elif sep is not None:
             encodeable = True
+            encoding = sys.getfilesystemencoding() or "utf-8"
             try:
                 if len(sep.encode(encoding)) > 1:
                     encodeable = False
@@ -1161,29 +1175,26 @@ class TextFileReader(abc.Iterator):
             raise
 
     def _make_engine(self, engine="c"):
-        if engine == "c":
-            self._engine = CParserWrapper(self.f, **self.options)
+        mapping = {
+            "c": CParserWrapper,
+            "python": PythonParser,
+            "python-fwf": FixedWidthFieldParser,
+        }
+        try:
+            klass = mapping[engine]
+        except KeyError:
+            raise ValueError(
+                f"Unknown engine: {engine} (valid options are {mapping.keys()})"
+            )
         else:
-            if engine == "python":
-                klass = PythonParser
-            elif engine == "python-fwf":
-                klass = FixedWidthFieldParser
-            else:
-                raise ValueError(
-                    f"Unknown engine: {engine} (valid options "
-                    'are "c", "python", or "python-fwf")'
-                )
-            self._engine = klass(self.f, **self.options)
+            return klass(self.f, **self.options)
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
-        nrows = _validate_integer("nrows", nrows)
-        ret = self._engine.read(nrows)
-
-        # May alter columns / col_dict
-        index, columns, col_dict = self._create_index(ret)
+        nrows = validate_integer("nrows", nrows)
+        index, columns, col_dict = self._engine.read(nrows)
 
         if index is None:
             if col_dict:
@@ -1202,10 +1213,6 @@ class TextFileReader(abc.Iterator):
         if self.squeeze and len(df.columns) == 1:
             return df[df.columns[0]].copy()
         return df
-
-    def _create_index(self, ret):
-        index, columns, col_dict = ret
-        return index, columns, col_dict
 
     def get_chunk(self, size=None):
         if size is None:
@@ -2296,9 +2303,11 @@ def TextParser(*args, **kwds):
         can be inferred, there often will be a large parsing speed-up.
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
-        values. The options are None for the ordinary converter,
-        'high' for the high-precision converter, and 'round_trip' for the
-        round-trip converter.
+        values. The options are `None` or `high` for the ordinary converter,
+        `legacy` for the original lower precision pandas converter, and
+        `round_trip` for the round-trip converter.
+
+        .. versionchanged:: 1.2
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)
@@ -2887,14 +2896,12 @@ class PythonParser(ParserBase):
             # quotation mark.
             if len(first_row_bom) > end + 1:
                 new_row += first_row_bom[end + 1 :]
-            return [new_row] + first_row[1:]
 
-        elif len(first_row_bom) > 1:
-            return [first_row_bom[1:]]
         else:
-            # First row is just the BOM, so we
-            # return an empty string.
-            return [""]
+
+            # No quotation so just remove BOM from first element
+            new_row = first_row_bom[1:]
+        return [new_row] + first_row[1:]
 
     def _is_line_empty(self, line):
         """

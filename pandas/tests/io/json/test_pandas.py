@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import datetime
 from datetime import timedelta
 from io import StringIO
@@ -470,7 +469,7 @@ class TestPandasContainer:
         index = pd.DatetimeIndex(list(index), freq=None)
 
         df_mixed = DataFrame(
-            OrderedDict(
+            dict(
                 float_1=[
                     -0.92077639,
                     0.77434435,
@@ -745,11 +744,7 @@ class TestPandasContainer:
 
     def test_path(self, float_frame, int_frame, datetime_frame):
         with tm.ensure_clean("test.json") as path:
-            for df in [
-                float_frame,
-                int_frame,
-                datetime_frame,
-            ]:
+            for df in [float_frame, int_frame, datetime_frame]:
                 df.to_json(path)
                 read_json(path)
 
@@ -1706,9 +1701,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
-        df.to_json(
-            f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so,
-        )
+        df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
         timeout = 5
         while True:
             if target_file in (
