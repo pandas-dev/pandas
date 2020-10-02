@@ -277,7 +277,7 @@ class TestCategoricalConstructors:
         # returned a scalar for a generator
 
         exp = Categorical([0, 1, 2])
-        cat = Categorical((x for x in [0, 1, 2]))
+        cat = Categorical(x for x in [0, 1, 2])
         tm.assert_categorical_equal(cat, exp)
         cat = Categorical(range(3))
         tm.assert_categorical_equal(cat, exp)

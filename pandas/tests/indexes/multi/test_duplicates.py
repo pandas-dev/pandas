@@ -241,6 +241,7 @@ def test_duplicated(idx_dup, keep, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.arm_slow
 def test_duplicated_large(keep):
     # GH 9125
     n, k = 200, 5000

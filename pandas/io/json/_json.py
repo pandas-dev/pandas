@@ -393,7 +393,7 @@ def read_json(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     orient : str
         Indication of expected JSON string format.
@@ -821,7 +821,7 @@ class JsonReader(abc.Iterator):
         if self.should_close:
             try:
                 self.open_stream.close()
-            except (IOError, AttributeError):
+            except (OSError, AttributeError):
                 pass
         for file_handle in self.file_handles:
             file_handle.close()

@@ -53,9 +53,9 @@ from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 if TYPE_CHECKING:
-    from pandas._libs.tslibs.nattype import NaTType  # noqa:F401
+    from pandas._libs.tslibs.nattype import NaTType
 
-    from pandas import Series  # noqa:F401
+    from pandas import Series
 
 # ---------------------------------------------------------------------
 # types used in annotations

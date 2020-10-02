@@ -554,15 +554,17 @@ class TestFancy:
         # string indexing against datetimelike with object
         # dtype should properly raises KeyError
         df = DataFrame([1], Index([pd.Timestamp("2011-01-01")], dtype=object))
-        assert df.index.is_all_dates
+        assert df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
         with pytest.raises(KeyError, match="'2011'"):
-            df.loc["2011", 0]
+            with tm.assert_produces_warning(FutureWarning):
+                # This does an is_all_dates check
+                df.loc["2011", 0]
 
         df = DataFrame()
-        assert not df.index.is_all_dates
+        assert not df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
@@ -745,7 +747,7 @@ class TestMisc:
         # make frames multi-type & re-run tests
         for frame in [df, rhs, right]:
             frame["joe"] = frame["joe"].astype("float64")
-            frame["jolie"] = frame["jolie"].map("@{0}".format)
+            frame["jolie"] = frame["jolie"].map("@{}".format)
 
         run_tests(df, rhs, right)
 
