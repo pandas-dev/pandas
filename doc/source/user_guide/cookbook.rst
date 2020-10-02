@@ -816,7 +816,7 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
 
    s = pd.Series(
        {
-           df.index[i]: gm(df.iloc[i : min(i + 51, len(df) - 1)], 5)
+           df.index[i]: gm(df.iloc[i: min(i + 51, len(df) - 1)], 5)
            for i in range(len(df) - 50)
        }
    )
@@ -848,7 +848,7 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
    window = 5
    s = pd.concat(
        [
-           (pd.Series(vwap(df.iloc[i : i + window]), index=[df.index[i + window]]))
+           (pd.Series(vwap(df.iloc[i: i + window]), index=[df.index[i + window]]))
            for i in range(len(df) - window)
        ]
    )
