@@ -1894,7 +1894,7 @@ def _trim_zeros_float(
     trimmed = str_floats
 
     def _is_number(x):
-        return re.match(fr"\s*-?[0-9]+({decimal}[0-9]*)?", x) is not None
+        return re.match(fr"\s*-?[0-9]+(\{decimal}[0-9]*)?", x) is not None
 
     def _cond(values):
         finite = [x for x in values if _is_number(x)]
