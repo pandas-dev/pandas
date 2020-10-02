@@ -1984,10 +1984,13 @@ class Rolling(RollingAndExpandingMixin):
         Validate monotonic (increasing or decreasing).
         """
         if not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing):
-            formatted = self.on
-            if self.on is None:
-                formatted = "index"
-            raise ValueError(f"{formatted} must be monotonic")
+            self._raise_monotonic_error()
+
+    def _raise_monotonic_error(self):
+        formatted = self.on
+        if self.on is None:
+            formatted = "index"
+        raise ValueError(f"{formatted} must be monotonic")
 
     def _validate_freq(self):
         """
@@ -2301,8 +2304,8 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _validate_monotonic(self):
         """
         Validate that on is monotonic;
-        we don't care for groupby.rolling
-        because we have already validated at a higher
-        level.
+        in this case we have to check only for nans, because
+        monotonicy was already validated at a higher level.
         """
-        pass
+        if self._on.hasnans:
+            self._raise_monotonic_error()
