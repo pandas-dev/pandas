@@ -303,14 +303,17 @@ The method requires a ``MultiIndex`` with two or more levels.
 .. ipython:: python
 
    s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
-   s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                        (1, 2, 'a', 1),
-                                        (1, 1, 'b', 0),
-                                        (1, 1, 'b', 1),
-                                        (2, 1, 'b', 0),
-                                        (2, 1, 'b', 1)],
-                                       names=['A', 'B', 'C', 'D'])
-   s
+   s.index = pd.MultiIndex.from_tuples(
+       [
+           (1, 2, "a", 0),
+           (1, 2, "a", 1),
+           (1, 1, "b", 0),
+           (1, 1, "b", 1),
+           (2, 1, "b", 0),
+           (2, 1, "b", 1),
+       ],
+       names=["A", "B", "C", "D"],
+   )
    ss = s.astype('Sparse')
    ss
 
@@ -318,9 +321,10 @@ In the example below, we transform the ``Series`` to a sparse representation of 
 
 .. ipython:: python
 
-   A, rows, columns = ss.sparse.to_coo(row_levels=['A', 'B'],
-                                       column_levels=['C', 'D'],
-                                       sort_labels=True)
+   A, rows, columns = ss.sparse.to_coo(
+       row_levels=["A", "B"], column_levels=["C", "D"], sort_labels=True
+   )
+
 
    A
    A.todense()
@@ -331,9 +335,9 @@ Specifying different row and column labels (and not sorting them) yields a diffe
 
 .. ipython:: python
 
-   A, rows, columns = ss.sparse.to_coo(row_levels=['A', 'B', 'C'],
-                                       column_levels=['D'],
-                                       sort_labels=False)
+   A, rows, columns = ss.sparse.to_coo(
+       row_levels=["A", "B", "C"], column_levels=["D"], sort_labels=False
+   )
 
    A
    A.todense()
@@ -345,8 +349,7 @@ A convenience method :meth:`Series.sparse.from_coo` is implemented for creating 
 .. ipython:: python
 
    from scipy import sparse
-   A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
-                         shape=(3, 4))
+   A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4))
    A
    A.todense()
 
