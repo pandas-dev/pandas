@@ -618,16 +618,13 @@ class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
 
     HEADERS = [" # ", "Column", "Non-Null Count", "Dtype"]
 
-    @property
-    def count_non_null(self) -> str:
-        """String representation of non-null count column data."""
-        return "{count} non-null"
+    def _get_non_null_counts(self) -> Iterator[str]:
+        for count in self.non_null_counts:
+            yield f"{count} non-null"
 
     def _get_strcols(self) -> Sequence[Sequence[str]]:
         line_numbers = list(self._get_line_numbers())
         columns = list(self._get_columns())
         dtypes = list(self._get_dtypes())
-        non_null_counts = [
-            self.count_non_null.format(count=count) for count in self.non_null_counts
-        ]
+        non_null_counts = list(self._get_non_null_counts())
         return [line_numbers, columns, non_null_counts, dtypes]
