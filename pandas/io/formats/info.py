@@ -315,9 +315,7 @@ class InfoPrinter:
 
     def _initialize_show_counts(self, show_counts: Optional[bool]) -> bool:
         if show_counts is None:
-            return bool(
-                (self.col_count <= self.max_cols) and (len(self.data) < self.max_rows)
-            )
+            return bool(not self.exceeds_info_cols and (len(self.data) < self.max_rows))
         else:
             return show_counts
 
