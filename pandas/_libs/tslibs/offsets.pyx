@@ -309,13 +309,14 @@ cdef _determine_offset(kwds):
     _kwds_use_relativedelta = ('years', 'months', 'weeks', 'days',
                                'year', 'month', 'week', 'day', 'weekday',
                                'hour', 'minute', 'second', 'microsecond')
-
+ 
     if any(not k.endswith('s') for k in kwds_no_nanos):
         if 'weekday' not in kwds_no_nanos:
             warnings.warn(
-                "The DateOffset arguments that do not end in 's' replace "
-                "the offset value instead of making an addition. They are "
-                "deprecated now and slated for removal in the future.",
+                "Date Offset arguments that do not end with 's' overwrites "
+                "the offset instead of incrementing it. These arguments "
+                "are deprecated now and slated for removal in a future "
+                "version.",
                 FutureWarning,
                 stacklevel=1,
             )
