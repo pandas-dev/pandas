@@ -198,7 +198,14 @@ class DataFrameInfo(BaseInfo):
         # groupby dtype.name to collect e.g. Categorical columns
         return self.dtypes.value_counts().groupby(lambda x: x.name).sum()
 
-    def to_buffer(self, *, buf, max_cols, verbose, null_counts) -> None:
+    def to_buffer(
+        self,
+        *,
+        buf: Optional[IO[str]],
+        max_cols: Optional[int],
+        verbose: Optional[bool],
+        null_counts: Optional[bool],
+    ) -> None:
         """
         Print a concise summary of a %(klass)s.
 
