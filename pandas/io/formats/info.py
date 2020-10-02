@@ -210,6 +210,11 @@ class DataFrameInfo(BaseInfo):
         """Sequence of non-null counts for all columns."""
         return self.data.count()
 
+    @property
+    def col_count(self) -> int:
+        """Number of columns to be summarized."""
+        return len(self.ids)
+
     def to_buffer(
         self,
         *,
@@ -324,7 +329,7 @@ class InfoPrinter:
     @property
     def col_count(self) -> int:
         """Number of columns to be summarized."""
-        return len(self.info.ids)
+        return self.info.col_count
 
     def _initialize_max_cols(self, max_cols: Optional[int]) -> int:
         if max_cols is None:
@@ -340,7 +345,7 @@ class InfoPrinter:
     def to_buffer(self, buf: Optional[IO[str]] = None) -> None:
         """Save dataframe info into buffer."""
         klass = self._select_table_builder()
-        table_builder = klass(info=self.info, printer=self)
+        table_builder = klass(info=self.info)
         lines = table_builder.get_lines()
         if buf is None:  # pragma: no cover
             buf = sys.stdout
@@ -373,15 +378,12 @@ class TableBuilderAbstract(ABC):
     ----------
     info : BaseInfo
         Instance of DataFrameInfo or SeriesInfo.
-    printer : InfoPrinter
-        Instance of InfoPrinter.
     """
 
     _lines: List[str]
 
-    def __init__(self, *, info, printer):
+    def __init__(self, *, info):
         self.info = info
-        self.printer = printer
 
     @abstractmethod
     def get_lines(self) -> List[str]:
@@ -453,8 +455,8 @@ class DataFrameTableBuilder(TableBuilderAbstract):
 
     @property
     def col_count(self) -> int:
-        """Number of dataframe columns."""
-        return self.printer.col_count
+        """Number of dataframe columns to be summarized."""
+        return self.info.col_count
 
     def add_object_type_line(self) -> None:
         """Add line with string representation of dataframe to the table."""
@@ -499,13 +501,13 @@ class DataFrameTableBuilderNonVerbose(DataFrameTableBuilder):
         self._lines.append(self.ids._summary(name="Columns"))
 
     def add_header_line(self) -> None:
-        pass
+        """No header in non-verbose output."""
 
     def add_separator_line(self) -> None:
-        pass
+        """No separator in non-verbose output."""
 
     def add_body_lines(self) -> None:
-        pass
+        """No body in non-verbose output."""
 
 
 class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
@@ -514,8 +516,8 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
     SPACING = " " * 2
     HEADERS: Sequence[str]
 
-    def __init__(self, *, info, printer):
-        super().__init__(info=info, printer=printer)
+    def __init__(self, *, info):
+        super().__init__(info=info)
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
 
     @abstractmethod
