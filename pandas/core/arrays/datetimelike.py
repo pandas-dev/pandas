@@ -723,7 +723,7 @@ class DatetimeLikeArrayMixin(
             f"Got '{str(fill_value)}'."
         )
         try:
-            fill_value = self._validate_scalar(fill_value, msg, cast_str=True)
+            fill_value = self._validate_scalar(fill_value, msg)
         except TypeError as err:
             raise ValueError(msg) from err
         rv = self._unbox(fill_value)
@@ -756,9 +756,7 @@ class DatetimeLikeArrayMixin(
 
         return self._unbox(fill_value)
 
-    def _validate_scalar(
-        self, value, msg: Optional[str] = None, cast_str: bool = False
-    ):
+    def _validate_scalar(self, value, msg: Optional[str] = None):
         """
         Validate that the input value can be cast to our scalar_type.
 
@@ -769,14 +767,12 @@ class DatetimeLikeArrayMixin(
             Message to raise in TypeError on invalid input.
             If not provided, `value` is cast to a str and used
             as the message.
-        cast_str : bool, default False
-            Whether to try to parse string input to scalar_type.
 
         Returns
         -------
         self._scalar_type or NaT
         """
-        if cast_str and isinstance(value, str):
+        if isinstance(value, str):
             # NB: Careful about tzawareness
             try:
                 value = self._scalar_from_string(value)
@@ -798,9 +794,7 @@ class DatetimeLikeArrayMixin(
 
         return value
 
-    def _validate_listlike(
-        self, value, opname: str, cast_str: bool = False, allow_object: bool = False
-    ):
+    def _validate_listlike(self, value, opname: str, allow_object: bool = False):
         if isinstance(value, type(self)):
             return value
 
@@ -809,7 +803,7 @@ class DatetimeLikeArrayMixin(
         value = array(value)
         value = extract_array(value, extract_numpy=True)
 
-        if cast_str and is_dtype_equal(value.dtype, "string"):
+        if is_dtype_equal(value.dtype, "string"):
             # We got a StringArray
             try:
                 # TODO: Could use from_sequence_of_strings if implemented
@@ -839,9 +833,9 @@ class DatetimeLikeArrayMixin(
     def _validate_searchsorted_value(self, value):
         msg = "searchsorted requires compatible dtype or scalar"
         if not is_list_like(value):
-            value = self._validate_scalar(value, msg, cast_str=True)
+            value = self._validate_scalar(value, msg)
         else:
-            value = self._validate_listlike(value, "searchsorted", cast_str=True)
+            value = self._validate_listlike(value, "searchsorted")
 
         rv = self._unbox(value)
         return self._rebox_native(rv)
@@ -852,15 +846,15 @@ class DatetimeLikeArrayMixin(
             f"or array of those. Got '{type(value).__name__}' instead."
         )
         if is_list_like(value):
-            value = self._validate_listlike(value, "setitem", cast_str=True)
+            value = self._validate_listlike(value, "setitem")
         else:
-            value = self._validate_scalar(value, msg, cast_str=True)
+            value = self._validate_scalar(value, msg)
 
         return self._unbox(value, setitem=True)
 
     def _validate_insert_value(self, value):
         msg = f"cannot insert {type(self).__name__} with incompatible label"
-        value = self._validate_scalar(value, msg, cast_str=True)
+        value = self._validate_scalar(value, msg)
 
         self._check_compatible_with(value, setitem=True)
         # TODO: if we dont have compat, should we raise or astype(object)?
@@ -872,9 +866,9 @@ class DatetimeLikeArrayMixin(
     def _validate_where_value(self, other):
         msg = f"Where requires matching dtype, not {type(other)}"
         if not is_list_like(other):
-            other = self._validate_scalar(other, msg, cast_str=True)
+            other = self._validate_scalar(other, msg)
         else:
-            other = self._validate_listlike(other, "where", cast_str=True)
+            other = self._validate_listlike(other, "where")
 
         return self._unbox(other, setitem=True)
 
