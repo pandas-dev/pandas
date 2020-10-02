@@ -307,18 +307,22 @@ class InfoPrinter:
 
     @property
     def max_rows(self) -> int:
+        """Maximum info rows to be displayed."""
         return get_option("display.max_info_rows", len(self.data) + 1)
 
     @property
     def exceeds_info_cols(self) -> bool:
+        """Check if number of columns to be summarized does not exceed maximum."""
         return bool(self.col_count > self.max_cols)
 
     @property
     def exceeds_info_rows(self) -> bool:
+        """Check if number of rows to be summarized does not exceed maximum."""
         return bool(len(self.data) > self.max_rows)
 
     @property
     def col_count(self) -> int:
+        """Number of columns to be summarized."""
         return len(self.info.ids)
 
     def _initialize_show_counts(self, show_counts: Optional[bool]) -> bool:
@@ -337,6 +341,7 @@ class InfoPrinter:
         fmt.buffer_put_lines(buf, lines)
 
     def _select_table_builder(self) -> Type["DataFrameTableBuilder"]:
+        """Select table builder based on verbosity and display settings."""
         if self.verbose:
             return self._select_verbose_table_builder()
         elif self.verbose is False:  # specifically set to False, not necessarily None
@@ -348,6 +353,7 @@ class InfoPrinter:
                 return self._select_verbose_table_builder()
 
     def _select_verbose_table_builder(self) -> Type["DataFrameTableBuilderVerbose"]:
+        """Select verbose table builder: with or without non-null counts."""
         if self.show_counts:
             return DataFrameTableBuilderVerboseWithCounts
         else:
