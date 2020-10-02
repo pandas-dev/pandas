@@ -17,7 +17,7 @@ from pandas.plotting._matplotlib import compat
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
-    from matplotlib.lines import Line2D  # noqa:F401
+    from matplotlib.lines import Line2D
     from matplotlib.table import Table
 
 

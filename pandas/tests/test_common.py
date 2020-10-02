@@ -21,7 +21,7 @@ def test_get_callable_name():
     def fn(x):
         return x
 
-    lambda_ = lambda x: x  # noqa: E731
+    lambda_ = lambda x: x
     part1 = partial(fn)
     part2 = partial(part1)
 

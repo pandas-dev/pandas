@@ -135,7 +135,7 @@ class TestTimestampConstructors:
         # converted to Chicago tz
         result = Timestamp("2013-11-01 00:00:00-0500", tz="America/Chicago")
         assert result.value == Timestamp("2013-11-01 05:00").value
-        expected = "Timestamp('2013-11-01 00:00:00-0500', tz='America/Chicago')"  # noqa
+        expected = "Timestamp('2013-11-01 00:00:00-0500', tz='America/Chicago')"
         assert repr(result) == expected
         assert result == eval(repr(result))
 

@@ -24,14 +24,14 @@ from pandas.io.parquet import (
 )
 
 try:
-    import pyarrow  # noqa
+    import pyarrow
 
     _HAVE_PYARROW = True
 except ImportError:
     _HAVE_PYARROW = False
 
 try:
-    import fastparquet  # noqa
+    import fastparquet
 
     _HAVE_FASTPARQUET = True
 except ImportError:
@@ -818,7 +818,7 @@ class TestParquetFastParquet(Base):
                 compression=None,
             )
             assert os.path.exists(path)
-            import fastparquet  # noqa: F811
+            import fastparquet
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
@@ -835,7 +835,7 @@ class TestParquetFastParquet(Base):
                 compression=None,
             )
             assert os.path.exists(path)
-            import fastparquet  # noqa: F811
+            import fastparquet
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 1
@@ -852,7 +852,7 @@ class TestParquetFastParquet(Base):
                 partition_on=partition_cols,
             )
             assert os.path.exists(path)
-            import fastparquet  # noqa: F811
+            import fastparquet
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2

@@ -57,7 +57,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import Col, File, Node  # noqa:F401
+    from tables import Col, File, Node
 
 
 # versioning attribute

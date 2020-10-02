@@ -12,7 +12,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.series import Series
 
 
 def _put_str(s: Union[str, Dtype], space: int) -> str:
