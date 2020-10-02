@@ -606,12 +606,12 @@ class DataFrameTableBuilderVerboseNoCounts(DataFrameTableBuilderVerbose):
     HEADERS = [" # ", "Column", "Dtype"]
 
     def _gen_rows(self) -> Iterator[Sequence[str]]:
-        for line_no, col, dtype in zip(
+        for items in zip(
             self._get_line_numbers(),
             self._get_columns(),
             self._get_dtypes(),
         ):
-            yield line_no, col, dtype
+            yield items
 
 
 class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
@@ -620,13 +620,13 @@ class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
     HEADERS = [" # ", "Column", "Non-Null Count", "Dtype"]
 
     def _gen_rows(self) -> Iterator[Sequence[str]]:
-        for line_no, col, count, dtype in zip(
+        for items in zip(
             self._get_line_numbers(),
             self._get_columns(),
             self._get_non_null_counts(),
             self._get_dtypes(),
         ):
-            yield line_no, col, count, dtype
+            yield items
 
     def _get_non_null_counts(self) -> Iterator[str]:
         for count in self.non_null_counts:
