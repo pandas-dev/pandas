@@ -311,7 +311,7 @@ cdef _determine_offset(kwds):
     _kwds_use_relativedelta = ('years', 'months', 'weeks', 'days',
                                'year', 'month', 'week', 'day', 'weekday',
                                'hour', 'minute', 'second', 'microsecond')
- 
+
     if any(not k.endswith('s') for k in kwds_no_nanos):
         if 'weekday' not in kwds_no_nanos:
             warnings.warn(
