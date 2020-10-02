@@ -146,31 +146,6 @@ def _maybe_match_name(a, b):
 # -----------------------------------------------------------------------------
 
 
-def _get_frame_op_default_axis(name: str) -> Optional[str]:
-    """
-    Only DataFrame cares about default_axis, specifically:
-    special methods have default_axis=None and flex methods
-    have default_axis='columns'.
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    default_axis: str or None
-    """
-    if name.replace("__r", "__") in ["__and__", "__or__", "__xor__"]:
-        # bool methods
-        return "columns"
-    elif name.startswith("__"):
-        # __add__, __mul__, ...
-        return None
-    else:
-        # add, mul, ...
-        return "columns"
-
-
 def _get_op_name(op, special: bool) -> str:
     """
     Find the name to attach to this method according to conventions
@@ -619,7 +594,7 @@ def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int
 def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     # This is the only function where `special` can be either True or False
     op_name = _get_op_name(op, special)
-    default_axis = _get_frame_op_default_axis(op_name)
+    default_axis = None if special else "columns"
 
     na_op = get_array_op(op)
 
@@ -671,8 +646,7 @@ def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 def flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     assert not special  # "special" also means "not flex"
     op_name = _get_op_name(op, special)
-    default_axis = _get_frame_op_default_axis(op_name)
-    assert default_axis == "columns", default_axis  # because we are not "special"
+    default_axis = "columns"  # because we are "flex"
 
     doc = _flex_comp_doc_FRAME.format(
         op_name=op_name, desc=_op_descriptions[op_name]["desc"]
