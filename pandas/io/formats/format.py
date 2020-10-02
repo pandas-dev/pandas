@@ -1877,10 +1877,10 @@ def _post_process_complex(complex_strings: List[str]) -> List[str]:
     real and imaginary parts have equal length.
     """
     max_length = max(len(x) for x in complex_strings)
-    length_deltas = [max_length - len(x) for x in complex_strings]
+    half_deltas = [(max_length - len(x)) // 2 for x in complex_strings]
     result = [
-        x[: -(d // 2 + 1)] + d // 2 * "0" + x[-(d // 2 + 1) : -1] + d // 2 * "0" + x[-1]
-        for x, d in zip(complex_strings, length_deltas)
+        x[: -(d + 1)] + d * "0" + x[-(d + 1) : -1] + d * "0" + x[-1]
+        for x, d in zip(complex_strings, half_deltas)
     ]
     return result
 
