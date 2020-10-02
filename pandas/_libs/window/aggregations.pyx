@@ -90,62 +90,6 @@ cdef bint is_monotonic_start_end_bounds(
 #               Series: Prentice-Hall Series in Automatic Computation
 
 # ----------------------------------------------------------------------
-# Rolling count
-# this is only an impl for index not None, IOW, freq aware
-
-
-def roll_count(
-    ndarray[float64_t] values,
-    ndarray[int64_t] start,
-    ndarray[int64_t] end,
-    int64_t minp,
-):
-    cdef:
-        float64_t val, count_x = 0.0
-        int64_t s, e, nobs, N = len(values)
-        Py_ssize_t i, j
-        ndarray[float64_t] output
-
-    output = np.empty(N, dtype=float)
-
-    with nogil:
-
-        for i in range(0, N):
-            s = start[i]
-            e = end[i]
-
-            if i == 0:
-
-                # setup
-                count_x = 0.0
-                for j in range(s, e):
-                    val = values[j]
-                    if notnan(val):
-                        count_x += 1.0
-
-            else:
-
-                # calculate deletes
-                for j in range(start[i - 1], s):
-                    val = values[j]
-                    if notnan(val):
-                        count_x -= 1.0
-
-                # calculate adds
-                for j in range(end[i - 1], e):
-                    val = values[j]
-                    if notnan(val):
-                        count_x += 1.0
-
-            if count_x >= minp:
-                output[i] = count_x
-            else:
-                output[i] = NaN
-
-    return output
-
-
-# ----------------------------------------------------------------------
 # Rolling sum
 
 
