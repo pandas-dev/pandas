@@ -2079,7 +2079,8 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                           bint safe=False, bint convert_datetime=False,
                           bint convert_timedelta=False,
-                          bint convert_to_nullable_integer=False):
+                          bint convert_to_nullable_integer=False,
+                          bint convert_intenum=False):
     """
     Type inference function-- convert object array to proper dtype
 
@@ -2181,6 +2182,9 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
                 seen.object_ = True
                 break
         elif util.is_integer_object(val):
+            if getattr(val, 'name', None) is not None and not convert_intenum:
+                seen.object_ = True
+                break
             seen.int_ = True
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
