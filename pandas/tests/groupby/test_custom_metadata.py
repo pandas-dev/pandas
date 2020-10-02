@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -43,3 +44,38 @@ def test_groupby_sum_with_custom_metadata():
     grouped = sdf.groupby("mycategorical")[["myfloat1", "myfloat2"]]
     df = grouped.sum()
     assert df.added_property == "hello pandas"
+
+
+def test_groupby_apply_performance_with_custom_metadata():
+    """
+    Check that __finalize__ is not called for each group during .apply
+    """
+    counter = {"value": 0}
+
+    class SubclassedDataFrame3(pd.DataFrame):
+        # normal properties
+        _metadata = ["added_property"]
+
+        @property
+        def _constructor(self):
+            return SubclassedDataFrame3
+
+        def __finalize__(self, *args, **kwargs):
+            counter["value"] += 1
+            return super().__finalize__(*args, **kwargs)
+
+    N = 10 ** 4
+    labels = np.random.randint(0, N // 5, size=N)
+    labels2 = np.random.randint(0, 3, size=N)
+    df = SubclassedDataFrame3(
+        {
+            "key": labels,
+            "key2": labels2,
+            "value1": np.random.randn(N),
+            "value2": ["foo", "bar", "baz", "qux"] * (N // 4),
+        }
+    )
+    df.index = pd.CategoricalIndex(df.key)
+    df.groupby(level="key").apply(lambda x: 1)
+    finalize_call_count = counter["value"]
+    assert finalize_call_count < 42  # Random number << len(labels2)
