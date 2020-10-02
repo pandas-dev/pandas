@@ -293,7 +293,7 @@ see the :ref:`timeseries documentation<timeseries>` for more details.
 
    tips = tips.drop(
        ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"],
-      axis=1,
+       axis=1,
    )
 
 Selection of columns
