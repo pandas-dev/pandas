@@ -1054,15 +1054,15 @@ class TestAlignment:
                     m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
                 )
                 index = getattr(locals().get(obj_name), index_name)
-                s = Series(np.random.randn(n), index[:n])
+                ser = Series(np.random.randn(n), index[:n])
 
                 if r2 == "dt" or c2 == "dt":
                     if engine == "numexpr":
-                        expected2 = df2.add(s)
+                        expected2 = df2.add(ser)
                     else:
-                        expected2 = df2 + s
+                        expected2 = df2 + ser
                 else:
-                    expected2 = df2 + s
+                    expected2 = df2 + ser
 
                 if r1 == "dt" or c1 == "dt":
                     if engine == "numexpr":
@@ -1072,11 +1072,11 @@ class TestAlignment:
                 else:
                     expected = expected2 + df
 
-                if should_warn(df2.index, s.index, df.index):
+                if should_warn(df2.index, ser.index, df.index):
                     with tm.assert_produces_warning(RuntimeWarning):
-                        res = pd.eval("df2 + s + df", engine=engine, parser=parser)
+                        res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
                 else:
-                    res = pd.eval("df2 + s + df", engine=engine, parser=parser)
+                    res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
                 assert res.shape == expected.shape
                 tm.assert_frame_equal(res, expected)
 

@@ -134,6 +134,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         if not isinstance(other, Index):
             return False
+        elif other.dtype.kind in ["f", "i", "u", "c"]:
+            return False
         elif not isinstance(other, type(self)):
             try:
                 other = type(self)(other)
