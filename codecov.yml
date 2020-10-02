@@ -1,7 +1,7 @@
 codecov:
   branch: master
 
-comments: off
+comment: off
 
 coverage:
   status:
