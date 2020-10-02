@@ -1076,7 +1076,7 @@ class _LocIndexer(_LocationIndexer):
         try:
             # fast path for series or for tup devoid of slices
             return self._get_label(tup, axis=axis)
-        except TypeError:
+        except (TypeError, InvalidIndexError):
             # slices are unhashable
             pass
         except KeyError as ek:
