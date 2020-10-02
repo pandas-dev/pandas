@@ -3434,5 +3434,11 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
     assert df == expected
 
 
-def test_to_string_nullable_float():
-    assert False
+@pytest.mark.parametrize("dtype", ["Float32", "Float64"])
+def test_to_string_nullable_float(dtype):
+    s = pd.Series([0.0, 1.0, None], dtype=dtype)
+    result = s.to_string()
+    expected = """0     0.0
+1     1.0
+2    <NA>"""
+    assert result == expected
