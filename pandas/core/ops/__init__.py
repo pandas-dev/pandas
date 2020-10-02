@@ -55,7 +55,7 @@ from pandas.core.ops.roperator import (  # noqa:F401
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa:F401
+    from pandas import DataFrame, Series
 
 # -----------------------------------------------------------------------------
 # constants
@@ -144,31 +144,6 @@ def _maybe_match_name(a, b):
 
 
 # -----------------------------------------------------------------------------
-
-
-def _get_frame_op_default_axis(name: str) -> Optional[str]:
-    """
-    Only DataFrame cares about default_axis, specifically:
-    special methods have default_axis=None and flex methods
-    have default_axis='columns'.
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    default_axis: str or None
-    """
-    if name.replace("__r", "__") in ["__and__", "__or__", "__xor__"]:
-        # bool methods
-        return "columns"
-    elif name.startswith("__"):
-        # __add__, __mul__, ...
-        return None
-    else:
-        # add, mul, ...
-        return "columns"
 
 
 def _get_op_name(op, special: bool) -> str:
@@ -539,7 +514,9 @@ def _should_reindex_frame_op(
     if fill_value is None and level is None and axis is default_axis:
         # TODO: any other cases we should handle here?
         cols = left.columns.intersection(right.columns)
-        if not (cols.equals(left.columns) and cols.equals(right.columns)):
+
+        if len(cols) and not (cols.equals(left.columns) and cols.equals(right.columns)):
+            # TODO: is there a shortcut available when len(cols) == 0?
             return True
 
     return False
@@ -617,7 +594,7 @@ def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int
 def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     # This is the only function where `special` can be either True or False
     op_name = _get_op_name(op, special)
-    default_axis = _get_frame_op_default_axis(op_name)
+    default_axis = None if special else "columns"
 
     na_op = get_array_op(op)
 
@@ -669,8 +646,7 @@ def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 def flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     assert not special  # "special" also means "not flex"
     op_name = _get_op_name(op, special)
-    default_axis = _get_frame_op_default_axis(op_name)
-    assert default_axis == "columns", default_axis  # because we are not "special"
+    default_axis = "columns"  # because we are "flex"
 
     doc = _flex_comp_doc_FRAME.format(
         op_name=op_name, desc=_op_descriptions[op_name]["desc"]

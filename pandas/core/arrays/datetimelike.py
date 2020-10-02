@@ -117,7 +117,9 @@ class AttributesMixin:
     _data: np.ndarray
 
     @classmethod
-    def _simple_new(cls, values: np.ndarray, **kwargs):
+    def _simple_new(
+        cls, values: np.ndarray, freq: Optional[BaseOffset] = None, dtype=None
+    ):
         raise AbstractMethodError(cls)
 
     @property
@@ -1276,8 +1278,8 @@ class DatetimeLikeArrayMixin(
             result = self + offset
             return result
 
-        if periods == 0:
-            # immutable so OK
+        if periods == 0 or len(self) == 0:
+            # GH#14811 empty case
             return self.copy()
 
         if self.freq is None:
