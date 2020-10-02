@@ -422,6 +422,17 @@ above example, ``s.loc[1:6]`` would raise ``KeyError``.
 For the rationale behind this behavior, see
 :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.
 
+.. ipython:: python
+
+   s = pd.Series(list('abcdef'), index=[0, 3, 2, 5, 4, 2])
+   s.loc[3:5]
+
+Also, if the index has duplicate labels *and* either the start or the stop labels is dupulicate labels,
+an error will be raised. For instance, in the above example, ``s.loc[2:5]`` would raise ``KeyError``.
+
+For more information about duplicate labels, see
+:ref:`Duplicate Labels <duplicates>`.
+
 .. _indexing.integer:
 
 Selection by position
