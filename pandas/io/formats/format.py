@@ -1473,7 +1473,8 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             if self.fixed_width:
                 if is_complex:
-                    result = values
+                    result = _trim_zeros_complex(values, self.decimal)
+                    result = _post_process_complex(result)
                 else:
                     result = _trim_zeros_float(values, self.decimal)
                 return np.asarray(result, dtype="object")
@@ -1855,6 +1856,39 @@ def _make_fixed_width(
     return result
 
 
+def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[str]:
+    """
+    Separates the real and imaginary parts from the complex number, and
+    executes the _trim_zeros_float method on each of those.
+    """
+    return [
+        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal))
+        for x in str_complexes
+    ]
+
+
+def _post_process_complex(complex_strings: List[str]) -> List[str]:
+    """
+    Zero pad complex number strings to equal length.
+
+    This helper is needed because _trim_zeros_complex handles each complex
+    number independently and therefore can't pad to equal length. The input
+    strings here are assumed to be of the form " 1.000+1.000j", where the
+    real and imaginary parts have equal length.
+    """
+    max_length = max(len(x) for x in complex_strings)
+    length_deltas = [max_length - len(x) for x in complex_strings]
+    result = [
+        x[: -(d // 2 + 1)]
+        + (max_length - len(x)) // 2 * "0"
+        + x[-(d // 2 + 1) : -1]
+        + (max_length - len(x)) // 2 * "0"
+        + x[-1]
+        for x, d in zip(complex_strings, length_deltas)
+    ]
+    return result
+
+
 def _trim_zeros_float(
     str_floats: Union[np.ndarray, List[str]], decimal: str = "."
 ) -> List[str]:
@@ -1864,7 +1898,7 @@ def _trim_zeros_float(
     trimmed = str_floats
 
     def _is_number(x):
-        return re.match(r"\s*-?[0-9]+(\.[0-9]*)?", x) is not None
+        return re.match(fr"\s*-?[0-9]+({decimal}[0-9]*)?", x) is not None
 
     def _cond(values):
         finite = [x for x in values if _is_number(x)]
