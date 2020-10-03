@@ -49,6 +49,7 @@ def _get_method_wrappers(cls):
         bool_method_SERIES,
         comp_method_FRAME,
         comp_method_SERIES,
+        flex_arith_method_FRAME,
         flex_comp_method_FRAME,
         flex_method_SERIES,
     )
@@ -61,7 +62,7 @@ def _get_method_wrappers(cls):
         comp_special = comp_method_SERIES
         bool_special = bool_method_SERIES
     elif issubclass(cls, ABCDataFrame):
-        arith_flex = arith_method_FRAME
+        arith_flex = flex_arith_method_FRAME
         comp_flex = flex_comp_method_FRAME
         arith_special = arith_method_FRAME
         comp_special = comp_method_FRAME

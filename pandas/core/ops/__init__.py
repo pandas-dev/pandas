@@ -604,18 +604,13 @@ def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int
     return type(frame)(rvalues, index=frame.index, columns=frame.columns)
 
 
-def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
-    # This is the only function where `special` can be either True or False
+def flex_arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+    assert not special
     op_name = _get_op_name(op, special)
     default_axis = None if special else "columns"
 
     na_op = get_array_op(op)
-
-    if op_name in _op_descriptions:
-        # i.e. include "add" but not "__add__"
-        doc = _make_flex_doc(op_name, "dataframe")
-    else:
-        doc = _arith_doc_FRAME % op_name
+    doc = _make_flex_doc(op_name, "dataframe")
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
@@ -632,8 +627,6 @@ def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 
         axis = self._get_axis_number(axis) if axis is not None else 1
 
-        # TODO: why are we passing flex=True instead of flex=not special?
-        #  15 tests fail if we pass flex=not special instead
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
@@ -649,6 +642,29 @@ def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 
             new_data = dispatch_to_series(self, other, op)
 
+        return self._construct_result(new_data)
+
+    f.__name__ = op_name
+
+    return f
+
+
+def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+    assert special
+    op_name = _get_op_name(op, special)
+    doc = _arith_doc_FRAME % op_name
+
+    @Appender(doc)
+    def f(self, other):
+
+        if _should_reindex_frame_op(self, other, op, 1, 1, None, None):
+            return _frame_arith_method_with_reindex(self, other, op)
+
+        axis = 1  # only relevant for Series other case
+
+        self, other = align_method_FRAME(self, other, axis, flex=True, level=None)
+
+        new_data = dispatch_to_series(self, other, op, axis=axis)
         return self._construct_result(new_data)
 
     f.__name__ = op_name
@@ -687,7 +703,7 @@ def comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     def f(self, other):
         axis = 1  # only relevant for Series other case
 
-        self, other = align_method_FRAME(self, other, axis, level=None, flex=False)
+        self, other = align_method_FRAME(self, other, axis, flex=False, level=None)
 
         # See GH#4537 for discussion of scalar op behavior
         new_data = dispatch_to_series(self, other, op, axis=axis)
