@@ -6,17 +6,19 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
-def test_repr_with_NA():
-    a = pd.array(["a", pd.NA, "b"], dtype="string")
-    for obj in [a, pd.Series(a), pd.DataFrame({"a": a})]:
-        assert "NA" in repr(obj) and "NaN" not in repr(obj)
-        assert "NA" in str(obj) and "NaN" not in str(obj)
-        if hasattr(obj, "_repr_html_"):
-            html_repr = obj._repr_html_()
-            assert "NA" in html_repr and "NaN" not in html_repr
+def test_repr():
+    df = pd.DataFrame({"A": pd.array(["a", pd.NA, "b"], dtype="string")})
+    expected = "      A\n0     a\n1  <NA>\n2     b"
+    assert repr(df) == expected
+
+    expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
+    assert repr(df.A) == expected
+
+    expected = "<StringArray>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
+    assert repr(df.A.array) == expected
 
 
 def test_none_to_nan():
@@ -192,6 +194,37 @@ def test_constructor_raises():
     with pytest.raises(ValueError, match="sequence of strings"):
         pd.arrays.StringArray(np.array([]))
 
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", np.nan], dtype=object))
+
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", None], dtype=object))
+
+    with pytest.raises(ValueError, match="strings or pandas.NA"):
+        pd.arrays.StringArray(np.array(["a", pd.NaT], dtype=object))
+
+
+@pytest.mark.parametrize("copy", [True, False])
+def test_from_sequence_no_mutate(copy):
+    nan_arr = np.array(["a", np.nan], dtype=object)
+    na_arr = np.array(["a", pd.NA], dtype=object)
+
+    result = pd.arrays.StringArray._from_sequence(nan_arr, copy=copy)
+    expected = pd.arrays.StringArray(na_arr)
+
+    tm.assert_extension_array_equal(result, expected)
+
+    expected = nan_arr if copy else na_arr
+    tm.assert_numpy_array_equal(nan_arr, expected)
+
+
+def test_astype_int():
+    arr = pd.array(["1", pd.NA, "3"], dtype="string")
+
+    result = arr.astype("Int64")
+    expected = pd.array([1, pd.NA, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
@@ -199,6 +232,32 @@ def test_reduce(skipna):
     arr = pd.Series(["a", "b", "c"], dtype="string")
     result = arr.sum(skipna=skipna)
     assert result == "abc"
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_min_max(method, skipna):
+    arr = pd.Series(["a", "b", "c", None], dtype="string")
+    result = getattr(arr, method)(skipna=skipna)
+    if skipna:
+        expected = "a" if method == "min" else "c"
+        assert result == expected
+    else:
+        assert result is pd.NA
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pd.Series(["a", "b", "c", None], dtype="string"),
+        pd.array(["a", "b", "c", None], dtype="string"),
+    ],
+)
+def test_min_max_numpy(method, arr):
+    result = getattr(np, method)(arr)
+    expected = "a" if method == "min" else "c"
+    assert result == expected
 
 
 @pytest.mark.parametrize("skipna", [True, False])
@@ -237,3 +296,52 @@ def test_arrow_roundtrip():
     tm.assert_frame_equal(result, df)
     # ensure the missing value is represented by NA and not np.nan or None
     assert result.loc[2, "a"] is pd.NA
+
+
+def test_value_counts_na():
+    arr = pd.array(["a", "b", "a", pd.NA], dtype="string")
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = arr.value_counts(dropna=True)
+    expected = pd.Series([2, 1], index=["a", "b"], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (pd.array(["a", "b", "c"]), np.array([False, False, False])),
+        (pd.array(["a", "b", None]), np.array([False, False, True])),
+    ],
+)
+def test_use_inf_as_na(values, expected):
+    # https://github.com/pandas-dev/pandas/issues/33655
+    with pd.option_context("mode.use_inf_as_na", True):
+        result = values.isna()
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = pd.Series(values).isna()
+        expected = pd.Series(expected)
+        tm.assert_series_equal(result, expected)
+
+        result = pd.DataFrame(values).isna()
+        expected = pd.DataFrame(expected)
+        tm.assert_frame_equal(result, expected)
+
+
+def test_memory_usage():
+    # GH 33963
+    series = pd.Series(["a", "b", "c"], dtype="string")
+
+    assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
+
+
+@pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+def test_astype_from_float_dtype(dtype):
+    # https://github.com/pandas-dev/pandas/issues/36451
+    s = pd.Series([0.1], dtype=dtype)
+    result = s.astype("string")
+    expected = pd.Series(["0.1"], dtype="string")
+    tm.assert_series_equal(result, expected)

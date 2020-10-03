@@ -4,11 +4,10 @@ import numpy as np
 import pytest
 
 from pandas import Index, Int64Index, RangeIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestRangeIndexSetOps:
-    @pytest.mark.parametrize("sort", [None, False])
     def test_intersection(self, sort):
         # intersect with Int64Index
         index = RangeIndex(start=0, stop=20, step=2)
@@ -79,7 +78,6 @@ class TestRangeIndexSetOps:
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [False, None])
     def test_union_noncomparable(self, sort):
         # corner case, non-Int64Index
         index = RangeIndex(start=0, stop=20, step=2)
@@ -225,7 +223,6 @@ class TestRangeIndexSetOps:
     )
     def unions(self, request):
         """Inputs and expected outputs for RangeIndex.union tests"""
-
         return request.param
 
     def test_union_sorted(self, unions):

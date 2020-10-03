@@ -251,7 +251,7 @@ can propagate non-NA values forward or backward:
 **Limit the amount of filling**
 
 If we only want consecutive gaps filled up to a certain number of data points,
-we can use the `limit` keyword:
+we can use the ``limit`` keyword:
 
 .. ipython:: python
    :suppress:
@@ -335,10 +335,6 @@ examined :ref:`in the API <api.dataframe.missing>`.
 
 Interpolation
 ~~~~~~~~~~~~~
-
-.. versionadded:: 0.23.0
-
-  The ``limit_area`` keyword argument was added.
 
 Both Series and DataFrame objects have :meth:`~DataFrame.interpolate`
 that, by default, performs linear interpolation at missing data points.
@@ -467,9 +463,9 @@ at the new values.
    interp_s = ser.reindex(new_index).interpolate(method='pchip')
    interp_s[49:51]
 
-.. _scipy: http://www.scipy.org
-.. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-.. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+.. _scipy: https://www.scipy.org
+.. _documentation: https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
+.. _guide: https://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
 .. _missing_data.interp_limits:
 
@@ -507,8 +503,8 @@ By default, ``NaN`` values are filled in a ``forward`` direction. Use
    ser.interpolate(limit_direction='both')
 
 By default, ``NaN`` values are filled whether they are inside (surrounded by)
-existing valid values, or outside existing valid values. Introduced in v0.23
-the ``limit_area`` parameter restricts filling to either inside or outside values.
+existing valid values, or outside existing valid values. The ``limit_area``
+parameter restricts filling to either inside or outside values.
 
 .. ipython:: python
 
@@ -689,32 +685,6 @@ You can also operate on the DataFrame in place:
 
    df.replace(1.5, np.nan, inplace=True)
 
-.. warning::
-
-   When replacing multiple ``bool`` or ``datetime64`` objects, the first
-   argument to ``replace`` (``to_replace``) must match the type of the value
-   being replaced. For example,
-
-   .. code-block:: python
-
-      >>> s = pd.Series([True, False, True])
-      >>> s.replace({'a string': 'new value', True: False})  # raises
-      TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
-
-   will raise a ``TypeError`` because one of the ``dict`` keys is not of the
-   correct type for replacement.
-
-   However, when replacing a *single* object such as,
-
-   .. ipython:: python
-
-      s = pd.Series([True, False, True])
-      s.replace('a string', 'another string')
-
-   the original ``NDFrame`` object will be returned untouched. We're working on
-   unifying this API, but for backwards compatibility reasons we cannot break
-   the latter behavior. See :issue:`6354` for more details.
-
 Missing data casting rules and indexing
 ---------------------------------------
 
@@ -806,7 +776,8 @@ dtype, it will use ``pd.NA``:
 
 Currently, pandas does not yet use those data types by default (when creating
 a DataFrame or Series, or when reading in data), so you need to specify
-the dtype explicitly.
+the dtype explicitly.  An easy way to convert to those dtypes is explained
+:ref:`here <missing_data.NA.conversion>`.
 
 Propagation in arithmetic and comparison operations
 ---------------------------------------------------
@@ -825,14 +796,10 @@ For example, ``pd.NA`` propagates in arithmetic operations, similarly to
 There are a few special cases when the result is known, even when one of the
 operands is ``NA``.
 
+.. ipython:: python
 
-================ ======
-Operation        Result
-================ ======
-``pd.NA ** 0``   0
-``1 ** pd.NA``   1
-``-1 ** pd.NA``  -1
-================ ======
+   pd.NA ** 0
+   1 ** pd.NA
 
 In equality and comparison operations, ``pd.NA`` also propagates. This deviates
 from the behaviour of ``np.nan``, where comparisons with ``np.nan`` always
@@ -920,3 +887,55 @@ filling missing values beforehand.
 
 A similar situation occurs when using Series or DataFrame objects in ``if``
 statements, see :ref:`gotchas.truth`.
+
+NumPy ufuncs
+------------
+
+:attr:`pandas.NA` implements NumPy's ``__array_ufunc__`` protocol. Most ufuncs
+work with ``NA``, and generally return ``NA``:
+
+.. ipython:: python
+
+   np.log(pd.NA)
+   np.add(pd.NA, 1)
+
+.. warning::
+
+   Currently, ufuncs involving an ndarray and ``NA`` will return an
+   object-dtype filled with NA values.
+
+   .. ipython:: python
+
+      a = np.array([1, 2, 3])
+      np.greater(a, pd.NA)
+
+   The return type here may change to return a different array type
+   in the future.
+
+See :ref:`dsintro.numpy_interop` for more on ufuncs.
+
+.. _missing_data.NA.conversion:
+
+Conversion
+----------
+
+If you have a DataFrame or Series using traditional types that have missing data
+represented using ``np.nan``, there are convenience methods
+:meth:`~Series.convert_dtypes` in Series and :meth:`~DataFrame.convert_dtypes`
+in DataFrame that can convert data to use the newer dtypes for integers, strings and
+booleans listed :ref:`here <basics.dtypes>`. This is especially helpful after reading
+in data sets when letting the readers such as :meth:`read_csv` and :meth:`read_excel`
+infer default dtypes.
+
+In this example, while the dtypes of all columns are changed, we show the results for
+the first 10 columns.
+
+.. ipython:: python
+
+   bb = pd.read_csv('data/baseball.csv', index_col='id')
+   bb[bb.columns[:10]].dtypes
+
+.. ipython:: python
+
+   bbn = bb.convert_dtypes()
+   bbn[bbn.columns[:10]].dtypes

@@ -19,9 +19,9 @@ from pandas import (
     timedelta_range,
     to_datetime,
 )
+import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.reshape.tile as tmod
-import pandas.util.testing as tm
 
 
 def test_simple():
@@ -603,3 +603,74 @@ def test_cut_bool_coercion_to_int(bins, box, compare):
     expected = cut(data_expected, bins, duplicates="drop")
     result = cut(data_result, bins, duplicates="drop")
     compare(result, expected)
+
+
+@pytest.mark.parametrize("labels", ["foo", 1, True])
+def test_cut_incorrect_labels(labels):
+    # GH 13318
+    values = range(5)
+    msg = "Bin labels must either be False, None or passed in as a list-like argument"
+    with pytest.raises(ValueError, match=msg):
+        cut(values, 4, labels=labels)
+
+
+@pytest.mark.parametrize("bins", [3, [0, 5, 15]])
+@pytest.mark.parametrize("right", [True, False])
+@pytest.mark.parametrize("include_lowest", [True, False])
+def test_cut_nullable_integer(bins, right, include_lowest):
+    a = np.random.randint(0, 10, size=50).astype(float)
+    a[::2] = np.nan
+    result = cut(
+        pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
+    )
+    expected = cut(a, bins, right=right, include_lowest=include_lowest)
+    tm.assert_categorical_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, bins, labels, expected_codes, expected_labels",
+    [
+        ([15, 17, 19], [14, 16, 18, 20], ["A", "B", "A"], [0, 1, 0], ["A", "B"]),
+        ([1, 3, 5], [0, 2, 4, 6, 8], [2, 0, 1, 2], [2, 0, 1], [0, 1, 2]),
+    ],
+)
+def test_cut_non_unique_labels(data, bins, labels, expected_codes, expected_labels):
+    # GH 33141
+    result = cut(data, bins=bins, labels=labels, ordered=False)
+    expected = Categorical.from_codes(
+        expected_codes, categories=expected_labels, ordered=False
+    )
+    tm.assert_categorical_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, bins, labels, expected_codes, expected_labels",
+    [
+        ([15, 17, 19], [14, 16, 18, 20], ["C", "B", "A"], [0, 1, 2], ["C", "B", "A"]),
+        ([1, 3, 5], [0, 2, 4, 6, 8], [3, 0, 1, 2], [0, 1, 2], [3, 0, 1, 2]),
+    ],
+)
+def test_cut_unordered_labels(data, bins, labels, expected_codes, expected_labels):
+    # GH 33141
+    result = cut(data, bins=bins, labels=labels, ordered=False)
+    expected = Categorical.from_codes(
+        expected_codes, categories=expected_labels, ordered=False
+    )
+    tm.assert_categorical_equal(result, expected)
+
+
+def test_cut_unordered_with_missing_labels_raises_error():
+    # GH 33141
+    msg = "'labels' must be provided if 'ordered = False'"
+    with pytest.raises(ValueError, match=msg):
+        cut([0.5, 3], bins=[0, 1, 2], ordered=False)
+
+
+def test_cut_unordered_with_series_labels():
+    # https://github.com/pandas-dev/pandas/issues/36603
+    s = pd.Series([1, 2, 3, 4, 5])
+    bins = pd.Series([0, 2, 4, 6])
+    labels = pd.Series(["a", "b", "c"])
+    result = pd.cut(s, bins=bins, labels=labels, ordered=False)
+    expected = pd.Series(["a", "a", "b", "b", "c"], dtype="category")
+    tm.assert_series_equal(result, expected)

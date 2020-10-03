@@ -3,7 +3,8 @@ import string
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, RangeIndex, date_range
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 
 class GetLoc:
@@ -73,9 +74,37 @@ class Integer:
             ],
             dtype=object,
         )
+        self.other_mi_many_mismatches = MultiIndex.from_tuples(
+            [
+                (-7, 41),
+                (-2, 3),
+                (-0.7, 5),
+                (0, 0),
+                (0, 1.5),
+                (0, 340),
+                (0, 1001),
+                (1, -4),
+                (1, 20),
+                (1, 1040),
+                (432, -5),
+                (432, 17),
+                (439, 165.5),
+                (998, -4),
+                (998, 24065),
+                (999, 865.2),
+                (999, 1000),
+                (1045, -843),
+            ]
+        )
 
     def time_get_indexer(self):
         self.mi_int.get_indexer(self.obj_index)
+
+    def time_get_indexer_and_backfill(self):
+        self.mi_int.get_indexer(self.other_mi_many_mismatches, method="backfill")
+
+    def time_get_indexer_and_pad(self):
+        self.mi_int.get_indexer(self.other_mi_many_mismatches, method="pad")
 
     def time_is_monotonic(self):
         self.mi_int.is_monotonic
@@ -157,6 +186,45 @@ class Equals:
 
     def time_equals_non_object_index(self):
         self.mi_large_slow.equals(self.idx_non_object)
+
+
+class SetOperations:
+
+    params = [
+        ("monotonic", "non_monotonic"),
+        ("datetime", "int", "string"),
+        ("intersection", "union", "symmetric_difference"),
+    ]
+    param_names = ["index_structure", "dtype", "method"]
+
+    def setup(self, index_structure, dtype, method):
+        N = 10 ** 5
+        level1 = range(1000)
+
+        level2 = date_range(start="1/1/2000", periods=N // 1000)
+        dates_left = MultiIndex.from_product([level1, level2])
+
+        level2 = range(N // 1000)
+        int_left = MultiIndex.from_product([level1, level2])
+
+        level2 = tm.makeStringIndex(N // 1000).values
+        str_left = MultiIndex.from_product([level1, level2])
+
+        data = {
+            "datetime": dates_left,
+            "int": int_left,
+            "string": str_left,
+        }
+
+        if index_structure == "non_monotonic":
+            data = {k: mi[::-1] for k, mi in data.items()}
+
+        data = {k: {"left": mi, "right": mi[:-1]} for k, mi in data.items()}
+        self.left = data[dtype]["left"]
+        self.right = data[dtype]["right"]
+
+    def time_operation(self, index_structure, dtype, method):
+        getattr(self.left, method)(self.right)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

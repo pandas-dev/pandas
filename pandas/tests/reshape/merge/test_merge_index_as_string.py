@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -29,8 +29,9 @@ def df2():
 
 @pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
 def left_df(request, df1):
-    """ Construct left test DataFrame with specified levels
-    (any of 'outer', 'inner', and 'v1')"""
+    """Construct left test DataFrame with specified levels
+    (any of 'outer', 'inner', and 'v1')
+    """
     levels = request.param
     if levels:
         df1 = df1.set_index(levels)
@@ -40,8 +41,9 @@ def left_df(request, df1):
 
 @pytest.fixture(params=[[], ["outer"], ["outer", "inner"]])
 def right_df(request, df2):
-    """ Construct right test DataFrame with specified levels
-    (any of 'outer', 'inner', and 'v2')"""
+    """Construct right test DataFrame with specified levels
+    (any of 'outer', 'inner', and 'v2')
+    """
     levels = request.param
 
     if levels:
@@ -80,7 +82,6 @@ def compute_expected(df_left, df_right, on=None, left_on=None, right_on=None, ho
     DataFrame
         The expected merge result
     """
-
     # Handle on param if specified
     if on is not None:
         left_on, right_on = on, on

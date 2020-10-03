@@ -15,10 +15,10 @@ from pandas import (
     date_range,
     option_context,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, integer_array
 from pandas.core.internals import ObjectBlock
 from pandas.core.internals.blocks import IntBlock
-import pandas.util.testing as tm
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -43,18 +43,18 @@ class TestDataFrameBlockInternals:
         assert dti[1] == ts
 
     def test_cast_internals(self, float_frame):
-        casted = DataFrame(float_frame._data, dtype=int)
+        casted = DataFrame(float_frame._mgr, dtype=int)
         expected = DataFrame(float_frame._series, dtype=int)
         tm.assert_frame_equal(casted, expected)
 
-        casted = DataFrame(float_frame._data, dtype=np.int32)
+        casted = DataFrame(float_frame._mgr, dtype=np.int32)
         expected = DataFrame(float_frame._series, dtype=np.int32)
         tm.assert_frame_equal(casted, expected)
 
     def test_consolidate(self, float_frame):
         float_frame["E"] = 7.0
         consolidated = float_frame._consolidate()
-        assert len(consolidated._data.blocks) == 1
+        assert len(consolidated._mgr.blocks) == 1
 
         # Ensure copy, do I want this?
         recons = consolidated._consolidate()
@@ -62,10 +62,11 @@ class TestDataFrameBlockInternals:
         tm.assert_frame_equal(recons, consolidated)
 
         float_frame["F"] = 8.0
-        assert len(float_frame._data.blocks) == 3
+        assert len(float_frame._mgr.blocks) == 3
 
-        float_frame._consolidate(inplace=True)
-        assert len(float_frame._data.blocks) == 1
+        return_value = float_frame._consolidate(inplace=True)
+        assert return_value is None
+        assert len(float_frame._mgr.blocks) == 1
 
     def test_consolidate_inplace(self, float_frame):
         frame = float_frame.copy()  # noqa
@@ -76,9 +77,9 @@ class TestDataFrameBlockInternals:
 
     def test_values_consolidate(self, float_frame):
         float_frame["E"] = 7.0
-        assert not float_frame._data.is_consolidated()
-        _ = float_frame.values  # noqa
-        assert float_frame._data.is_consolidated()
+        assert not float_frame._mgr.is_consolidated()
+        _ = float_frame.values
+        assert float_frame._mgr.is_consolidated()
 
     def test_modify_values(self, float_frame):
         float_frame.values[5] = 5
@@ -86,8 +87,13 @@ class TestDataFrameBlockInternals:
 
         # unconsolidated
         float_frame["E"] = 7.0
+        col = float_frame["E"]
         float_frame.values[6] = 6
         assert (float_frame.values[6] == 6).all()
+
+        # check that item_cache was cleared
+        assert float_frame["E"] is not col
+        assert (col == 7).all()
 
     def test_boolean_set_uncons(self, float_frame):
         float_frame["E"] = 7.0
@@ -300,7 +306,7 @@ class TestDataFrameBlockInternals:
         df1 = df0.reset_index()[["A", "B", "C"]]
         # this assert verifies that the above operations have
         # induced a block rearrangement
-        assert df0._data.blocks[0].dtype != df1._data.blocks[0].dtype
+        assert df0._mgr.blocks[0].dtype != df1._mgr.blocks[0].dtype
 
         # do the real tests
         tm.assert_frame_equal(df0, df1)
@@ -342,7 +348,7 @@ class TestDataFrameBlockInternals:
 
         # copy objects
         copy = float_string_frame.copy()
-        assert copy._data is not float_string_frame._data
+        assert copy._mgr is not float_string_frame._mgr
 
     def test_pickle(self, float_string_frame, timezone_frame):
         empty_frame = DataFrame()
@@ -351,7 +357,7 @@ class TestDataFrameBlockInternals:
         tm.assert_frame_equal(float_string_frame, unpickled)
 
         # buglet
-        float_string_frame._data.ndim
+        float_string_frame._mgr.ndim
 
         # empty
         unpickled = tm.round_trip_pickle(empty_frame)
@@ -364,14 +370,14 @@ class TestDataFrameBlockInternals:
     def test_consolidate_datetime64(self):
         # numpy vstack bug
 
-        data = """\
-starting,ending,measure
-2012-06-21 00:00,2012-06-23 07:00,77
-2012-06-23 07:00,2012-06-23 16:30,65
-2012-06-23 16:30,2012-06-25 08:00,77
-2012-06-25 08:00,2012-06-26 12:00,0
-2012-06-26 12:00,2012-06-27 08:00,77
-"""
+        data = (
+            "starting,ending,measure\n"
+            "2012-06-21 00:00,2012-06-23 07:00,77\n"
+            "2012-06-23 07:00,2012-06-23 16:30,65\n"
+            "2012-06-23 16:30,2012-06-25 08:00,77\n"
+            "2012-06-25 08:00,2012-06-26 12:00,0\n"
+            "2012-06-26 12:00,2012-06-27 08:00,77\n"
+        )
         df = pd.read_csv(StringIO(data), parse_dates=[0, 1])
 
         ser_starting = df.starting
@@ -397,9 +403,6 @@ starting,ending,measure
         assert float_string_frame._is_mixed_type
 
     def test_get_numeric_data(self):
-        # TODO(wesm): unused?
-        intname = np.dtype(np.int_).name  # noqa
-        floatname = np.dtype(np.float_).name  # noqa
 
         datetime64name = np.dtype("M8[ns]").name
         objectname = np.dtype(np.object_).name
@@ -481,7 +484,7 @@ starting,ending,measure
         length = len(float_string_frame)
         float_string_frame["J"] = "1."
         float_string_frame["K"] = "1"
-        float_string_frame.loc[0:5, ["J", "K"]] = "garbled"
+        float_string_frame.loc[float_string_frame.index[0:5], ["J", "K"]] = "garbled"
         converted = float_string_frame._convert(datetime=True, numeric=True)
         assert converted["H"].dtype == "float64"
         assert converted["I"].dtype == "int64"
@@ -581,6 +584,7 @@ starting,ending,measure
         tm.assert_index_equal(df._get_numeric_data().columns, pd.Index(["a", "b", "e"]))
 
     def test_strange_column_corruption_issue(self):
+        # FIXME: dont leave commented-out
         # (wesm) Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
@@ -606,7 +610,7 @@ starting,ending,measure
         result = pd.DataFrame({"A": arr})
         expected = pd.DataFrame({"A": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
-        assert isinstance(result._data.blocks[0], IntBlock)
+        assert isinstance(result._mgr.blocks[0], IntBlock)
 
     def test_add_column_with_pandas_array(self):
         # GH 26390
@@ -619,6 +623,61 @@ starting,ending,measure
                 "c": pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object)),
             }
         )
-        assert type(df["c"]._data.blocks[0]) == ObjectBlock
-        assert type(df2["c"]._data.blocks[0]) == ObjectBlock
+        assert type(df["c"]._mgr.blocks[0]) == ObjectBlock
+        assert type(df2["c"]._mgr.blocks[0]) == ObjectBlock
         tm.assert_frame_equal(df, df2)
+
+
+def test_to_dict_of_blocks_item_cache():
+    # Calling to_dict_of_blocks should not poison item_cache
+    df = pd.DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
+    df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
+    mgr = df._mgr
+    assert len(mgr.blocks) == 3  # i.e. not consolidated
+
+    ser = df["b"]  # populations item_cache["b"]
+
+    df._to_dict_of_blocks()
+
+    # Check that the to_dict_of_blocks didnt break link between ser and df
+    ser.values[0] = "foo"
+    assert df.loc[0, "b"] == "foo"
+
+    assert df["b"] is ser
+
+
+def test_update_inplace_sets_valid_block_values():
+    # https://github.com/pandas-dev/pandas/issues/33457
+    df = pd.DataFrame({"a": pd.Series([1, 2, None], dtype="category")})
+
+    # inplace update of a single column
+    df["a"].fillna(1, inplace=True)
+
+    # check we havent put a Series into any block.values
+    assert isinstance(df._mgr.blocks[0].values, pd.Categorical)
+
+    # smoketest for OP bug from GH#35731
+    assert df.isnull().sum().sum() == 0
+
+
+def test_nonconsolidated_item_cache_take():
+    # https://github.com/pandas-dev/pandas/issues/35521
+
+    # create non-consolidated dataframe with object dtype columns
+    df = pd.DataFrame()
+    df["col1"] = pd.Series(["a"], dtype=object)
+    df["col2"] = pd.Series([0], dtype=object)
+
+    # access column (item cache)
+    df["col1"] == "A"
+    # take operation
+    # (regression was that this consolidated but didn't reset item cache,
+    # resulting in an invalid cache and the .at operation not working properly)
+    df[df["col2"] == 0]
+
+    # now setting value should update actual dataframe
+    df.at[0, "col1"] = "A"
+
+    expected = pd.DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+    assert df.at[0, "col1"] == "A"

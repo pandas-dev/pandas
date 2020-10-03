@@ -26,7 +26,7 @@ Assuming you want or need the expressiveness and power of pandas, let's carry on
 .. ipython:: python
    :suppress:
 
-   from pandas.util.testing import _make_timeseries
+   from pandas._testing import _make_timeseries
 
    # Make a random in-memory dataset
    ts = _make_timeseries(freq="30S", seed=0)
@@ -214,7 +214,7 @@ work for arbitrary-sized datasets.
    for path in files:
        # Only one dataframe is in memory at a time...
        df = pd.read_parquet(path)
-       # ... plus a small Series `counts`, which is updated.
+       # ... plus a small Series ``counts``, which is updated.
        counts = counts.add(df['name'].value_counts(), fill_value=0)
    counts.astype(int)
 
@@ -246,6 +246,7 @@ We'll import ``dask.dataframe`` and notice that the API feels similar to pandas.
 We can use Dask's ``read_parquet`` function, but provide a globstring of files to read in.
 
 .. ipython:: python
+   :okwarning:
 
    import dask.dataframe as dd
 
@@ -258,7 +259,7 @@ Inspecting the ``ddf`` object, we see a few things
 * There are familiar methods like ``.groupby``, ``.sum``, etc.
 * There are new attributes like ``.npartitions`` and ``.divisions``
 
-The partitions and divisions are how Dask parallizes computation. A **Dask**
+The partitions and divisions are how Dask parallelizes computation. A **Dask**
 DataFrame is made up of many **Pandas** DataFrames. A single method call on a
 Dask DataFrame ends up making many pandas method calls, and Dask knows how to
 coordinate everything to get the result.
@@ -348,7 +349,7 @@ Now we can do things like fast random access with ``.loc``.
 
    ddf.loc['2002-01-01 12:01':'2002-01-01 12:05'].compute()
 
-Dask knows to just look in the 3rd partition for selecting values in `2002`. It
+Dask knows to just look in the 3rd partition for selecting values in 2002. It
 doesn't need to look at any other data.
 
 Many workflows involve a large amount of data and processing it in a way that

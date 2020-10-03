@@ -4,10 +4,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.tslib import iNaT
+from pandas._libs import iNaT
 
+import pandas._testing as tm
 import pandas.core.algorithms as algos
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[True, False])
@@ -31,7 +31,7 @@ def writeable(request):
         (np.int16, False),
         (np.int8, False),
         (np.object_, True),
-        (np.bool, False),
+        (np.bool_, False),
     ]
 )
 def dtype_can_hold_na(request):
@@ -345,7 +345,7 @@ class TestTake:
 
     def test_2d_datetime64(self):
         # 2005/01/01 - 2006/01/01
-        arr = np.random.randint(11045376, 11360736, (5, 3)) * 100000000000
+        arr = np.random.randint(11_045_376, 11_360_736, (5, 3)) * 100_000_000_000
         arr = arr.view(dtype="datetime64[ns]")
         indexer = [0, 2, -1, 1, -1]
 
@@ -423,16 +423,21 @@ class TestExtensionTake:
 
     def test_bounds_check_large(self):
         arr = np.array([1, 2])
-        with pytest.raises(IndexError):
+
+        msg = "indices are out-of-bounds"
+        with pytest.raises(IndexError, match=msg):
             algos.take(arr, [2, 3], allow_fill=True)
 
-        with pytest.raises(IndexError):
+        msg = "index 2 is out of bounds for( axis 0 with)? size 2"
+        with pytest.raises(IndexError, match=msg):
             algos.take(arr, [2, 3], allow_fill=False)
 
     def test_bounds_check_small(self):
         arr = np.array([1, 2, 3], dtype=np.int64)
         indexer = [0, -1, -2]
-        with pytest.raises(ValueError):
+
+        msg = r"'indices' contains values less than allowed \(-2 < -1\)"
+        with pytest.raises(ValueError, match=msg):
             algos.take(arr, indexer, allow_fill=True)
 
         result = algos.take(arr, indexer)
@@ -446,7 +451,11 @@ class TestExtensionTake:
         result = algos.take(arr, [], allow_fill=allow_fill)
         tm.assert_numpy_array_equal(arr, result)
 
-        with pytest.raises(IndexError):
+        msg = (
+            "cannot do a non-empty take from an empty axes.|"
+            "indices are out-of-bounds"
+        )
+        with pytest.raises(IndexError, match=msg):
             algos.take(arr, [0], allow_fill=allow_fill)
 
     def test_take_na_empty(self):

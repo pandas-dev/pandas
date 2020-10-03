@@ -17,53 +17,53 @@ Also, it is a common practice to generate online (html) documentation
 automatically from docstrings. `Sphinx <https://www.sphinx-doc.org>`_ serves
 this purpose.
 
-Next example gives an idea on how a docstring looks like:
+The next example gives an idea of what a docstring looks like:
 
 .. code-block:: python
 
     def add(num1, num2):
-    """
-    Add up two integer numbers.
+        """
+        Add up two integer numbers.
 
-    This function simply wraps the `+` operator, and does not
-    do anything interesting, except for illustrating what is
-    the docstring of a very simple function.
+        This function simply wraps the ``+`` operator, and does not
+        do anything interesting, except for illustrating what
+        the docstring of a very simple function looks like.
 
-    Parameters
-    ----------
-    num1 : int
-        First number to add
-    num2 : int
-        Second number to add
+        Parameters
+        ----------
+        num1 : int
+            First number to add.
+        num2 : int
+            Second number to add.
 
-    Returns
-    -------
-    int
-        The sum of `num1` and `num2`
+        Returns
+        -------
+        int
+            The sum of ``num1`` and ``num2``.
 
-    See Also
-    --------
-    subtract : Subtract one integer from another
+        See Also
+        --------
+        subtract : Subtract one integer from another.
 
-    Examples
-    --------
-    >>> add(2, 2)
-    4
-    >>> add(25, 0)
-    25
-    >>> add(10, -10)
-    0
-    """
-    return num1 + num2
+        Examples
+        --------
+        >>> add(2, 2)
+        4
+        >>> add(25, 0)
+        25
+        >>> add(10, -10)
+        0
+        """
+        return num1 + num2
 
-Some standards exist about docstrings, so they are easier to read, and they can
-be exported to other formats such as html or pdf.
+Some standards regarding docstrings exist, which make them easier to read, and allow them
+be easily exported to other formats such as html or pdf.
 
 The first conventions every Python docstring should follow are defined in
 `PEP-257 <https://www.python.org/dev/peps/pep-0257/>`_.
 
-As PEP-257 is quite open, and some other standards exist on top of it. In the
-case of pandas, the numpy docstring convention is followed. The conventions is
+As PEP-257 is quite broad, other more specific standards also exist. In the
+case of pandas, the numpy docstring convention is followed. These conventions are
 explained in this document:
 
 * `numpydoc docstring guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_
@@ -77,14 +77,14 @@ language that allows encoding styles in plain text files. Documentation
 about reStructuredText can be found in:
 
 * `Sphinx reStructuredText primer <https://www.sphinx-doc.org/en/stable/rest.html>`_
-* `Quick reStructuredText reference <http://docutils.sourceforge.net/docs/user/rst/quickref.html>`_
-* `Full reStructuredText specification <http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html>`_
+* `Quick reStructuredText reference <https://docutils.sourceforge.io/docs/user/rst/quickref.html>`_
+* `Full reStructuredText specification <https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html>`_
 
-Pandas has some helpers for sharing docstrings between related classes, see
+pandas has some helpers for sharing docstrings between related classes, see
 :ref:`docstring.sharing`.
 
-The rest of this document will summarize all the above guides, and will
-provide additional convention specific to the pandas project.
+The rest of this document will summarize all the above guidelines, and will
+provide additional conventions specific to the pandas project.
 
 .. _docstring.tutorial:
 
@@ -101,9 +101,9 @@ left before or after the docstring. The text starts in the next line after the
 opening quotes. The closing quotes have their own line
 (meaning that they are not at the end of the last sentence).
 
-In rare occasions reST styles like bold text or italics will be used in
+On rare occasions reST styles like bold text or italics will be used in
 docstrings, but is it common to have inline code, which is presented between
-backticks. It is considered inline code:
+backticks. The following are considered inline code:
 
 * The name of a parameter
 * Python code, a module, function, built-in, type, literal... (e.g. ``os``,
@@ -126,9 +126,9 @@ backticks. It is considered inline code:
 
     def add_values(arr):
         """
-        Add the values in `arr`.
+        Add the values in ``arr``.
 
-        This is equivalent to Python `sum` of :meth:`pandas.Series.sum`.
+        This is equivalent to Python ``sum`` of :meth:`pandas.Series.sum`.
 
         Some sections are omitted here for simplicity.
         """
@@ -144,13 +144,13 @@ backticks. It is considered inline code:
 
         With several mistakes in the docstring.
 
-        It has a blank like after the signature `def func():`.
+        It has a blank like after the signature ``def func():``.
 
         The text 'Some function' should go in the line after the
         opening quotes of the docstring, not in the same line.
 
         There is a blank line between the docstring and the first line
-        of code `foo = 1`.
+        of code ``foo = 1``.
 
         The closing quotes should be in the next line, not in this one."""
 
@@ -160,7 +160,7 @@ backticks. It is considered inline code:
 
 .. _docstring.short_summary:
 
-Section 1: Short summary
+Section 1: short summary
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 The short summary is a single sentence that expresses what the function does in
@@ -228,15 +228,15 @@ infinitive verb.
 
 .. _docstring.extended_summary:
 
-Section 2: Extended summary
+Section 2: extended summary
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The extended summary provides details on what the function does. It should not
 go into the details of the parameters, or discuss implementation notes, which
 go in other sections.
 
-A blank line is left between the short summary and the extended summary. And
-every paragraph in the extended summary is finished by a dot.
+A blank line is left between the short summary and the extended summary.
+Every paragraph in the extended summary ends with a dot.
 
 The extended summary should provide details on why the function is useful and
 their use cases, if it is not too generic.
@@ -259,7 +259,7 @@ their use cases, if it is not too generic.
 
 .. _docstring.parameters:
 
-Section 3: Parameters
+Section 3: parameters
 ~~~~~~~~~~~~~~~~~~~~~
 
 The details of the parameters will be added in this section. This section has
@@ -269,11 +269,11 @@ after, and not between the line with the word "Parameters" and the one with
 the hyphens.
 
 After the title, each parameter in the signature must be documented, including
-`*args` and `**kwargs`, but not `self`.
+``*args`` and ``**kwargs``, but not ``self``.
 
 The parameters are defined by their name, followed by a space, a colon, another
 space, and the type (or types). Note that the space between the name and the
-colon is important. Types are not defined for `*args` and `**kwargs`, but must
+colon is important. Types are not defined for ``*args`` and ``**kwargs``, but must
 be defined for all other parameters. After the parameter definition, it is
 required to have a line with the parameter description, which is indented, and
 can have multiple lines. The description must start with a capital letter, and
@@ -285,13 +285,13 @@ comma at the end of the type. The exact form of the type in this case will be
 argument means, which can be added after a comma "int, default -1, meaning all
 cpus".
 
-In cases where the default value is `None`, meaning that the value will not be
-used. Instead of "str, default None", it is preferred to write "str, optional".
-When `None` is a value being used, we will keep the form "str, default None".
-For example, in `df.to_csv(compression=None)`, `None` is not a value being used,
+In cases where the default value is ``None``, meaning that the value will not be
+used. Instead of ``"str, default None"``, it is preferred to write ``"str, optional"``.
+When ``None`` is a value being used, we will keep the form "str, default None".
+For example, in ``df.to_csv(compression=None)``, ``None`` is not a value being used,
 but means that compression is optional, and no compression is being used if not
-provided. In this case we will use `str, optional`. Only in cases like
-`func(value=None)` and `None` is being used in the same way as `0` or `foo`
+provided. In this case we will use ``"str, optional"``. Only in cases like
+``func(value=None)`` and ``None`` is being used in the same way as ``0`` or ``foo``
 would be used, then we will specify "str, int or None, default None".
 
 **Good:**
@@ -331,13 +331,13 @@ would be used, then we will specify "str, int or None, default None".
             specified kind.
 
             Note the blank line between the parameters title and the first
-            parameter. Also, note that after the name of the parameter `kind`
+            parameter. Also, note that after the name of the parameter ``kind``
             and before the colon, a space is missing.
 
             Also, note that the parameter descriptions do not start with a
             capital letter, and do not finish with a dot.
 
-            Finally, the `**kwargs` parameter is missing.
+            Finally, the ``**kwargs`` parameter is missing.
 
             Parameters
             ----------
@@ -361,9 +361,9 @@ boolean, etc):
 * str
 * bool
 
-For complex types, define the subtypes. For `dict` and `tuple`, as more than
+For complex types, define the subtypes. For ``dict`` and ``tuple``, as more than
 one type is present, we use the brackets to help read the type (curly brackets
-for `dict` and normal brackets for `tuple`):
+for ``dict`` and normal brackets for ``tuple``):
 
 * list of int
 * dict of {str : int}
@@ -399,7 +399,7 @@ DataFrame:
 * DataFrame
 * pandas.Index
 * pandas.Categorical
-* pandas.SparseArray
+* pandas.arrays.SparseArray
 
 If the exact type is not relevant, but must be compatible with a numpy
 array, array-like can be specified. If Any type that can be iterated is
@@ -424,7 +424,7 @@ For axis, the convention is to use something like:
 
 .. _docstring.returns:
 
-Section 4: Returns or Yields
+Section 4: returns or yields
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If the method returns a value, it will be documented in this section. Also
@@ -505,15 +505,15 @@ If the method yields its value:
 
 .. _docstring.see_also:
 
-Section 5: See Also
+Section 5: see also
 ~~~~~~~~~~~~~~~~~~~
 
 This section is used to let users know about pandas functionality
 related to the one being documented. In rare cases, if no related methods
 or functions can be found at all, this section can be skipped.
 
-An obvious example would be the `head()` and `tail()` methods. As `tail()` does
-the equivalent as `head()` but at the end of the `Series` or `DataFrame`
+An obvious example would be the ``head()`` and ``tail()`` methods. As ``tail()`` does
+the equivalent as ``head()`` but at the end of the ``Series`` or ``DataFrame``
 instead of at the beginning, it is good to let the users know about it.
 
 To give an intuition on what can be considered related, here there are some
@@ -542,19 +542,19 @@ first (not an alias like ``np``). If the function is in a module which is not
 the main one, like ``scipy.sparse``, list the full module (e.g.
 ``scipy.sparse.coo_matrix``).
 
-This section, as the previous, also has a header, "See Also" (note the capital
-S and A). Also followed by the line with hyphens, and preceded by a blank line.
+This section has a header, "See Also" (note the capital
+S and A), followed by the line with hyphens and preceded by a blank line.
 
 After the header, we will add a line for each related method or function,
 followed by a space, a colon, another space, and a short description that
-illustrated what this method or function does, why is it relevant in this
-context, and what are the key differences between the documented function and
-the one referencing. The description must also finish with a dot.
+illustrates what this method or function does, why is it relevant in this
+context, and what the key differences are between the documented function and
+the one being referenced. The description must also end with a dot.
 
-Note that in "Returns" and "Yields", the description is located in the
-following line than the type. But in this section it is located in the same
-line, with a colon in between. If the description does not fit in the same
-line, it can continue in the next ones, but it has to be indented in them.
+Note that in "Returns" and "Yields", the description is located on the line
+after the type. In this section, however, it is located on the same
+line, with a colon in between. If the description does not fit on the same
+line, it can continue onto other lines which must be further indented.
 
 For example:
 
@@ -583,11 +583,11 @@ For example:
 
 .. _docstring.notes:
 
-Section 6: Notes
+Section 6: notes
 ~~~~~~~~~~~~~~~~
 
 This is an optional section used for notes about the implementation of the
-algorithm. Or to document technical aspects of the function behavior.
+algorithm, or to document technical aspects of the function behavior.
 
 Feel free to skip it, unless you are familiar with the implementation of the
 algorithm, or you discover some counter-intuitive behavior while writing the
@@ -597,19 +597,19 @@ This section follows the same format as the extended summary section.
 
 .. _docstring.examples:
 
-Section 7: Examples
+Section 7: examples
 ~~~~~~~~~~~~~~~~~~~
 
-This is one of the most important sections of a docstring, even if it is
-placed in the last position. As often, people understand concepts better
-with examples, than with accurate explanations.
+This is one of the most important sections of a docstring, despite being
+placed in the last position, as often people understand concepts better
+by example than through accurate explanations.
 
 Examples in docstrings, besides illustrating the usage of the function or
-method, must be valid Python code, that in a deterministic way returns the
-presented output, and that can be copied and run by users.
+method, must be valid Python code, that returns the given output in a
+deterministic way, and that can be copied and run by users.
 
-They are presented as a session in the Python terminal. `>>>` is used to
-present code. `...` is used for code continuing from the previous line.
+Examples are presented as a session in the Python terminal. ``>>>`` is used to
+present code. ``...`` is used for code continuing from the previous line.
 Output is presented immediately after the last line of code generating the
 output (no blank lines in between). Comments describing the examples can
 be added with blank lines before and after them.
@@ -636,7 +636,7 @@ A simple example could be:
             Return the first elements of the Series.
 
             This function is mainly useful to preview the values of the
-            Series without displaying the whole of it.
+            Series without displaying all of it.
 
             Parameters
             ----------
@@ -664,7 +664,7 @@ A simple example could be:
             4   Falcon
             dtype: object
 
-            With the `n` parameter, we can change the number of returned rows:
+            With the ``n`` parameter, we can change the number of returned rows:
 
             >>> s.head(n=3)
             0   Ant
@@ -742,7 +742,7 @@ positional arguments ``head(3)``.
 
         def fillna(self, value):
             """
-            Replace missing values by `value`.
+            Replace missing values by ``value``.
 
             Examples
             --------
@@ -771,7 +771,7 @@ positional arguments ``head(3)``.
 
         def contains(self, pattern, case_sensitive=True, na=numpy.nan):
             """
-            Return whether each value contains `pattern`.
+            Return whether each value contains ``pattern``.
 
             In this case, we are illustrating how to use sections, even
             if the example is simple enough and does not require them.
@@ -788,8 +788,8 @@ positional arguments ``head(3)``.
 
             **Case sensitivity**
 
-            With `case_sensitive` set to `False` we can match `a` with both
-            `a` and `A`:
+            With ``case_sensitive`` set to ``False`` we can match ``a`` with both
+            ``a`` and ``A``:
 
             >>> s.contains(pattern='a', case_sensitive=False)
             0     True
@@ -800,7 +800,7 @@ positional arguments ``head(3)``.
 
             **Missing values**
 
-            We can fill missing values in the output using the `na` parameter:
+            We can fill missing values in the output using the ``na`` parameter:
 
             >>> s.contains(pattern='a', na=False)
             0    False
@@ -824,9 +824,9 @@ positional arguments ``head(3)``.
         Try to use meaningful data, when it makes the example easier
         to understand.
 
-        Try to avoid positional arguments like in `df.method(1)`. They
+        Try to avoid positional arguments like in ``df.method(1)``. They
         can be all right if previously defined with a meaningful name,
-        like in `present_value(interest_rate)`, but avoid them otherwise.
+        like in ``present_value(interest_rate)``, but avoid them otherwise.
 
         When presenting the behavior with different parameters, do not place
         all the calls one next to the other. Instead, add a short sentence
@@ -914,7 +914,7 @@ plot will be generated automatically when building the documentation.
     class Series:
         def plot(self):
             """
-            Generate a plot with the `Series` data.
+            Generate a plot with the ``Series`` data.
 
             Examples
             --------
@@ -932,38 +932,36 @@ plot will be generated automatically when building the documentation.
 Sharing docstrings
 ------------------
 
-Pandas has a system for sharing docstrings, with slight variations, between
+pandas has a system for sharing docstrings, with slight variations, between
 classes. This helps us keep docstrings consistent, while keeping things clear
 for the user reading. It comes at the cost of some complexity when writing.
 
 Each shared docstring will have a base template with variables, like
-``%(klass)s``. The variables filled in later on using the ``Substitution``
-decorator. Finally, docstrings can be appended to with the ``Appender``
-decorator.
+``{klass}``. The variables filled in later on using the ``doc`` decorator.
+Finally, docstrings can also be appended to with the ``doc`` decorator.
 
 In this example, we'll create a parent docstring normally (this is like
 ``pandas.core.generic.NDFrame``. Then we'll have two children (like
 ``pandas.core.series.Series`` and ``pandas.core.frame.DataFrame``). We'll
-substitute the children's class names in this docstring.
+substitute the class names in this docstring.
 
 .. code-block:: python
 
    class Parent:
+       @doc(klass="Parent")
        def my_function(self):
-           """Apply my function to %(klass)s."""
+           """Apply my function to {klass}."""
            ...
 
 
    class ChildA(Parent):
-       @Substitution(klass="ChildA")
-       @Appender(Parent.my_function.__doc__)
+       @doc(Parent.my_function, klass="ChildA")
        def my_function(self):
            ...
 
 
    class ChildB(Parent):
-       @Substitution(klass="ChildB")
-       @Appender(Parent.my_function.__doc__)
+       @doc(Parent.my_function, klass="ChildB")
        def my_function(self):
            ...
 
@@ -972,18 +970,16 @@ The resulting docstrings are
 .. code-block:: python
 
    >>> print(Parent.my_function.__doc__)
-   Apply my function to %(klass)s.
+   Apply my function to Parent.
    >>> print(ChildA.my_function.__doc__)
    Apply my function to ChildA.
    >>> print(ChildB.my_function.__doc__)
    Apply my function to ChildB.
 
-Notice two things:
+Notice:
 
 1. We "append" the parent docstring to the children docstrings, which are
    initially empty.
-2. Python decorators are applied inside out. So the order is Append then
-   Substitution, even though Substitution comes first in the file.
 
 Our files will often contain a module-level ``_shared_doc_kwargs`` with some
 common substitution values (things like ``klass``, ``axes``, etc).
@@ -992,14 +988,13 @@ You can substitute and append in one shot with something like
 
 .. code-block:: python
 
-   @Appender(template % _shared_doc_kwargs)
+   @doc(template, **_shared_doc_kwargs)
    def my_function(self):
        ...
 
 where ``template`` may come from a module-level ``_shared_docs`` dictionary
 mapping function names to docstrings. Wherever possible, we prefer using
-``Appender`` and ``Substitution``, since the docstring-writing processes is
-slightly closer to normal.
+``doc``, since the docstring-writing processes is slightly closer to normal.
 
 See ``pandas.core.generic.NDFrame.fillna`` for an example template, and
 ``pandas.core.series.Series.fillna`` and ``pandas.core.generic.frame.fillna``

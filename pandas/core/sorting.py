@@ -1,21 +1,90 @@
 """ miscellaneous sorting / groupby utilities """
+from collections import defaultdict
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    DefaultDict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
+
 import numpy as np
 
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
+from pandas._typing import IndexKeyFunc
 
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_categorical_dtype,
     is_extension_array_dtype,
 )
+from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
+if TYPE_CHECKING:
+    from pandas.core.indexes.base import Index
+
 _INT64_MAX = np.iinfo(np.int64).max
+
+
+def get_indexer_indexer(
+    target: "Index",
+    level: Union[str, int, List[str], List[int]],
+    ascending: bool,
+    kind: str,
+    na_position: str,
+    sort_remaining: bool,
+    key: IndexKeyFunc,
+) -> Optional[np.array]:
+    """
+    Helper method that return the indexer according to input parameters for
+    the sort_index method of DataFrame and Series.
+
+    Parameters
+    ----------
+    target : Index
+    level : int or level name or list of ints or list of level names
+    ascending : bool or list of bools, default True
+    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    na_position : {'first', 'last'}, default 'last'
+    sort_remaining : bool, default True
+    key : callable, optional
+
+    Returns
+    -------
+    Optional[ndarray]
+        The indexer for the new index.
+    """
+
+    target = ensure_key_mapped(target, key, levels=level)
+    target = target._sort_levels_monotonic()
+
+    if level is not None:
+        _, indexer = target.sortlevel(
+            level, ascending=ascending, sort_remaining=sort_remaining
+        )
+    elif isinstance(target, ABCMultiIndex):
+        indexer = lexsort_indexer(
+            target._get_codes_for_sorting(), orders=ascending, na_position=na_position
+        )
+    else:
+        # Check monotonic-ness before sort an index (GH 11080)
+        if (ascending and target.is_monotonic_increasing) or (
+            not ascending and target.is_monotonic_decreasing
+        ):
+            return None
+
+        indexer = nargsort(
+            target, kind=kind, ascending=ascending, na_position=na_position
+        )
+    return indexer
 
 
 def get_group_index(labels, shape, sort: bool, xnull: bool):
@@ -189,11 +258,28 @@ def indexer_from_factorized(labels, shape, compress: bool = True):
     return get_group_index_sorter(ids, ngroups)
 
 
-def lexsort_indexer(keys, orders=None, na_position: str = "last"):
+def lexsort_indexer(
+    keys, orders=None, na_position: str = "last", key: Optional[Callable] = None
+):
     """
+    Performs lexical sorting on a set of keys
+
     Parameters
     ----------
+    keys : sequence of arrays
+        Sequence of ndarrays to be sorted by the indexer
+    orders : boolean or list of booleans, optional
+        Determines the sorting order for each element in keys. If a list,
+        it must be the same length as keys. This determines whether the
+        corresponding element in keys should be sorted in ascending
+        (True) or descending (False) order. if bool, applied to all
+        elements as above. if None, defaults to True.
     na_position : {'first', 'last'}, default 'last'
+        Determines placement of NA elements in the sorted list ("last" or "first")
+    key : Callable, optional
+        Callable key function applied to every element in keys before sorting
+
+        .. versionadded:: 1.0.0
     """
     from pandas.core.arrays import Categorical
 
@@ -204,15 +290,10 @@ def lexsort_indexer(keys, orders=None, na_position: str = "last"):
     elif orders is None:
         orders = [True] * len(keys)
 
-    for key, order in zip(keys, orders):
+    keys = [ensure_key_mapped(k, key) for k in keys]
 
-        # we are already a Categorical
-        if is_categorical_dtype(key):
-            cat = key
-
-        # create the Categorical
-        else:
-            cat = Categorical(key, ordered=True)
+    for k, order in zip(keys, orders):
+        cat = Categorical(k, ordered=True)
 
         if na_position not in ["last", "first"]:
             raise ValueError(f"invalid na_position: {na_position}")
@@ -241,21 +322,33 @@ def lexsort_indexer(keys, orders=None, na_position: str = "last"):
 
 
 def nargsort(
-    items, kind: str = "quicksort", ascending: bool = True, na_position: str = "last"
+    items,
+    kind: str = "quicksort",
+    ascending: bool = True,
+    na_position: str = "last",
+    key: Optional[Callable] = None,
 ):
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
 
-    Adds ascending and na_position parameters.
+    Adds ascending, na_position, and key parameters.
 
-    (GH #6399, #5231)
+    (GH #6399, #5231, #27237)
 
     Parameters
     ----------
     kind : str, default 'quicksort'
     ascending : bool, default True
     na_position : {'first', 'last'}, default 'last'
+    key : Optional[Callable], default None
     """
+
+    if key is not None:
+        items = ensure_key_mapped(items, key)
+        return nargsort(
+            items, kind=kind, ascending=ascending, na_position=na_position, key=None
+        )
+
     items = extract_array(items)
     mask = np.asarray(isna(items))
 
@@ -267,6 +360,7 @@ def nargsort(
     idx = np.arange(len(items))
     non_nans = items[~mask]
     non_nan_idx = idx[~mask]
+
     nan_idx = np.nonzero(mask)[0]
     if not ascending:
         non_nans = non_nans[::-1]
@@ -285,36 +379,142 @@ def nargsort(
     return indexer
 
 
-class _KeyMapper:
+def nargminmax(values, method: str):
     """
-    Map compressed group id -> key tuple.
+    Implementation of np.argmin/argmax but for ExtensionArray and which
+    handles missing values.
+
+    Parameters
+    ----------
+    values : ExtensionArray
+    method : {"argmax", "argmin"}
+
+    Returns
+    -------
+    int
     """
+    assert method in {"argmax", "argmin"}
+    func = np.argmax if method == "argmax" else np.argmin
 
-    def __init__(self, comp_ids, ngroups: int, levels, labels):
-        self.levels = levels
-        self.labels = labels
-        self.comp_ids = comp_ids.astype(np.int64)
+    mask = np.asarray(isna(values))
+    values = values._values_for_argsort()
 
-        self.k = len(labels)
-        self.tables = [hashtable.Int64HashTable(ngroups) for _ in range(self.k)]
+    idx = np.arange(len(values))
+    non_nans = values[~mask]
+    non_nan_idx = idx[~mask]
 
-        self._populate_tables()
+    return non_nan_idx[func(non_nans)]
 
-    def _populate_tables(self):
-        for labs, table in zip(self.labels, self.tables):
-            table.map(self.comp_ids, labs.astype(np.int64))
 
-    def get_key(self, comp_id):
-        return tuple(
-            level[table.get_item(comp_id)]
-            for table, level in zip(self.tables, self.levels)
+def ensure_key_mapped_multiindex(index, key: Callable, level=None):
+    """
+    Returns a new MultiIndex in which key has been applied
+    to all levels specified in level (or all levels if level
+    is None). Used for key sorting for MultiIndex.
+
+    Parameters
+    ----------
+    index : MultiIndex
+        Index to which to apply the key function on the
+        specified levels.
+    key : Callable
+        Function that takes an Index and returns an Index of
+        the same shape. This key is applied to each level
+        separately. The name of the level can be used to
+        distinguish different levels for application.
+    level : list-like, int or str, default None
+        Level or list of levels to apply the key function to.
+        If None, key function is applied to all levels. Other
+        levels are left unchanged.
+
+    Returns
+    -------
+    labels : MultiIndex
+        Resulting MultiIndex with modified levels.
+    """
+    from pandas.core.indexes.api import MultiIndex
+
+    if level is not None:
+        if isinstance(level, (str, int)):
+            sort_levels = [level]
+        else:
+            sort_levels = level
+
+        sort_levels = [index._get_level_number(lev) for lev in sort_levels]
+    else:
+        sort_levels = list(range(index.nlevels))  # satisfies mypy
+
+    mapped = [
+        ensure_key_mapped(index._get_level_values(level), key)
+        if level in sort_levels
+        else index._get_level_values(level)
+        for level in range(index.nlevels)
+    ]
+
+    labels = MultiIndex.from_arrays(mapped)
+
+    return labels
+
+
+def ensure_key_mapped(values, key: Optional[Callable], levels=None):
+    """
+    Applies a callable key function to the values function and checks
+    that the resulting value has the same shape. Can be called on Index
+    subclasses, Series, DataFrames, or ndarrays.
+
+    Parameters
+    ----------
+    values : Series, DataFrame, Index subclass, or ndarray
+    key : Optional[Callable], key to be called on the values array
+    levels : Optional[List], if values is a MultiIndex, list of levels to
+    apply the key to.
+    """
+    from pandas.core.indexes.api import Index
+
+    if not key:
+        return values
+
+    if isinstance(values, ABCMultiIndex):
+        return ensure_key_mapped_multiindex(values, key, level=levels)
+
+    result = key(values.copy())
+    if len(result) != len(values):
+        raise ValueError(
+            "User-provided `key` function must not change the shape of the array."
         )
 
+    try:
+        if isinstance(
+            values, Index
+        ):  # convert to a new Index subclass, not necessarily the same
+            result = Index(result)
+        else:
+            type_of_values = type(values)
+            result = type_of_values(result)  # try to revert to original type otherwise
+    except TypeError:
+        raise TypeError(
+            f"User-provided `key` function returned an invalid type {type(result)} \
+            which could not be converted to {type(values)}."
+        )
 
-def get_flattened_iterator(comp_ids, ngroups, levels, labels):
-    # provide "flattened" iterator for multi-group setting
-    mapper = _KeyMapper(comp_ids, ngroups, levels, labels)
-    return [mapper.get_key(i) for i in range(ngroups)]
+    return result
+
+
+def get_flattened_list(
+    comp_ids: np.ndarray,
+    ngroups: int,
+    levels: Iterable["Index"],
+    labels: Iterable[np.ndarray],
+) -> List[Tuple]:
+    """Map compressed group id -> key tuple."""
+    comp_ids = comp_ids.astype(np.int64, copy=False)
+    arrays: DefaultDict[int, List[int]] = defaultdict(list)
+    for labs, level in zip(labels, levels):
+        table = hashtable.Int64HashTable(ngroups)
+        table.map(comp_ids, labs.astype(np.int64, copy=False))
+        for i in range(ngroups):
+            arrays[i].append(level[table.get_item(i)])
+    return [tuple(array) for array in arrays.values()]
 
 
 def get_indexer_dict(label_list, keys):
@@ -376,8 +576,7 @@ def compress_group_index(group_index, sort: bool = True):
     space can be huge, so this function compresses it, by computing offsets
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
-
-    size_hint = min(len(group_index), hashtable._SIZE_HINT_LIMIT)
+    size_hint = min(len(group_index), hashtable.SIZE_HINT_LIMIT)
     table = hashtable.Int64HashTable(size_hint)
 
     group_index = ensure_int64(group_index)

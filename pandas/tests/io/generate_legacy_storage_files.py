@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 self-contained to write legacy storage pickle files
 
@@ -8,10 +6,10 @@ generate pickles, say its for 0.20.3, with your pandas clone
 in ~/pandas
 
 . activate pandas_0.20.3
-cd ~/
+cd ~/pandas/pandas
 
-$ python pandas/pandas/tests/io/generate_legacy_storage_files.py \
-    pandas/pandas/tests/io/data/legacy_pickle/0.20.3/ pickle
+$ python -m tests.io.generate_legacy_storage_files \
+    tests/io/data/legacy_pickle/0.20.3/ pickle
 
 This script generates a storage file for the current arch, system,
 and python version
@@ -136,7 +134,6 @@ def _create_sp_frame():
 
 def create_data():
     """ create the pickle data """
-
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
         "B": [0, 1, 0, 1, 0],
@@ -324,17 +321,17 @@ def write_legacy_pickles(output_dir):
         "This script generates a storage file for the current arch, system, "
         "and python version"
     )
-    print("  pandas version: {0}".format(version))
-    print("  output dir    : {0}".format(output_dir))
+    print(f"  pandas version: {version}")
+    print(f"  output dir    : {output_dir}")
     print("  storage format: pickle")
 
-    pth = "{0}.pickle".format(platform_name())
+    pth = f"{platform_name()}.pickle"
 
     fh = open(os.path.join(output_dir, pth), "wb")
-    pickle.dump(create_pickle_data(), fh, pickle.HIGHEST_PROTOCOL)
+    pickle.dump(create_pickle_data(), fh, pickle.DEFAULT_PROTOCOL)
     fh.close()
 
-    print("created pickle file: {pth}".format(pth=pth))
+    print(f"created pickle file: {pth}")
 
 
 def write_legacy_file():

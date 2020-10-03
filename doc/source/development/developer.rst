@@ -62,7 +62,7 @@ for each column, *including the index columns*. This has JSON form:
 
 See below for the detailed specification for these.
 
-Index Metadata Descriptors
+Index metadata descriptors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``RangeIndex`` can be stored as metadata only, not requiring serialization. The
@@ -71,11 +71,13 @@ descriptor format for these as is follows:
 .. code-block:: python
 
    index = pd.RangeIndex(0, 10, 2)
-   {'kind': 'range',
-    'name': index.name,
-    'start': index.start,
-    'stop': index.stop,
-    'step': index.step}
+   {
+       "kind": "range",
+       "name": index.name,
+       "start": index.start,
+       "stop": index.stop,
+       "step": index.step,
+   }
 
 Other index types must be serialized as data columns along with the other
 DataFrame columns. The metadata for these is a string indicating the name of
@@ -89,7 +91,7 @@ with other column names) a disambiguating name with pattern matching
 columns, ``name`` attribute is always stored in the column descriptors as
 above.
 
-Column Metadata
+Column metadata
 ~~~~~~~~~~~~~~~
 
 ``pandas_type`` is the logical type of the column, and is one of:

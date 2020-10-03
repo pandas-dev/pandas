@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Python script for building documentation.
 
@@ -83,8 +83,8 @@ class DocBuilder:
                 obj = pandas  # noqa: F821
                 for name in single_doc.split("."):
                     obj = getattr(obj, name)
-            except AttributeError:
-                raise ImportError(f"Could not import {single_doc}")
+            except AttributeError as err:
+                raise ImportError(f"Could not import {single_doc}") from err
             else:
                 return single_doc[len("pandas.") :]
         else:
@@ -286,12 +286,12 @@ def main():
 
     joined = ",".join(cmds)
     argparser = argparse.ArgumentParser(
-        description="pandas documentation builder", epilog=f"Commands: {joined}",
+        description="pandas documentation builder", epilog=f"Commands: {joined}"
     )
 
     joined = ", ".join(cmds)
     argparser.add_argument(
-        "command", nargs="?", default="html", help=f"command to run: {joined}",
+        "command", nargs="?", default="html", help=f"command to run: {joined}"
     )
     argparser.add_argument(
         "--num-jobs", type=int, default=0, help="number of jobs used by sphinx-build"

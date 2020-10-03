@@ -3,9 +3,9 @@ import pytest
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
+import pandas._testing as tm
 import pandas.core.common as com
 from pandas.tests.arrays.categorical.common import TestCategorical
-import pandas.util.testing as tm
 
 
 class TestCategoricalIndexingWithFactor(TestCategorical):
@@ -75,7 +75,7 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
             pd.Categorical(["b", "a"], categories=["a", "b", "c"], ordered=True),
         ],
     )
-    def test_setitem_same_ordered_rasies(self, other):
+    def test_setitem_same_ordered_raises(self, other):
         # Gh-24142
         target = pd.Categorical(["a", "b"], categories=["a", "b"], ordered=True)
         mask = np.array([True, False])
@@ -83,8 +83,25 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
         with pytest.raises(ValueError, match=msg):
             target[mask] = other[mask]
 
+    def test_setitem_tuple(self):
+        # GH#20439
+        cat = pd.Categorical([(0, 1), (0, 2), (0, 1)])
+
+        # This should not raise
+        cat[1] = cat[0]
+        assert cat[1] == (0, 1)
+
 
 class TestCategoricalIndexing:
+    def test_getitem_slice(self):
+        cat = Categorical(["a", "b", "c", "d", "a", "b", "c"])
+        sliced = cat[3]
+        assert sliced == "d"
+
+        sliced = cat[3:5]
+        expected = Categorical(["d", "a"], categories=["a", "b", "c", "d"])
+        tm.assert_categorical_equal(sliced, expected)
+
     def test_getitem_listlike(self):
 
         # GH 9469
@@ -146,7 +163,7 @@ class TestCategoricalIndexing:
         tm.assert_numpy_array_equal(cat3._codes, exp_arr)
         tm.assert_index_equal(cat3.categories, exp_idx)
 
-    def test_categories_assigments(self):
+    def test_categories_assignments(self):
         s = Categorical(["a", "b", "c", "a"])
         exp = np.array([1, 2, 3, 1], dtype=np.int64)
         s.categories = [1, 2, 3]
@@ -154,11 +171,11 @@ class TestCategoricalIndexing:
         tm.assert_index_equal(s.categories, Index([1, 2, 3]))
 
     @pytest.mark.parametrize("new_categories", [[1, 2, 3, 4], [1, 2]])
-    def test_categories_assigments_wrong_length_raises(self, new_categories):
+    def test_categories_assignments_wrong_length_raises(self, new_categories):
         cat = Categorical(["a", "b", "c", "a"])
         msg = (
-            "new categories need to have the same number of items"
-            " as the old categories!"
+            "new categories need to have the same number of items "
+            "as the old categories!"
         )
         with pytest.raises(ValueError, match=msg):
             cat.categories = new_categories
@@ -174,7 +191,7 @@ class TestCategoricalIndexing:
         # GH 21448
         key = key_class(key_values, categories=range(1, 5))
         # Test for flat index and CategoricalIndex with same/different cats:
-        for dtype in None, "category", key.dtype:
+        for dtype in [None, "category", key.dtype]:
             idx = Index(idx_values, dtype=dtype)
             expected, exp_miss = idx.get_indexer_non_unique(key_values)
             result, res_miss = idx.get_indexer_non_unique(key)
@@ -240,14 +257,17 @@ def test_mask_with_boolean(index):
 
 
 @pytest.mark.parametrize("index", [True, False])
-def test_mask_with_boolean_raises(index):
+def test_mask_with_boolean_na_treated_as_false(index):
+    # https://github.com/pandas-dev/pandas/issues/31503
     s = Series(range(3))
     idx = Categorical([True, False, None])
     if index:
         idx = CategoricalIndex(idx)
 
-    with pytest.raises(ValueError, match="NA / NaN"):
-        s[idx]
+    result = s[idx]
+    expected = s[idx.fillna(False)]
+
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.fixture

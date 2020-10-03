@@ -116,7 +116,7 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 
     IF {{True if c_type_in == c_type_out != "object" else False}}:
         cdef:
-            {{c_type_out}} *v
+            const {{c_type_out}} *v
             {{c_type_out}} *o
 
         # GH#3130

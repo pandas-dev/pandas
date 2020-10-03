@@ -4,7 +4,8 @@ import warnings
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, NaT, Series, date_range, isnull, period_range
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 
 class GetNumericData:
@@ -216,6 +217,46 @@ class ToHTML:
 
     def time_to_html_mixed(self):
         self.df2.to_html()
+
+
+class ToNumpy:
+    def setup(self):
+        N = 10000
+        M = 10
+        self.df_tall = DataFrame(np.random.randn(N, M))
+        self.df_wide = DataFrame(np.random.randn(M, N))
+        self.df_mixed_tall = self.df_tall.copy()
+        self.df_mixed_tall["foo"] = "bar"
+        self.df_mixed_tall[0] = period_range("2000", periods=N)
+        self.df_mixed_tall[1] = range(N)
+        self.df_mixed_wide = self.df_wide.copy()
+        self.df_mixed_wide["foo"] = "bar"
+        self.df_mixed_wide[0] = period_range("2000", periods=M)
+        self.df_mixed_wide[1] = range(M)
+
+    def time_to_numpy_tall(self):
+        self.df_tall.to_numpy()
+
+    def time_to_numpy_wide(self):
+        self.df_wide.to_numpy()
+
+    def time_to_numpy_mixed_tall(self):
+        self.df_mixed_tall.to_numpy()
+
+    def time_to_numpy_mixed_wide(self):
+        self.df_mixed_wide.to_numpy()
+
+    def time_values_tall(self):
+        self.df_tall.values
+
+    def time_values_wide(self):
+        self.df_wide.values
+
+    def time_values_mixed_tall(self):
+        self.df_mixed_tall.values
+
+    def time_values_mixed_wide(self):
+        self.df_mixed_wide.values
 
 
 class Repr:
@@ -563,7 +604,7 @@ class GetDtypeCounts:
 
     def time_frame_get_dtype_counts(self):
         with warnings.catch_warnings(record=True):
-            self.df._data.get_dtype_counts()
+            self.df.dtypes.value_counts()
 
     def time_info(self):
         self.df.info()
@@ -616,6 +657,19 @@ class SelectDtypes:
 
     def time_select_dtypes(self, n):
         self.df.select_dtypes(include="int")
+
+
+class MemoryUsage:
+    def setup(self):
+        self.df = DataFrame(np.random.randn(100000, 2), columns=list("AB"))
+        self.df2 = self.df.copy()
+        self.df2["A"] = self.df2["A"].astype("object")
+
+    def time_memory_usage(self):
+        self.df.memory_usage(deep=True)
+
+    def time_memory_usage_object_dtype(self):
+        self.df2.memory_usage(deep=True)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

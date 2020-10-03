@@ -9,7 +9,7 @@ import pytest
 
 import pandas as pd
 from pandas import Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 main_dtypes = [
     "datetime",
@@ -98,7 +98,7 @@ class TestSeriesNLargestNSmallest:
     )
     def test_nlargest_error(self, r):
         dt = r.dtype
-        msg = "Cannot use method 'n(larg|small)est' with dtype {dt}".format(dt=dt)
+        msg = f"Cannot use method 'n(larg|small)est' with dtype {dt}"
         args = 2, len(r), 0, -1
         methods = r.nlargest, r.nsmallest
         for method, arg in product(methods, args):

@@ -2,15 +2,19 @@
 Support pre-0.12 series pickle compatibility.
 """
 
+import contextlib
 import copy
+import io
 import pickle as pkl
 from typing import TYPE_CHECKING, Optional
 import warnings
 
+from pandas._libs.tslibs import BaseOffset
+
 from pandas import Index
 
 if TYPE_CHECKING:
-    from pandas import Series, DataFrame
+    from pandas import DataFrame, Series
 
 
 def load_reduce(self):
@@ -38,6 +42,11 @@ def load_reduce(self):
                 return
             except TypeError:
                 pass
+        elif args and issubclass(args[0], BaseOffset):
+            # TypeError: object.__new__(Day) is not safe, use Day.__new__()
+            cls = args[0]
+            stack[-1] = cls.__new__(*args)
+            return
 
         raise
 
@@ -55,7 +64,7 @@ class _LoadSparseSeries:
     # https://github.com/python/mypy/issues/1020
     # error: Incompatible return type for "__new__" (returns "Series", but must return
     # a subtype of "_LoadSparseSeries")
-    def __new__(cls) -> "Series":  # type: ignore
+    def __new__(cls) -> "Series":  # type: ignore[misc]
         from pandas import Series
 
         warnings.warn(
@@ -73,7 +82,7 @@ class _LoadSparseFrame:
     # https://github.com/python/mypy/issues/1020
     # error: Incompatible return type for "__new__" (returns "DataFrame", but must
     # return a subtype of "_LoadSparseFrame")
-    def __new__(cls) -> "DataFrame":  # type: ignore
+    def __new__(cls) -> "DataFrame":  # type: ignore[misc]
         from pandas import DataFrame
 
         warnings.warn(
@@ -169,10 +178,10 @@ _class_locations_map = {
 
 
 # our Unpickler sub-class to override methods and some dispatcher
-# functions for compat
+# functions for compat and uses a non-public class of the pickle module.
 
-
-class Unpickler(pkl._Unpickler):  # type: ignore
+# error: Name 'pkl._Unpickler' is not defined
+class Unpickler(pkl._Unpickler):  # type: ignore[name-defined]
     def find_class(self, module, name):
         # override superclass
         key = (module, name)
@@ -229,7 +238,6 @@ def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
     encoding : an optional encoding
     is_verbose : show exception output
     """
-
     try:
         fh.seek(0)
         if encoding is not None:
@@ -241,3 +249,32 @@ def load(fh, encoding: Optional[str] = None, is_verbose: bool = False):
         return up.load()
     except (ValueError, TypeError):
         raise
+
+
+def loads(
+    bytes_object: bytes,
+    *,
+    fix_imports: bool = True,
+    encoding: str = "ASCII",
+    errors: str = "strict",
+):
+    """
+    Analogous to pickle._loads.
+    """
+    fd = io.BytesIO(bytes_object)
+    return Unpickler(
+        fd, fix_imports=fix_imports, encoding=encoding, errors=errors
+    ).load()
+
+
+@contextlib.contextmanager
+def patch_pickle():
+    """
+    Temporarily patch pickle to use our unpickler.
+    """
+    orig_loads = pkl.loads
+    try:
+        pkl.loads = loads
+        yield
+    finally:
+        pkl.loads = orig_loads

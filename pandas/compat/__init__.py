@@ -8,24 +8,18 @@ Other items:
 * platform checker
 """
 import platform
-import struct
 import sys
 import warnings
 
-PY37 = sys.version_info >= (3, 7)
+from pandas._typing import F
+
 PY38 = sys.version_info >= (3, 8)
+PY39 = sys.version_info >= (3, 9)
 PYPY = platform.python_implementation() == "PyPy"
+IS64 = sys.maxsize > 2 ** 32
 
 
-# ----------------------------------------------------------------------------
-# functions largely based / taken from the six module
-
-# Much of the code in this module comes from Benjamin Peterson's six library.
-# The license for this library can be found in LICENSES/SIX and the code can be
-# found at https://bitbucket.org/gutworth/six
-
-
-def set_function_name(f, name, cls):
+def set_function_name(f: F, name: str, cls) -> F:
     """
     Bind the name/qualname attributes of the function.
     """
@@ -35,7 +29,6 @@ def set_function_name(f, name, cls):
     return f
 
 
-# https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian() -> bool:
     """
     Checking if the running platform is little endian.
@@ -69,7 +62,7 @@ def is_platform_linux() -> bool:
     bool
         True if the running platform is linux.
     """
-    return sys.platform == "linux2"
+    return sys.platform == "linux"
 
 
 def is_platform_mac() -> bool:
@@ -84,19 +77,7 @@ def is_platform_mac() -> bool:
     return sys.platform == "darwin"
 
 
-def is_platform_32bit() -> bool:
-    """
-    Checking if the running platform is 32-bit.
-
-    Returns
-    -------
-    bool
-        True if the running platform is 32-bit.
-    """
-    return struct.calcsize("P") * 8 < 64
-
-
-def _import_lzma():
+def import_lzma():
     """
     Importing the `lzma` module.
 
@@ -110,14 +91,13 @@ def _import_lzma():
         return lzma
     except ImportError:
         msg = (
-            "Could not import the lzma module. "
-            "Your installed Python is incomplete. "
+            "Could not import the lzma module. Your installed Python is incomplete. "
             "Attempting to use lzma compression will result in a RuntimeError."
         )
         warnings.warn(msg)
 
 
-def _get_lzma_file(lzma):
+def get_lzma_file(lzma):
     """
     Importing the `LZMAFile` class from the `lzma` module.
 

@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_datetime64_any_dtype
 
 from pandas import (
     DatetimeIndex,
+    DatetimeTZDtype,
     Index,
     NaT,
     Period,
@@ -20,10 +21,11 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
     isna,
+    offsets,
 )
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.ops import roperator
-import pandas.util.testing as tm
 
 
 @pytest.mark.parametrize(
@@ -65,6 +67,9 @@ def test_nat_vector_field_access():
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
             continue
+        if field in ["week", "weekofyear"]:
+            # GH#33595 Deprecate week and weekofyear
+            continue
 
         result = getattr(idx, field)
         expected = Index([getattr(x, field) for x in idx])
@@ -76,6 +81,9 @@ def test_nat_vector_field_access():
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
+            continue
+        if field in ["week", "weekofyear"]:
+            # GH#33595 Deprecate week and weekofyear
             continue
 
         result = getattr(ser.dt, field)
@@ -123,6 +131,13 @@ def test_round_nat(klass, method, freq):
         "dst",
         "fromordinal",
         "fromtimestamp",
+        pytest.param(
+            "fromisocalendar",
+            marks=pytest.mark.skipif(
+                not compat.PY38,
+                reason="'fromisocalendar' was added in stdlib datetime in python 3.8",
+            ),
+        ),
         "isocalendar",
         "strftime",
         "strptime",
@@ -294,9 +309,7 @@ def test_overlap_public_nat_methods(klass, expected):
     # In case when Timestamp, Timedelta, and NaT are overlap, the overlap
     # is considered to be with Timestamp and NaT, not Timedelta.
 
-    # "fromisoformat" was introduced in 3.7
-    if klass is Timestamp and not compat.PY37:
-        expected.remove("fromisoformat")
+    # "fromisocalendar" was introduced in 3.8
     if klass is Timestamp and not compat.PY38:
         expected.remove("fromisocalendar")
 
@@ -379,16 +392,19 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
             and "times" in op_name
             and isinstance(value, Timedelta)
         ):
-            msg = "Cannot multiply"
+            typs = "(Timedelta|NaTType)"
+            msg = rf"unsupported operand type\(s\) for \*: '{typs}' and '{typs}'"
         elif val_type == "str":
             # un-specific check here because the message comes from str
             #  and varies by method
-            msg = (
-                "can only concatenate str|"
-                "unsupported operand type|"
-                "can't multiply sequence|"
-                "Can't convert 'NaTType'|"
-                "must be str, not NaTType"
+            msg = "|".join(
+                [
+                    "can only concatenate str",
+                    "unsupported operand type",
+                    "can't multiply sequence",
+                    "Can't convert 'NaTType'",
+                    "must be str, not NaTType",
+                ]
             )
         else:
             msg = "unsupported operand type"
@@ -425,7 +441,9 @@ def test_nat_rfloordiv_timedelta(val, expected):
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
         DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
         DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
-        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], tz="US/Pacific"),
+        DatetimeArray._from_sequence(
+            ["2011-01-01", "2011-01-02"], dtype=DatetimeTZDtype(tz="US/Pacific")
+        ),
         TimedeltaIndex(["1 day", "2 day"], name="x"),
     ],
 )
@@ -494,8 +512,105 @@ def test_to_numpy_alias():
     assert isna(expected) and isna(result)
 
 
-@pytest.mark.parametrize("other", [Timedelta(0), Timestamp(0)])
+@pytest.mark.parametrize(
+    "other",
+    [
+        Timedelta(0),
+        Timedelta(0).to_pytimedelta(),
+        pytest.param(
+            Timedelta(0).to_timedelta64(),
+            marks=pytest.mark.xfail(
+                reason="td64 doesnt return NotImplemented, see numpy#17017"
+            ),
+        ),
+        Timestamp(0),
+        Timestamp(0).to_pydatetime(),
+        pytest.param(
+            Timestamp(0).to_datetime64(),
+            marks=pytest.mark.xfail(
+                reason="dt64 doesnt return NotImplemented, see numpy#17017"
+            ),
+        ),
+        Timestamp(0).tz_localize("UTC"),
+        NaT,
+    ],
+)
 def test_nat_comparisons(compare_operators_no_eq_ne, other):
     # GH 26039
-    assert getattr(NaT, compare_operators_no_eq_ne)(other) is False
-    assert getattr(other, compare_operators_no_eq_ne)(NaT) is False
+    opname = compare_operators_no_eq_ne
+
+    assert getattr(NaT, opname)(other) is False
+
+    op = getattr(operator, opname.strip("_"))
+    assert op(NaT, other) is False
+    assert op(other, NaT) is False
+
+
+@pytest.mark.parametrize("other", [np.timedelta64(0, "ns"), np.datetime64("now", "ns")])
+def test_nat_comparisons_numpy(other):
+    # Once numpy#17017 is fixed and the xfailed cases in test_nat_comparisons
+    #  pass, this test can be removed
+    assert not NaT == other
+    assert NaT != other
+    assert not NaT < other
+    assert not NaT > other
+    assert not NaT <= other
+    assert not NaT >= other
+
+
+@pytest.mark.parametrize("other", ["foo", 2, 2.0])
+@pytest.mark.parametrize("op", [operator.le, operator.lt, operator.ge, operator.gt])
+def test_nat_comparisons_invalid(other, op):
+    # GH#35585
+    assert not NaT == other
+    assert not other == NaT
+
+    assert NaT != other
+    assert other != NaT
+
+    with pytest.raises(TypeError):
+        op(NaT, other)
+
+    with pytest.raises(TypeError):
+        op(other, NaT)
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        offsets.YearEnd(2),
+        offsets.YearBegin(2),
+        offsets.MonthBegin(1),
+        offsets.MonthEnd(2),
+        offsets.MonthEnd(12),
+        offsets.Day(2),
+        offsets.Day(5),
+        offsets.Hour(24),
+        offsets.Hour(3),
+        offsets.Minute(),
+        np.timedelta64(3, "h"),
+        np.timedelta64(4, "h"),
+        np.timedelta64(3200, "s"),
+        np.timedelta64(3600, "s"),
+        np.timedelta64(3600 * 24, "s"),
+        np.timedelta64(2, "D"),
+        np.timedelta64(365, "D"),
+        timedelta(-2),
+        timedelta(365),
+        timedelta(minutes=120),
+        timedelta(days=4, minutes=180),
+        timedelta(hours=23),
+        timedelta(hours=23, minutes=30),
+        timedelta(hours=48),
+    ],
+)
+def test_nat_addsub_tdlike_scalar(obj):
+    assert NaT + obj is NaT
+    assert obj + NaT is NaT
+    assert NaT - obj is NaT
+
+
+def test_pickle():
+    # GH#4606
+    p = tm.round_trip_pickle(NaT)
+    assert p is NaT

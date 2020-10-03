@@ -1,7 +1,7 @@
 .. _whatsnew_0170:
 
-v0.17.0 (October 9, 2015)
--------------------------
+Version 0.17.0 (October 9, 2015)
+--------------------------------
 
 {{ header }}
 
@@ -40,7 +40,7 @@ Highlights include:
 - Plotting methods are now available as attributes of the ``.plot`` accessor, see :ref:`here <whatsnew_0170.plot>`
 - The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
 - Support for a ``datetime64[ns]`` with timezones as a first-class dtype, see :ref:`here <whatsnew_0170.tz>`
-- The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
+- The default for ``to_datetime`` will now be to ``raise`` when presented with unparsable formats,
   previously this would return the original input. Also, date parse
   functions now return consistent results. See :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
 - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
@@ -181,8 +181,8 @@ Each method signature only includes relevant arguments. Currently, these are lim
 Additional methods for ``dt`` accessor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-strftime
-""""""""
+Series.dt.strftime
+""""""""""""""""""
 
 We are now supporting a ``Series.dt.strftime`` method for datetime-likes to generate a formatted string (:issue:`10110`). Examples:
 
@@ -202,8 +202,8 @@ We are now supporting a ``Series.dt.strftime`` method for datetime-likes to gene
 
 The string format is as the python standard library and details can be found `here <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_
 
-total_seconds
-"""""""""""""
+Series.dt.total_seconds
+"""""""""""""""""""""""
 
 ``pd.Series`` of type ``timedelta64`` has new method ``.dt.total_seconds()`` returning the duration of the timedelta in seconds (:issue:`10817`)
 
@@ -273,9 +273,9 @@ Support for math functions in .eval()
     df = pd.DataFrame({'a': np.random.randn(10)})
     df.eval("b = sin(a)")
 
-The support math functions are `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
-`sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
-`arcsinh`, `arctanh`, `abs` and `arctan2`.
+The support math functions are ``sin``, ``cos``, ``exp``, ``log``, ``expm1``, ``log1p``,
+``sqrt``, ``sinh``, ``cosh``, ``tanh``, ``arcsin``, ``arccos``, ``arctan``, ``arccosh``,
+``arcsinh``, ``arctanh``, ``abs`` and ``arctan2``.
 
 These functions map to the intrinsics for the ``NumExpr`` engine.  For the Python
 engine, they are mapped to ``NumPy`` calls.
@@ -519,7 +519,7 @@ Other enhancements
 
 - ``DataFrame.apply`` will return a Series of dicts if the passed function returns a dict and ``reduce=True`` (:issue:`8735`).
 
-- Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
+- Allow passing ``kwargs`` to the interpolation methods (:issue:`10378`).
 
 - Improved error message when concatenating an empty iterable of ``Dataframe`` objects (:issue:`9157`)
 

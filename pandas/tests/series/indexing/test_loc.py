@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Series, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("val,expected", [(2 ** 63 - 1, 3), (2 ** 63, 4)])
@@ -131,8 +131,8 @@ def test_basic_setitem_with_labels(datetime_series):
 
     inds_notfound = [0, 4, 5, 6]
     arr_inds_notfound = np.array([0, 4, 5, 6])
-    msg = r"\[5\] not contained in the index"
-    with pytest.raises(ValueError, match=msg):
+    msg = r"\[5\] not in index"
+    with pytest.raises(KeyError, match=msg):
         s[inds_notfound] = 0
     with pytest.raises(Exception, match=msg):
         s[arr_inds_notfound] = 0

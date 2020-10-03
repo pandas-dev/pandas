@@ -17,11 +17,10 @@ This module provides a set of commonly used default arguments for functions
 and methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
-from collections import OrderedDict
 from distutils.version import LooseVersion
 from typing import Any, Dict, Optional, Union
 
-from numpy import __version__ as _np_version, ndarray
+from numpy import __version__, ndarray
 
 from pandas._libs.lib import is_bool, is_integer
 from pandas.errors import UnsupportedFunctionCall
@@ -33,13 +32,26 @@ from pandas.util._validators import (
 
 
 class CompatValidator:
-    def __init__(self, defaults, fname=None, method=None, max_fname_arg_count=None):
+    def __init__(
+        self,
+        defaults,
+        fname=None,
+        method: Optional[str] = None,
+        max_fname_arg_count=None,
+    ):
         self.fname = fname
         self.method = method
         self.defaults = defaults
         self.max_fname_arg_count = max_fname_arg_count
 
-    def __call__(self, args, kwargs, fname=None, max_fname_arg_count=None, method=None):
+    def __call__(
+        self,
+        args,
+        kwargs,
+        fname=None,
+        max_fname_arg_count=None,
+        method: Optional[str] = None,
+    ) -> None:
         if args or kwargs:
             fname = self.fname if fname is None else fname
             max_fname_arg_count = (
@@ -86,7 +98,6 @@ def validate_argmin_with_skipna(skipna, args, kwargs):
     'skipna' parameter is either an instance of ndarray or
     is None, since 'skipna' itself should be a boolean
     """
-
     skipna, args = process_skipna(skipna, args)
     validate_argmin(args, kwargs)
     return skipna
@@ -100,18 +111,17 @@ def validate_argmax_with_skipna(skipna, args, kwargs):
     'skipna' parameter is either an instance of ndarray or
     is None, since 'skipna' itself should be a boolean
     """
-
     skipna, args = process_skipna(skipna, args)
     validate_argmax(args, kwargs)
     return skipna
 
 
-ARGSORT_DEFAULTS: "OrderedDict[str, Optional[Union[int, str]]]" = OrderedDict()
+ARGSORT_DEFAULTS: Dict[str, Optional[Union[int, str]]] = {}
 ARGSORT_DEFAULTS["axis"] = -1
 ARGSORT_DEFAULTS["kind"] = "quicksort"
 ARGSORT_DEFAULTS["order"] = None
 
-if LooseVersion(_np_version) >= LooseVersion("1.17.0"):
+if LooseVersion(__version__) >= LooseVersion("1.17.0"):
     # GH-26361. NumPy added radix sort and changed default to None.
     ARGSORT_DEFAULTS["kind"] = None
 
@@ -122,7 +132,7 @@ validate_argsort = CompatValidator(
 
 # two different signatures of argsort, this second validation
 # for when the `kind` param is supported
-ARGSORT_DEFAULTS_KIND: "OrderedDict[str, Optional[int]]" = OrderedDict()
+ARGSORT_DEFAULTS_KIND: Dict[str, Optional[int]] = {}
 ARGSORT_DEFAULTS_KIND["axis"] = -1
 ARGSORT_DEFAULTS_KIND["order"] = None
 validate_argsort_kind = CompatValidator(
@@ -138,7 +148,6 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     either integer type or is None, since 'ascending' itself should
     be a boolean
     """
-
     if is_integer(ascending) or ascending is None:
         args = (ascending,) + args
         ascending = True
@@ -147,7 +156,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
     return ascending
 
 
-CLIP_DEFAULTS = dict(out=None)  # type Dict[str, Any]
+CLIP_DEFAULTS: Dict[str, Any] = dict(out=None)
 validate_clip = CompatValidator(
     CLIP_DEFAULTS, fname="clip", method="both", max_fname_arg_count=3
 )
@@ -160,7 +169,6 @@ def validate_clip_with_axis(axis, args, kwargs):
     so check if the 'axis' parameter is an instance of ndarray, since
     'axis' itself should either be an integer or None
     """
-
     if isinstance(axis, ndarray):
         args = (axis,) + args
         axis = None
@@ -169,14 +177,7 @@ def validate_clip_with_axis(axis, args, kwargs):
     return axis
 
 
-COMPRESS_DEFAULTS: "OrderedDict[str, Any]" = OrderedDict()
-COMPRESS_DEFAULTS["axis"] = None
-COMPRESS_DEFAULTS["out"] = None
-validate_compress = CompatValidator(
-    COMPRESS_DEFAULTS, fname="compress", method="both", max_fname_arg_count=1
-)
-
-CUM_FUNC_DEFAULTS: "OrderedDict[str, Any]" = OrderedDict()
+CUM_FUNC_DEFAULTS: Dict[str, Any] = {}
 CUM_FUNC_DEFAULTS["dtype"] = None
 CUM_FUNC_DEFAULTS["out"] = None
 validate_cum_func = CompatValidator(
@@ -202,7 +203,7 @@ def validate_cum_func_with_skipna(skipna, args, kwargs, name):
     return skipna
 
 
-ALLANY_DEFAULTS: "OrderedDict[str, Optional[bool]]" = OrderedDict()
+ALLANY_DEFAULTS: Dict[str, Optional[bool]] = {}
 ALLANY_DEFAULTS["dtype"] = None
 ALLANY_DEFAULTS["out"] = None
 ALLANY_DEFAULTS["keepdims"] = False
@@ -216,7 +217,7 @@ validate_any = CompatValidator(
 LOGICAL_FUNC_DEFAULTS = dict(out=None, keepdims=False)
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method="kwargs")
 
-MINMAX_DEFAULTS = dict(out=None, keepdims=False)
+MINMAX_DEFAULTS = dict(axis=None, out=None, keepdims=False)
 validate_min = CompatValidator(
     MINMAX_DEFAULTS, fname="min", method="both", max_fname_arg_count=1
 )
@@ -239,19 +240,25 @@ validate_round = CompatValidator(
     ROUND_DEFAULTS, fname="round", method="both", max_fname_arg_count=1
 )
 
-SORT_DEFAULTS: "OrderedDict[str, Optional[Union[int, str]]]" = OrderedDict()
+SORT_DEFAULTS: Dict[str, Optional[Union[int, str]]] = {}
 SORT_DEFAULTS["axis"] = -1
 SORT_DEFAULTS["kind"] = "quicksort"
 SORT_DEFAULTS["order"] = None
 validate_sort = CompatValidator(SORT_DEFAULTS, fname="sort", method="kwargs")
 
-STAT_FUNC_DEFAULTS: "OrderedDict[str, Optional[Any]]" = OrderedDict()
+STAT_FUNC_DEFAULTS: Dict[str, Optional[Any]] = {}
 STAT_FUNC_DEFAULTS["dtype"] = None
 STAT_FUNC_DEFAULTS["out"] = None
 
-PROD_DEFAULTS = SUM_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+SUM_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+SUM_DEFAULTS["axis"] = None
 SUM_DEFAULTS["keepdims"] = False
 SUM_DEFAULTS["initial"] = None
+
+PROD_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
+PROD_DEFAULTS["axis"] = None
+PROD_DEFAULTS["keepdims"] = False
+PROD_DEFAULTS["initial"] = None
 
 MEDIAN_DEFAULTS = STAT_FUNC_DEFAULTS.copy()
 MEDIAN_DEFAULTS["overwrite_input"] = False
@@ -273,13 +280,13 @@ validate_median = CompatValidator(
     MEDIAN_DEFAULTS, fname="median", method="both", max_fname_arg_count=1
 )
 
-STAT_DDOF_FUNC_DEFAULTS: "OrderedDict[str, Optional[bool]]" = OrderedDict()
+STAT_DDOF_FUNC_DEFAULTS: Dict[str, Optional[bool]] = {}
 STAT_DDOF_FUNC_DEFAULTS["dtype"] = None
 STAT_DDOF_FUNC_DEFAULTS["out"] = None
 STAT_DDOF_FUNC_DEFAULTS["keepdims"] = False
 validate_stat_ddof_func = CompatValidator(STAT_DDOF_FUNC_DEFAULTS, method="kwargs")
 
-TAKE_DEFAULTS: "OrderedDict[str, Optional[str]]" = OrderedDict()
+TAKE_DEFAULTS: Dict[str, Optional[str]] = {}
 TAKE_DEFAULTS["out"] = None
 TAKE_DEFAULTS["mode"] = "raise"
 validate_take = CompatValidator(TAKE_DEFAULTS, fname="take", method="kwargs")
@@ -292,7 +299,6 @@ def validate_take_with_convert(convert, args, kwargs):
     ndarray or 'None', so check if the 'convert' parameter is either
     an instance of ndarray or is None
     """
-
     if isinstance(convert, ndarray) or convert is None:
         args = (convert,) + args
         convert = True
@@ -307,7 +313,7 @@ validate_transpose = CompatValidator(
 )
 
 
-def validate_window_func(name, args, kwargs):
+def validate_window_func(name, args, kwargs) -> None:
     numpy_args = ("axis", "dtype", "out")
     msg = (
         f"numpy operations are not valid with window objects. "
@@ -322,7 +328,7 @@ def validate_window_func(name, args, kwargs):
             raise UnsupportedFunctionCall(msg)
 
 
-def validate_rolling_func(name, args, kwargs):
+def validate_rolling_func(name, args, kwargs) -> None:
     numpy_args = ("axis", "dtype", "out")
     msg = (
         f"numpy operations are not valid with window objects. "
@@ -337,7 +343,7 @@ def validate_rolling_func(name, args, kwargs):
             raise UnsupportedFunctionCall(msg)
 
 
-def validate_expanding_func(name, args, kwargs):
+def validate_expanding_func(name, args, kwargs) -> None:
     numpy_args = ("axis", "dtype", "out")
     msg = (
         f"numpy operations are not valid with window objects. "
@@ -352,7 +358,7 @@ def validate_expanding_func(name, args, kwargs):
             raise UnsupportedFunctionCall(msg)
 
 
-def validate_groupby_func(name, args, kwargs, allowed=None):
+def validate_groupby_func(name, args, kwargs, allowed=None) -> None:
     """
     'args' and 'kwargs' should be empty, except for allowed
     kwargs because all of
@@ -366,16 +372,15 @@ def validate_groupby_func(name, args, kwargs, allowed=None):
 
     if len(args) + len(kwargs) > 0:
         raise UnsupportedFunctionCall(
-            f"numpy operations are not valid with "
-            f"groupby. Use .groupby(...).{name}() "
-            f"instead"
+            "numpy operations are not valid with groupby. "
+            f"Use .groupby(...).{name}() instead"
         )
 
 
 RESAMPLER_NUMPY_OPS = ("min", "max", "sum", "prod", "mean", "std", "var")
 
 
-def validate_resampler_func(method, args, kwargs):
+def validate_resampler_func(method: str, args, kwargs) -> None:
     """
     'args' and 'kwargs' should be empty because all of
     their necessary parameters are explicitly listed in
@@ -384,15 +389,14 @@ def validate_resampler_func(method, args, kwargs):
     if len(args) + len(kwargs) > 0:
         if method in RESAMPLER_NUMPY_OPS:
             raise UnsupportedFunctionCall(
-                f"numpy operations are not "
-                f"valid with resample. Use "
-                f".resample(...).{method}() instead"
+                "numpy operations are not valid with resample. "
+                f"Use .resample(...).{method}() instead"
             )
         else:
             raise TypeError("too many arguments passed in")
 
 
-def validate_minmax_axis(axis):
+def validate_minmax_axis(axis: Optional[int]) -> None:
     """
     Ensure that the axis argument passed to min, max, argmin, or argmax is
     zero or None, as otherwise it will be incorrectly ignored.

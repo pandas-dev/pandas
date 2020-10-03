@@ -3,12 +3,12 @@
 {{ header }}
 
 
-v0.9.0 (October 7, 2012)
-------------------------
+Version 0.9.0 (October 7, 2012)
+-------------------------------
 
 This is a major release from 0.8.1 and includes several new features and
 enhancements along with a large number of bug fixes. New features include
-vectorized unicode encoding/decoding for `Series.str`, `to_latex` method to
+vectorized unicode encoding/decoding for ``Series.str``, ``to_latex`` method to
 DataFrame, more flexible parsing of boolean values, and enabling the download of
 options data from Yahoo! Finance.
 

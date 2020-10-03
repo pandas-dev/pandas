@@ -5,13 +5,11 @@ import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-import pandas.core.common as com
-from pandas.core.generic import _shared_docs
-from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.base import GotItemMixin
 from pandas.core.indexes.api import MultiIndex
+from pandas.core.shared_docs import _shared_docs
 
 _shared_docs = dict(**_shared_docs)
 _doc_template = """
@@ -22,8 +20,10 @@ _doc_template = """
 
         See Also
         --------
-        Series.%(name)s : Series %(name)s.
-        DataFrame.%(name)s : DataFrame %(name)s.
+        pandas.Series.%(name)s : Calling object with Series data.
+        pandas.DataFrame.%(name)s : Calling object with DataFrame data.
+        pandas.Series.%(func_name)s : Similar method for Series.
+        pandas.DataFrame.%(func_name)s : Similar method for DataFrame.
 """
 
 
@@ -43,7 +43,7 @@ def _dispatch(name: str, *args, **kwargs):
     return outer
 
 
-class WindowGroupByMixin(GroupByMixin):
+class WindowGroupByMixin(GotItemMixin):
     """
     Provide the groupby facilities.
     """
@@ -52,7 +52,7 @@ class WindowGroupByMixin(GroupByMixin):
         kwargs.pop("parent", None)
         groupby = kwargs.pop("groupby", None)
         if groupby is None:
-            groupby, obj = obj, obj.obj
+            groupby, obj = obj, obj._selected_obj
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -78,6 +78,7 @@ class WindowGroupByMixin(GroupByMixin):
         performing the original function call on the grouped object.
         """
         kwargs.pop("floor", None)
+        kwargs.pop("original_func", None)
 
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
@@ -91,21 +92,20 @@ class WindowGroupByMixin(GroupByMixin):
         return self._groupby.apply(f)
 
 
-def _flex_binary_moment(arg1, arg2, f, pairwise=False):
+def flex_binary_moment(arg1, arg2, f, pairwise=False):
 
     if not (
         isinstance(arg1, (np.ndarray, ABCSeries, ABCDataFrame))
         and isinstance(arg2, (np.ndarray, ABCSeries, ABCDataFrame))
     ):
         raise TypeError(
-            "arguments to moment function must be of type "
-            "np.ndarray/Series/DataFrame"
+            "arguments to moment function must be of type np.ndarray/Series/DataFrame"
         )
 
     if isinstance(arg1, (np.ndarray, ABCSeries)) and isinstance(
         arg2, (np.ndarray, ABCSeries)
     ):
-        X, Y = _prep_binary(arg1, arg2)
+        X, Y = prep_binary(arg1, arg2)
         return f(X, Y)
 
     elif isinstance(arg1, ABCDataFrame):
@@ -152,7 +152,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                             results[i][j] = results[j][i]
                         else:
                             results[i][j] = f(
-                                *_prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
+                                *prep_binary(arg1.iloc[:, i], arg2.iloc[:, j])
                             )
 
                 from pandas import concat
@@ -179,7 +179,10 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                         result.index = MultiIndex.from_product(
                             arg2.columns.levels + [result_index]
                         )
-                        result = result.reorder_levels([2, 0, 1]).sort_index()
+                        # GH 34440
+                        num_levels = len(result.index.levels)
+                        new_order = [num_levels - 1] + list(range(num_levels - 1))
+                        result = result.reorder_levels(new_order).sort_index()
                     else:
                         result.index = MultiIndex.from_product(
                             [range(len(arg2.columns)), range(len(result_index))]
@@ -213,112 +216,22 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                 raise ValueError("'pairwise' is not True/False")
         else:
             results = {
-                i: f(*_prep_binary(arg1.iloc[:, i], arg2))
+                i: f(*prep_binary(arg1.iloc[:, i], arg2))
                 for i, col in enumerate(arg1.columns)
             }
             return dataframe_from_int_dict(results, arg1)
 
     else:
-        return _flex_binary_moment(arg2, arg1, f)
+        return flex_binary_moment(arg2, arg1, f)
 
 
-def _get_center_of_mass(comass, span, halflife, alpha):
-    valid_count = com.count_not_none(comass, span, halflife, alpha)
-    if valid_count > 1:
-        raise ValueError("comass, span, halflife, and alpha are mutually exclusive")
-
-    # Convert to center of mass; domain checks ensure 0 < alpha <= 1
-    if comass is not None:
-        if comass < 0:
-            raise ValueError("comass must satisfy: comass >= 0")
-    elif span is not None:
-        if span < 1:
-            raise ValueError("span must satisfy: span >= 1")
-        comass = (span - 1) / 2.0
-    elif halflife is not None:
-        if halflife <= 0:
-            raise ValueError("halflife must satisfy: halflife > 0")
-        decay = 1 - np.exp(np.log(0.5) / halflife)
-        comass = 1 / decay - 1
-    elif alpha is not None:
-        if alpha <= 0 or alpha > 1:
-            raise ValueError("alpha must satisfy: 0 < alpha <= 1")
-        comass = (1.0 - alpha) / alpha
-    else:
-        raise ValueError("Must pass one of comass, span, halflife, or alpha")
-
-    return float(comass)
-
-
-def _offset(window, center):
-    if not is_integer(window):
-        window = len(window)
-    offset = (window - 1) / 2.0 if center else 0
-    try:
-        return int(offset)
-    except TypeError:
-        return offset.astype(int)
-
-
-def _require_min_periods(p):
-    def _check_func(minp, window):
-        if minp is None:
-            return window
-        else:
-            return max(p, minp)
-
-    return _check_func
-
-
-def _use_window(minp, window):
-    if minp is None:
-        return window
-    else:
-        return minp
-
-
-def calculate_min_periods(
-    window: int,
-    min_periods: Optional[int],
-    num_values: int,
-    required_min_periods: int,
-    floor: int,
-) -> int:
-    """
-    Calculates final minimum periods value for rolling aggregations.
-
-    Parameters
-    ----------
-    window : passed window value
-    min_periods : passed min periods value
-    num_values : total number of values
-    required_min_periods : required min periods per aggregation function
-    floor : required min periods per aggregation function
-
-    Returns
-    -------
-    min_periods : int
-    """
-    if min_periods is None:
-        min_periods = window
-    else:
-        min_periods = max(required_min_periods, min_periods)
-    if min_periods > window:
-        raise ValueError(f"min_periods {min_periods} must be <= window {window}")
-    elif min_periods > num_values:
-        min_periods = num_values + 1
-    elif min_periods < 0:
-        raise ValueError("min_periods must be >= 0")
-    return max(min_periods, floor)
-
-
-def _zsqrt(x):
+def zsqrt(x):
     with np.errstate(all="ignore"):
         result = np.sqrt(x)
         mask = x < 0
 
     if isinstance(x, ABCDataFrame):
-        if mask.values.any():
+        if mask._values.any():
             result[mask] = 0
     else:
         if mask.any():
@@ -327,7 +240,7 @@ def _zsqrt(x):
     return result
 
 
-def _prep_binary(arg1, arg2):
+def prep_binary(arg1, arg2):
     if not isinstance(arg2, type(arg1)):
         raise Exception("Input arrays must be of the same type!")
 

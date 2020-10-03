@@ -1,24 +1,21 @@
 import abc
 import inspect
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Tuple, Type
 
 import numpy as np
 
-from pandas._libs import reduction as libreduction
+from pandas._config import option_context
+
+from pandas._typing import Axis, FrameOrSeriesUnion
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import (
-    is_dict_like,
-    is_extension_array_dtype,
-    is_list_like,
-    is_sequence,
-)
-from pandas.core.dtypes.generic import ABCMultiIndex, ABCSeries
+from pandas.core.dtypes.common import is_dict_like, is_list_like, is_sequence
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.construction import create_series_with_explicit_dtype
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series, Index
+    from pandas import DataFrame, Index, Series
 
 ResType = Dict[int, Any]
 
@@ -26,15 +23,14 @@ ResType = Dict[int, Any]
 def frame_apply(
     obj: "DataFrame",
     func,
-    axis=0,
+    axis: Axis = 0,
     raw: bool = False,
-    result_type=None,
+    result_type: Optional[str] = None,
     ignore_failures: bool = False,
     args=None,
     kwds=None,
 ):
     """ construct and return a row or column based frame apply object """
-
     axis = obj._get_axis_number(axis)
     klass: Type[FrameApply]
     if axis == 0:
@@ -77,7 +73,7 @@ class FrameApply(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def wrap_results_for_axis(
         self, results: ResType, res_index: "Index"
-    ) -> Union["Series", "DataFrame"]:
+    ) -> FrameOrSeriesUnion:
         pass
 
     # ---------------------------------------------------------------
@@ -87,7 +83,7 @@ class FrameApply(metaclass=abc.ABCMeta):
         obj: "DataFrame",
         func,
         raw: bool,
-        result_type,
+        result_type: Optional[str],
         ignore_failures: bool,
         args,
         kwds,
@@ -143,7 +139,6 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def get_result(self):
         """ compute the results """
-
         # dispatch to agg
         if is_list_like(self.f) or is_dict_like(self.f):
             return self.obj.aggregate(self.f, axis=self.axis, *self.args, **self.kwds)
@@ -166,10 +161,9 @@ class FrameApply(metaclass=abc.ABCMeta):
         # ufunc
         elif isinstance(self.f, np.ufunc):
             with np.errstate(all="ignore"):
-                results = self.obj._data.apply("apply", func=self.f)
-            return self.obj._constructor(
-                data=results, index=self.index, columns=self.columns, copy=False
-            )
+                results = self.obj._mgr.apply("apply", func=self.f)
+            # _constructor will retain self.index and self.columns
+            return self.obj._constructor(data=results)
 
         # broadcasting
         if self.result_type == "broadcast":
@@ -180,7 +174,7 @@ class FrameApply(metaclass=abc.ABCMeta):
             return self.apply_empty_result()
 
         # raw
-        elif self.raw and not self.obj._is_mixed_type:
+        elif self.raw:
             return self.apply_raw()
 
         return self.apply_standard()
@@ -192,7 +186,6 @@ class FrameApply(metaclass=abc.ABCMeta):
         we will try to apply the function to an empty
         series in order to see if this is a reduction function
         """
-
         # we are not asked to reduce or infer reduction
         # so just return a copy of the existing object
         if self.result_type not in ["reduce", None]:
@@ -223,15 +216,23 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-        try:
-            result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)
-        except ValueError as err:
-            if "Function does not reduce" not in str(err):
-                # catch only ValueError raised intentionally in libreduction
-                raise
-            # We expect np.apply_along_axis to give a two-dimensional result, or
-            #  also raise.
-            result = np.apply_along_axis(self.f, self.axis, self.values)
+
+        def wrap_function(func):
+            """
+            Wrap user supplied function to work around numpy issue.
+
+            see https://github.com/numpy/numpy/issues/8352
+            """
+
+            def wrapper(*args, **kwargs):
+                result = func(*args, **kwargs)
+                if isinstance(result, str):
+                    result = np.array(result, dtype=object)
+                return result
+
+            return wrapper
+
+        result = np.apply_along_axis(wrap_function(self.f), self.axis, self.values)
 
         # TODO: mixed type case
         if result.ndim == 2:
@@ -267,50 +268,6 @@ class FrameApply(metaclass=abc.ABCMeta):
         return result
 
     def apply_standard(self):
-
-        # try to reduce first (by default)
-        # this only matters if the reduction in values is of different dtype
-        # e.g. if we want to apply to a SparseFrame, then can't directly reduce
-
-        # we cannot reduce using non-numpy dtypes,
-        # as demonstrated in gh-12244
-        if (
-            self.result_type in ["reduce", None]
-            and not self.dtypes.apply(is_extension_array_dtype).any()
-            # Disallow complex_internals since libreduction shortcut
-            #  cannot handle MultiIndex
-            and not isinstance(self.agg_axis, ABCMultiIndex)
-        ):
-
-            values = self.values
-            index = self.obj._get_axis(self.axis)
-            labels = self.agg_axis
-            empty_arr = np.empty(len(index), dtype=values.dtype)
-
-            # Preserve subclass for e.g. test_subclassed_apply
-            dummy = self.obj._constructor_sliced(
-                empty_arr, index=index, dtype=values.dtype
-            )
-
-            try:
-                result = libreduction.compute_reduction(
-                    values, self.f, axis=self.axis, dummy=dummy, labels=labels
-                )
-            except ValueError as err:
-                if "Function does not reduce" not in str(err):
-                    # catch only ValueError raised intentionally in libreduction
-                    raise
-            except TypeError:
-                # e.g. test_apply_ignore_failures we just ignore
-                if not self.ignore_failures:
-                    raise
-            except ZeroDivisionError:
-                # reached via numexpr; fall back to python implementation
-                pass
-            else:
-                return self.obj._constructor_sliced(result, index=labels)
-
-        # compute the result using the series generator
         results, res_index = self.apply_series_generator()
 
         # wrap results
@@ -320,8 +277,8 @@ class FrameApply(metaclass=abc.ABCMeta):
         series_gen = self.series_generator
         res_index = self.result_index
 
-        keys = []
         results = {}
+
         if self.ignore_failures:
             successes = []
             for i, v in enumerate(series_gen):
@@ -330,7 +287,6 @@ class FrameApply(metaclass=abc.ABCMeta):
                 except Exception:
                     pass
                 else:
-                    keys.append(v.name)
                     successes.append(i)
 
             # so will work with MultiIndex
@@ -338,20 +294,22 @@ class FrameApply(metaclass=abc.ABCMeta):
                 res_index = res_index.take(successes)
 
         else:
-            for i, v in enumerate(series_gen):
-                results[i] = self.f(v)
-                keys.append(v.name)
+            with option_context("mode.chained_assignment", None):
+                for i, v in enumerate(series_gen):
+                    # ignore SettingWithCopy here in case the user mutates
+                    results[i] = self.f(v)
+                    if isinstance(results[i], ABCSeries):
+                        # If we have a view on v, we need to make a copy because
+                        #  series_generator will swap out the underlying data
+                        results[i] = results[i].copy(deep=False)
 
         return results, res_index
 
-    def wrap_results(
-        self, results: ResType, res_index: "Index"
-    ) -> Union["Series", "DataFrame"]:
+    def wrap_results(self, results: ResType, res_index: "Index") -> FrameOrSeriesUnion:
         from pandas import Series
 
         # see if we can infer the results
         if len(results) > 0 and 0 in results and is_sequence(results[0]):
-
             return self.wrap_results_for_axis(results, res_index)
 
         # dict of scalars
@@ -391,10 +349,33 @@ class FrameRowApply(FrameApply):
 
     def wrap_results_for_axis(
         self, results: ResType, res_index: "Index"
-    ) -> "DataFrame":
+    ) -> FrameOrSeriesUnion:
         """ return the results for the rows """
 
-        result = self.obj._constructor(data=results)
+        if self.result_type == "reduce":
+            # e.g. test_apply_dict GH#8735
+            res = self.obj._constructor_sliced(results)
+            res.index = res_index
+            return res
+
+        elif self.result_type is None and all(
+            isinstance(x, dict) for x in results.values()
+        ):
+            # Our operation was a to_dict op e.g.
+            #  test_apply_dict GH#8735, test_apply_reduce_rows_to_dict GH#25196
+            return self.obj._constructor_sliced(results)
+
+        try:
+            result = self.obj._constructor(data=results)
+        except ValueError as err:
+            if "arrays must all be same length" in str(err):
+                # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
+                #  see test_agg_listlike_result GH#29587
+                res = self.obj._constructor_sliced(results)
+                res.index = res_index
+                return res
+            else:
+                raise
 
         if not isinstance(results[0], ABCSeries):
             if len(result.index) == len(self.res_columns):
@@ -415,11 +396,21 @@ class FrameColumnApply(FrameApply):
 
     @property
     def series_generator(self):
-        constructor = self.obj._constructor_sliced
-        return (
-            constructor(arr, index=self.columns, name=name)
-            for i, (arr, name) in enumerate(zip(self.values, self.index))
-        )
+        values = self.values
+        assert len(values) > 0
+
+        # We create one Series object, and will swap out the data inside
+        #  of it.  Kids: don't do this at home.
+        ser = self.obj._ixs(0, axis=0)
+        mgr = ser._mgr
+        blk = mgr.blocks[0]
+
+        for (arr, name) in zip(values, self.index):
+            # GH#35462 re-pin mgr in case setitem changed it
+            ser._mgr = mgr
+            blk.values = arr
+            ser.name = name
+            yield ser
 
     @property
     def result_index(self) -> "Index":
@@ -431,9 +422,9 @@ class FrameColumnApply(FrameApply):
 
     def wrap_results_for_axis(
         self, results: ResType, res_index: "Index"
-    ) -> Union["Series", "DataFrame"]:
+    ) -> FrameOrSeriesUnion:
         """ return the results for the columns """
-        result: Union["Series", "DataFrame"]
+        result: FrameOrSeriesUnion
 
         # we have requested to expand
         if self.result_type == "expand":
@@ -441,9 +432,7 @@ class FrameColumnApply(FrameApply):
 
         # we have a non-series and don't want inference
         elif not isinstance(results[0], ABCSeries):
-            from pandas import Series
-
-            result = Series(results)
+            result = self.obj._constructor_sliced(results)
             result.index = res_index
 
         # we may want to infer results
@@ -454,7 +443,6 @@ class FrameColumnApply(FrameApply):
 
     def infer_to_same_shape(self, results: ResType, res_index: "Index") -> "DataFrame":
         """ infer the results to the same shape as the input object """
-
         result = self.obj._constructor(data=results)
         result = result.T
 

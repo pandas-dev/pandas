@@ -51,6 +51,7 @@ def test_construction():
     assert Timedelta("1 milli") == timedelta(milliseconds=1)
     assert Timedelta("1 millisecond") == timedelta(milliseconds=1)
     assert Timedelta("1 us") == timedelta(microseconds=1)
+    assert Timedelta("1 µs") == timedelta(microseconds=1)
     assert Timedelta("1 micros") == timedelta(microseconds=1)
     assert Timedelta("1 microsecond") == timedelta(microseconds=1)
     assert Timedelta("1.5 microsecond") == Timedelta("00:00:00.000001500")
@@ -79,22 +80,26 @@ def test_construction():
 
     # Currently invalid as it has a - on the hh:mm:dd part
     # (only allowed on the days)
-    with pytest.raises(ValueError):
+    msg = "only leading negative signs are allowed"
+    with pytest.raises(ValueError, match=msg):
         Timedelta("-10 days -1 h 1.5m 1s 3us")
 
     # only leading neg signs are allowed
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         Timedelta("10 days -1 h 1.5m 1s 3us")
 
     # no units specified
-    with pytest.raises(ValueError):
+    msg = "no units specified"
+    with pytest.raises(ValueError, match=msg):
         Timedelta("3.1415")
 
     # invalid construction
-    with pytest.raises(ValueError, match="cannot construct a Timedelta"):
+    msg = "cannot construct a Timedelta"
+    with pytest.raises(ValueError, match=msg):
         Timedelta()
 
-    with pytest.raises(ValueError, match="unit abbreviation w/o a number"):
+    msg = "unit abbreviation w/o a number"
+    with pytest.raises(ValueError, match=msg):
         Timedelta("foo")
 
     msg = (
@@ -121,7 +126,8 @@ def test_construction():
     assert result == expected
     assert to_timedelta(offsets.Hour(2)) == Timedelta("0 days, 02:00:00")
 
-    with pytest.raises(ValueError):
+    msg = "unit abbreviation w/o a number"
+    with pytest.raises(ValueError, match=msg):
         Timedelta("foo bar")
 
 
@@ -170,23 +176,24 @@ def test_td_from_repr_roundtrip(val):
     td = Timedelta(val)
     assert Timedelta(td.value) == td
 
-    # str does not normally display nanos
-    if not td.nanoseconds:
-        assert Timedelta(str(td)) == td
+    assert Timedelta(str(td)) == td
     assert Timedelta(td._repr_base(format="all")) == td
+    assert Timedelta(td._repr_base()) == td
 
 
 def test_overflow_on_construction():
+    msg = "int too (large|big) to convert"
+
     # GH#3374
     value = Timedelta("1day").value * 20169940
-    with pytest.raises(OverflowError):
+    with pytest.raises(OverflowError, match=msg):
         Timedelta(value)
 
     # xref GH#17637
-    with pytest.raises(OverflowError):
+    with pytest.raises(OverflowError, match=msg):
         Timedelta(7 * 19999, unit="D")
 
-    with pytest.raises(OverflowError):
+    with pytest.raises(OverflowError, match=msg):
         Timedelta(timedelta(days=13 * 19999))
 
 
@@ -239,7 +246,7 @@ def test_iso_constructor(fmt, exp):
     ],
 )
 def test_iso_constructor_raises(fmt):
-    msg = "Invalid ISO 8601 Duration format - {}".format(fmt)
+    msg = f"Invalid ISO 8601 Duration format - {fmt}"
     with pytest.raises(ValueError, match=msg):
         Timedelta(fmt)
 
@@ -272,5 +279,27 @@ def test_td_constructor_on_nanoseconds(constructed_td, conversion):
 
 
 def test_td_constructor_value_error():
-    with pytest.raises(TypeError):
+    msg = "Invalid type <class 'str'>. Must be int or float."
+    with pytest.raises(TypeError, match=msg):
         Timedelta(nanoseconds="abc")
+
+
+def test_timedelta_constructor_identity():
+    # Test for #30543
+    expected = Timedelta(np.timedelta64(1, "s"))
+    result = Timedelta(expected)
+    assert result is expected
+
+
+@pytest.mark.parametrize(
+    "constructor, value, unit, expectation",
+    [
+        (Timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
+        (to_timedelta, "10s", "ms", (ValueError, "unit must not be specified")),
+        (to_timedelta, ["1", 2, 3], "s", (ValueError, "unit must not be specified")),
+    ],
+)
+def test_string_with_unit(constructor, value, unit, expectation):
+    exp, match = expectation
+    with pytest.raises(exp, match=match):
+        _ = constructor(value, unit=unit)

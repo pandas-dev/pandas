@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Categorical, DataFrame, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesSortValues:
@@ -65,7 +65,8 @@ class TestSeriesSortValues:
 
         # inplace=True
         ts = datetime_series.copy()
-        ts.sort_values(ascending=False, inplace=True)
+        return_value = ts.sort_values(ascending=False, inplace=True)
+        assert return_value is None
         tm.assert_series_equal(ts, datetime_series.sort_values(ascending=False))
         tm.assert_index_equal(
             ts.index, datetime_series.sort_values(ascending=False).index
@@ -77,8 +78,8 @@ class TestSeriesSortValues:
         s = df.iloc[:, 0]
 
         msg = (
-            "This Series is a view of some other array, to sort in-place"
-            " you must create a copy"
+            "This Series is a view of some other array, to sort in-place "
+            "you must create a copy"
         )
         with pytest.raises(ValueError, match=msg):
             s.sort_values(inplace=True)
@@ -157,6 +158,7 @@ class TestSeriesSortValues:
         expected = df.iloc[[2, 1, 5, 4, 3, 0]]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize(
         "original_list, sorted_list, ignore_index, output_index",
         [
@@ -165,21 +167,46 @@ class TestSeriesSortValues:
         ],
     )
     def test_sort_values_ignore_index(
-        self, original_list, sorted_list, ignore_index, output_index
+        self, inplace, original_list, sorted_list, ignore_index, output_index
     ):
         # GH 30114
-        sr = Series(original_list)
+        ser = Series(original_list)
         expected = Series(sorted_list, index=output_index)
+        kwargs = {"ignore_index": ignore_index, "inplace": inplace}
 
-        # Test when inplace is False
-        sorted_sr = sr.sort_values(ascending=False, ignore_index=ignore_index)
-        tm.assert_series_equal(sorted_sr, expected)
+        if inplace:
+            result_ser = ser.copy()
+            result_ser.sort_values(ascending=False, **kwargs)
+        else:
+            result_ser = ser.sort_values(ascending=False, **kwargs)
 
-        tm.assert_series_equal(sr, Series(original_list))
+        tm.assert_series_equal(result_ser, expected)
+        tm.assert_series_equal(ser, Series(original_list))
 
-        # Test when inplace is True
-        copied_sr = sr.copy()
-        copied_sr.sort_values(ascending=False, ignore_index=ignore_index, inplace=True)
-        tm.assert_series_equal(copied_sr, expected)
 
-        tm.assert_series_equal(sr, Series(original_list))
+class TestSeriesSortingKey:
+    def test_sort_values_key(self):
+        series = Series(np.array(["Hello", "goodbye"]))
+
+        result = series.sort_values(0)
+        expected = series
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_values(0, key=lambda x: x.str.lower())
+        expected = series[::-1]
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_values_key_nan(self):
+        series = Series(np.array([0, 5, np.nan, 3, 2, np.nan]))
+
+        result = series.sort_values(0)
+        expected = series.iloc[[0, 4, 3, 1, 2, 5]]
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_values(0, key=lambda x: x + 5)
+        expected = series.iloc[[0, 4, 3, 1, 2, 5]]
+        tm.assert_series_equal(result, expected)
+
+        result = series.sort_values(0, key=lambda x: -x, ascending=False)
+        expected = series.iloc[[0, 4, 3, 1, 2, 5]]
+        tm.assert_series_equal(result, expected)

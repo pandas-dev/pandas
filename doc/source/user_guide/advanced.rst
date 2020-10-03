@@ -260,7 +260,9 @@ You don't have to specify all levels of the ``MultiIndex`` by passing only the
 first elements of the tuple. For example, you can use "partial" indexing to
 get all elements with ``bar`` in the first level as follows:
 
-df.loc['bar']
+.. ipython:: python
+
+   df.loc['bar']
 
 This is a shortcut for the slightly more verbose notation ``df.loc[('bar',),]`` (equivalent
 to ``df.loc['bar',]`` in this example).
@@ -565,19 +567,15 @@ When working with an ``Index`` object directly, rather than via a ``DataFrame``,
    mi2 = mi.rename("new name", level=0)
    mi2
 
-.. warning::
 
-   Prior to pandas 1.0.0, you could also set the names of a ``MultiIndex``
-   by updating the name of a level.
+You cannot set the names of the MultiIndex via a level.
 
-   .. code-block:: none
+.. ipython:: python
+   :okexcept:
 
-      >>> mi.levels[0].name = 'name via level'
-      >>> mi.names[0]  # only works for older pandas
-      'name via level'
+   mi.levels[0].name = "name via level"
 
-   As of pandas 1.0, this will *silently* fail to update the names
-   of the MultiIndex. Use :meth:`Index.set_names` instead.
+Use :meth:`Index.set_names` instead.
 
 Sorting a ``MultiIndex``
 ------------------------
@@ -1066,8 +1064,6 @@ are closed on.  Intervals are closed on the right side by default.
    pd.interval_range(start=0, end=4, closed='both')
 
    pd.interval_range(start=0, end=4, closed='neither')
-
-.. versionadded:: 0.23.0
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
 intervals from ``start`` to ``end`` inclusively, with ``periods`` number of elements

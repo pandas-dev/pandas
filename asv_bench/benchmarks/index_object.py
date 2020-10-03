@@ -12,7 +12,8 @@ from pandas import (
     Series,
     date_range,
 )
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 
 class SetOperations:
@@ -54,44 +55,10 @@ class SetDisjoint:
         self.datetime_left.difference(self.datetime_right)
 
 
-class Datetime:
-    def setup(self):
-        self.dr = date_range("20000101", freq="D", periods=10000)
-
-    def time_is_dates_only(self):
-        self.dr._is_dates_only
-
-
-class Ops:
-
-    params = ["float", "int"]
-    param_names = ["dtype"]
-
-    def setup(self, dtype):
-        N = 10 ** 6
-        indexes = {"int": "makeIntIndex", "float": "makeFloatIndex"}
-        self.index = getattr(tm, indexes[dtype])(N)
-
-    def time_add(self, dtype):
-        self.index + 2
-
-    def time_subtract(self, dtype):
-        self.index - 2
-
-    def time_multiply(self, dtype):
-        self.index * 2
-
-    def time_divide(self, dtype):
-        self.index / 2
-
-    def time_modulo(self, dtype):
-        self.index % 2
-
-
 class Range:
     def setup(self):
-        self.idx_inc = RangeIndex(start=0, stop=10 ** 7, step=3)
-        self.idx_dec = RangeIndex(start=10 ** 7, stop=-1, step=-3)
+        self.idx_inc = RangeIndex(start=0, stop=10 ** 6, step=3)
+        self.idx_dec = RangeIndex(start=10 ** 6, stop=-1, step=-3)
 
     def time_max(self):
         self.idx_inc.max()
@@ -106,15 +73,23 @@ class Range:
         self.idx_inc.min()
 
     def time_get_loc_inc(self):
-        self.idx_inc.get_loc(900000)
+        self.idx_inc.get_loc(900_000)
 
     def time_get_loc_dec(self):
-        self.idx_dec.get_loc(100000)
+        self.idx_dec.get_loc(100_000)
+
+    def time_iter_inc(self):
+        for _ in self.idx_inc:
+            pass
+
+    def time_iter_dec(self):
+        for _ in self.idx_dec:
+            pass
 
 
 class IndexEquals:
     def setup(self):
-        idx_large_fast = RangeIndex(100000)
+        idx_large_fast = RangeIndex(100_000)
         idx_small_slow = date_range(start="1/1/2012", periods=1)
         self.mi_large_slow = MultiIndex.from_product([idx_large_fast, idx_small_slow])
 
@@ -127,7 +102,7 @@ class IndexEquals:
 class IndexAppend:
     def setup(self):
 
-        N = 10000
+        N = 10_000
         self.range_idx = RangeIndex(0, 100)
         self.int_idx = self.range_idx.astype(int)
         self.obj_idx = self.int_idx.astype(str)
@@ -201,7 +176,7 @@ class Indexing:
 class Float64IndexMethod:
     # GH 13166
     def setup(self):
-        N = 100000
+        N = 100_000
         a = np.arange(N)
         self.ind = Float64Index(a * 4.8000000418824129e-08)
 
@@ -245,7 +220,7 @@ class GC:
     params = [1, 2, 5]
 
     def create_use_drop(self):
-        idx = Index(list(range(1000 * 1000)))
+        idx = Index(list(range(1_000_000)))
         idx._engine
 
     def peakmem_gc_instances(self, N):

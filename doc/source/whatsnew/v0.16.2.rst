@@ -1,7 +1,7 @@
 .. _whatsnew_0162:
 
-v0.16.2 (June 12, 2015)
------------------------
+Version 0.16.2 (June 12, 2015)
+------------------------------
 
 {{ header }}
 
@@ -89,7 +89,7 @@ See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- Added `rsplit` to Index/Series StringMethods (:issue:`10303`)
+- Added ``rsplit`` to Index/Series StringMethods (:issue:`10303`)
 
 - Removed the hard-coded size limits on the ``DataFrame`` HTML representation
   in the IPython notebook, and leave this to IPython itself (only for IPython

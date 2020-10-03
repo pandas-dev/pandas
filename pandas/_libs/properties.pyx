@@ -1,7 +1,6 @@
 from cython import Py_ssize_t
 
-from cpython.dict cimport (
-    PyDict_Contains, PyDict_GetItem, PyDict_SetItem)
+from cpython.dict cimport PyDict_Contains, PyDict_GetItem, PyDict_SetItem
 
 
 cdef class CachedProperty:
@@ -57,10 +56,10 @@ cdef class AxisProperty:
             list axes
 
         if obj is None:
-            # Only instances have _data, not classes
+            # Only instances have _mgr, not classes
             return self
         else:
-            axes = obj._data.axes
+            axes = obj._mgr.axes
         return axes[self.axis]
 
     def __set__(self, obj, value):

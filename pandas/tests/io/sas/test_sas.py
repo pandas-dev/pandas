@@ -3,7 +3,7 @@ from io import StringIO
 import pytest
 
 from pandas import read_sas
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSas:

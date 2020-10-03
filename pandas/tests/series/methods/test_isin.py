@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Series, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestSeriesIsIn:
@@ -29,8 +29,8 @@ class TestSeriesIsIn:
         # GH#4763
         s = Series(["A", "B", "C", "a", "B", "B", "A", "C"])
         msg = (
-            r"only list-like objects are allowed to be passed to isin\(\),"
-            r" you passed a \[str\]"
+            r"only list-like objects are allowed to be passed to isin\(\), "
+            r"you passed a \[str\]"
         )
         with pytest.raises(TypeError, match=msg):
             s.isin("a")

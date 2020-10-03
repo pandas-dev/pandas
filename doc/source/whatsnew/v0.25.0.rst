@@ -14,7 +14,7 @@ What's new in 0.25.0 (July 18, 2019)
 
 .. warning::
 
-   `Panel` has been fully removed. For N-D labeled data structures, please
+   ``Panel`` has been fully removed. For N-D labeled data structures, please
    use `xarray <https://xarray.pydata.org/en/stable/>`_
 
 .. warning::
@@ -85,7 +85,7 @@ See :ref:`groupby.aggregate.named` for more.
 
 .. _whatsnew_0250.enhancements.multiple_lambdas:
 
-Groupby Aggregation with multiple lambdas
+Groupby aggregation with multiple lambdas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now provide multiple lambda functions to a list-like aggregation in
@@ -354,6 +354,7 @@ When passed DataFrames whose values are sparse, :func:`concat` will now return a
 :class:`Series` or :class:`DataFrame` with sparse values, rather than a :class:`SparseDataFrame` (:issue:`25702`).
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 1])})
 
@@ -539,7 +540,7 @@ with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397
 
 .. ipython:: python
 
-    df.describe()
+   df.describe()
 
 ``__str__`` methods now call ``__repr__`` rather than vice versa
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -910,6 +911,7 @@ by a ``Series`` or ``DataFrame`` with sparse values.
 **New way**
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame({"A": pd.SparseArray([0, 0, 1, 2])})
    df.dtypes
@@ -1165,7 +1167,7 @@ I/O
 - Fixed bug in :func:`pandas.read_csv` where a BOM would result in incorrect parsing using engine='python' (:issue:`26545`)
 - :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
-- Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. `PeriodIndex`) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
+- Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. ``PeriodIndex``) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
 - Bug in :meth:`read_hdf` where reading a timezone aware :class:`DatetimeIndex` would raise a ``TypeError`` (:issue:`11926`)
 - Bug in :meth:`to_msgpack` and :meth:`read_msgpack` which would raise a ``ValueError`` rather than a ``FileNotFoundError`` for an invalid path (:issue:`27160`)
 - Fixed bug in :meth:`DataFrame.to_parquet` which would raise a ``ValueError`` when the dataframe had no columns (:issue:`27339`)
@@ -1204,7 +1206,7 @@ Groupby/resample/rolling
 - Bug in :meth:`pandas.core.groupby.GroupBy.agg` where incorrect results are returned for uint64 columns. (:issue:`26310`)
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where MemoryError is raised with empty window (:issue:`26005`)
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where incorrect results are returned with ``closed='left'`` and ``closed='neither'`` (:issue:`26005`)
-- Improved :class:`pandas.core.window.Rolling`, :class:`pandas.core.window.Window` and :class:`pandas.core.window.EWM` functions to exclude nuisance columns from results instead of raising errors and raise a ``DataError`` only if all columns are nuisance (:issue:`12537`)
+- Improved :class:`pandas.core.window.Rolling`, :class:`pandas.core.window.Window` and :class:`pandas.core.window.ExponentialMovingWindow` functions to exclude nuisance columns from results instead of raising errors and raise a ``DataError`` only if all columns are nuisance (:issue:`12537`)
 - Bug in :meth:`pandas.core.window.Rolling.max` and :meth:`pandas.core.window.Rolling.min` where incorrect results are returned with an empty variable window (:issue:`26005`)
 - Raise a helpful exception when an unsupported weighted window function is used as an argument of :meth:`pandas.core.window.Window.aggregate` (:issue:`26597`)
 
@@ -1241,7 +1243,7 @@ Sparse
 - Bug in :func:`numpy.modf` on a :class:`SparseArray`. Now a tuple of :class:`SparseArray` is returned (:issue:`26946`).
 
 
-Build Changes
+Build changes
 ^^^^^^^^^^^^^
 
 - Fix install error with PyPy on macOS (:issue:`26536`)
@@ -1260,7 +1262,7 @@ Other
 - Removed unused C functions from vendored UltraJSON implementation (:issue:`26198`)
 - Allow :class:`Index` and :class:`RangeIndex` to be passed to numpy ``min`` and ``max`` functions (:issue:`26125`)
 - Use actual class name in repr of empty objects of a ``Series`` subclass (:issue:`27001`).
-- Bug in :class:`DataFrame` where passing an object array of timezone-aware `datetime` objects would incorrectly raise ``ValueError`` (:issue:`13287`)
+- Bug in :class:`DataFrame` where passing an object array of timezone-aware ``datetime`` objects would incorrectly raise ``ValueError`` (:issue:`13287`)
 
 .. _whatsnew_0.250.contributors:
 

@@ -2,12 +2,12 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas._libs import join as libjoin
+from pandas._libs.join import inner_join, left_outer_join
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+import pandas._testing as tm
 from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
-import pandas.util.testing as tm
 
 a_ = np.array
 
@@ -48,7 +48,7 @@ class TestJoin:
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        ls, rs = libjoin.left_outer_join(left, right, max_group)
+        ls, rs = left_outer_join(left, right, max_group)
 
         exp_ls = left.argsort(kind="mergesort")
         exp_rs = right.argsort(kind="mergesort")
@@ -70,7 +70,7 @@ class TestJoin:
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        rs, ls = libjoin.left_outer_join(right, left, max_group)
+        rs, ls = left_outer_join(right, left, max_group)
 
         exp_ls = left.argsort(kind="mergesort")
         exp_rs = right.argsort(kind="mergesort")
@@ -116,7 +116,7 @@ class TestJoin:
         right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
         max_group = 5
 
-        ls, rs = libjoin.inner_join(left, right, max_group)
+        ls, rs = inner_join(left, right, max_group)
 
         exp_ls = left.argsort(kind="mergesort")
         exp_rs = right.argsort(kind="mergesort")
@@ -162,7 +162,7 @@ class TestJoin:
         _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="inner")
 
     def test_handle_overlap(self):
-        joined = merge(self.df, self.df2, on="key2", suffixes=[".foo", ".bar"])
+        joined = merge(self.df, self.df2, on="key2", suffixes=(".foo", ".bar"))
 
         assert "key1.foo" in joined
         assert "key1.bar" in joined
@@ -173,7 +173,7 @@ class TestJoin:
             self.df2,
             left_on="key2",
             right_on="key1",
-            suffixes=[".foo", ".bar"],
+            suffixes=(".foo", ".bar"),
         )
         assert "key1.foo" in joined
         assert "key2.bar" in joined
@@ -212,8 +212,8 @@ class TestJoin:
         source_copy = source.copy()
         source_copy["A"] = 0
         msg = (
-            "You are trying to merge on float64 and object columns. If"
-            " you wish to proceed you should use pd.concat"
+            "You are trying to merge on float64 and object columns. If "
+            "you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
             target.join(source_copy, on="A")
@@ -262,8 +262,9 @@ class TestJoin:
         # Edited test to remove the Series object from test parameters
 
         df = DataFrame({"a": [1, 1]})
-        msg = "Can only merge Series or DataFrame objects, a {} was passed".format(
-            str(type(wrong_type))
+        msg = (
+            "Can only merge Series or DataFrame objects, "
+            f"a {type(wrong_type)} was passed"
         )
         with pytest.raises(TypeError, match=msg):
             merge(wrong_type, df, left_on="a", right_on="a")
@@ -297,7 +298,7 @@ class TestJoin:
 
         expected = df.join(df2, on="key")
         expected = expected[expected["value"].notna()]
-        tm.assert_series_equal(joined["key"], expected["key"], check_dtype=False)
+        tm.assert_series_equal(joined["key"], expected["key"])
         tm.assert_series_equal(joined["value"], expected["value"], check_dtype=False)
         tm.assert_index_equal(joined.index, expected.index)
 
@@ -809,13 +810,11 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
         try:
             lgroup = left_grouped.get_group(group_key)
-        except KeyError:
+        except KeyError as err:
             if how in ("left", "inner"):
                 raise AssertionError(
-                    "key {group_key!s} should not have been in the join".format(
-                        group_key=group_key
-                    )
-                )
+                    f"key {group_key} should not have been in the join"
+                ) from err
 
             _assert_all_na(l_joined, left.columns, join_col)
         else:
@@ -823,13 +822,11 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
 
         try:
             rgroup = right_grouped.get_group(group_key)
-        except KeyError:
+        except KeyError as err:
             if how in ("right", "inner"):
                 raise AssertionError(
-                    "key {group_key!s} should not have been in the join".format(
-                        group_key=group_key
-                    )
-                )
+                    f"key {group_key} should not have been in the join"
+                ) from err
 
             _assert_all_na(r_joined, right.columns, join_col)
         else:

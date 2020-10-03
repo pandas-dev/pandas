@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, IntervalIndex, Series, Timedelta, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestIntervalIndexRendering:
@@ -73,6 +73,6 @@ class TestIntervalIndexRendering:
     def test_to_native_types(self, tuples, closed, expected_data):
         # GH 28210
         index = IntervalIndex.from_tuples(tuples, closed=closed)
-        result = index.to_native_types()
+        result = index._format_native_types()
         expected = np.array(expected_data)
         tm.assert_numpy_array_equal(result, expected)

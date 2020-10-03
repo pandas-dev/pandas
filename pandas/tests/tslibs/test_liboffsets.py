@@ -5,6 +5,7 @@ from datetime import datetime
 
 import pytest
 
+from pandas._libs.tslibs.ccalendar import get_firstbday, get_lastbday
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import roll_qtrday
 
@@ -25,7 +26,7 @@ def day_opt(request):
 )
 def test_get_last_bday(dt, exp_week_day, exp_last_day):
     assert dt.weekday() == exp_week_day
-    assert liboffsets.get_lastbday(dt.year, dt.month) == exp_last_day
+    assert get_lastbday(dt.year, dt.month) == exp_last_day
 
 
 @pytest.mark.parametrize(
@@ -37,7 +38,7 @@ def test_get_last_bday(dt, exp_week_day, exp_last_day):
 )
 def test_get_first_bday(dt, exp_week_day, exp_first_day):
     assert dt.weekday() == exp_week_day
-    assert liboffsets.get_firstbday(dt.year, dt.month) == exp_first_day
+    assert get_firstbday(dt.year, dt.month) == exp_first_day
 
 
 @pytest.mark.parametrize(
@@ -88,11 +89,11 @@ def test_shift_month_error():
     ],
 )
 @pytest.mark.parametrize("n", [2, -7, 0])
-def test_roll_yearday(other, expected, n):
+def test_roll_qtrday_year(other, expected, n):
     month = 3
     day_opt = "start"  # `other` will be compared to March 1.
 
-    assert liboffsets.roll_yearday(other, n, month, day_opt) == expected[n]
+    assert roll_qtrday(other, n, month, day_opt, modby=12) == expected[n]
 
 
 @pytest.mark.parametrize(
@@ -105,22 +106,22 @@ def test_roll_yearday(other, expected, n):
     ],
 )
 @pytest.mark.parametrize("n", [5, -7, 0])
-def test_roll_yearday2(other, expected, n):
+def test_roll_qtrday_year2(other, expected, n):
     month = 6
     day_opt = "end"  # `other` will be compared to June 30.
 
-    assert liboffsets.roll_yearday(other, n, month, day_opt) == expected[n]
+    assert roll_qtrday(other, n, month, day_opt, modby=12) == expected[n]
 
 
 def test_get_day_of_month_error():
     # get_day_of_month is not directly exposed.
-    # We test it via roll_yearday.
+    # We test it via roll_qtrday.
     dt = datetime(2017, 11, 15)
     day_opt = "foo"
 
     with pytest.raises(ValueError, match=day_opt):
         # To hit the raising case we need month == dt.month and n > 0.
-        liboffsets.roll_yearday(dt, n=3, month=11, day_opt=day_opt)
+        roll_qtrday(dt, n=3, month=11, day_opt=day_opt, modby=12)
 
 
 @pytest.mark.parametrize(

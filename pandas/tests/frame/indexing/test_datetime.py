@@ -1,6 +1,6 @@
 import pandas as pd
 from pandas import DataFrame, Index, Series, date_range, notna
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameIndexingDatetimeWithTZ:
@@ -20,10 +20,12 @@ class TestDataFrameIndexingDatetimeWithTZ:
 
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
-        b1 = df._data.blocks[1]
-        b2 = df._data.blocks[2]
+        b1 = df._mgr.blocks[1]
+        b2 = df._mgr.blocks[2]
         tm.assert_extension_array_equal(b1.values, b2.values)
-        assert id(b1.values._data.base) != id(b2.values._data.base)
+        b1base = b1.values._data.base
+        b2base = b2.values._data.base
+        assert b1base is None or (id(b1base) != id(b2base))
 
         # with nan
         df2 = df.copy()
@@ -40,23 +42,7 @@ class TestDataFrameIndexingDatetimeWithTZ:
         # set/reset
         df = DataFrame({"A": [0, 1, 2]}, index=idx)
         result = df.reset_index()
-        assert result["foo"].dtype, "M8[ns, US/Eastern"
+        assert result["foo"].dtype == "datetime64[ns, US/Eastern]"
 
         df = result.set_index("foo")
         tm.assert_index_equal(df.index, idx)
-
-    def test_transpose(self, timezone_frame):
-
-        result = timezone_frame.T
-        expected = DataFrame(timezone_frame.values.T)
-        expected.index = ["A", "B", "C"]
-        tm.assert_frame_equal(result, expected)
-
-    def test_scalar_assignment(self):
-        # issue #19843
-        df = pd.DataFrame(index=(0, 1, 2))
-        df["now"] = pd.Timestamp("20130101", tz="UTC")
-        expected = pd.DataFrame(
-            {"now": pd.Timestamp("20130101", tz="UTC")}, index=[0, 1, 2]
-        )
-        tm.assert_frame_equal(df, expected)

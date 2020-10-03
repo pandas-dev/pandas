@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
+from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, Timestamp, date_range
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("bad_raw", [None, 1, 0])
@@ -134,7 +135,30 @@ def test_invalid_raw_numba():
 
 @td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
-    with pytest.raises(ValueError, match="numba does not support kwargs with"):
+    with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
         Series(range(1)).rolling(1).apply(
             lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
         )
+
+
+@pytest.mark.parametrize("args_kwargs", [[None, {"par": 10}], [(10,), None]])
+def test_rolling_apply_args_kwargs(args_kwargs):
+    # GH 33433
+    def foo(x, par):
+        return np.sum(x + par)
+
+    df = DataFrame({"gr": [1, 1], "a": [1, 2]})
+
+    idx = Index(["gr", "a"])
+    expected = DataFrame([[11.0, 11.0], [11.0, 12.0]], columns=idx)
+
+    result = df.rolling(1).apply(foo, args=args_kwargs[0], kwargs=args_kwargs[1])
+    tm.assert_frame_equal(result, expected)
+
+    midx = MultiIndex.from_tuples([(1, 0), (1, 1)], names=["gr", None])
+    expected = Series([11.0, 12.0], index=midx, name="a")
+
+    gb_rolling = df.groupby("gr")["a"].rolling(1)
+
+    result = gb_rolling.apply(foo, args=args_kwargs[0], kwargs=args_kwargs[1])
+    tm.assert_series_equal(result, expected)

@@ -16,24 +16,24 @@ from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 
 import pandas as pd
 from pandas import DataFrame, Series, compat, date_range
+import pandas._testing as tm
 from pandas.core.computation import pytables
-from pandas.core.computation.check import _NUMEXPR_VERSION
-from pandas.core.computation.engines import NumExprClobberingError, _engines
+from pandas.core.computation.check import NUMEXPR_VERSION
+from pandas.core.computation.engines import ENGINES, NumExprClobberingError
 import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,
     PythonExprVisitor,
 )
-from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
+from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
 from pandas.core.computation.ops import (
-    _arith_ops_syms,
+    ARITH_OPS_SYMS,
+    SPECIAL_CASE_ARITH_OPS_SYMS,
     _binary_math_ops,
     _binary_ops_dict,
-    _special_case_arith_ops_syms,
     _unary_math_ops,
 )
-import pandas.util.testing as tm
 
 
 @pytest.fixture(
@@ -41,34 +41,34 @@ import pandas.util.testing as tm
         pytest.param(
             engine,
             marks=pytest.mark.skipif(
-                engine == "numexpr" and not _USE_NUMEXPR,
-                reason=f"numexpr enabled->{_USE_NUMEXPR}, "
-                f"installed->{_NUMEXPR_INSTALLED}",
+                engine == "numexpr" and not USE_NUMEXPR,
+                reason=f"numexpr enabled->{USE_NUMEXPR}, "
+                f"installed->{NUMEXPR_INSTALLED}",
             ),
         )
-        for engine in _engines
+        for engine in ENGINES
     )
-)  # noqa
+)
 def engine(request):
     return request.param
 
 
-@pytest.fixture(params=expr._parsers)
+@pytest.fixture(params=expr.PARSERS)
 def parser(request):
     return request.param
 
 
 @pytest.fixture
 def ne_lt_2_6_9():
-    if _NUMEXPR_INSTALLED and _NUMEXPR_VERSION >= LooseVersion("2.6.9"):
+    if NUMEXPR_INSTALLED and NUMEXPR_VERSION >= LooseVersion("2.6.9"):
         pytest.skip("numexpr is >= 2.6.9")
     return "numexpr"
 
 
 @pytest.fixture
 def unary_fns_for_ne():
-    if _NUMEXPR_INSTALLED:
-        if _NUMEXPR_VERSION >= LooseVersion("2.6.9"):
+    if NUMEXPR_INSTALLED:
+        if NUMEXPR_VERSION >= LooseVersion("2.6.9"):
             return _unary_math_ops
         else:
             return tuple(x for x in _unary_math_ops if x not in ("floor", "ceil"))
@@ -77,7 +77,7 @@ def unary_fns_for_ne():
 
 
 def engine_has_neg_frac(engine):
-    return _engines[engine].has_neg_frac
+    return ENGINES[engine].has_neg_frac
 
 
 def _eval_single_bin(lhs, cmp1, rhs, engine):
@@ -114,7 +114,7 @@ def _is_py3_complex_incompat(result, expected):
     return isinstance(expected, (complex, np.complexfloating)) and np.isnan(result)
 
 
-_good_arith_ops = set(_arith_ops_syms).difference(_special_case_arith_ops_syms)
+_good_arith_ops = set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_SYMS)
 
 
 @td.skip_if_no_ne
@@ -158,17 +158,17 @@ class TestEvalNumexprPandas:
         self.rhses = self.pandas_rhses + self.scalar_rhses
 
     def setup_ops(self):
-        self.cmp_ops = expr._cmp_ops_syms
+        self.cmp_ops = expr.CMP_OPS_SYMS
         self.cmp2_ops = self.cmp_ops[::-1]
-        self.bin_ops = expr._bool_ops_syms
-        self.special_case_ops = _special_case_arith_ops_syms
+        self.bin_ops = expr.BOOL_OPS_SYMS
+        self.special_case_ops = SPECIAL_CASE_ARITH_OPS_SYMS
         self.arith_ops = _good_arith_ops
         self.unary_ops = "-", "~", "not "
 
     def setup_method(self, method):
         self.setup_ops()
         self.setup_data()
-        self.current_engines = filter(lambda x: x != self.engine, _engines)
+        self.current_engines = (engine for engine in ENGINES if engine != self.engine)
 
     def teardown_method(self, method):
         del self.lhses, self.rhses, self.scalar_rhses, self.scalar_lhses
@@ -274,9 +274,9 @@ class TestEvalNumexprPandas:
     def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = f"lhs {cmp1} rhs"
         msg = (
-            r"only list-like( or dict-like)? objects are allowed to be"
-            r" passed to (DataFrame\.)?isin\(\), you passed a"
-            r" (\[|')bool(\]|')|"
+            r"only list-like( or dict-like)? objects are allowed to be "
+            r"passed to (DataFrame\.)?isin\(\), you passed a "
+            r"(\[|')bool(\]|')|"
             "argument of type 'bool' is not iterable"
         )
         if cmp1 in ("in", "not in") and not is_list_like(rhs):
@@ -339,8 +339,8 @@ class TestEvalNumexprPandas:
             self.check_equal(res, expected)
         else:
             msg = (
-                r"unsupported operand type\(s\) for //: 'VariableNode' and"
-                " 'VariableNode'"
+                r"unsupported operand type\(s\) for //: 'VariableNode' and "
+                "'VariableNode'"
             )
             with pytest.raises(TypeError, match=msg):
                 pd.eval(
@@ -375,7 +375,8 @@ class TestEvalNumexprPandas:
             and is_scalar(rhs)
             and _is_py3_complex_incompat(result, expected)
         ):
-            with pytest.raises(AssertionError):
+            msg = "(DataFrame.columns|numpy array) are different"
+            with pytest.raises(AssertionError, match=msg):
                 tm.assert_numpy_array_equal(result, expected)
         else:
             tm.assert_almost_equal(result, expected)
@@ -408,9 +409,9 @@ class TestEvalNumexprPandas:
         ex = f"~(lhs {cmp1} rhs)"
 
         msg = (
-            r"only list-like( or dict-like)? objects are allowed to be"
-            r" passed to (DataFrame\.)?isin\(\), you passed a"
-            r" (\[|')float(\]|')|"
+            r"only list-like( or dict-like)? objects are allowed to be "
+            r"passed to (DataFrame\.)?isin\(\), you passed a "
+            r"(\[|')float(\]|')|"
             "argument of type 'float' is not iterable"
         )
         if is_scalar(rhs) and cmp1 in skip_these:
@@ -449,16 +450,19 @@ class TestEvalNumexprPandas:
         # float always raises
         lhs = DataFrame(randn(5, 2))
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'invert_dd'"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
-            with pytest.raises(TypeError):
+            msg = "ufunc 'invert' not supported for the input types"
+            with pytest.raises(TypeError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
 
         # int raises on numexpr
         lhs = DataFrame(randint(5, size=(5, 2)))
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'invert"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = ~lhs
@@ -474,10 +478,11 @@ class TestEvalNumexprPandas:
         # object raises
         lhs = DataFrame({"b": ["a", 1, 2.0], "c": rand(3) > 0.5})
         if self.engine == "numexpr":
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="unknown type object"):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
-            with pytest.raises(TypeError):
+            msg = "bad operand type for unary ~: 'str'"
+            with pytest.raises(TypeError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
 
     def test_series_invert(self):
@@ -488,16 +493,19 @@ class TestEvalNumexprPandas:
         # float raises
         lhs = Series(randn(5))
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'invert_dd'"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
-            with pytest.raises(TypeError):
+            msg = "ufunc 'invert' not supported for the input types"
+            with pytest.raises(TypeError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
 
         # int raises on numexpr
         lhs = Series(randint(5, size=5))
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'invert"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = ~lhs
@@ -517,10 +525,11 @@ class TestEvalNumexprPandas:
         # object
         lhs = Series(["a", 1, 2.0])
         if self.engine == "numexpr":
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="unknown type object"):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
-            with pytest.raises(TypeError):
+            msg = "bad operand type for unary ~: 'str'"
+            with pytest.raises(TypeError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
 
     def test_frame_negate(self):
@@ -541,7 +550,8 @@ class TestEvalNumexprPandas:
         # bool doesn't work with numexpr but works elsewhere
         lhs = DataFrame(rand(5, 2) > 0.5)
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'neg_bb'"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = -lhs
@@ -566,57 +576,53 @@ class TestEvalNumexprPandas:
         # bool doesn't work with numexpr but works elsewhere
         lhs = Series(rand(5) > 0.5)
         if self.engine == "numexpr":
-            with pytest.raises(NotImplementedError):
+            msg = "couldn't find matching opcode for 'neg_bb'"
+            with pytest.raises(NotImplementedError, match=msg):
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
         else:
             expect = -lhs
             result = pd.eval(expr, engine=self.engine, parser=self.parser)
             tm.assert_series_equal(expect, result)
 
-    def test_frame_pos(self):
+    @pytest.mark.parametrize(
+        "lhs",
+        [
+            # Float
+            DataFrame(randn(5, 2)),
+            # Int
+            DataFrame(randint(5, size=(5, 2))),
+            # bool doesn't work with numexpr but works elsewhere
+            DataFrame(rand(5, 2) > 0.5),
+        ],
+    )
+    def test_frame_pos(self, lhs):
         expr = self.ex("+")
-
-        # float
-        lhs = DataFrame(randn(5, 2))
         expect = lhs
+
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
         tm.assert_frame_equal(expect, result)
 
-        # int
-        lhs = DataFrame(randint(5, size=(5, 2)))
-        expect = lhs
-        result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_frame_equal(expect, result)
-
-        # bool doesn't work with numexpr but works elsewhere
-        lhs = DataFrame(rand(5, 2) > 0.5)
-        expect = lhs
-        result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_frame_equal(expect, result)
-
-    def test_series_pos(self):
+    @pytest.mark.parametrize(
+        "lhs",
+        [
+            # Float
+            Series(randn(5)),
+            # Int
+            Series(randint(5, size=5)),
+            # bool doesn't work with numexpr but works elsewhere
+            Series(rand(5) > 0.5),
+        ],
+    )
+    def test_series_pos(self, lhs):
         expr = self.ex("+")
-
-        # float
-        lhs = Series(randn(5))
         expect = lhs
-        result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_series_equal(expect, result)
 
-        # int
-        lhs = Series(randint(5, size=5))
-        expect = lhs
-        result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        tm.assert_series_equal(expect, result)
-
-        # bool doesn't work with numexpr but works elsewhere
-        lhs = Series(rand(5) > 0.5)
-        expect = lhs
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
         tm.assert_series_equal(expect, result)
 
     def test_scalar_unary(self):
-        with pytest.raises(TypeError):
+        msg = "bad operand type for unary ~: 'float'"
+        with pytest.raises(TypeError, match=msg):
             pd.eval("~1.0", engine=self.engine, parser=self.parser)
 
         assert pd.eval("-1.0", parser=self.parser, engine=self.engine) == -1.0
@@ -677,7 +683,8 @@ class TestEvalNumexprPandas:
 
         x, a, b, df = np.random.randn(3), 1, 2, DataFrame(randn(3, 2))  # noqa
         for ex in exprs:
-            with pytest.raises(NotImplementedError):
+            msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval(ex, engine=self.engine, parser=self.parser)
 
     def test_identical(self):
@@ -767,18 +774,17 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
         cls.parser = "python"
 
     def setup_ops(self):
-        self.cmp_ops = list(
-            filter(lambda x: x not in ("in", "not in"), expr._cmp_ops_syms)
-        )
+        self.cmp_ops = [op for op in expr.CMP_OPS_SYMS if op not in ("in", "not in")]
         self.cmp2_ops = self.cmp_ops[::-1]
-        self.bin_ops = [s for s in expr._bool_ops_syms if s not in ("and", "or")]
-        self.special_case_ops = _special_case_arith_ops_syms
+        self.bin_ops = [op for op in expr.BOOL_OPS_SYMS if op not in ("and", "or")]
+        self.special_case_ops = SPECIAL_CASE_ARITH_OPS_SYMS
         self.arith_ops = _good_arith_ops
         self.unary_ops = "+", "-", "~"
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
         ex1 = f"lhs {cmp1} mid {cmp2} rhs"
-        with pytest.raises(NotImplementedError):
+        msg = "'BoolOp' nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex1, engine=self.engine, parser=self.parser)
 
 
@@ -1048,15 +1054,15 @@ class TestAlignment:
                     m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
                 )
                 index = getattr(locals().get(obj_name), index_name)
-                s = Series(np.random.randn(n), index[:n])
+                ser = Series(np.random.randn(n), index[:n])
 
                 if r2 == "dt" or c2 == "dt":
                     if engine == "numexpr":
-                        expected2 = df2.add(s)
+                        expected2 = df2.add(ser)
                     else:
-                        expected2 = df2 + s
+                        expected2 = df2 + ser
                 else:
-                    expected2 = df2 + s
+                    expected2 = df2 + ser
 
                 if r1 == "dt" or c1 == "dt":
                     if engine == "numexpr":
@@ -1066,11 +1072,11 @@ class TestAlignment:
                 else:
                     expected = expected2 + df
 
-                if should_warn(df2.index, s.index, df.index):
+                if should_warn(df2.index, ser.index, df.index):
                     with tm.assert_produces_warning(RuntimeWarning):
-                        res = pd.eval("df2 + s + df", engine=engine, parser=parser)
+                        res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
                 else:
-                    res = pd.eval("df2 + s + df", engine=engine, parser=parser)
+                    res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
                 assert res.shape == expected.shape
                 tm.assert_frame_equal(res, expected)
 
@@ -1129,7 +1135,7 @@ class TestOperationsNumExprPandas:
     def setup_class(cls):
         cls.engine = "numexpr"
         cls.parser = "pandas"
-        cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
+        cls.arith_ops = expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
 
     @classmethod
     def teardown_class(cls):
@@ -1142,9 +1148,9 @@ class TestOperationsNumExprPandas:
         return pd.eval(*args, **kwargs)
 
     def test_simple_arith_ops(self):
-        ops = self.arith_ops
+        ops = (op for op in self.arith_ops if op != "//")
 
-        for op in filter(lambda x: x != "//", ops):
+        for op in ops:
             ex = f"1 {op} 1"
             ex2 = f"x {op} 1"
             ex3 = f"1 {op} (x + 1)"
@@ -1171,7 +1177,7 @@ class TestOperationsNumExprPandas:
                 assert y == expec
 
     def test_simple_bool_ops(self):
-        for op, lhs, rhs in product(expr._bool_ops_syms, (True, False), (True, False)):
+        for op, lhs, rhs in product(expr.BOOL_OPS_SYMS, (True, False), (True, False)):
             ex = f"{lhs} {op} {rhs}"
             res = self.eval(ex)
             exp = eval(ex)
@@ -1179,7 +1185,7 @@ class TestOperationsNumExprPandas:
 
     def test_bool_ops_with_constants(self):
         for op, lhs, rhs in product(
-            expr._bool_ops_syms, ("True", "False"), ("True", "False")
+            expr.BOOL_OPS_SYMS, ("True", "False"), ("True", "False")
         ):
             ex = f"{lhs} {op} {rhs}"
             res = self.eval(ex)
@@ -1189,7 +1195,8 @@ class TestOperationsNumExprPandas:
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)
         y = Series(randn(10))
-        with pytest.raises(NotImplementedError):
+        msg = "N-dimensional objects, where N > 2, are not supported with eval"
+        with pytest.raises(NotImplementedError, match=msg):
             self.eval("x + y", local_dict={"x": x, "y": y})
 
     def test_constant(self):
@@ -1238,7 +1245,7 @@ class TestOperationsNumExprPandas:
 
     def test_failing_subscript_with_name_error(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
-        with pytest.raises(NameError):
+        with pytest.raises(NameError, match="name 'x' is not defined"):
             self.eval("df[x > 2] > 2")
 
     def test_lhs_expression_subscript(self):
@@ -1385,7 +1392,8 @@ class TestOperationsNumExprPandas:
         assert ans is None
 
         # multi-line not valid if not all assignments
-        with pytest.raises(ValueError):
+        msg = "Multi-line expressions are only valid if all expressions contain"
+        with pytest.raises(ValueError, match=msg):
             df.eval(
                 """
             a = b + 2
@@ -1480,7 +1488,8 @@ class TestOperationsNumExprPandas:
         # GH 8664
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df_orig = df.copy()
-        with pytest.raises(ValueError):
+        msg = "cannot assign without a target object"
+        with pytest.raises(ValueError, match=msg):
             df.query("a = 1")
         tm.assert_frame_equal(df, df_orig)
 
@@ -1599,19 +1608,21 @@ class TestOperationsNumExprPandas:
             )
             assert res
         else:
-            with pytest.raises(NotImplementedError):
+            msg = "'In' nodes are not implemented"
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval("1 in [1, 2]", engine=self.engine, parser=self.parser)
-            with pytest.raises(NotImplementedError):
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval("2 in (1, 2)", engine=self.engine, parser=self.parser)
-            with pytest.raises(NotImplementedError):
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval("3 in (1, 2)", engine=self.engine, parser=self.parser)
-            with pytest.raises(NotImplementedError):
-                pd.eval("3 not in (1, 2)", engine=self.engine, parser=self.parser)
-            with pytest.raises(NotImplementedError):
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval(
                     "[(3,)] in (1, 2, [(3,)])", engine=self.engine, parser=self.parser
                 )
-            with pytest.raises(NotImplementedError):
+            msg = "'NotIn' nodes are not implemented"
+            with pytest.raises(NotImplementedError, match=msg):
+                pd.eval("3 not in (1, 2)", engine=self.engine, parser=self.parser)
+            with pytest.raises(NotImplementedError, match=msg):
                 pd.eval(
                     "[3] not in (1, 2, [[3]])", engine=self.engine, parser=self.parser
                 )
@@ -1624,8 +1635,11 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         super().setup_class()
         cls.engine = "numexpr"
         cls.parser = "python"
-        cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
-        cls.arith_ops = filter(lambda x: x not in ("in", "not in"), cls.arith_ops)
+        cls.arith_ops = [
+            op
+            for op in expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
+            if op not in ("in", "not in")
+        ]
 
     def test_check_many_exprs(self):
         a = 1  # noqa
@@ -1670,22 +1684,25 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
     def test_fails_ampersand(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
         ex = "(df + 2)[df > 1] > 0 & (df > 0)"
-        with pytest.raises(NotImplementedError):
+        msg = "cannot evaluate scalar only bool ops"
+        with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, parser=self.parser, engine=self.engine)
 
     def test_fails_pipe(self):
         df = DataFrame(np.random.randn(5, 3))  # noqa
         ex = "(df + 2)[df > 1] > 0 | (df > 0)"
-        with pytest.raises(NotImplementedError):
+        msg = "cannot evaluate scalar only bool ops"
+        with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, parser=self.parser, engine=self.engine)
 
     def test_bool_ops_with_constants(self):
         for op, lhs, rhs in product(
-            expr._bool_ops_syms, ("True", "False"), ("True", "False")
+            expr.BOOL_OPS_SYMS, ("True", "False"), ("True", "False")
         ):
             ex = f"{lhs} {op} {rhs}"
             if op in ("and", "or"):
-                with pytest.raises(NotImplementedError):
+                msg = "'BoolOp' nodes are not implemented"
+                with pytest.raises(NotImplementedError, match=msg):
                     self.eval(ex)
             else:
                 res = self.eval(ex)
@@ -1693,10 +1710,11 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
                 assert res == exp
 
     def test_simple_bool_ops(self):
-        for op, lhs, rhs in product(expr._bool_ops_syms, (True, False), (True, False)):
+        for op, lhs, rhs in product(expr.BOOL_OPS_SYMS, (True, False), (True, False)):
             ex = f"lhs {op} rhs"
             if op in ("and", "or"):
-                with pytest.raises(NotImplementedError):
+                msg = "'BoolOp' nodes are not implemented"
+                with pytest.raises(NotImplementedError, match=msg):
                     pd.eval(ex, engine=self.engine, parser=self.parser)
             else:
                 res = pd.eval(ex, engine=self.engine, parser=self.parser)
@@ -1709,8 +1727,11 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
     def setup_class(cls):
         super().setup_class()
         cls.engine = cls.parser = "python"
-        cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
-        cls.arith_ops = filter(lambda x: x not in ("in", "not in"), cls.arith_ops)
+        cls.arith_ops = [
+            op
+            for op in expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
+            if op not in ("in", "not in")
+        ]
 
 
 class TestOperationsPythonPandas(TestOperationsNumExprPandas):
@@ -1719,7 +1740,7 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
         super().setup_class()
         cls.engine = "python"
         cls.parser = "pandas"
-        cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
+        cls.arith_ops = expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
 
 
 @td.skip_if_no_ne
@@ -1864,7 +1885,7 @@ class TestScope:
         )
 
     def test_no_new_locals(self, engine, parser):
-        x = 1  # noqa
+        x = 1
         lcls = locals().copy()
         pd.eval("x + 1", local_dict=lcls, engine=engine, parser=parser)
         lcls2 = locals().copy()
@@ -1900,7 +1921,7 @@ _parsers: Dict[str, Type[BaseExprVisitor]] = {
 }
 
 
-@pytest.mark.parametrize("engine", _engines)
+@pytest.mark.parametrize("engine", ENGINES)
 @pytest.mark.parametrize("parser", _parsers)
 def test_disallowed_nodes(engine, parser):
     VisitorClass = _parsers[parser]
@@ -1908,19 +1929,21 @@ def test_disallowed_nodes(engine, parser):
     inst = VisitorClass("x + 1", engine, parser)
 
     for ops in uns_ops:
-        with pytest.raises(NotImplementedError):
+        msg = "nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             getattr(inst, ops)()
 
 
 def test_syntax_error_exprs(engine, parser):
     e = "s +"
-    with pytest.raises(SyntaxError):
+    with pytest.raises(SyntaxError, match="invalid syntax"):
         pd.eval(e, engine=engine, parser=parser)
 
 
 def test_name_error_exprs(engine, parser):
     e = "s + t"
-    with pytest.raises(NameError):
+    msg = "name 's' is not defined"
+    with pytest.raises(NameError, match=msg):
         pd.eval(e, engine=engine, parser=parser)
 
 
@@ -1972,14 +1995,15 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
     mid = gen[lhs]()  # noqa
-    lhs = gen[lhs]()  # noqa
-    rhs = gen[rhs]()  # noqa
+    lhs = gen[lhs]()
+    rhs = gen[rhs]()
 
     ex1 = f"lhs {cmp} mid {cmp} rhs"
     ex2 = f"lhs {cmp} mid and mid {cmp} rhs"
     ex3 = f"(lhs {cmp} mid) & (mid {cmp} rhs)"
     for ex in (ex1, ex2, ex3):
-        with pytest.raises(NotImplementedError):
+        msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
+        with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, engine=engine, parser=parser)
 
 
@@ -1996,7 +2020,7 @@ def test_equals_various(other):
     df = DataFrame({"A": ["a", "b", "c"]})
     result = df.eval(f"A == {other}")
     expected = Series([False, False, False], name="A")
-    if _USE_NUMEXPR:
+    if USE_NUMEXPR:
         # https://github.com/pandas-dev/pandas/issues/10239
         # lose name with numexpr engine. Remove when that's fixed.
         expected.name = None
@@ -2035,7 +2059,8 @@ def test_negate_lt_eq_le(engine, parser):
     tm.assert_frame_equal(result, expected)
 
     if parser == "python":
-        with pytest.raises(NotImplementedError):
+        msg = "'Not' nodes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
             df.query("not (cat > 0)", engine=engine, parser=parser)
     else:
         result = df.query("not (cat > 0)", engine=engine, parser=parser)
@@ -2047,5 +2072,6 @@ class TestValidate:
         invalid_values = [1, "True", [1, 2, 3], 5.0]
 
         for value in invalid_values:
-            with pytest.raises(ValueError):
+            msg = 'For argument "inplace" expected type bool, received type'
+            with pytest.raises(ValueError, match=msg):
                 pd.eval("2+2", inplace=value)

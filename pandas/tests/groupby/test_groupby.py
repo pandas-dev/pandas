@@ -9,9 +9,9 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, read_csv
+import pandas._testing as tm
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 def test_repr():
@@ -109,7 +109,8 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-    result = df1.groupby("val1", squeeze=True).apply(func)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df1.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)
 
     df2 = DataFrame(
@@ -124,12 +125,14 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-    result = df2.groupby("val1", squeeze=True).apply(func)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df2.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)
 
     # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
     df = DataFrame([[1, 1], [1, 1]], columns=["X", "Y"])
-    result = df.groupby("X", squeeze=False).count()
+    with tm.assert_produces_warning(FutureWarning):
+        result = df.groupby("X", squeeze=False).count()
     assert isinstance(result, DataFrame)
 
 
@@ -246,8 +249,8 @@ def test_len():
 
     # issue 11016
     df = pd.DataFrame(dict(a=[np.nan] * 3, b=[1, 2, 3]))
-    assert len(df.groupby(("a"))) == 0
-    assert len(df.groupby(("b"))) == 3
+    assert len(df.groupby("a")) == 0
+    assert len(df.groupby("b")) == 3
     assert len(df.groupby(["a", "b"])) == 3
 
 
@@ -588,6 +591,28 @@ def test_groupby_multiple_columns(df, op):
     tm.assert_series_equal(result, expected)
 
 
+def test_as_index_select_column():
+    # GH 5764
+    df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
+    result = df.groupby("A", as_index=False)["B"].get_group(1)
+    expected = pd.Series([2, 4], name="B")
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("A", as_index=False)["B"].apply(lambda x: x.cumsum())
+    expected = pd.Series(
+        [2, 6, 6], name="B", index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_as_index_select_column_sum_empty_df():
+    # GH 35246
+    df = DataFrame(columns=["A", "B", "C"])
+    left = df.groupby(by="A", as_index=False)["B"].sum()
+    assert type(left) is DataFrame
+    assert left.to_dict() == {"A": {}, "B": {}}
+
+
 def test_groupby_as_index_agg(df):
     grouped = df.groupby("A", as_index=False)
 
@@ -642,6 +667,37 @@ def test_groupby_as_index_agg(df):
         right = getattr(gr, attr)().reset_index(drop=True)
 
         tm.assert_frame_equal(left, right)
+
+
+def test_ops_not_as_index(reduction_func):
+    # GH 10355, 21090
+    # Using as_index=False should not modify grouped column
+
+    if reduction_func in ("corrwith",):
+        pytest.skip("Test not applicable")
+
+    if reduction_func in ("nth", "ngroup"):
+        pytest.skip("Skip until behavior is determined (GH #5755)")
+
+    df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
+    expected = getattr(df.groupby("a"), reduction_func)()
+    if reduction_func == "size":
+        expected = expected.rename("size")
+    expected = expected.reset_index()
+
+    g = df.groupby("a", as_index=False)
+
+    result = getattr(g, reduction_func)()
+    tm.assert_frame_equal(result, expected)
+
+    result = g.agg(reduction_func)
+    tm.assert_frame_equal(result, expected)
+
+    result = getattr(g["b"], reduction_func)()
+    tm.assert_frame_equal(result, expected)
+
+    result = g["b"].agg(reduction_func)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_as_index_series_return_frame(df):
@@ -771,7 +827,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = r"unsupported operand type\(s\) for \+: 'Timestamp'"
+    msg = "reduction operation 'sum' not allowed for this dtype"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -905,51 +961,6 @@ def test_groupby_complex():
 
     result = a.sum(level=0)
     tm.assert_series_equal(result, expected)
-
-
-def test_mutate_groups():
-
-    # GH3380
-
-    df = DataFrame(
-        {
-            "cat1": ["a"] * 8 + ["b"] * 6,
-            "cat2": ["c"] * 2
-            + ["d"] * 2
-            + ["e"] * 2
-            + ["f"] * 2
-            + ["c"] * 2
-            + ["d"] * 2
-            + ["e"] * 2,
-            "cat3": ["g{}".format(x) for x in range(1, 15)],
-            "val": np.random.randint(100, size=14),
-        }
-    )
-
-    def f_copy(x):
-        x = x.copy()
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    def f_no_copy(x):
-        x["rank"] = x.val.rank(method="min")
-        return x.groupby("cat2")["rank"].min()
-
-    grpby_copy = df.groupby("cat1").apply(f_copy)
-    grpby_no_copy = df.groupby("cat1").apply(f_no_copy)
-    tm.assert_series_equal(grpby_copy, grpby_no_copy)
-
-
-def test_no_mutate_but_looks_like():
-
-    # GH 8467
-    # first show's mutation indicator
-    # second does not, but should yield the same results
-    df = DataFrame({"key": [1, 1, 1, 2, 2, 2, 3, 3, 3], "value": range(9)})
-
-    result1 = df.groupby("key", group_keys=True).apply(lambda x: x[:].key)
-    result2 = df.groupby("key", group_keys=True).apply(lambda x: x.key)
-    tm.assert_series_equal(result1, result2)
 
 
 def test_groupby_series_indexed_differently():
@@ -1170,6 +1181,18 @@ def test_groupby_dtype_inference_empty():
     exp_index = Index([], name="x", dtype=np.float64)
     expected = DataFrame({"range": Series([], index=exp_index, dtype="int64")})
     tm.assert_frame_equal(result, expected, by_blocks=True)
+
+
+def test_groupby_unit64_float_conversion():
+    #  GH: 30859 groupby converts unit64 to floats sometimes
+    df = pd.DataFrame({"first": [1], "second": [1], "value": [16148277970000000000]})
+    result = df.groupby(["first", "second"])["value"].max()
+    expected = pd.Series(
+        [16148277970000000000],
+        pd.MultiIndex.from_product([[1], [1]], names=["first", "second"]),
+        name="value",
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_groupby_list_infer_array_like(df):
@@ -1482,7 +1505,7 @@ def test_groupby_reindex_inside_function():
 
     def agg_before(hour, func, fix=False):
         """
-            Run an aggregate func on the subset of data.
+        Run an aggregate func on the subset of data.
         """
 
         def _func(data):
@@ -1715,9 +1738,7 @@ def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = pd.DataFrame(
         {
-            "eventDate": pd.date_range(
-                pd.datetime.today(), periods=20, freq="M"
-            ).tolist(),
+            "eventDate": pd.date_range(datetime.today(), periods=20, freq="M").tolist(),
             "thename": range(0, 20),
         }
     )
@@ -1753,7 +1774,7 @@ def test_tuple_as_grouping():
         }
     )
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match=r"('a', 'b')"):
         df[["a", "b", "c"]].groupby(("a", "b"))
 
     result = df.groupby(("a", "b"))["c"].sum()
@@ -1974,6 +1995,7 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 @pytest.mark.parametrize(
     "idx", [pd.Index(["a", "a"]), pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
 )
+@pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip("Not applicable")
@@ -2010,4 +2032,108 @@ def test_groupby_crash_on_nunique(axis):
     if not axis_number:
         expected = expected.T
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_list_level():
+    # GH 9790
+    expected = pd.DataFrame(np.arange(0, 9).reshape(3, 3))
+    result = expected.groupby(level=[0]).mean()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "max_seq_items, expected",
+    [
+        (5, "{0: [0], 1: [1], 2: [2], 3: [3], 4: [4]}"),
+        (4, "{0: [0], 1: [1], 2: [2], 3: [3], ...}"),
+    ],
+)
+def test_groups_repr_truncates(max_seq_items, expected):
+    # GH 1135
+    df = pd.DataFrame(np.random.randn(5, 1))
+    df["a"] = df.index
+
+    with pd.option_context("display.max_seq_items", max_seq_items):
+        result = df.groupby("a").groups.__repr__()
+        assert result == expected
+
+        result = df.groupby(np.array(df.a)).groups.__repr__()
+        assert result == expected
+
+
+def test_group_on_two_row_multiindex_returns_one_tuple_key():
+    # GH 18451
+    df = pd.DataFrame([{"a": 1, "b": 2, "c": 99}, {"a": 1, "b": 2, "c": 88}])
+    df = df.set_index(["a", "b"])
+
+    grp = df.groupby(["a", "b"])
+    result = grp.indices
+    expected = {(1, 2): np.array([0, 1], dtype=np.int64)}
+
+    assert len(result) == 1
+    key = (1, 2)
+    assert (result[key] == expected[key]).all()
+
+
+@pytest.mark.parametrize(
+    "klass, attr, value",
+    [
+        (DataFrame, "axis", 1),
+        (DataFrame, "level", "a"),
+        (DataFrame, "as_index", False),
+        (DataFrame, "sort", False),
+        (DataFrame, "group_keys", False),
+        (DataFrame, "squeeze", True),
+        (DataFrame, "observed", True),
+        (DataFrame, "dropna", False),
+        pytest.param(
+            Series,
+            "axis",
+            1,
+            marks=pytest.mark.xfail(
+                reason="GH 35443: Attribute currently not passed on to series"
+            ),
+        ),
+        (Series, "level", "a"),
+        (Series, "as_index", False),
+        (Series, "sort", False),
+        (Series, "group_keys", False),
+        (Series, "squeeze", True),
+        (Series, "observed", True),
+        (Series, "dropna", False),
+    ],
+)
+@pytest.mark.filterwarnings(
+    "ignore:The `squeeze` parameter is deprecated:FutureWarning"
+)
+def test_subsetting_columns_keeps_attrs(klass, attr, value):
+    # GH 9959 - When subsetting columns, don't drop attributes
+    df = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
+    if attr != "axis":
+        df = df.set_index("a")
+
+    expected = df.groupby("a", **{attr: value})
+    result = expected[["b"]] if klass is DataFrame else expected["b"]
+    assert getattr(result, attr) == getattr(expected, attr)
+
+
+@pytest.mark.parametrize("func", ["sum", "any", "shift"])
+def test_groupby_column_index_name_lost(func):
+    # GH: 29764 groupby loses index sometimes
+    expected = pd.Index(["a"], name="idx")
+    df = pd.DataFrame([[1]], columns=expected)
+    df_grouped = df.groupby([1])
+    result = getattr(df_grouped, func)().columns
+    tm.assert_index_equal(result, expected)
+
+
+def test_groupby_duplicate_columns():
+    # GH: 31735
+    df = pd.DataFrame(
+        {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
+    ).astype(object)
+    df.columns = ["A", "B", "B"]
+    result = df.groupby([0, 0, 0, 0]).min()
+    expected = pd.DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
     tm.assert_frame_equal(result, expected)

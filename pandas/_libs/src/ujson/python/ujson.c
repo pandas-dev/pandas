@@ -30,7 +30,7 @@ https://github.com/client9/stringencoders
 Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights reserved.
 
 Numeric decoder derived from from TCL library
-http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
+https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1988-1993 The Regents of the University of California.
 * Copyright (c) 1994 Sun Microsystems, Inc.
 */
@@ -65,35 +65,15 @@ static PyMethodDef ujsonMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
-static struct PyModuleDef moduledef = {
-    PyModuleDef_HEAD_INIT,
-    "_libjson",
-    0,            /* m_doc */
-    -1,           /* m_size */
-    ujsonMethods, /* m_methods */
-    NULL,         /* m_reload */
-    NULL,         /* m_traverse */
-    NULL,         /* m_clear */
-    NULL          /* m_free */
+static PyModuleDef moduledef = {
+    .m_base = PyModuleDef_HEAD_INIT,
+    .m_name = "_libjson",
+    .m_methods = ujsonMethods
 };
 
-#define PYMODINITFUNC PyMODINIT_FUNC PyInit_json(void)
-#define PYMODULE_CREATE() PyModule_Create(&moduledef)
-#define MODINITERROR return NULL
 
-PYMODINITFUNC {
-    PyObject *module;
-    PyObject *version_string;
+PyMODINIT_FUNC PyInit_json(void) {
+  initObjToJSON();  // TODO: clean up, maybe via tp_free?
+  return PyModuleDef_Init(&moduledef);
 
-    initObjToJSON();
-    module = PYMODULE_CREATE();
-
-    if (module == NULL) {
-        MODINITERROR;
-    }
-
-    version_string = PyUnicode_FromString(UJSON_VERSION);
-    PyModule_AddObject(module, "__version__", version_string);
-
-    return module;
 }

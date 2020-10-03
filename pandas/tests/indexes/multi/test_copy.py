@@ -3,7 +3,7 @@ from copy import copy, deepcopy
 import pytest
 
 from pandas import MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def assert_multiindex_copied(copy, original):
@@ -69,8 +69,6 @@ def test_copy_method(deep):
     "kwarg, value",
     [
         ("names", ["third", "fourth"]),
-        ("levels", [["foo2", "bar2"], ["fizz2", "buzz2"]]),
-        ("codes", [[1, 0, 0, 0], [1, 1, 0, 0]]),
     ],
 )
 def test_copy_method_kwargs(deep, kwarg, value):
@@ -80,9 +78,29 @@ def test_copy_method_kwargs(deep, kwarg, value):
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
         names=["first", "second"],
     )
-    return
     idx_copy = idx.copy(**{kwarg: value, "deep": deep})
     if kwarg == "names":
         assert getattr(idx_copy, kwarg) == value
     else:
         assert [list(i) for i in getattr(idx_copy, kwarg)] == value
+
+
+@pytest.mark.parametrize("deep", [True, False])
+@pytest.mark.parametrize(
+    "param_name, param_value",
+    [
+        ("levels", [["foo2", "bar2"], ["fizz2", "buzz2"]]),
+        ("codes", [[1, 0, 0, 0], [1, 1, 0, 0]]),
+    ],
+)
+def test_copy_deprecated_parameters(deep, param_name, param_value):
+    # gh-36685
+    idx = MultiIndex(
+        levels=[["foo", "bar"], ["fizz", "buzz"]],
+        codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
+        names=["first", "second"],
+    )
+    with tm.assert_produces_warning(FutureWarning):
+        idx_copy = idx.copy(deep=deep, **{param_name: param_value})
+
+    assert [list(i) for i in getattr(idx_copy, param_name)] == param_value

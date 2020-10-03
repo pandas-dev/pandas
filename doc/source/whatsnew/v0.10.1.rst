@@ -1,7 +1,7 @@
 .. _whatsnew_0101:
 
-v0.10.1 (January 22, 2013)
----------------------------
+Version 0.10.1 (January 22, 2013)
+---------------------------------
 
 {{ header }}
 
@@ -189,8 +189,8 @@ combined result, by using ``where`` on a selector table.
 - ``HDFStore`` now can read native PyTables table format tables
 
 - You can pass ``nan_rep = 'my_nan_rep'`` to append, to change the default nan
-  representation on disk (which converts to/from `np.nan`), this defaults to
-  `nan`.
+  representation on disk (which converts to/from ``np.nan``), this defaults to
+  ``nan``.
 
 - You can pass ``index`` to ``append``. This defaults to ``True``. This will
   automagically create indices on the *indexables* and *data columns* of the
@@ -224,7 +224,7 @@ combined result, by using ``where`` on a selector table.
 - Function to reset Google Analytics token store so users can recover from
   improperly setup client secrets (:issue:`2687`).
 - Fixed groupby bug resulting in segfault when passing in MultiIndex (:issue:`2706`)
-- Fixed bug where passing a Series with datetime64 values into `to_datetime`
+- Fixed bug where passing a Series with datetime64 values into ``to_datetime``
   results in bogus output values (:issue:`2699`)
 - Fixed bug in ``pattern in HDFStore`` expressions when pattern is not a valid
   regex (:issue:`2694`)
@@ -240,7 +240,7 @@ combined result, by using ``where`` on a selector table.
 - Fixed C file parser behavior when the file has more columns than data
   (:issue:`2668`)
 - Fixed file reader bug that misaligned columns with data in the presence of an
-  implicit column and a specified `usecols` value
+  implicit column and a specified ``usecols`` value
 - DataFrames with numerical or datetime indices are now sorted prior to
   plotting (:issue:`2609`)
 - Fixed DataFrame.from_records error when passed columns, index, but empty

@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 import pandas as pd
 from pandas import (
     Index,
@@ -17,8 +19,8 @@ from pandas import (
     notna,
     timedelta_range,
 )
+import pandas._testing as tm
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 @pytest.fixture(scope="class", params=[None, "foo"])
@@ -147,7 +149,7 @@ class TestIntervalIndex:
         )
 
         # by-definition make a copy
-        result = IntervalIndex(index._ndarray_values, copy=False)
+        result = IntervalIndex(np.array(index), copy=False)
         tm.assert_numpy_array_equal(
             index.left.values, result.left.values, check_same="copy"
         )
@@ -189,22 +191,32 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
         # invalid type
-        msg = "can only insert Interval objects and NA into an IntervalIndex"
+        msg = "can only insert Interval objects and NA into an IntervalArray"
         with pytest.raises(ValueError, match=msg):
             data.insert(1, "foo")
 
         # invalid closed
-        msg = "inserted item must be closed on the same side as the index"
+        msg = "'value.closed' is 'left', expected 'right'."
         for closed in {"left", "right", "both", "neither"} - {item.closed}:
+            msg = f"'value.closed' is '{closed}', expected '{item.closed}'."
             with pytest.raises(ValueError, match=msg):
                 bad_item = Interval(item.left, item.right, closed=closed)
                 data.insert(1, bad_item)
 
         # GH 18295 (test missing)
         na_idx = IntervalIndex([np.nan], closed=data.closed)
-        for na in (np.nan, pd.NaT, None):
+        for na in [np.nan, None, pd.NA]:
             expected = data[:1].append(na_idx).append(data[1:])
             result = data.insert(1, na)
+            tm.assert_index_equal(result, expected)
+
+        if data.left.dtype.kind not in ["m", "M"]:
+            # trying to insert pd.NaT into a numeric-dtyped Index should cast/raise
+            msg = "can only insert Interval objects and NA into an IntervalArray"
+            with pytest.raises(ValueError, match=msg):
+                result = data.insert(1, pd.NaT)
+        else:
+            result = data.insert(1, pd.NaT)
             tm.assert_index_equal(result, expected)
 
     def test_is_unique_interval(self, closed):
@@ -425,10 +437,10 @@ class TestIntervalIndex:
         key = make_key(breaks2)
 
         msg = (
-            "Cannot index an IntervalIndex of subtype {dtype1} with "
-            "values of dtype {dtype2}"
+            f"Cannot index an IntervalIndex of subtype {breaks1.dtype} with "
+            f"values of dtype {breaks2.dtype}"
         )
-        msg = re.escape(msg.format(dtype1=breaks1.dtype, dtype2=breaks2.dtype))
+        msg = re.escape(msg)
         with pytest.raises(ValueError, match=msg):
             index._maybe_convert_i8(key)
 
@@ -567,13 +579,17 @@ class TestIntervalIndex:
         actual = self.index == self.index.left
         tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
-        with pytest.raises(TypeError, match="unorderable types"):
+        msg = (
+            "not supported between instances of 'int' and "
+            "'pandas._libs.interval.Interval'"
+        )
+        with pytest.raises(TypeError, match=msg):
             self.index > 0
-        with pytest.raises(TypeError, match="unorderable types"):
+        with pytest.raises(TypeError, match=msg):
             self.index <= 0
-        msg = r"unorderable types: Interval\(\) > int\(\)"
         with pytest.raises(TypeError, match=msg):
             self.index > np.arange(2)
+
         msg = "Lengths must match to compare"
         with pytest.raises(ValueError, match=msg):
             self.index > np.arange(3)
@@ -586,8 +602,8 @@ class TestIntervalIndex:
         assert idx.equals(idx2)
 
         msg = (
-            "missing values must be missing in the same location both left"
-            " and right sides"
+            "missing values must be missing in the same location both left "
+            "and right sides"
         )
         with pytest.raises(ValueError, match=msg):
             IntervalIndex.from_arrays(
@@ -612,7 +628,7 @@ class TestIntervalIndex:
         expected = IntervalIndex([Interval(0, 1), Interval(1, 2), np.nan])
         tm.assert_index_equal(result, expected)
 
-        result = index.sort_values(ascending=False)
+        result = index.sort_values(ascending=False, na_position="first")
         expected = IntervalIndex([np.nan, Interval(1, 2), Interval(0, 1)])
         tm.assert_index_equal(result, expected)
 
@@ -673,10 +689,7 @@ class TestIntervalIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "can only append two IntervalIndex objects that are closed "
-            "on the same side"
-        )
+        msg = "Intervals must all be closed on the same side"
         for other_closed in {"left", "right", "both", "neither"} - {closed}:
             index_other_closed = IntervalIndex.from_arrays(
                 [0, 1], [1, 2], closed=other_closed
@@ -848,7 +861,7 @@ class TestIntervalIndex:
     def test_set_closed_errors(self, bad_closed):
         # GH 21670
         index = interval_range(0, 5)
-        msg = "invalid option for 'closed': {closed}".format(closed=bad_closed)
+        msg = f"invalid option for 'closed': {bad_closed}"
         with pytest.raises(ValueError, match=msg):
             index.set_closed(bad_closed)
 
@@ -858,7 +871,25 @@ class TestIntervalIndex:
             pd.Timestamp("2017-01-01 00:00:00"), pd.Timestamp("2018-01-01 00:00:00")
         )
         year_2017_index = pd.IntervalIndex([year_2017])
-        assert not year_2017_index.is_all_dates
+        assert not year_2017_index._is_all_dates
+
+    @pytest.mark.parametrize("key", [[5], (2, 3)])
+    def test_get_value_non_scalar_errors(self, key):
+        # GH 31117
+        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
+        s = pd.Series(range(len(idx)), index=idx)
+
+        msg = str(key)
+        with pytest.raises(InvalidIndexError, match=msg):
+            with tm.assert_produces_warning(FutureWarning):
+                idx.get_value(s, key)
+
+    @pytest.mark.parametrize("closed", ["left", "right", "both"])
+    def test_pickle_round_trip_closed(self, closed):
+        # https://github.com/pandas-dev/pandas/issues/35658
+        idx = IntervalIndex.from_tuples([(1, 2), (2, 3)], closed=closed)
+        result = tm.round_trip_pickle(idx)
+        tm.assert_index_equal(result, idx)
 
 
 def test_dir():
@@ -866,3 +897,25 @@ def test_dir():
     index = IntervalIndex.from_arrays([0, 1], [1, 2])
     result = dir(index)
     assert "str" not in result
+
+
+@pytest.mark.parametrize("klass", [list, np.array, pd.array, pd.Series])
+def test_searchsorted_different_argument_classes(klass):
+    # https://github.com/pandas-dev/pandas/issues/32762
+    values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
+    result = values.searchsorted(klass(values))
+    expected = np.array([0, 1], dtype=result.dtype)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = values._data.searchsorted(klass(values))
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arg", [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2]
+)
+def test_searchsorted_invalid_argument(arg):
+    values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
+    msg = "'<' not supported between instances of 'pandas._libs.interval.Interval' and "
+    with pytest.raises(TypeError, match=msg):
+        values.searchsorted(arg)

@@ -4,8 +4,8 @@ Assertion helpers for arithmetic tests.
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series
-import pandas.util.testing as tm
+from pandas import DataFrame, Index, Series, array as pd_array
+import pandas._testing as tm
 
 
 def assert_invalid_addsub_type(left, right, msg=None):
@@ -13,7 +13,7 @@ def assert_invalid_addsub_type(left, right, msg=None):
     Helper to assert that left and right can be neither added nor subtracted.
 
     Parameters
-    ---------
+    ----------
     left : object
     right : object
     msg : str or None, default None
@@ -49,12 +49,12 @@ def assert_invalid_comparison(left, right, box):
     ----------
     left : np.ndarray, ExtensionArray, Index, or Series
     right : object
-    box : {pd.DataFrame, pd.Series, pd.Index, tm.to_array}
+    box : {pd.DataFrame, pd.Series, pd.Index, pd.array, tm.to_array}
     """
     # Not for tznaive-tzaware comparison
 
     # Note: not quite the same as how we do this for tm.box_expected
-    xbox = box if box is not Index else np.array
+    xbox = box if box not in [Index, pd_array] else np.array
 
     result = left == right
     expected = xbox(np.zeros(result.shape, dtype=np.bool_))
@@ -70,7 +70,21 @@ def assert_invalid_comparison(left, right, box):
     result = right != left
     tm.assert_equal(result, ~expected)
 
-    msg = "Invalid comparison between"
+    msg = "|".join(
+        [
+            "Invalid comparison between",
+            "Cannot compare type",
+            "not supported between",
+            "invalid type promotion",
+            (
+                # GH#36706 npdev 1.20.0 2020-09-28
+                r"The DTypes <class 'numpy.dtype\[datetime64\]'> and "
+                r"<class 'numpy.dtype\[int64\]'> do not have a common DType. "
+                "For example they cannot be stored in a single array unless the "
+                "dtype is `object`."
+            ),
+        ]
+    )
     with pytest.raises(TypeError, match=msg):
         left < right
     with pytest.raises(TypeError, match=msg):

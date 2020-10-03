@@ -10,8 +10,8 @@ from pandas.core.dtypes.common import is_list_like
 import pandas.core.common as com
 
 
-def _get_standard_colors(
-    num_colors=None, colormap=None, color_type="default", color=None
+def get_standard_colors(
+    num_colors: int, colormap=None, color_type: str = "default", color=None
 ):
     import matplotlib.pyplot as plt
 
@@ -27,7 +27,11 @@ def _get_standard_colors(
             warnings.warn(
                 "'color' and 'colormap' cannot be used simultaneously. Using 'color'"
             )
-        colors = list(color) if is_list_like(color) else color
+        colors = (
+            list(color)
+            if is_list_like(color) and not isinstance(color, dict)
+            else color
+        )
     else:
         if color_type == "default":
             # need to call list() on the result to copy so we don't

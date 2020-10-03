@@ -1,29 +1,46 @@
 from collections import abc
 from decimal import Decimal
-from fractions import Fraction
-from numbers import Number
-
-import sys
+import warnings
 
 import cython
 from cython import Py_ssize_t
 
-from cpython.object cimport PyObject_RichCompareBool, Py_EQ
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    PyTime_Check,
+)
+from cpython.iterator cimport PyIter_Check
+from cpython.number cimport PyNumber_Check
+from cpython.object cimport Py_EQ, PyObject_RichCompareBool
 from cpython.ref cimport Py_INCREF
-from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
+from cpython.sequence cimport PySequence_Check
+from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM
 
-from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
-                               PyTime_Check, PyDelta_Check,
-                               PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_GETITEM,
-                    PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
-                    flatiter, NPY_OBJECT,
-                    int64_t, float32_t, float64_t,
-                    uint8_t, uint64_t, complex128_t)
+from numpy cimport (
+    NPY_OBJECT,
+    PyArray_Check,
+    PyArray_GETITEM,
+    PyArray_ITER_DATA,
+    PyArray_ITER_NEXT,
+    PyArray_IterNew,
+    complex128_t,
+    flatiter,
+    float32_t,
+    float64_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint64_t,
+)
+
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
@@ -47,19 +64,24 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
-cimport pandas._libs.util as util
-from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
+from pandas._libs cimport util
+from pandas._libs.util cimport INT64_MAX, INT64_MIN, UINT64_MAX, is_nan
 
 from pandas._libs.tslib import array_to_datetime
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
-from pandas._libs.tslibs.conversion cimport convert_to_tsobject
-from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
-from pandas._libs.tslibs.timezones cimport get_timezone, tz_compare
 
 from pandas._libs.missing cimport (
-    checknull, isnaobj, is_null_datetime64, is_null_timedelta64, is_null_period, C_NA
+    C_NA,
+    checknull,
+    is_null_datetime64,
+    is_null_timedelta64,
+    isnaobj,
 )
-
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT, checknull_with_nat
+from pandas._libs.tslibs.offsets cimport is_offset_object
+from pandas._libs.tslibs.period cimport is_period_object
+from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
+from pandas._libs.tslibs.timezones cimport tz_compare
 
 # constants that will be compared to potentially arbitrarily large
 # python int
@@ -69,22 +91,6 @@ cdef:
     object oUINT64_MAX = <uint64_t>UINT64_MAX
 
     float64_t NaN = <float64_t>np.NaN
-
-
-def values_from_object(obj: object):
-    """
-    Return my values or the object if we are say an ndarray.
-    """
-    func: object
-
-    if getattr(obj, '_typ', '') == 'dataframe':
-        return obj.values
-
-    func = getattr(obj, '_internal_get_values', None)
-    if func is not None:
-        obj = func()
-
-    return obj
 
 
 @cython.wraparound(False)
@@ -156,7 +162,8 @@ def is_scalar(val: object) -> bool:
     True
     """
 
-    return (cnp.PyArray_IsAnyScalar(val)
+    # Start with C-optimized checks
+    if (cnp.PyArray_IsAnyScalar(val)
             # PyArray_IsAnyScalar is always False for bytearrays on Py3
             or PyDate_Check(val)
             or PyDelta_Check(val)
@@ -164,12 +171,52 @@ def is_scalar(val: object) -> bool:
             # We differ from numpy, which claims that None is not scalar;
             # see np.isscalar
             or val is C_NA
-            or val is None
-            or isinstance(val, (Fraction, Number))
-            or util.is_period_object(val)
-            or is_decimal(val)
+            or val is None):
+        return True
+
+    # Next use C-optimized checks to exclude common non-scalars before falling
+    #  back to non-optimized checks.
+    if PySequence_Check(val):
+        # e.g. list, tuple
+        # includes np.ndarray, Series which PyNumber_Check can return True for
+        return False
+
+    # Note: PyNumber_Check check includes Decimal, Fraction, numbers.Number
+    return (PyNumber_Check(val)
+            or is_period_object(val)
             or is_interval(val)
-            or util.is_offset_object(val))
+            or is_offset_object(val))
+
+
+def is_iterator(obj: object) -> bool:
+    """
+    Check if the object is an iterator.
+
+    This is intended for generators, not list-like objects.
+
+    Parameters
+    ----------
+    obj : The object to check
+
+    Returns
+    -------
+    is_iter : bool
+        Whether `obj` is an iterator.
+
+    Examples
+    --------
+    >>> is_iterator((x for x in []))
+    True
+    >>> is_iterator([1, 2, 3])
+    False
+    >>> is_iterator(datetime(2017, 1, 1))
+    False
+    >>> is_iterator("foo")
+    False
+    >>> is_iterator(1)
+    False
+    """
+    return PyIter_Check(obj)
 
 
 def item_from_zerodim(val: object) -> object:
@@ -202,7 +249,7 @@ def item_from_zerodim(val: object) -> object:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple(list arrays, sort: bool=True):
+def fast_unique_multiple(list arrays, sort: bool = True):
     """
     Generate a list of unique values from a list of arrays.
 
@@ -233,11 +280,16 @@ def fast_unique_multiple(list arrays, sort: bool=True):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
+
     if sort is None:
         try:
             uniques.sort()
         except TypeError:
-            # TODO: RuntimeWarning?
+            warnings.warn(
+                "The values in the array are unorderable. "
+                "Pass `sort=False` to suppress this warning.",
+                RuntimeWarning,
+            )
             pass
 
     return uniques
@@ -245,7 +297,7 @@ def fast_unique_multiple(list arrays, sort: bool=True):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(lists: list, sort: bool=True) -> list:
+def fast_unique_multiple_list(lists: list, sort: bool = True) -> list:
     cdef:
         list buf
         Py_ssize_t k = len(lists)
@@ -481,14 +533,14 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
     cdef:
         Py_ssize_t i, n = len(mask)
         Py_ssize_t start = 0, end = 0
-        bint started = 0, finished = 0
+        bint started = False, finished = False
 
     for i in range(n):
         if mask[i]:
             if finished:
                 return mask.view(np.bool_)
             if not started:
-                started = 1
+                started = True
                 start = i
         else:
             if finished:
@@ -496,7 +548,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
 
             if started:
                 end = i
-                finished = 1
+                finished = True
 
     if not started:
         return slice(0, 0)
@@ -524,17 +576,31 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         # we are either not equal or both nan
         # I think None == None will be true here
         try:
-            if not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                    (x is None or is_nan(x)) and (y is None or is_nan(y))):
+            if PyArray_Check(x) and PyArray_Check(y):
+                if not array_equivalent_object(x, y):
+                    return False
+            elif (x is C_NA) ^ (y is C_NA):
+                return False
+            elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
+                      (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
         except TypeError as err:
             # Avoid raising TypeError on tzawareness mismatch
             # TODO: This try/except can be removed if/when Timestamp
-            #  comparisons are change dto match datetime, see GH#28507
+            #  comparisons are changed to match datetime, see GH#28507
             if "tz-naive and tz-aware" in str(err):
                 return False
             raise
-
+        except ValueError:
+            # Avoid raising ValueError when comparing Numpy arrays to other types
+            if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
+                # Only compare scalars to scalars and non-scalars to non-scalars
+                return False
+            elif (not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
+                  and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
+                # Check if non-scalars have the same type
+                return False
+            raise
     return True
 
 
@@ -561,35 +627,57 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
-    """
-    Convert all elements in an array to string.
+cpdef ndarray[object] ensure_string_array(
+        arr,
+        object na_value=np.nan,
+        bint convert_na_value=True,
+        bint copy=True,
+        bint skipna=True,
+):
+    """Returns a new numpy array with object dtype and only strings and na values.
 
     Parameters
     ----------
-    arr : ndarray
-        The array whose elements we are casting.
-    skipna : bool, default False
+    arr : array-like
+        The values to be converted to str, if needed.
+    na_value : Any
+        The value to use for na. For example, np.nan or pd.NA.
+    convert_na_value : bool, default True
+        If False, existing na values will be used unchanged in the new array.
+    copy : bool, default True
+        Whether to ensure that a new array is returned.
+    skipna : bool, default True
         Whether or not to coerce nulls to their stringified form
-        (e.g. NaN becomes 'nan').
+        (e.g. if False, NaN becomes 'nan').
 
     Returns
     -------
     ndarray
-        A new array with the input array's elements casted.
+        An array with the input array's elements casted to str or nan-like.
     """
     cdef:
-        object arr_i
-        Py_ssize_t i, n = arr.size
-        ndarray[object] result = np.empty(n, dtype=object)
+        Py_ssize_t i = 0, n = len(arr)
+
+    result = np.asarray(arr, dtype="object")
+
+    if copy and result is arr:
+        result = result.copy()
 
     for i in range(n):
-        arr_i = arr[i]
+        val = arr[i]
 
-        if not (skipna and checknull(arr_i)):
-            arr_i = str(arr_i)
+        if isinstance(val, str):
+            continue
 
-        result[i] = arr_i
+        if not checknull(val):
+            result[i] = str(val)
+        else:
+            if convert_na_value:
+                val = na_value
+            if skipna:
+                result[i] = val
+            else:
+                result[i] = str(val)
 
     return result
 
@@ -603,13 +691,13 @@ def clean_index_list(obj: list):
     cdef:
         Py_ssize_t i, n = len(obj)
         object val
-        bint all_arrays = 1
+        bint all_arrays = True
 
     for i in range(n):
         val = obj[i]
         if not (isinstance(val, list) or
                 util.is_array(val) or hasattr(val, '_data')):
-            all_arrays = 0
+            all_arrays = False
             break
 
     if all_arrays:
@@ -638,7 +726,7 @@ def clean_index_list(obj: list):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
-                       object closed='left', bint hasnans=0):
+                       object closed='left', bint hasnans=False):
     """
     Int64 (datetime64) version of generic python version in ``groupby.py``.
     """
@@ -739,14 +827,16 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
         with nogil:
             for i in range(n):
                 for j in range(k):
-                    counts[labels[i], j] += mask[i, j]
+                    if mask[i, j]:
+                        counts[labels[i], j] += 1
 
     else:  # axis == 1
         counts = np.zeros((n, max_bin), dtype='i8')
         with nogil:
             for i in range(n):
                 for j in range(k):
-                    counts[i, labels[j]] += mask[i, j]
+                    if mask[i, j]:
+                        counts[i, labels[j]] += 1
 
     return counts
 
@@ -881,7 +971,7 @@ def is_period(val: object) -> bool:
     -------
     bool
     """
-    return util.is_period_object(val)
+    return is_period_object(val)
 
 
 def is_list_like(obj: object, allow_sets: bool = True) -> bool:
@@ -921,13 +1011,13 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     False
     >>> is_list_like(np.array([2]))
     True
-    >>> is_list_like(np.array(2)))
+    >>> is_list_like(np.array(2))
     False
     """
     return c_is_list_like(obj, allow_sets)
 
 
-cdef inline bint c_is_list_like(object obj, bint allow_sets):
+cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
     return (
         isinstance(obj, abc.Iterable)
         # we do not count strings/unicode/bytes as list-like
@@ -940,34 +1030,34 @@ cdef inline bint c_is_list_like(object obj, bint allow_sets):
 
 
 _TYPE_MAP = {
-    'categorical': 'categorical',
-    'category': 'categorical',
-    'int8': 'integer',
-    'int16': 'integer',
-    'int32': 'integer',
-    'int64': 'integer',
-    'i': 'integer',
-    'uint8': 'integer',
-    'uint16': 'integer',
-    'uint32': 'integer',
-    'uint64': 'integer',
-    'u': 'integer',
-    'float32': 'floating',
-    'float64': 'floating',
-    'f': 'floating',
-    'complex64': 'complex',
-    'complex128': 'complex',
-    'c': 'complex',
-    'string': 'bytes',
-    'S': 'bytes',
-    'U': 'string',
-    'bool': 'boolean',
-    'b': 'boolean',
-    'datetime64[ns]': 'datetime64',
-    'M': 'datetime64',
-    'timedelta64[ns]': 'timedelta64',
-    'm': 'timedelta64',
-    'interval': 'interval',
+    "categorical": "categorical",
+    "category": "categorical",
+    "int8": "integer",
+    "int16": "integer",
+    "int32": "integer",
+    "int64": "integer",
+    "i": "integer",
+    "uint8": "integer",
+    "uint16": "integer",
+    "uint32": "integer",
+    "uint64": "integer",
+    "u": "integer",
+    "float32": "floating",
+    "float64": "floating",
+    "f": "floating",
+    "complex64": "complex",
+    "complex128": "complex",
+    "c": "complex",
+    "string": "string",
+    "S": "bytes",
+    "U": "string",
+    "bool": "boolean",
+    "b": "boolean",
+    "datetime64[ns]": "datetime64",
+    "M": "datetime64",
+    "timedelta64[ns]": "timedelta64",
+    "m": "timedelta64",
+    "interval": "interval",
 }
 
 # types only exist on certain platform
@@ -1010,29 +1100,29 @@ cdef class Seen:
         bint timedelta_       # seen_timedelta
         bint datetimetz_      # seen_datetimetz
 
-    def __cinit__(self, bint coerce_numeric=0):
+    def __cinit__(self, bint coerce_numeric=False):
         """
         Initialize a Seen instance.
 
         Parameters
         ----------
-        coerce_numeric : bint, default 0
+        coerce_numeric : bool, default False
             Whether or not to force conversion to a numeric data type if
             initial methods to convert to numeric fail.
         """
-        self.int_ = 0
-        self.nat_ = 0
-        self.bool_ = 0
-        self.null_ = 0
-        self.nan_ = 0
-        self.uint_ = 0
-        self.sint_ = 0
-        self.float_ = 0
-        self.object_ = 0
-        self.complex_ = 0
-        self.datetime_ = 0
-        self.timedelta_ = 0
-        self.datetimetz_ = 0
+        self.int_ = False
+        self.nat_ = False
+        self.bool_ = False
+        self.null_ = False
+        self.nan_ = False
+        self.uint_ = False
+        self.sint_ = False
+        self.float_ = False
+        self.object_ = False
+        self.complex_ = False
+        self.datetime_ = False
+        self.timedelta_ = False
+        self.datetimetz_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef inline bint check_uint64_conflict(self) except -1:
@@ -1073,8 +1163,8 @@ cdef class Seen:
         """
         Set flags indicating that a null value was encountered.
         """
-        self.null_ = 1
-        self.float_ = 1
+        self.null_ = True
+        self.float_ = True
 
     cdef saw_int(self, object val):
         """
@@ -1093,7 +1183,7 @@ cdef class Seen:
         val : Python int
             Value with which to set the flags.
         """
-        self.int_ = 1
+        self.int_ = True
         self.sint_ = self.sint_ or (oINT64_MIN <= val < 0)
         self.uint_ = self.uint_ or (oINT64_MAX < val <= oUINT64_MAX)
 
@@ -1112,14 +1202,15 @@ cdef class Seen:
                     or self.nat_)
 
 
-cdef _try_infer_map(v):
+cdef object _try_infer_map(object dtype):
     """
     If its in our map, just return the dtype.
     """
     cdef:
-        object attr, val
-    for attr in ['name', 'kind', 'base']:
-        val = getattr(v.dtype, attr)
+        object val
+        str attr
+    for attr in ["name", "kind", "base"]:
+        val = getattr(dtype, attr)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
     return None
@@ -1135,8 +1226,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     value : scalar, list, ndarray, or pandas type
     skipna : bool, default True
         Ignore NaN values when inferring the type.
-
-        .. versionadded:: 0.21.0
 
     Returns
     -------
@@ -1234,44 +1323,48 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     if util.is_array(value):
         values = value
-    elif hasattr(value, 'dtype'):
+    elif hasattr(value, "inferred_type") and skipna is False:
+        # Index, use the cached attribute if possible, populate the cache otherwise
+        return value.inferred_type
+    elif hasattr(value, "dtype"):
         # this will handle ndarray-like
         # e.g. categoricals
-        try:
-            values = getattr(value, '_values', getattr(value, 'values', value))
-        except TypeError:
-            # This gets hit if we have an EA, since cython expects `values`
-            #  to be an ndarray
-            value = _try_infer_map(value)
+        dtype = value.dtype
+        if not isinstance(dtype, np.dtype):
+            value = _try_infer_map(value.dtype)
             if value is not None:
                 return value
 
-            # its ndarray like but we can't handle
+            # its ndarray-like but we can't handle
             raise ValueError(f"cannot infer type for {type(value)}")
+
+        # Unwrap Series/Index
+        values = np.asarray(value)
 
     else:
         if not isinstance(value, list):
             value = list(value)
-        from pandas.core.dtypes.cast import (
-            construct_1d_object_array_from_listlike)
+
+        from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
 
     # make contiguous
-    values = values.ravel()
+    # for f-contiguous array 1000 x 1000, passing order="K" gives 5000x speedup
+    values = values.ravel(order="K")
 
-    val = _try_infer_map(values)
+    val = _try_infer_map(values.dtype)
     if val is not None:
         return val
 
     if values.dtype != np.object_:
-        values = values.astype('O')
+        values = values.astype("O")
 
     if skipna:
         values = values[~isnaobj(values)]
 
     n = len(values)
     if n == 0:
-        return 'empty'
+        return "empty"
 
     # try to use a valid value
     for i in range(n):
@@ -1314,8 +1407,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         return "mixed-integer"
 
     elif PyDateTime_Check(val):
-        if is_datetime_array(values):
+        if is_datetime_array(values, skipna=skipna):
             return "datetime"
+        elif is_date_array(values, skipna=skipna):
+            return "date"
 
     elif PyDate_Check(val):
         if is_date_array(values, skipna=skipna):
@@ -1352,7 +1447,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if is_bytes_array(values, skipna=skipna):
             return "bytes"
 
-    elif util.is_period_object(val):
+    elif is_period_object(val):
         if is_period_array(values):
             return "period"
 
@@ -1391,9 +1486,9 @@ def infer_datetimelike_array(arr: object) -> object:
     """
     cdef:
         Py_ssize_t i, n = len(arr)
-        bint seen_timedelta = 0, seen_date = 0, seen_datetime = 0
-        bint seen_tz_aware = 0, seen_tz_naive = 0
-        bint seen_nat = 0
+        bint seen_timedelta = False, seen_date = False, seen_datetime = False
+        bint seen_tz_aware = False, seen_tz_naive = False
+        bint seen_nat = False
         list objs = []
         object v
 
@@ -1409,27 +1504,27 @@ def infer_datetimelike_array(arr: object) -> object:
             # nan or None
             pass
         elif v is NaT:
-            seen_nat = 1
+            seen_nat = True
         elif PyDateTime_Check(v):
             # datetime
-            seen_datetime = 1
+            seen_datetime = True
 
             # disambiguate between tz-naive and tz-aware
             if v.tzinfo is None:
-                seen_tz_naive = 1
+                seen_tz_naive = True
             else:
-                seen_tz_aware = 1
+                seen_tz_aware = True
 
             if seen_tz_naive and seen_tz_aware:
                 return 'mixed'
         elif util.is_datetime64_object(v):
             # np.datetime64
-            seen_datetime = 1
+            seen_datetime = True
         elif PyDate_Check(v):
-            seen_date = 1
+            seen_date = True
         elif is_timedelta(v):
             # timedelta, or timedelta64
-            seen_timedelta = 1
+            seen_timedelta = True
         else:
             return "mixed"
 
@@ -1621,6 +1716,10 @@ cdef class StringValidator(Validator):
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.str_)
 
+    cdef bint is_valid_null(self, object value) except -1:
+        # We deliberately exclude None / NaN here since StringArray uses NA
+        return value is C_NA
+
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
     cdef:
@@ -1682,10 +1781,10 @@ cdef class DatetimeValidator(TemporalValidator):
         return is_null_datetime64(value)
 
 
-cpdef bint is_datetime_array(ndarray values):
+cpdef bint is_datetime_array(ndarray values, bint skipna=True):
     cdef:
         DatetimeValidator validator = DatetimeValidator(len(values),
-                                                        skipna=True)
+                                                        skipna=skipna)
     return validator.validate(values)
 
 
@@ -1717,7 +1816,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     for i in range(n):
         base_val = values[i]
         if base_val is not NaT:
-            base_tz = get_timezone(getattr(base_val, 'tzinfo', None))
+            base_tz = getattr(base_val, 'tzinfo', None)
             break
 
     for j in range(i, n):
@@ -1780,10 +1879,10 @@ cpdef bint is_time_array(ndarray values, bint skipna=False):
 
 cdef class PeriodValidator(TemporalValidator):
     cdef inline bint is_value_typed(self, object value) except -1:
-        return util.is_period_object(value)
+        return is_period_object(value)
 
     cdef inline bint is_valid_null(self, object value) except -1:
-        return is_null_period(value)
+        return checknull_with_nat(value)
 
 
 cpdef bint is_period_array(ndarray values):
@@ -1952,8 +2051,6 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
             except (TypeError, ValueError) as err:
                 if not seen.coerce_numeric:
                     raise type(err)(f"{err} at position {i}")
-                elif "uint64" in str(err):  # Exception from check functions.
-                    raise
 
                 seen.saw_null()
                 floats[i] = NaN
@@ -1979,10 +2076,10 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
-                          bint safe=0, bint convert_datetime=0,
-                          bint convert_timedelta=0,
-                          bint convert_to_nullable_integer=0):
+def maybe_convert_objects(ndarray[object] objects, bint try_float=False,
+                          bint safe=False, bint convert_datetime=False,
+                          bint convert_timedelta=False,
+                          bint convert_to_nullable_integer=False):
     """
     Type inference function-- convert object array to proper dtype
 
@@ -2003,7 +2100,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         If an array-like object contains only timedelta values or NaT is
         encountered, whether to convert and return an array of m8[ns] dtype.
     convert_to_nullable_integer : bool, default False
-        If an array-like object contains only interger values (and NaN) is
+        If an array-like object contains only integer values (and NaN) is
         encountered, whether to convert and return an IntegerArray.
 
     Returns
@@ -2046,45 +2143,45 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         val = objects[i]
 
         if val is None:
-            seen.null_ = 1
+            seen.null_ = True
             floats[i] = complexes[i] = fnan
             mask[i] = True
         elif val is NaT:
-            seen.nat_ = 1
+            seen.nat_ = True
             if convert_datetime:
                 idatetimes[i] = NPY_NAT
             if convert_timedelta:
                 itimedeltas[i] = NPY_NAT
             if not (convert_datetime or convert_timedelta):
-                seen.object_ = 1
+                seen.object_ = True
                 break
         elif val is np.nan:
-            seen.nan_ = 1
+            seen.nan_ = True
             mask[i] = True
             floats[i] = complexes[i] = val
         elif util.is_bool_object(val):
-            seen.bool_ = 1
+            seen.bool_ = True
             bools[i] = val
         elif util.is_float_object(val):
             floats[i] = complexes[i] = val
-            seen.float_ = 1
+            seen.float_ = True
         elif util.is_datetime64_object(val):
             if convert_datetime:
                 idatetimes[i] = convert_to_tsobject(
                     val, None, None, 0, 0).value
-                seen.datetime_ = 1
+                seen.datetime_ = True
             else:
-                seen.object_ = 1
+                seen.object_ = True
                 break
         elif is_timedelta(val):
             if convert_timedelta:
                 itimedeltas[i] = convert_to_timedelta64(val, 'ns')
-                seen.timedelta_ = 1
+                seen.timedelta_ = True
             else:
-                seen.object_ = 1
+                seen.object_ = True
                 break
         elif util.is_integer_object(val):
-            seen.int_ = 1
+            seen.int_ = True
             floats[i] = <float64_t>val
             complexes[i] = <double complex>val
             if not seen.null_:
@@ -2093,7 +2190,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
                 if ((seen.uint_ and seen.sint_) or
                         val > oUINT64_MAX or val < oINT64_MIN):
-                    seen.object_ = 1
+                    seen.object_ = True
                     break
 
                 if seen.uint_:
@@ -2106,32 +2203,32 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
         elif util.is_complex_object(val):
             complexes[i] = val
-            seen.complex_ = 1
+            seen.complex_ = True
         elif PyDateTime_Check(val) or util.is_datetime64_object(val):
 
             # if we have an tz's attached then return the objects
             if convert_datetime:
                 if getattr(val, 'tzinfo', None) is not None:
-                    seen.datetimetz_ = 1
+                    seen.datetimetz_ = True
                     break
                 else:
-                    seen.datetime_ = 1
+                    seen.datetime_ = True
                     idatetimes[i] = convert_to_tsobject(
                         val, None, None, 0, 0).value
             else:
-                seen.object_ = 1
+                seen.object_ = True
                 break
         elif try_float and not isinstance(val, str):
             # this will convert Decimal objects
             try:
                 floats[i] = float(val)
                 complexes[i] = complex(val)
-                seen.float_ = 1
+                seen.float_ = True
             except (ValueError, TypeError):
-                seen.object_ = 1
+                seen.object_ = True
                 break
         else:
-            seen.object_ = 1
+            seen.object_ = True
             break
 
     # we try to coerce datetime w/tz but must all have the same tz
@@ -2139,7 +2236,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         if is_datetime_with_singletz_array(objects):
             from pandas import DatetimeIndex
             return DatetimeIndex(objects)
-        seen.object_ = 1
+        seen.object_ = True
 
     if not seen.object_:
         if not safe:
@@ -2226,19 +2323,20 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                                 return uints
                             else:
                                 return ints
-                elif seen.is_bool:
+                elif seen.is_bool and not seen.nan_:
                     return bools.view(np.bool_)
 
     return objects
 
 
-_no_default = object()
+# Note: no_default is exported to the public API in pandas.api.extensions
+no_default = object()  #: Sentinel indicating the default value.
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
-                   object na_value=_no_default, object dtype=object):
+def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
+                   object na_value=no_default, object dtype=object):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2269,7 +2367,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
     result = np.empty(n, dtype=dtype)
     for i in range(n):
         if mask[i]:
-            if na_value is _no_default:
+            if na_value is no_default:
                 val = arr[i]
             else:
                 val = na_value
@@ -2278,24 +2376,22 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=1,
 
             if cnp.PyArray_IsZeroDim(val):
                 # unbox 0-dim arrays, GH#690
-                # TODO: is there a faster way to unbox?
-                #   item_from_zerodim?
                 val = val.item()
 
         result[i] = val
 
     if convert:
         return maybe_convert_objects(result,
-                                     try_float=0,
-                                     convert_datetime=0,
-                                     convert_timedelta=0)
+                                     try_float=False,
+                                     convert_datetime=False,
+                                     convert_timedelta=False)
 
     return result
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer(ndarray arr, object f, bint convert=1):
+def map_infer(ndarray arr, object f, bint convert=True, bint ignore_na=False):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2303,6 +2399,9 @@ def map_infer(ndarray arr, object f, bint convert=1):
     ----------
     arr : ndarray
     f : function
+    convert : bint
+    ignore_na : bint
+        If True, NA values will not have f applied
 
     Returns
     -------
@@ -2316,21 +2415,22 @@ def map_infer(ndarray arr, object f, bint convert=1):
     n = len(arr)
     result = np.empty(n, dtype=object)
     for i in range(n):
+        if ignore_na and checknull(arr[i]):
+            result[i] = arr[i]
+            continue
         val = f(arr[i])
 
         if cnp.PyArray_IsZeroDim(val):
             # unbox 0-dim arrays, GH#690
-            # TODO: is there a faster way to unbox?
-            #   item_from_zerodim?
             val = val.item()
 
         result[i] = val
 
     if convert:
         return maybe_convert_objects(result,
-                                     try_float=0,
-                                     convert_datetime=0,
-                                     convert_timedelta=0)
+                                     try_float=False,
+                                     convert_datetime=False,
+                                     convert_timedelta=False)
 
     return result
 

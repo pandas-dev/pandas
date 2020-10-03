@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
-pytest.importorskip("pyarrow", minversion="0.12.0")
+pytest.importorskip("pyarrow", minversion="0.13.0")
 
 from .arrays import ArrowBoolArray, ArrowBoolDtype  # isort:skip
 
@@ -25,6 +25,11 @@ def data():
 @pytest.fixture
 def data_missing():
     return ArrowBoolArray.from_scalars([None, True])
+
+
+def test_basic_equals(data):
+    # https://github.com/pandas-dev/pandas/issues/34660
+    assert pd.Series(data).equals(pd.Series(data))
 
 
 class BaseArrowTests:
@@ -54,6 +59,20 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     @pytest.mark.xfail(reason="bad is-na for empty data")
     def test_from_sequence_from_cls(self, data):
         super().test_from_sequence_from_cls(data)
+
+    @pytest.mark.xfail(reason="pa.NULL is not recognised as scalar, GH-33899")
+    def test_series_constructor_no_data_with_index(self, dtype, na_value):
+        # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
+        super().test_series_constructor_no_data_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="pa.NULL is not recognised as scalar, GH-33899")
+    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
+        # pyarrow.lib.ArrowInvalid: only handle 1-dimensional arrays
+        super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="raises AssertionError")
+    def test_construct_empty_dataframe(self, dtype):
+        super().test_construct_empty_dataframe(dtype)
 
 
 class TestReduce(base.BaseNoReduceTests):

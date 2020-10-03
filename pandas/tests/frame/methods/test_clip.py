@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestDataFrameClip:
@@ -22,7 +22,8 @@ class TestDataFrameClip:
         median = float_frame.median().median()
         frame_copy = float_frame.copy()
 
-        frame_copy.clip(upper=median, lower=median, inplace=True)
+        return_value = frame_copy.clip(upper=median, lower=median, inplace=True)
+        assert return_value is None
         assert not (frame_copy.values != median).any()
 
     def test_dataframe_clip(self):

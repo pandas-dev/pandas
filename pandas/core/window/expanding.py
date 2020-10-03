@@ -1,13 +1,14 @@
 from textwrap import dedent
+from typing import Dict, Optional
 
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
-from pandas.core.window.rolling import _Rolling_and_Expanding
+from pandas.core.window.rolling import RollingAndExpandingMixin
 
 
-class Expanding(_Rolling_and_Expanding):
+class Expanding(RollingAndExpandingMixin):
     """
     Provide expanding transformations.
 
@@ -36,8 +37,8 @@ class Expanding(_Rolling_and_Expanding):
 
     Examples
     --------
-
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]})
+    >>> df
          B
     0  0.0
     1  1.0
@@ -56,7 +57,7 @@ class Expanding(_Rolling_and_Expanding):
 
     _attributes = ["min_periods", "center", "axis"]
 
-    def __init__(self, obj, min_periods=1, center=False, axis=0, **kwargs):
+    def __init__(self, obj, min_periods=1, center=None, axis=0, **kwargs):
         super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis)
 
     @property
@@ -88,9 +89,8 @@ class Expanding(_Rolling_and_Expanding):
         """
     See Also
     --------
-    DataFrame.expanding.aggregate
-    DataFrame.rolling.aggregate
-    DataFrame.aggregate
+    pandas.DataFrame.aggregate : Similar DataFrame method.
+    pandas.Series.aggregate : Similar Series method.
     """
     )
 
@@ -98,44 +98,28 @@ class Expanding(_Rolling_and_Expanding):
         """
     Examples
     --------
-
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'])
+    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     >>> df
-              A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.004295  0.905829 -0.954544
-    2  0.735167 -0.165272 -1.619346
-    3 -0.702657 -1.340923 -0.706334
-    4 -0.246845  0.211596 -0.901819
-    5  2.463718  3.157577 -1.380906
-    6 -1.142255  2.340594 -0.039875
-    7  1.396598 -1.647453  1.677227
-    8 -0.543425  1.761277 -0.220481
-    9 -0.640505  0.289374 -1.550670
+       A  B  C
+    0  1  4  7
+    1  2  5  8
+    2  3  6  9
 
     >>> df.ewm(alpha=0.5).mean()
               A         B         C
-    0 -2.385977 -0.102758  0.438822
-    1 -1.464856  0.569633 -0.490089
-    2 -0.207700  0.149687 -1.135379
-    3 -0.471677 -0.645305 -0.906555
-    4 -0.355635 -0.203033 -0.904111
-    5  1.076417  1.503943 -1.146293
-    6 -0.041654  1.925562 -0.588728
-    7  0.680292  0.132049  0.548693
-    8  0.067236  0.948257  0.163353
-    9 -0.286980  0.618493 -0.694496
+    0  1.000000  4.000000  7.000000
+    1  1.666667  4.666667  7.666667
+    2  2.428571  5.428571  8.428571
     """
     )
 
-    @Substitution(
+    @doc(
+        _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="",
         klass="Series/Dataframe",
         axis="",
     )
-    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
@@ -148,8 +132,23 @@ class Expanding(_Rolling_and_Expanding):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])
-    def apply(self, func, raw=False, args=(), kwargs={}):
-        return super().apply(func, raw=raw, args=args, kwargs=kwargs)
+    def apply(
+        self,
+        func,
+        raw: bool = False,
+        engine: Optional[str] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        args=None,
+        kwargs=None,
+    ):
+        return super().apply(
+            func,
+            raw=raw,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
+        )
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["sum"])
@@ -157,7 +156,7 @@ class Expanding(_Rolling_and_Expanding):
         nv.validate_expanding_func("sum", args, kwargs)
         return super().sum(*args, **kwargs)
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", func_name="max")
     @Appender(_doc_template)
     @Appender(_shared_docs["max"])
     def max(self, *args, **kwargs):
@@ -193,7 +192,7 @@ class Expanding(_Rolling_and_Expanding):
         nv.validate_expanding_func("var", args, kwargs)
         return super().var(ddof=ddof, **kwargs)
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", func_name="skew")
     @Appender(_doc_template)
     @Appender(_shared_docs["skew"])
     def skew(self, **kwargs):
@@ -237,7 +236,7 @@ class Expanding(_Rolling_and_Expanding):
             quantile=quantile, interpolation=interpolation, **kwargs
         )
 
-    @Substitution(name="expanding")
+    @Substitution(name="expanding", func_name="cov")
     @Appender(_doc_template)
     @Appender(_shared_docs["cov"])
     def cov(self, other=None, pairwise=None, ddof=1, **kwargs):

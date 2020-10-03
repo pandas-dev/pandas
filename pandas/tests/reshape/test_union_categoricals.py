@@ -5,7 +5,7 @@ from pandas.core.dtypes.concat import union_categoricals
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Series
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 class TestUnionCategoricals:
@@ -41,7 +41,7 @@ class TestUnionCategoricals:
             for box in [Categorical, CategoricalIndex, Series]:
                 result = union_categoricals([box(Categorical(a)), box(Categorical(b))])
                 expected = Categorical(combined)
-                tm.assert_categorical_equal(result, expected, check_category_order=True)
+                tm.assert_categorical_equal(result, expected)
 
         # new categories ordered by appearance
         s = Categorical(["x", "y", "z"])

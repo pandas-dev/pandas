@@ -3,7 +3,7 @@
 .. _api.arrays:
 
 =============
-Pandas arrays
+pandas arrays
 =============
 
 .. currentmodule:: pandas
@@ -12,7 +12,8 @@ For most data types, pandas uses NumPy arrays as the concrete
 objects contained with a :class:`Index`, :class:`Series`, or
 :class:`DataFrame`.
 
-For some data types, pandas extends NumPy's type system.
+For some data types, pandas extends NumPy's type system. String aliases for these types
+can be found at :ref:`basics.dtypes`.
 
 =================== ========================= ================== =============================
 Kind of Data        Pandas Data Type          Scalar             Array
@@ -443,13 +444,13 @@ Sparse data
 -----------
 
 Data where a single value is repeated many times (e.g. ``0`` or ``NaN``) may
-be stored efficiently as a :class:`SparseArray`.
+be stored efficiently as a :class:`arrays.SparseArray`.
 
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
-   SparseArray
+   arrays.SparseArray
 
 .. autosummary::
    :toctree: api/

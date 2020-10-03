@@ -1,4 +1,4 @@
-from .blocks import (  # noqa: F401
+from pandas.core.internals.blocks import (  # io.pytables, io.packers
     Block,
     BoolBlock,
     CategoricalBlock,
@@ -10,19 +10,35 @@ from .blocks import (  # noqa: F401
     IntBlock,
     ObjectBlock,
     TimeDeltaBlock,
+    make_block,
+    safe_reshape,
 )
-from .managers import (  # noqa: F401
+from pandas.core.internals.concat import concatenate_block_managers
+from pandas.core.internals.managers import (
     BlockManager,
     SingleBlockManager,
     create_block_manager_from_arrays,
     create_block_manager_from_blocks,
 )
 
-from .blocks import _safe_reshape  # noqa: F401; io.packers
-from .blocks import make_block  # noqa: F401; io.pytables, io.packers
-from .managers import (  # noqa: F401; reshape.concat, reshape.merge
-    _transform_index,
-    concatenate_block_managers,
-)
-
-from .blocks import _block_shape  # noqa:F401; io.pytables
+__all__ = [
+    "Block",
+    "BoolBlock",
+    "CategoricalBlock",
+    "ComplexBlock",
+    "DatetimeBlock",
+    "DatetimeTZBlock",
+    "ExtensionBlock",
+    "FloatBlock",
+    "IntBlock",
+    "ObjectBlock",
+    "TimeDeltaBlock",
+    "safe_reshape",
+    "make_block",
+    "BlockManager",
+    "SingleBlockManager",
+    "concatenate_block_managers",
+    # those two are preserved here for downstream compatibility (GH-33892)
+    "create_block_manager_from_arrays",
+    "create_block_manager_from_blocks",
+]

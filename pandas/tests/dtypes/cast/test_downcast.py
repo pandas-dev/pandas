@@ -6,7 +6,7 @@ import pytest
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
 from pandas import DatetimeIndex, Series, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(

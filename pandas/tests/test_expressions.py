@@ -5,9 +5,9 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas.core.api import DataFrame
+import pandas._testing as tm
+from pandas.core.api import DataFrame, Index, Series
 from pandas.core.computation import expressions as expr
-import pandas.util.testing as tm
 
 _frame = DataFrame(randn(10000, 4), columns=list("ABCD"), dtype="float64")
 _frame2 = DataFrame(randn(100, 4), columns=list("ABCD"), dtype="float64")
@@ -35,7 +35,7 @@ _integer2 = DataFrame(
 )
 
 
-@pytest.mark.skipif(not expr._USE_NUMEXPR, reason="not using numexpr")
+@pytest.mark.skipif(not expr.USE_NUMEXPR, reason="not using numexpr")
 class TestExpressions:
     def setup_method(self, method):
 
@@ -178,8 +178,8 @@ class TestExpressions:
             result = expr._can_use_numexpr(op, op_str, left, left, "evaluate")
             assert result != left._is_mixed_type
 
-            result = expr.evaluate(op, op_str, left, left, use_numexpr=True)
-            expected = expr.evaluate(op, op_str, left, left, use_numexpr=False)
+            result = expr.evaluate(op, left, left, use_numexpr=True)
+            expected = expr.evaluate(op, left, left, use_numexpr=False)
 
             if isinstance(result, DataFrame):
                 tm.assert_frame_equal(result, expected)
@@ -219,8 +219,8 @@ class TestExpressions:
             result = expr._can_use_numexpr(op, op_str, left, f12, "evaluate")
             assert result != left._is_mixed_type
 
-            result = expr.evaluate(op, op_str, left, f12, use_numexpr=True)
-            expected = expr.evaluate(op, op_str, left, f12, use_numexpr=False)
+            result = expr.evaluate(op, left, f12, use_numexpr=True)
+            expected = expr.evaluate(op, left, f12, use_numexpr=False)
             if isinstance(result, DataFrame):
                 tm.assert_frame_equal(result, expected)
             else:
@@ -363,8 +363,6 @@ class TestExpressions:
     @pytest.mark.parametrize("axis", (0, 1))
     def test_frame_series_axis(self, axis, arith):
         # GH#26736 Dataframe.floordiv(Series, axis=1) fails
-        if axis == 1 and arith == "floordiv":
-            pytest.xfail("'floordiv' does not succeed with axis=1 #27636")
 
         df = self.frame
         if axis == 1:
@@ -382,3 +380,41 @@ class TestExpressions:
 
         result = op_func(other, axis=axis)
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize(
+        "op",
+        [
+            "__mod__",
+            pytest.param("__rmod__", marks=pytest.mark.xfail(reason="GH-36552")),
+            "__floordiv__",
+            "__rfloordiv__",
+        ],
+    )
+    @pytest.mark.parametrize("box", [DataFrame, Series, Index])
+    @pytest.mark.parametrize("scalar", [-5, 5])
+    def test_python_semantics_with_numexpr_installed(self, op, box, scalar):
+        # https://github.com/pandas-dev/pandas/issues/36047
+        expr._MIN_ELEMENTS = 0
+        data = np.arange(-50, 50)
+        obj = box(data)
+        method = getattr(obj, op)
+        result = method(scalar)
+
+        # compare result with numpy
+        expr.set_use_numexpr(False)
+        expected = method(scalar)
+        expr.set_use_numexpr(True)
+        tm.assert_equal(result, expected)
+
+        # compare result element-wise with Python
+        for i, elem in enumerate(data):
+            if box == DataFrame:
+                scalar_result = result.iloc[i, 0]
+            else:
+                scalar_result = result[i]
+            try:
+                expected = getattr(int(elem), op)(scalar)
+            except ZeroDivisionError:
+                pass
+            else:
+                assert scalar_result == expected

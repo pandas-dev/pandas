@@ -1,7 +1,7 @@
 import numpy as np
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from .base import BaseExtensionTests
 
@@ -127,3 +127,10 @@ class BaseMissingTests(BaseExtensionTests):
         expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
 
         self.assert_frame_equal(result, expected)
+
+    def test_use_inf_as_na_no_effect(self, data_missing):
+        ser = pd.Series(data_missing)
+        expected = ser.isna()
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = ser.isna()
+        self.assert_series_equal(result, expected)

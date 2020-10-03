@@ -8,9 +8,10 @@ import pytest
 import pandas._config.config as cf
 
 from pandas.compat.numpy import np_datetime64_compat
+import pandas.util._test_decorators as td
 
 from pandas import Index, Period, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.plotting import (
     deregister_matplotlib_converters,
@@ -26,6 +27,7 @@ except ImportError:
     pass
 
 pytest.importorskip("matplotlib.pyplot")
+dates = pytest.importorskip("matplotlib.dates")
 
 
 def test_registry_mpl_resets():
@@ -59,6 +61,7 @@ class TestRegistration:
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0
 
+    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_registering_no_warning(self):
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
@@ -66,10 +69,7 @@ class TestRegistration:
 
         # Set to the "warn" state, in case this isn't the first test run
         register_matplotlib_converters()
-        with tm.assert_produces_warning(None) as w:
-            ax.plot(s.index, s.values)
-
-        assert len(w) == 0
+        ax.plot(s.index, s.values)
 
     def test_pandas_plots_register(self):
         pytest.importorskip("matplotlib.pyplot")
@@ -92,6 +92,7 @@ class TestRegistration:
                 assert Timestamp not in units.registry
             assert Timestamp in units.registry
 
+    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_option_no_warning(self):
         pytest.importorskip("matplotlib.pyplot")
         ctx = cf.option_context("plotting.matplotlib.register_converters", False)
@@ -101,18 +102,12 @@ class TestRegistration:
 
         # Test without registering first, no warning
         with ctx:
-            with tm.assert_produces_warning(None) as w:
-                ax.plot(s.index, s.values)
-
-        assert len(w) == 0
+            ax.plot(s.index, s.values)
 
         # Now test with registering
         register_matplotlib_converters()
         with ctx:
-            with tm.assert_produces_warning(None) as w:
-                ax.plot(s.index, s.values)
-
-        assert len(w) == 0
+            ax.plot(s.index, s.values)
 
     def test_registry_resets(self):
         units = pytest.importorskip("matplotlib.units")
@@ -152,16 +147,13 @@ class TestDateTimeConverter:
 
     def test_conversion(self):
         rs = self.dtc.convert(["2012-1-1"], None, None)[0]
-        xp = datetime(2012, 1, 1).toordinal()
+        xp = dates.date2num(datetime(2012, 1, 1))
         assert rs == xp
 
         rs = self.dtc.convert("2012-1-1", None, None)
         assert rs == xp
 
         rs = self.dtc.convert(date(2012, 1, 1), None, None)
-        assert rs == xp
-
-        rs = self.dtc.convert(datetime(2012, 1, 1).toordinal(), None, None)
         assert rs == xp
 
         rs = self.dtc.convert("2012-1-1", None, None)
@@ -207,19 +199,19 @@ class TestDateTimeConverter:
         assert rs[1] == xp
 
     def test_conversion_float(self):
-        decimals = 9
+        rtol = 0.5 * 10 ** -9
 
         rs = self.dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
         xp = converter.dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
-        tm.assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = self.dtc.convert(
             Timestamp("2012-1-1 09:02:03", tz="Asia/Hong_Kong"), None, None
         )
-        tm.assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = self.dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
-        tm.assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     def test_conversion_outofbounds_datetime(self):
         # 2579
@@ -255,13 +247,13 @@ class TestDateTimeConverter:
         assert result == format_expected
 
     def test_dateindex_conversion(self):
-        decimals = 9
+        rtol = 10 ** -9
 
         for freq in ("B", "L", "S"):
             dateindex = tm.makeDateIndex(k=10, freq=freq)
             rs = self.dtc.convert(dateindex, None, None)
             xp = converter.dates.date2num(dateindex._mpl_repr())
-            tm.assert_almost_equal(rs, xp, decimals)
+            tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     def test_resolution(self):
         def _assert_less(ts1, ts2):

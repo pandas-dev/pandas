@@ -2,7 +2,7 @@ import pytest
 
 import pandas as pd
 from pandas import MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def check_level_names(index, names):
@@ -75,6 +75,13 @@ def test_copy_names():
     assert multi_idx.names == ["MyName1", "MyName2"]
     assert multi_idx3.names == ["NewName1", "NewName2"]
 
+    # gh-35592
+    with pytest.raises(ValueError, match="Length of new names must be 2, got 1"):
+        multi_idx.copy(names=["mario"])
+
+    with pytest.raises(TypeError, match="MultiIndex.name must be a hashable type"):
+        multi_idx.copy(names=[["mario"], ["luigi"]])
+
 
 def test_names(idx, index_names):
 
@@ -124,3 +131,20 @@ def test_get_names_from_levels():
 
     assert idx.levels[0].name == "a"
     assert idx.levels[1].name == "b"
+
+
+def test_setting_names_from_levels_raises():
+    idx = pd.MultiIndex.from_product([["a"], [1, 2]], names=["a", "b"])
+    with pytest.raises(RuntimeError, match="set_names"):
+        idx.levels[0].name = "foo"
+
+    with pytest.raises(RuntimeError, match="set_names"):
+        idx.levels[1].name = "foo"
+
+    new = pd.Series(1, index=idx.levels[0])
+    with pytest.raises(RuntimeError, match="set_names"):
+        new.index.name = "bar"
+
+    assert pd.Index._no_setting_name is False
+    assert pd.Int64Index._no_setting_name is False
+    assert pd.RangeIndex._no_setting_name is False

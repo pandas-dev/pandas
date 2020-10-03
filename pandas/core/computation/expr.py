@@ -1,23 +1,26 @@
-""":func:`~pandas.eval` parsers
+"""
+:func:`~pandas.eval` parsers.
 """
 
 import ast
 from functools import partial, reduce
-from io import StringIO
-import itertools as it
-import operator
+from keyword import iskeyword
 import tokenize
-from typing import Optional, Type
+from typing import Callable, Optional, Set, Tuple, Type, TypeVar
 
 import numpy as np
 
+from pandas.compat import PY39
+
 import pandas.core.common as com
-from pandas.core.computation.common import (
-    _BACKTICK_QUOTED_STRING,
-    _remove_spaces_column_name,
-)
 from pandas.core.computation.ops import (
-    _LOCAL_TAG,
+    ARITH_OPS_SYMS,
+    BOOL_OPS_SYMS,
+    CMP_OPS_SYMS,
+    LOCAL_TAG,
+    MATHOPS,
+    REDUCTIONS,
+    UNARY_OPS_SYMS,
     BinOp,
     Constant,
     Div,
@@ -26,48 +29,17 @@ from pandas.core.computation.ops import (
     Term,
     UnaryOp,
     UndefinedVariableError,
-    _arith_ops_syms,
-    _bool_ops_syms,
-    _cmp_ops_syms,
-    _mathops,
-    _reductions,
-    _unary_ops_syms,
     is_term,
 )
+from pandas.core.computation.parsing import clean_backtick_quoted_toks, tokenize_string
 from pandas.core.computation.scope import Scope
 
 import pandas.io.formats.printing as printing
 
 
-def tokenize_string(source: str):
+def _rewrite_assign(tok: Tuple[int, str]) -> Tuple[int, str]:
     """
-    Tokenize a Python source code string.
-
-    Parameters
-    ----------
-    source : str
-        A Python source code string
-    """
-    line_reader = StringIO(source).readline
-    token_generator = tokenize.generate_tokens(line_reader)
-
-    # Loop over all tokens till a backtick (`) is found.
-    # Then, take all tokens till the next backtick to form a backtick quoted
-    # string.
-    for toknum, tokval, _, _, _ in token_generator:
-        if tokval == "`":
-            tokval = " ".join(
-                it.takewhile(
-                    lambda tokval: tokval != "`",
-                    map(operator.itemgetter(1), token_generator),
-                )
-            )
-            toknum = _BACKTICK_QUOTED_STRING
-        yield toknum, tokval
-
-
-def _rewrite_assign(tok):
-    """Rewrite the assignment operator for PyTables expressions that use ``=``
+    Rewrite the assignment operator for PyTables expressions that use ``=``
     as a substitute for ``==``.
 
     Parameters
@@ -77,15 +49,16 @@ def _rewrite_assign(tok):
 
     Returns
     -------
-    t : tuple of int, str
+    tuple of int, str
         Either the input or token or the replacement values
     """
     toknum, tokval = tok
     return toknum, "==" if tokval == "=" else tokval
 
 
-def _replace_booleans(tok):
-    """Replace ``&`` with ``and`` and ``|`` with ``or`` so that bitwise
+def _replace_booleans(tok: Tuple[int, str]) -> Tuple[int, str]:
+    """
+    Replace ``&`` with ``and`` and ``|`` with ``or`` so that bitwise
     precedence is changed to boolean precedence.
 
     Parameters
@@ -95,7 +68,7 @@ def _replace_booleans(tok):
 
     Returns
     -------
-    t : tuple of int, str
+    tuple of int, str
         Either the input or token or the replacement values
     """
     toknum, tokval = tok
@@ -108,8 +81,9 @@ def _replace_booleans(tok):
     return toknum, tokval
 
 
-def _replace_locals(tok):
-    """Replace local variables with a syntactically valid name.
+def _replace_locals(tok: Tuple[int, str]) -> Tuple[int, str]:
+    """
+    Replace local variables with a syntactically valid name.
 
     Parameters
     ----------
@@ -118,7 +92,7 @@ def _replace_locals(tok):
 
     Returns
     -------
-    t : tuple of int, str
+    tuple of int, str
         Either the input or token or the replacement values
 
     Notes
@@ -129,42 +103,21 @@ def _replace_locals(tok):
     """
     toknum, tokval = tok
     if toknum == tokenize.OP and tokval == "@":
-        return tokenize.OP, _LOCAL_TAG
-    return toknum, tokval
-
-
-def _clean_spaces_backtick_quoted_names(tok):
-    """Clean up a column name if surrounded by backticks.
-
-    Backtick quoted string are indicated by a certain tokval value. If a string
-    is a backtick quoted token it will processed by
-    :func:`_remove_spaces_column_name` so that the parser can find this
-    string when the query is executed.
-    See also :meth:`NDFrame._get_space_character_free_column_resolver`.
-
-    Parameters
-    ----------
-    tok : tuple of int, str
-        ints correspond to the all caps constants in the tokenize module
-
-    Returns
-    -------
-    t : tuple of int, str
-        Either the input or token or the replacement values
-    """
-    toknum, tokval = tok
-    if toknum == _BACKTICK_QUOTED_STRING:
-        return tokenize.NAME, _remove_spaces_column_name(tokval)
+        return tokenize.OP, LOCAL_TAG
     return toknum, tokval
 
 
 def _compose2(f, g):
-    """Compose 2 callables"""
+    """
+    Compose 2 callables.
+    """
     return lambda *args, **kwargs: f(g(*args, **kwargs))
 
 
 def _compose(*funcs):
-    """Compose 2 or more callables"""
+    """
+    Compose 2 or more callables.
+    """
     assert len(funcs) > 1, "At least 2 callables must be passed to compose"
     return reduce(_compose2, funcs)
 
@@ -172,13 +125,11 @@ def _compose(*funcs):
 def _preparse(
     source: str,
     f=_compose(
-        _replace_locals,
-        _replace_booleans,
-        _rewrite_assign,
-        _clean_spaces_backtick_quoted_names,
+        _replace_locals, _replace_booleans, _rewrite_assign, clean_backtick_quoted_toks
     ),
-):
-    """Compose a collection of tokenization functions
+) -> str:
+    """
+    Compose a collection of tokenization functions.
 
     Parameters
     ----------
@@ -192,7 +143,7 @@ def _preparse(
 
     Returns
     -------
-    s : str
+    str
         Valid Python source code
 
     Notes
@@ -202,11 +153,13 @@ def _preparse(
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), "f must be callable"
-    return tokenize.untokenize((f(x) for x in tokenize_string(source)))
+    return tokenize.untokenize(f(x) for x in tokenize_string(source))
 
 
 def _is_type(t):
-    """Factory for a type checking function of type ``t`` or tuple of types."""
+    """
+    Factory for a type checking function of type ``t`` or tuple of types.
+    """
     return lambda x: isinstance(x.value, t)
 
 
@@ -216,15 +169,16 @@ _is_str = _is_type(str)
 
 # partition all AST nodes
 _all_nodes = frozenset(
-    filter(
-        lambda x: isinstance(x, type) and issubclass(x, ast.AST),
-        (getattr(ast, node) for node in dir(ast)),
-    )
+    node
+    for node in (getattr(ast, name) for name in dir(ast))
+    if isinstance(node, type) and issubclass(node, ast.AST)
 )
 
 
 def _filter_nodes(superclass, all_nodes=_all_nodes):
-    """Filter out AST nodes that are subclasses of ``superclass``."""
+    """
+    Filter out AST nodes that are subclasses of ``superclass``.
+    """
     node_names = (node.__name__ for node in all_nodes if issubclass(node, superclass))
     return frozenset(node_names)
 
@@ -234,7 +188,6 @@ _mod_nodes = _filter_nodes(ast.mod)
 _stmt_nodes = _filter_nodes(ast.stmt)
 _expr_nodes = _filter_nodes(ast.expr)
 _expr_context_nodes = _filter_nodes(ast.expr_context)
-_slice_nodes = _filter_nodes(ast.slice)
 _boolop_nodes = _filter_nodes(ast.boolop)
 _operator_nodes = _filter_nodes(ast.operator)
 _unary_op_nodes = _filter_nodes(ast.unaryop)
@@ -244,6 +197,9 @@ _handler_nodes = _filter_nodes(ast.excepthandler)
 _arguments_nodes = _filter_nodes(ast.arguments)
 _keyword_nodes = _filter_nodes(ast.keyword)
 _alias_nodes = _filter_nodes(ast.alias)
+
+if not PY39:
+    _slice_nodes = _filter_nodes(ast.slice)
 
 
 # nodes that we don't support directly but are needed for parsing
@@ -287,30 +243,35 @@ _msg = f"cannot both support and not support {intersection}"
 assert not intersection, _msg
 
 
-def _node_not_implemented(node_name, cls):
-    """Return a function that raises a NotImplementedError with a passed node
-    name.
+# TODO: Python 3.6.2: replace Callable[..., None] with Callable[..., NoReturn]
+def _node_not_implemented(node_name: str) -> Callable[..., None]:
+    """
+    Return a function that raises a NotImplementedError with a passed node name.
     """
 
     def f(self, *args, **kwargs):
-        raise NotImplementedError(f"{repr(node_name)} nodes are not implemented")
+        raise NotImplementedError(f"'{node_name}' nodes are not implemented")
 
     return f
 
 
-def disallow(nodes):
-    """Decorator to disallow certain nodes from parsing. Raises a
+_T = TypeVar("_T", bound="BaseExprVisitor")
+
+
+def disallow(nodes: Set[str]) -> Callable[[Type[_T]], Type[_T]]:
+    """
+    Decorator to disallow certain nodes from parsing. Raises a
     NotImplementedError instead.
 
     Returns
     -------
-    disallowed : callable
+    callable
     """
 
-    def disallowed(cls):
+    def disallowed(cls: Type[_T]) -> Type[_T]:
         cls.unsupported_nodes = ()
         for node in nodes:
-            new_method = _node_not_implemented(node, cls)
+            new_method = _node_not_implemented(node)
             name = f"visit_{node}"
             cls.unsupported_nodes += (name,)
             setattr(cls, name, new_method)
@@ -320,20 +281,21 @@ def disallow(nodes):
 
 
 def _op_maker(op_class, op_symbol):
-    """Return a function to create an op class with its symbol already passed.
+    """
+    Return a function to create an op class with its symbol already passed.
 
     Returns
     -------
-    f : callable
+    callable
     """
 
     def f(self, node, *args, **kwargs):
-        """Return a partial function with an Op subclass with an operator
-        already passed.
+        """
+        Return a partial function with an Op subclass with an operator already passed.
 
         Returns
         -------
-        f : callable
+        callable
         """
         return partial(op_class, op_symbol, *args, **kwargs)
 
@@ -344,7 +306,9 @@ _op_classes = {"binary": BinOp, "unary": UnaryOp}
 
 
 def add_ops(op_classes):
-    """Decorator to add default implementation of ops."""
+    """
+    Decorator to add default implementation of ops.
+    """
 
     def f(cls):
         for op_attr_name, op_class in op_classes.items():
@@ -378,7 +342,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     const_type: Type[Term] = Constant
     term_type = Term
 
-    binary_ops = _cmp_ops_syms + _bool_ops_syms + _arith_ops_syms
+    binary_ops = CMP_OPS_SYMS + BOOL_OPS_SYMS + ARITH_OPS_SYMS
     binary_op_nodes = (
         "Gt",
         "Lt",
@@ -402,9 +366,9 @@ class BaseExprVisitor(ast.NodeVisitor):
     )
     binary_op_nodes_map = dict(zip(binary_ops, binary_op_nodes))
 
-    unary_ops = _unary_ops_syms
+    unary_ops = UNARY_OPS_SYMS
     unary_op_nodes = "UAdd", "USub", "Invert", "Not"
-    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
+    unary_op_nodes_map = {k: v for k, v in zip(unary_ops, unary_op_nodes)}
 
     rewrite_map = {
         ast.Eq: ast.In,
@@ -412,6 +376,8 @@ class BaseExprVisitor(ast.NodeVisitor):
         ast.In: ast.In,
         ast.NotIn: ast.NotIn,
     }
+
+    unsupported_nodes: Tuple[str, ...]
 
     def __init__(self, env, engine, parser, preparser=_preparse):
         self.env = env
@@ -426,8 +392,6 @@ class BaseExprVisitor(ast.NodeVisitor):
             try:
                 node = ast.fix_missing_locations(ast.parse(clean))
             except SyntaxError as e:
-                from keyword import iskeyword
-
                 if any(iskeyword(x) for x in clean.split()):
                     e.msg = "Python keyword not valid identifier in numexpr query"
                 raise e
@@ -528,13 +492,13 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         if res.has_invalid_return_type:
             raise TypeError(
-                f"unsupported operand type(s) for {res.op}:"
-                f" '{lhs.type}' and '{rhs.type}'"
+                f"unsupported operand type(s) for {res.op}: "
+                f"'{lhs.type}' and '{rhs.type}'"
             )
 
         if self.engine != "pytables":
             if (
-                res.op in _cmp_ops_syms
+                res.op in CMP_OPS_SYMS
                 and getattr(lhs, "is_datetime", False)
                 or getattr(rhs, "is_datetime", False)
             ):
@@ -638,7 +602,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         might or might not exist in the resolvers
 
         """
-
         if len(node.targets) != 1:
             raise SyntaxError("can only assign a single expression")
         if not isinstance(node.targets[0], ast.Name):
@@ -675,12 +638,13 @@ class BaseExprVisitor(ast.NodeVisitor):
                 # something like datetime.datetime where scope is overridden
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
+                raise
 
-        raise ValueError(f"Invalid Attribute context {ctx.__name__}")
+        raise ValueError(f"Invalid Attribute context {type(ctx).__name__}")
 
     def visit_Call(self, node, side=None, **kwargs):
 
-        if isinstance(node.func, ast.Attribute):
+        if isinstance(node.func, ast.Attribute) and node.func.attr != "__call__":
             res = self.visit_Attribute(node.func)
         elif not isinstance(node.func, ast.Name):
             raise TypeError("Only named functions are supported")
@@ -709,7 +673,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     f'Function "{res.name}" does not support keyword arguments'
                 )
 
-            return res(*new_args, **kwargs)
+            return res(*new_args)
 
         else:
 
@@ -766,7 +730,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
 
 _python_not_supported = frozenset(["Dict", "BoolOp", "In", "NotIn"])
-_numexpr_supported_calls = frozenset(_reductions + _mathops)
+_numexpr_supported_calls = frozenset(REDUCTIONS + MATHOPS)
 
 
 @disallow(
@@ -781,9 +745,7 @@ class PandasExprVisitor(BaseExprVisitor):
         parser,
         preparser=partial(
             _preparse,
-            f=_compose(
-                _replace_locals, _replace_booleans, _clean_spaces_backtick_quoted_names
-            ),
+            f=_compose(_replace_locals, _replace_booleans, clean_backtick_quoted_toks),
         ),
     ):
         super().__init__(env, engine, parser, preparser)
@@ -824,7 +786,7 @@ class Expr:
         self.env = env or Scope(level=level + 1)
         self.engine = engine
         self.parser = parser
-        self._visitor = _parsers[parser](self.env, self.engine, self.parser)
+        self._visitor = PARSERS[parser](self.env, self.engine, self.parser)
         self.terms = self.parse()
 
     @property
@@ -841,15 +803,19 @@ class Expr:
         return len(self.expr)
 
     def parse(self):
-        """Parse an expression"""
+        """
+        Parse an expression.
+        """
         return self._visitor.visit(self.expr)
 
     @property
     def names(self):
-        """Get the names in an expression"""
+        """
+        Get the names in an expression.
+        """
         if is_term(self.terms):
             return frozenset([self.terms.name])
         return frozenset(term.name for term in com.flatten(self.terms))
 
 
-_parsers = {"python": PythonExprVisitor, "pandas": PandasExprVisitor}
+PARSERS = {"python": PythonExprVisitor, "pandas": PandasExprVisitor}

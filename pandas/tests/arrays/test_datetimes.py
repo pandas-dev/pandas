@@ -9,9 +9,9 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays.datetimes import sequence_to_dt64ns
-import pandas.util.testing as tm
 
 
 class TestDatetimeArrayConstructor:
@@ -71,7 +71,7 @@ class TestDatetimeArrayConstructor:
     def test_from_pandas_array(self):
         arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10 ** 9
 
-        result = DatetimeArray._from_sequence(arr, freq="infer")
+        result = DatetimeArray._from_sequence(arr)._with_freq("infer")
 
         expected = pd.date_range("1970-01-01", periods=5, freq="H")._data
         tm.assert_datetime_array_equal(result, expected)
@@ -89,11 +89,26 @@ class TestDatetimeArrayConstructor:
         with pytest.raises(ValueError, match="list"):
             DatetimeArray([1, 2, 3])
 
-    def test_other_type_raises(self):
+    def test_bool_dtype_raises(self):
+        arr = np.array([1, 2, 3], dtype="bool")
+
         with pytest.raises(
             ValueError, match="The dtype of 'values' is incorrect.*bool"
         ):
-            DatetimeArray(np.array([1, 2, 3], dtype="bool"))
+            DatetimeArray(arr)
+
+        msg = r"dtype bool cannot be converted to datetime64\[ns\]"
+        with pytest.raises(TypeError, match=msg):
+            DatetimeArray._from_sequence(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            sequence_to_dt64ns(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            pd.DatetimeIndex(arr)
+
+        with pytest.raises(TypeError, match=msg):
+            pd.to_datetime(arr)
 
     def test_incorrect_dtype_raises(self):
         with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
@@ -147,9 +162,23 @@ class TestDatetimeArrayComparisons:
 
 class TestDatetimeArray:
     def test_astype_to_same(self):
-        arr = DatetimeArray._from_sequence(["2000"], tz="US/Central")
+        arr = DatetimeArray._from_sequence(
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
+        )
         result = arr.astype(DatetimeTZDtype(tz="US/Central"), copy=False)
         assert result is arr
+
+    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "datetime64[ns, UTC]"])
+    @pytest.mark.parametrize(
+        "other", ["datetime64[ns]", "datetime64[ns, UTC]", "datetime64[ns, CET]"]
+    )
+    def test_astype_copies(self, dtype, other):
+        # https://github.com/pandas-dev/pandas/pull/32490
+        s = pd.Series([1, 2], dtype=dtype)
+        orig = s.copy()
+        t = s.astype(other)
+        t[:] = pd.NaT
+        tm.assert_series_equal(s, orig)
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
@@ -166,14 +195,39 @@ class TestDatetimeArray:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_tz_setter_raises(self):
-        arr = DatetimeArray._from_sequence(["2000"], tz="US/Central")
+        arr = DatetimeArray._from_sequence(
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
+        )
         with pytest.raises(AttributeError, match="tz_localize"):
             arr.tz = "UTC"
+
+    def test_setitem_str_impute_tz(self, tz_naive_fixture):
+        # Like for getitem, if we are passed a naive-like string, we impute
+        #  our own timezone.
+        tz = tz_naive_fixture
+
+        data = np.array([1, 2, 3], dtype="M8[ns]")
+        dtype = data.dtype if tz is None else DatetimeTZDtype(tz=tz)
+        arr = DatetimeArray(data, dtype=dtype)
+        expected = arr.copy()
+
+        ts = pd.Timestamp("2020-09-08 16:50").tz_localize(tz)
+        setter = str(ts.tz_localize(None))
+
+        # Setting a scalar tznaive string
+        expected[0] = ts
+        arr[0] = setter
+        tm.assert_equal(arr, expected)
+
+        # Setting a listlike of tznaive strings
+        expected[1] = ts
+        arr[:2] = [setter, setter]
+        tm.assert_equal(arr, expected)
 
     def test_setitem_different_tz_raises(self):
         data = np.array([1, 2, 3], dtype="M8[ns]")
         arr = DatetimeArray(data, copy=False, dtype=DatetimeTZDtype(tz="US/Central"))
-        with pytest.raises(ValueError, match="None"):
+        with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
             arr[0] = pd.Timestamp("2000")
 
         with pytest.raises(ValueError, match="US/Central"):
@@ -232,7 +286,8 @@ class TestDatetimeArray:
 
         fill_val = dti[1] if method == "pad" else dti[3]
         expected = DatetimeArray._from_sequence(
-            [dti[0], dti[1], fill_val, dti[3], dti[4]], freq=None, tz="US/Central"
+            [dti[0], dti[1], fill_val, dti[3], dti[4]],
+            dtype=DatetimeTZDtype(tz="US/Central"),
         )
 
         result = arr.fillna(method=method)
@@ -282,15 +337,118 @@ class TestDatetimeArray:
         )
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("index", [True, False])
+    def test_searchsorted_different_tz(self, index):
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = DatetimeArray(data, freq="D").tz_localize("Asia/Tokyo")
+        if index:
+            arr = pd.Index(arr)
+
+        expected = arr.searchsorted(arr[2])
+        result = arr.searchsorted(arr[2].tz_convert("UTC"))
+        assert result == expected
+
+        expected = arr.searchsorted(arr[2:6])
+        result = arr.searchsorted(arr[2:6].tz_convert("UTC"))
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("index", [True, False])
+    def test_searchsorted_tzawareness_compat(self, index):
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = DatetimeArray(data, freq="D")
+        if index:
+            arr = pd.Index(arr)
+
+        mismatch = arr.tz_localize("Asia/Tokyo")
+
+        msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+        with pytest.raises(TypeError, match=msg):
+            arr.searchsorted(mismatch[0])
+        with pytest.raises(TypeError, match=msg):
+            arr.searchsorted(mismatch)
+
+        with pytest.raises(TypeError, match=msg):
+            mismatch.searchsorted(arr[0])
+        with pytest.raises(TypeError, match=msg):
+            mismatch.searchsorted(arr)
+
+    @pytest.mark.parametrize(
+        "other",
+        [
+            1,
+            np.int64(1),
+            1.0,
+            np.timedelta64("NaT"),
+            pd.Timedelta(days=2),
+            "invalid",
+            np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
+            np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10 ** 9,
+            pd.Timestamp.now().to_period("D"),
+        ],
+    )
+    @pytest.mark.parametrize("index", [True, False])
+    def test_searchsorted_invalid_types(self, other, index):
+        data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
+        arr = DatetimeArray(data, freq="D")
+        if index:
+            arr = pd.Index(arr)
+
+        msg = "|".join(
+            [
+                "searchsorted requires compatible dtype or scalar",
+                "Unexpected type for 'value'",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            arr.searchsorted(other)
+
+    def test_shift_fill_value(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+
+        dta = dti._data
+        expected = DatetimeArray(np.roll(dta._data, 1))
+
+        fv = dta[-1]
+        for fill_value in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
+            result = dta.shift(1, fill_value=fill_value)
+            tm.assert_datetime_array_equal(result, expected)
+
+        dta = dta.tz_localize("UTC")
+        expected = expected.tz_localize("UTC")
+        fv = dta[-1]
+        for fill_value in [fv, fv.to_pydatetime()]:
+            result = dta.shift(1, fill_value=fill_value)
+            tm.assert_datetime_array_equal(result, expected)
+
+    def test_shift_value_tzawareness_mismatch(self):
+        dti = pd.date_range("2016-01-01", periods=3)
+
+        dta = dti._data
+
+        fv = dta[-1].tz_localize("UTC")
+        for invalid in [fv, fv.to_pydatetime()]:
+            with pytest.raises(TypeError, match="Cannot compare"):
+                dta.shift(1, fill_value=invalid)
+
+        dta = dta.tz_localize("UTC")
+        fv = dta[-1].tz_localize(None)
+        for invalid in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
+            with pytest.raises(TypeError, match="Cannot compare"):
+                dta.shift(1, fill_value=invalid)
+
 
 class TestSequenceToDT64NS:
     def test_tz_dtype_mismatch_raises(self):
-        arr = DatetimeArray._from_sequence(["2000"], tz="US/Central")
+        arr = DatetimeArray._from_sequence(
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
+        )
         with pytest.raises(TypeError, match="data is already tz-aware"):
             sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="UTC"))
 
     def test_tz_dtype_matches(self):
-        arr = DatetimeArray._from_sequence(["2000"], tz="US/Central")
+        arr = DatetimeArray._from_sequence(
+            ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
+        )
         result, _, _ = sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="US/Central"))
         tm.assert_numpy_array_equal(arr._data, result)
 
@@ -298,6 +456,7 @@ class TestSequenceToDT64NS:
 class TestReductions:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_min_max(self, tz):
+        dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence(
             [
                 "2000-01-03",
@@ -307,7 +466,7 @@ class TestReductions:
                 "2000-01-05",
                 "2000-01-04",
             ],
-            tz=tz,
+            dtype=dtype,
         )
 
         result = arr.min()
@@ -327,7 +486,8 @@ class TestReductions:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_empty(self, skipna, tz):
-        arr = DatetimeArray._from_sequence([], tz=tz)
+        dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
+        arr = DatetimeArray._from_sequence([], dtype=dtype)
         result = arr.min(skipna=skipna)
         assert result is pd.NaT
 

@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import os
 import warnings
 
@@ -14,26 +11,27 @@ from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
 from pandas import DataFrame, Series
-import pandas.util.testing as tm
-
-
-"""
-This is a common base class used for various plotting tests
-"""
+import pandas._testing as tm
 
 
 @td.skip_if_no_mpl
 class TestPlotBase:
+    """
+    This is a common base class used for various plotting tests
+    """
+
     def setup_method(self, method):
 
         import matplotlib as mpl
+
         from pandas.plotting._matplotlib import compat
 
         mpl.rcdefaults()
 
-        self.mpl_ge_2_2_3 = compat._mpl_ge_2_2_3()
-        self.mpl_ge_3_0_0 = compat._mpl_ge_3_0_0()
-        self.mpl_ge_3_1_0 = compat._mpl_ge_3_1_0()
+        self.mpl_ge_2_2_3 = compat.mpl_ge_2_2_3()
+        self.mpl_ge_3_0_0 = compat.mpl_ge_3_0_0()
+        self.mpl_ge_3_1_0 = compat.mpl_ge_3_1_0()
+        self.mpl_ge_3_2_0 = compat.mpl_ge_3_2_0()
 
         self.bp_n_objects = 7
         self.polycollection_factor = 2
@@ -92,7 +90,6 @@ class TestPlotBase:
             expected legend visibility. labels are checked only when visible is
             True
         """
-
         if visible and (labels is None):
             raise ValueError("labels must be specified when visible is True")
         axes = self._flatten_visible(axes)
@@ -190,9 +187,8 @@ class TestPlotBase:
             Series used for color grouping key
             used for andrew_curves, parallel_coordinates, radviz test
         """
-
+        from matplotlib.collections import Collection, LineCollection, PolyCollection
         from matplotlib.lines import Line2D
-        from matplotlib.collections import Collection, PolyCollection, LineCollection
 
         conv = self.colorconverter
         if linecolors is not None:
@@ -276,7 +272,7 @@ class TestPlotBase:
 
         axes = self._flatten_visible(axes)
         for ax in axes:
-            if xlabelsize or xrot:
+            if xlabelsize is not None or xrot is not None:
                 if isinstance(ax.xaxis.get_minor_formatter(), NullFormatter):
                     # If minor ticks has NullFormatter, rot / fontsize are not
                     # retained
@@ -290,7 +286,7 @@ class TestPlotBase:
                     if xrot is not None:
                         tm.assert_almost_equal(label.get_rotation(), xrot)
 
-            if ylabelsize or yrot:
+            if ylabelsize is not None or yrot is not None:
                 if isinstance(ax.yaxis.get_minor_formatter(), NullFormatter):
                     labels = ax.get_yticklabels()
                 else:
@@ -334,7 +330,7 @@ class TestPlotBase:
         figsize : tuple
             expected figsize. default is matplotlib default
         """
-        from pandas.plotting._matplotlib.tools import _flatten
+        from pandas.plotting._matplotlib.tools import flatten_axes
 
         if figsize is None:
             figsize = self.default_figsize
@@ -347,7 +343,7 @@ class TestPlotBase:
                 assert len(ax.get_children()) > 0
 
         if layout is not None:
-            result = self._get_axes_layout(_flatten(axes))
+            result = self._get_axes_layout(flatten_axes(axes))
             assert result == layout
 
         tm.assert_numpy_array_equal(
@@ -374,9 +370,9 @@ class TestPlotBase:
         axes : matplotlib Axes object, or its list-like
 
         """
-        from pandas.plotting._matplotlib.tools import _flatten
+        from pandas.plotting._matplotlib.tools import flatten_axes
 
-        axes = _flatten(axes)
+        axes = flatten_axes(axes)
         axes = [ax for ax in axes if ax.get_visible()]
         return axes
 

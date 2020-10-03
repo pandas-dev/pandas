@@ -2,11 +2,11 @@ import textwrap
 from typing import List, Set
 
 from pandas._libs import NaT, lib
+from pandas.errors import InvalidIndexError
 
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
-    InvalidIndexError,
     _new_Index,
     ensure_index,
     ensure_index_from_sequences,
@@ -63,7 +63,7 @@ __all__ = [
 
 
 def get_objs_combined_axis(
-    objs, intersect: bool = False, axis=0, sort: bool = True
+    objs, intersect: bool = False, axis=0, sort: bool = True, copy: bool = False
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -81,13 +81,15 @@ def get_objs_combined_axis(
         The axis to extract indexes from.
     sort : bool, default True
         Whether the result index should come out sorted or not.
+    copy : bool, default False
+        If True, return a copy of the combined index.
 
     Returns
     -------
     Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
-    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
+    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
 
 
 def _get_distinct_objs(objs: List[Index]) -> List[Index]:
@@ -105,7 +107,10 @@ def _get_distinct_objs(objs: List[Index]) -> List[Index]:
 
 
 def _get_combined_index(
-    indexes: List[Index], intersect: bool = False, sort: bool = False
+    indexes: List[Index],
+    intersect: bool = False,
+    sort: bool = False,
+    copy: bool = False,
 ) -> Index:
     """
     Return the union or intersection of indexes.
@@ -119,6 +124,8 @@ def _get_combined_index(
         calculate the union.
     sort : bool, default False
         Whether the result index should come out sorted or not.
+    copy : bool, default False
+        If True, return a copy of the combined index.
 
     Returns
     -------
@@ -143,6 +150,11 @@ def _get_combined_index(
             index = index.sort_values()
         except TypeError:
             pass
+
+    # GH 29879
+    if copy:
+        index = index.copy()
+
     return index
 
 
@@ -198,6 +210,7 @@ def union_indexes(indexes, sort=True) -> Index:
         result = indexes[0]
 
         if hasattr(result, "union_many"):
+            # DatetimeIndex
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
@@ -205,9 +218,8 @@ def union_indexes(indexes, sort=True) -> Index:
             return result
     elif kind == "array":
         index = indexes[0]
-        for other in indexes[1:]:
-            if not index.equals(other):
-                return _unique_indices(indexes)
+        if not all(index.equals(other) for other in indexes[1:]):
+            index = _unique_indices(indexes)
 
         name = get_consensus_names(indexes)[0]
         if name != index.name:
@@ -243,8 +255,7 @@ def _sanitize_and_check(indexes):
     if list in kinds:
         if len(kinds) > 1:
             indexes = [
-                Index(com.try_sort(x)) if not isinstance(x, Index) else x
-                for x in indexes
+                Index(list(x)) if not isinstance(x, Index) else x for x in indexes
             ]
             kinds.remove(list)
         else:
@@ -286,15 +297,16 @@ def all_indexes_same(indexes):
 
     Parameters
     ----------
-    indexes : list of Index objects
+    indexes : iterable of Index objects
 
     Returns
     -------
     bool
         True if all indexes contain the same elements, False otherwise.
     """
-    first = indexes[0]
-    for index in indexes[1:]:
+    itr = iter(indexes)
+    first = next(itr)
+    for index in itr:
         if not first.equals(index):
             return False
     return True

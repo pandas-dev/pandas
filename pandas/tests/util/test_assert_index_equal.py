@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import Categorical, Index, MultiIndex, NaT
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_index_equal_levels_mismatch():
@@ -82,12 +82,12 @@ Index values are different \\(33\\.33333 %\\)
         tm.assert_index_equal(idx1, idx2, check_exact=check_exact)
 
 
-def test_index_equal_values_less_close(check_exact, check_less_precise):
+def test_index_equal_values_less_close(check_exact, rtol):
     idx1 = Index([1, 2, 3.0])
     idx2 = Index([1, 2, 3.0001])
-    kwargs = dict(check_exact=check_exact, check_less_precise=check_less_precise)
+    kwargs = dict(check_exact=check_exact, rtol=rtol)
 
-    if check_exact or not check_less_precise:
+    if check_exact or rtol < 0.5e-3:
         msg = """Index are different
 
 Index values are different \\(33\\.33333 %\\)
@@ -100,10 +100,10 @@ Index values are different \\(33\\.33333 %\\)
         tm.assert_index_equal(idx1, idx2, **kwargs)
 
 
-def test_index_equal_values_too_far(check_exact, check_less_precise):
+def test_index_equal_values_too_far(check_exact, rtol):
     idx1 = Index([1, 2, 3])
     idx2 = Index([1, 2, 4])
-    kwargs = dict(check_exact=check_exact, check_less_precise=check_less_precise)
+    kwargs = dict(check_exact=check_exact, rtol=rtol)
 
     msg = """Index are different
 
@@ -115,10 +115,10 @@ Index values are different \\(33\\.33333 %\\)
         tm.assert_index_equal(idx1, idx2, **kwargs)
 
 
-def test_index_equal_level_values_mismatch(check_exact, check_less_precise):
+def test_index_equal_level_values_mismatch(check_exact, rtol):
     idx1 = MultiIndex.from_tuples([("A", 2), ("A", 2), ("B", 3), ("B", 4)])
     idx2 = MultiIndex.from_tuples([("A", 1), ("A", 2), ("B", 3), ("B", 4)])
-    kwargs = dict(check_exact=check_exact, check_less_precise=check_less_precise)
+    kwargs = dict(check_exact=check_exact, rtol=rtol)
 
     msg = """MultiIndex level \\[1\\] are different
 
@@ -135,11 +135,6 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
     [(None, "x"), ("x", "x"), (np.nan, np.nan), (NaT, NaT), (np.nan, NaT)],
 )
 def test_index_equal_names(name1, name2):
-    msg = """Index are different
-
-Attribute "names" are different
-\\[left\\]:  \\[{name1}\\]
-\\[right\\]: \\[{name2}\\]"""
 
     idx1 = Index([1, 2, 3], name=name1)
     idx2 = Index([1, 2, 3], name=name2)
@@ -149,7 +144,11 @@ Attribute "names" are different
     else:
         name1 = "'x'" if name1 == "x" else name1
         name2 = "'x'" if name2 == "x" else name2
-        msg = msg.format(name1=name1, name2=name2)
+        msg = f"""Index are different
+
+Attribute "names" are different
+\\[left\\]:  \\[{name1}\\]
+\\[right\\]: \\[{name2}\\]"""
 
         with pytest.raises(AssertionError, match=msg):
             tm.assert_index_equal(idx1, idx2)

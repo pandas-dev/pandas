@@ -11,23 +11,17 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
-from pandas._libs.tslibs.frequencies import (
-    INVALID_FREQ_ERR_MSG,
-    get_freq_code,
-    get_freq_str,
-)
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import ApplyTypeError
-import pandas.compat as compat
+from pandas._libs.tslibs.offsets import ApplyTypeError, _get_offset, _offset_map
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
-from pandas.core.indexes.datetimes import DatetimeIndex, _to_M8, date_range
+import pandas._testing as tm
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.series import Series
-import pandas.util.testing as tm
 
 from pandas.io.pickle import read_pickle
-from pandas.tseries.frequencies import _get_offset, _offset_map
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
@@ -79,17 +73,6 @@ class WeekDay:
     FRI = 4
     SAT = 5
     SUN = 6
-
-
-####
-# Misc function tests
-####
-
-
-def test_to_M8():
-    valb = datetime(2007, 10, 1)
-    valu = _to_M8(valb)
-    assert isinstance(valu, np.datetime64)
 
 
 #####
@@ -651,20 +634,27 @@ class TestCommon(Base):
             result = offset_s + dta
         tm.assert_equal(result, dta)
 
-    def test_pickle_v0_15_2(self, datapath):
-        offsets = {
-            "DateOffset": DateOffset(years=1),
-            "MonthBegin": MonthBegin(1),
-            "Day": Day(1),
-            "YearBegin": YearBegin(1),
-            "Week": Week(1),
-        }
+    def test_pickle_roundtrip(self, offset_types):
+        off = self._get_offset(offset_types)
+        res = tm.round_trip_pickle(off)
+        assert off == res
+        if type(off) is not DateOffset:
+            for attr in off._attributes:
+                if attr == "calendar":
+                    # np.busdaycalendar __eq__ will return False;
+                    #  we check holidays and weekmask attrs so are OK
+                    continue
+                # Make sure nothings got lost from _params (which __eq__) is based on
+                assert getattr(off, attr) == getattr(res, attr)
 
-        pickle_path = datapath("tseries", "offsets", "data", "dateoffset_0_15_2.pickle")
-        # This code was executed once on v0.15.2 to generate the pickle:
-        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
-        #
-        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
+    def test_pickle_dateoffset_odd_inputs(self):
+        # GH#34511
+        off = DateOffset(months=12)
+        res = tm.round_trip_pickle(off)
+        assert off == res
+
+        base_dt = datetime(2020, 1, 1)
+        assert base_dt + off == base_dt + res
 
     def test_onOffset_deprecated(self, offset_types):
         # GH#30340 use idiomatic naming
@@ -746,10 +736,7 @@ class TestBusinessDay(Base):
         assert repr(self.offset) == "<BusinessDay>"
         assert repr(self.offset2) == "<2 * BusinessDays>"
 
-        if compat.PY37:
-            expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
-        else:
-            expected = "<BusinessDay: offset=datetime.timedelta(1)>"
+        expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -767,7 +754,9 @@ class TestBusinessDay(Base):
         assert hash(self.offset2) == hash(self.offset2)
 
     def test_call(self):
-        assert self.offset2(self.d) == datetime(2008, 1, 3)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset2(self.d) == datetime(2008, 1, 3)
 
     def testRollback1(self):
         assert BDay(10).rollback(self.d) == self.d
@@ -1051,13 +1040,15 @@ class TestBusinessHour(Base):
         assert offset == offset
 
     def test_call(self):
-        assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
-        assert self.offset2(self.d) == datetime(2014, 7, 1, 13)
-        assert self.offset3(self.d) == datetime(2014, 6, 30, 17)
-        assert self.offset4(self.d) == datetime(2014, 6, 30, 14)
-        assert self.offset8(self.d) == datetime(2014, 7, 1, 11)
-        assert self.offset9(self.d) == datetime(2014, 7, 1, 22)
-        assert self.offset10(self.d) == datetime(2014, 7, 1, 1)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
+            assert self.offset2(self.d) == datetime(2014, 7, 1, 13)
+            assert self.offset3(self.d) == datetime(2014, 6, 30, 17)
+            assert self.offset4(self.d) == datetime(2014, 6, 30, 14)
+            assert self.offset8(self.d) == datetime(2014, 7, 1, 11)
+            assert self.offset9(self.d) == datetime(2014, 7, 1, 22)
+            assert self.offset10(self.d) == datetime(2014, 7, 1, 1)
 
     def test_sub(self):
         # we have to override test_sub here because self.offset2 is not
@@ -2388,8 +2379,10 @@ class TestCustomBusinessHour(Base):
         assert hash(self.offset2) == hash(self.offset2)
 
     def test_call(self):
-        assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
-        assert self.offset2(self.d) == datetime(2014, 7, 1, 11)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
+            assert self.offset2(self.d) == datetime(2014, 7, 1, 11)
 
     def testRollback1(self):
         assert self.offset1.rollback(self.d) == self.d
@@ -2632,10 +2625,7 @@ class TestCustomBusinessDay(Base):
         assert repr(self.offset) == "<CustomBusinessDay>"
         assert repr(self.offset2) == "<2 * CustomBusinessDays>"
 
-        if compat.PY37:
-            expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
-        else:
-            expected = "<BusinessDay: offset=datetime.timedelta(1)>"
+        expected = "<BusinessDay: offset=datetime.timedelta(days=1)>"
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -2653,8 +2643,10 @@ class TestCustomBusinessDay(Base):
         assert hash(self.offset2) == hash(self.offset2)
 
     def test_call(self):
-        assert self.offset2(self.d) == datetime(2008, 1, 3)
-        assert self.offset2(self.nd) == datetime(2008, 1, 3)
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset2(self.d) == datetime(2008, 1, 3)
+            assert self.offset2(self.nd) == datetime(2008, 1, 3)
 
     def testRollback1(self):
         assert CDay(10).rollback(self.d) == self.d
@@ -2792,8 +2784,8 @@ class TestCustomBusinessDay(Base):
 
     def test_apply_corner(self):
         msg = (
-            "Only know how to combine trading day with datetime, datetime64"
-            " or timedelta"
+            "Only know how to combine trading day "
+            "with datetime, datetime64 or timedelta"
         )
         with pytest.raises(ApplyTypeError, match=msg):
             CDay().apply(BMonthEnd())
@@ -2903,8 +2895,10 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         assert repr(self.offset) == "<CustomBusinessMonthEnd>"
         assert repr(self.offset2) == "<2 * CustomBusinessMonthEnds>"
 
-    def testCall(self):
-        assert self.offset2(self.d) == datetime(2008, 2, 29)
+    def test_call(self):
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset2(self.d) == datetime(2008, 2, 29)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
@@ -3052,8 +3046,10 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         assert repr(self.offset) == "<CustomBusinessMonthBegin>"
         assert repr(self.offset2) == "<2 * CustomBusinessMonthBegins>"
 
-    def testCall(self):
-        assert self.offset2(self.d) == datetime(2008, 3, 3)
+    def test_call(self):
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#34171 DateOffset.__call__ is deprecated
+            assert self.offset2(self.d) == datetime(2008, 3, 3)
 
     def testRollback1(self):
         assert CDay(10).rollback(datetime(2007, 12, 31)) == datetime(2007, 12, 31)
@@ -3462,6 +3458,11 @@ class TestLastWeekOfMonth(Base):
         offset = LastWeekOfMonth(weekday=weekday)
         assert offset.is_on_offset(dt) == expected
 
+    def test_repr(self):
+        assert (
+            repr(LastWeekOfMonth(n=2, weekday=1)) == "<2 * LastWeekOfMonths: weekday=1>"
+        )
+
 
 class TestSemiMonthEnd(Base):
     _offset = SemiMonthEnd
@@ -3505,14 +3506,14 @@ class TestSemiMonthEnd(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthEnd().apply_index(s)
+            result = SemiMonthEnd() + s
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
 
         # ensure generating a range with DatetimeIndex gives same result
         result = date_range(start=dates[0], end=dates[-1], freq="SM")
-        exp = DatetimeIndex(dates)
+        exp = DatetimeIndex(dates, freq="SM")
         tm.assert_index_equal(result, exp)
 
     offset_cases = []
@@ -3648,14 +3649,19 @@ class TestSemiMonthEnd(Base):
 
     @pytest.mark.parametrize("case", offset_cases)
     def test_apply_index(self, case):
+        # https://github.com/pandas-dev/pandas/issues/34580
         offset, cases = case
         s = DatetimeIndex(cases.keys())
+        exp = DatetimeIndex(cases.values())
+
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset.apply_index(s)
+            result = offset + s
+        tm.assert_index_equal(result, exp)
 
-        exp = DatetimeIndex(cases.values())
+        with tm.assert_produces_warning(FutureWarning):
+            result = offset.apply_index(s)
         tm.assert_index_equal(result, exp)
 
     on_offset_cases = [
@@ -3764,14 +3770,14 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthBegin().apply_index(s)
+            result = SemiMonthBegin() + s
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
 
         # ensure generating a range with DatetimeIndex gives same result
         result = date_range(start=dates[0], end=dates[-1], freq="SMS")
-        exp = DatetimeIndex(dates)
+        exp = DatetimeIndex(dates, freq="SMS")
         tm.assert_index_equal(result, exp)
 
     offset_cases = []
@@ -3917,7 +3923,7 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset.apply_index(s)
+            result = offset + s
 
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)
@@ -4092,13 +4098,6 @@ class TestOffsetAliases:
                 alias = "-".join([base, v])
                 assert alias == _get_offset(alias).rule_code
                 assert alias == (_get_offset(alias) * 5).rule_code
-
-        lst = ["M", "D", "B", "H", "T", "S", "L", "U"]
-        for k in lst:
-            code, stride = get_freq_code("3" + k)
-            assert isinstance(code, int)
-            assert stride == 3
-            assert k == get_freq_str(code)
 
 
 def test_dateoffset_misc():
@@ -4302,12 +4301,6 @@ class TestDST:
 
 
 # ---------------------------------------------------------------------
-def test_get_offset_day_error():
-    # subclass of _BaseOffset must override _day_opt attribute, or we should
-    # get a NotImplementedError
-
-    with pytest.raises(NotImplementedError):
-        DateOffset()._get_offset_day(datetime.now())
 
 
 def test_valid_default_arguments(offset_types):
@@ -4317,7 +4310,7 @@ def test_valid_default_arguments(offset_types):
     cls()
 
 
-@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
+@pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_month_attributes(kwd, month_classes):
     # GH#18226
     cls = month_classes
@@ -4326,14 +4319,21 @@ def test_valid_month_attributes(kwd, month_classes):
         cls(**{kwd: 3})
 
 
-@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
+def test_month_offset_name(month_classes):
+    # GH#33757 off.name with n != 1 should not raise AttributeError
+    obj = month_classes(1)
+    obj2 = month_classes(2)
+    assert obj2.name == obj.name
+
+
+@pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_relativedelta_kwargs(kwd):
-    # Check that all the arguments specified in liboffsets.relativedelta_kwds
+    # Check that all the arguments specified in liboffsets._relativedelta_kwds
     # are in fact valid relativedelta keyword args
     DateOffset(**{kwd: 1})
 
 
-@pytest.mark.parametrize("kwd", sorted(liboffsets.relativedelta_kwds))
+@pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_tick_attributes(kwd, tick_classes):
     # GH#18226
     cls = tick_classes

@@ -1,7 +1,7 @@
 .. _whatsnew_0190:
 
-v0.19.0 (October 2, 2016)
--------------------------
+Version 0.19.0 (October 2, 2016)
+--------------------------------
 
 {{ header }}
 
@@ -37,8 +37,8 @@ New features
 
 .. _whatsnew_0190.enhancements.asof_merge:
 
-``merge_asof`` for asof-style time-series joining
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Function ``merge_asof`` for asof-style time-series joining
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A long-time requested feature has been added through the :func:`merge_asof` function, to
 support asof style joining of time-series (:issue:`1870`, :issue:`13695`, :issue:`13709`, :issue:`13902`). Full documentation is
@@ -127,8 +127,8 @@ passed DataFrame (``trades`` in this case), with the fields of the ``quotes`` me
 
 .. _whatsnew_0190.enhancements.rolling_ts:
 
-``.rolling()`` is now time-series aware
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.rolling()`` is now time-series aware
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``.rolling()`` objects are now time-series aware and can accept a time-series offset (or convertible) for the ``window`` argument (:issue:`13327`, :issue:`12995`).
 See the full documentation :ref:`here <stats.moments.ts>`.
@@ -186,8 +186,8 @@ default of the index) in a DataFrame.
 
 .. _whatsnew_0190.enhancements.read_csv_dupe_col_names_support:
 
-``read_csv`` has improved support for duplicate column names
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``read_csv`` has improved support for duplicate column names
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. ipython:: python
    :suppress:
@@ -225,8 +225,8 @@ contained the values ``[0, 3]``.
 
 .. _whatsnew_0190.enhancements.read_csv_categorical:
 
-``read_csv`` supports parsing ``Categorical`` directly
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``read_csv`` supports parsing ``Categorical`` directly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :func:`read_csv` function now supports parsing a ``Categorical`` column when
 specified as a dtype (:issue:`10153`).  Depending on the structure of the data,
@@ -377,7 +377,7 @@ For ``MultiIndex``, values are dropped if any level is missing by default. Speci
 
 .. _whatsnew_0190.gbq:
 
-Google BigQuery Enhancements
+Google BigQuery enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - The :func:`read_gbq` method has gained the ``dialect`` argument to allow users to specify whether to use BigQuery's legacy SQL or BigQuery's standard SQL. See the `docs <https://pandas-gbq.readthedocs.io/en/latest/reading.html>`__ for more details (:issue:`13615`).
@@ -385,17 +385,17 @@ Google BigQuery Enhancements
 
 .. _whatsnew_0190.errstate:
 
-Fine-grained numpy errstate
+Fine-grained NumPy errstate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previous versions of pandas would permanently silence numpy's ufunc error handling when ``pandas`` was imported. Pandas did this in order to silence the warnings that would arise from using numpy ufuncs on missing data, which are usually represented as ``NaN`` s. Unfortunately, this silenced legitimate warnings arising in non-pandas code in the application. Starting with 0.19.0, pandas will use the ``numpy.errstate`` context manager to silence these warnings in a more fine-grained manner, only around where these operations are actually used in the pandas code base. (:issue:`13109`, :issue:`13145`)
 
-After upgrading pandas, you may see *new* ``RuntimeWarnings`` being issued from your code. These are likely legitimate, and the underlying cause likely existed in the code when using previous versions of pandas that simply silenced the warning. Use `numpy.errstate <http://docs.scipy.org/doc/numpy/reference/generated/numpy.errstate.html>`__ around the source of the ``RuntimeWarning`` to control how these conditions are handled.
+After upgrading pandas, you may see *new* ``RuntimeWarnings`` being issued from your code. These are likely legitimate, and the underlying cause likely existed in the code when using previous versions of pandas that simply silenced the warning. Use `numpy.errstate <https://numpy.org/doc/stable/reference/generated/numpy.errstate.html>`__ around the source of the ``RuntimeWarning`` to control how these conditions are handled.
 
 .. _whatsnew_0190.get_dummies_dtypes:
 
-``get_dummies`` now returns integer dtypes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``get_dummies`` now returns integer dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``pd.get_dummies`` function now returns dummy-encoded columns as small integers, rather than floats (:issue:`8725`). This should provide an improved memory footprint.
 
@@ -731,8 +731,8 @@ A ``Series`` will now correctly promote its dtype for assignment with incompat v
 
 .. _whatsnew_0190.api.to_datetime_coerce:
 
-``.to_datetime()`` changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Function ``.to_datetime()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously if ``.to_datetime()`` encountered mixed integers/floats and strings, but no datetimes with ``errors='coerce'`` it would convert all to ``NaT``.
 
@@ -809,8 +809,8 @@ resulting dtype will be upcast, which is unchanged from previous.
 
 .. _whatsnew_0190.api.describe:
 
-``.describe()`` changes
-^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.describe()`` changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Percentile identifiers in the index of a ``.describe()`` output will now be rounded to the least precision that keeps them distinct (:issue:`13104`)
 
@@ -863,8 +863,8 @@ Furthermore:
 ``Period`` changes
 ^^^^^^^^^^^^^^^^^^
 
-``PeriodIndex`` now has ``period`` dtype
-""""""""""""""""""""""""""""""""""""""""
+The ``PeriodIndex`` now has ``period`` dtype
+""""""""""""""""""""""""""""""""""""""""""""
 
 ``PeriodIndex`` now has its own ``period`` dtype. The ``period`` dtype is a
 pandas extension dtype like ``category`` or the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``) (:issue:`13941`).
@@ -1151,8 +1151,8 @@ As a consequence, ``groupby`` and ``set_index`` also preserve categorical dtypes
 
 .. _whatsnew_0190.api.autogenerated_chunksize_index:
 
-``read_csv`` will progressively enumerate chunks
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Function ``read_csv`` will progressively enumerate chunks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When :func:`read_csv` is called with ``chunksize=n`` and without specifying an index,
 each chunk used to have an independently generated index from ``0`` to ``n-1``.
@@ -1185,13 +1185,13 @@ the result of calling :func:`read_csv` without the ``chunksize=`` argument
 
 .. _whatsnew_0190.sparse:
 
-Sparse Changes
+Sparse changes
 ^^^^^^^^^^^^^^
 
 These changes allow pandas to handle sparse data with more dtypes, and for work to make a smoother experience with data handling.
 
-``int64`` and ``bool`` support enhancements
-"""""""""""""""""""""""""""""""""""""""""""
+Types ``int64`` and ``bool`` support enhancements
+"""""""""""""""""""""""""""""""""""""""""""""""""
 
 Sparse data structures now gained enhanced support of ``int64`` and ``bool`` ``dtype`` (:issue:`667`, :issue:`13849`).
 
@@ -1225,6 +1225,7 @@ Previously, sparse data were ``float64`` dtype by default, even if all inputs we
 As of v0.19.0, sparse data keeps the input dtype, and uses more appropriate ``fill_value`` defaults (``0`` for ``int64`` dtype, ``False`` for ``bool`` dtype).
 
 .. ipython:: python
+   :okwarning:
 
    pd.SparseArray([1, 2, 0, 0], dtype=np.int64)
    pd.SparseArray([True, False, False, False])

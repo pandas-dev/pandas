@@ -5,6 +5,9 @@ import warnings
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+from pandas.util._test_decorators import async_mark
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -19,8 +22,8 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
-import pandas.util.testing as tm
 
 import pandas.io.formats.printing as printing
 
@@ -83,10 +86,6 @@ class TestSeriesMisc:
             result = getattr(s, op)(cp)
             assert result.name is None
 
-    def test_combine_first_name(self, datetime_series):
-        result = datetime_series.combine_first(datetime_series[:5])
-        assert result.name == datetime_series.name
-
     def test_getitem_preserve_name(self, datetime_series):
         result = datetime_series[datetime_series > 0]
         assert result.name == datetime_series.name
@@ -112,10 +111,6 @@ class TestSeriesMisc:
             unpickled = pd.read_pickle(path)
             return unpickled
 
-    def test_sort_index_name(self, datetime_series):
-        result = datetime_series.sort_index(ascending=False)
-        assert result.name == datetime_series.name
-
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}
         result = Series(d)
@@ -126,17 +121,15 @@ class TestSeriesMisc:
         expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_subclass_dict(self):
-        data = tm.TestSubDict((x, 10.0 * x) for x in range(10))
+    def test_constructor_subclass_dict(self, dict_subclass):
+        data = dict_subclass((x, 10.0 * x) for x in range(10))
         series = Series(data)
         expected = Series(dict(data.items()))
         tm.assert_series_equal(series, expected)
 
     def test_constructor_ordereddict(self):
         # GH3283
-        data = OrderedDict(
-            ("col{i}".format(i=i), np.random.random()) for i in range(12)
-        )
+        data = OrderedDict((f"col{i}", np.random.random()) for i in range(12))
 
         series = Series(data)
         expected = Series(list(data.values()), list(data.keys()))
@@ -187,7 +180,8 @@ class TestSeriesMisc:
 
     def test_sparse_accessor_updates_on_inplace(self):
         s = pd.Series([1, 1, 2, 3], dtype="Sparse[int]")
-        s.drop([0, 1], inplace=True)
+        return_value = s.drop([0, 1], inplace=True)
+        assert return_value is None
         assert s.sparse.density == 1.0
 
     def test_tab_completion(self):
@@ -256,7 +250,7 @@ class TestSeriesMisc:
             tm.makeIntIndex(10),
             tm.makeFloatIndex(10),
             Index([True, False]),
-            Index(["a{}".format(i) for i in range(101)]),
+            Index([f"a{i}" for i in range(101)]),
             pd.MultiIndex.from_tuples(zip("ABCD", "EFGH")),
             pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], "EFGH")),
         ],
@@ -467,7 +461,8 @@ class TestSeriesMisc:
 
     def test_str_accessor_updates_on_inplace(self):
         s = pd.Series(list("abc"))
-        s.drop([0], inplace=True)
+        return_value = s.drop([0], inplace=True)
+        assert return_value is None
         assert len(s.str.lower()) == 2
 
     def test_str_attribute(self):
@@ -491,14 +486,27 @@ class TestSeriesMisc:
         for full_series in [pd.Series([1]), s2]:
             assert not full_series.empty
 
-    def test_tab_complete_warning(self, ip):
+    @async_mark()
+    @td.check_file_leaks
+    async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        code = "import pandas as pd; s = pd.Series()"
-        ip.run_code(code)
-        with tm.assert_produces_warning(None):
+        code = "import pandas as pd; s = pd.Series(dtype=object)"
+        await ip.run_code(code)
+
+        # TODO: remove it when Ipython updates
+        # GH 33567, jedi version raises Deprecation warning in Ipython
+        import jedi
+
+        if jedi.__version__ < "0.17.0":
+            warning = tm.assert_produces_warning(None)
+        else:
+            warning = tm.assert_produces_warning(
+                DeprecationWarning, check_stacklevel=False
+            )
+        with warning:
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("s.", 1))
 
@@ -508,6 +516,39 @@ class TestSeriesMisc:
         assert s.size == 9
         s = Series(range(9), dtype="Int64")
         assert s.size == 9
+
+    def test_attrs(self):
+        s = pd.Series([0, 1], name="abc")
+        assert s.attrs == {}
+        s.attrs["version"] = 1
+        result = s + 1
+        assert result.attrs == {"version": 1}
+
+    @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
+    def test_set_flags(self, allows_duplicate_labels):
+        df = pd.Series([1, 2])
+        result = df.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+        if allows_duplicate_labels is None:
+            # We don't update when it's not provided
+            assert result.flags.allows_duplicate_labels is True
+        else:
+            assert result.flags.allows_duplicate_labels is allows_duplicate_labels
+
+        # We made a copy
+        assert df is not result
+        # We didn't mutate df
+        assert df.flags.allows_duplicate_labels is True
+
+        # But we didn't copy data
+        result.iloc[0] = 0
+        assert df.iloc[0] == 0
+
+        # Now we do copy.
+        result = df.set_flags(
+            copy=True, allows_duplicate_labels=allows_duplicate_labels
+        )
+        result.iloc[0] = 10
+        assert df.iloc[0] == 0
 
 
 class TestCategoricalSeries:
@@ -537,7 +578,8 @@ class TestCategoricalSeries:
         assert not s.cat.ordered, False
 
         exp = Categorical(["a", "b", np.nan, "a"], categories=["b", "a"])
-        s.cat.set_categories(["b", "a"], inplace=True)
+        return_value = s.cat.set_categories(["b", "a"], inplace=True)
+        assert return_value is None
         tm.assert_categorical_equal(s.values, exp)
 
         res = s.cat.set_categories(["b", "a"])
@@ -568,8 +610,10 @@ class TestCategoricalSeries:
 
     def test_cat_accessor_updates_on_inplace(self):
         s = Series(list("abc")).astype("category")
-        s.drop(0, inplace=True)
-        s.cat.remove_unused_categories(inplace=True)
+        return_value = s.drop(0, inplace=True)
+        assert return_value is None
+        return_value = s.cat.remove_unused_categories(inplace=True)
+        assert return_value is None
         assert len(s.cat.categories) == 2
 
     def test_categorical_delegations(self):
@@ -603,7 +647,8 @@ class TestCategoricalSeries:
         assert s.cat.ordered
         s = s.cat.as_unordered()
         assert not s.cat.ordered
-        s.cat.as_ordered(inplace=True)
+        return_value = s.cat.as_ordered(inplace=True)
+        assert return_value is None
         assert s.cat.ordered
 
         # reorder
@@ -708,6 +753,9 @@ class TestCategoricalSeries:
                 tm.assert_equal(res, exp)
 
             for attr in attr_names:
+                if attr in ["week", "weekofyear"]:
+                    # GH#33595 Deprecate week and weekofyear
+                    continue
                 res = getattr(c.dt, attr)
                 exp = getattr(s.dt, attr)
 

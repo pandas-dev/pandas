@@ -19,9 +19,9 @@ from pandas import (
     period_range,
     timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
-import pandas.util.testing as tm
 
 
 @pytest.fixture(params=[None, "foo"])
@@ -91,7 +91,7 @@ class Base:
 
         assert result.closed == closed
         assert result.dtype.subtype == expected_subtype
-        tm.assert_numpy_array_equal(result._ndarray_values, expected_values)
+        tm.assert_numpy_array_equal(np.array(result), expected_values)
 
     @pytest.mark.parametrize(
         "breaks",
@@ -114,7 +114,7 @@ class Base:
         assert result.empty
         assert result.closed == closed
         assert result.dtype.subtype == expected_subtype
-        tm.assert_numpy_array_equal(result._ndarray_values, expected_values)
+        tm.assert_numpy_array_equal(np.array(result), expected_values)
 
     @pytest.mark.parametrize(
         "breaks",
@@ -164,7 +164,7 @@ class Base:
             constructor(dtype="int64", **filler)
 
         # invalid dtype
-        msg = 'data type "invalid" not understood'
+        msg = "data type [\"']invalid[\"'] not understood"
         with pytest.raises(TypeError, match=msg):
             constructor(dtype="invalid", **filler)
 
@@ -261,6 +261,12 @@ class TestFromBreaks(Base):
         result = IntervalIndex.from_breaks(breaks)
         expected = IntervalIndex.from_breaks([])
         tm.assert_index_equal(result, expected)
+
+    def test_left_right_dont_share_data(self):
+        # GH#36310
+        breaks = np.arange(5)
+        result = IntervalIndex.from_breaks(breaks)._data
+        assert result._left.base is None or result._left.base is not result._right.base
 
 
 class TestFromTuples(Base):

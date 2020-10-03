@@ -65,12 +65,12 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8 --format="$FLAKE8_FORMAT" .
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Linting .pyx code' ; echo $MSG
-    flake8 --format="$FLAKE8_FORMAT" pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403,C400,C401,C402,C403,C404,C405,C406,C407,C408,C409,C410,C411
+    MSG='Linting .pyx and .pxd code' ; echo $MSG
+    flake8 --format="$FLAKE8_FORMAT" pandas --append-config=flake8/cython.cfg
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Linting .pxd and .pxi.in' ; echo $MSG
-    flake8 --format="$FLAKE8_FORMAT" pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
+    MSG='Linting .pxi.in' ; echo $MSG
+    flake8 --format="$FLAKE8_FORMAT" pandas/_libs --append-config=flake8/cython-template.cfg
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     echo "flake8-rst --version"
@@ -100,12 +100,44 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for use of not concatenated strings' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" --format="##[error]{source_path}:{line_number}:{msg}" .
+    else
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" .
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for strings with wrong placed spaces' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" --format="##[error]{source_path}:{line_number}:{msg}" .
+    else
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" .
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for import of private attributes across modules' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
+    else
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of private functions across modules' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
+    else
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
     echo "isort --version-number"
     isort --version-number
 
     # Imports - Check formatting using isort see setup.cfg for settings
     MSG='Check import format using isort' ; echo $MSG
-    ISORT_CMD="isort --recursive --check-only pandas asv_bench"
+    ISORT_CMD="isort --quiet --check-only pandas asv_bench scripts web"
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
         eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
     else
@@ -131,10 +163,16 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Checks for test suite
-    # Check for imports from pandas.util.testing instead of `import pandas.util.testing as tm`
-    invgrep -R --include="*.py*" -E "from pandas.util.testing import" pandas/tests
+    # Check for imports from pandas._testing instead of `import pandas._testing as tm`
+    invgrep -R --include="*.py*" -E "from pandas._testing import" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from pandas.util import testing as tm" pandas/tests
+    invgrep -R --include="*.py*" -E "from pandas import _testing as tm" pandas/tests
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # No direct imports from conftest
+    invgrep -R --include="*.py*" -E "conftest import" pandas/tests
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    invgrep -R --include="*.py*" -E "import conftest" pandas/tests
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of exec' ; echo $MSG
@@ -155,6 +193,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check for python2-style super usage' ; echo $MSG
     invgrep -R --include="*.py" -E "super\(\w*, (self|cls)\)" pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of builtin filter function' ; echo $MSG
+    invgrep -R --include="*.py" -P '(?<!def)[\(\s]filter\(' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check for the following code in testing: `np.testing` and `np.array_equal`
@@ -204,10 +246,22 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include=*.{py,pyx} '!r}' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    # -------------------------------------------------------------------------
+    # Type annotations
+
     MSG='Check for use of comment-based annotation syntax' ; echo $MSG
     invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for missing error codes with # type: ignore' ; echo $MSG
+    invgrep -R --include="*.py" -P '# type:\s?ignore(?!\[)' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias' ; echo $MSG
+    invgrep -R --include="*.py" --exclude=_typing.py -E 'Union\[.*(Series.*DataFrame|DataFrame.*Series).*\]' pandas
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # -------------------------------------------------------------------------
     MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -226,19 +280,19 @@ fi
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
-    MSG='Check import. No warnings, and blacklist some optional dependencies' ; echo $MSG
+    MSG='Check import. No warnings, and blocklist some optional dependencies' ; echo $MSG
     python -W error -c "
 import sys
 import pandas
 
-blacklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2', 'hypothesis',
+blocklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2', 'hypothesis',
              'lxml', 'matplotlib', 'numexpr', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
              'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt'}
 
 # GH#28227 for some of these check for top-level modules, while others are
 #  more specific (e.g. urllib.request)
 import_mods = set(m.split('.')[0] for m in sys.modules) | set(sys.modules)
-mods = blacklist & import_mods
+mods = blocklist & import_mods
 if mods:
     sys.stderr.write('err: pandas should not import: {}\n'.format(', '.join(mods)))
     sys.exit(len(mods))
@@ -250,52 +304,80 @@ fi
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    MSG='Doctests frame.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/frame.py \
-        -k" -itertuples -join -reindex -reindex_axis -round"
+    # Individual files
+
+    MSG='Doctests accessor.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/accessor.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests series.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/series.py \
-        -k"-nonzero -reindex -searchsorted -to_dict"
+    MSG='Doctests aggregation.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/aggregation.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests base.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/base.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests construction.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/construction.py
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests frame.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/frame.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests generic.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/generic.py \
-        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -to_json -transpose -values -xs -to_clipboard"
+    pytest -q --doctest-modules pandas/core/generic.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests groupby.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/groupby/groupby.py -k"-cumcount -describe -pipe"
+    MSG='Doctests series.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/series.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests datetimes.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/tools/datetimes.py
+    MSG='Doctests strings.py' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/strings/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests top-level reshaping functions' ; echo $MSG
-    pytest -q --doctest-modules \
-        pandas/core/reshape/concat.py \
-        pandas/core/reshape/pivot.py \
-        pandas/core/reshape/reshape.py \
-        pandas/core/reshape/tile.py \
-        pandas/core/reshape/melt.py \
-        -k"-crosstab -pivot_table -cut"
+    # Directories
+
+    MSG='Doctests arrays'; echo $MSG
+    pytest -q --doctest-modules pandas/core/arrays/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests interval classes' ; echo $MSG
-    pytest -q --doctest-modules \
-        pandas/core/indexes/interval.py \
-        pandas/core/arrays/interval.py \
-        -k"-from_arrays -from_breaks -from_intervals -from_tuples -set_closed -to_tuples -interval_range"
+    MSG='Doctests computation' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/computation/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests arrays/string_.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/arrays/string_.py
+    MSG='Doctests dtypes'; echo $MSG
+    pytest -q --doctest-modules pandas/core/dtypes/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests arrays/boolean.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/arrays/boolean.py
+    MSG='Doctests groupby' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/groupby/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests indexes' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/indexes/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests ops' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/ops/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests reshape' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/reshape/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests tools' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/tools/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests window' ; echo $MSG
+    pytest -q --doctest-modules pandas/core/window/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Doctests tseries' ; echo $MSG
+    pytest -q --doctest-modules pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -303,8 +385,12 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA01, SA02, SA03, SA05)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=azure --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA01,SA02,SA03,SA05
+    MSG='Validate docstrings (GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA02, SA03)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA02,SA03
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Validate correct capitalization among titles in documentation' ; echo $MSG
+    $BASE_DIR/scripts/validate_rst_title_capitalization.py $BASE_DIR/doc/source/development $BASE_DIR/doc/source/reference
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

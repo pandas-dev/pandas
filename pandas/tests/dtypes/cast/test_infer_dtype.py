@@ -19,7 +19,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.fixture(params=[True, False])
@@ -43,7 +43,9 @@ def test_infer_dtype_from_float_scalar(float_dtype):
     assert dtype == float_dtype
 
 
-@pytest.mark.parametrize("data,exp_dtype", [(12, np.int64), (np.float(12), np.float64)])
+@pytest.mark.parametrize(
+    "data,exp_dtype", [(12, np.int64), (np.float_(12), np.float64)]
+)
 def test_infer_dtype_from_python_scalar(data, exp_dtype):
     dtype, val = infer_dtype_from_scalar(data)
     assert dtype == exp_dtype
@@ -82,13 +84,11 @@ def test_infer_dtype_from_period(freq, pandas_dtype):
 
     if pandas_dtype:
         exp_dtype = f"period[{freq}]"
-        exp_val = p.ordinal
     else:
         exp_dtype = np.object_
-        exp_val = p
 
     assert dtype == exp_dtype
-    assert val == exp_val
+    assert val == p
 
 
 @pytest.mark.parametrize(
@@ -184,8 +184,8 @@ def test_infer_dtype_from_array(arr, expected, pandas_dtype):
         (1, np.int64),
         (1.1, np.float64),
         (Timestamp("2011-01-01"), "datetime64[ns]"),
-        (Timestamp("2011-01-01", tz="US/Eastern"), np.object),
-        (Period("2011-01-01", freq="D"), np.object),
+        (Timestamp("2011-01-01", tz="US/Eastern"), object),
+        (Period("2011-01-01", freq="D"), object),
     ],
 )
 def test_cast_scalar_to_array(obj, dtype):

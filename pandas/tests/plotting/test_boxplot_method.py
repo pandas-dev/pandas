@@ -1,5 +1,3 @@
-# coding: utf-8
-
 import itertools
 import string
 
@@ -10,8 +8,8 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, MultiIndex, Series, date_range, timedelta_range
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 import pandas.plotting as plotting
 
@@ -202,6 +200,23 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(random.rand(10, 2))
         with pytest.raises(ValueError, match=msg):
             df.boxplot(color=dict_colors, return_type="dict")
+
+    @pytest.mark.parametrize(
+        "props, expected",
+        [
+            ("boxprops", "boxes"),
+            ("whiskerprops", "whiskers"),
+            ("capprops", "caps"),
+            ("medianprops", "medians"),
+        ],
+    )
+    def test_specified_props_kwd(self, props, expected):
+        # GH 30346
+        df = DataFrame({k: np.random.random(100) for k in "ABC"})
+        kwd = {props: dict(color="C1")}
+        result = df.boxplot(return_type="dict", **kwd)
+
+        assert result[expected][0].get_color() == "C1"
 
 
 @td.skip_if_no_mpl
@@ -475,25 +490,15 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         )
         grouped = df.groupby("cat")
 
-        # check is boxplot with subplots=False works
         axes = _check_plot_works(
             grouped.boxplot, subplots=False, column=col, return_type="axes"
         )
 
-        # check if xticks labels are plotted correctly
         result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
         assert expected_xticklabel == result_xticklabel
 
-    @pytest.mark.parametrize(
-        "col, expected_xticklabel",
-        [
-            ([("bar", "one"), ("bar", "two")], ["(bar, one)", "(bar, two)"]),
-            ("bar", ["bar", ""]),
-            (["two"], ["(bar, two)", "(baz, two)", "(foo, two)", "(qux, two)"]),
-        ],
-    )
-    def test_boxplot_multiindex_column(self, col, expected_xticklabel):
-        # this is test the boxplot on multi-index column cases
+    def test_boxplot_multiindex_column(self):
+        # GH 16748
         arrays = [
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
@@ -502,9 +507,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         df = DataFrame(np.random.randn(3, 8), index=["A", "B", "C"], columns=index)
 
-        # check if df.boxplot works
+        col = [("bar", "one"), ("bar", "two")]
         axes = _check_plot_works(df.boxplot, column=col, return_type="axes")
 
-        # check if xticks labels are plotted correctly
+        expected_xticklabel = ["(bar, one)", "(bar, two)"]
         result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
         assert expected_xticklabel == result_xticklabel

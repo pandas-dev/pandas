@@ -10,7 +10,7 @@ import pytest
 from pandas._libs.tslib import Timestamp
 
 from pandas import DataFrame, Index
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 _msg_validate_usecols_arg = (
     "'usecols' must either be list-like "
@@ -199,7 +199,7 @@ def test_usecols_with_whitespace(all_parsers):
         # Column selection by index.
         ([0, 1], DataFrame(data=[[1000, 2000], [4000, 5000]], columns=["2", "0"])),
         # Column selection by name.
-        (["0", "1"], DataFrame(data=[[2000, 3000], [5000, 6000]], columns=["0", "1"]),),
+        (["0", "1"], DataFrame(data=[[2000, 3000], [5000, 6000]], columns=["0", "1"])),
     ],
 )
 def test_usecols_with_integer_like_header(all_parsers, usecols, expected):
@@ -558,11 +558,13 @@ def test_raises_on_usecols_names_mismatch(all_parsers, usecols, kwargs, expected
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    reason="see gh-16469: works on the C engine but not the Python engine", strict=False
-)
 @pytest.mark.parametrize("usecols", [["A", "C"], [0, 2]])
-def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
+def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, request):
+    if all_parsers.engine != "c":
+        reason = "see gh-16469: works on the C engine but not the Python engine"
+        # Number of passed names did not match number of header fields in the file
+        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=ValueError))
+
     data = "a,b,c,d\n1,2,3,4\n5,6,7,8"
     names = ["A", "B", "C", "D"]
     parser = all_parsers

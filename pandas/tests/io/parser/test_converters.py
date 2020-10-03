@@ -10,7 +10,7 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 def test_converters_type_must_be_dict(all_parsers):

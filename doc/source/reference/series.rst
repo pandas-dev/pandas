@@ -39,6 +39,8 @@ Attributes
    Series.empty
    Series.dtypes
    Series.name
+   Series.flags
+   Series.set_flags
 
 Conversion
 ----------
@@ -46,6 +48,7 @@ Conversion
    :toctree: api/
 
    Series.astype
+   Series.convert_dtypes
    Series.infer_objects
    Series.copy
    Series.bool
@@ -109,7 +112,7 @@ Binary operator functions
    Series.product
    Series.dot
 
-Function application, groupby & window
+Function application, GroupBy & window
 --------------------------------------
 .. autosummary::
    :toctree: api/
@@ -213,11 +216,18 @@ Missing data handling
 .. autosummary::
    :toctree: api/
 
-   Series.isna
-   Series.notna
+   Series.backfill
+   Series.bfill
    Series.dropna
+   Series.ffill
    Series.fillna
    Series.interpolate
+   Series.isna
+   Series.isnull
+   Series.notna
+   Series.notnull
+   Series.pad
+   Series.replace
 
 Reshaping, sorting
 ------------------
@@ -239,16 +249,17 @@ Reshaping, sorting
    Series.squeeze
    Series.view
 
-Combining / joining / merging
------------------------------
+Combining / comparing / joining / merging
+-----------------------------------------
 .. autosummary::
    :toctree: api/
 
    Series.append
+   Series.compare
    Series.replace
    Series.update
 
-Time series-related
+Time Series-related
 -------------------
 .. autosummary::
    :toctree: api/
@@ -513,10 +524,24 @@ Sparse-dtype specific methods and attributes are provided under the
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/accessor_method.rst
 
    Series.sparse.from_coo
    Series.sparse.to_coo
 
+.. _api.series.flags:
+
+Flags
+~~~~~
+
+Flags refer to attributes of the pandas object. Properties of the dataset (like
+the date is was recorded, the URL it was accessed from, etc.) should be stored
+in :attr:`Series.attrs`.
+
+.. autosummary::
+   :toctree: api/
+
+   Flags
 
 .. _api.series.metadata:
 
@@ -524,6 +549,8 @@ Metadata
 ~~~~~~~~
 
 :attr:`Series.attrs` is a dictionary for storing global metadata for this Series.
+
+.. warning:: ``Series.attrs`` is considered experimental and may change without warning.
 
 .. autosummary::
    :toctree: api/

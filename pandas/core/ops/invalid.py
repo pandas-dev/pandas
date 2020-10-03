@@ -30,11 +30,8 @@ def invalid_comparison(left, right, op):
     elif op is operator.ne:
         res_values = np.ones(left.shape, dtype=bool)
     else:
-        raise TypeError(
-            "Invalid comparison between dtype={dtype} and {typ}".format(
-                dtype=left.dtype, typ=type(right).__name__
-            )
-        )
+        typ = type(right).__name__
+        raise TypeError(f"Invalid comparison between dtype={left.dtype} and {typ}")
     return res_values
 
 
@@ -52,10 +49,8 @@ def make_invalid_op(name: str):
     """
 
     def invalid_op(self, other=None):
-        raise TypeError(
-            "cannot perform {name} with this index type: "
-            "{typ}".format(name=name, typ=type(self).__name__)
-        )
+        typ = type(self).__name__
+        raise TypeError(f"cannot perform {name} with this index type: {typ}")
 
     invalid_op.__name__ = name
     return invalid_op

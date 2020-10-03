@@ -2,18 +2,19 @@ import numpy as np
 
 from pandas import DataFrame, Series, date_range, factorize, read_csv
 from pandas.core.algorithms import take_1d
-import pandas.util.testing as tm
+
+from .pandas_vb_common import tm
 
 try:
     from pandas import (
-        rolling_median,
-        rolling_mean,
-        rolling_min,
-        rolling_max,
-        rolling_var,
-        rolling_skew,
         rolling_kurt,
+        rolling_max,
+        rolling_mean,
+        rolling_median,
+        rolling_min,
+        rolling_skew,
         rolling_std,
+        rolling_var,
     )
 
     have_rolling_methods = True
@@ -24,7 +25,7 @@ try:
 except ImportError:
     from pandas import algos
 try:
-    from pandas.util.testing import test_parallel
+    from pandas._testing import test_parallel
 
     have_real_test_parallel = True
 except ImportError:

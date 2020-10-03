@@ -20,11 +20,9 @@ del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
 from pandas.compat.numpy import (
-    _np_version_under1p14,
-    _np_version_under1p15,
-    _np_version_under1p16,
-    _np_version_under1p17,
-    _np_version_under1p18,
+    np_version_under1p17 as _np_version_under1p17,
+    np_version_under1p18 as _np_version_under1p18,
+    is_numpy_dev as _is_numpy_dev,
 )
 
 try:
@@ -35,11 +33,8 @@ except ImportError as e:  # pragma: no cover
     raise ImportError(
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
-        "'python setup.py build_ext --inplace --force' to build "
-        "the C extensions first."
-    )
-
-from datetime import datetime
+        "'python setup.py build_ext --inplace --force' to build the C extensions first."
+    ) from e
 
 from pandas._config import (
     get_option,
@@ -63,6 +58,8 @@ from pandas.core.api import (
     UInt16Dtype,
     UInt32Dtype,
     UInt64Dtype,
+    Float32Dtype,
+    Float64Dtype,
     CategoricalDtype,
     PeriodDtype,
     IntervalDtype,
@@ -105,6 +102,7 @@ from pandas.core.api import (
     to_datetime,
     to_timedelta,
     # misc
+    Flags,
     Grouper,
     factorize,
     unique,
@@ -117,7 +115,7 @@ from pandas.core.api import (
     DataFrame,
 )
 
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import SparseDtype
 
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
@@ -140,6 +138,7 @@ from pandas.core.reshape.api import (
     qcut,
 )
 
+import pandas.api
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
@@ -188,88 +187,77 @@ __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
 
+
 # GH 27101
 # TODO: remove Panel compat in 1.0
-if pandas.compat.PY37:
+def __getattr__(name):
+    import warnings
 
-    def __getattr__(name):
-        import warnings
+    if name == "Panel":
 
-        if name == "Panel":
+        warnings.warn(
+            "The Panel class is removed from pandas. Accessing it "
+            "from the top-level namespace will also be removed in the next version",
+            FutureWarning,
+            stacklevel=2,
+        )
 
-            warnings.warn(
-                "The Panel class is removed from pandas. Accessing it "
-                "from the top-level namespace will also be removed in "
-                "the next version",
-                FutureWarning,
-                stacklevel=2,
-            )
+        class Panel:
+            pass
 
-            class Panel:
-                pass
+        return Panel
 
-            return Panel
+    elif name == "datetime":
+        warnings.warn(
+            "The pandas.datetime class is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Import from datetime module instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
 
-        elif name == "np":
+        from datetime import datetime as dt
 
-            warnings.warn(
-                "The pandas.np module is deprecated "
-                "and will be removed from pandas in a future version. "
-                "Import numpy directly instead",
-                FutureWarning,
-                stacklevel=2,
-            )
-            import numpy as np
+        return dt
 
-            return np
+    elif name == "np":
 
-        elif name in {"SparseSeries", "SparseDataFrame"}:
-            warnings.warn(
-                f"The {name} class is removed from pandas. Accessing it from "
-                "the top-level namespace will also be removed in the next "
-                "version",
-                FutureWarning,
-                stacklevel=2,
-            )
+        warnings.warn(
+            "The pandas.np module is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Import numpy directly instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+        import numpy as np
 
-            return type(name, (), {})
+        return np
 
-        raise AttributeError(f"module 'pandas' has no attribute '{name}'")
+    elif name in {"SparseSeries", "SparseDataFrame"}:
+        warnings.warn(
+            f"The {name} class is removed from pandas. Accessing it from "
+            "the top-level namespace will also be removed in the next version",
+            FutureWarning,
+            stacklevel=2,
+        )
 
+        return type(name, (), {})
 
-else:
+    elif name == "SparseArray":
 
-    class Panel:
-        pass
+        warnings.warn(
+            "The pandas.SparseArray class is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.arrays.SparseArray instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        from pandas.core.arrays.sparse import SparseArray as _SparseArray
 
-    class SparseDataFrame:
-        pass
+        return _SparseArray
 
-    class SparseSeries:
-        pass
+    raise AttributeError(f"module 'pandas' has no attribute '{name}'")
 
-    class __numpy:
-        def __init__(self):
-            import numpy as np
-            import warnings
-
-            self.np = np
-            self.warnings = warnings
-
-        def __getattr__(self, item):
-            self.warnings.warn(
-                "The pandas.np module is deprecated "
-                "and will be removed from pandas in a future version. "
-                "Import numpy directly instead",
-                FutureWarning,
-                stacklevel=2,
-            )
-            try:
-                return getattr(self.np, item)
-            except AttributeError:
-                raise AttributeError(f"module numpy has no attribute {item}")
-
-    np = __numpy()
 
 # module level doc-string
 __doc__ = """
