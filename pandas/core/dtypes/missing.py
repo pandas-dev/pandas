@@ -637,7 +637,11 @@ def isna_all(arr: ArrayLike) -> bool:
         checker = lambda x: np.asarray(x.view("i8")) == iNaT  # type: ignore[assignment]
 
     else:
-        checker = lambda x: _isna_ndarraylike(x, inf_as_na=INF_AS_NA)
+        # error: Incompatible types in assignment (expression has type
+        # "Callable[[Any], Any]", variable has type "ufunc")
+        checker = lambda x: _isna_ndarraylike(  # type: ignore[assignment]
+            x, inf_as_na=INF_AS_NA
+        )
 
     for i in range(0, total_len, chunk_len):
         if not checker(arr[i : i + chunk_len]).all():

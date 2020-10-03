@@ -505,7 +505,9 @@ def nansum(
     if is_float_dtype(dtype):
         dtype_sum = dtype
     elif is_timedelta64_dtype(dtype):
-        dtype_sum = np.float64
+        # error: Incompatible types in assignment (expression has type
+        # "Type[float64]", variable has type "dtype")
+        dtype_sum = np.float64  # type: ignore[assignment]
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
 
@@ -555,10 +557,14 @@ def nanmean(
         or is_datetime64_any_dtype(dtype)
         or is_timedelta64_dtype(dtype)
     ):
-        dtype_sum = np.float64
+        # error: Incompatible types in assignment (expression has type
+        # "Type[float64]", variable has type "dtype")
+        dtype_sum = np.float64  # type: ignore[assignment]
     elif is_float_dtype(dtype):
         dtype_sum = dtype
-        dtype_count = dtype
+        # error: Incompatible types in assignment (expression has type "dtype",
+        # variable has type "Type[float64]")
+        dtype_count = dtype  # type: ignore[assignment]
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
 
@@ -688,11 +694,16 @@ def _get_counts_nanvar(
             count = np.nan
             d = np.nan
     else:
-        mask2: np.ndarray = count <= ddof
+        # error: Incompatible types in assignment (expression has type
+        # "Union[bool, Any]", variable has type "ndarray")
+        mask2: np.ndarray = count <= ddof  # type: ignore[assignment]
         if mask2.any():
             np.putmask(d, mask2, np.nan)
             np.putmask(count, mask2, np.nan)
-    return count, d
+    # error: Incompatible return value type (got "Tuple[Union[int, float,
+    # ndarray], Any]", expected "Tuple[Union[int, ndarray], Union[int,
+    # ndarray]]")
+    return count, d  # type: ignore[return-value]
 
 
 @disallow("M8")
@@ -844,7 +855,11 @@ def nansem(
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
 
-    count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
+    # error: Argument 1 to "_get_counts_nanvar" has incompatible type
+    # "Tuple[int, ...]"; expected "Tuple[int]"
+    count, _ = _get_counts_nanvar(  # type: ignore[arg-type]
+        values.shape, mask, axis, ddof, values.dtype
+    )
     var = nanvar(values, axis, skipna, ddof=ddof)
 
     return np.sqrt(var) / np.sqrt(count)

@@ -69,7 +69,9 @@ def compare_or_regex_search(
 
     if is_numeric_v_string_like(a, b):
         # GH#29553 avoid deprecation warnings from numpy
-        return np.zeros(a.shape, dtype=bool)
+        # error: Incompatible return value type (got "ndarray", expected
+        # "Union[ExtensionArray, bool]")
+        return np.zeros(a.shape, dtype=bool)  # type: ignore[return-value]
 
     elif is_datetimelike_v_numeric(a, b):
         # GH#29553 avoid deprecation warnings from numpy

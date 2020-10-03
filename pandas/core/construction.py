@@ -287,7 +287,12 @@ def array(
     ):
         dtype = data.dtype
 
-    data = extract_array(data, extract_numpy=True)
+    # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
+    # "Union[Sequence[object], ExtensionArray]"
+
+    # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
+    # "Union[Sequence[object], Index]"
+    data = extract_array(data, extract_numpy=True)  # type: ignore[type-var]
 
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):

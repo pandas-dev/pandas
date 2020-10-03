@@ -194,20 +194,37 @@ def _reconstruct_data(
     ExtensionArray or np.ndarray
     """
     if is_extension_array_dtype(dtype):
-        values = dtype.construct_array_type()._from_sequence(values)
+        # error: Item "dtype" of "Union[dtype, ExtensionDtype]" has no
+        # attribute "construct_array_type"
+        tmp = dtype.construct_array_type()  # type: ignore[union-attr]
+        values = tmp._from_sequence(values)
     elif is_bool_dtype(dtype):
-        values = values.astype(dtype, copy=False)
+        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
+        # incompatible type "Union[dtype, ExtensionDtype]"; expected
+        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"
+        values = values.astype(dtype, copy=False)  # type: ignore[arg-type]
 
         # we only support object dtypes bool Index
         if isinstance(original, ABCIndexClass):
             values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
-            dtype = "datetime64[ns]"
+            # error: Incompatible types in assignment (expression has type
+            # "str", variable has type "Union[dtype, ExtensionDtype]")
+            dtype = "datetime64[ns]"  # type: ignore[assignment]
         elif is_timedelta64_dtype(dtype):
-            dtype = "timedelta64[ns]"
+            # error: Incompatible types in assignment (expression has type
+            # "str", variable has type "Union[dtype, ExtensionDtype]")
+            dtype = "timedelta64[ns]"  # type: ignore[assignment]
 
-        values = values.astype(dtype, copy=False)
+        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
+        # incompatible type "Union[dtype, ExtensionDtype]"; expected
+        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"
+        values = values.astype(dtype, copy=False)  # type: ignore[arg-type]
 
     return values
 
@@ -421,7 +438,20 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
-        values = construct_1d_object_array_from_listlike(list(values))
+        # pandas\core\algorithms.py:424: error: Incompatible types in
+        # assignment (expression has type "ndarray", variable has type
+        # "ExtensionArray")  [assignment]
+
+        # pandas\core\algorithms.py:424: error: Incompatible types in
+        # assignment (expression has type "ndarray", variable has type "Index")
+        # [assignment]
+
+        # pandas\core\algorithms.py:424: error: Incompatible types in
+        # assignment (expression has type "ndarray", variable has type
+        # "Series")  [assignment]
+        values = construct_1d_object_array_from_listlike(  # type: ignore[assignment]
+            list(values)
+        )
         # TODO: could use ensure_arraylike here
 
     comps = extract_array(comps, extract_numpy=True)
@@ -1022,10 +1052,11 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
     else:
         to_raise = (
-            (np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]
-        ).any() or (
-            (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
-        ).any()
+            ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any()
+            or (
+                (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
+            ).any()
+        )
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")

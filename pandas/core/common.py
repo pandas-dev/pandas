@@ -500,7 +500,17 @@ def convert_to_list_like(
     inputs are returned unmodified whereas others are converted to list.
     """
     if isinstance(values, (list, np.ndarray, ABCIndex, ABCSeries, ABCExtensionArray)):
-        return values
+        # pandas\core\common.py:503: error: Incompatible return value type (got
+        # "Union[Any, List[Any], ndarray]", expected "Union[List[Any],
+        # ExtensionArray]")
+
+        # pandas\core\common.py:503: error: Incompatible return value type (got
+        # "Union[Any, List[Any], ndarray]", expected "Union[List[Any], Index]")
+
+        # pandas\core\common.py:503: error: Incompatible return value type (got
+        # "Union[Any, List[Any], ndarray]", expected "Union[List[Any],
+        # Series]")
+        return values  # type: ignore[return-value]
     elif isinstance(values, abc.Iterable) and not isinstance(values, str):
         return list(values)
 

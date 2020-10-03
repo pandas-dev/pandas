@@ -74,7 +74,11 @@ def masked_arith_op(x: np.ndarray, y, op):
     assert isinstance(x, np.ndarray), type(x)
     if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
-        result = np.empty(x.size, dtype=dtype)
+        # error: Argument "dtype" to "empty" has incompatible type
+        # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None, type,
+        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
+        result = np.empty(x.size, dtype=dtype)  # type: ignore[arg-type]
 
         if len(x) != len(y):
             raise ValueError(x.shape, y.shape)
@@ -353,7 +357,9 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         #   integer dtypes.  Otherwise these are boolean ops
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
-        res_values = na_logical_op(lvalues, rvalues, op)
+        # error: Argument 1 to "na_logical_op" has incompatible type
+        # "ExtensionArray"; expected "ndarray"
+        res_values = na_logical_op(lvalues, rvalues, op)  # type: ignore[arg-type]
         # error: Cannot call function of unknown type
         res_values = filler(res_values)  # type: ignore[operator]
 
@@ -418,7 +424,9 @@ def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
         if obj.dtype.kind == "m":
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._from_sequence(obj)
+            # error: Incompatible return value type (got "TimedeltaArray",
+            # expected "ndarray")
+            return TimedeltaArray._from_sequence(obj)  # type: ignore[return-value]
         if obj.dtype.kind == "M":
             from pandas.core.arrays import DatetimeArray
 

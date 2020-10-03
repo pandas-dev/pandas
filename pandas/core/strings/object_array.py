@@ -51,7 +51,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             na_value = self._str_na_value
 
         if not len(arr):
-            return np.ndarray(0, dtype=dtype)
+            # error: Argument 1 to "ndarray" has incompatible type "int";
+            # expected "Sequence[int]"
+            return np.ndarray(0, dtype=dtype)  # type: ignore[arg-type]
 
         if not isinstance(arr, np.ndarray):
             arr = np.asarray(arr, dtype=object)

@@ -1500,7 +1500,11 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
             if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
                 return np.dtype("object")
 
-    return np.find_common_type(types, [])
+    # error: Argument 1 to "find_common_type" has incompatible type
+    # "List[Union[dtype, ExtensionDtype]]"; expected "Sequence[Union[dtype,
+    # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+    # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]]"
+    return np.find_common_type(types, [])  # type: ignore[arg-type]
 
 
 def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.ndarray:
@@ -1524,7 +1528,11 @@ def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.n
     else:
         fill_value = value
 
-    values = np.empty(shape, dtype=dtype)
+    # error: Argument "dtype" to "empty" has incompatible type "Union[dtype,
+    # ExtensionDtype]"; expected "Union[dtype, None, type, _SupportsDtype, str,
+    # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+    # _DtypeDict, Tuple[Any, Any]]"
+    values = np.empty(shape, dtype=dtype)  # type: ignore[arg-type]
     values.fill(fill_value)
 
     return values
@@ -1549,7 +1557,9 @@ def construct_1d_arraylike_from_scalar(
 
     """
     if is_extension_array_dtype(dtype):
-        cls = dtype.construct_array_type()
+        # error: Item "dtype" of "Union[dtype, ExtensionDtype]" has no
+        # attribute "construct_array_type"
+        cls = dtype.construct_array_type()  # type: ignore[union-attr]
         subarr = cls._from_sequence([value] * length, dtype=dtype)
 
     else:
@@ -1564,7 +1574,11 @@ def construct_1d_arraylike_from_scalar(
             if not isna(value):
                 value = ensure_str(value)
 
-        subarr = np.empty(length, dtype=dtype)
+        # error: Argument "dtype" to "empty" has incompatible type
+        # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None, type,
+        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
+        subarr = np.empty(length, dtype=dtype)  # type: ignore[arg-type]
         subarr.fill(value)
 
     return subarr
@@ -1625,7 +1639,11 @@ def construct_1d_ndarray_preserving_na(
     if dtype is not None and dtype.kind == "U":
         subarr = lib.ensure_string_array(values, convert_na_value=False, copy=copy)
     else:
-        subarr = np.array(values, dtype=dtype, copy=copy)
+        # error: Argument "dtype" to "array" has incompatible type
+        # "Union[dtype, ExtensionDtype, None]"; expected "Union[dtype, None,
+        # type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
+        subarr = np.array(values, dtype=dtype, copy=copy)  # type: ignore[arg-type]
 
     return subarr
 
