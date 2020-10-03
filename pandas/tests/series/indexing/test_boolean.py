@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Index, Series
+from pandas import Index, Series, date_range
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
 
@@ -128,3 +128,14 @@ def test_get_set_boolean_different_order(string_series):
     sel = string_series[ordered > 0]
     exp = string_series[string_series > 0]
     tm.assert_series_equal(sel, exp)
+
+
+def test_getitem_boolean_dt64_copies():
+    # GH#36210
+    dti = date_range("2016-01-01", periods=4, tz="US/Pacific")
+    key = np.array([True, True, False, False])
+
+    ser = Series(dti._data)
+
+    res = ser[key]
+    assert res._values._data.base is None
