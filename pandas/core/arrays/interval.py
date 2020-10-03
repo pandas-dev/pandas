@@ -451,7 +451,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         )
     )
-    def from_tuples(cls, data, closed="right", dtype=None):
+    def from_tuples(cls, data, closed="right", copy=False, dtype=None):
         if len(data):
             left, right = [], []
         else:
