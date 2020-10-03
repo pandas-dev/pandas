@@ -205,13 +205,14 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
                 return data
             else:
                 return truncated
-        elif self.include == "all":
+
+        if self.include == "all":
             if self.exclude is not None:
                 msg = "exclude must be None when include is 'all'"
                 raise ValueError(msg)
             return data
-        else:
-            return data.select_dtypes(include=self.include, exclude=self.exclude)
+
+        return data.select_dtypes(include=self.include, exclude=self.exclude)
 
     def describe(self, percentiles: Optional[Sequence[float]]) -> "DataFrame":
         """Do describe dataframe."""
