@@ -589,14 +589,23 @@ class StringMethods(NoNewAttributesMixin):
 
         if isinstance(self._orig, ABCIndexClass):
             # add dtype for case that result is all-NA
-            result = Index(result, dtype=object, name=self._orig.name)
+
+            # error: Incompatible types in assignment (expression has type
+            # "Index", variable has type "ndarray")
+            result = Index(  # type: ignore[assignment]
+                result, dtype=object, name=self._orig.name
+            )
         else:  # Series
             if is_categorical_dtype(self._orig.dtype):
                 # We need to infer the new categories.
                 dtype = None
             else:
                 dtype = self._orig.dtype
-            result = Series(result, dtype=dtype, index=data.index, name=self._orig.name)
+            # error: Incompatible types in assignment (expression has type
+            # "Series", variable has type "ndarray")
+            result = Series(  # type: ignore[assignment]
+                result, dtype=dtype, index=data.index, name=self._orig.name
+            )
         return result
 
     _shared_docs[

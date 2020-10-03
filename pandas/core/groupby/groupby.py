@@ -1052,7 +1052,12 @@ b  2""",
         if len(output) == 0:
             raise DataError("No numeric types to aggregate")
 
-        return self._wrap_aggregated_output(output, index=self.grouper.result_index)
+        # error: Argument 1 to "_wrap_aggregated_output" of "BaseGroupBy" has
+        # incompatible type "Dict[OutputKey, Union[ndarray, DatetimeArray]]";
+        # expected "Mapping[OutputKey, ndarray]"
+        return self._wrap_aggregated_output(  # type: ignore[arg-type]
+            output, index=self.grouper.result_index
+        )
 
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
         """
@@ -1563,9 +1568,14 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             )
             # TODO(GH-22046) - setting with iloc broken if labels are not unique
             # .values to remove labels
-            result.iloc[:, cols] = (
-                result.iloc[:, cols].values / np.sqrt(self.count().iloc[:, cols]).values
-            )
+
+            # pandas\core\groupby\groupby.py:1567: error: Item "ndarray" of
+            # "Union[ndarray, generic]" has no attribute "values"  [union-attr]
+
+            # pandas\core\groupby\groupby.py:1567: error: Item "generic" of
+            # "Union[ndarray, generic]" has no attribute "values"  [union-attr]
+            tmp = result.iloc[:, cols].values  # type: ignore[union-attr]
+            result.iloc[:, cols] = tmp / np.sqrt(self.count().iloc[:, cols]).values
         return result
 
     @Substitution(name="groupby")
@@ -2127,12 +2137,20 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             inference = None
             if is_integer_dtype(vals.dtype):
                 if is_extension_array_dtype(vals.dtype):
-                    vals = vals.to_numpy(dtype=float, na_value=np.nan)
+                    # error: "ndarray" has no attribute "to_numpy"
+                    vals = vals.to_numpy(  # type: ignore[attr-defined]
+                        dtype=float, na_value=np.nan
+                    )
                 inference = np.int64
             elif is_bool_dtype(vals.dtype) and is_extension_array_dtype(vals.dtype):
-                vals = vals.to_numpy(dtype=float, na_value=np.nan)
+                # error: "ndarray" has no attribute "to_numpy"
+                vals = vals.to_numpy(  # type: ignore[attr-defined]
+                    dtype=float, na_value=np.nan
+                )
             elif is_datetime64_dtype(vals.dtype):
-                inference = "datetime64[ns]"
+                # error: Incompatible types in assignment (expression has type
+                # "str", variable has type "Optional[Type[int64]]")
+                inference = "datetime64[ns]"  # type: ignore[assignment]
                 vals = np.asarray(vals).astype(float)
 
             return vals, inference

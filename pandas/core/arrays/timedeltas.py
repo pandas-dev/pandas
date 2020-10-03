@@ -122,7 +122,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return Timedelta(x, unit="ns")
 
     @property
-    def dtype(self) -> np.dtype:
+    # error: Return type "dtype" of "dtype" incompatible with return type
+    # "ExtensionDtype" in supertype "ExtensionArray"
+    def dtype(self) -> np.dtype:  # type: ignore[override]
         """
         The dtype for the TimedeltaArray.
 

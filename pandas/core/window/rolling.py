@@ -383,7 +383,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             try:
                 values = ensure_float64(values)
             except (ValueError, TypeError) as err:
-                raise TypeError(f"cannot handle this type -> {values.dtype}") from err
+                # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
+                tmp = values.dtype  # type: ignore[union-attr]
+                raise TypeError(f"cannot handle this type -> {tmp}") from err
 
         # Convert inf to nan for C funcs
         inf = np.isinf(values)

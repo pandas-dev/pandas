@@ -1909,7 +1909,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # ptp also requires the item_from_zerodim
             return result
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
-        return self._constructor(result, **d).__finalize__(
+        # error: Argument 1 to "NDFrame" has incompatible type "ndarray";
+        # expected "BlockManager"
+        return self._constructor(result, **d).__finalize__(  # type: ignore[arg-type]
             self, method="__array_wrap__"
         )
 
@@ -9856,7 +9858,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        return np.abs(self)
+        # error: Incompatible return value type (got "Union[ndarray, generic]",
+        # expected "FrameOrSeries")
+        return np.abs(self)  # type: ignore[return-value]
 
     def describe(
         self: FrameOrSeries,

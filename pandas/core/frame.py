@@ -470,8 +470,8 @@ class DataFrame(NDFrame):
                 # incompatible type "Union[ExtensionDtype, str, dtype,
                 # Type[object], None]"; expected "Union[dtype, ExtensionDtype,
                 # None]"
-                mgr = masked_rec_array_to_mgr(  # type: ignore[arg-type]
-                    data, index, columns, dtype, copy
+                mgr = masked_rec_array_to_mgr(
+                    data, index, columns, dtype, copy  # type: ignore[arg-type]
                 )
 
             # a masked array
@@ -486,8 +486,12 @@ class DataFrame(NDFrame):
                 # error: Argument "dtype" to "init_ndarray" has incompatible
                 # type "Union[ExtensionDtype, str, dtype, Type[object], None]";
                 # expected "Union[dtype, ExtensionDtype, None]"
-                mgr = init_ndarray(  # type: ignore[arg-type]
-                    data, index, columns, dtype=dtype, copy=copy
+                mgr = init_ndarray(
+                    data,
+                    index,
+                    columns,
+                    dtype=dtype,  # type: ignore[arg-type]
+                    copy=copy,
                 )
 
         elif isinstance(data, (np.ndarray, Series, Index)):
@@ -499,8 +503,8 @@ class DataFrame(NDFrame):
                 # error: Argument "dtype" to "init_dict" has incompatible type
                 # "Union[ExtensionDtype, str, dtype, Type[object], None]";
                 # expected "Union[dtype, ExtensionDtype, None]"
-                mgr = init_dict(  # type: ignore[arg-type]
-                    data, index, columns, dtype=dtype
+                mgr = init_dict(
+                    data, index, columns, dtype=dtype  # type: ignore[arg-type]
                 )
             elif getattr(data, "name", None) is not None:
                 mgr = init_dict({data.name: data}, index, columns, dtype=dtype)
@@ -531,9 +535,20 @@ class DataFrame(NDFrame):
 
                     mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
                 else:
-                    mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+                    # error: Argument "dtype" to "init_ndarray" has
+                    # incompatible type "Union[ExtensionDtype, str, dtype,
+                    # Type[object], None]"; expected "Union[dtype,
+                    # ExtensionDtype, None]"
+                    mgr = init_ndarray(  # type: ignore[arg-type]
+                        data, index, columns, dtype=dtype, copy=copy
+                    )
             else:
-                mgr = init_dict({}, index, columns, dtype=dtype)
+                # error: Argument "dtype" to "init_dict" has incompatible type
+                # "Union[ExtensionDtype, str, dtype, Type[object], None]";
+                # expected "Union[dtype, ExtensionDtype, None]"
+                mgr = init_dict(  # type: ignore[arg-type]
+                    {}, index, columns, dtype=dtype
+                )
         # For data is scalar
         else:
             if index is None or columns is None:
@@ -546,14 +561,26 @@ class DataFrame(NDFrame):
             if is_extension_array_dtype(dtype):
 
                 values = [
-                    construct_1d_arraylike_from_scalar(data, len(index), dtype)
+                    # error: Argument 3 to "construct_1d_arraylike_from_scalar"
+                    # has incompatible type "Union[ExtensionDtype, str, dtype,
+                    # Type[object]]"; expected "Union[dtype, ExtensionDtype]"
+                    construct_1d_arraylike_from_scalar(  # type: ignore[arg-type]
+                        data, len(index), dtype
+                    )
                     for _ in range(len(columns))
                 ]
                 mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
             else:
                 # Attempt to coerce to a numpy array
                 try:
-                    arr = np.array(data, dtype=dtype, copy=copy)
+                    # error: Argument "dtype" to "array" has incompatible type
+                    # "Union[ExtensionDtype, str, dtype, Type[object]]";
+                    # expected "Union[dtype, None, type, _SupportsDtype, str,
+                    # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+                    # List[Any], _DtypeDict, Tuple[Any, Any]]"
+                    arr = np.array(  # type: ignore[arg-type]
+                        data, dtype=dtype, copy=copy
+                    )
                 except (ValueError, TypeError) as err:
                     exc = TypeError(
                         "DataFrame constructor called with "
@@ -564,12 +591,19 @@ class DataFrame(NDFrame):
                 if arr.ndim != 0:
                     raise ValueError("DataFrame constructor not properly called!")
 
-                values = cast_scalar_to_array(
+                # error: Incompatible types in assignment (expression has type
+                # "ndarray", variable has type "List[ExtensionArray]")
+                values = cast_scalar_to_array(  # type: ignore[assignment]
                     (len(index), len(columns)), data, dtype=dtype
                 )
 
                 mgr = init_ndarray(
-                    values, index, columns, dtype=values.dtype, copy=False
+                    # error: "List[ExtensionArray]" has no attribute "dtype"
+                    values,
+                    index,
+                    columns,
+                    dtype=values.dtype,  # type: ignore[attr-defined]
+                    copy=False,
                 )
 
         NDFrame.__init__(self, mgr)
@@ -2009,13 +2043,18 @@ class DataFrame(NDFrame):
             if dtype_mapping is None:
                 formats.append(v.dtype)
             elif isinstance(dtype_mapping, (type, np.dtype, str)):
-                formats.append(dtype_mapping)
+                # error: Argument 1 to "append" of "list" has incompatible type
+                # "Union[type, dtype, str]"; expected "dtype"
+                formats.append(dtype_mapping)  # type: ignore[arg-type]
             else:
                 element = "row" if i < index_len else "column"
                 msg = f"Invalid dtype {dtype_mapping} specified for {element} {name}"
                 raise ValueError(msg)
 
-        return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
+        # error: Module has no attribute "fromarrays"
+        return np.rec.fromarrays(  # type: ignore[attr-defined]
+            arrays, dtype={"names": names, "formats": formats}
+        )
 
     @classmethod
     def _from_arrays(
@@ -2839,7 +2878,9 @@ class DataFrame(NDFrame):
             )
 
         else:
-            new_values = self.values.T
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "List[Any]")
+            new_values = self.values.T  # type: ignore[assignment]
             if copy:
                 new_values = new_values.copy()
             result = self._constructor(
@@ -2898,7 +2939,9 @@ class DataFrame(NDFrame):
         Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
         """
-        return self._mgr.iget_values(i)
+        # error: Incompatible return value type (got "ExtensionArray", expected
+        # "ndarray")
+        return self._mgr.iget_values(i)  # type: ignore[return-value]
 
     def _iter_column_arrays(self) -> Iterator[ArrayLike]:
         """
@@ -2906,7 +2949,9 @@ class DataFrame(NDFrame):
         This returns the values as stored in the Block (ndarray or ExtensionArray).
         """
         for i in range(len(self.columns)):
-            yield self._get_column_array(i)
+            # error: Incompatible types in "yield" (actual type
+            # "ExtensionArray", expected type "ndarray")
+            yield self._get_column_array(i)  # type: ignore[misc]
 
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
@@ -3650,7 +3695,8 @@ class DataFrame(NDFrame):
             )
             keep_these &= ~self.dtypes.isin(excluded_dtypes)
 
-        return self.iloc[:, keep_these.values]
+        # error: "ndarray" has no attribute "values"
+        return self.iloc[:, keep_these.values]  # type: ignore[attr-defined]
 
     def insert(self, loc, column, value, allow_duplicates=False) -> None:
         """
@@ -5348,7 +5394,11 @@ class DataFrame(NDFrame):
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
-                keys = [Series(k, name=name) for (k, name) in zip(keys, by)]
+                # error: List comprehension has incompatible type List[Series];
+                # expected List[ndarray]
+                keys = [  # type: ignore[misc]
+                    Series(k, name=name) for (k, name) in zip(keys, by)
+                ]
 
             indexer = lexsort_indexer(
                 keys, orders=ascending, na_position=na_position, key=key
@@ -5362,7 +5412,9 @@ class DataFrame(NDFrame):
 
             # need to rewrap column in Series to apply key function
             if key is not None:
-                k = Series(k, name=by)
+                # error: Incompatible types in assignment (expression has type
+                # "Series", variable has type "ndarray")
+                k = Series(k, name=by)  # type[assignment]
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]

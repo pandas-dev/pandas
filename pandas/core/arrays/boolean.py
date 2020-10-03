@@ -613,7 +613,9 @@ class BooleanArray(BaseMaskedArray):
             elif op.__name__ in {"xor", "rxor"}:
                 result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-            return BooleanArray(result, mask)
+            # error: Argument 2 to "BooleanArray" has incompatible type
+            # "Optional[Any]"; expected "ndarray"
+            return BooleanArray(result, mask)  # type: ignore[arg-type]
 
         name = f"__{op.__name__}__"
         return set_function_name(logical_method, name, cls)

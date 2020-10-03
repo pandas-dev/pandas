@@ -1666,10 +1666,26 @@ def format_percentiles(
             raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    int_idx = np.isclose(percentiles.astype(int), percentiles)
+    # pandas\io\formats\format.py:1669: error: Item "List[Union[int, float]]"
+    # of "Union[Any, List[Union[int, float]], List[Union[str, float]]]" has no
+    # attribute "astype"  [union-attr]
+
+    # pandas\io\formats\format.py:1669: error: Item "List[Union[str, float]]"
+    # of "Union[Any, List[Union[int, float]], List[Union[str, float]]]" has no
+    # attribute "astype"  [union-attr]
+    int_idx = np.isclose(
+        percentiles.astype(int), percentiles  # type: ignore[union-attr]
+    )
 
     if np.all(int_idx):
-        out = percentiles.astype(int).astype(str)
+        # pandas\io\formats\format.py:1672: error: Item "List[Union[int,
+        # float]]" of "Union[Any, List[Union[int, float]], List[Union[str,
+        # float]]]" has no attribute "astype"  [union-attr]
+
+        # pandas\io\formats\format.py:1672: error: Item "List[Union[str,
+        # float]]" of "Union[Any, List[Union[int, float]], List[Union[str,
+        # float]]]" has no attribute "astype"  [union-attr]
+        out = percentiles.astype(int).astype(str)  # type: ignore[union-attr]
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)

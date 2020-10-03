@@ -319,7 +319,12 @@ class SeriesGroupBy(GroupBy[Series]):
             # let higher level handle
             return results
 
-        output = self._wrap_aggregated_output(results, index=None)
+        # Argument 1 to "_wrap_aggregated_output" of "SeriesGroupBy" has
+        # incompatible type "Dict[OutputKey, Union[DataFrame, Series]]";
+        # expected "Mapping[OutputKey, Union[Series, ndarray]]"
+        output = self._wrap_aggregated_output(  # type: ignore[arg-type]
+            results, index=None
+        )
         return self.obj._constructor_expanddim(output, columns=columns)
 
     # TODO: index should not be Optional - see GH 35490
@@ -711,8 +716,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
             # lab is a Categorical with categories an IntervalIndex
             lab = cut(Series(val), bins, include_lowest=True)
-            lev = lab.cat.categories
-            lab = lev.take(lab.cat.codes)
+            # error: "ndarray" has no attribute "cat"
+            lev = lab.cat.categories  # type: ignore[attr-defined]
+            # error: "ndarray" has no attribute "cat"
+            lab = lev.take(lab.cat.codes)  # type: ignore[attr-defined]
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab.dtype):

@@ -460,14 +460,22 @@ class IntegerArray(BaseMaskedArray):
         # if the dtype is exactly the same, we can fastpath
         if self.dtype == dtype:
             # return the same object for copy=False
-            return self.copy() if copy else self
+
+            # error: Incompatible return value type (got "IntegerArray",
+            # expected "ndarray")
+            return self.copy() if copy else self  # type: ignore[return-value]
         # if we are astyping to another nullable masked dtype, we can fastpath
         if isinstance(dtype, BaseMaskedDtype):
             data = self._data.astype(dtype.numpy_dtype, copy=copy)
             # mask is copied depending on whether the data was copied, and
             # not directly depending on the `copy` keyword
             mask = self._mask if data is self._data else self._mask.copy()
-            return dtype.construct_array_type()(data, mask, copy=False)
+
+            # error: Incompatible return value type (got "BaseMaskedArray",
+            # expected "ndarray")
+            return dtype.construct_array_type()(  # type: ignore[return-value]
+                data, mask, copy=False
+            )
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -476,7 +484,9 @@ class IntegerArray(BaseMaskedArray):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             na_value = np.nan
         elif is_datetime64_dtype(dtype):
-            na_value = np.datetime64("NaT")
+            # error: Incompatible types in assignment (expression has type
+            # "datetime64", variable has type "float")
+            na_value = np.datetime64("NaT")  # type: ignore[assignment]
         else:
             na_value = lib.no_default
 

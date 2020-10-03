@@ -834,7 +834,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             result = self._take_with_fill(indices, fill_value=fill_value)
             kwargs = {}
         else:
-            result = self._take_without_fill(indices)
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ndarray, SparseArray]", variable has type "ndarray")
+            result = self._take_without_fill(indices)  # type: ignore[assignment]
             kwargs = {"dtype": self.dtype}
 
         return type(self)(result, fill_value=self.fill_value, kind=self.kind, **kwargs)

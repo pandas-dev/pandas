@@ -3969,7 +3969,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Get the ndarray that we can pass to the IndexEngine constructor.
         """
-        return self._values
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray]", expected "ndarray")
+        return self._values  # type: ignore[return-value]
 
     @doc(IndexOpsMixin.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
