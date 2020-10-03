@@ -566,7 +566,7 @@ derived from existing columns.
 
    iris = pd.read_csv("data/iris.data")
    iris.head()
-   (iris.assign(sepal_ratio=iris["SepalWidth"] / iris["SepalLength"]).head())
+   iris.assign(sepal_ratio=iris["SepalWidth"] / iris["SepalLength"]).head()
 
 In the example above, we inserted a precomputed value. We can also pass in
 a function of one argument to be evaluated on the DataFrame being assigned to.
