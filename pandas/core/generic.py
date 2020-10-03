@@ -102,7 +102,7 @@ from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
-from pandas.io.formats.describe import DataFrameDescriber
+from pandas.io.formats.describe import describe_ndframe
 from pandas.io.formats.format import DataFrameFormatter
 from pandas.io.formats.printing import pprint_thing
 
@@ -10102,13 +10102,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         75%            NaN      2.5
         max            NaN      3.0
         """
-        describer = DataFrameDescriber(
+        return describe_ndframe(
             data=self,
             include=include,
             exclude=exclude,
             datetime_is_numeric=datetime_is_numeric,
+            percentiles=percentiles,
         )
-        return describer.describe(percentiles)
 
     def pct_change(
         self: FrameOrSeries,

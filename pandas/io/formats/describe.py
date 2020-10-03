@@ -23,19 +23,152 @@ if TYPE_CHECKING:
     from pandas import DataFrame, Series
 
 
-class DataFrameDescriber:
-    """Class responsible for creating dataframe/series description.
+def describe_ndframe(
+    *,
+    data: FrameOrSeries,
+    include: Optional[Union[str, Sequence[str]]],
+    exclude: Optional[Union[str, Sequence[str]]],
+    datetime_is_numeric: bool,
+    percentiles: Optional[Sequence[float]],
+) -> FrameOrSeries:
+    """Describe series or dataframe.
 
     Called from pandas.core.generic.NDFrame.describe()
 
     Parameters
     ----------
     data : FrameOrSeries
-        Dataframe or Series to be described.
+        Either dataframe or series.
     include : 'all', list-like of dtypes or None (default), optional
         A white list of data types to include in the result. Ignored for ``Series``.
     exclude : list-like of dtypes or None (default), optional,
         A black list of data types to omit from the result. Ignored for ``Series``.
+    datetime_is_numeric : bool, default False
+        Whether to treat datetime dtypes as numeric.
+    percentiles : list-like of numbers, optional
+        The percentiles to include in the output. All should
+        fall between 0 and 1. The default is
+        ``[.25, .5, .75]``, which returns the 25th, 50th, and
+        75th percentiles.
+
+    Returns
+    -------
+    FrameOrSeries
+        Dataframe or series described.
+    """
+    describer: "NDFrameDescriber"
+    if data.ndim == 1:
+        describer = SeriesDescriber(
+            data=data,
+            datetime_is_numeric=datetime_is_numeric,
+        )
+    else:
+        describer = DataFrameDescriber(
+            data=data,
+            include=include,
+            exclude=exclude,
+            datetime_is_numeric=datetime_is_numeric,
+        )
+    result = describer.describe(percentiles)
+    return cast(FrameOrSeries, result)
+
+
+class StrategyCreatorMixin:
+    datetime_is_numeric: bool
+
+    def create_strategy(
+        self,
+        series: "Series",
+        percentiles: Optional[Sequence[float]],
+    ) -> "StrategyAbstract":
+        """Create strategy instance for description."""
+        klass = self._select_strategy(series)
+        return klass(series, percentiles)
+
+    def _select_strategy(self, series: "Series") -> Type["StrategyAbstract"]:
+        """Select strategy for description."""
+        strategy: Type[StrategyAbstract] = CategoricalStrategy
+        if is_bool_dtype(series.dtype):
+            strategy = CategoricalStrategy
+        elif is_numeric_dtype(series):
+            strategy = NumericStrategy
+        elif is_datetime64_any_dtype(series.dtype) and self.datetime_is_numeric:
+            strategy = TimestampStrategy
+        elif is_timedelta64_dtype(series.dtype):
+            strategy = NumericStrategy
+
+        if strategy == CategoricalStrategy and is_datetime64_any_dtype(series.dtype):
+            strategy = TimestampAsCategoricalStrategy
+            warnings.warn(
+                "Treating datetime data as categorical rather than numeric in "
+                "`.describe` is deprecated and will be removed in a future "
+                "version of pandas. Specify `datetime_is_numeric=True` to "
+                "silence this warning and adopt the future behavior now.",
+                FutureWarning,
+                stacklevel=6,
+            )
+        return strategy
+
+
+class NDFrameDescriber(ABC):
+    """Abstract class for describing dataframe or series."""
+
+    @abstractmethod
+    def describe(self, percentiles: Optional[Sequence[float]]) -> FrameOrSeriesUnion:
+        pass
+
+
+class SeriesDescriber(NDFrameDescriber, StrategyCreatorMixin):
+    """Class responsible for creating series description.
+
+    Parameters
+    ----------
+    data : FrameOrSeries
+        Dataframe or Series to be described.
+    datetime_is_numeric : bool, default False
+        Whether to treat datetime dtypes as numeric.
+    """
+
+    def __init__(
+        self,
+        *,
+        data: FrameOrSeries,
+        datetime_is_numeric: bool,
+    ):
+        self.data = data
+        self.datetime_is_numeric = datetime_is_numeric
+
+    def describe(self, percentiles: Optional[Sequence[float]]) -> "Series":
+        """Do describe.
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should fall between 0 and 1.
+            The default is ``[.25, .5, .75]``, which returns the 25th, 50th, and
+            75th percentiles.
+
+        Returns
+        -------
+        result : Series
+        """
+        series = cast("Series", self.data)
+        strategy = self.create_strategy(series, percentiles)
+        result = strategy.describe()
+        return result
+
+
+class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
+    """Class responsible for creating dataframe description.
+
+    Parameters
+    ----------
+    data : FrameOrSeries
+        Dataframe or Series to be described.
+    include : 'all', list-like of dtypes or None (default), optional
+        A white list of data types to include in the result.
+    exclude : list-like of dtypes or None (default), optional,
+        A black list of data types to omit from the result.
     datetime_is_numeric : bool, default False
         Whether to treat datetime dtypes as numeric.
     """
@@ -56,9 +189,6 @@ class DataFrameDescriber:
     def _initialize_data(self, data) -> FrameOrSeries:
         _validate_dframe_size(data)
 
-        if data.ndim == 1:
-            return data
-
         if self.include is None and self.exclude is None:
             # when some numerics are found, keep only numerics
             include = [np.number]
@@ -77,37 +207,8 @@ class DataFrameDescriber:
         else:
             return data.select_dtypes(include=self.include, exclude=self.exclude)
 
-    def _select_strategy(
-        self,
-        series: "Series",
-        percentiles: Optional[Sequence[float]],
-    ) -> "StrategyAbstract":
-        """Select strategy for description."""
-        strategy: Type[StrategyAbstract] = CategoricalStrategy
-        if is_bool_dtype(series.dtype):
-            strategy = CategoricalStrategy
-        elif is_numeric_dtype(series):
-            strategy = NumericStrategy
-        elif is_datetime64_any_dtype(series.dtype) and self.datetime_is_numeric:
-            strategy = TimestampStrategy
-        elif is_timedelta64_dtype(series.dtype):
-            strategy = NumericStrategy
-
-        if strategy == CategoricalStrategy and is_datetime64_any_dtype(series.dtype):
-            strategy = TimestampAsCategoricalStrategy
-            warnings.warn(
-                "Treating datetime data as categorical rather than numeric in "
-                "`.describe` is deprecated and will be removed in a future "
-                "version of pandas. Specify `datetime_is_numeric=True` to "
-                "silence this warning and adopt the future behavior now.",
-                FutureWarning,
-                stacklevel=5,
-            )
-
-        return strategy(series, percentiles)
-
-    def describe(self, percentiles: Optional[Sequence[float]]) -> FrameOrSeries:
-        """Do describe
+    def describe(self, percentiles: Optional[Sequence[float]]) -> "DataFrame":
+        """Do describe.
 
         Parameters
         ----------
@@ -118,39 +219,13 @@ class DataFrameDescriber:
 
         Returns
         -------
-        result : FrameOrSeries
-            Either dataframe (if ``self.data`` is dataframe)
-            or series (if ``self.data`` is series).
+        result : DataFrame
         """
-        result: FrameOrSeriesUnion
-        if self.data.ndim == 1:
-            series = cast("Series", self.data)
-            result = self._describe_series(series, percentiles)
-        else:
-            dataframe = cast("DataFrame", self.data)
-            result = self._describe_dataframe(dataframe, percentiles)
-        return cast(FrameOrSeries, result)
+        dataframe = cast("DataFrame", self.data)
 
-    def _describe_series(
-        self,
-        series: "Series",
-        percentiles: Optional[Sequence[float]],
-    ) -> "Series":
-        """Describe series."""
-        strategy = self._select_strategy(series, percentiles)
-        return strategy.describe()
-
-    def _describe_dataframe(
-        self,
-        dataframe: "DataFrame",
-        percentiles: Optional[Sequence[float]],
-    ) -> "DataFrame":
-        """Describe dataframe by describing series and concating them together."""
         ldesc: List["Series"] = []
         for _, series in dataframe.items():
-            # Could use _describe_series here to avoid code duplication,
-            # but there will be an error regarding warning stacklevel
-            strategy = self._select_strategy(series, percentiles)
+            strategy = self.create_strategy(series, percentiles)
             ldesc.append(strategy.describe())
 
         df = pd.concat(
