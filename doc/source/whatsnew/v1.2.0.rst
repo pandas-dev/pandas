@@ -293,6 +293,7 @@ Deprecations
 - :meth:`Rolling.count` with ``min_periods=None`` will default to the size of the window in a future version (:issue:`31302`)
 - Deprecated slice-indexing on timezone-aware :class:`DatetimeIndex` with naive ``datetime`` objects, to match scalar indexing behavior (:issue:`36148`)
 - :meth:`Index.ravel` returning a ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
+- Deprecate use of strings denoting units with 'M', 'Y', 'm' and 'y' in :func:`~pandas.to_timedelta` (:issue:`36666`)
 
 .. ---------------------------------------------------------------------------
 
