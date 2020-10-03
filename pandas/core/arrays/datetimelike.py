@@ -117,7 +117,9 @@ class AttributesMixin:
     _data: np.ndarray
 
     @classmethod
-    def _simple_new(cls, values: np.ndarray, **kwargs):
+    def _simple_new(
+        cls, values: np.ndarray, freq: Optional[BaseOffset] = None, dtype=None
+    ):
         raise AbstractMethodError(cls)
 
     @property
@@ -168,7 +170,7 @@ class AttributesMixin:
         value : Period, Timestamp, Timedelta, or NaT
             Depending on subclass.
         setitem : bool, default False
-            Whether to check compatiblity with setitem strictness.
+            Whether to check compatibility with setitem strictness.
 
         Returns
         -------
@@ -1123,7 +1125,7 @@ class DatetimeLikeArrayMixin(
         raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
     def _add_period(self, other: Period):
-        # Overriden by TimedeltaArray
+        # Overridden by TimedeltaArray
         raise TypeError(f"cannot add Period to a {type(self).__name__}")
 
     def _add_offset(self, offset):
@@ -1276,8 +1278,8 @@ class DatetimeLikeArrayMixin(
             result = self + offset
             return result
 
-        if periods == 0:
-            # immutable so OK
+        if periods == 0 or len(self) == 0:
+            # GH#14811 empty case
             return self.copy()
 
         if self.freq is None:
@@ -1452,13 +1454,6 @@ class DatetimeLikeArrayMixin(
 
     # --------------------------------------------------------------
     # Reductions
-
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
-        op = getattr(self, name, None)
-        if op:
-            return op(skipna=skipna, **kwargs)
-        else:
-            return super()._reduce(name, skipna, **kwargs)
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """

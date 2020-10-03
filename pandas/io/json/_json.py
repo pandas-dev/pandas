@@ -325,7 +325,7 @@ def read_json(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     orient : str
         Indication of expected JSON string format.
@@ -457,7 +457,7 @@ def read_json(
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 

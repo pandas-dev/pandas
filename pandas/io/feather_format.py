@@ -104,7 +104,7 @@ def read_feather(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     columns : sequence, default None
         If not provided, all columns are read.
