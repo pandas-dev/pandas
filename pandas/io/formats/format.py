@@ -1648,23 +1648,17 @@ def format_percentiles(
     with np.errstate(invalid="ignore"):
         if (
             not is_numeric_dtype(percentiles)
-
             # pandas\io\formats\format.py:1649: error: Unsupported operand
             # types for >= ("List[Union[int, float]]" and "int")  [operator]
-
             # pandas\io\formats\format.py:1649: error: Unsupported operand
             # types for >= ("List[float]" and "int")  [operator]
-
             # pandas\io\formats\format.py:1649: error: Unsupported operand
             # types for >= ("List[Union[str, float]]" and "int")  [operator]
             or not np.all(percentiles >= 0)  # type: ignore[operator]
-
             # pandas\io\formats\format.py:1650: error: Unsupported operand
             # types for <= ("List[Union[int, float]]" and "int")  [operator]
-
             # pandas\io\formats\format.py:1650: error: Unsupported operand
             # types for <= ("List[float]" and "int")  [operator]
-
             # pandas\io\formats\format.py:1650: error: Unsupported operand
             # types for <= ("List[Union[str, float]]" and "int")  [operator]
             or not np.all(percentiles <= 1)  # type: ignore[operator]
