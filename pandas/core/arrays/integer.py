@@ -88,8 +88,11 @@ class _IntegerDtype(BaseMaskedDtype):
             # dtype, ExtensionDtype]]; expected List[Union[dtype, None, type,
             # _SupportsDtype, str, Tuple[Any, Union[int, Sequence[int]]],
             # List[Any], _DtypeDict, Tuple[Any, Any]]]
-            [  # type: ignore[misc]
-                t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes
+            [
+                t.numpy_dtype  # type: ignore[misc]
+                if isinstance(t, BaseMaskedDtype)
+                else t
+                for t in dtypes
             ],
             [],
         )

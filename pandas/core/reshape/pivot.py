@@ -451,7 +451,9 @@ def pivot(
             cols = com.convert_to_list_like(index)
         else:
             cols = []
-        cols.extend(columns)
+        # error: Item "ExtensionArray" of "Union[List[Any], ExtensionArray]"
+        # has no attribute "extend"
+        cols.extend(columns)  # type: ignore[union-attr]
 
         append = index is None
         indexed = data.set_index(cols, append=append)

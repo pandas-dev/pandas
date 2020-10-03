@@ -493,6 +493,15 @@ class ExponentialMovingWindow(BaseWindow):
                 corr = cov / zsqrt(x_var * y_var)
             return X._wrap_result(corr)
 
+        # pandas\core\window\ewm.py:497: error: Item "ndarray" of
+        # "Union[ndarray, FrameOrSeries, None]" has no attribute
+        # "_selected_obj"  [union-attr]
+
+        # pandas\core\window\ewm.py:497: error: Item "None" of "Union[ndarray,
+        # FrameOrSeries, None]" has no attribute "_selected_obj"  [union-attr]
         return flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
+            self._selected_obj,  # type: ignore[union-attr]
+            other._selected_obj,
+            _get_corr,
+            pairwise=bool(pairwise),
         )

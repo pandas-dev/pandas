@@ -1943,7 +1943,12 @@ def _factorize_keys(
 
     elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         lk, _ = lk._values_for_factorize()
-        rk, _ = rk._values_for_factorize()
+
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "ExtensionArray")
+
+        # error: "ndarray" has no attribute "_values_for_factorize"
+        rk, _ = rk._values_for_factorize()  # type: ignore[attr-defined,assignment]
 
     if is_integer_dtype(lk) and is_integer_dtype(rk):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype

@@ -14,7 +14,10 @@ import warnings
 import zipfile
 
 import numpy as np
-from numpy.random import rand, randn
+
+# pandas\_testing.py:17: error: Module 'numpy.random' has no attribute 'rand'
+# pandas\_testing.py:17: error: Module 'numpy.random' has no attribute 'randn'
+from numpy.random import rand, randn  # type: ignore[attr-defined]
 
 from pandas._config.localization import (  # noqa:F401
     can_set_locale,
@@ -102,9 +105,18 @@ ALL_NUMPY_DTYPES = (
     + STRING_DTYPES
     + DATETIME64_DTYPES
     + TIMEDELTA64_DTYPES
-    + BOOL_DTYPES
-    + OBJECT_DTYPES
-    + BYTES_DTYPES
+    # error: Unsupported operand types for + ("List[Union[ExtensionDtype, str,
+    # dtype, Type[str], Type[float], Type[int], Type[complex], Type[bool],
+    # Type[object]]]" and "List[object]")
+    + BOOL_DTYPES  # type: ignore[operator]
+    # error: Unsupported operand types for + ("List[Union[ExtensionDtype, str,
+    # dtype, Type[str], Type[float], Type[int], Type[complex], Type[bool],
+    # Type[object]]]" and "List[object]")
+    + OBJECT_DTYPES  # type: ignore[operator]
+    # error: Unsupported operand types for + ("List[Union[ExtensionDtype, str,
+    # dtype, Type[str], Type[float], Type[int], Type[complex], Type[bool],
+    # Type[object]]]" and "List[object]")
+    + BYTES_DTYPES  # type: ignore[operator]
 )
 
 

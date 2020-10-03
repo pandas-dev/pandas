@@ -552,7 +552,10 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
-                if c_data[2] == np.float64:  # Warn if necessary
+                # error: Non-overlapping equality check (left operand type:
+                # "Type[signedinteger]", right operand type: "Type[float64]")
+                if c_data[2] == np.float64:  # type: ignore[comparison-overlap]
+                    # Warn if necessary
                     if data[col].max() >= 2 ** 53:
                         ws = precision_loss_doc.format("uint64", "float64")
 
@@ -644,7 +647,10 @@ class StataValueLabel:
             )
 
         # Ensure int32
-        self.off = np.array(self.off, dtype=np.int32)
+
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "List[int]")
+        self.off = np.array(self.off, dtype=np.int32)  # type: ignore[assignment]
         self.val = np.array(self.val, dtype=np.int32)
 
         # Total length
@@ -1208,7 +1214,10 @@ class StataReader(StataParser, abc.Iterator):
 
         dtyplist = [g(x) for x in raw_typlist]
 
-        return typlist, dtyplist
+        # error: Incompatible return value type (got "Tuple[List[Union[int,
+        # str]], List[Union[str, dtype]]]", expected "Tuple[List[Union[int,
+        # str]], List[Union[int, dtype]]]")
+        return typlist, dtyplist  # type: ignore[return-value]
 
     def _get_varlist(self) -> List[str]:
         # 33 in order formats, 129 in formats 118 and 119
@@ -1392,9 +1401,12 @@ class StataReader(StataParser, abc.Iterator):
                 dtypes.append(("s" + str(i), self.byteorder + self.NUMPY_TYPE_MAP[typ]))
             else:
                 dtypes.append(("s" + str(i), "S" + str(typ)))
-        self._dtype = np.dtype(dtypes)
+        # error: Incompatible types in assignment (expression has type "dtype",
+        # variable has type "None")
+        self._dtype = np.dtype(dtypes)  # type: ignore[assignment]
 
-        return self._dtype
+        # error: Incompatible return value type (got "None", expected "dtype")
+        return self._dtype  # type: ignore[return-value]
 
     def _calcsize(self, fmt: Union[int, str]) -> int:
         if isinstance(fmt, int):
@@ -1803,7 +1815,9 @@ the string values returned are correct."""
                         warnings.warn(
                             categorical_conversion_warning, CategoricalConversionWarning
                         )
-                    initial_categories = None
+                    # error: Incompatible types in assignment (expression has
+                    # type "None", variable has type "ndarray")
+                    initial_categories = None  # type: ignore[assignment]
                 cat_data = Categorical(
                     column, categories=initial_categories, ordered=order_categoricals
                 )
@@ -2009,7 +2023,11 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
         "ty",
         "%ty",
     ]:
-        return np.float64  # Stata expects doubles for SIFs
+        # Stata expects doubles for SIFs
+
+        # error: Incompatible return value type (got "Type[float64]", expected
+        # "dtype")
+        return np.float64  # type: ignore[return-value]
     else:
         raise NotImplementedError(f"Format {fmt} not implemented")
 

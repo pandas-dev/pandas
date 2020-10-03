@@ -509,7 +509,16 @@ class DataFrame(NDFrame):
             elif getattr(data, "name", None) is not None:
                 mgr = init_dict({data.name: data}, index, columns, dtype=dtype)
             else:
-                mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+                # error: Argument "dtype" to "init_ndarray" has incompatible
+                # type "Union[ExtensionDtype, str, dtype, Type[object], None]";
+                # expected "Union[dtype, ExtensionDtype, None]"
+                mgr = init_ndarray(
+                    data,
+                    index,
+                    columns,
+                    dtype=dtype,  # type: ignore[arg-type]
+                    copy=copy,
+                )
 
         # For data is list-like, or Iterable (will consume into list)
         elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
@@ -521,7 +530,12 @@ class DataFrame(NDFrame):
                 if is_list_like(data[0]) and getattr(data[0], "ndim", 1) == 1:
                     if is_named_tuple(data[0]) and columns is None:
                         columns = data[0]._fields
-                    arrays, columns = to_arrays(data, columns, dtype=dtype)
+                    # error: Argument "dtype" to "to_arrays" has incompatible
+                    # type "Union[ExtensionDtype, str, dtype, Type[object],
+                    # None]"; expected "Union[dtype, ExtensionDtype, None]"
+                    arrays, columns = to_arrays(
+                        data, columns, dtype=dtype  # type: ignore[arg-type]
+                    )
                     columns = ensure_index(columns)
 
                     # set the index
@@ -533,14 +547,28 @@ class DataFrame(NDFrame):
                         else:
                             index = ibase.default_index(len(data))
 
-                    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+                    # error: Argument "dtype" to "arrays_to_mgr" has
+                    # incompatible type "Union[ExtensionDtype, str, dtype,
+                    # Type[object], None]"; expected "Union[dtype,
+                    # ExtensionDtype, None]"
+                    mgr = arrays_to_mgr(
+                        arrays,
+                        columns,
+                        index,
+                        columns,
+                        dtype=dtype,  # type: ignore[arg-type]
+                    )
                 else:
                     # error: Argument "dtype" to "init_ndarray" has
                     # incompatible type "Union[ExtensionDtype, str, dtype,
                     # Type[object], None]"; expected "Union[dtype,
                     # ExtensionDtype, None]"
-                    mgr = init_ndarray(  # type: ignore[arg-type]
-                        data, index, columns, dtype=dtype, copy=copy
+                    mgr = init_ndarray(
+                        data,
+                        index,
+                        columns,
+                        dtype=dtype,  # type: ignore[arg-type]
+                        copy=copy,
                     )
             else:
                 # error: Argument "dtype" to "init_dict" has incompatible type

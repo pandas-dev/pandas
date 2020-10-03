@@ -322,8 +322,8 @@ class SeriesGroupBy(GroupBy[Series]):
         # Argument 1 to "_wrap_aggregated_output" of "SeriesGroupBy" has
         # incompatible type "Dict[OutputKey, Union[DataFrame, Series]]";
         # expected "Mapping[OutputKey, Union[Series, ndarray]]"
-        output = self._wrap_aggregated_output(  # type: ignore[arg-type]
-            results, index=None
+        output = self._wrap_aggregated_output(
+            results, index=None  # type: ignore[arg-type]
         )
         return self.obj._constructor_expanddim(output, columns=columns)
 
@@ -745,7 +745,11 @@ class SeriesGroupBy(GroupBy[Series]):
         # multi-index components
         codes = self.grouper.reconstructed_codes
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
+        # error: List item 0 has incompatible type "Union[ndarray, Any]";
+        # expected "Index"
+        levels = [  # type: ignore[list-item]
+            ping.group_index for ping in self.grouper.groupings
+        ] + [lev]
         names = self.grouper.names + [self._selection_name]
 
         if dropna:

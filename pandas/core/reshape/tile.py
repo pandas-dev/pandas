@@ -604,7 +604,8 @@ def _round_frac(x, precision: int):
     if not np.isfinite(x) or x == 0:
         return x
     else:
-        frac, whole = np.modf(x)
+        # error: 'numpy.generic' object is not iterable
+        frac, whole = np.modf(x)  # type: ignore[misc]
         if whole == 0:
             digits = -int(np.floor(np.log10(abs(frac)))) - 1 + precision
         else:

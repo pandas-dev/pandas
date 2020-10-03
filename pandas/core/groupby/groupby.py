@@ -1055,8 +1055,8 @@ b  2""",
         # error: Argument 1 to "_wrap_aggregated_output" of "BaseGroupBy" has
         # incompatible type "Dict[OutputKey, Union[ndarray, DatetimeArray]]";
         # expected "Mapping[OutputKey, ndarray]"
-        return self._wrap_aggregated_output(  # type: ignore[arg-type]
-            output, index=self.grouper.result_index
+        return self._wrap_aggregated_output(
+            output, index=self.grouper.result_index  # type: ignore[arg-type]
         )
 
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
@@ -1574,8 +1574,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             # pandas\core\groupby\groupby.py:1567: error: Item "generic" of
             # "Union[ndarray, generic]" has no attribute "values"  [union-attr]
-            tmp = result.iloc[:, cols].values  # type: ignore[union-attr]
-            result.iloc[:, cols] = tmp / np.sqrt(self.count().iloc[:, cols]).values
+            tmp = np.sqrt(self.count().iloc[:, cols]).values  # type: ignore[union-attr]
+            result.iloc[:, cols] = result.iloc[:, cols].values / tmp
         return result
 
     @Substitution(name="groupby")

@@ -790,7 +790,9 @@ class SQLTable(PandasObject):
                 mask = isna(d)
                 d[mask] = None
 
-            data_list[i] = d
+            # error: No overload variant of "__setitem__" of "list" matches
+            # argument types "int", "ndarray"
+            data_list[i] = d  # type: ignore[call-overload]
 
         return column_names, data_list
 
