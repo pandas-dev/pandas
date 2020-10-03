@@ -282,6 +282,7 @@ Performance improvements
 - Performance improvement in :meth:`GroupBy.transform` with the ``numba`` engine (:issue:`36240`)
 - ``Styler`` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
 - Performance improvement in :meth:`pd.to_datetime` with non-ns time unit for ``float`` ``dtype`` columns (:issue:`20445`)
+- Performance improvement in setting values on a :class:`IntervalArray` (:issue:`36310`)
 
 .. ---------------------------------------------------------------------------
 
@@ -293,7 +294,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - :meth:`Categorical.fillna` will always return a copy, will validate a passed fill value regardless of whether there are any NAs to fill, and will disallow a ``NaT`` as a fill value for numeric categories (:issue:`36530`)
--
+- Bug in :meth:`Categorical.__setitem__` that incorrectly raised when trying to set a tuple value (:issue:`20439`)
 -
 
 Datetimelike
