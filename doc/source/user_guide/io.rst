@@ -3310,10 +3310,10 @@ applications (CTRL-V on many operating systems). Here we illustrate writing a
 
 .. code-block:: python
 
-    >>> df = pd.DataFrame({'A': [1, 2, 3],
-    ...                    'B': [4, 5, 6],
-    ...                    'C': ['p', 'q', 'r']},
-    ...                   index=['x', 'y', 'z'])
+    >>> df = pd.DataFrame(
+    ...     {"A": [1, 2, 3], "B": [4, 5, 6], "C": ["p", "q", "r"]}, index=["x", "y", "z"]
+    ... )
+
     >>> df
       A B C
     x 1 4 p
@@ -3607,8 +3607,8 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    .. code-block:: python
 
-       >>> pd.DataFrame(np.random.randn(10, 2)).to_hdf('test_fixed.h5', 'df')
-       >>> pd.read_hdf('test_fixed.h5', 'df', where='index>5')
+       >>> pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", "df")
+       >>> pd.read_hdf("test_fixed.h5", "df", where="index>5")
        TypeError: cannot pass a where specification when reading a fixed format.
                   this store must be selected in its entirety
 
