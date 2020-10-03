@@ -537,7 +537,8 @@ def get_indexer_dict(label_list, keys):
 
     sorted_labels = [lab.take(sorter) for lab in label_list]
     group_index = group_index.take(sorter)
-
+    if np.all(group_index == -1):
+        return {}
     return lib.indices_fast(sorter, group_index, keys, sorted_labels)
 
 

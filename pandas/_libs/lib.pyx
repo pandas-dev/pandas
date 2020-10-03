@@ -902,7 +902,8 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
                     val = keys[j][sorted_labels[j][i - 1]]
                     PyTuple_SET_ITEM(tup, j, val)
                     Py_INCREF(val)
-
+                if len(tup) == 1:
+                    tup = tup[0]
                 result[tup] = index[start:i]
             start = i
         cur = lab
@@ -912,6 +913,8 @@ def indices_fast(ndarray index, const int64_t[:] labels, list keys,
         val = keys[j][sorted_labels[j][n - 1]]
         PyTuple_SET_ITEM(tup, j, val)
         Py_INCREF(val)
+    if len(tup) == 1:
+        tup = tup[0]
     result[tup] = index[start:]
 
     return result
