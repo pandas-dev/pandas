@@ -752,7 +752,7 @@ With no defaults.
 .. ipython:: python
 
    dft[
-       datetime.datetime(2013, 1, 1, 10, 12, 0) : datetime.datetime(
+       datetime.datetime(2013, 1, 1, 10, 12, 0): datetime.datetime(
            2013, 2, 28, 10, 12, 0
        )
    ]
