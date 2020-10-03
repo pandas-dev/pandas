@@ -1,6 +1,6 @@
 from collections import defaultdict
 import copy
-from typing import Any, Dict, List, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 
 import numpy as np
 
@@ -25,9 +25,11 @@ from pandas.core.dtypes.missing import isna_all
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, ExtensionArray
-from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
+
+if TYPE_CHECKING:
+    from pandas.core.arrays.sparse.dtype import SparseDtype
 
 
 def concatenate_block_managers(
@@ -465,7 +467,7 @@ def _select_upcast_cls_from_dtype(dtype: DtypeObj) -> str:
     elif is_timedelta64_dtype(dtype):
         return "timedelta"
     elif is_sparse(dtype):
-        dtype = cast(SparseDtype, dtype)
+        dtype = cast("SparseDtype", dtype)
         return dtype.subtype.name
     elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
         return dtype.name
