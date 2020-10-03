@@ -108,3 +108,10 @@ class DatetimeLike(Base):
 
         result = index[:]
         assert result.freq == index.freq
+
+    def test_not_equals_numeric(self):
+        index = self.create_index()
+
+        assert not index.equals(pd.Index(index.asi8))
+        assert not index.equals(pd.Index(index.asi8.astype("u8")))
+        assert not index.equals(pd.Index(index.asi8).astype("f8"))
