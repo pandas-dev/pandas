@@ -32,7 +32,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.algorithms import factorize_array, unique
-from pandas.core.missing import backfill_1d, pad_1d
+from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
@@ -457,6 +457,11 @@ class ExtensionArray:
         from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
+        if is_dtype_equal(dtype, self.dtype):
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -611,7 +616,7 @@ class ExtensionArray:
 
         if mask.any():
             if method is not None:
-                func = pad_1d if method == "pad" else backfill_1d
+                func = get_fill_func(method)
                 new_values = func(self.astype(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values, dtype=self.dtype)
             else:

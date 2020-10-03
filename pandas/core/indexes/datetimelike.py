@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
 from pandas._libs.tslibs import BaseOffset, Resolution, Tick, timezones
-from pandas._libs.tslibs.parsing import DateParseError
 from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -31,7 +30,6 @@ from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.base import IndexOpsMixin
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array, extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.extension import (
@@ -100,14 +98,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     _hasnans = hasnans  # for index / array -agnostic code
 
     @property
-    def is_all_dates(self) -> bool:
+    def _is_all_dates(self) -> bool:
         return True
 
     # ------------------------------------------------------------------------
     # Abstract data attributes
 
     @property
-    def values(self):
+    def values(self) -> np.ndarray:
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._data
 
@@ -135,6 +133,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             return True
 
         if not isinstance(other, Index):
+            return False
+        elif other.dtype.kind in ["f", "i", "u", "c"]:
             return False
         elif not isinstance(other, type(self)):
             try:
@@ -178,14 +178,6 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     @doc(IndexOpsMixin.searchsorted, klass="Datetime-like Index")
     def searchsorted(self, value, side="left", sorter=None):
-        if isinstance(value, str):
-            raise TypeError(
-                "searchsorted requires compatible dtype or scalar, "
-                f"not {type(value).__name__}"
-            )
-        if isinstance(value, Index):
-            value = value._data
-
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
     _can_hold_na = True
@@ -408,7 +400,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
             if len(self) and (
                 (use_lhs and t1 < self[0] and t2 < self[0])
-                or ((use_rhs and t1 > self[-1] and t2 > self[-1]))
+                or (use_rhs and t1 > self[-1] and t2 > self[-1])
             ):
                 # we are out of range
                 raise KeyError
@@ -484,7 +476,18 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             raise TypeError(f"Where requires matching dtype, not {oth}") from err
 
         result = np.where(cond, values, other).astype("i8")
-        arr = type(self._data)._simple_new(result, dtype=self.dtype)
+        arr = self._data._from_backing_data(result)
+        return type(self)._simple_new(arr, name=self.name)
+
+    def putmask(self, mask, value):
+        try:
+            value = self._data._validate_where_value(value)
+        except (TypeError, ValueError):
+            return self.astype(object).putmask(mask, value)
+
+        result = self._data._ndarray.copy()
+        np.putmask(result, mask, value)
+        arr = self._data._from_backing_data(result)
         return type(self)._simple_new(arr, name=self.name)
 
     def _summary(self, name=None) -> str:
@@ -574,8 +577,55 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
         return type(self)._simple_new(arr, name=self.name)
 
+    def insert(self, loc: int, item):
+        """
+        Make new Index inserting new item at location
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+            if not either a Python datetime or a numpy integer-like, returned
+            Index dtype will be object rather than datetime.
+
+        Returns
+        -------
+        new_index : Index
+        """
+        item = self._data._validate_insert_value(item)
+
+        freq = None
+        if is_period_dtype(self.dtype):
+            freq = self.freq
+        elif self.freq is not None:
+            # freq can be preserved on edge cases
+            if self.size:
+                if item is NaT:
+                    pass
+                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                    freq = self.freq
+                elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
+            else:
+                # Adding a single item to an empty index may preserve freq
+                if self.freq.is_on_offset(item):
+                    freq = self.freq
+
+        arr = self._data
+        item = arr._unbox_scalar(item)
+        item = arr._rebox_native(item)
+
+        new_values = np.concatenate([arr._ndarray[:loc], [item], arr._ndarray[loc:]])
+        new_arr = self._data._from_backing_data(new_values)
+        new_arr._freq = freq
+
+        return type(self)._simple_new(new_arr, name=self.name)
+
     # --------------------------------------------------------------------
     # Join/Set Methods
+
+    def _can_union_without_object_cast(self, other) -> bool:
+        return is_dtype_equal(self.dtype, other.dtype)
 
     def _wrap_joined_index(self, joined: np.ndarray, other):
         assert other.dtype == self.dtype, (other.dtype, self.dtype)
@@ -594,19 +644,12 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
-        if lib.infer_dtype(keyarr) == "string":
-            # Weak reasoning that indexer is a list of strings
-            # representing datetime or timedelta or period
-            try:
-                extension_arr = pd_array(keyarr, self.dtype)
-            except (ValueError, DateParseError):
-                # Fail to infer keyarr from self.dtype
-                return keyarr
-
-            converted_arr = extract_array(extension_arr, extract_numpy=True)
-        else:
-            converted_arr = com.asarray_tuplesafe(keyarr)
-        return converted_arr
+        try:
+            return self._data._validate_listlike(
+                keyarr, "convert_arr_indexer", cast_str=True, allow_object=True
+            )
+        except (ValueError, TypeError):
+            return com.asarray_tuplesafe(keyarr)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
@@ -865,11 +908,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         See Index.join
         """
-        if self._is_convertible_to_index_for_join(other):
-            try:
-                other = type(self)(other)
-            except (TypeError, ValueError):
-                pass
+        pself, pother = self._maybe_promote(other)
+        if pself is not self or pother is not other:
+            return pself.join(
+                pother, how=how, level=level, return_indexers=return_indexers, sort=sort
+            )
 
         this, other = self._maybe_utc_convert(other)
         return Index.join(
@@ -898,67 +941,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 other = other.tz_convert("UTC")
         return this, other
 
-    @classmethod
-    def _is_convertible_to_index_for_join(cls, other: Index) -> bool:
-        """
-        return a boolean whether I can attempt conversion to a
-        DatetimeIndex/TimedeltaIndex
-        """
-        if isinstance(other, cls):
-            return False
-        elif len(other) > 0 and other.inferred_type not in (
-            "floating",
-            "mixed-integer",
-            "integer",
-            "integer-na",
-            "mixed-integer-float",
-            "mixed",
-        ):
-            return True
-        return False
-
     # --------------------------------------------------------------------
     # List-Like Methods
 
+    @Appender(DatetimeIndexOpsMixin.insert.__doc__)
     def insert(self, loc, item):
-        """
-        Make new Index inserting new item at location
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-            if not either a Python datetime or a numpy integer-like, returned
-            Index dtype will be object rather than datetime.
-
-        Returns
-        -------
-        new_index : Index
-        """
         if isinstance(item, str):
             # TODO: Why are strings special?
             # TODO: Should we attempt _scalar_from_string?
             return self.astype(object).insert(loc, item)
 
-        item = self._data._validate_insert_value(item)
-
-        freq = None
-        # check freq can be preserved on edge cases
-        if self.freq is not None:
-            if self.size:
-                if item is NaT:
-                    pass
-                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
-                    freq = self.freq
-                elif (loc == len(self)) and item - self.freq == self[-1]:
-                    freq = self.freq
-            else:
-                # Adding a single item to an empty index may preserve freq
-                if self.freq.is_on_offset(item):
-                    freq = self.freq
-
-        item = self._data._unbox_scalar(item)
-
-        new_i8s = np.concatenate([self[:loc].asi8, [item], self[loc:].asi8])
-        arr = type(self._data)._simple_new(new_i8s, dtype=self.dtype, freq=freq)
-        return type(self)._simple_new(arr, name=self.name)
+        return DatetimeIndexOpsMixin.insert(self, loc, item)

@@ -25,7 +25,10 @@ def to_timedelta(arg, unit=None, errors="raise"):
     Parameters
     ----------
     arg : str, timedelta, list-like or Series
-        The data to be converted to timedelta.
+        The data to be converted to timedelta.  The character M by itself,
+        e.g. '1M', is treated as minute, not month. The characters Y and y
+        are treated as the mean length of the Gregorian calendar year -
+        365.2425 days or 365 days 5 hours 49 minutes 12 seconds.
     unit : str, optional
         Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
 
@@ -90,7 +93,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
         unit = parse_timedelta_unit(unit)
 
     if errors not in ("ignore", "raise", "coerce"):
-        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'}")
+        raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'.")
 
     if unit in {"Y", "y", "M"}:
         raise ValueError(
