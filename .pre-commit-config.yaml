@@ -48,6 +48,6 @@ repos:
     hooks:
     -   id: yesqa
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0  # Use the ref you want to point at
+    rev: v3.2.0
     hooks:
     -   id: end-of-file-fixer
