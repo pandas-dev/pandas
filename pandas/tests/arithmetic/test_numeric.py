@@ -1351,7 +1351,8 @@ def test_dataframe_div_silenced():
 
 
 @pytest.mark.parametrize(
-    "data, expected_data", [([0, 1, 2], [0, 2, 4])],
+    "data, expected_data",
+    [([0, 1, 2], [0, 2, 4])],
 )
 def test_integer_array_add_list_like(
     box_pandas_1d_array, box_1d_array, data, expected_data
