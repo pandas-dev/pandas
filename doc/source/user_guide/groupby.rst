@@ -677,7 +677,7 @@ and unpack the keyword arguments
 
    animals.groupby("kind").agg(
        **{
-           "total weight": pd.NamedAgg(column="weight", aggfunc=sum),
+           "total weight": pd.NamedAgg(column="weight", aggfunc=sum)
        }
    )
 
