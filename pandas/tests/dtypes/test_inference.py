@@ -1495,7 +1495,7 @@ def test_nan_to_nat_conversions():
 
 @td.skip_if_no_scipy
 @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
-def test_is_scipy_sparse(spmatrix):  # noqa: F811
+def test_is_scipy_sparse(spmatrix):
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
 

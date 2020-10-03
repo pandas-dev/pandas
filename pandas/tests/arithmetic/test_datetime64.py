@@ -318,11 +318,16 @@ class TestDatetime64SeriesComparison:
         expected = tm.box_expected([False, True], xbox)
         tm.assert_equal(result, expected)
 
-        result = ser != ser[0]
+        warn = FutureWarning if box_with_array is pd.DataFrame else None
+        with tm.assert_produces_warning(warn):
+            # alignment for frame vs series comparisons deprecated
+            result = ser != ser[0]
         expected = tm.box_expected([False, True], xbox)
         tm.assert_equal(result, expected)
 
-        result = ser != ser[1]
+        with tm.assert_produces_warning(warn):
+            # alignment for frame vs series comparisons deprecated
+            result = ser != ser[1]
         expected = tm.box_expected([True, True], xbox)
         tm.assert_equal(result, expected)
 
@@ -330,11 +335,15 @@ class TestDatetime64SeriesComparison:
         expected = tm.box_expected([True, False], xbox)
         tm.assert_equal(result, expected)
 
-        result = ser == ser[0]
+        with tm.assert_produces_warning(warn):
+            # alignment for frame vs series comparisons deprecated
+            result = ser == ser[0]
         expected = tm.box_expected([True, False], xbox)
         tm.assert_equal(result, expected)
 
-        result = ser == ser[1]
+        with tm.assert_produces_warning(warn):
+            # alignment for frame vs series comparisons deprecated
+            result = ser == ser[1]
         expected = tm.box_expected([False, False], xbox)
         tm.assert_equal(result, expected)
 
