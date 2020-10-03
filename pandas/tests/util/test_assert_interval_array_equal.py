@@ -41,9 +41,9 @@ def test_interval_array_equal_periods_mismatch():
     msg = """\
 IntervalArray.left are different
 
-IntervalArray.left length are different
-\\[left\\]:  5, Int64Index\\(\\[0, 1, 2, 3, 4\\], dtype='int64'\\)
-\\[right\\]: 6, Int64Index\\(\\[0, 1, 2, 3, 4, 5\\], dtype='int64'\\)"""
+IntervalArray.left shapes are different
+\\[left\\]:  \\(5,\\)
+\\[right\\]: \\(6,\\)"""
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_interval_array_equal(arr1, arr2)
@@ -58,8 +58,8 @@ def test_interval_array_equal_end_mismatch():
 IntervalArray.left are different
 
 IntervalArray.left values are different \\(80.0 %\\)
-\\[left\\]:  Int64Index\\(\\[0, 2, 4, 6, 8\\], dtype='int64'\\)
-\\[right\\]: Int64Index\\(\\[0, 4, 8, 12, 16\\], dtype='int64'\\)"""
+\\[left\\]:  \\[0, 2, 4, 6, 8\\]
+\\[right\\]: \\[0, 4, 8, 12, 16\\]"""
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_interval_array_equal(arr1, arr2)
@@ -74,8 +74,8 @@ def test_interval_array_equal_start_mismatch():
 IntervalArray.left are different
 
 IntervalArray.left values are different \\(100.0 %\\)
-\\[left\\]:  Int64Index\\(\\[0, 1, 2, 3\\], dtype='int64'\\)
-\\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
+\\[left\\]:  \\[0, 1, 2, 3\\]
+\\[right\\]: \\[1, 2, 3, 4\\]"""
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_interval_array_equal(arr1, arr2)
