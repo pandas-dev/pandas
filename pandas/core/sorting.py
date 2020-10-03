@@ -527,6 +527,8 @@ def get_indexer_dict(label_list, keys):
     shape = [len(x) for x in keys]
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
+    if np.all(group_index == -1):
+        return {}
     ngroups = (
         ((group_index.size and group_index.max()) + 1)
         if is_int64_overflow_possible(shape)
@@ -537,8 +539,7 @@ def get_indexer_dict(label_list, keys):
 
     sorted_labels = [lab.take(sorter) for lab in label_list]
     group_index = group_index.take(sorter)
-    if np.all(group_index == -1):
-        return {}
+
     return lib.indices_fast(sorter, group_index, keys, sorted_labels)
 
 
