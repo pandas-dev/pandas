@@ -247,7 +247,9 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         # source code using it..
         return self._mask.any()
 
-    def isna(self) -> np.ndarray:
+    # error: Return type "ndarray" of "isna" incompatible with return type
+    # "ArrayLike" in supertype "ExtensionArray"
+    def isna(self) -> np.ndarray:  # type: ignore[override]
         return self._mask
 
     @property
@@ -305,8 +307,14 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
-        uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
-        return codes, uniques
+        # error: Incompatible types in assignment (expression has type
+        # "BaseMaskedArray", variable has type "ndarray")
+        uniques = type(self)(  # type: ignore[assignment]
+            uniques, np.zeros(len(uniques), dtype=bool)
+        )
+        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
+        # expected "Tuple[ndarray, ExtensionArray]")
+        return codes, uniques  # type: ignore[return-value]
 
     def value_counts(self, dropna: bool = True) -> "Series":
         """

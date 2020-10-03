@@ -254,8 +254,8 @@ class ExponentialMovingWindow(BaseWindow):
             # error: Argument 3 to "get_center_of_mass" has incompatible type
             # "Union[float, Any, None, timedelta64, int64]"; expected
             # "Optional[float]"
-            self.com = get_center_of_mass(  # type: ignore[arg-type]
-                com, span, halflife, alpha
+            self.com = get_center_of_mass(
+                com, span, halflife, alpha  # type: ignore[arg-type]
             )
 
     @property
@@ -437,8 +437,8 @@ class ExponentialMovingWindow(BaseWindow):
         # pandas\core\window\ewm.py:419: error: Item "None" of "Union[ndarray,
         # FrameOrSeries, None]" has no attribute "_selected_obj"  [union-attr]
         return flex_binary_moment(
-            self._selected_obj,  # type: ignore[union-attr]
-            other._selected_obj,
+            self._selected_obj,
+            other._selected_obj,  # type: ignore[union-attr]
             _get_cov,
             pairwise=bool(pairwise),
         )

@@ -300,7 +300,9 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
     @classmethod
     def _rebox_native(cls, value: int) -> np.timedelta64:
-        return np.int64(value).view("m8[ns]")
+        # error: Incompatible return value type (got "int64", expected
+        # "timedelta64")
+        return np.int64(value).view("m8[ns]")  # type: ignore[return-value]
 
     def _unbox_scalar(self, value, setitem: bool = False):
         if not isinstance(value, self._scalar_type) and value is not NaT:
@@ -718,7 +720,11 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
             return result
 
         elif is_object_dtype(other.dtype):
-            result = [other[n] // self[n] for n in range(len(self))]
+            # error: Incompatible types in assignment (expression has type
+            # "List[Any]", variable has type "ndarray")
+            result = [  # type: ignore[assignment]
+                other[n] // self[n] for n in range(len(self))
+            ]
             result = np.array(result)
             return result
 

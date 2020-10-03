@@ -616,7 +616,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         >>> df.size
         4
         """
-        return np.prod(self.shape)
+        # error: Incompatible return value type (got "number", expected "int")
+        return np.prod(self.shape)  # type: ignore[return-value]
 
     @property
     def _selected_obj(self: FrameOrSeries) -> FrameOrSeries:

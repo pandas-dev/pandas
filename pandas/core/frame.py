@@ -457,13 +457,22 @@ class DataFrame(NDFrame):
             )
 
         elif isinstance(data, dict):
-            mgr = init_dict(data, index, columns, dtype=dtype)
+            # error: Argument "dtype" to "init_dict" has incompatible type
+            # "Union[ExtensionDtype, str, dtype, Type[object], None]"; expected
+            # "Union[dtype, ExtensionDtype, None]"
+            mgr = init_dict(data, index, columns, dtype=dtype)  # type: ignore[arg-type]
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
             # masked recarray
             if isinstance(data, mrecords.MaskedRecords):
-                mgr = masked_rec_array_to_mgr(data, index, columns, dtype, copy)
+                # error: Argument 4 to "masked_rec_array_to_mgr" has
+                # incompatible type "Union[ExtensionDtype, str, dtype,
+                # Type[object], None]"; expected "Union[dtype, ExtensionDtype,
+                # None]"
+                mgr = masked_rec_array_to_mgr(  # type: ignore[arg-type]
+                    data, index, columns, dtype, copy
+                )
 
             # a masked array
             else:
@@ -474,7 +483,12 @@ class DataFrame(NDFrame):
                     data[mask] = fill_value
                 else:
                     data = data.copy()
-                mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+                # error: Argument "dtype" to "init_ndarray" has incompatible
+                # type "Union[ExtensionDtype, str, dtype, Type[object], None]";
+                # expected "Union[dtype, ExtensionDtype, None]"
+                mgr = init_ndarray(  # type: ignore[arg-type]
+                    data, index, columns, dtype=dtype, copy=copy
+                )
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
@@ -482,7 +496,12 @@ class DataFrame(NDFrame):
                 data = {k: data[k] for k in data_columns}
                 if columns is None:
                     columns = data_columns
-                mgr = init_dict(data, index, columns, dtype=dtype)
+                # error: Argument "dtype" to "init_dict" has incompatible type
+                # "Union[ExtensionDtype, str, dtype, Type[object], None]";
+                # expected "Union[dtype, ExtensionDtype, None]"
+                mgr = init_dict(  # type: ignore[arg-type]
+                    data, index, columns, dtype=dtype
+                )
             elif getattr(data, "name", None) is not None:
                 mgr = init_dict({data.name: data}, index, columns, dtype=dtype)
             else:

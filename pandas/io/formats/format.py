@@ -1680,10 +1680,20 @@ def format_percentiles(
     prec = -np.floor(
         np.log10(np.min(np.ediff1d(unique_pcts, to_begin=to_begin, to_end=to_end)))
     ).astype(int)
-    prec = max(1, prec)
+    # error: Incompatible types in assignment (expression has type "Union[int,
+    # ndarray, generic]", variable has type "Union[ndarray, generic]")
+    prec = max(1, prec)  # type: ignore[assignment]
     out = np.empty_like(percentiles, dtype=object)
-    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
-    out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
+    # error: No overload variant of "__getitem__" of "list" matches argument
+    # type "Union[bool_, ndarray]"
+    out[int_idx] = (
+        percentiles[int_idx].astype(int).astype(str)  # type: ignore[call-overload]
+    )
+    # error: No overload variant of "__getitem__" of "list" matches argument
+    # type "Union[bool_, ndarray]"
+    out[~int_idx] = (
+        percentiles[~int_idx].round(prec).astype(str)  # type: ignore[call-overload]
+    )
     return [i + "%" for i in out]
 
 

@@ -554,7 +554,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_scalar(left) and isna(left):
                 return self._fill_value
             return Interval(left, right, self.closed)
-        if np.ndim(left) > 1:
+        # error: Argument 1 to "ndim" has incompatible type "Union[ndarray,
+        # ExtensionArray]"; expected "Union[bool, int, float, complex,
+        # _SupportsArray, Sequence[Any]]"
+        if np.ndim(left) > 1:  # type: ignore[arg-type]
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
@@ -742,7 +745,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # TODO: Could skip verify_integrity here.
         return type(self).from_arrays(left, right, closed=closed)
 
-    def isna(self) -> np.ndarray:
+    # error: Return type "ndarray" of "isna" incompatible with return type
+    # "ArrayLike" in supertype "ExtensionArray"
+    def isna(self) -> np.ndarray:  # type: ignore[override]
         return isna(self._left)
 
     def shift(self, periods: int = 1, fill_value: object = None) -> "IntervalArray":

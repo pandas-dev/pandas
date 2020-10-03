@@ -84,7 +84,14 @@ class _IntegerDtype(BaseMaskedDtype):
         ):
             return None
         np_dtype = np.find_common_type(
-            [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
+            # error: List comprehension has incompatible type List[Union[Any,
+            # dtype, ExtensionDtype]]; expected List[Union[dtype, None, type,
+            # _SupportsDtype, str, Tuple[Any, Union[int, Sequence[int]]],
+            # List[Any], _DtypeDict, Tuple[Any, Any]]]
+            [  # type: ignore[misc]
+                t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes
+            ],
+            [],
         )
         if np.issubdtype(np_dtype, np.integer):
             return INT_STR_TO_DTYPE[str(np_dtype)]
@@ -356,7 +363,9 @@ class IntegerArray(BaseMaskedArray):
         return self
 
     def __abs__(self):
-        return type(self)(np.abs(self._data), self._mask)
+        # error: Argument 1 to "IntegerArray" has incompatible type
+        # "Union[ndarray, generic]"; expected "ndarray"
+        return type(self)(np.abs(self._data), self._mask)  # type: ignore[arg-type]
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":

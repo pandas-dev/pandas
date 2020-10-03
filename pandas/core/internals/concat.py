@@ -418,7 +418,9 @@ def _get_empty_dtype_and_na(join_units):
     if "extension" in upcast_classes:
         if len(upcast_classes) == 1:
             cls = upcast_classes["extension"][0]
-            return cls, cls.na_value
+            # error: Item "dtype" of "Union[dtype, ExtensionDtype]" has no
+            # attribute "na_value"
+            return cls, cls.na_value  # type: ignore[union-attr]
         else:
             return np.dtype("object"), np.nan
     elif "object" in upcast_classes:

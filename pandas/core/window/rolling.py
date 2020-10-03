@@ -375,9 +375,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
         elif needs_i8_conversion(values.dtype):  # type: ignore[union-attr]
             raise NotImplementedError(
-                f"ops for {self._window_type} for this "
                 # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
-                f"dtype {values.dtype} are not implemented"  # type: ignore[union-attr]
+                f"ops for {self._window_type} for this "  # type: ignore[union-attr]
+                f"dtype {values.dtype} are not implemented"
             )
         else:
             try:

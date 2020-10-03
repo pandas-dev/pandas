@@ -1289,8 +1289,8 @@ class Block(PandasObject):
 
             # error: Argument "xvalues" to "interpolate_1d" has incompatible
             # type "Index"; expected "ndarray"
-            return missing.interpolate_1d(  # type: ignore[arg-type]
-                xvalues=index,
+            return missing.interpolate_1d(
+                xvalues=index,  # type: ignore[arg-type]
                 yvalues=yvalues,
                 method=method,
                 limit=limit,
