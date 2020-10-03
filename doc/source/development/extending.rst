@@ -34,7 +34,7 @@ decorate a class, providing the name of attribute to add. The class's
        @staticmethod
        def _validate(obj):
            # verify there is a column latitude and a column longitude
-           if 'latitude' not in obj.columns or 'longitude' not in obj.columns:
+           if "latitude" not in obj.columns or "longitude" not in obj.columns:
                raise AttributeError("Must have 'latitude' and 'longitude'.")
 
        @property
@@ -50,8 +50,9 @@ decorate a class, providing the name of attribute to add. The class's
 
 Now users can access your methods using the ``geo`` namespace:
 
-      >>> ds = pd.DataFrame({'longitude': np.linspace(0, 10),
-      ...                    'latitude': np.linspace(0, 20)})
+      >>> ds = pd.Dataframe(
+      ...   {"longitude": np.linspace(0, 10), "latitude": np.linspace(0, 20)}
+      ... )
       >>> ds.geo.center
       (5.0, 10.0)
       >>> ds.geo.plot()
@@ -271,6 +272,7 @@ included as a column in a pandas DataFrame):
         def __arrow_array__(self, type=None):
             # convert the underlying array values to a pyarrow Array
             import pyarrow
+
             return pyarrow.array(..., type=type)
 
 The ``ExtensionDtype.__from_arrow__`` method then controls the conversion
@@ -377,7 +379,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(to_framed)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> df = SubclassedDataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
    >>> df
       A  B  C
    0  1  4  7
@@ -387,7 +389,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(df)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> sliced1 = df[['A', 'B']]
+   >>> sliced1 = df[["A", "B"]]
    >>> sliced1
       A  B
    0  1  4
@@ -397,7 +399,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
    >>> type(sliced1)
    <class '__main__.SubclassedDataFrame'>
 
-   >>> sliced2 = df['A']
+   >>> sliced2 = df["A"]
    >>> sliced2
    0    1
    1    2
@@ -422,27 +424,27 @@ Below is an example to define two original properties, "internal_cache" as a tem
    class SubclassedDataFrame2(pd.DataFrame):
 
        # temporary properties
-       _internal_names = pd.DataFrame._internal_names + ['internal_cache']
+       _internal_names = pd.DataFrame._internal_names + ["internal_cache"]
        _internal_names_set = set(_internal_names)
 
        # normal properties
-       _metadata = ['added_property']
+       _metadata = ["added_property"]
 
        @property
        def _constructor(self):
-           return SubclassedDataFrame2
+          return SubclassedDataFrame2
 
 .. code-block:: python
 
-   >>> df = SubclassedDataFrame2({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame2({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
    >>> df
       A  B  C
    0  1  4  7
    1  2  5  8
    2  3  6  9
 
-   >>> df.internal_cache = 'cached'
-   >>> df.added_property = 'property'
+   >>> df.internal_cache = "cached"
+   >>> df.added_property = "property"
 
    >>> df.internal_cache
    cached
@@ -450,11 +452,11 @@ Below is an example to define two original properties, "internal_cache" as a tem
    property
 
    # properties defined in _internal_names is reset after manipulation
-   >>> df[['A', 'B']].internal_cache
+   >>> df[["A", "B"]].internal_cache
    AttributeError: 'SubclassedDataFrame2' object has no attribute 'internal_cache'
 
    # properties defined in _metadata are retained
-   >>> df[['A', 'B']].added_property
+   >>> df[["A", "B"]].added_property
    property
 
 .. _extending.plotting-backends:
@@ -468,7 +470,7 @@ one based on Matplotlib. For example:
 
 .. code-block:: python
 
-    >>> pd.set_option('plotting.backend', 'backend.module')
+    >>> pd.set_option("plotting.backend", "backend.module")
     >>> pd.Series([1, 2, 3]).plot()
 
 This would be more or less equivalent to:
