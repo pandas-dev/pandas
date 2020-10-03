@@ -130,10 +130,8 @@ class BinOp(ops.BinOp):
             res = pr(left.prune(klass), right.value)
         elif is_term(left) and not is_term(right):
             res = pr(left.value, right.prune(klass))
-        elif not (is_term(left) or is_term(right)):
+        else:  # not (is_term(left) or is_term(right)):
             res = pr(left.prune(klass), right.prune(klass))
-        else:
-            res = None
 
         return res
 
