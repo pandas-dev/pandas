@@ -371,7 +371,10 @@ class FloatingArray(BaseMaskedArray):
         # if the dtype is exactly the same, we can fastpath
         if self.dtype == dtype:
             # return the same object for copy=False
-            return self.copy() if copy else self
+
+            # error: Incompatible return value type (got "FloatingArray",
+            # expected "ndarray")
+            return self.copy() if copy else self  # type: ignore[return-value]
         # if we are astyping to another nullable masked dtype, we can fastpath
         if isinstance(dtype, BaseMaskedDtype):
             # TODO deal with NaNs
@@ -379,7 +382,11 @@ class FloatingArray(BaseMaskedArray):
             # mask is copied depending on whether the data was copied, and
             # not directly depending on the `copy` keyword
             mask = self._mask if data is self._data else self._mask.copy()
-            return dtype.construct_array_type()(data, mask, copy=False)
+            # error: Incompatible return value type (got "BaseMaskedArray",
+            # expected "ndarray")
+            return dtype.construct_array_type()(  # type: ignore[return-value]
+                data, mask, copy=False
+            )
         elif isinstance(dtype, StringDtype):
             return StringArray._from_sequence(self, copy=False)
 
@@ -388,11 +395,15 @@ class FloatingArray(BaseMaskedArray):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             kwargs = dict(na_value=np.nan)
         elif is_datetime64_dtype(dtype):
-            kwargs = dict(na_value=np.datetime64("NaT"))
+            # error: Dict entry 0 has incompatible type "str": "datetime64";
+            # expected "str": "float"
+            kwargs = dict(na_value=np.datetime64("NaT"))  # type: ignore[dict-item]
         else:
             kwargs = {}
 
-        data = self.to_numpy(dtype=dtype, **kwargs)
+        # error: Argument 2 to "to_numpy" of "BaseMaskedArray" has incompatible
+        # type "**Dict[str, float]"; expected "bool"
+        data = self.to_numpy(dtype=dtype, **kwargs)  # type: ignore[arg-type]
         return astype_nansafe(data, dtype, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:

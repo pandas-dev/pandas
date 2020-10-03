@@ -261,12 +261,19 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
         if missing.any() and not is_integer_dtype(dtype):
             if dtype is None or (
                 not is_extension_array_dtype(dtype)
-                and np.issubdtype(dtype, np.flexible)
+                # error: Argument 1 to "issubdtype" has incompatible type
+                # "Union[dtype, ExtensionDtype]"; expected "Union[dtype, None,
+                # type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
+                # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
+                # Any]]"
+                and np.issubdtype(dtype, np.flexible)  # type: ignore[arg-type]
             ):
                 # GH#1783
                 nan_dtype = np.dtype(object)
             else:
-                nan_dtype = dtype
+                # error: Incompatible types in assignment (expression has type
+                # "Union[dtype, ExtensionDtype]", variable has type "dtype")
+                nan_dtype = dtype  # type: ignore[assignment]
             val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
             arrays.loc[missing] = [val] * missing.sum()
 
@@ -414,7 +421,9 @@ def extract_index(data) -> Index:
             else:
                 index = ibase.default_index(lengths[0])
 
-    return ensure_index(index)
+    # error: Value of type variable "AnyArrayLike" of "ensure_index" cannot be
+    # "Optional[Index]"
+    return ensure_index(index)  # type: ignore[type-var]
 
 
 def reorder_arrays(arrays, arr_columns, columns):
@@ -600,12 +609,14 @@ def _list_of_series_to_arrays(
     values = np.vstack(aligned_values)
 
     if values.dtype == np.object_:
-        content = list(values.T)
+        # error: "ExtensionArray" has no attribute "T"
+        content = list(values.T)  # type: ignore[attr-defined]
         columns = _validate_or_indexify_columns(content, columns)
         content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
         return content, columns
     else:
-        return values.T, columns
+        # error: "ExtensionArray" has no attribute "T"
+        return values.T, columns  # type: ignore[attr-defined]
 
 
 def _list_of_dict_to_arrays(

@@ -1587,7 +1587,9 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
 
         if is_categorical_dtype(values.dtype):
             # Categorical is special for now, so that we can preserve tzinfo
-            array = values._internal_get_values()
+
+            # error: "ExtensionArray" has no attribute "_internal_get_values"
+            array = values._internal_get_values()  # type: ignore[attr-defined]
         else:
             array = np.asarray(values)
 
@@ -1646,8 +1648,26 @@ def format_percentiles(
     with np.errstate(invalid="ignore"):
         if (
             not is_numeric_dtype(percentiles)
-            or not np.all(percentiles >= 0)
-            or not np.all(percentiles <= 1)
+
+            # pandas\io\formats\format.py:1649: error: Unsupported operand
+            # types for >= ("List[Union[int, float]]" and "int")  [operator]
+
+            # pandas\io\formats\format.py:1649: error: Unsupported operand
+            # types for >= ("List[float]" and "int")  [operator]
+
+            # pandas\io\formats\format.py:1649: error: Unsupported operand
+            # types for >= ("List[Union[str, float]]" and "int")  [operator]
+            or not np.all(percentiles >= 0)  # type: ignore[operator]
+
+            # pandas\io\formats\format.py:1650: error: Unsupported operand
+            # types for <= ("List[Union[int, float]]" and "int")  [operator]
+
+            # pandas\io\formats\format.py:1650: error: Unsupported operand
+            # types for <= ("List[float]" and "int")  [operator]
+
+            # pandas\io\formats\format.py:1650: error: Unsupported operand
+            # types for <= ("List[Union[str, float]]" and "int")  [operator]
+            or not np.all(percentiles <= 1)  # type: ignore[operator]
         ):
             raise ValueError("percentiles should all be in the interval [0,1]")
 

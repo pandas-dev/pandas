@@ -407,13 +407,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
             if dtype == self.dtype:
-                return self
-            return self._set_dtype(dtype)
+                # error: Incompatible return value type (got "Categorical",
+                # expected "ndarray")
+                return self  # type: ignore[return-value]
+            # error: Incompatible return value type (got "Categorical",
+            # expected "ndarray")
+            return self._set_dtype(dtype)  # type: ignore[return-value]
         if is_extension_array_dtype(dtype):
             return array(self, dtype=dtype, copy=copy)
         if is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
-        return np.array(self, dtype=dtype, copy=copy)
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        return np.array(self, dtype=dtype, copy=copy)  # type: ignore[return-value]
 
     @cache_readonly
     def itemsize(self) -> int:

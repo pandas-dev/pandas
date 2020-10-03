@@ -336,7 +336,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         from pandas.io.formats.format import is_dates_only
 
-        return self.tz is None and is_dates_only(self._values)
+        # error: Argument 1 to "is_dates_only" has incompatible type
+        # "Union[ExtensionArray, ndarray]"; expected "Union[ndarray,
+        # DatetimeArray, Index, DatetimeIndex]"
+        return self.tz is None and is_dates_only(  # type: ignore[arg-type]
+            self._values)
 
     def __reduce__(self):
 

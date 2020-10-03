@@ -441,7 +441,12 @@ def _get_empty_dtype_and_na(join_units):
         return np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")
     else:  # pragma
         try:
-            g = np.find_common_type(upcast_classes, [])
+            # error: Argument 1 to "find_common_type" has incompatible type
+            # "Dict[str, List[Union[dtype, ExtensionDtype]]]"; expected
+            # "Sequence[Union[dtype, None, type, _SupportsDtype, str,
+            # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+            # List[Any], _DtypeDict, Tuple[Any, Any]]]"
+            g = np.find_common_type(upcast_classes, [])  # type: ignore[arg-type]
         except TypeError:
             # At least one is an ExtensionArray
             return np.dtype(np.object_), np.nan

@@ -219,13 +219,23 @@ class ExponentialMovingWindow(BaseWindow):
                 times = self._selected_obj[times]
             if not is_datetime64_ns_dtype(times):
                 raise ValueError("times must be datetime64[ns] dtype.")
-            if len(times) != len(obj):
+            # error: Argument 1 to "len" has incompatible type "Union[str,
+            # ndarray, FrameOrSeries, None]"; expected "Sized"
+            if len(times) != len(obj):  # type: ignore[arg-type]
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(halflife, (str, datetime.timedelta)):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            self.times = np.asarray(times.astype(np.int64))
+
+            # pandas\core\window\ewm.py:228: error: Item "str" of "Union[str,
+            # ndarray, FrameOrSeries, None]" has no attribute "astype"
+            # [union-attr]
+
+            # pandas\core\window\ewm.py:228: error: Item "None" of "Union[str,
+            # ndarray, FrameOrSeries, None]" has no attribute "astype"
+            # [union-attr]
+            self.times = np.asarray(times.astype(np.int64))  # type: ignore[union-attr]
             self.halflife = Timedelta(halflife).value
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
@@ -241,7 +251,12 @@ class ExponentialMovingWindow(BaseWindow):
                 )
             self.times = None
             self.halflife = None
-            self.com = get_center_of_mass(com, span, halflife, alpha)
+            # error: Argument 3 to "get_center_of_mass" has incompatible type
+            # "Union[float, Any, None, timedelta64, int64]"; expected
+            # "Optional[float]"
+            self.com = get_center_of_mass(  # type: ignore[arg-type]
+                com, span, halflife, alpha
+            )
 
     @property
     def _constructor(self):
@@ -415,8 +430,17 @@ class ExponentialMovingWindow(BaseWindow):
             )
             return X._wrap_result(cov)
 
+        # pandas\core\window\ewm.py:419: error: Item "ndarray" of
+        # "Union[ndarray, FrameOrSeries, None]" has no attribute
+        # "_selected_obj"  [union-attr]
+
+        # pandas\core\window\ewm.py:419: error: Item "None" of "Union[ndarray,
+        # FrameOrSeries, None]" has no attribute "_selected_obj"  [union-attr]
         return flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
+            self._selected_obj,  # type: ignore[union-attr]
+            other._selected_obj,
+            _get_cov,
+            pairwise=bool(pairwise),
         )
 
     @Substitution(name="ewm", func_name="corr")

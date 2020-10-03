@@ -376,7 +376,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         elif needs_i8_conversion(values.dtype):  # type: ignore[union-attr]
             raise NotImplementedError(
                 f"ops for {self._window_type} for this "
-                f"dtype {values.dtype} are not implemented"
+                # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
+                f"dtype {values.dtype} are not implemented"  # type: ignore[union-attr]
             )
         else:
             try:
@@ -389,7 +390,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         if inf.any():
             values = np.where(inf, np.nan, values)
 
-        return values
+        # error: Incompatible return value type (got "Optional[ndarray]",
+        # expected "ndarray")
+        return values  # type: ignore[return-value]
 
     def _wrap_result(self, result: np.ndarray) -> "Series":
         """
@@ -1128,7 +1131,13 @@ class Window(BaseWindow):
 
         return _validate_win_type(self.win_type, kwargs)
 
-    def _get_window(
+    # pandas\core\window\rolling.py:1131: error: Missing return statement
+    # [return]
+
+    # pandas\core\window\rolling.py:1131: error: Return type "ndarray" of
+    # "_get_window" incompatible with return type "int" in supertype
+    # "BaseWindow"  [override]
+    def _get_window(  # type: ignore[return,override]
         self, other=None, win_type: Optional[Union[str, Tuple]] = None
     ) -> np.ndarray:
         """

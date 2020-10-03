@@ -471,7 +471,11 @@ class IntegerArray(BaseMaskedArray):
         else:
             na_value = lib.no_default
 
-        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        return self.to_numpy(  # type: ignore[return-value]
+            dtype=dtype, na_value=na_value, copy=False
+        )
 
     def _values_for_argsort(self) -> np.ndarray:
         """

@@ -2384,6 +2384,8 @@ def maybe_numeric_slice(df, slice_, include_bool: bool = False):
     if slice_ is None:
         dtypes = [np.number]
         if include_bool:
-            dtypes.append(bool)
+            # error: Argument 1 to "append" of "list" has incompatible type
+            # "Type[bool]"; expected "Type[number]"
+            dtypes.append(bool)  # type: ignore[arg-type]
         slice_ = IndexSlice[:, df.select_dtypes(include=dtypes).columns]
     return slice_
