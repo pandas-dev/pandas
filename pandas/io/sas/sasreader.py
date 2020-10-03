@@ -9,7 +9,7 @@ from pandas._typing import FilePathOrBuffer, Label
 from pandas.io.common import get_filepath_or_buffer, stringify_path
 
 if TYPE_CHECKING:
-    from pandas import DataFrame  # noqa: F401
+    from pandas import DataFrame
 
 
 # TODO(PY38): replace with Protocol in Python 3.8
@@ -74,7 +74,7 @@ def read_sas(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     format : str {'xport', 'sas7bdat'} or None
         If None, file format is inferred from file extension. If 'xport' or

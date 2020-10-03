@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import datetime
 from datetime import timedelta
 from io import StringIO
@@ -470,7 +469,7 @@ class TestPandasContainer:
         index = pd.DatetimeIndex(list(index), freq=None)
 
         df_mixed = DataFrame(
-            OrderedDict(
+            dict(
                 float_1=[
                     -0.92077639,
                     0.77434435,
@@ -988,7 +987,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         ],
     )
     def test_url(self, field, dtype):
-        url = "https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5"  # noqa
+        url = "https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5"
         result = read_json(url, convert_dates=True)
         assert result[field].dtype == dtype
 
