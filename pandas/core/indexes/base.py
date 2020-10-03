@@ -2675,11 +2675,11 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             if sort is False or not self.is_monotonic or not other.is_monotonic:
                 indexer = []
-                dc = dict(zip(*np.unique(result[0], return_counts=True)))
+                counts = dict(zip(*np.unique(result[0], return_counts=True)))
                 unique_array = algos.unique(np.append(lvals, rvals))
                 # Create indexer to resort result
                 for i, value in enumerate(unique_array):
-                    indexer += [i] * dc[value]
+                    indexer += [i] * counts[value]
                 result = unique_array.take(indexer)
         if sort is None and (not self.is_monotonic or not other.is_monotonic):
             try:
