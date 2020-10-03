@@ -1870,6 +1870,11 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[s
 def _post_process_complex(complex_strings: List[str]) -> List[str]:
     """
     Zero pad complex number strings produced by _trim_zeros_complex.
+
+    Input strings are assumed to be of the form " 1.000+1.000j" with a
+    leading space and the real and imaginary parts having equal precision.
+    The output strings will all have length equal to that of the longest
+    input string.
     """
     lengths = [len(s) for s in complex_strings]
     max_length = max(lengths)
@@ -1892,9 +1897,10 @@ def _trim_zeros_float(
     Trims zeros, leaving just one before the decimal points if need be.
     """
     trimmed = str_floats
+    number_regex = re.compile(fr"\s*[\+-]?[0-9]+(\{decimal}[0-9]*)?")
 
     def _is_number(x):
-        return re.match(fr"\s*-?[0-9]+(\{decimal}[0-9]*)?", x) is not None
+        return re.match(number_regex, x) is not None
 
     def _cond(values):
         finite = [x for x in values if _is_number(x)]
