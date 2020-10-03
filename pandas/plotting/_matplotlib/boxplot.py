@@ -356,7 +356,6 @@ def boxplot(
             with plt.rc_context(rc):
                 ax = plt.gca()
         data = data._get_numeric_data()
-
         if column is None:
             columns = data.columns
         else:
