@@ -600,7 +600,16 @@ def read_csv(
     float_precision=None,
     storage_options: StorageOptions = None,
 ):
-    return _check_defaults_read(locals(), {"delimiter": ","})
+    kwds = locals()
+    del kwds["filepath_or_buffer"]
+    del kwds["sep"]
+
+    kwds_defaults = _check_defaults_read(
+        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": ","}
+    )
+    kwds.update(kwds_defaults)
+
+    return _read(filepath_or_buffer, kwds)
 
 
 @Appender(
@@ -669,7 +678,16 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
-    return _check_defaults_read(locals(), {"delimiter": "\t"})
+    kwds = locals()
+    del kwds["filepath_or_buffer"]
+    del kwds["sep"]
+
+    kwds_defaults = _check_defaults_read(
+        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": "\t"}
+    )
+    kwds.update(kwds_defaults)
+
+    return _read(filepath_or_buffer, kwds)
 
 
 def read_fwf(
@@ -3686,20 +3704,51 @@ class FixedWidthFieldParser(PythonParser):
         )
 
 
-def _check_defaults_read(read_kwds: dict, defaults: dict):
-    """Check default values of input parameters, read a line file."""
-    engine = read_kwds["engine"]
-    dialect = read_kwds["dialect"]
-    delimiter = read_kwds["delimiter"]
-    delim_whitespace = read_kwds["delim_whitespace"]
-    filepath_or_buffer = read_kwds["filepath_or_buffer"]
-    sep = read_kwds["sep"]
+def _check_defaults_read(
+    dialect: Union[str, csv.Dialect],
+    delimiter: str,
+    delim_whitespace: bool,
+    engine: str,
+    sep: str,
+    defaults: Dict[str, Any],
+):
+    """Check default values of input parameters of read_csv, read_table.
 
-    del read_kwds["filepath_or_buffer"]
-    del read_kwds["sep"]
+    Parameters
+    ----------
+    dialect : str or csv.Dialect
+        If provided, this parameter will override values (default or not) for the
+        following parameters: `delimiter`, `doublequote`, `escapechar`,
+        `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
+        override values, a ParserWarning will be issued. See csv.Dialect
+        documentation for more details.
+    delimiter : str
+        Alias for sep.
+    delim_whitespace : bool
+        Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
+        used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
+        is set to True, nothing should be passed in for the ``delimiter``
+        parameter.
+    engine : {{'c', 'python'}}
+        Parser engine to use. The C engine is faster while the python engine is
+        currently more feature-complete.
+    sep : str
+        Delimiter to use.
+    defaults: Dict[str, Any]
+        Default values of input parameters.
 
-    delimiter_default = defaults["delimiter"]
+    Returns
+    -------
+    kwds : dict
+        Input parameters with correct values.
 
+    Raises
+    ------
+    ValueError : If a delimiter was specified with ``sep`` (or ``delimiter``) and
+        ``delim_whitespace=True``.
+    """
+    delim_default = defaults["delimiter"]
+    kwds = {}
     # gh-23761
     #
     # When a dialect is passed, it overrides any of the overlapping
@@ -3713,8 +3762,8 @@ def _check_defaults_read(read_kwds: dict, defaults: dict):
     # the comparison to dialect values by checking if default values
     # for BOTH "delimiter" and "sep" were provided.
     if dialect is not None:
-        read_kwds["sep_override"] = (delimiter is None) and (
-            sep is lib.no_default or sep == delimiter_default
+        kwds["sep_override"] = (delimiter is None) and (
+            sep is lib.no_default or sep == delim_default
         )
 
     # Alias sep -> delimiter.
@@ -3729,14 +3778,14 @@ def _check_defaults_read(read_kwds: dict, defaults: dict):
 
     if delimiter is lib.no_default:
         # assign default separator value
-        read_kwds["delimiter"] = delimiter_default
+        kwds["delimiter"] = delim_default
     else:
-        read_kwds["delimiter"] = delimiter
+        kwds["delimiter"] = delimiter
 
     if engine is not None:
-        read_kwds["engine_specified"] = True
+        kwds["engine_specified"] = True
     else:
-        read_kwds["engine"] = "c"
-        read_kwds["engine_specified"] = False
+        kwds["engine"] = "c"
+        kwds["engine_specified"] = False
 
-    return _read(filepath_or_buffer, read_kwds)
+    return kwds
