@@ -493,6 +493,16 @@ def test_loc_datetime_mask_slicing():
     tm.assert_series_equal(result, expected)
 
 
+def test_loc_datetime_series_tuple_slicing():
+    # https://github.com/pandas-dev/pandas/issues/35858
+    date = pd.Timestamp("2000")
+    ser = pd.Series(
+        1, index=pd.MultiIndex.from_tuples([("a", date)], names=["a", "b"]), name="c",
+    )
+    result = ser.loc[:, [date]]
+    tm.assert_series_equal(result, ser)
+
+
 def test_loc_with_mi_indexer():
     # https://github.com/pandas-dev/pandas/issues/35351
     df = DataFrame(
