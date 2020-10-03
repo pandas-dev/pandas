@@ -278,7 +278,6 @@ class MultiIndex(Index):
         copy=False,
         name=None,
         verify_integrity: bool = True,
-        _set_identity: bool = True,
     ):
 
         # compat with Index
@@ -312,10 +311,7 @@ class MultiIndex(Index):
             new_codes = result._verify_integrity()
             result._codes = new_codes
 
-        if _set_identity:
-            result._reset_identity()
-
-        return result
+        return result._reset_identity()
 
     def _validate_codes(self, level: List, code: List):
         """
@@ -1071,7 +1067,6 @@ class MultiIndex(Index):
         codes=None,
         sortorder=None,
         names=lib.no_default,
-        _set_identity: bool = True,
     ):
         if names is not lib.no_default and name is not lib.no_default:
             raise TypeError("Can only provide one of `names` and `name`")
@@ -1091,7 +1086,6 @@ class MultiIndex(Index):
             sortorder=sortorder,
             names=names,
             verify_integrity=False,
-            _set_identity=_set_identity,
         )
         result._cache = self._cache.copy()
         result._cache.pop("levels", None)  # GH32669
@@ -1119,7 +1113,6 @@ class MultiIndex(Index):
         codes=None,
         deep=False,
         name=None,
-        _set_identity=False,
     ):
         """
         Make a copy of this object. Names, dtype, levels and codes can be
@@ -1180,7 +1173,6 @@ class MultiIndex(Index):
             codes=codes,
             names=names,
             sortorder=self.sortorder,
-            _set_identity=_set_identity,
         )
 
         if dtype:
