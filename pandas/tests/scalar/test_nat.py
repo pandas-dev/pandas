@@ -109,6 +109,8 @@ def test_equality(klass, value):
             pytest.skip("Period cannot parse empty string")
         elif klass is Timedelta:
             pytest.skip("Timedelta cannot parse empty string")
+        elif klass is Timestamp:
+            pytest.skip("Timestamp cannot parse empty string")
 
     assert klass(value).value == iNaT
 

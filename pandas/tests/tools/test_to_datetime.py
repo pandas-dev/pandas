@@ -1584,11 +1584,11 @@ class TestToDatetimeMisc:
     def test_to_datetime_types(self, cache):
 
         # empty string
-        result = to_datetime("", cache=cache)
-        assert result is NaT
+        with pytest.raises(ValueError):
+            result = to_datetime("", cache=cache)
 
-        result = to_datetime(["", ""], cache=cache)
-        assert isna(result).all()
+        with pytest.raises(ValueError):
+            result = to_datetime(["", ""], cache=cache)
 
         # ints
         result = Timestamp(0)

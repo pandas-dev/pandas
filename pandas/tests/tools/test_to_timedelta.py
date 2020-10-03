@@ -4,15 +4,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, TimedeltaIndex, isna, to_timedelta
+from pandas import Series, TimedeltaIndex, to_timedelta
 import pandas._testing as tm
 
 
 class TestTimedeltas:
     def test_to_timedelta(self):
 
-        result = to_timedelta(["", ""])
-        assert isna(result).all()
+        with pytest.raises(ValueError):
+            to_timedelta(["", ""])
 
         # pass thru
         result = to_timedelta(np.array([np.timedelta64(1, "s")]))
