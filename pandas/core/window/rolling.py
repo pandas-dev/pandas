@@ -1932,7 +1932,6 @@ class Rolling(RollingAndExpandingMixin):
         ):
 
             self._validate_monotonic()
-            freq = self._validate_freq()
 
             # we don't allow center
             if self.center:
@@ -1943,7 +1942,7 @@ class Rolling(RollingAndExpandingMixin):
 
             # this will raise ValueError on non-fixed freqs
             self.win_freq = self.window
-            self.window = freq.nanos
+            self.window = self._determine_window_length()
             self.win_type = "freq"
 
             # min_periods must be an integer
@@ -1962,6 +1961,16 @@ class Rolling(RollingAndExpandingMixin):
             raise ValueError(
                 "closed only implemented for datetimelike and offset based windows"
             )
+
+    def _determine_window_length(self) -> Union[int, float]:
+        """
+        Calculate freq for PeriodIndexes based on Index freq. Can not use
+        nanos, because asi8 of PeriodIndex is not in nanos
+        """
+        freq = self._validate_freq()
+        if isinstance(self._on, ABCPeriodIndex):
+            return freq.nanos / (self._on.freq.nanos / self._on.freq.n)
+        return freq.nanos
 
     def _validate_monotonic(self):
         """
