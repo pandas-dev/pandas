@@ -21,12 +21,12 @@ when calling :meth:`~DataFrame.info`:
 
 .. ipython:: python
 
-    dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
-              'complex128', 'object', 'bool']
+    dtypes = ["int64", "float64", "datetime64[ns]", "timedelta64[ns]",
+              "complex128", "object", "bool"]
     n = 5000
     data = {t: np.random.randint(100, size=n).astype(t) for t in dtypes}
     df = pd.DataFrame(data)
-    df['categorical'] = df['object'].astype('category')
+    df["categorical"] = df["object"].astype("category")
 
     df.info()
 
@@ -40,7 +40,7 @@ as it can be expensive to do this deeper introspection.
 
 .. ipython:: python
 
-   df.info(memory_usage='deep')
+   df.info(memory_usage="deep")
 
 By default the display option is set to ``True`` but can be explicitly
 overridden by passing the ``memory_usage`` argument when invoking ``df.info()``.
@@ -155,9 +155,9 @@ index, not membership among the values.
 
 .. ipython:: python
 
-    s = pd.Series(range(5), index=list('abcde'))
+    s = pd.Series(range(5), index=list("abcde"))
     2 in s
-    'b' in s
+    "b" in s
 
 If this behavior is surprising, keep in mind that using ``in`` on a Python
 dictionary tests keys, not values, and ``Series`` are dict-like.
@@ -206,11 +206,11 @@ arrays. For example:
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, 3, 4, 5], index=list('abcde'))
+   s = pd.Series([1, 2, 3, 4, 5], index=list("abcde"))
    s
    s.dtype
 
-   s2 = s.reindex(['a', 'b', 'c', 'f', 'u'])
+   s2 = s.reindex(["a", "b", "c", "f", "u"])
    s2
    s2.dtype
 
@@ -227,12 +227,12 @@ the nullable-integer extension dtypes provided by pandas
 
 .. ipython:: python
 
-   s_int = pd.Series([1, 2, 3, 4, 5], index=list('abcde'),
+   s_int = pd.Series([1, 2, 3, 4, 5], index=list("abcde"),
                      dtype=pd.Int64Dtype())
    s_int
    s_int.dtype
 
-   s2_int = s_int.reindex(['a', 'b', 'c', 'f', 'u'])
+   s2_int = s_int.reindex(["a", "b", "c", "f", "u"])
    s2_int
    s2_int.dtype
 
@@ -334,7 +334,7 @@ constructors using something similar to the following:
 
 .. ipython:: python
 
-   x = np.array(list(range(10)), '>i4')  # big endian
+   x = np.array(list(range(10)), ">i4")  # big endian
    newx = x.byteswap().newbyteorder()  # force native byteorder
    s = pd.Series(newx)
 
