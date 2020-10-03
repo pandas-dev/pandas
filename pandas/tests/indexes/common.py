@@ -962,7 +962,7 @@ class Base:
             assert shallow_copy._cache[key] is val, key
 
     def test_shallow_copy_copies_id(self):
-        # GHxxxxx
+        # GH36840
         idx = self.create_index()
         shallow_copy = idx._shallow_copy()
         assert idx._id is shallow_copy._id
