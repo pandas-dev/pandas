@@ -635,9 +635,10 @@ class TestDatetimeIndexComparisons:
     def test_scalar_comparison_tzawareness(
         self, op, other, tz_aware_fixture, box_with_array
     ):
+        box = box_with_array
         tz = tz_aware_fixture
         dti = pd.date_range("2016-01-01", periods=2, tz=tz)
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+        xbox = box if box not in [pd.Index, pd.array] else np.ndarray
 
         dtarr = tm.box_expected(dti, box_with_array)
         if op in [operator.eq, operator.ne]:
