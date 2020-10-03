@@ -70,7 +70,6 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
-from pandas.core.groupby import DataFrameGroupBy, SeriesGroupBy
 
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Series
@@ -1993,7 +1992,7 @@ def buffer_put_lines(buf: IO[str], lines: List[str]) -> None:
     buf.write("\n".join(lines))
 
 
-def repr_html_groupby(group_obj: Union[DataFrameGroupBy, SeriesGroupBy]) -> str:
+def repr_html_groupby(group_obj) -> str:
     """
     Create a HTML representation for a grouped dataframe or series.
 
