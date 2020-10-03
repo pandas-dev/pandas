@@ -3706,10 +3706,10 @@ class FixedWidthFieldParser(PythonParser):
 
 def _check_defaults_read(
     dialect: Union[str, csv.Dialect],
-    delimiter: str,
+    delimiter: Union[str, object],
     delim_whitespace: bool,
     engine: str,
-    sep: str,
+    sep: Union[str, object],
     defaults: Dict[str, Any],
 ):
     """Check default values of input parameters of read_csv, read_table.
@@ -3722,7 +3722,7 @@ def _check_defaults_read(
         `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
         override values, a ParserWarning will be issued. See csv.Dialect
         documentation for more details.
-    delimiter : str
+    delimiter : str or object
         Alias for sep.
     delim_whitespace : bool
         Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -3732,9 +3732,10 @@ def _check_defaults_read(
     engine : {{'c', 'python'}}
         Parser engine to use. The C engine is faster while the python engine is
         currently more feature-complete.
-    sep : str
-        Delimiter to use.
-    defaults: Dict[str, Any]
+    sep : str or object
+        A delimiter provided by the user (str) or a sentinel value, i.e.
+        pandas._libs.lib.no_default.
+    defaults: dict
         Default values of input parameters.
 
     Returns
@@ -3747,8 +3748,9 @@ def _check_defaults_read(
     ValueError : If a delimiter was specified with ``sep`` (or ``delimiter``) and
         ``delim_whitespace=True``.
     """
+    # fix types for sep, delimiter to Union(str, Any)
     delim_default = defaults["delimiter"]
-    kwds = {}
+    kwds: Dict[str, Any] = {}
     # gh-23761
     #
     # When a dialect is passed, it overrides any of the overlapping
