@@ -567,7 +567,7 @@ Dates and strings that parse to timestamps can be passed as indexing parameters:
 
    ts["1/31/2011"]
 
-   ts[datetime.datetime(2011, 12, 25) :]
+   ts[datetime.datetime(2011, 12, 25):]
 
    ts["10/31/2011":"12/31/2011"]
 
@@ -741,14 +741,14 @@ These ``Timestamp`` and ``datetime`` objects have exact ``hours, minutes,`` and 
 
 .. ipython:: python
 
-   dft[datetime.datetime(2013, 1, 1) : datetime.datetime(2013, 2, 28)]
+   dft[datetime.datetime(2013, 1, 1): datetime.datetime(2013, 2, 28)]
 
 With no defaults.
 
 .. ipython:: python
 
    dft[
-       datetime.datetime(2013, 1, 1, 10, 12, 0) : datetime.datetime(2013, 2, 28, 10, 12, 0)
+       datetime.datetime(2013, 1, 1, 10, 12, 0): datetime.datetime(2013, 2, 28, 10, 12, 0)
    ]
 
 
@@ -2059,7 +2059,7 @@ You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodI
 
    ps["2011-01"]
 
-   ps[datetime.datetime(2011, 12, 25) :]
+   ps[datetime.datetime(2011, 12, 25):]
 
    ps["10/31/2011":"12/31/2011"]
 
