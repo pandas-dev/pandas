@@ -1,3 +1,12 @@
+"""Module responsible for execution of NDFrame.describe() method.
+
+Method NDFrame.describe() delegates actual execution to function describe_ndframe().
+
+Strategy pattern is utilized.
+ - The appropriate strategy is selected based on the series datatype.
+ - The strategy is responsible for running proper description.
+"""
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union, cast
 import warnings
@@ -46,9 +55,8 @@ def describe_ndframe(
     datetime_is_numeric : bool, default False
         Whether to treat datetime dtypes as numeric.
     percentiles : list-like of numbers, optional
-        The percentiles to include in the output. All should
-        fall between 0 and 1. The default is
-        ``[.25, .5, .75]``, which returns the 25th, 50th, and
+        The percentiles to include in the output. All should fall between 0 and 1.
+        The default is ``[.25, .5, .75]``, which returns the 25th, 50th, and
         75th percentiles.
 
     Returns
@@ -74,6 +82,8 @@ def describe_ndframe(
 
 
 class StrategyCreatorMixin:
+    """Mixin for creating instance of appropriate strategy for describing series."""
+
     datetime_is_numeric: bool
 
     def create_strategy(
@@ -115,7 +125,15 @@ class NDFrameDescriber(ABC):
 
     @abstractmethod
     def describe(self, percentiles: Optional[Sequence[float]]) -> FrameOrSeriesUnion:
-        pass
+        """Do describe either series or dataframe.
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should fall between 0 and 1.
+            The default is ``[.25, .5, .75]``, which returns the 25th, 50th, and
+            75th percentiles.
+        """
 
 
 class SeriesDescriber(NDFrameDescriber, StrategyCreatorMixin):
@@ -139,19 +157,7 @@ class SeriesDescriber(NDFrameDescriber, StrategyCreatorMixin):
         self.datetime_is_numeric = datetime_is_numeric
 
     def describe(self, percentiles: Optional[Sequence[float]]) -> "Series":
-        """Do describe.
-
-        Parameters
-        ----------
-        percentiles : list-like of numbers, optional
-            The percentiles to include in the output. All should fall between 0 and 1.
-            The default is ``[.25, .5, .75]``, which returns the 25th, 50th, and
-            75th percentiles.
-
-        Returns
-        -------
-        result : Series
-        """
+        """Do describe series."""
         series = cast("Series", self.data)
         strategy = self.create_strategy(series, percentiles)
         result = strategy.describe()
@@ -208,19 +214,7 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
             return data.select_dtypes(include=self.include, exclude=self.exclude)
 
     def describe(self, percentiles: Optional[Sequence[float]]) -> "DataFrame":
-        """Do describe.
-
-        Parameters
-        ----------
-        percentiles : list-like of numbers, optional
-            The percentiles to include in the output. All should fall between 0 and 1.
-            The default is ``[.25, .5, .75]``, which returns the 25th, 50th, and
-            75th percentiles.
-
-        Returns
-        -------
-        result : DataFrame
-        """
+        """Do describe dataframe."""
         dataframe = cast("DataFrame", self.data)
 
         ldesc: List["Series"] = []
@@ -322,6 +316,26 @@ class CategoricalStrategy(StrategyAbstract):
         self.objcounts = self.data.value_counts()
 
     @property
+    def array(self) -> List[object]:
+        top, freq = self._get_top_and_freq()
+        return [
+            self.count,
+            self.count_unique,
+            top,
+            freq,
+        ]
+
+    @property
+    def names(self) -> List[str]:
+        return ["count", "unique", "top", "freq"]
+
+    @property
+    def dtype(self) -> Optional[Dtype]:
+        if self.count_unique == 0:
+            return "object"
+        return None
+
+    @property
     def count(self) -> "Series":
         return self.data.count()
 
@@ -329,28 +343,10 @@ class CategoricalStrategy(StrategyAbstract):
     def count_unique(self) -> int:
         return len(self.objcounts[self.objcounts != 0])
 
-    @property
-    def names(self) -> List[str]:
-        return ["count", "unique", "top", "freq"]
-
-    @property
-    def array(self) -> List[object]:
-        result = [self.count, self.count_unique]
+    def _get_top_and_freq(self):
         if self.count_unique > 0:
-            top, freq = self.objcounts.index[0], self.objcounts.iloc[0]
-            result += [top, freq]
-
-        # If the DataFrame is empty, set 'top' and 'freq' to None
-        # to maintain output shape consistency
-        else:
-            result += [np.nan, np.nan]
-        return result
-
-    @property
-    def dtype(self) -> Optional[Dtype]:
-        if self.count_unique == 0:
-            return "object"
-        return None
+            return self.objcounts.index[0], self.objcounts.iloc[0]
+        return np.nan, np.nan
 
 
 class TimestampAsCategoricalStrategy(CategoricalStrategy):
@@ -395,17 +391,6 @@ class NumericStrategy(StrategyAbstract):
     """Strategy for series with numeric values."""
 
     @property
-    def names(self) -> List[str]:
-        return [
-            "count",
-            "mean",
-            "std",
-            "min",
-            *self.formatted_percentiles,
-            "max",
-        ]
-
-    @property
     def array(self) -> List[object]:
         return [
             self.data.count(),
@@ -414,6 +399,17 @@ class NumericStrategy(StrategyAbstract):
             self.data.min(),
             *self.data.quantile(self.percentiles).tolist(),
             self.data.max(),
+        ]
+
+    @property
+    def names(self) -> List[str]:
+        return [
+            "count",
+            "mean",
+            "std",
+            "min",
+            *self.formatted_percentiles,
+            "max",
         ]
 
     @property
