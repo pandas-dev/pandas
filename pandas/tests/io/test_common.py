@@ -417,3 +417,11 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
+
+
+def test_urlopen_headers():
+    headers = {"User-Agent": "Pandas 1.1.0"}
+    # this returns the User-Agent
+    url = "http://ifconfig.me/ua"
+    r = icom.urlopen(url, headers=headers)
+    assert r.read().decode("utf-8") == headers["User-Agent"]
