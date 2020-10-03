@@ -3310,10 +3310,10 @@ applications (CTRL-V on many operating systems). Here we illustrate writing a
 
 .. code-block:: python
 
-    >>> df = pd.DataFrame({"A": [1, 2, 3],
-    ...                    "B": [4, 5, 6],
-    ...                    "C": ["p", "q", "r"]},
-    ...                   index=["x", "y", "z"])
+    >>> df = pd.DataFrame(
+    ...     {"A": [1, 2, 3], "B": [4, 5, 6], "C": ["p", "q", "r"]}, index=["x", "y", "z"]
+    ... )
+
     >>> df
       A B C
     x 1 4 p
