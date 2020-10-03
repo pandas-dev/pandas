@@ -2638,20 +2638,13 @@ class Index(IndexOpsMixin, PandasObject):
             result = Index(result)._values  # do type inference here
         else:
             if sort is False or not self.is_monotonic or not other.is_monotonic:
-                l_reindexer = self.unique().reindex(result[0])[1]
-                r_reindexer = other.unique().reindex(result[0])[1]
-                if l_reindexer is None:
-                    result = lvals
-                elif r_reindexer is None:
-                    result = rvals
-                else:
-                    l_result = self.unique().take(
-                        np.sort(l_reindexer[l_reindexer != -1])
-                    )
-                    r_result = other.unique().take(
-                        np.sort(r_reindexer[result[1] == -1])
-                    )
-                    result = np.append(l_result, r_result)
+                values = []
+                dc = dict(zip(*np.unique(result[0], return_counts=True)))
+                unique_array = algos.unique(np.append(lvals, rvals))
+                # Create indexer to resort result
+                for i, value in enumerate(unique_array):
+                    values += [i] * dc[value]
+                result = unique_array.take(values)
         if sort is None and (not self.is_monotonic or not other.is_monotonic):
             try:
                 result = algos.safe_sort(result)
