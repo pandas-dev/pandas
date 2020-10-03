@@ -20,7 +20,7 @@ def import_module(name):
 
     try:
         return importlib.import_module(name)
-    except ModuleNotFoundError:  # noqa
+    except ModuleNotFoundError:
         pytest.skip(f"skipping as {name} not available")
 
 
@@ -117,7 +117,7 @@ def test_pandas_gbq(df):
 @tm.network
 def test_pandas_datareader():
 
-    pandas_datareader = import_module("pandas_datareader")  # noqa
+    pandas_datareader = import_module("pandas_datareader")
     pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
 
 
@@ -125,7 +125,7 @@ def test_pandas_datareader():
 @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_geopandas():
 
-    geopandas = import_module("geopandas")  # noqa
+    geopandas = import_module("geopandas")
     fp = geopandas.datasets.get_path("naturalearth_lowres")
     assert geopandas.read_file(fp) is not None
 
@@ -135,7 +135,7 @@ def test_geopandas():
 @pytest.mark.filterwarnings("ignore:RangeIndex.* is deprecated:DeprecationWarning")
 def test_pyarrow(df):
 
-    pyarrow = import_module("pyarrow")  # noqa
+    pyarrow = import_module("pyarrow")
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)

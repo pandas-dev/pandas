@@ -47,3 +47,7 @@ repos:
     rev: v0.7.0
     hooks:
     -   id: flake8-rst
+-   repo: https://github.com/asottile/yesqa
+    rev: v1.2.2
+    hooks:
+    -   id: yesqa

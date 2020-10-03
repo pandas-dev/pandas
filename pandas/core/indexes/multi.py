@@ -278,7 +278,6 @@ class MultiIndex(Index):
         copy=False,
         name=None,
         verify_integrity: bool = True,
-        _set_identity: bool = True,
     ):
 
         # compat with Index
@@ -312,10 +311,7 @@ class MultiIndex(Index):
             new_codes = result._verify_integrity()
             result._codes = new_codes
 
-        if _set_identity:
-            result._reset_identity()
-
-        return result
+        return result._reset_identity()
 
     def _validate_codes(self, level: List, code: List):
         """
@@ -1071,7 +1067,6 @@ class MultiIndex(Index):
         codes=None,
         sortorder=None,
         names=lib.no_default,
-        _set_identity: bool = True,
     ):
         if names is not lib.no_default and name is not lib.no_default:
             raise TypeError("Can only provide one of `names` and `name`")
@@ -1091,7 +1086,6 @@ class MultiIndex(Index):
             sortorder=sortorder,
             names=names,
             verify_integrity=False,
-            _set_identity=_set_identity,
         )
         result._cache = self._cache.copy()
         result._cache.pop("levels", None)  # GH32669
@@ -1119,7 +1113,6 @@ class MultiIndex(Index):
         codes=None,
         deep=False,
         name=None,
-        _set_identity=False,
     ):
         """
         Make a copy of this object. Names, dtype, levels and codes can be
@@ -1132,7 +1125,11 @@ class MultiIndex(Index):
 
             .. deprecated:: 1.2.0
         levels : sequence, optional
+
+            .. deprecated:: 1.2.0
         codes : sequence, optional
+
+            .. deprecated:: 1.2.0
         deep : bool, default False
         name : Label
             Kept for compatibility with 1-dimensional Index. Should not be used.
@@ -1148,6 +1145,21 @@ class MultiIndex(Index):
         This could be potentially expensive on large MultiIndex objects.
         """
         names = self._validate_names(name=name, names=names, deep=deep)
+        if levels is not None:
+            warnings.warn(
+                "parameter levels is deprecated and will be removed in a future "
+                "version. Use the set_levels method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        if codes is not None:
+            warnings.warn(
+                "parameter codes is deprecated and will be removed in a future "
+                "version. Use the set_codes method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if deep:
             from copy import deepcopy
 
@@ -1161,7 +1173,6 @@ class MultiIndex(Index):
             codes=codes,
             names=names,
             sortorder=self.sortorder,
-            _set_identity=_set_identity,
         )
 
         if dtype:
@@ -1575,7 +1586,7 @@ class MultiIndex(Index):
             raise ValueError(f"invalid how option: {how}")
 
         new_codes = [level_codes[~indexer] for level_codes in self.codes]
-        return self.copy(codes=new_codes, deep=True)
+        return self.set_codes(codes=new_codes)
 
     def _get_level_values(self, level, unique=False):
         """
@@ -1733,7 +1744,7 @@ class MultiIndex(Index):
         return Index(self._values, tupleize_cols=False)
 
     @property
-    def is_all_dates(self) -> bool:
+    def _is_all_dates(self) -> bool:
         return False
 
     def is_lexsorted(self) -> bool:

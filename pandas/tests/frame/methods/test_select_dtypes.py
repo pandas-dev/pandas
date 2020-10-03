@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import numpy as np
 import pytest
 
@@ -202,9 +200,8 @@ class TestSelectDtypes:
 
     def test_select_dtypes_duplicate_columns(self):
         # GH20839
-        odict = OrderedDict
         df = DataFrame(
-            odict(
+            dict(
                 [
                     ("a", list("abc")),
                     ("b", list(range(1, 4))),

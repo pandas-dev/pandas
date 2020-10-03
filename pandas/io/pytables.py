@@ -57,7 +57,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import Col, File, Node  # noqa:F401
+    from tables import Col, File, Node
 
 
 # versioning attribute
@@ -615,8 +615,8 @@ class HDFStore:
         ----------
 
         include : str, default 'pandas'
-                When kind equals 'pandas' return pandas objects
-                When kind equals 'native' return native HDF5 Table objects
+                When kind equals 'pandas' return pandas objects.
+                When kind equals 'native' return native HDF5 Table objects.
 
                 .. versionadded:: 1.1.0
 
