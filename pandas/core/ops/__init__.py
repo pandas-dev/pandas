@@ -5,6 +5,7 @@ This is not a public API.
 """
 import operator
 from typing import TYPE_CHECKING, Optional, Set, Type
+import warnings
 
 import numpy as np
 
@@ -55,7 +56,7 @@ from pandas.core.ops.roperator import (  # noqa:F401
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa:F401
+    from pandas import DataFrame, Series
 
 # -----------------------------------------------------------------------------
 # constants
@@ -144,31 +145,6 @@ def _maybe_match_name(a, b):
 
 
 # -----------------------------------------------------------------------------
-
-
-def _get_frame_op_default_axis(name: str) -> Optional[str]:
-    """
-    Only DataFrame cares about default_axis, specifically:
-    special methods have default_axis=None and flex methods
-    have default_axis='columns'.
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    default_axis: str or None
-    """
-    if name.replace("__r", "__") in ["__and__", "__or__", "__xor__"]:
-        # bool methods
-        return "columns"
-    elif name.startswith("__"):
-        # __add__, __mul__, ...
-        return None
-    else:
-        # add, mul, ...
-        return "columns"
 
 
 def _get_op_name(op, special: bool) -> str:
@@ -324,12 +300,12 @@ def _align_method_SERIES(left: "Series", right, align_asobject: bool = False):
     return left, right
 
 
-def _arith_method_SERIES(cls, op, special):
+def arith_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    assert special  # non-special uses _flex_method_SERIES
+    assert special  # non-special uses flex_method_SERIES
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -348,12 +324,12 @@ def _arith_method_SERIES(cls, op, special):
     return wrapper
 
 
-def _comp_method_SERIES(cls, op, special):
+def comp_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    assert special  # non-special uses _flex_method_SERIES
+    assert special  # non-special uses flex_method_SERIES
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -375,12 +351,12 @@ def _comp_method_SERIES(cls, op, special):
     return wrapper
 
 
-def _bool_method_SERIES(cls, op, special):
+def bool_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    assert special  # non-special uses _flex_method_SERIES
+    assert special  # non-special uses flex_method_SERIES
     op_name = _get_op_name(op, special)
 
     @unpack_zerodim_and_defer(op_name)
@@ -398,7 +374,7 @@ def _bool_method_SERIES(cls, op, special):
     return wrapper
 
 
-def _flex_method_SERIES(cls, op, special):
+def flex_method_SERIES(cls, op, special):
     assert not special  # "special" also means "not flex"
     name = _get_op_name(op, special)
     doc = _make_flex_doc(name, "series")
@@ -513,6 +489,18 @@ def align_method_FRAME(
     elif isinstance(right, ABCSeries):
         # axis=1 is default for DataFrame-with-Series op
         axis = left._get_axis_number(axis) if axis is not None else 1
+
+        if not flex:
+            if not left.axes[axis].equals(right.index):
+                warnings.warn(
+                    "Automatic reindexing on DataFrame vs Series comparisons "
+                    "is deprecated and will raise ValueError in a future version.  "
+                    "Do `left, right = left.align(right, axis=1, copy=False)` "
+                    "before e.g. `left == right`",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+
         left, right = left.align(
             right, join="outer", axis=axis, level=level, copy=False
         )
@@ -539,7 +527,9 @@ def _should_reindex_frame_op(
     if fill_value is None and level is None and axis is default_axis:
         # TODO: any other cases we should handle here?
         cols = left.columns.intersection(right.columns)
-        if not (cols.equals(left.columns) and cols.equals(right.columns)):
+
+        if len(cols) and not (cols.equals(left.columns) and cols.equals(right.columns)):
+            # TODO: is there a shortcut available when len(cols) == 0?
             return True
 
     return False
@@ -614,10 +604,10 @@ def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int
     return type(frame)(rvalues, index=frame.index, columns=frame.columns)
 
 
-def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     # This is the only function where `special` can be either True or False
     op_name = _get_op_name(op, special)
-    default_axis = _get_frame_op_default_axis(op_name)
+    default_axis = None if special else "columns"
 
     na_op = get_array_op(op)
 
@@ -666,11 +656,10 @@ def _arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     return f
 
 
-def _flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+def flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     assert not special  # "special" also means "not flex"
     op_name = _get_op_name(op, special)
-    default_axis = _get_frame_op_default_axis(op_name)
-    assert default_axis == "columns", default_axis  # because we are not "special"
+    default_axis = "columns"  # because we are "flex"
 
     doc = _flex_comp_doc_FRAME.format(
         op_name=op_name, desc=_op_descriptions[op_name]["desc"]
@@ -690,7 +679,7 @@ def _flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     return f
 
 
-def _comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
+def comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     assert special  # "special" also means "not flex"
     op_name = _get_op_name(op, special)
 

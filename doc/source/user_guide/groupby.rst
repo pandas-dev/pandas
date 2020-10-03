@@ -87,11 +87,9 @@ The mapping can be specified many different ways:
 * A Python function, to be called on each of the axis labels.
 * A list or NumPy array of the same length as the selected axis.
 * A dict or ``Series``, providing a ``label -> group name`` mapping.
-* For ``DataFrame`` objects, a string indicating a column to be used to group.
-  Of course ``df.groupby('A')`` is just syntactic sugar for
-  ``df.groupby(df['A'])``, but it makes life simpler.
-* For ``DataFrame`` objects, a string indicating an index level to be used to
-  group.
+* For ``DataFrame`` objects, a string indicating either a column name or
+  an index level name to be used to group.
+* ``df.groupby('A')`` is just syntactic sugar for ``df.groupby(df['A'])``.
 * A list of any of the above things.
 
 Collectively we refer to the grouping objects as the **keys**. For example,
@@ -218,10 +216,10 @@ in case you want to include ``NA`` values in group keys, you could pass ``dropna
 
 .. ipython:: python
 
-    # Default `dropna` is set to True, which will exclude NaNs in keys
+    # Default ``dropna`` is set to True, which will exclude NaNs in keys
     df_dropna.groupby(by=["b"], dropna=True).sum()
 
-    # In order to allow NaN in keys, set `dropna` to False
+    # In order to allow NaN in keys, set ``dropna`` to False
     df_dropna.groupby(by=["b"], dropna=False).sum()
 
 The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys.

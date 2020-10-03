@@ -12,7 +12,6 @@ from pandas.errors import InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
-    ensure_platform_int,
     is_bool_dtype,
     is_datetime64_any_dtype,
     is_dtype_equal,
@@ -61,7 +60,7 @@ def _new_PeriodIndex(cls, **d):
 
 
 @inherit_names(
-    ["strftime", "to_timestamp", "start_time", "end_time"] + PeriodArray._field_ops,
+    ["strftime", "start_time", "end_time"] + PeriodArray._field_ops,
     PeriodArray,
     wrap=True,
 )
@@ -150,11 +149,17 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in PeriodIndex
+    # These are defined here instead of via inherit_names for mypy
 
     @doc(PeriodArray.asfreq)
     def asfreq(self, freq=None, how: str = "E") -> "PeriodIndex":
         arr = self._data.asfreq(freq, how)
         return type(self)._simple_new(arr, name=self.name)
+
+    @doc(PeriodArray.to_timestamp)
+    def to_timestamp(self, freq=None, how="start") -> DatetimeIndex:
+        arr = self._data.to_timestamp(freq, how)
+        return DatetimeIndex._simple_new(arr, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -245,11 +250,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     # Data
 
     @property
-    def values(self):
+    def values(self) -> np.ndarray:
         return np.asarray(self)
 
     @property
-    def _has_complex_internals(self):
+    def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
         return True
 
@@ -403,7 +408,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return result
 
     @doc(Index.astype)
-    def astype(self, dtype, copy=True, how="start"):
+    def astype(self, dtype, copy: bool = True, how="start"):
         dtype = pandas_dtype(dtype)
 
         if is_datetime64_any_dtype(dtype):
@@ -422,7 +427,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         """
         if len(self) == 0:
             return True
-        if not self.is_monotonic:
+        if not self.is_monotonic_increasing:
             raise ValueError("Index is not monotonic")
         values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
@@ -433,15 +438,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # indexing
         return "period"
 
-    def insert(self, loc, item):
+    def insert(self, loc: int, item):
         if not isinstance(item, Period) or self.freq != item.freq:
             return self.astype(object).insert(loc, item)
 
-        i8result = np.concatenate(
-            (self[:loc].asi8, np.array([item.ordinal]), self[loc:].asi8)
-        )
-        arr = type(self._data)._simple_new(i8result, dtype=self.dtype)
-        return type(self)._simple_new(arr, name=self.name)
+        return DatetimeIndexOpsMixin.insert(self, loc, item)
 
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
         """
@@ -473,12 +474,13 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         target = ensure_index(target)
 
         if isinstance(target, PeriodIndex):
-            if target.freq != self.freq:
+            if not self._is_comparable_dtype(target.dtype):
+                # i.e. target.freq != self.freq
                 # No matches
                 no_matches = -1 * np.ones(self.shape, dtype=np.intp)
                 return no_matches
 
-            target = target.asi8
+            target = target._get_engine_target()  # i.e. target.asi8
             self_index = self._int64index
         else:
             self_index = self
@@ -490,19 +492,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
                 tolerance = self._maybe_convert_timedelta(tolerance)
 
         return Index.get_indexer(self_index, target, method, limit, tolerance)
-
-    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
-        target = ensure_index(target)
-
-        if not self._is_comparable_dtype(target.dtype):
-            no_matches = -1 * np.ones(self.shape, dtype=np.intp)
-            return no_matches, no_matches
-
-        target = target.asi8
-
-        indexer, missing = self._int64index.get_indexer_non_unique(target)
-        return ensure_platform_int(indexer), missing
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -723,7 +712,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     # ------------------------------------------------------------------------
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         result = super().memory_usage(deep=deep)
         if hasattr(self, "_cache") and "_int64index" in self._cache:
             result += self._int64index.memory_usage(deep=deep)

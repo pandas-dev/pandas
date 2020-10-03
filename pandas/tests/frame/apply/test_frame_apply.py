@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
 import warnings
@@ -630,6 +629,22 @@ class TestDataFrameApply:
                 result = frame.applymap(func)
                 tm.assert_frame_equal(result, frame)
 
+    def test_applymap_na_ignore(self, float_frame):
+        # GH 23803
+        strlen_frame = float_frame.applymap(lambda x: len(str(x)))
+        float_frame_with_na = float_frame.copy()
+        mask = np.random.randint(0, 2, size=float_frame.shape, dtype=bool)
+        float_frame_with_na[mask] = pd.NA
+        strlen_frame_na_ignore = float_frame_with_na.applymap(
+            lambda x: len(str(x)), na_action="ignore"
+        )
+        strlen_frame_with_na = strlen_frame.copy()
+        strlen_frame_with_na[mask] = pd.NA
+        tm.assert_frame_equal(strlen_frame_na_ignore, strlen_frame_with_na)
+
+        with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
+            float_frame_with_na.applymap(lambda x: len(str(x)), na_action="abc")
+
     def test_applymap_box_timestamps(self):
         # GH 2689, GH 2627
         ser = pd.Series(date_range("1/1/2000", periods=10))
@@ -1131,6 +1146,21 @@ class TestDataFrameAggregate:
         )
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
+    def test_agg_with_name_as_column_name(self):
+        # GH 36212 - Column name is "name"
+        data = {"name": ["foo", "bar"]}
+        df = pd.DataFrame(data)
+
+        # result's name should be None
+        result = df.agg({"name": "count"})
+        expected = pd.Series({"name": 2})
+        tm.assert_series_equal(result, expected)
+
+        # Check if name is still preserved when aggregating series instead
+        result = df["name"].agg({"name": "count"})
+        expected = pd.Series({"name": 2}, name="name")
+        tm.assert_series_equal(result, expected)
+
     def test_agg_multiple_mixed_no_warning(self):
         # GH 20909
         mdf = pd.DataFrame(
@@ -1194,7 +1224,7 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result, expected)
 
         # dict input with scalars
-        func = OrderedDict([(name1, "mean"), (name2, "sum")])
+        func = dict([(name1, "mean"), (name2, "sum")])
         result = float_frame.agg(func, axis=axis)
         expected = Series(
             [
@@ -1206,7 +1236,7 @@ class TestDataFrameAggregate:
         tm.assert_series_equal(result, expected)
 
         # dict input with lists
-        func = OrderedDict([(name1, ["mean"]), (name2, ["sum"])])
+        func = dict([(name1, ["mean"]), (name2, ["sum"])])
         result = float_frame.agg(func, axis=axis)
         expected = DataFrame(
             {
@@ -1222,10 +1252,10 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result, expected)
 
         # dict input with lists with multiple
-        func = OrderedDict([(name1, ["mean", "sum"]), (name2, ["sum", "max"])])
+        func = dict([(name1, ["mean", "sum"]), (name2, ["sum", "max"])])
         result = float_frame.agg(func, axis=axis)
         expected = DataFrame(
-            OrderedDict(
+            dict(
                 [
                     (
                         name1,
@@ -1502,4 +1532,23 @@ def test_apply_empty_list_reduce():
 
     result = df.apply(lambda x: [], result_type="reduce")
     expected = pd.Series({"a": [], "b": []}, dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_no_suffix_index():
+    # GH36189
+    pdf = pd.DataFrame([[4, 9]] * 3, columns=["A", "B"])
+    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    expected = pd.DataFrame(
+        {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_raw_returns_string():
+    # https://github.com/pandas-dev/pandas/issues/35940
+    df = pd.DataFrame({"A": ["aa", "bbb"]})
+    result = df.apply(lambda x: x[0], axis=1, raw=True)
+    expected = pd.Series(["aa", "bbb"])
     tm.assert_series_equal(result, expected)

@@ -1459,7 +1459,7 @@ for altering the ``Series.name`` attribute.
 .. versionadded:: 0.24.0
 
 The methods :meth:`DataFrame.rename_axis` and :meth:`Series.rename_axis`
-allow specific names of a `MultiIndex` to be changed (as opposed to the
+allow specific names of a ``MultiIndex`` to be changed (as opposed to the
 labels).
 
 .. ipython:: python
@@ -1592,7 +1592,7 @@ index value along with a Series containing the data in each row:
       row
 
    All values in ``row``, returned as a Series, are now upcasted
-   to floats, also the original integer value in column `x`:
+   to floats, also the original integer value in column ``x``:
 
    .. ipython:: python
 
@@ -1787,8 +1787,8 @@ used to sort a pandas object by its index levels.
 .. versionadded:: 1.1.0
 
 Sorting by index also supports a ``key`` parameter that takes a callable
-function to apply to the index being sorted. For `MultiIndex` objects,
-the key is applied per-level to the levels specified by `level`.
+function to apply to the index being sorted. For ``MultiIndex`` objects,
+the key is applied per-level to the levels specified by ``level``.
 
 .. ipython:: python
 
@@ -1812,8 +1812,8 @@ For information on key sorting by value, see :ref:`value sorting
 By values
 ~~~~~~~~~
 
-The :meth:`Series.sort_values` method is used to sort a `Series` by its values. The
-:meth:`DataFrame.sort_values` method is used to sort a `DataFrame` by its column or row values.
+The :meth:`Series.sort_values` method is used to sort a ``Series`` by its values. The
+:meth:`DataFrame.sort_values` method is used to sort a ``DataFrame`` by its column or row values.
 The optional ``by`` parameter to :meth:`DataFrame.sort_values` may used to specify one or more columns
 to use to determine the sorted order.
 
@@ -1855,8 +1855,8 @@ to apply to the values being sorted.
    s1.sort_values()
    s1.sort_values(key=lambda x: x.str.lower())
 
-`key` will be given the :class:`Series` of values and should return a ``Series``
-or array of the same shape with the transformed values. For `DataFrame` objects,
+``key`` will be given the :class:`Series` of values and should return a ``Series``
+or array of the same shape with the transformed values. For ``DataFrame`` objects,
 the key is applied per column, so the key should still expect a Series and return
 a Series, e.g.
 
@@ -1876,8 +1876,6 @@ different columns.
 
 By indexes and values
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.23.0
 
 Strings passed as the ``by`` parameter to :meth:`DataFrame.sort_values` may
 refer to either columns or index level names.

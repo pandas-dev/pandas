@@ -53,7 +53,7 @@ _VALID_URLS.discard("")
 
 
 if TYPE_CHECKING:
-    from io import IOBase  # noqa: F401
+    from io import IOBase
 
 
 def is_url(url) -> bool:
@@ -208,6 +208,21 @@ def get_filepath_or_buffer(
     # handle compression dict
     compression_method, compression = get_compression_method(compression)
     compression_method = infer_compression(filepath_or_buffer, compression_method)
+
+    # GH21227 internal compression is not used for non-binary handles.
+    if (
+        compression_method
+        and hasattr(filepath_or_buffer, "write")
+        and mode
+        and "b" not in mode
+    ):
+        warnings.warn(
+            "compression has no effect when passing a non-binary object as input.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        compression_method = None
+
     compression = dict(compression, method=compression_method)
 
     # bz2 and xz do not write the byte order mark for utf-16 and utf-32
