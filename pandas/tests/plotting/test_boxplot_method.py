@@ -477,6 +477,21 @@ class TestDataFrameGroupByPlots(TestPlotBase):
                     "(e, v1)",
                 ],
             ),
+            (
+                None,
+                [
+                    "(a, v)",
+                    "(a, v1)",
+                    "(b, v)",
+                    "(b, v1)",
+                    "(c, v)",
+                    "(c, v1)",
+                    "(d, v)",
+                    "(d, v1)",
+                    "(e, v)",
+                    "(e, v1)",
+                ],
+            ),
         ],
     )
     def test_groupby_boxplot_subplots_false(self, col, expected_xticklabel):

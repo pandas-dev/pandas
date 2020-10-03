@@ -445,9 +445,10 @@ def boxplot_frame_groupby(
             else:
                 df = frames[0]
 
-        # GH 16748, DataFrameGroupby fails when subplots=False, and in this case, since
-        # `df` here becomes MI after groupby, so we need to couple the keys (grouped
-        # values) and column (original df column) together to search for subset to plot
+        # GH 16748, DataFrameGroupby fails when subplots=False and `column` argument
+        # is assigned, and in this case, since `df` here becomes MI after groupby,
+        # so we need to couple the keys (grouped values) and column (original df
+        # column) together to search for subset to plot
         if column is not None:
             column = com.convert_to_list_like(column)
             multi_key = pd.MultiIndex.from_product([keys, column])
