@@ -62,17 +62,19 @@ def describe_ndframe(
     Returns
     -------
     FrameOrSeries
-        Dataframe or series described.
+        Dataframe or series description.
     """
     describer: "NDFrameDescriber"
     if data.ndim == 1:
+        series = cast("Series", data)
         describer = SeriesDescriber(
-            data=data,
+            data=series,
             datetime_is_numeric=datetime_is_numeric,
         )
     else:
+        dataframe = cast("DataFrame", data)
         describer = DataFrameDescriber(
-            data=data,
+            data=dataframe,
             include=include,
             exclude=exclude,
             datetime_is_numeric=datetime_is_numeric,
@@ -141,8 +143,8 @@ class SeriesDescriber(NDFrameDescriber, StrategyCreatorMixin):
 
     Parameters
     ----------
-    data : FrameOrSeries
-        Dataframe or Series to be described.
+    data : Series
+        Series to be described.
     datetime_is_numeric : bool, default False
         Whether to treat datetime dtypes as numeric.
     """
@@ -150,7 +152,7 @@ class SeriesDescriber(NDFrameDescriber, StrategyCreatorMixin):
     def __init__(
         self,
         *,
-        data: FrameOrSeries,
+        data: "Series",
         datetime_is_numeric: bool,
     ):
         self.data = data
@@ -158,8 +160,7 @@ class SeriesDescriber(NDFrameDescriber, StrategyCreatorMixin):
 
     def describe(self, percentiles: Optional[Sequence[float]]) -> "Series":
         """Do describe series."""
-        series = cast("Series", self.data)
-        strategy = self.create_strategy(series, percentiles)
+        strategy = self.create_strategy(self.data, percentiles)
         result = strategy.describe()
         return result
 
@@ -169,8 +170,8 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
 
     Parameters
     ----------
-    data : FrameOrSeries
-        Dataframe or Series to be described.
+    data : DataFrame
+        Dataframe to be described.
     include : 'all', list-like of dtypes or None (default), optional
         A white list of data types to include in the result.
     exclude : list-like of dtypes or None (default), optional,
@@ -182,7 +183,7 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
     def __init__(
         self,
         *,
-        data: FrameOrSeries,
+        data: "DataFrame",
         include: Optional[Union[str, Sequence[str]]],
         exclude: Optional[Union[str, Sequence[str]]],
         datetime_is_numeric: bool,
@@ -190,9 +191,9 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
         self.include = include
         self.exclude = exclude
         self.datetime_is_numeric = datetime_is_numeric
-        self.data: FrameOrSeries = self._initialize_data(data)
+        self.data: "DataFrame" = self._initialize_data(data)
 
-    def _initialize_data(self, data) -> FrameOrSeries:
+    def _initialize_data(self, data) -> "DataFrame":
         _validate_dframe_size(data)
 
         if self.include is None and self.exclude is None:
@@ -200,11 +201,11 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
             include = [np.number]
             if self.datetime_is_numeric:
                 include.append("datetime")
-            truncated = data.select_dtypes(include=include)
-            if len(truncated.columns) == 0:
+            numeric_only = data.select_dtypes(include=include)
+            if len(numeric_only.columns) == 0:
                 return data
             else:
-                return truncated
+                return numeric_only
 
         if self.include == "all":
             if self.exclude is not None:
@@ -216,10 +217,8 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
 
     def describe(self, percentiles: Optional[Sequence[float]]) -> "DataFrame":
         """Do describe dataframe."""
-        dataframe = cast("DataFrame", self.data)
-
         ldesc: List["Series"] = []
-        for _, series in dataframe.items():
+        for _, series in self.data.items():
             strategy = self.create_strategy(series, percentiles)
             ldesc.append(strategy.describe())
 
@@ -228,7 +227,7 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
             axis=1,
             sort=False,
         )
-        df.columns = dataframe.columns.copy()
+        df.columns = self.data.columns.copy()
         return cast("DataFrame", df)
 
     def _reindex_columns(self, column_data) -> List["Series"]:
