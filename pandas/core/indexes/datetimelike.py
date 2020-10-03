@@ -105,7 +105,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     # Abstract data attributes
 
     @property
-    def values(self):
+    def values(self) -> np.ndarray:
         # Note: PeriodArray overrides this to return an ndarray of objects.
         return self._data._data
 
@@ -133,6 +133,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             return True
 
         if not isinstance(other, Index):
+            return False
+        elif other.dtype.kind in ["f", "i", "u", "c"]:
             return False
         elif not isinstance(other, type(self)):
             try:

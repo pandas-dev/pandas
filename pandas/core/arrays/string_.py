@@ -308,7 +308,7 @@ class StringArray(PandasArray):
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes
         if deep:
             return result + lib.memory_usage_of_objects(self._ndarray)

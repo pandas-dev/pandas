@@ -112,8 +112,8 @@ def test_value_counts_empty():
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("min_count", [0, 4])
-def test_floating_array_sum(skipna, min_count):
-    arr = pd.array([1, 2, 3, None], dtype="Float64")
+def test_floating_array_sum(skipna, min_count, dtype):
+    arr = pd.array([1, 2, 3, None], dtype=dtype)
     result = arr.sum(skipna=skipna, min_count=min_count)
     if skipna and min_count == 0:
         assert result == 6.0
@@ -152,3 +152,26 @@ def test_preserve_dtypes(op):
         index=pd.Index(["a", "b"], name="A"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_floating_array_min_max(skipna, method, dtype):
+    arr = pd.array([0.0, 1.0, None], dtype=dtype)
+    func = getattr(arr, method)
+    result = func(skipna=skipna)
+    if skipna:
+        assert result == (0 if method == "min" else 1)
+    else:
+        assert result is pd.NA
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("min_count", [0, 9])
+def test_floating_array_prod(skipna, min_count, dtype):
+    arr = pd.array([1.0, 2.0, None], dtype=dtype)
+    result = arr.prod(skipna=skipna, min_count=min_count)
+    if skipna and min_count == 0:
+        assert result == 2
+    else:
+        assert result is pd.NA

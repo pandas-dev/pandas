@@ -31,7 +31,11 @@ class TestFancy:
         df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
-        with pytest.raises(ValueError):
+        msg = (
+            "cannot set using a multi-index selection "
+            "indexer with a different length than the value"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.loc[df.index[2:5], "bar"] = np.array([2.33j, 1.23 + 0.1j, 2.2, 1.0])
 
         # valid
@@ -48,7 +52,8 @@ class TestFancy:
         df["foo"] = np.zeros(10, dtype=np.float64)
         df["bar"] = np.zeros(10, dtype=complex)
 
-        with pytest.raises(ValueError):
+        msg = "Must have equal len keys and value when setting with an iterable"
+        with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
     @pytest.mark.parametrize(
@@ -1055,13 +1060,13 @@ def test_1tuple_without_multiindex():
 def test_duplicate_index_mistyped_key_raises_keyerror():
     # GH#29189 float_index.get_loc(None) should raise KeyError, not TypeError
     ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="None"):
         ser[None]
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="None"):
         ser.index.get_loc(None)
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="None"):
         ser.index._engine.get_loc(None)
 
 
