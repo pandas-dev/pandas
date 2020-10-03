@@ -2182,7 +2182,7 @@ class Index(IndexOpsMixin, PandasObject):
         For datetimes, `NaT` (Not a Time) is considered as an NA value.
 
         >>> idx = pd.DatetimeIndex([pd.Timestamp('1940-04-25'),
-        ...                         pd.Timestamp(''), None, pd.NaT])
+        ...                         pd.Timestamp('NaT'), None, pd.NaT])
         >>> idx
         DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
                       dtype='datetime64[ns]', freq=None)
