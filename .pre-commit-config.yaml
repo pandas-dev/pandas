@@ -43,10 +43,14 @@ repos:
         entry: python -m scripts.generate_pip_deps_from_conda
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
--   repo: https://github.com/MarcoGorelli/flake8-rst-mirror
-    rev: v0.7.0
-    hooks:
     -   id: flake8-rst
+        name: flake8-rst
+        description: Run flake8 on code snippets in docstrings or RST files
+        language: system
+        entry: flake8-rst
+        types: [rst]
+        args: ['--filename=*.rst']
+        additional_dependencies: [flake8-rst@0.7.0]
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
