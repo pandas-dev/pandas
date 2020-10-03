@@ -20,7 +20,7 @@ release note (singular!).
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas 0.22.0 changes the handling of empty and all-*NA* sums and products. The
+pandas 0.22.0 changes the handling of empty and all-*NA* sums and products. The
 summary is that
 
 * The sum of an empty or all-*NA* ``Series`` is now ``0``

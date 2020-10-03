@@ -689,7 +689,7 @@ name in an expression.
    df.loc[a < df['a']]  # same as the previous expression
 
 With :func:`pandas.eval` you cannot use the ``@`` prefix *at all*, because it
-isn't defined in that context. ``pandas`` will let you know this if you try to
+isn't defined in that context. pandas will let you know this if you try to
 use ``@`` in a top-level call to :func:`pandas.eval`. For example,
 
 .. ipython:: python
