@@ -78,6 +78,14 @@ def test_tz_convert_corner(arr):
     tm.assert_numpy_array_equal(result, arr)
 
 
+def test_tz_convert_readonly():
+    # GH#35530
+    arr = np.array([0], dtype=np.int64)
+    arr.setflags(write=False)
+    result = tzconversion.tz_convert_from_utc(arr, UTC)
+    tm.assert_numpy_array_equal(result, arr)
+
+
 @pytest.mark.parametrize("copy", [True, False])
 @pytest.mark.parametrize("dtype", ["M8[ns]", "M8[s]"])
 def test_length_zero_copy(dtype, copy):

@@ -20,7 +20,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
@@ -28,7 +27,7 @@ from pandas.core import ops
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 @register_extension_dtype
@@ -59,8 +58,9 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
+    # mypy: https://github.com/python/mypy/issues/4125
     @property
-    def type(self) -> Type[np.bool_]:
+    def type(self) -> Type:  # type: ignore[override]
         return np.bool_
 
     @property
@@ -99,7 +99,7 @@ class BooleanDtype(BaseMaskedDtype):
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -376,7 +376,10 @@ class BooleanArray(BaseMaskedArray):
 
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
-            return BooleanArray(values, mask, copy=False)
+            if not copy:
+                return self
+            else:
+                return BooleanArray(values, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -559,13 +562,10 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _create_logical_method(cls, op):
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def logical_method(self, other):
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
 
             assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
-            other = lib.item_from_zerodim(other)
             other_is_booleanarray = isinstance(other, BooleanArray)
             other_is_scalar = lib.is_scalar(other)
             mask = None
@@ -605,16 +605,13 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _create_comparison_method(cls, op):
+        @ops.unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
-            from pandas.arrays import IntegerArray
+            from pandas.arrays import FloatingArray, IntegerArray
 
-            if isinstance(
-                other, (ABCDataFrame, ABCSeries, ABCIndexClass, IntegerArray)
-            ):
-                # Rely on pandas to unbox and dispatch to us.
+            if isinstance(other, (IntegerArray, FloatingArray)):
                 return NotImplemented
 
-            other = lib.item_from_zerodim(other)
             mask = None
 
             if isinstance(other, BooleanArray):
@@ -693,13 +690,8 @@ class BooleanArray(BaseMaskedArray):
     def _create_arithmetic_method(cls, op):
         op_name = op.__name__
 
+        @ops.unpack_zerodim_and_defer(op_name)
         def boolean_arithmetic_method(self, other):
-
-            if isinstance(other, (ABCDataFrame, ABCSeries, ABCIndexClass)):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-            other = lib.item_from_zerodim(other)
             mask = None
 
             if isinstance(other, BooleanArray):

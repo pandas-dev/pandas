@@ -5,23 +5,21 @@ from cpython.datetime cimport (
     PyDateTime_Check,
     PyDateTime_IMPORT,
     datetime,
+    tzinfo,
 )
+
 # import datetime C API
 PyDateTime_IMPORT
 
 
 cimport numpy as cnp
 from numpy cimport float64_t, int64_t, ndarray
+
 import numpy as np
+
 cnp.import_array()
 
 import pytz
-
-from pandas._libs.util cimport (
-    is_datetime64_object,
-    is_float_object,
-    is_integer_object,
-)
 
 from pandas._libs.tslibs.np_datetime cimport (
     _string_to_dts,
@@ -33,9 +31,9 @@ from pandas._libs.tslibs.np_datetime cimport (
     pydate_to_dt64,
     pydatetime_to_dt64,
 )
+from pandas._libs.util cimport is_datetime64_object, is_float_object, is_integer_object
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
 from pandas._libs.tslibs.conversion cimport (
@@ -43,23 +41,20 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
     convert_datetime_to_tsobject,
     get_datetime64_nanos,
+    precision_from_unit,
 )
-
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
-
 from pandas._libs.tslibs.timestamps cimport _Timestamp
-from pandas._libs.tslibs.timestamps import Timestamp
 
-from pandas._libs.tslibs.tzconversion cimport (
-    tz_localize_to_utc_single,
-)
+from pandas._libs.tslibs.timestamps import Timestamp
 
 # Note: this is the only non-tslibs intra-pandas dependency here
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
 
 def _test_parse_iso8601(ts: str):
@@ -93,8 +88,8 @@ def _test_parse_iso8601(ts: str):
 @cython.boundscheck(False)
 def format_array_from_datetime(
     ndarray[int64_t] values,
-    object tz=None,
-    object format=None,
+    tzinfo tz=None,
+    str format=None,
     object na_rep=None
 ):
     """
@@ -103,8 +98,8 @@ def format_array_from_datetime(
     Parameters
     ----------
     values : a 1-d i8 array
-    tz : the timezone (or None)
-    format : optional, default is None
+    tz : tzinfo or None, default None
+    format : str or None, default None
           a strftime capable string
     na_rep : optional, default is None
           a nat format
@@ -211,6 +206,7 @@ def array_with_unit_to_datetime(
     cdef:
         Py_ssize_t i, j, n=len(values)
         int64_t m
+        int prec = 0
         ndarray[float64_t] fvalues
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
@@ -223,38 +219,48 @@ def array_with_unit_to_datetime(
 
     assert is_ignore or is_coerce or is_raise
 
-    if unit == 'ns':
-        if issubclass(values.dtype.type, np.integer):
-            result = values.astype('M8[ns]')
+    if unit == "ns":
+        if issubclass(values.dtype.type, (np.integer, np.float_)):
+            result = values.astype("M8[ns]", copy=False)
         else:
             result, tz = array_to_datetime(values.astype(object), errors=errors)
         return result, tz
 
-    m = cast_from_unit(None, unit)
+    m, p = precision_from_unit(unit)
 
     if is_raise:
-
-        # try a quick conversion to i8
+        # try a quick conversion to i8/f8
         # if we have nulls that are not type-compat
         # then need to iterate
-        if values.dtype.kind == "i":
-            # Note: this condition makes the casting="same_kind" redundant
-            iresult = values.astype('i8', casting='same_kind', copy=False)
-            # fill by comparing to NPY_NAT constant
+
+        if values.dtype.kind == "i" or values.dtype.kind == "f":
+            iresult = values.astype("i8", copy=False)
+            # fill missing values by comparing to NPY_NAT
             mask = iresult == NPY_NAT
             iresult[mask] = 0
-            fvalues = iresult.astype('f8') * m
+            fvalues = iresult.astype("f8") * m
             need_to_iterate = False
 
-        # check the bounds
         if not need_to_iterate:
-
-            if ((fvalues < Timestamp.min.value).any()
-                    or (fvalues > Timestamp.max.value).any()):
+            # check the bounds
+            if (fvalues < Timestamp.min.value).any() or (
+                (fvalues > Timestamp.max.value).any()
+            ):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
-            result = (iresult * m).astype('M8[ns]')
-            iresult = result.view('i8')
+
+            if values.dtype.kind == "i":
+                result = (iresult * m).astype("M8[ns]")
+
+            elif values.dtype.kind == "f":
+                fresult = (values * m).astype("f8")
+                fresult[mask] = 0
+                if prec:
+                    fresult = round(fresult, prec)
+                result = fresult.astype("M8[ns]", copy=False)
+
+            iresult = result.view("i8")
             iresult[mask] = NPY_NAT
+
             return result, tz
 
     result = np.empty(n, dtype='M8[ns]')
@@ -360,7 +366,7 @@ cpdef array_to_datetime(
     str errors='raise',
     bint dayfirst=False,
     bint yearfirst=False,
-    object utc=None,
+    bint utc=False,
     bint require_iso8601=False
 ):
     """
@@ -386,7 +392,7 @@ cpdef array_to_datetime(
          dayfirst parsing behavior when encountering datetime strings
     yearfirst : bool, default False
          yearfirst parsing behavior when encountering datetime strings
-    utc : bool, default None
+    utc : bool, default False
          indicator whether the dates should be UTC
     require_iso8601 : bool, default False
          indicator whether the datetime string should be iso8601
@@ -412,7 +418,7 @@ cpdef array_to_datetime(
         bint is_same_offsets
         _TSObject _ts
         int64_t value
-        int out_local=0, out_tzoffset=0
+        int out_local = 0, out_tzoffset = 0
         float offset_seconds, tz_offset
         set out_tzoffset_vals = set()
         bint string_to_dts_failed
@@ -659,7 +665,7 @@ cdef array_to_datetime_object(
     ndarray[object] values,
     str errors,
     bint dayfirst=False,
-    bint yearfirst=False
+    bint yearfirst=False,
 ):
     """
     Fall back function for array_to_datetime
@@ -671,7 +677,7 @@ cdef array_to_datetime_object(
     ----------
     values : ndarray of object
          date-like objects to convert
-    errors : str, default 'raise'
+    errors : str
          error behavior when parsing
     dayfirst : bool, default False
          dayfirst parsing behavior when encountering datetime strings
@@ -684,7 +690,7 @@ cdef array_to_datetime_object(
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        object val,
+        object val
         bint is_ignore = errors == 'ignore'
         bint is_coerce = errors == 'coerce'
         bint is_raise = errors == 'raise'

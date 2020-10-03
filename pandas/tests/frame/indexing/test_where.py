@@ -162,7 +162,8 @@ class TestDataFrameIndexingWhere:
             econd = cond.reindex_like(df).fillna(True)
             expected = dfi.mask(~econd)
 
-            dfi.where(cond, np.nan, inplace=True)
+            return_value = dfi.where(cond, np.nan, inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(dfi, expected)
 
             # dtypes (and confirm upcasts)x
@@ -303,7 +304,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(result > 2, np.nan, inplace=True)
+        return_value = result.where(result > 2, np.nan, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
     def test_where_bug_mixed(self, sint_dtype):
@@ -324,7 +326,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(result > 2, np.nan, inplace=True)
+        return_value = result.where(result > 2, np.nan, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
     def test_where_bug_transposition(self):
@@ -417,7 +420,8 @@ class TestDataFrameIndexingWhere:
         result = df.where(pd.notna(df), df.mean(), axis="columns")
         tm.assert_frame_equal(result, expected)
 
-        df.where(pd.notna(df), df.mean(), inplace=True, axis="columns")
+        return_value = df.where(pd.notna(df), df.mean(), inplace=True, axis="columns")
+        assert return_value is None
         tm.assert_frame_equal(df, expected)
 
         df = create().fillna(0)
@@ -453,7 +457,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(mask, s, axis="index", inplace=True)
+        return_value = result.where(mask, s, axis="index", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([[0, 1], [0, 1]], dtype="float64")
@@ -461,7 +466,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(mask, s, axis="columns", inplace=True)
+        return_value = result.where(mask, s, axis="columns", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         # Upcast needed
@@ -474,7 +480,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(mask, s, axis="index", inplace=True)
+        return_value = result.where(mask, s, axis="index", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([[0, np.nan], [0, np.nan]])
@@ -488,7 +495,8 @@ class TestDataFrameIndexingWhere:
             }
         )
         result = df.copy()
-        result.where(mask, s, axis="columns", inplace=True)
+        return_value = result.where(mask, s, axis="columns", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         # Multiple dtypes (=> multiple Blocks)
@@ -511,7 +519,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(mask, s1, axis="columns", inplace=True)
+        return_value = result.where(mask, s1, axis="columns", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         result = df.where(mask, s2, axis="index")
@@ -521,7 +530,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        result.where(mask, s2, axis="index", inplace=True)
+        return_value = result.where(mask, s2, axis="index", inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         # DataFrame vs DataFrame
@@ -534,10 +544,12 @@ class TestDataFrameIndexingWhere:
         result = df.where(mask, d1, axis="index")
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        result.where(mask, d1, inplace=True)
+        return_value = result.where(mask, d1, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        result.where(mask, d1, inplace=True, axis="index")
+        return_value = result.where(mask, d1, inplace=True, axis="index")
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
         d2 = df.copy().drop(1, axis=1)
@@ -549,10 +561,12 @@ class TestDataFrameIndexingWhere:
         result = df.where(mask, d2, axis="columns")
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        result.where(mask, d2, inplace=True)
+        return_value = result.where(mask, d2, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        result.where(mask, d2, inplace=True, axis="columns")
+        return_value = result.where(mask, d2, inplace=True, axis="columns")
+        assert return_value is None
         tm.assert_frame_equal(result, expected)
 
     def test_where_callable(self):

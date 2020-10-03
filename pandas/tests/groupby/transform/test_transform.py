@@ -4,7 +4,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._libs import groupby
+from pandas._libs.groupby import group_cumprod_float64, group_cumsum
 
 from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
 
@@ -545,14 +545,14 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
 def test_cython_group_transform_cumsum(any_real_dtype):
     # see gh-4095
     dtype = np.dtype(any_real_dtype).type
-    pd_op, np_op = groupby.group_cumsum, np.cumsum
+    pd_op, np_op = group_cumsum, np.cumsum
     _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
 
 
 def test_cython_group_transform_cumprod():
     # see gh-4095
     dtype = np.float64
-    pd_op, np_op = groupby.group_cumprod_float64, np.cumproduct
+    pd_op, np_op = group_cumprod_float64, np.cumproduct
     _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
 
 
@@ -567,13 +567,13 @@ def test_cython_group_transform_algos():
     data = np.array([[1], [2], [3], [np.nan], [4]], dtype="float64")
     actual = np.zeros_like(data)
     actual.fill(np.nan)
-    groupby.group_cumprod_float64(actual, data, labels, ngroups, is_datetimelike)
+    group_cumprod_float64(actual, data, labels, ngroups, is_datetimelike)
     expected = np.array([1, 2, 6, np.nan, 24], dtype="float64")
     tm.assert_numpy_array_equal(actual[:, 0], expected)
 
     actual = np.zeros_like(data)
     actual.fill(np.nan)
-    groupby.group_cumsum(actual, data, labels, ngroups, is_datetimelike)
+    group_cumsum(actual, data, labels, ngroups, is_datetimelike)
     expected = np.array([1, 3, 6, np.nan, 10], dtype="float64")
     tm.assert_numpy_array_equal(actual[:, 0], expected)
 
@@ -581,7 +581,7 @@ def test_cython_group_transform_algos():
     is_datetimelike = True
     data = np.array([np.timedelta64(1, "ns")] * 5, dtype="m8[ns]")[:, None]
     actual = np.zeros_like(data, dtype="int64")
-    groupby.group_cumsum(actual, data.view("int64"), labels, ngroups, is_datetimelike)
+    group_cumsum(actual, data.view("int64"), labels, ngroups, is_datetimelike)
     expected = np.array(
         [
             np.timedelta64(1, "ns"),
@@ -675,6 +675,7 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
     tm.assert_series_equal(expected, result)
 
 
+@pytest.mark.arm_slow
 @pytest.mark.parametrize(
     "op, args, targop",
     [

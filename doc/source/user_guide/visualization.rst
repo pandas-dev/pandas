@@ -67,7 +67,7 @@ On DataFrame, :meth:`~DataFrame.plot` is a convenience to plot all of the column
    @savefig frame_plot_basic.png
    df.plot();
 
-You can plot one column versus another using the `x` and `y` keywords in
+You can plot one column versus another using the ``x`` and ``y`` keywords in
 :meth:`~DataFrame.plot`:
 
 .. ipython:: python
@@ -496,7 +496,7 @@ Area plot
 You can create area plots with :meth:`Series.plot.area` and :meth:`DataFrame.plot.area`.
 Area plots are stacked by default. To produce stacked area plot, each column must be either all positive or all negative values.
 
-When input data contains `NaN`, it will be automatically filled by 0. If you want to drop or fill by different values, use :func:`dataframe.dropna` or :func:`dataframe.fillna` before calling `plot`.
+When input data contains ``NaN``, it will be automatically filled by 0. If you want to drop or fill by different values, use :func:`dataframe.dropna` or :func:`dataframe.fillna` before calling ``plot``.
 
 .. ipython:: python
    :suppress:
@@ -668,6 +668,7 @@ A ``ValueError`` will be raised if there are any negative values in your data.
    plt.figure()
 
 .. ipython:: python
+   :okwarning:
 
    series = pd.Series(3 * np.random.rand(4),
                       index=['a', 'b', 'c', 'd'], name='series')
@@ -742,6 +743,7 @@ If you pass values whose sum total is less than 1.0, matplotlib draws a semicirc
    plt.figure()
 
 .. ipython:: python
+   :okwarning:
 
    series = pd.Series([0.1] * 4, index=['a', 'b', 'c', 'd'], name='series2')
 
@@ -1076,7 +1078,7 @@ layout and formatting of the returned plot:
 
    plt.close('all')
 
-For each kind of plot (e.g. `line`, `bar`, `scatter`) any additional arguments
+For each kind of plot (e.g. ``line``, ``bar``, ``scatter``) any additional arguments
 keywords are passed along to the corresponding matplotlib function
 (:meth:`ax.plot() <matplotlib.axes.Axes.plot>`,
 :meth:`ax.bar() <matplotlib.axes.Axes.bar>`,
@@ -1269,7 +1271,7 @@ Using the ``x_compat`` parameter, you can suppress this behavior:
    plt.close('all')
 
 If you have more than one plot that needs to be suppressed, the ``use`` method
-in ``pandas.plotting.plot_params`` can be used in a `with statement`:
+in ``pandas.plotting.plot_params`` can be used in a ``with`` statement:
 
 .. ipython:: python
 
@@ -1425,7 +1427,7 @@ Horizontal and vertical error bars can be supplied to the ``xerr`` and ``yerr`` 
 * As a ``str`` indicating which of the columns of plotting :class:`DataFrame` contain the error values.
 * As raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting :class:`DataFrame`/:class:`Series`.
 
-Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``M`` length :class:`Series`, a ``Mx2`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
+Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``N`` length :class:`Series`, a ``2xN`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
 
 Here is an example of one way to easily plot group means with standard deviations from the raw data.
 

@@ -16,7 +16,9 @@ from pandas.core.arrays import DatetimeArray, period_array
 
 
 class TestDatetimeIndex:
-    @pytest.mark.parametrize("dt_cls", [DatetimeIndex, DatetimeArray._from_sequence])
+    @pytest.mark.parametrize(
+        "dt_cls", [DatetimeIndex, DatetimeArray._from_sequence_not_strict]
+    )
     def test_freq_validation_with_nat(self, dt_cls):
         # GH#11587 make sure we get a useful error message when generate_range
         #  raises
@@ -785,6 +787,65 @@ class TestDatetimeIndex:
         tz = dateutil.tz.tzlocal()
         result = DatetimeIndex(["2018", "NaT"], tz=tz)
         expected = DatetimeIndex([Timestamp("2018", tz=tz), pd.NaT])
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_with_ambiguous_keyword_arg(self):
+        # GH 35297
+
+        expected = DatetimeIndex(
+            ["2020-11-01 01:00:00", "2020-11-02 01:00:00"],
+            dtype="datetime64[ns, America/New_York]",
+            freq="D",
+            ambiguous=False,
+        )
+
+        # ambiguous keyword in start
+        timezone = "America/New_York"
+        start = pd.Timestamp(year=2020, month=11, day=1, hour=1).tz_localize(
+            timezone, ambiguous=False
+        )
+        result = pd.date_range(start=start, periods=2, ambiguous=False)
+        tm.assert_index_equal(result, expected)
+
+        # ambiguous keyword in end
+        timezone = "America/New_York"
+        end = pd.Timestamp(year=2020, month=11, day=2, hour=1).tz_localize(
+            timezone, ambiguous=False
+        )
+        result = pd.date_range(end=end, periods=2, ambiguous=False)
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_with_nonexistent_keyword_arg(self):
+        # GH 35297
+
+        timezone = "Europe/Warsaw"
+
+        # nonexistent keyword in start
+        start = pd.Timestamp("2015-03-29 02:30:00").tz_localize(
+            timezone, nonexistent="shift_forward"
+        )
+        result = pd.date_range(start=start, periods=2, freq="H")
+        expected = DatetimeIndex(
+            [
+                pd.Timestamp("2015-03-29 03:00:00+02:00", tz=timezone),
+                pd.Timestamp("2015-03-29 04:00:00+02:00", tz=timezone),
+            ]
+        )
+
+        tm.assert_index_equal(result, expected)
+
+        # nonexistent keyword in end
+        end = pd.Timestamp("2015-03-29 02:30:00").tz_localize(
+            timezone, nonexistent="shift_forward"
+        )
+        result = pd.date_range(end=end, periods=2, freq="H")
+        expected = DatetimeIndex(
+            [
+                pd.Timestamp("2015-03-29 01:00:00+01:00", tz=timezone),
+                pd.Timestamp("2015-03-29 03:00:00+02:00", tz=timezone),
+            ]
+        )
+
         tm.assert_index_equal(result, expected)
 
     def test_constructor_no_precision_raises(self):

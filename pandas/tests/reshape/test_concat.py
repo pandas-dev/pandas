@@ -1,4 +1,4 @@
-from collections import OrderedDict, abc, deque
+from collections import abc, deque
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
@@ -1087,20 +1087,44 @@ class TestAppend:
         date = Timestamp("2018-10-24 07:30:00", tz=dateutil.tz.tzutc())
         s = Series({"date": date, "a": 1.0, "b": 2.0})
         df = DataFrame(columns=["c", "d"])
-        result = df.append(s, ignore_index=True)
-        # n.b. it's not clear to me that expected is correct here.
-        # It's possible that the `date` column should have
-        # datetime64[ns, tz] dtype for both result and expected.
-        # that would be more consistent with new columns having
-        # their own dtype (float for a and b, datetime64ns, tz for date).
+        result_a = df.append(s, ignore_index=True)
         expected = DataFrame(
-            [[np.nan, np.nan, 1.0, 2.0, date]],
-            columns=["c", "d", "a", "b", "date"],
-            dtype=object,
+            [[np.nan, np.nan, 1.0, 2.0, date]], columns=["c", "d", "a", "b", "date"]
         )
         # These columns get cast to object after append
-        expected["a"] = expected["a"].astype(float)
-        expected["b"] = expected["b"].astype(float)
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
+        tm.assert_frame_equal(result_a, expected)
+
+        expected = DataFrame(
+            [[np.nan, np.nan, 1.0, 2.0, date]] * 2, columns=["c", "d", "a", "b", "date"]
+        )
+        expected["c"] = expected["c"].astype(object)
+        expected["d"] = expected["d"].astype(object)
+
+        result_b = result_a.append(s, ignore_index=True)
+        tm.assert_frame_equal(result_b, expected)
+
+        # column order is different
+        expected = expected[["c", "d", "date", "a", "b"]]
+        result = df.append([s, s], ignore_index=True)
+        tm.assert_frame_equal(result, expected)
+
+    def test_append_empty_tz_frame_with_datetime64ns(self):
+        # https://github.com/pandas-dev/pandas/issues/35460
+        df = pd.DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
+
+        # pd.NaT gets inferred as tz-naive, so append result is tz-naive
+        result = df.append({"a": pd.NaT}, ignore_index=True)
+        expected = pd.DataFrame({"a": [pd.NaT]}).astype("datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+        # also test with typed value to append
+        df = pd.DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
+        result = df.append(
+            pd.Series({"a": pd.NaT}, dtype="datetime64[ns]"), ignore_index=True
+        )
+        expected = pd.DataFrame({"a": [pd.NaT]}).astype("datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
 
@@ -1271,6 +1295,43 @@ class TestConcatenate:
             expected = expected.loc[["x", "y", "z", "q"]]
 
         tm.assert_frame_equal(v1, expected)
+
+    @pytest.mark.parametrize(
+        "name_in1,name_in2,name_in3,name_out",
+        [
+            ("idx", "idx", "idx", "idx"),
+            ("idx", "idx", None, "idx"),
+            ("idx", None, None, "idx"),
+            ("idx1", "idx2", None, None),
+            ("idx1", "idx1", "idx2", None),
+            ("idx1", "idx2", "idx3", None),
+            (None, None, None, None),
+        ],
+    )
+    def test_concat_same_index_names(self, name_in1, name_in2, name_in3, name_out):
+        # GH13475
+        indices = [
+            pd.Index(["a", "b", "c"], name=name_in1),
+            pd.Index(["b", "c", "d"], name=name_in2),
+            pd.Index(["c", "d", "e"], name=name_in3),
+        ]
+        frames = [
+            pd.DataFrame({c: [0, 1, 2]}, index=i)
+            for i, c in zip(indices, ["x", "y", "z"])
+        ]
+        result = pd.concat(frames, axis=1)
+
+        exp_ind = pd.Index(["a", "b", "c", "d", "e"], name=name_out)
+        expected = pd.DataFrame(
+            {
+                "x": [0, 1, 2, np.nan, np.nan],
+                "y": [np.nan, 0, 1, 2, np.nan],
+                "z": [np.nan, np.nan, 0, 1, 2],
+            },
+            index=exp_ind,
+        )
+
+        tm.assert_frame_equal(result, expected)
 
     def test_concat_multiindex_with_keys(self):
         index = MultiIndex(
@@ -2548,9 +2609,7 @@ bar2,12,13,14,15
             [pd.Series(range(3)), pd.Series(range(4))], keys=["First", "Another"]
         )
         result = pd.concat(
-            OrderedDict(
-                [("First", pd.Series(range(3))), ("Another", pd.Series(range(4)))]
-            )
+            dict([("First", pd.Series(range(3))), ("Another", pd.Series(range(4)))])
         )
         tm.assert_series_equal(result, expected)
 
@@ -2859,15 +2918,10 @@ def test_concat_frame_axis0_extension_dtypes():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("sort", [True, False])
-def test_append_sort(sort):
-    # GH 35092. Check that DataFrame.append respects the sort argument.
-    df1 = pd.DataFrame(data={0: [1, 2], 1: [3, 4]})
-    df2 = pd.DataFrame(data={3: [1, 2], 2: [3, 4]})
-    cols = list(df1.columns) + list(df2.columns)
-    if sort:
-        cols.sort()
-
-    result = df1.append(df2, sort=sort).columns
-    expected = type(result)(cols)
-    tm.assert_index_equal(result, expected)
+def test_concat_preserves_extension_int64_dtype():
+    # GH 24768
+    df_a = pd.DataFrame({"a": [-1]}, dtype="Int64")
+    df_b = pd.DataFrame({"b": [1]}, dtype="Int64")
+    result = pd.concat([df_a, df_b], ignore_index=True)
+    expected = pd.DataFrame({"a": [-1, None], "b": [None, 1]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
