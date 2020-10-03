@@ -1168,7 +1168,9 @@ def quantile(x, q, interpolation_method="fraction"):
     else:
         q = np.asarray(q, np.float64)
         result = [_get_score(x) for x in q]
-        result = np.array(result, dtype=np.float64)
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "List[Any]")
+        result = np.array(result, dtype=np.float64)  # type: ignore[assignment]
         return result
 
 

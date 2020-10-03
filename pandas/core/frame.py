@@ -574,8 +574,8 @@ class DataFrame(NDFrame):
                 # error: Argument "dtype" to "init_dict" has incompatible type
                 # "Union[ExtensionDtype, str, dtype, Type[object], None]";
                 # expected "Union[dtype, ExtensionDtype, None]"
-                mgr = init_dict(  # type: ignore[arg-type]
-                    {}, index, columns, dtype=dtype
+                mgr = init_dict(
+                    {}, index, columns, dtype=dtype  # type: ignore[arg-type]
                 )
         # For data is scalar
         else:
@@ -592,8 +592,8 @@ class DataFrame(NDFrame):
                     # error: Argument 3 to "construct_1d_arraylike_from_scalar"
                     # has incompatible type "Union[ExtensionDtype, str, dtype,
                     # Type[object]]"; expected "Union[dtype, ExtensionDtype]"
-                    construct_1d_arraylike_from_scalar(  # type: ignore[arg-type]
-                        data, len(index), dtype
+                    construct_1d_arraylike_from_scalar(
+                        data, len(index), dtype  # type: ignore[arg-type]
                     )
                     for _ in range(len(columns))
                 ]
@@ -606,8 +606,8 @@ class DataFrame(NDFrame):
                     # expected "Union[dtype, None, type, _SupportsDtype, str,
                     # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
                     # List[Any], _DtypeDict, Tuple[Any, Any]]"
-                    arr = np.array(  # type: ignore[arg-type]
-                        data, dtype=dtype, copy=copy
+                    arr = np.array(
+                        data, dtype=dtype, copy=copy  # type: ignore[arg-type]
                     )
                 except (ValueError, TypeError) as err:
                     exc = TypeError(

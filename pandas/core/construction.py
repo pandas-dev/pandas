@@ -533,8 +533,8 @@ def sanitize_array(
                     # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any,
                     # int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
                     # _DtypeDict, Tuple[Any, Any]]"
-                    data = np.array(  # type:ignore[arg-type]
-                        data, dtype=dtype, copy=False
+                    data = np.array(
+                        data, dtype=dtype, copy=False  # type:ignore[arg-type]
                     )
                 subarr = np.array(data, dtype=object, copy=copy)
 

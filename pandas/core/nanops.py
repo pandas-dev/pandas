@@ -870,8 +870,8 @@ def nansem(
 
     # error: Argument 1 to "_get_counts_nanvar" has incompatible type
     # "Tuple[int, ...]"; expected "Tuple[int]"
-    count, _ = _get_counts_nanvar(  # type: ignore[arg-type]
-        values.shape, mask, axis, ddof, values.dtype
+    count, _ = _get_counts_nanvar(
+        values.shape, mask, axis, ddof, values.dtype  # type: ignore[arg-type]
     )
     var = nanvar(values, axis, skipna, ddof=ddof)
 
@@ -1033,7 +1033,9 @@ def nanskew(
     >>> nanops.nanskew(s)
     1.7320508075688787
     """
-    values = extract_array(values, extract_numpy=True)
+    # error: Incompatible types in assignment (expression has type
+    # "ExtensionArray", variable has type "ndarray")
+    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1117,7 +1119,9 @@ def nankurt(
     >>> nanops.nankurt(s)
     -1.2892561983471076
     """
-    values = extract_array(values, extract_numpy=True)
+    # error: Incompatible types in assignment (expression has type
+    # "ExtensionArray", variable has type "ndarray")
+    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
     mask = _maybe_get_mask(values, skipna, mask)
     if not is_float_dtype(values.dtype):
         values = values.astype("f8")
@@ -1224,10 +1228,14 @@ def _maybe_arg_null_out(
     if axis is None or not getattr(result, "ndim", False):
         if skipna:
             if mask.all():
-                result = -1
+                # error: Incompatible types in assignment (expression has type
+                # "int", variable has type "ndarray")
+                result = -1  # type: ignore[assignment]
         else:
             if mask.any():
-                result = -1
+                # error: Incompatible types in assignment (expression has type
+                # "int", variable has type "ndarray")
+                result = -1  # type: ignore[assignment]
     else:
         if skipna:
             na_mask = mask.all(axis)
@@ -1268,7 +1276,9 @@ def _get_counts(
             n = mask.size - mask.sum()
         else:
             n = np.prod(values_shape)
-        return dtype.type(n)
+        # error: Incompatible return value type (got "Union[Any, generic]",
+        # expected "Union[int, float, ndarray]")
+        return dtype.type(n)  # type: ignore[return-value]
 
     if mask is not None:
         count = mask.shape[axis] - mask.sum(axis)
@@ -1276,11 +1286,17 @@ def _get_counts(
         count = values_shape[axis]
 
     if is_scalar(count):
-        return dtype.type(count)
+        # error: Incompatible return value type (got "Union[Any, generic]",
+        # expected "Union[int, float, ndarray]")
+        return dtype.type(count)  # type: ignore[return-value]
     try:
         return count.astype(dtype)
     except AttributeError:
-        return np.array(count, dtype=dtype)
+        # error: Argument "dtype" to "array" has incompatible type
+        # "Union[ExtensionDtype, dtype]"; expected "Union[dtype, None, type,
+        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
+        return np.array(count, dtype=dtype)  # type: ignore[arg-type]
 
 
 def _maybe_null_out(
@@ -1310,9 +1326,12 @@ def _maybe_null_out(
                 result[null_mask] = None
     elif result is not NaT:
         if check_below_min_count(shape, mask, min_count):
-            result = np.nan
+            # error: Incompatible types in assignment (expression has type
+            # "float", variable has type "ndarray")
+            result = np.nan  # type: ignore[assignment]
 
-    return result
+    # error: Incompatible return value type (got "ndarray", expected "float")
+    return result  # type: ignore[return-value]
 
 
 def check_below_min_count(

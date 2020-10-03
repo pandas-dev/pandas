@@ -416,7 +416,8 @@ class ExtensionArray:
         """
         The number of elements in the array.
         """
-        return np.prod(self.shape)
+        # error: Incompatible return value type (got "number", expected "int")
+        return np.prod(self.shape)  # type: ignore[return-value]
 
     @property
     def ndim(self) -> int:
@@ -782,7 +783,8 @@ class ExtensionArray:
             if isinstance(equal_values, ExtensionArray):
                 # boolean array with NA -> fill with False
                 equal_values = equal_values.fillna(False)
-            equal_na = self.isna() & other.isna()
+            # error: Unsupported left operand type for & ("ExtensionArray")
+            equal_na = self.isna() & other.isna()  # type: ignore[operator]
             return bool((equal_values | equal_na).all())
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
@@ -855,7 +857,9 @@ class ExtensionArray:
         )
 
         uniques = self._from_factorized(uniques, self)
-        return codes, uniques
+        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
+        # expected "Tuple[ndarray, ExtensionArray]")
+        return codes, uniques  # type: ignore[return-value]
 
     _extension_array_shared_docs[
         "repeat"

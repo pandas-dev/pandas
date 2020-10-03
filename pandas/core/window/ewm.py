@@ -500,8 +500,8 @@ class ExponentialMovingWindow(BaseWindow):
         # pandas\core\window\ewm.py:497: error: Item "None" of "Union[ndarray,
         # FrameOrSeries, None]" has no attribute "_selected_obj"  [union-attr]
         return flex_binary_moment(
-            self._selected_obj,  # type: ignore[union-attr]
-            other._selected_obj,
+            self._selected_obj,
+            other._selected_obj,  # type: ignore[union-attr]
             _get_corr,
             pairwise=bool(pairwise),
         )

@@ -1921,14 +1921,33 @@ def _factorize_keys(
     (array([0, 1, 2]), array([0, 1]), 3)
     """
     # Some pre-processing for non-ndarray lk / rk
-    lk = extract_array(lk, extract_numpy=True)
-    rk = extract_array(rk, extract_numpy=True)
+
+    # error: Incompatible types in assignment (expression has type
+    # "ExtensionArray", variable has type "ndarray")
+    lk = extract_array(lk, extract_numpy=True)  # type: ignore[assignment]
+    # error: Incompatible types in assignment (expression has type
+    # "ExtensionArray", variable has type "ndarray")
+    rk = extract_array(rk, extract_numpy=True)  # type: ignore[assignment]
 
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-        lk, _ = lk._values_for_factorize()
-        rk, _ = rk._values_for_factorize()
+
+        # pandas\core\reshape\merge.py:1930: error: Incompatible types in
+        # assignment (expression has type "ndarray", variable has type
+        # "ExtensionArray")  [assignment]
+
+        # pandas\core\reshape\merge.py:1930: error: "ndarray" has no attribute
+        # "_values_for_factorize"  [attr-defined]
+        lk, _ = lk._values_for_factorize()  # type: ignore[assignment, attr-defined]
+
+        # pandas\core\reshape\merge.py:1931: error: Incompatible types in
+        # assignment (expression has type "ndarray", variable has type
+        # "ExtensionArray")  [assignment]
+
+        # pandas\core\reshape\merge.py:1931: error: "ndarray" has no attribute
+        # "_values_for_factorize"  [attr-defined]
+        rk, _ = rk._values_for_factorize()  # type: ignore[assignment, attr-defined]
 
     elif (
         is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
@@ -1936,7 +1955,10 @@ def _factorize_keys(
         assert isinstance(lk, Categorical)
         assert isinstance(rk, Categorical)
         # Cast rk to encoding so we can compare codes with lk
-        rk = lk._validate_listlike(rk)
+
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "ExtensionArray")
+        rk = lk._validate_listlike(rk)  # type: ignore[assignment]
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)

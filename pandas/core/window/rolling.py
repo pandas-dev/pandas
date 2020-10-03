@@ -367,7 +367,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         # make sure the data is coerced to float64
 
         # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
-        if is_float_dtype(values.dtype):  # type[union-attr]
+        if is_float_dtype(values.dtype):  # type: ignore[union-attr]
             values = ensure_float64(values)
         # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
         elif is_integer_dtype(values.dtype):  # type: ignore[union-attr]

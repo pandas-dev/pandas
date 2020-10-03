@@ -10223,7 +10223,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # when some numerics are found, keep only numerics
             default_include = [np.number]
             if datetime_is_numeric:
-                default_include.append("datetime")
+                # error: Argument 1 to "append" of "list" has incompatible type
+                # "str"; expected "Type[number]"
+                default_include.append("datetime")  # type: ignore[arg-type]
             data = self.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self

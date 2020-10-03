@@ -257,7 +257,9 @@ class PeriodArray(PeriodMixin, dtl.DatetimeLikeArrayMixin, dtl.DatelikeOps):
     # DatetimeLike Interface
 
     @classmethod
-    def _rebox_native(cls, value: int) -> np.int64:
+    # error: Return type "int64" of "_rebox_native" incompatible with return
+    # type "Union[int, datetime64, timedelta64]" in supertype "AttributesMixin"
+    def _rebox_native(cls, value: int) -> np.int64:  # type: ignore[override]
         return np.int64(value)
 
     def _unbox_scalar(
