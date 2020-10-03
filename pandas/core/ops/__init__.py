@@ -5,6 +5,7 @@ This is not a public API.
 """
 import operator
 from typing import TYPE_CHECKING, Optional, Set, Type
+import warnings
 
 import numpy as np
 
@@ -488,6 +489,18 @@ def align_method_FRAME(
     elif isinstance(right, ABCSeries):
         # axis=1 is default for DataFrame-with-Series op
         axis = left._get_axis_number(axis) if axis is not None else 1
+
+        if not flex:
+            if not left.axes[axis].equals(right.index):
+                warnings.warn(
+                    "Automatic reindexing on DataFrame vs Series comparisons "
+                    "is deprecated and will raise ValueError in a future version.  "
+                    "Do `left, right = left.align(right, axis=1, copy=False)` "
+                    "before e.g. `left == right`",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+
         left, right = left.align(
             right, join="outer", axis=axis, level=level, copy=False
         )
