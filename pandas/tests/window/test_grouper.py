@@ -442,6 +442,6 @@ class TestGrouperGrouping:
             }
         )
         if key == "index":
-            df.set_index("a", inplace=True)
+            df = df.set_index("a")
         with pytest.raises(ValueError, match=f"{key} must be monotonic"):
             df.groupby("c").rolling("60min", **rollings)
