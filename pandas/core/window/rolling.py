@@ -357,15 +357,23 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
         if values is None:
-            values = extract_array(self._selected_obj, extract_numpy=True)
+            # error: Incompatible types in assignment (expression has type
+            # "ExtensionArray", variable has type "Optional[ndarray]")
+            values = extract_array(  # type: ignore[assignment]
+                self._selected_obj, extract_numpy=True
+            )
 
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
-        if is_float_dtype(values.dtype):
+
+        # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
+        if is_float_dtype(values.dtype):  # type[union-attr]
             values = ensure_float64(values)
-        elif is_integer_dtype(values.dtype):
+        # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
+        elif is_integer_dtype(values.dtype):  # type: ignore[union-attr]
             values = ensure_float64(values)
-        elif needs_i8_conversion(values.dtype):
+        # error: Item "None" of "Optional[ndarray]" has no attribute "dtype"
+        elif needs_i8_conversion(values.dtype):  # type: ignore[union-attr]
             raise NotImplementedError(
                 f"ops for {self._window_type} for this "
                 f"dtype {values.dtype} are not implemented"

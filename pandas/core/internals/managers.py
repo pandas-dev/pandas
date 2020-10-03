@@ -143,8 +143,12 @@ class BlockManager(PandasObject):
 
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
-        self._blknos = None
-        self._blklocs = None
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "ndarray")
+        self._blknos = None  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "ndarray")
+        self._blklocs = None  # type: ignore[assignment]
 
     @classmethod
     def from_blocks(cls, blocks: List[Block], axes: List[Index]):
@@ -906,7 +910,12 @@ class BlockManager(PandasObject):
             # we'll eventually construct an ExtensionArray.
             result = np.empty(n, dtype=object)
         else:
-            result = np.empty(n, dtype=dtype)
+            # error: Argument "dtype" to "empty" has incompatible type
+            # "Union[dtype, ExtensionDtype, None]"; expected "Union[dtype,
+            # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any,
+            # Union[int, Sequence[int]]], List[Any], _DtypeDict, Tuple[Any,
+            # Any]]"
+            result = np.empty(n, dtype=dtype)  # type: ignore[arg-type]
 
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
@@ -917,7 +926,9 @@ class BlockManager(PandasObject):
         if isinstance(dtype, ExtensionDtype):
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
-        return result
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        return result  # type: ignore[return-value]
 
     def consolidate(self) -> "BlockManager":
         """
@@ -1041,7 +1052,11 @@ class BlockManager(PandasObject):
             # We have 6 tests where loc is _not_ an int.
             # In this case, get_blkno_placements will yield only one tuple,
             #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
-            loc = [loc]
+
+            # error: Incompatible types in assignment (expression has type
+            # "List[Union[int, slice, ndarray]]", variable has type "Union[int,
+            # slice, ndarray]")
+            loc = [loc]  # type: ignore[assignment]
 
         # Accessing public blknos ensures the public versions are initialized
         blknos = self.blknos[loc]

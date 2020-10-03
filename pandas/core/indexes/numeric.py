@@ -250,7 +250,10 @@ class IntegerIndex(NumericIndex):
     @property
     def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
-        return self._values.view(self._default_dtype)
+
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray]", expected "ndarray")
+        return self._values.view(self._default_dtype)  # type: ignore[return-value]
 
 
 class Int64Index(IntegerIndex):
@@ -335,7 +338,9 @@ class Float64Index(NumericIndex):
 
     _typ = "float64index"
     _engine_type = libindex.Float64Engine
-    _default_dtype = np.float64
+    # error: Incompatible types in assignment (expression has type
+    # "Type[float64]", base class "NumericIndex" defined the type as "dtype")
+    _default_dtype = np.float64  # type: ignore[assignment]
 
     @property
     def inferred_type(self) -> str:
@@ -412,7 +417,10 @@ class Float64Index(NumericIndex):
         if super().__contains__(other):
             return True
 
-        return is_float(other) and np.isnan(other) and self.hasnans
+        # error: Incompatible return value type (got "Union[Any, ndarray,
+        # generic]", expected "bool")
+        tmp = is_float(other) and np.isnan(other) and self.hasnans
+        return tmp  # type: ignore[return-value]
 
     @cache_readonly
     def is_unique(self) -> bool:

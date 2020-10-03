@@ -1189,7 +1189,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = self._unbox_scalar(value)
         else:
             locs = [self.categories.get_loc(x) for x in value]
-            codes = np.array(locs, dtype=self.codes.dtype)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "int")
+            codes = np.array(locs, dtype=self.codes.dtype)  # type: ignore[assignment]
         return codes
 
     def _validate_fill_value(self, fill_value):
@@ -1661,7 +1663,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 # We get ndarray or Categorical if called via Series.fillna,
                 #  where it will unwrap another aligned Series before getting here
 
-                not_categories = ~algorithms.isin(value, self.categories)
+                # error: Value of type variable "AnyArrayLike" of "isin" cannot
+                # be "Union[ndarray, Categorical]"
+                not_categories = ~algorithms.isin(  # type: ignore[type-var]
+                    value, self.categories
+                )
                 if not isna(value[not_categories]).all():
                     # All entries in `value` must either be a category or NA
                     raise ValueError("fill value must be in categories")
@@ -1679,7 +1685,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # NDArrayBackedExtensionArray compat
 
     @property
-    def _ndarray(self) -> np.ndarray:
+    # error: Signature of "_ndarray" incompatible with supertype
+    # "NDArrayBackedExtensionArray"
+    def _ndarray(self) -> np.ndarray:  # type: ignore[override]
         return self._codes
 
     def _from_backing_data(self, arr: np.ndarray) -> "Categorical":
@@ -2323,7 +2331,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import PandasArray
 
-        return PandasArray(self.astype(str))._str_get_dummies(sep)
+        # error: Argument 1 to "PandasArray" has incompatible type
+        # "ExtensionArray"; expected "Union[ndarray, PandasArray]"
+        return PandasArray(self.astype(str))._str_get_dummies(  # type: ignore[arg-type]
+            sep
+        )
 
 
 # The Series.cat accessor

@@ -224,7 +224,9 @@ def _convert_and_box_cache(
     from pandas import Series
 
     result = Series(arg).map(cache_array)
-    return _box_as_indexlike(result, utc=None, name=name)
+    # error: Value of type variable "ArrayLike" of "_box_as_indexlike" cannot
+    # be "Series"
+    return _box_as_indexlike(result, utc=None, name=name)  # type: ignore[type-var]
 
 
 def _return_parsed_timezone_results(result, timezones, tz, name):
@@ -340,22 +342,32 @@ def _convert_listlike_datetimes(
 
         if errors == "ignore":
 
-            result = Index(result, name=name)
+            # error: Incompatible types in assignment (expression has type
+            # "Index", variable has type "ExtensionArray")
+            result = Index(result, name=name)  # type: ignore[assignment]
         else:
-            result = DatetimeIndex(result, name=name)
+            # error: Incompatible types in assignment (expression has type
+            # "DatetimeIndex", variable has type "ExtensionArray")
+            result = DatetimeIndex(result, name=name)  # type: ignore[assignment]
         # GH 23758: We may still need to localize the result with tz
         # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)
         # result will be naive but in UTC
         try:
-            result = result.tz_localize("UTC").tz_convert(tz_parsed)
+            # error: "ExtensionArray" has no attribute "tz_localize"
+            result = result.tz_localize("UTC").tz_convert(  # type: ignore[attr-defined]
+                tz_parsed
+            )
         except AttributeError:
             # Regular Index from 'ignore' path
             return result
         if tz is not None:
-            if result.tz is None:
-                result = result.tz_localize(tz)
+            # error: "ExtensionArray" has no attribute "tz"
+            if result.tz is None:  # type: ignore[attr-defined]
+                # error: "ExtensionArray" has no attribute "tz_localize"
+                result = result.tz_localize(tz)  # type: ignore[attr-defined]
             else:
-                result = result.tz_convert(tz)
+                # error: "ExtensionArray" has no attribute "tz_convert"
+                result = result.tz_convert(tz)  # type: ignore[attr-defined]
         return result
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
@@ -372,7 +384,9 @@ def _convert_listlike_datetimes(
             result = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
             return DatetimeIndex(result, name=name)
         elif errors == "ignore":
-            result = Index(arg, name=name)
+            # error: Incompatible types in assignment (expression has type
+            # "Index", variable has type "ExtensionArray")
+            result = Index(arg, name=name)  # type: ignore[assignment]
             return result
         raise
 
@@ -393,7 +407,9 @@ def _convert_listlike_datetimes(
             format = None
 
     tz_parsed = None
-    result = None
+    # error: Incompatible types in assignment (expression has type "None",
+    # variable has type "ExtensionArray")
+    result = None  # type: ignore[assignment]
 
     if format is not None:
         try:

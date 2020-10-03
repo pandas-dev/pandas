@@ -816,7 +816,10 @@ class Block(PandasObject):
                 return ~mask
 
             s = com.maybe_box_datetimelike(s)
-            return compare_or_regex_search(self.values, s, regex, mask)
+            # error: Incompatible return value type (got "Union[ndarray,
+            # bool]", expected "ndarray")
+            tmp = compare_or_regex_search(self.values, s, regex, mask)
+            return tmp  # type: ignore[return-value]
 
         # Calculate the mask once, prior to the call of comp
         # in order to avoid repeating the same computations
@@ -1283,7 +1286,10 @@ class Block(PandasObject):
             # process a 1-d slice, returning it
             # should the axis argument be handled below in apply_along_axis?
             # i.e. not an arg to missing.interpolate_1d
-            return missing.interpolate_1d(
+
+            # error: Argument "xvalues" to "interpolate_1d" has incompatible
+            # type "Index"; expected "ndarray"
+            return missing.interpolate_1d(  # type: ignore[arg-type]
                 xvalues=index,
                 yvalues=yvalues,
                 method=method,
@@ -2935,7 +2941,10 @@ def _extract_bool_array(mask: ArrayLike) -> np.ndarray:
         # We could have BooleanArray, Sparse[bool], ...
         #  Except for BooleanArray, this is equivalent to just
         #  np.asarray(mask, dtype=bool)
-        mask = mask.to_numpy(dtype=bool, na_value=False)
+
+        #  error: Incompatible types in assignment (expression has type
+        #  "ndarray", variable has type "ExtensionArray")
+        mask = mask.to_numpy(dtype=bool, na_value=False)  # type: ignore[assignment]
 
     assert isinstance(mask, np.ndarray), type(mask)
     assert mask.dtype == bool, mask.dtype
