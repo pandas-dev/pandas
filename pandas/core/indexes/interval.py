@@ -57,7 +57,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex, timedelta_range
 from pandas.core.ops import get_op_result_name
 
 if TYPE_CHECKING:
-    from pandas import CategoricalIndex  # noqa:F401
+    from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -183,12 +183,8 @@ class SetopCheck:
     )
 )
 @inherit_names(["set_closed", "to_tuples"], IntervalArray, wrap=True)
-@inherit_names(
-    ["__array__", "overlaps", "contains", "left", "right", "length"], IntervalArray
-)
-@inherit_names(
-    ["is_non_overlapping_monotonic", "mid", "closed"], IntervalArray, cache=True
-)
+@inherit_names(["__array__", "overlaps", "contains"], IntervalArray)
+@inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
 class IntervalIndex(IntervalMixin, ExtensionIndex):
     _typ = "intervalindex"
     _comparables = ["name"]
@@ -201,6 +197,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     _mask = None
 
     _data: IntervalArray
+    _values: IntervalArray
+
     # --------------------------------------------------------------------
     # Constructors
 
@@ -409,7 +407,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return _new_IntervalIndex, (type(self), d), None
 
     @Appender(Index.astype.__doc__)
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         with rewrite_exception("IntervalArray", type(self).__name__):
             new_values = self._values.astype(dtype, copy=copy)
         if is_interval_dtype(new_values.dtype):
@@ -438,7 +436,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return self[::-1].is_monotonic_increasing
 
     @cache_readonly
-    def is_unique(self):
+    def is_unique(self) -> bool:
         """
         Return True if the IntervalIndex contains unique elements, else False.
         """
@@ -865,6 +863,22 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
 
+    @cache_readonly
+    def left(self) -> Index:
+        return Index(self._data.left, copy=False)
+
+    @cache_readonly
+    def right(self) -> Index:
+        return Index(self._data.right, copy=False)
+
+    @cache_readonly
+    def mid(self):
+        return Index(self._data.mid, copy=False)
+
+    @property
+    def length(self):
+        return Index(self._data.length, copy=False)
+
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
@@ -1023,7 +1037,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _intersection_unique(self, other: "IntervalIndex") -> "IntervalIndex":
         """
         Used when the IntervalIndex does not have any common endpoint,
-        no mater left or right.
+        no matter left or right.
         Return the intersection with another IntervalIndex.
 
         Parameters
@@ -1092,7 +1106,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # --------------------------------------------------------------------
 
     @property
-    def is_all_dates(self) -> bool:
+    def _is_all_dates(self) -> bool:
         """
         This is False even when left/right contain datetime-like objects,
         as the check is done on the Interval itself

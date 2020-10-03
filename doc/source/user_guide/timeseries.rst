@@ -282,20 +282,20 @@ You can pass only the columns that you need to assemble.
 Invalid data
 ~~~~~~~~~~~~
 
-The default behavior, ``errors='raise'``, is to raise when unparseable:
+The default behavior, ``errors='raise'``, is to raise when unparsable:
 
 .. code-block:: ipython
 
     In [2]: pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
     ValueError: Unknown string format
 
-Pass ``errors='ignore'`` to return the original input when unparseable:
+Pass ``errors='ignore'`` to return the original input when unparsable:
 
 .. ipython:: python
 
    pd.to_datetime(['2009/07/31', 'asd'], errors='ignore')
 
-Pass ``errors='coerce'`` to convert unparseable data to ``NaT`` (not a time):
+Pass ``errors='coerce'`` to convert unparsable data to ``NaT`` (not a time):
 
 .. ipython:: python
 
@@ -579,7 +579,12 @@ This type of slicing will work on a ``DataFrame`` with a ``DatetimeIndex`` as we
 partial string selection is a form of label slicing, the endpoints **will be** included. This
 would include matching times on an included date:
 
+.. warning::
+
+   Indexing ``DataFrame`` rows with strings is deprecated in pandas 1.2.0 and will be removed in a future version.  Use ``frame.loc[dtstring]`` instead.
+
 .. ipython:: python
+   :okwarning:
 
    dft = pd.DataFrame(np.random.randn(100000, 1), columns=['A'],
                       index=pd.date_range('20130101', periods=100000, freq='T'))
@@ -590,24 +595,28 @@ This starts on the very first time in the month, and includes the last date and
 time for the month:
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1':'2013-2']
 
 This specifies a stop time **that includes all of the times on the last day**:
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1':'2013-2-28']
 
 This specifies an **exact** stop time (and is not the same as the above):
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1':'2013-2-28 00:00:00']
 
 We are stopping on the included end-point as it is part of the index:
 
 .. ipython:: python
+   :okwarning:
 
    dft['2013-1-15':'2013-1-15 12:30:00']
 
@@ -631,6 +640,7 @@ We are stopping on the included end-point as it is part of the index:
 Slicing with string indexing also honors UTC offset.
 
 .. ipython:: python
+   :okwarning:
 
     df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
     df
@@ -681,6 +691,7 @@ If index resolution is second, then the minute-accurate timestamp gives a
 If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``[]`` as well.
 
 .. ipython:: python
+    :okwarning:
 
     dft_minute = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]},
                               index=series_minute.index)
@@ -1789,12 +1800,12 @@ See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
 .. _timeseries.adjust-the-start-of-the-bins:
 
-Use `origin` or `offset` to adjust the start of the bins
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Use ``origin`` or ``offset`` to adjust the start of the bins
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 1.1.0
 
-The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like `30D`) or that divide a day evenly (like `90s` or `1min`). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed Timestamp with the argument ``origin``.
+The bins of the grouping are adjusted based on the beginning of the day of the time series starting point. This works well with frequencies that are multiples of a day (like ``30D``) or that divide a day evenly (like ``90s`` or ``1min``). This can create inconsistencies with some frequencies that do not meet this criteria. To change this behavior you can specify a fixed Timestamp with the argument ``origin``.
 
 For example:
 
@@ -2027,6 +2038,7 @@ You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodI
 Passing a string representing a lower frequency than ``PeriodIndex`` returns partial sliced data.
 
 .. ipython:: python
+   :okwarning:
 
    ps['2011']
 
@@ -2198,7 +2210,7 @@ Time zone handling
 ------------------
 
 pandas provides rich support for working with timestamps in different time
-zones using the ``pytz`` and ``dateutil`` libraries or class:`datetime.timezone`
+zones using the ``pytz`` and ``dateutil`` libraries or :class:`datetime.timezone`
 objects from the standard library.
 
 

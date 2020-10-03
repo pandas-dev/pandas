@@ -16,7 +16,7 @@ from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
-from pandas.core.construction import extract_array
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -115,7 +115,10 @@ class PandasDtype(ExtensionDtype):
 
 
 class PandasArray(
-    NDArrayBackedExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin
+    NDArrayBackedExtensionArray,
+    ExtensionOpsMixin,
+    NDArrayOperatorsMixin,
+    ObjectStringArrayMixin,
 ):
     """
     A pandas ExtensionArray for NumPy data.
@@ -244,19 +247,6 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
-    def _validate_getitem_key(self, key):
-        if isinstance(key, type(self)):
-            key = key._ndarray
-
-        return super()._validate_getitem_key(key)
-
-    def _validate_setitem_value(self, value):
-        value = extract_array(value, extract_numpy=True)
-
-        if not lib.is_scalar(value):
-            value = np.asarray(value, dtype=self._ndarray.dtype)
-        return value
-
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
@@ -271,14 +261,6 @@ class PandasArray(
 
     # ------------------------------------------------------------------------
     # Reductions
-
-    def _reduce(self, name, skipna=True, **kwargs):
-        meth = getattr(self, name, None)
-        if meth:
-            return meth(skipna=skipna, **kwargs)
-        else:
-            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
-            raise TypeError(msg)
 
     def any(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
@@ -380,23 +362,37 @@ class PandasArray(
 
     @classmethod
     def _create_arithmetic_method(cls, op):
+
+        pd_op = ops.get_array_op(op)
+
         @ops.unpack_zerodim_and_defer(op.__name__)
         def arithmetic_method(self, other):
             if isinstance(other, cls):
                 other = other._ndarray
 
-            with np.errstate(all="ignore"):
-                result = op(self._ndarray, other)
+            result = pd_op(self._ndarray, other)
 
-            if op is divmod:
+            if op is divmod or op is ops.rdivmod:
                 a, b = result
-                return cls(a), cls(b)
+                if isinstance(a, np.ndarray):
+                    # for e.g. op vs TimedeltaArray, we may already
+                    #  have an ExtensionArray, in which case we do not wrap
+                    return cls(a), cls(b)
+                return a, b
 
-            return cls(result)
+            if isinstance(result, np.ndarray):
+                # for e.g. multiplication vs TimedeltaArray, we may already
+                #  have an ExtensionArray, in which case we do not wrap
+                return cls(result)
+            return result
 
         return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
 
     _create_comparison_method = _create_arithmetic_method
+
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = np.nan
 
 
 PandasArray._add_arithmetic_ops()
