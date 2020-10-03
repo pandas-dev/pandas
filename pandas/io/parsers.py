@@ -352,6 +352,10 @@ storage_options : dict, optional
     a file-like buffer. See the fsspec and backend storage implementation
     docs for the set of allowed keys and values.
 
+headers : dict, optional
+    HTTP headers that are passed to urlopen. Allows to specify the User-Agent
+    in case the urllib User-Agent is blocked for example
+
     .. versionadded:: 1.2
 
 Returns
