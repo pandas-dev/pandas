@@ -432,7 +432,7 @@ Below is an example to define two original properties, "internal_cache" as a tem
 
        @property
        def _constructor(self):
-          return SubclassedDataFrame2
+           return SubclassedDataFrame2
 
 .. code-block:: python
 
