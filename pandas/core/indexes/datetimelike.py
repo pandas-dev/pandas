@@ -682,6 +682,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         result = type(self)._simple_new(values, name=name)
         result._cache = cache
+        result._id = self._id
         return result
 
     # --------------------------------------------------------------------

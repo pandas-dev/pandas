@@ -284,6 +284,7 @@ Performance improvements
 - ``Styler`` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
 - Performance improvement in :meth:`pd.to_datetime` with non-ns time unit for ``float`` ``dtype`` columns (:issue:`20445`)
 - Performance improvement in setting values on a :class:`IntervalArray` (:issue:`36310`)
+- Performance improvement for the :meth:`~Index.equals` method on all index classes when compared to copies of the same index (:issue:`xxxxx`)
 
 .. ---------------------------------------------------------------------------
 
@@ -358,6 +359,7 @@ Indexing
 - Bug in :meth:`Index.sort_values` where, when empty values were passed, the method would break by trying to compare missing values instead of pushing them to the end of the sort order. (:issue:`35584`)
 - Bug in :meth:`Index.get_indexer` and :meth:`Index.get_indexer_non_unique` where int64 arrays are returned instead of intp. (:issue:`36359`)
 - Bug in :meth:`DataFrame.sort_index` where parameter ascending passed as a list on a single level index gives wrong result. (:issue:`32334`)
+- Bug in :meth:`Index.equals`, where it required the name to the be equal. This method should not compare names for equality (:issue:`xxxxx`)
 
 Missing
 ^^^^^^^

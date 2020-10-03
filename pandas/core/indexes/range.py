@@ -397,12 +397,13 @@ class RangeIndex(Int64Index):
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = self.name if name is no_default else name
 
-        if values is None:
-            result = self._simple_new(self._range, name=name)
-            result._cache = self._cache.copy()
-            return result
-        else:
+        if values is not None:
             return Int64Index._simple_new(values, name=name)
+
+        result = self._simple_new(self._range, name=name)
+        result._cache = self._cache.copy()
+        result._id = self._id
+        return result
 
     @doc(Int64Index.copy)
     def copy(self, name=None, deep=False, dtype=None, names=None):
