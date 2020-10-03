@@ -454,7 +454,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
 
     @classmethod
     def _rebox_native(cls, value: int) -> np.datetime64:
-        return np.int64(value).view("M8[ns]")
+        # error: Incompatible return value type (got "int64", expected "datetime64")
+        return np.int64(value).view("M8[ns]")  # type: ignore[return-value]
 
     def _unbox_scalar(self, value, setitem: bool = False):
         if not isinstance(value, self._scalar_type) and value is not NaT:

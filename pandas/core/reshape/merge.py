@@ -1325,7 +1325,8 @@ def get_join_indexers(
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
-    llab, rlab, shape = [list(x) for x in zipped]
+    # error: No overload variant of "list" matches argument type "object"
+    llab, rlab, shape = [list(x) for x in zipped]  # type: ignore[call-overload]
 
     # get flat i8 keys from label lists
     lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
@@ -1796,7 +1797,8 @@ def _get_multiindex_indexer(join_keys, index: MultiIndex, sort: bool):
         for n in range(index.nlevels)
     )
     zipped = zip(*mapped)
-    rcodes, lcodes, shape = [list(x) for x in zipped]
+    # error: No overload variant of "list" matches argument type "object"
+    rcodes, lcodes, shape = [list(x) for x in zipped]  # type: ignore[call-overload]
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))
     else:
@@ -1964,7 +1966,13 @@ def _factorize_keys(
         rk = ensure_int64(rk)
 
     elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
-        lk, _ = lk._values_for_factorize()
+        # pandas\core\reshape\merge.py:1967: error: Incompatible types in
+        # assignment (expression has type "ndarray", variable has type
+        # "ExtensionArray")  [assignment]
+
+        # pandas\core\reshape\merge.py:1967: error: "ndarray" has no attribute
+        # "_values_for_factorize"  [attr-defined]
+        lk, _ = lk._values_for_factorize()  # type: ignore[attr-defined,assignment]
 
         # error: Incompatible types in assignment (expression has type
         # "ndarray", variable has type "ExtensionArray")

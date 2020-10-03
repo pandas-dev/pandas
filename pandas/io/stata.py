@@ -651,7 +651,9 @@ class StataValueLabel:
         # error: Incompatible types in assignment (expression has type
         # "ndarray", variable has type "List[int]")
         self.off = np.array(self.off, dtype=np.int32)  # type: ignore[assignment]
-        self.val = np.array(self.val, dtype=np.int32)
+        # error: Incompatible types in assignment (expression has type
+        # "ndarray", variable has type "List[int]")  [assignment]
+        self.val = np.array(self.val, dtype=np.int32)  # type: ignore[assignment]
 
         # Total length
         self.len = 4 + 4 + 4 * self.n + 4 * self.n + self.text_len

@@ -1082,9 +1082,14 @@ def _make_field_arrays(*fields):
                 length = len(x)
 
     arrays = [
-        np.asarray(x)
-        if isinstance(x, (np.ndarray, list, ABCSeries))
-        else np.repeat(x, length)
+        np.asarray(x) if isinstance(x, (np.ndarray, list, ABCSeries))
+        # error: Argument 2 to "repeat" has incompatible type "Optional[int]";
+        # expected "Union[Union[Union[int, integer], Union[bool, bool_]],
+        # ndarray, Sequence[Union[Union[int, integer], Union[bool, bool_]]],
+        # Sequence[Union[bool, int, float, complex, _SupportsArray,
+        # Sequence[Any]]], Sequence[Union[bool, int, float, complex,
+        # _SupportsArray, Sequence[Any]]]]"
+        else np.repeat(x, length)  # type: ignore[arg-type]
         for x in fields
     ]
 

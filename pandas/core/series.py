@@ -1099,7 +1099,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 self._values[label] = value
             else:
                 loc = self.index.get_loc(label)
-                validate_numeric_casting(self.dtype, value)
+                # error: Argument 1 to "validate_numeric_casting" has
+                # incompatible type "Union[dtype, ExtensionDtype]"; expected
+                # "dtype"
+                validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
                 self._values[loc] = value
         except KeyError:
 

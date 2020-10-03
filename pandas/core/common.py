@@ -426,8 +426,10 @@ def random_state(state=None):
         or is_array_like(state)
         or (not np_version_under1p18 and isinstance(state, np.random.BitGenerator))
     ):
-        return np.random.RandomState(state)
-    elif isinstance(state, np.random.RandomState):
+        # error: Module has no attribute "RandomState"; maybe "__RandomState_ctor"?
+        return np.random.RandomState(state)  # type: ignore[attr-defined]
+    # error: Module has no attribute "RandomState"; maybe "__RandomState_ctor"?
+    elif isinstance(state, np.random.RandomState):  # type: ignore[attr-defined]
         return state
     elif state is None:
         return np.random

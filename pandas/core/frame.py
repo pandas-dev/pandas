@@ -507,7 +507,20 @@ class DataFrame(NDFrame):
                     data, index, columns, dtype=dtype  # type: ignore[arg-type]
                 )
             elif getattr(data, "name", None) is not None:
-                mgr = init_dict({data.name: data}, index, columns, dtype=dtype)
+                # pandas\core\frame.py:510: error: Item "ndarray" of
+                # "Union[ndarray, Series, Index]" has no attribute "name"
+                # [union-attr]
+
+                # pandas\core\frame.py:510: error: Argument "dtype" to
+                # "init_dict" has incompatible type "Union[ExtensionDtype, str,
+                # dtype, Type[object], None]"; expected "Union[dtype,
+                # ExtensionDtype, None]"  [arg-type]
+                mgr = init_dict(
+                    {data.name: data},  # type: ignore[union-attr]
+                    index,
+                    columns,
+                    dtype=dtype,  # type: ignore[arg-type]
+                )
             else:
                 # error: Argument "dtype" to "init_ndarray" has incompatible
                 # type "Union[ExtensionDtype, str, dtype, Type[object], None]";
@@ -536,7 +549,9 @@ class DataFrame(NDFrame):
                     arrays, columns = to_arrays(
                         data, columns, dtype=dtype  # type: ignore[arg-type]
                     )
-                    columns = ensure_index(columns)
+                    # error: Value of type variable "AnyArrayLike" of
+                    # "ensure_index" cannot be "Optional[Collection[Any]]"
+                    columns = ensure_index(columns)  # type: ignore[type-var]
 
                     # set the index
                     if index is None:
@@ -622,7 +637,13 @@ class DataFrame(NDFrame):
                 # error: Incompatible types in assignment (expression has type
                 # "ndarray", variable has type "List[ExtensionArray]")
                 values = cast_scalar_to_array(  # type: ignore[assignment]
-                    (len(index), len(columns)), data, dtype=dtype
+                    # error: Argument "dtype" to "cast_scalar_to_array" has
+                    # incompatible type "Union[ExtensionDtype, str, dtype,
+                    # Type[object]]"; expected "Union[dtype, ExtensionDtype,
+                    # None]"
+                    (len(index), len(columns)),
+                    data,
+                    dtype=dtype,  # type: ignore[arg-type]
                 )
 
                 mgr = init_ndarray(
@@ -5424,8 +5445,9 @@ class DataFrame(NDFrame):
             if key is not None:
                 # error: List comprehension has incompatible type List[Series];
                 # expected List[ndarray]
-                keys = [  # type: ignore[misc]
-                    Series(k, name=name) for (k, name) in zip(keys, by)
+                keys = [
+                    Series(k, name=name)  # type: ignore[misc]
+                    for (k, name) in zip(keys, by)
                 ]
 
             indexer = lexsort_indexer(
@@ -5442,7 +5464,7 @@ class DataFrame(NDFrame):
             if key is not None:
                 # error: Incompatible types in assignment (expression has type
                 # "Series", variable has type "ndarray")
-                k = Series(k, name=by)  # type[assignment]
+                k = Series(k, name=by)  # type: ignore[assignment]
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]

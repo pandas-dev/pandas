@@ -292,7 +292,19 @@ def array(
 
     # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
     # "Union[Sequence[object], Index]"
-    data = extract_array(data, extract_numpy=True)  # type: ignore[type-var]
+
+    # pandas\core\construction.py:295: error: Incompatible types in assignment
+    # (expression has type "ExtensionArray", variable has type
+    # "Union[Sequence[object], Index]")  [assignment]
+
+    # pandas\core\construction.py:295: error: Incompatible types in assignment
+    # (expression has type "ExtensionArray", variable has type
+    # "Union[Sequence[object], Series]")  [assignment]
+
+    # pandas\core\construction.py:295: error: Incompatible types in assignment
+    # (expression has type "ExtensionArray", variable has type
+    # "Union[Sequence[object], ndarray]")  [assignment]
+    data = extract_array(data, extract_numpy=True)  # type: ignore[type-var,assignment]
 
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):

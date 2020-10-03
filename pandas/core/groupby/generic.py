@@ -724,7 +724,15 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if is_interval_dtype(lab.dtype):
             # TODO: should we do this inside II?
-            sorter = np.lexsort((lab.left, lab.right, ids))
+
+            # pandas\core\groupby\generic.py:727: error: "ndarray" has no
+            # attribute "left"  [attr-defined]
+
+            # pandas\core\groupby\generic.py:727: error: "ndarray" has no
+            # attribute "right"  [attr-defined]
+            sorter = np.lexsort(
+                (lab.left, lab.right, ids)  # type: ignore[attr-defined]
+            )
         else:
             sorter = np.lexsort((lab, ids))
 
@@ -747,9 +755,9 @@ class SeriesGroupBy(GroupBy[Series]):
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
         # error: List item 0 has incompatible type "Union[ndarray, Any]";
         # expected "Index"
-        levels = [  # type: ignore[list-item]
-            ping.group_index for ping in self.grouper.groupings
-        ] + [lev]
+        levels = [ping.group_index for ping in self.grouper.groupings] + [
+            lev  # type: ignore[list-item]
+        ]
         names = self.grouper.names + [self._selection_name]
 
         if dropna:

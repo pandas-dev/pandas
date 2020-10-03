@@ -901,7 +901,12 @@ def _nanminmax(meth, fill_value_typ):
             result = getattr(values, meth)(axis)
 
         result = _wrap_results(result, dtype, fill_value)
-        return _maybe_null_out(result, axis, mask, values.shape)
+        # error: Incompatible return value type (got "float", expected
+        # "Union[ExtensionDtype, str, dtype, Type[str], Type[float], Type[int],
+        # Type[complex], Type[bool], Type[object]]")
+        return _maybe_null_out(  # type: ignore[return-value]
+            result, axis, mask, values.shape
+        )
 
     return reduction
 

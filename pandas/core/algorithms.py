@@ -487,7 +487,17 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     # pandas\core\algorithms.py:463: error: Incompatible types in assignment
     # (expression has type "ndarray", variable has type "Series")  [assignment]
     comps, dtype = _ensure_data(comps)  # type: ignore[assignment]
-    values, _ = _ensure_data(values, dtype=dtype)
+
+    # pandas\core\algorithms.py:490: error: Incompatible types in assignment
+    # (expression has type "ndarray", variable has type "ExtensionArray")
+    # [assignment]
+
+    # pandas\core\algorithms.py:490: error: Incompatible types in assignment
+    # (expression has type "ndarray", variable has type "Index")  [assignment]
+
+    # pandas\core\algorithms.py:490: error: Incompatible types in assignment
+    # (expression has type "ndarray", variable has type "Series")  [assignment]
+    values, _ = _ensure_data(values, dtype=dtype)  # type: ignore[assignment]
 
     # faster for larger cases to use np.in1d
     f = htable.ismember_object
@@ -497,7 +507,11 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if len(comps) > 1_000_000 and not is_object_dtype(comps):
         # If the the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
-        if np.isnan(values).any():
+
+        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
+        # "ExtensionArray"; expected "Union[bool, int, float, complex,
+        # _SupportsArray, Sequence[Any]]"
+        if np.isnan(values).any():  # type: ignore[arg-type]
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d
