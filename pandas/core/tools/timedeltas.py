@@ -1,6 +1,7 @@
 """
 timedelta support tools
 """
+import warnings
 
 import numpy as np
 
@@ -118,8 +119,18 @@ def to_timedelta(arg, unit=None, errors="raise"):
             "arg must be a string, timedelta, list, tuple, 1-d array, or Series"
         )
 
-    if isinstance(arg, str) and unit is not None:
-        raise ValueError("unit must not be specified if the input is/contains a str")
+    if isinstance(arg, str):
+        if unit is not None:
+            raise ValueError(
+                "unit must not be specified if the input is/contains a str"
+            )
+        elif arg.upper().endswith(" M") or arg.upper().endswith(" Y"):
+            warnings.warn(
+                "'M', 'Y', 'm' and 'y' do not represent unambiguous timedelta values"
+                " durations. and will removed in a future version",
+                FutureWarning,
+                stacklevel=2,
+            )
 
     # ...so it must be a scalar value. Return scalar.
     return _coerce_scalar_to_timedelta_type(arg, unit=unit, errors=errors)
