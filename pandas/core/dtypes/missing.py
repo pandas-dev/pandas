@@ -632,7 +632,9 @@ def isna_all(arr: ArrayLike) -> bool:
         checker = nan_checker
 
     elif dtype.kind in ["m", "M"] or dtype.type is Period:
-        checker = lambda x: np.asarray(x.view("i8")) == iNaT
+        # error: Incompatible types in assignment (expression has type
+        # "Callable[[Any], Any]", variable has type "ufunc")
+        checker = lambda x: np.asarray(x.view("i8")) == iNaT  # type: ignore[assignment]
 
     else:
         checker = lambda x: _isna_ndarraylike(x, inf_as_na=INF_AS_NA)

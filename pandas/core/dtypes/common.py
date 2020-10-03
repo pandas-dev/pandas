@@ -150,7 +150,10 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
         return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         if is_extension_array_dtype(arr.dtype):
-            return arr.to_numpy(dtype="float64", na_value=np.nan)
+            # error: "ndarray" has no attribute "to_numpy"
+            return arr.to_numpy(  # type: ignore[attr-defined]
+                dtype="float64", na_value=np.nan
+            )
         return arr.astype("float64", copy=copy)
 
 
@@ -1791,7 +1794,9 @@ def pandas_dtype(dtype) -> DtypeObj:
     # registered extension types
     result = registry.find(dtype)
     if result is not None:
-        return result
+        # error: Incompatible return value type (got "Type[ExtensionDtype]",
+        # expected "Union[dtype, ExtensionDtype]")
+        return result  # type: ignore[return-value]
 
     # try a numpy dtype
     # raise a consistent TypeError if failed

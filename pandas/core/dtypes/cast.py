@@ -1080,7 +1080,11 @@ def soft_convert_objects(
         if datetime:
             from pandas import to_datetime
 
-            return to_datetime(values, errors="coerce").to_numpy()
+            # error: No overload variant of "to_datetime" matches argument
+            # types "ndarray", "str"
+            return to_datetime(  # type: ignore[call-overload]
+                values, errors="coerce"
+            ).to_numpy()
         elif timedelta:
             from pandas import to_timedelta
 

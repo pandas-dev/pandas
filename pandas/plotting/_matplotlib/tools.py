@@ -403,10 +403,15 @@ def handle_shared_axes(
 
 def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> Sequence["Axes"]:
     if not is_list_like(axes):
-        return np.array([axes])
+        # error: Incompatible return value type (got "ndarray", expected
+        # "Sequence[Any]")
+        return np.array([axes])  # type: ignore[return-value]
     elif isinstance(axes, (np.ndarray, ABCIndexClass)):
-        return axes.ravel()
-    return np.array(axes)
+        # error: Incompatible return value type (got "Union[ndarray, Any]",
+        # expected "Sequence[Any]")
+        return axes.ravel()  # type: ignore[return-value]
+    # error: Incompatible return value type (got "ndarray", expected "Sequence[Any]")
+    return np.array(axes)  # type: ignore[return-value]
 
 
 def set_ticks_props(
