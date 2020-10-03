@@ -94,7 +94,8 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     @cache_readonly
     def size(self) -> int:
-        return np.prod(self.shape)
+        # error: Incompatible return value type (got "number", expected "int")
+        return np.prod(self.shape)  # type: ignore[return-value]
 
     @cache_readonly
     def nbytes(self) -> int:
@@ -216,7 +217,8 @@ class NDArrayBackedExtensionArray(ExtensionArray):
                 )
             value = value[mask]
 
-        if mask.any():
+        # error: "ExtensionArray" has no attribute "any"
+        if mask.any():  # type: ignore[attr-defined]
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values = func(self._ndarray.copy(), limit=limit, mask=mask)

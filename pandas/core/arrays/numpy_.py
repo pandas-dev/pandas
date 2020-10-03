@@ -41,7 +41,11 @@ class PandasDtype(ExtensionDtype):
     _metadata = ("_dtype",)
 
     def __init__(self, dtype: object):
-        self._dtype = np.dtype(dtype)
+        # error: Argument 1 to "dtype" has incompatible type "object"; expected
+        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"
+        self._dtype = np.dtype(dtype)  # type: ignore[arg-type]
 
     def __repr__(self) -> str:
         return f"PandasDtype({repr(self.name)})"
@@ -247,7 +251,9 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
-    def isna(self) -> np.ndarray:
+    # error: Return type "ndarray" of "isna" incompatible with return type
+    # "ArrayLike" in supertype "ExtensionArray"
+    def isna(self) -> np.ndarray:  # type: ignore[override]
         return isna(self._ndarray)
 
     def _validate_fill_value(self, fill_value):

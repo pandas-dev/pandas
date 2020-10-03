@@ -281,7 +281,9 @@ def _get_values(
     #  with scalar fill_value.  This guarantee is important for the
     #  maybe_upcast_putmask call below
     assert is_scalar(fill_value)
-    values = extract_array(values, extract_numpy=True)
+    # error: Incompatible types in assignment (expression has type
+    # "ExtensionArray", variable has type "ndarray")
+    values = extract_array(values, extract_numpy=True)  # type: ignore[assignment]
 
     mask = _maybe_get_mask(values, skipna, mask)
 
@@ -339,7 +341,13 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
             result = Timestamp(result, tz=tz)
         else:
             # If we have float dtype, taking a view will give the wrong result
-            result = result.astype(dtype)
+
+            # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
+            # incompatible type "Union[dtype, ExtensionDtype]"; expected
+            # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
+            # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+            # Tuple[Any, Any]]"
+            result = result.astype(dtype)  # type: ignore[arg-type]
     elif is_timedelta64_dtype(dtype):
         if not isinstance(result, np.ndarray):
             if result == fill_value:
@@ -351,7 +359,12 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
 
             result = Timedelta(result, unit="ns")
         else:
-            result = result.astype("m8[ns]").view(dtype)
+            # error: Argument 1 to "view" of "_ArrayOrScalarCommon" has
+            # incompatible type "Union[dtype, ExtensionDtype]"; expected
+            # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
+            # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+            # Tuple[Any, Any]]"
+            result = result.astype("m8[ns]").view(dtype)  # type: ignore[arg-type]
 
     return result
 

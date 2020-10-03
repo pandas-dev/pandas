@@ -564,7 +564,10 @@ class DatetimeLikeArrayMixin(
                 freq = self.freq
         return freq
 
-    def __setitem__(
+    # error: Argument 1 of "__setitem__" is incompatible with supertype
+    # "ExtensionArray"; supertype defines the argument type as "Union[int,
+    # ndarray]"
+    def __setitem__(  # type: ignore[override]
         self,
         key: Union[int, Sequence[int], Sequence[bool], slice],
         value: Union[NaTType, Any, Sequence[Any]],

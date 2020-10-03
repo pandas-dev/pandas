@@ -237,12 +237,7 @@ class StringMethods(NoNewAttributesMixin):
             g = self.get(i)
 
     def _wrap_result(
-        self,
-        result,
-        name=None,
-        expand=None,
-        fill_value=np.nan,
-        returns_string=True,
+        self, result, name=None, expand=None, fill_value=np.nan, returns_string=True,
     ):
         from pandas import Index, MultiIndex
 
@@ -1895,12 +1890,7 @@ class StringMethods(NoNewAttributesMixin):
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
         result, name = self._array._str_get_dummies(sep)
-        return self._wrap_result(
-            result,
-            name=name,
-            expand=True,
-            returns_string=False,
-        )
+        return self._wrap_result(result, name=name, expand=True, returns_string=False,)
 
     @forbid_nonstring_types(["bytes"])
     def translate(self, table):
@@ -2989,10 +2979,16 @@ def _str_extract_noexpand(arr, pat, flags=0):
         names = dict(zip(regex.groupindex.values(), regex.groupindex.keys()))
         columns = [names.get(1 + i, i) for i in range(regex.groups)]
         if arr.size == 0:
-            result = DataFrame(columns=columns, dtype=object)
+            # error: Incompatible types in assignment (expression has type
+            # "DataFrame", variable has type "ndarray")
+            result = DataFrame(  # type: ignore[assignment]
+                columns=columns, dtype=object
+            )
         else:
             dtype = _result_dtype(arr)
-            result = DataFrame(
+            # error: Incompatible types in assignment (expression has type
+            # "DataFrame", variable has type "ndarray")
+            result = DataFrame(  # type:ignore[assignment]
                 [groups_or_na(val) for val in arr],
                 columns=columns,
                 index=arr.index,

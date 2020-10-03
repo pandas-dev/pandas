@@ -151,14 +151,20 @@ def _ensure_data(
                 # TODO(EA2D): special case not needed with 2D EAs
                 asi8 = values.view("i8")
                 dtype = values.dtype
-                return asi8, dtype
+                # error: Incompatible return value type (got "Tuple[Any,
+                # Union[dtype, ExtensionDtype, None]]", expected
+                # "Tuple[ndarray, Union[dtype, ExtensionDtype]]")
+                return asi8, dtype  # type: ignore[return-value]
 
             from pandas import DatetimeIndex
 
             values = DatetimeIndex(values)
             dtype = values.dtype
 
-        return values.asi8, dtype
+        # error: Incompatible return value type (got "Tuple[Any, Union[dtype,
+        # ExtensionDtype, None]]", expected "Tuple[ndarray, Union[dtype,
+        # ExtensionDtype]]")
+        return values.asi8, dtype  # type: ignore[return-value]
 
     elif is_categorical_dtype(vals_dtype) and (
         is_categorical_dtype(dtype) or dtype is None
@@ -454,13 +460,33 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
         )
         # TODO: could use ensure_arraylike here
 
-    comps = extract_array(comps, extract_numpy=True)
+    # pandas\core\algorithms.py:457: error: Incompatible types in assignment
+    # (expression has type "ExtensionArray", variable has type "Index")
+    # [assignment]
+
+    # pandas\core\algorithms.py:457: error: Incompatible types in assignment
+    # (expression has type "ExtensionArray", variable has type "Series")
+    # [assignment]
+
+    # pandas\core\algorithms.py:457: error: Incompatible types in assignment
+    # (expression has type "ExtensionArray", variable has type "ndarray")
+    # [assignment]
+    comps = extract_array(comps, extract_numpy=True)  # type: ignore[assignment]
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
         return cast("Categorical", comps).isin(values)
 
-    comps, dtype = _ensure_data(comps)
+    # pandas\core\algorithms.py:463: error: Incompatible types in assignment
+    # (expression has type "ndarray", variable has type "ExtensionArray")
+    # [assignment]
+
+    # pandas\core\algorithms.py:463: error: Incompatible types in assignment
+    # (expression has type "ndarray", variable has type "Index")  [assignment]
+
+    # pandas\core\algorithms.py:463: error: Incompatible types in assignment
+    # (expression has type "ndarray", variable has type "Series")  [assignment]
+    comps, dtype = _ensure_data(comps)  # type: ignore[assignment]
     values, _ = _ensure_data(values, dtype=dtype)
 
     # faster for larger cases to use np.in1d

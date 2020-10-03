@@ -528,7 +528,14 @@ def sanitize_array(
             # GH#19853: If data is a scalar, subarr has already the result
             if not lib.is_scalar(data):
                 if not np.all(isna(data)):
-                    data = np.array(data, dtype=dtype, copy=False)
+                    # error: Argument "dtype" to "array" has incompatible type
+                    # "Union[dtype, ExtensionDtype, None]"; expected
+                    # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any,
+                    # int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+                    # _DtypeDict, Tuple[Any, Any]]"
+                    data = np.array(  # type:ignore[arg-type]
+                        data, dtype=dtype, copy=False
+                    )
                 subarr = np.array(data, dtype=object, copy=copy)
 
         is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
