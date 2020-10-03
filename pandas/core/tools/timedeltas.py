@@ -26,10 +26,13 @@ def to_timedelta(arg, unit=None, errors="raise"):
     Parameters
     ----------
     arg : str, timedelta, list-like or Series
-        The data to be converted to timedelta.  The character M by itself,
-        e.g. '1M', is treated as minute, not month. The characters Y and y
-        are treated as the mean length of the Gregorian calendar year -
-        365.2425 days or 365 days 5 hours 49 minutes 12 seconds.
+        The data to be converted to timedelta.
+
+        .. deprecated:: 1.2
+            Strings denoting units with 'M', 'Y', 'm' and 'y' do not represent
+            unambiguous timedelta values durations and will removed in a future
+            version
+
     unit : str, optional
         Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
 
@@ -126,8 +129,8 @@ def to_timedelta(arg, unit=None, errors="raise"):
             )
         elif arg.upper().endswith(" M") or arg.upper().endswith(" Y"):
             warnings.warn(
-                "'M', 'Y', 'm' and 'y' do not represent unambiguous timedelta values"
-                " durations. and will removed in a future version",
+                "Denoting units with 'M', 'Y', 'm' and 'y' do not represent unambiguous"
+                " timedelta values durations and will removed in a future version",
                 FutureWarning,
                 stacklevel=2,
             )
