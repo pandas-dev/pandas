@@ -29,7 +29,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
         The data to be converted to timedelta.
 
         .. deprecated:: 1.2
-            Strings denoting units with 'M', 'Y', 'm' and 'y' do not represent
+            Strings denoting units with 'M', 'Y', 'm' or 'y' do not represent
             unambiguous timedelta values durations and will removed in a future
             version
 
@@ -129,7 +129,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
             )
         elif arg.upper().endswith(" M") or arg.upper().endswith(" Y"):
             warnings.warn(
-                "Denoting units with 'M', 'Y', 'm' and 'y' do not represent unambiguous"
+                "Denoting units with 'M', 'Y', 'm' or 'y' do not represent unambiguous"
                 " timedelta values durations and will removed in a future version",
                 FutureWarning,
                 stacklevel=2,
