@@ -62,7 +62,7 @@ On DataFrame, :meth:`~DataFrame.plot` is a convenience to plot all of the column
    df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index, columns=list("ABCD"))
    df = df.cumsum()
 
-   plt.figure()
+   plt.figure();
    @savefig frame_plot_basic.png
    df.plot()
 
@@ -116,7 +116,7 @@ For example, a bar plot can be created the following way:
 
 .. ipython:: python
 
-   plt.figure()
+   plt.figure();
 
    @savefig bar_plot_ex.png
    df.iloc[5].plot(kind="bar")
@@ -159,7 +159,7 @@ For labeled, non-time series data, you may wish to produce a bar plot:
 
 .. ipython:: python
 
-   plt.figure()
+   plt.figure();
 
    @savefig bar_plot_ex.png
    df.iloc[5].plot.bar()
@@ -226,7 +226,7 @@ Histograms can be drawn by using the :meth:`DataFrame.plot.hist` and :meth:`Seri
        columns=["a", "b", "c"],
    )
 
-   plt.figure()
+   plt.figure();
 
    @savefig hist_new.png
    df4.plot.hist(alpha=0.5)
@@ -242,7 +242,7 @@ using the ``bins`` keyword.
 
 .. ipython:: python
 
-   plt.figure()
+   plt.figure();
 
    @savefig hist_new_stacked.png
    df4.plot.hist(stacked=True, bins=20)
@@ -258,7 +258,7 @@ horizontal and cumulative histograms can be drawn by
 
 .. ipython:: python
 
-   plt.figure()
+   plt.figure();
 
    @savefig hist_new_kwargs.png
    df4["a"].plot.hist(orientation="horizontal", cumulative=True)
@@ -276,7 +276,7 @@ The existing interface ``DataFrame.hist`` to plot histogram still can be used.
 
 .. ipython:: python
 
-   plt.figure()
+   plt.figure();
 
    @savefig hist_plot_ex.png
    df["A"].diff().hist()
@@ -394,7 +394,7 @@ The existing interface ``DataFrame.boxplot`` to plot boxplot still can be used.
    :okwarning:
 
    df = pd.DataFrame(np.random.rand(10, 5))
-   plt.figure()
+   plt.figure();
 
    @savefig box_plot_ex.png
    bp = df.boxplot()
@@ -435,7 +435,7 @@ columns:
    df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
    df["Y"] = pd.Series(["A", "B", "A", "B", "A", "B", "A", "B", "A", "B"])
 
-   plt.figure()
+   plt.figure();
 
    @savefig box_plot_ex3.png
    bp = df.boxplot(column=["Col1", "Col2"], by=["X", "Y"])
@@ -1084,7 +1084,7 @@ layout and formatting of the returned plot:
 
 .. ipython:: python
 
-   plt.figure()
+   plt.figure();
    @savefig series_plot_basic2.png
    ts.plot(style="k--", label="Series")
 
