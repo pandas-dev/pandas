@@ -523,16 +523,16 @@ Using a non-regular, but still monotonic index, rolling with an integer window d
 .. ipython:: python
 
    dft = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]},
-        index=pd.Index(
-            [
-                pd.Timestamp("20130101 09:00:00"),
-                pd.Timestamp("20130101 09:00:02"),
-                pd.Timestamp("20130101 09:00:03"),
-                pd.Timestamp("20130101 09:00:05"),
-                pd.Timestamp("20130101 09:00:06")
-            ],
-            name="foo")
-        )
+            index=pd.Index(
+                [
+                    pd.Timestamp("20130101 09:00:00"),
+                    pd.Timestamp("20130101 09:00:02"),
+                    pd.Timestamp("20130101 09:00:03"),
+                    pd.Timestamp("20130101 09:00:05"),
+                    pd.Timestamp("20130101 09:00:06")
+                ],
+                name="foo")
+            )
    dft
    dft.rolling(2).sum()
 
