@@ -61,6 +61,7 @@ class TestPDApi(Base):
         "ExcelFile",
         "ExcelWriter",
         "Float64Index",
+        "Flags",
         "Grouper",
         "HDFStore",
         "Index",
@@ -91,6 +92,8 @@ class TestPDApi(Base):
         "UInt16Dtype",
         "UInt32Dtype",
         "UInt64Dtype",
+        "Float32Dtype",
+        "Float64Dtype",
         "NamedAgg",
     ]
 

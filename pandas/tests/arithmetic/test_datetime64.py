@@ -48,7 +48,9 @@ class TestDatetime64ArrayLikeComparisons:
         # Test comparison with zero-dimensional array is unboxed
         tz = tz_naive_fixture
         box = box_with_array
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+        xbox = (
+            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
+        )
         dti = date_range("20130101", periods=3, tz=tz)
 
         other = np.array(dti.to_numpy()[0])
@@ -135,7 +137,7 @@ class TestDatetime64ArrayLikeComparisons:
         # GH#22242, GH#22163 DataFrame considered NaT == ts incorrectly
         tz = tz_naive_fixture
         box = box_with_array
-        xbox = box if box is not pd.Index else np.ndarray
+        xbox = box if box not in [pd.Index, pd.array] else np.ndarray
 
         ts = pd.Timestamp.now(tz)
         ser = pd.Series([ts, pd.NaT])
@@ -203,6 +205,8 @@ class TestDatetime64SeriesComparison:
     def test_comparison_invalid(self, tz_naive_fixture, box_with_array):
         # GH#4968
         # invalid date/int comparisons
+        if box_with_array is pd.array:
+            pytest.xfail("assert_invalid_comparison doesnt handle BooleanArray yet")
         tz = tz_naive_fixture
         ser = Series(range(5))
         ser2 = Series(pd.date_range("20010101", periods=5, tz=tz))
@@ -226,8 +230,12 @@ class TestDatetime64SeriesComparison:
             # dont bother testing ndarray comparison methods as this fails
             #  on older numpys (since they check object identity)
             return
+        if box_with_array is pd.array and dtype is object:
+            pytest.xfail("reversed comparisons give BooleanArray, not ndarray")
 
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+        xbox = (
+            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
+        )
 
         left = Series(data, dtype=dtype)
         left = tm.box_expected(left, box_with_array)
@@ -299,7 +307,9 @@ class TestDatetime64SeriesComparison:
 
     def test_dt64arr_timestamp_equality(self, box_with_array):
         # GH#11034
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+        xbox = (
+            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
+        )
 
         ser = pd.Series([pd.Timestamp("2000-01-29 01:59:00"), "NaT"])
         ser = tm.box_expected(ser, box_with_array)
@@ -308,11 +318,16 @@ class TestDatetime64SeriesComparison:
         expected = tm.box_expected([False, True], xbox)
         tm.assert_equal(result, expected)
 
-        result = ser != ser[0]
+        warn = FutureWarning if box_with_array is pd.DataFrame else None
+        with tm.assert_produces_warning(warn):
+            # alignment for frame vs series comparisons deprecated
+            result = ser != ser[0]
         expected = tm.box_expected([False, True], xbox)
         tm.assert_equal(result, expected)
 
-        result = ser != ser[1]
+        with tm.assert_produces_warning(warn):
+            # alignment for frame vs series comparisons deprecated
+            result = ser != ser[1]
         expected = tm.box_expected([True, True], xbox)
         tm.assert_equal(result, expected)
 
@@ -320,11 +335,15 @@ class TestDatetime64SeriesComparison:
         expected = tm.box_expected([True, False], xbox)
         tm.assert_equal(result, expected)
 
-        result = ser == ser[0]
+        with tm.assert_produces_warning(warn):
+            # alignment for frame vs series comparisons deprecated
+            result = ser == ser[0]
         expected = tm.box_expected([True, False], xbox)
         tm.assert_equal(result, expected)
 
-        result = ser == ser[1]
+        with tm.assert_produces_warning(warn):
+            # alignment for frame vs series comparisons deprecated
+            result = ser == ser[1]
         expected = tm.box_expected([False, False], xbox)
         tm.assert_equal(result, expected)
 
@@ -388,7 +407,9 @@ class TestDatetimeIndexComparisons:
             #  on older numpys (since they check object identity)
             return
 
-        xbox = box_with_array if box_with_array is not pd.Index else np.ndarray
+        xbox = (
+            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
+        )
 
         left = pd.DatetimeIndex(
             [pd.Timestamp("2011-01-01"), pd.NaT, pd.Timestamp("2011-01-03")]
@@ -749,6 +770,7 @@ class TestDatetime64Arithmetic:
     # -------------------------------------------------------------
     # Addition/Subtraction of timedelta-like
 
+    @pytest.mark.arm_slow
     def test_dt64arr_add_timedeltalike_scalar(
         self, tz_naive_fixture, two_hours, box_with_array
     ):

@@ -2,27 +2,33 @@ from typing import List, cast
 
 import numpy as np
 
-from pandas._typing import FilePathOrBuffer, Scalar
+from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 
-from pandas.io.excel._base import _BaseExcelReader
+from pandas.io.excel._base import BaseExcelReader
 
 
-class _ODFReader(_BaseExcelReader):
+class ODFReader(BaseExcelReader):
     """
     Read tables out of OpenDocument formatted files.
 
     Parameters
     ----------
-    filepath_or_buffer: string, path to be parsed or
+    filepath_or_buffer : string, path to be parsed or
         an open readable stream.
+    storage_options : dict, optional
+        passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
     """
 
-    def __init__(self, filepath_or_buffer: FilePathOrBuffer):
+    def __init__(
+        self,
+        filepath_or_buffer: FilePathOrBuffer,
+        storage_options: StorageOptions = None,
+    ):
         import_optional_dependency("odf")
-        super().__init__(filepath_or_buffer)
+        super().__init__(filepath_or_buffer, storage_options=storage_options)
 
     @property
     def _workbook_class(self):
@@ -191,22 +197,24 @@ class _ODFReader(_BaseExcelReader):
         Find and decode OpenDocument text:s tags that represent
         a run length encoded sequence of space characters.
         """
-        from odf.element import Element, Text
+        from odf.element import Element
         from odf.namespaces import TEXTNS
-        from odf.text import P, S
+        from odf.text import S
 
-        text_p = P().qname
         text_s = S().qname
 
-        p = cell.childNodes[0]
-
         value = []
-        if p.qname == text_p:
-            for k, fragment in enumerate(p.childNodes):
-                if isinstance(fragment, Text):
-                    value.append(fragment.data)
-                elif isinstance(fragment, Element):
-                    if fragment.qname == text_s:
-                        spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
+
+        for fragment in cell.childNodes:
+            if isinstance(fragment, Element):
+                if fragment.qname == text_s:
+                    spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
                     value.append(" " * spaces)
+                else:
+                    # recursive impl needed in case of nested fragments
+                    # with multiple spaces
+                    # https://github.com/pandas-dev/pandas/pull/36175#discussion_r484639704
+                    value.append(self._get_cell_string_value(fragment))
+            else:
+                value.append(str(fragment))
         return "".join(value)

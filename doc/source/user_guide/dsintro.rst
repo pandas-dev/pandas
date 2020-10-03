@@ -597,8 +597,6 @@ to be inserted (for example, a ``Series`` or NumPy array), or a function
 of one argument to be called on the ``DataFrame``. A *copy* of the original
 DataFrame is returned, with the new values inserted.
 
-.. versionchanged:: 0.23.0
-
 Starting with Python 3.6 the order of ``**kwargs`` is preserved. This allows
 for *dependent* assignment, where an expression later in ``**kwargs`` can refer
 to a column created earlier in the same :meth:`~DataFrame.assign`.
@@ -664,31 +662,6 @@ row-wise. For example:
 .. ipython:: python
 
    df - df.iloc[0]
-
-In the special case of working with time series data, if the DataFrame index
-contains dates, the broadcasting will be column-wise:
-
-.. ipython:: python
-   :okwarning:
-
-   index = pd.date_range('1/1/2000', periods=8)
-   df = pd.DataFrame(np.random.randn(8, 3), index=index, columns=list('ABC'))
-   df
-   type(df['A'])
-   df - df['A']
-
-.. warning::
-
-   .. code-block:: python
-
-      df - df['A']
-
-   is now deprecated and will be removed in a future release. The preferred way
-   to replicate this behavior is
-
-   .. code-block:: python
-
-      df.sub(df['A'], axis=0)
 
 For explicit control over the matching and broadcasting behavior, see the
 section on :ref:`flexible binary operations <basics.binop>`.

@@ -14,18 +14,15 @@ from pandas.core.arrays import Categorical
 import pandas.core.common as com
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
-from pandas.core.reshape.util import _tile_compat
+from pandas.core.reshape.util import tile_compat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa: F401
+    from pandas import DataFrame, Series
 
 
-@Appender(
-    _shared_docs["melt"]
-    % dict(caller="pd.melt(df, ", versionadded="", other="DataFrame.melt")
-)
+@Appender(_shared_docs["melt"] % dict(caller="pd.melt(df, ", other="DataFrame.melt"))
 def melt(
     frame: "DataFrame",
     id_vars=None,
@@ -136,7 +133,7 @@ def melt(
     result = frame._constructor(mdata, columns=mcolumns)
 
     if not ignore_index:
-        result.index = _tile_compat(frame.index, K)
+        result.index = tile_compat(frame.index, K)
 
     return result
 
@@ -274,12 +271,10 @@ def wide_to_long(
         A regular expression capturing the wanted suffixes. '\\d+' captures
         numeric suffixes. Suffixes with no numbers could be specified with the
         negated character class '\\D+'. You can also further disambiguate
-        suffixes, for example, if your wide variables are of the form
-        A-one, B-two,.., and you have an unrelated column A-rating, you can
-        ignore the last one by specifying `suffix='(!?one|two)'`.
-
-        .. versionchanged:: 0.23.0
-            When all suffixes are numeric, they are cast to int64/float64.
+        suffixes, for example, if your wide variables are of the form A-one,
+        B-two,.., and you have an unrelated column A-rating, you can ignore the
+        last one by specifying `suffix='(!?one|two)'`. When all suffixes are
+        numeric, they are cast to int64/float64.
 
     Returns
     -------

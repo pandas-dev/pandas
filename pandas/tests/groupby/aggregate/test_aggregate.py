@@ -564,7 +564,7 @@ class TestNamedAggregationSeries:
     def test_named_agg_nametuple(self, inp):
         # GH34422
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
-        msg = f"func is expected but recieved {type(inp).__name__}"
+        msg = f"func is expected but received {type(inp).__name__}"
         with pytest.raises(TypeError, match=msg):
             s.groupby(s.values).agg(a=inp)
 
@@ -1063,6 +1063,85 @@ def test_groupby_get_by_index():
     pd.testing.assert_frame_equal(res, expected)
 
 
+@pytest.mark.parametrize(
+    "grp_col_dict, exp_data",
+    [
+        ({"nr": "min", "cat_ord": "min"}, {"nr": [1, 5], "cat_ord": ["a", "c"]}),
+        ({"cat_ord": "min"}, {"cat_ord": ["a", "c"]}),
+        ({"nr": "min"}, {"nr": [1, 5]}),
+    ],
+)
+def test_groupby_single_agg_cat_cols(grp_col_dict, exp_data):
+    # test single aggregations on ordered categorical cols GHGH27800
+
+    # create the result dataframe
+    input_df = pd.DataFrame(
+        {
+            "nr": [1, 2, 3, 4, 5, 6, 7, 8],
+            "cat_ord": list("aabbccdd"),
+            "cat": list("aaaabbbb"),
+        }
+    )
+
+    input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
+    input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
+    result_df = input_df.groupby("cat").agg(grp_col_dict)
+
+    # create expected dataframe
+    cat_index = pd.CategoricalIndex(
+        ["a", "b"], categories=["a", "b"], ordered=False, name="cat", dtype="category"
+    )
+
+    expected_df = pd.DataFrame(data=exp_data, index=cat_index)
+
+    tm.assert_frame_equal(result_df, expected_df)
+
+
+@pytest.mark.parametrize(
+    "grp_col_dict, exp_data",
+    [
+        ({"nr": ["min", "max"], "cat_ord": "min"}, [(1, 4, "a"), (5, 8, "c")]),
+        ({"nr": "min", "cat_ord": ["min", "max"]}, [(1, "a", "b"), (5, "c", "d")]),
+        ({"cat_ord": ["min", "max"]}, [("a", "b"), ("c", "d")]),
+    ],
+)
+def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
+    # test combined aggregations on ordered categorical cols GH27800
+
+    # create the result dataframe
+    input_df = pd.DataFrame(
+        {
+            "nr": [1, 2, 3, 4, 5, 6, 7, 8],
+            "cat_ord": list("aabbccdd"),
+            "cat": list("aaaabbbb"),
+        }
+    )
+
+    input_df = input_df.astype({"cat": "category", "cat_ord": "category"})
+    input_df["cat_ord"] = input_df["cat_ord"].cat.as_ordered()
+    result_df = input_df.groupby("cat").agg(grp_col_dict)
+
+    # create expected dataframe
+    cat_index = pd.CategoricalIndex(
+        ["a", "b"], categories=["a", "b"], ordered=False, name="cat", dtype="category"
+    )
+
+    # unpack the grp_col_dict to create the multi-index tuple
+    # this tuple will be used to create the expected dataframe index
+    multi_index_list = []
+    for k, v in grp_col_dict.items():
+        if isinstance(v, list):
+            for value in v:
+                multi_index_list.append([k, value])
+        else:
+            multi_index_list.append([k, v])
+    multi_index = pd.MultiIndex.from_tuples(tuple(multi_index_list))
+
+    expected_df = pd.DataFrame(data=exp_data, columns=multi_index, index=cat_index)
+
+    tm.assert_frame_equal(result_df, expected_df)
+
+
 def test_nonagg_agg():
     # GH 35490 - Single/Multiple agg of non-agg function give same results
     # TODO: agg should raise for functions that don't aggregate
@@ -1074,3 +1153,18 @@ def test_nonagg_agg():
     expected = g.agg("cumsum")
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_agg_no_suffix_index():
+    # GH36189
+    df = pd.DataFrame([[4, 9]] * 3, columns=["A", "B"])
+    result = df.agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    expected = pd.DataFrame(
+        {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # test Series case
+    result = df["A"].agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    expected = pd.Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"], name="A")
+    tm.assert_series_equal(result, expected)

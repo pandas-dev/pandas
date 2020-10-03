@@ -25,7 +25,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.array_algos import masked_reductions
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
@@ -33,7 +32,7 @@ from pandas.core.tools.numeric import to_numeric
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 class _IntegerDtype(BaseMaskedDtype):
@@ -45,10 +44,6 @@ class _IntegerDtype(BaseMaskedDtype):
 
     The attributes name & type are set when these subclasses are created.
     """
-
-    name: str
-    base = None
-    type: Type
 
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
@@ -65,20 +60,6 @@ class _IntegerDtype(BaseMaskedDtype):
     @property
     def _is_numeric(self) -> bool:
         return True
-
-    @cache_readonly
-    def numpy_dtype(self) -> np.dtype:
-        """ Return an instance of our numpy dtype """
-        return np.dtype(self.type)
-
-    @cache_readonly
-    def kind(self) -> str:
-        return self.numpy_dtype.kind
-
-    @cache_readonly
-    def itemsize(self) -> int:
-        """ Return the number of bytes in this dtype """
-        return self.numpy_dtype.itemsize
 
     @classmethod
     def construct_array_type(cls) -> Type["IntegerArray"]:
@@ -106,7 +87,11 @@ class _IntegerDtype(BaseMaskedDtype):
             [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
         )
         if np.issubdtype(np_dtype, np.integer):
-            return _dtypes[str(np_dtype)]
+            return INT_STR_TO_DTYPE[str(np_dtype)]
+        elif np.issubdtype(np_dtype, np.floating):
+            from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+
+            return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
 
     def __from_arrow__(
@@ -115,7 +100,7 @@ class _IntegerDtype(BaseMaskedDtype):
         """
         Construct IntegerArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
@@ -138,7 +123,7 @@ class _IntegerDtype(BaseMaskedDtype):
         return IntegerArray._concat_same_type(results)
 
 
-def integer_array(values, dtype=None, copy: bool = False,) -> "IntegerArray":
+def integer_array(values, dtype=None, copy: bool = False) -> "IntegerArray":
     """
     Infer and return an integer array of the values.
 
@@ -182,7 +167,7 @@ def safe_cast(values, dtype, copy: bool):
 
 
 def coerce_to_array(
-    values, dtype, mask=None, copy: bool = False,
+    values, dtype, mask=None, copy: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask
@@ -214,7 +199,7 @@ def coerce_to_array(
 
         if not issubclass(type(dtype), _IntegerDtype):
             try:
-                dtype = _dtypes[str(np.dtype(dtype))]
+                dtype = INT_STR_TO_DTYPE[str(np.dtype(dtype))]
             except KeyError as err:
                 raise ValueError(f"invalid dtype specified {dtype}") from err
 
@@ -354,7 +339,7 @@ class IntegerArray(BaseMaskedArray):
 
     @cache_readonly
     def dtype(self) -> _IntegerDtype:
-        return _dtypes[str(self._data.dtype)]
+        return INT_STR_TO_DTYPE[str(self._data.dtype)]
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype.kind in ["i", "u"]):
@@ -363,6 +348,15 @@ class IntegerArray(BaseMaskedArray):
                 "the 'pd.array' function instead"
             )
         super().__init__(values, mask, copy=copy)
+
+    def __neg__(self):
+        return type(self)(-self._data, self._mask)
+
+    def __pos__(self):
+        return self
+
+    def __abs__(self):
+        return type(self)(np.abs(self._data), self._mask)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
@@ -504,11 +498,11 @@ class IntegerArray(BaseMaskedArray):
 
         @unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
-            from pandas.arrays import BooleanArray
+            from pandas.core.arrays import BaseMaskedArray, BooleanArray
 
             mask = None
 
-            if isinstance(other, (BooleanArray, IntegerArray)):
+            if isinstance(other, BaseMaskedArray):
                 other, mask = other._data, other._mask
 
             elif is_list_like(other):
@@ -555,10 +549,19 @@ class IntegerArray(BaseMaskedArray):
 
     def sum(self, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
-        result = masked_reductions.sum(
-            values=self._data, mask=self._mask, skipna=skipna, min_count=min_count
-        )
-        return result
+        return super()._reduce("sum", skipna=skipna, min_count=min_count)
+
+    def prod(self, skipna=True, min_count=0, **kwargs):
+        nv.validate_prod((), kwargs)
+        return super()._reduce("prod", skipna=skipna, min_count=min_count)
+
+    def min(self, skipna=True, **kwargs):
+        nv.validate_min((), kwargs)
+        return super()._reduce("min", skipna=skipna)
+
+    def max(self, skipna=True, **kwargs):
+        nv.validate_max((), kwargs)
+        return super()._reduce("max", skipna=skipna)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
@@ -735,7 +738,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-_dtypes: Dict[str, _IntegerDtype] = {
+INT_STR_TO_DTYPE: Dict[str, _IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),
