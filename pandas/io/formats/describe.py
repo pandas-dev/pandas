@@ -8,7 +8,17 @@ Strategy pattern is utilized.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
@@ -193,28 +203,6 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
         self.datetime_is_numeric = datetime_is_numeric
         self.data: "DataFrame" = self._initialize_data(data)
 
-    def _initialize_data(self, data) -> "DataFrame":
-        _validate_dframe_size(data)
-
-        if self.include is None and self.exclude is None:
-            # when some numerics are found, keep only numerics
-            include = [np.number]
-            if self.datetime_is_numeric:
-                include.append("datetime")
-            numeric_only = data.select_dtypes(include=include)
-            if len(numeric_only.columns) == 0:
-                return data
-            else:
-                return numeric_only
-
-        if self.include == "all":
-            if self.exclude is not None:
-                msg = "exclude must be None when include is 'all'"
-                raise ValueError(msg)
-            return data
-
-        return data.select_dtypes(include=self.include, exclude=self.exclude)
-
     def describe(self, percentiles: Optional[Sequence[float]]) -> "DataFrame":
         """Do describe dataframe."""
         ldesc: List["Series"] = []
@@ -239,6 +227,31 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
                 if name not in names:
                     names.append(name)
         return [x.reindex(names, copy=False) for x in column_data]
+
+    def _initialize_data(self, data: "DataFrame") -> "DataFrame":
+        _validate_dframe_size(data)
+
+        if self.include is None and self.exclude is None:
+            return self._extract_numeric_data(data)
+
+        if self.include == "all":
+            if self.exclude is not None:
+                msg = "exclude must be None when include is 'all'"
+                raise ValueError(msg)
+            return data
+
+        return data.select_dtypes(include=self.include, exclude=self.exclude)
+
+    def _extract_numeric_data(self, data: "DataFrame") -> "DataFrame":
+        """When some numerics are found, keep only numerics."""
+        include = [np.number]
+        if self.datetime_is_numeric:
+            include.append("datetime")
+        numeric_only = data.select_dtypes(include=include)
+        if len(numeric_only.columns) == 0:
+            return data
+        else:
+            return numeric_only
 
 
 class StrategyAbstract(ABC):
@@ -343,7 +356,7 @@ class CategoricalStrategy(StrategyAbstract):
     def count_unique(self) -> int:
         return len(self.objcounts[self.objcounts != 0])
 
-    def _get_top_and_freq(self):
+    def _get_top_and_freq(self) -> Tuple[Any, Any]:
         if self.count_unique > 0:
             return self.objcounts.index[0], self.objcounts.iloc[0]
         return np.nan, np.nan
