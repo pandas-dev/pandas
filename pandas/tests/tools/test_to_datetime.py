@@ -1090,7 +1090,7 @@ class TestToDatetime:
         result = to_datetime(dates)
         assert result.tz == fixed_off
 
-    def test_to_datetime_empty_string():
+    def test_to_datetime_empty_string(self):
         with pytest.raises(ValueError):
             pd.to_datetime("", errors="raise")
 
