@@ -44,7 +44,7 @@ def np_datetime64_compat(s, *args, **kwargs):
     """
     s = tz_replacer(s)
     # error: No overload variant of "datetime64" matches argument types "Any",
-    # "Tuple[Any, ...]", "Dict[str, Any]" 
+    # "Tuple[Any, ...]", "Dict[str, Any]"
     return np.datetime64(s, *args, **kwargs)  # type: ignore[call-overload]
 
 
