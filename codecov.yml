@@ -11,3 +11,6 @@ coverage:
     patch:
       default:
         target: '50'
+
+github_checks:
+    annotations: false
