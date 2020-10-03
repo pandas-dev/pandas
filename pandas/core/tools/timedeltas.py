@@ -129,8 +129,8 @@ def to_timedelta(arg, unit=None, errors="raise"):
             )
         elif arg.upper().endswith(" M") or arg.upper().endswith(" Y"):
             warnings.warn(
-                "Denoting units with 'M', 'Y', 'm' or 'y' do not represent unambiguous"
-                " timedelta values durations and will removed in a future version",
+                "Denoting units with 'M', 'Y', 'm' or 'y' do not represent unambiguous "
+                "timedelta values durations and will removed in a future version",
                 FutureWarning,
                 stacklevel=2,
             )
