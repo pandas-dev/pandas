@@ -116,14 +116,24 @@ def set_testing_mode():
     # set the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        warnings.simplefilter("always", _testing_mode_warnings)
+        # pandas\_testing.py:119: error: Argument 2 to "simplefilter" has
+        # incompatible type "Tuple[Type[DeprecationWarning],
+        # Type[ResourceWarning]]"; expected "Type[Warning]"
+        warnings.simplefilter(
+            "always", _testing_mode_warnings  # type: ignore[arg-type]
+        )
 
 
 def reset_testing_mode():
     # reset the testing mode filters
     testing_mode = os.environ.get("PANDAS_TESTING_MODE", "None")
     if "deprecate" in testing_mode:
-        warnings.simplefilter("ignore", _testing_mode_warnings)
+        # pandas\_testing.py:126: error: Argument 2 to "simplefilter" has
+        # incompatible type "Tuple[Type[DeprecationWarning],
+        # Type[ResourceWarning]]"; expected "Type[Warning]"
+        warnings.simplefilter(
+            "ignore", _testing_mode_warnings  # type: ignore[arg-type]
+        )
 
 
 set_testing_mode()
@@ -240,16 +250,22 @@ def decompress_file(path, compression):
     if compression is None:
         f = open(path, "rb")
     elif compression == "gzip":
-        f = gzip.open(path, "rb")
+        # pandas\_testing.py:243: error: Incompatible types in assignment
+        # (expression has type "IO[Any]", variable has type "BinaryIO")
+        f = gzip.open(path, "rb")  # type: ignore[assignment]
     elif compression == "bz2":
-        f = bz2.BZ2File(path, "rb")
+        # pandas\_testing.py:245: error: Incompatible types in assignment
+        # (expression has type "BZ2File", variable has type "BinaryIO")
+        f = bz2.BZ2File(path, "rb")  # type: ignore[assignment]
     elif compression == "xz":
         f = get_lzma_file(lzma)(path, "rb")
     elif compression == "zip":
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
         if len(zip_names) == 1:
-            f = zip_file.open(zip_names.pop())
+            # pandas\_testing.py:252: error: Incompatible types in assignment
+            # (expression has type "IO[bytes]", variable has type "BinaryIO")
+            f = zip_file.open(zip_names.pop())  # type: ignore[assignment]
         else:
             raise ValueError(f"ZIP file {path} error. Only one file per ZIP.")
     else:
@@ -285,9 +301,15 @@ def write_to_compressed(compression, path, data, dest="test"):
     if compression == "zip":
         compress_method = zipfile.ZipFile
     elif compression == "gzip":
-        compress_method = gzip.GzipFile
+        # pandas\_testing.py:288: error: Incompatible types in assignment
+        # (expression has type "Type[GzipFile]", variable has type
+        # "Type[ZipFile]")
+        compress_method = gzip.GzipFile  # type: ignore[assignment]
     elif compression == "bz2":
-        compress_method = bz2.BZ2File
+        # pandas\_testing.py:290: error: Incompatible types in assignment
+        # (expression has type "Type[BZ2File]", variable has type
+        # "Type[ZipFile]")
+        compress_method = bz2.BZ2File  # type: ignore[assignment]
     elif compression == "xz":
         compress_method = get_lzma_file(lzma)
     else:
@@ -299,7 +321,10 @@ def write_to_compressed(compression, path, data, dest="test"):
         method = "writestr"
     else:
         mode = "wb"
-        args = (data,)
+        # pandas\_testing.py:302: error: Incompatible types in assignment
+        # (expression has type "Tuple[Any]", variable has type "Tuple[Any,
+        # Any]")
+        args = (data,)  # type: ignore[assignment]
         method = "write"
 
     with compress_method(path, mode=mode) as f:
@@ -1983,7 +2008,8 @@ def all_timeseries_index_generator(k=10):
     """
     make_index_funcs = [makeDateIndex, makePeriodIndex, makeTimedeltaIndex]
     for make_index_func in make_index_funcs:
-        yield make_index_func(k=k)
+        # pandas\_testing.py:1986: error: Cannot call function of unknown type
+        yield make_index_func(k=k)  # type: ignore[operator]
 
 
 # make series
@@ -2117,7 +2143,8 @@ def makeCustomIndex(
         p=makePeriodIndex,
     ).get(idx_type)
     if idx_func:
-        idx = idx_func(nentries)
+        # pandas\_testing.py:2120: error: Cannot call function of unknown type
+        idx = idx_func(nentries)  # type: ignore[operator]
         # but we need to fill in the name
         if names:
             idx.name = names[0]
@@ -2145,7 +2172,8 @@ def makeCustomIndex(
 
         # build a list of lists to create the index from
         div_factor = nentries // ndupe_l[i] + 1
-        cnt = Counter()
+        # pandas\_testing.py:2148: error: Need type annotation for 'cnt'
+        cnt = Counter()  # type: ignore[var-annotated]
         for j in range(div_factor):
             label = f"{prefix}_l{i}_g{j}"
             cnt[label] = ndupe_l[i]
@@ -2303,7 +2331,14 @@ def _create_missing_idx(nrows, ncols, density, random_state=None):
 
 def makeMissingDataframe(density=0.9, random_state=None):
     df = makeDataFrame()
-    i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
+    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
+    # values for keyword argument "density"  [misc]
+
+    # pandas\_testing.py:2306: error: "_create_missing_idx" gets multiple
+    # values for keyword argument "random_state"  [misc]
+    i, j = _create_missing_idx(  # type: ignore[misc]
+        *df.shape, density=density, random_state=random_state
+    )
     df.values[i, j] = np.nan
     return df
 
@@ -2328,7 +2363,10 @@ def optional_args(decorator):
         is_decorating = not kwargs and len(args) == 1 and callable(args[0])
         if is_decorating:
             f = args[0]
-            args = []
+            # pandas\_testing.py:2331: error: Incompatible types in assignment
+            # (expression has type "List[<nothing>]", variable has type
+            # "Tuple[Any, ...]")
+            args = []  # type: ignore[assignment]
             return dec(f)
         else:
             return dec
@@ -2518,7 +2556,9 @@ def network(
         except Exception as err:
             errno = getattr(err, "errno", None)
             if not errno and hasattr(errno, "reason"):
-                errno = getattr(err.reason, "errno", None)
+                # pandas\_testing.py:2521: error: "Exception" has no attribute
+                # "reason"
+                errno = getattr(err.reason, "errno", None)  # type: ignore[attr-defined]
 
             if errno in skip_errnos:
                 skip(f"Skipping test due to known errno and error {err}")
@@ -2842,7 +2882,8 @@ def set_timezone(tz: str):
                 pass
         else:
             os.environ["TZ"] = tz
-            time.tzset()
+            # pandas\_testing.py:2845: error: Module has no attribute "tzset"
+            time.tzset()  # type: ignore[attr-defined]
 
     orig_tz = os.environ.get("TZ")
     setTZ(tz)
