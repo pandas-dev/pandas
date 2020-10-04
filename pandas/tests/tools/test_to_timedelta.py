@@ -121,6 +121,23 @@ class TestTimedeltas:
             invalid_data, to_timedelta(invalid_data, errors="ignore")
         )
 
+    @pytest.mark.parametrize(
+        "val",
+        [
+            "1M",
+            "1 M",
+            "1Y",
+            "1 Y",
+            "1m",
+            "1 m",
+            "1y",
+            "1 y",
+        ],
+    )
+    def test_unambiguous_timedelta_values(self, val):
+        with tm.assert_produces_warning(FutureWarning):
+            to_timedelta(val)
+
     def test_to_timedelta_via_apply(self):
         # GH 5458
         expected = Series([np.timedelta64(1, "s")])
