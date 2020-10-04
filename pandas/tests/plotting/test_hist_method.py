@@ -268,7 +268,6 @@ class TestDataFramePlots(TestPlotBase):
             df_o.hist()
 
     @pytest.mark.slow
-    # GH 9351
     def test_hist_layout(self):
         df = DataFrame(randn(100, 2))
         df[2] = to_datetime(
@@ -308,8 +307,8 @@ class TestDataFramePlots(TestPlotBase):
             df.hist(layout=(-1, -1))
 
     @pytest.mark.slow
+    # GH 9351
     def test_tight_layout(self):
-        # GH 9351
         df = DataFrame(np.random.randn(100, 2))
         df[2] = to_datetime(
             np.random.randint(
