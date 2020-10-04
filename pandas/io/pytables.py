@@ -2,6 +2,7 @@
 High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
+from contextlib import suppress
 import copy
 from datetime import date, tzinfo
 import itertools
@@ -202,12 +203,10 @@ def _tables():
         # set the file open policy
         # return the file open policy; this changes as of pytables 3.1
         # depending on the HDF5 version
-        try:
+        with suppress(AttributeError):
             _table_file_open_policy_is_strict = (
                 tables.file._FILE_OPEN_POLICY == "strict"
             )
-        except AttributeError:
-            pass
 
     return _table_mod
 
@@ -423,10 +422,8 @@ def read_hdf(
     except (ValueError, TypeError, KeyError):
         if not isinstance(path_or_buf, HDFStore):
             # if there is an error, close the store if we opened it.
-            try:
+            with suppress(AttributeError):
                 store.close()
-            except AttributeError:
-                pass
 
         raise
 
@@ -763,10 +760,8 @@ class HDFStore:
         if self._handle is not None:
             self._handle.flush()
             if fsync:
-                try:
+                with suppress(OSError):
                     os.fsync(self._handle.fileno())
-                except OSError:
-                    pass
 
     def get(self, key: str):
         """
@@ -3025,11 +3020,9 @@ class GenericFixed(Fixed):
 
         atom = None
         if self._filters is not None:
-            try:
+            with suppress(ValueError):
                 # get the atom for this datatype
                 atom = _tables().Atom.from_dtype(value.dtype)
-            except ValueError:
-                pass
 
         if atom is not None:
             # We only get here if self._filters is non-None and
@@ -5046,14 +5039,12 @@ def _maybe_adjust_name(name: str, version) -> str:
     -------
     str
     """
-    try:
+    with suppress(IndexError):
         if version[0] == 0 and version[1] <= 10 and version[2] == 0:
             m = re.search(r"values_block_(\d+)", name)
             if m:
                 grp = m.groups()[0]
                 name = f"values_{grp}"
-    except IndexError:
-        pass
     return name
 
 
@@ -5143,7 +5134,7 @@ class Selection:
         if is_list_like(where):
 
             # see if we have a passed coordinate like
-            try:
+            with suppress(ValueError):
                 inferred = lib.infer_dtype(where, skipna=False)
                 if inferred == "integer" or inferred == "boolean":
                     where = np.asarray(where)
@@ -5162,9 +5153,6 @@ class Selection:
                                 "where must have index locations >= start and < stop"
                             )
                         self.coordinates = where
-
-            except ValueError:
-                pass
 
         if self.coordinates is None:
 
