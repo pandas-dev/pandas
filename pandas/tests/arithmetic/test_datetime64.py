@@ -205,8 +205,6 @@ class TestDatetime64SeriesComparison:
     def test_comparison_invalid(self, tz_naive_fixture, box_with_array):
         # GH#4968
         # invalid date/int comparisons
-        if box_with_array is pd.array:
-            pytest.xfail("assert_invalid_comparison doesnt handle BooleanArray yet")
         tz = tz_naive_fixture
         ser = Series(range(5))
         ser2 = Series(pd.date_range("20010101", periods=5, tz=tz))
@@ -226,32 +224,36 @@ class TestDatetime64SeriesComparison:
     )
     @pytest.mark.parametrize("dtype", [None, object])
     def test_nat_comparisons_scalar(self, dtype, data, box_with_array):
+        box = box_with_array
         if box_with_array is tm.to_array and dtype is object:
             # dont bother testing ndarray comparison methods as this fails
             #  on older numpys (since they check object identity)
             return
-        if box_with_array is pd.array and dtype is object:
-            pytest.xfail("reversed comparisons give BooleanArray, not ndarray")
 
-        xbox = (
-            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
-        )
+        xbox = box if box not in [pd.Index, pd.array] else np.ndarray
 
         left = Series(data, dtype=dtype)
-        left = tm.box_expected(left, box_with_array)
+        left = tm.box_expected(left, box)
 
         expected = [False, False, False]
         expected = tm.box_expected(expected, xbox)
+        if box is pd.array and dtype is object:
+            expected = pd.array(expected, dtype="bool")
+
         tm.assert_equal(left == NaT, expected)
         tm.assert_equal(NaT == left, expected)
 
         expected = [True, True, True]
         expected = tm.box_expected(expected, xbox)
+        if box is pd.array and dtype is object:
+            expected = pd.array(expected, dtype="bool")
         tm.assert_equal(left != NaT, expected)
         tm.assert_equal(NaT != left, expected)
 
         expected = [False, False, False]
         expected = tm.box_expected(expected, xbox)
+        if box is pd.array and dtype is object:
+            expected = pd.array(expected, dtype="bool")
         tm.assert_equal(left < NaT, expected)
         tm.assert_equal(NaT > left, expected)
         tm.assert_equal(left <= NaT, expected)
