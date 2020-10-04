@@ -41,7 +41,11 @@ API changes
 
    import io
 
-   data = "0,0,1\n1,1,0\n0,1,0"
+   data = """
+   0,0,1
+   1,1,0
+   0,1,0
+   """
    df = pd.read_csv(io.StringIO(data), header=None)
    df
 
