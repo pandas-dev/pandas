@@ -814,19 +814,19 @@ class HDFStore:
         Parameters
         ----------
         key : str
-                Object being retrieved from file.
+            Object being retrieved from file.
         where : list, default None
-                List of Term (or convertible) objects, optional.
+            List of Term (or convertible) objects, optional.
         start : int, default None
-                Row number to start selection.
+            Row number to start selection.
         stop : int, default None
-                Row number to stop selection.
+            Row number to stop selection.
         columns : list, default None
-                A list of columns that if not None, will limit the return columns.
+            A list of columns that if not None, will limit the return columns.
         iterator : bool, default False
-                Returns an iterator.
+            Returns an iterator.
         chunksize : int, default None
-                Number or rows to include in iteration, return an iterator.
+            Number or rows to include in iteration, return an iterator.
         auto_close : bool, default False
             Should automatically close the store when finished.
 
@@ -1090,7 +1090,7 @@ class HDFStore:
                 Table format.  Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
-        append   : bool, default False
+        append : bool, default False
             This will force Table format, append the input data to the
             existing.
         data_columns : list, default None
@@ -1099,7 +1099,7 @@ class HDFStore:
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : str, default None
             Provide an encoding for strings.
-        dropna   : bool, default False, do not write an ALL nan row to
+        dropna : bool, default False, do not write an ALL nan row to
             The store settable by the option 'io.hdf.dropna_table'.
         track_times : bool, default True
             Parameter is propagated to 'create_table' method of 'PyTables'.
@@ -1521,11 +1521,12 @@ class HDFStore:
 
         Parameters
         ----------
-        propindexes: bool, default True
+        propindexes : bool, default True
             Restore indexes in copied file.
-        keys       : list of keys to include in the copy (defaults to all)
-        overwrite  : overwrite (remove and replace) existing nodes in the
-            new store (default is True)
+        keys : list, optional
+            List of keys to include in the copy (defaults to all).
+        overwrite : bool, default True
+            Whether to overwrite (remove and replace) existing nodes in the new store.
         mode, complib, complevel, fletcher32 same as in HDFStore.__init__
 
         Returns
