@@ -81,7 +81,7 @@ Integer dtypes and missing data
 -------------------------------
 
 Because ``NaN`` is a float, a column of integers with even one missing values
-is cast to floating-point dtype (see :ref:`gotchas.intna` for more). Pandas
+is cast to floating-point dtype (see :ref:`gotchas.intna` for more). pandas
 provides a nullable integer array, which can be used by explicitly requesting
 the dtype:
 
@@ -738,7 +738,7 @@ However, these can be filled in using :meth:`~DataFrame.fillna` and it will work
    reindexed[crit.fillna(False)]
    reindexed[crit.fillna(True)]
 
-Pandas provides a nullable integer dtype, but you must explicitly request it
+pandas provides a nullable integer dtype, but you must explicitly request it
 when creating the series or column. Notice that we use a capital "I" in
 the ``dtype="Int64"``.
 
