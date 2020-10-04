@@ -1735,38 +1735,12 @@ class HDFStore:
         errors: str = "strict",
         track_times: bool = True,
     ):
-        group = self.get_node(key)
-
-        # we make this assertion for mypy; the get_node call will already
-        #  have raised if this is incorrect
-        assert self._handle is not None
-
-        # remove the node if we are not appending
-        if group is not None and not append:
-            self._handle.remove_node(group, recursive=True)
-            group = None
-
         # we don't want to store a table node at all if our object is 0-len
         # as there are not dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
             return
 
-        if group is None:
-            paths = key.split("/")
-
-            # recursively create the groups
-            path = "/"
-            for p in paths:
-                if not len(p):
-                    continue
-                new_path = path
-                if not path.endswith("/"):
-                    new_path += "/"
-                new_path += p
-                group = self.get_node(new_path)
-                if group is None:
-                    group = self._handle.create_group(path, p)
-                path = new_path
+        group = self._identify_group(key, append)
 
         s = self._create_storer(group, format, value, encoding=encoding, errors=errors)
         if append:
@@ -1806,6 +1780,45 @@ class HDFStore:
         s = self._create_storer(group)
         s.infer_axes()
         return s.read()
+
+    def _identify_group(self, key: str, append: bool) -> "Node":
+        """Identify HDF5 group based on key, delete/create group if needed."""
+        group = self.get_node(key)
+
+        # we make this assertion for mypy; the get_node call will already
+        # have raised if this is incorrect
+        assert self._handle is not None
+
+        # remove the node if we are not appending
+        if group is not None and not append:
+            self._handle.remove_node(group, recursive=True)
+            group = None
+
+        if group is None:
+            group = self._create_nodes_and_group(key)
+
+        return group
+
+    def _create_nodes_and_group(self, key: str) -> "Node":
+        """Create nodes from key and return group name."""
+        # assertion for mypy
+        assert self._handle is not None
+
+        paths = key.split("/")
+        # recursively create the groups
+        path = "/"
+        for p in paths:
+            if not len(p):
+                continue
+            new_path = path
+            if not path.endswith("/"):
+                new_path += "/"
+            new_path += p
+            group = self.get_node(new_path)
+            if group is None:
+                group = self._handle.create_group(path, p)
+            path = new_path
+        return group
 
 
 class TableIterator:
