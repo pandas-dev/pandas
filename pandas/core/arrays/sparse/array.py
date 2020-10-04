@@ -796,7 +796,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             key = check_array_indexer(self, key)
 
             if com.is_bool_indexer(key):
-                key = check_bool_indexer(self, key)
+                # pandas\core\arrays\sparse\array.py:799: error: Argument 1 to
+                # "check_bool_indexer" has incompatible type "SparseArray";
+                # expected "Index"  [arg-type]
+                key = check_bool_indexer(self, key)  # type: ignore
 
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
@@ -1484,15 +1487,35 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _add_unary_ops(cls):
-        cls.__pos__ = cls._create_unary_method(operator.pos)
-        cls.__neg__ = cls._create_unary_method(operator.neg)
-        cls.__invert__ = cls._create_unary_method(operator.invert)
+        # pandas\core\arrays\sparse\array.py:1487: error: Unsupported operand
+        # type for unary + ("Type[SparseArray]")  [operator]
+        cls.__pos__ = cls._create_unary_method(operator.pos)  # type: ignore[operator]
+        # pandas\core\arrays\sparse\array.py:1488: error: Unsupported operand
+        # type for unary - ("Type[SparseArray]")  [operator]
+        cls.__neg__ = cls._create_unary_method(operator.neg)  # type: ignore[operator]
+        # pandas\core\arrays\sparse\array.py:1489: error: Unsupported operand
+        # type for ~ ("Type[SparseArray]")  [operator]
+        cls.__invert__ = cls._create_unary_method(  # type: ignore[operator]
+            operator.invert
+        )
 
     @classmethod
     def _add_comparison_ops(cls):
-        cls.__and__ = cls._create_comparison_method(operator.and_)
-        cls.__or__ = cls._create_comparison_method(operator.or_)
-        cls.__xor__ = cls._create_arithmetic_method(operator.xor)
+        # pandas\core\arrays\sparse\array.py:1493: error: Unsupported left
+        # operand type for & ("Type[SparseArray]")  [operator]
+        cls.__and__ = cls._create_comparison_method(  # type: ignore[operator]
+            operator.and_
+        )
+        # pandas\core\arrays\sparse\array.py:1494: error: Unsupported left
+        # operand type for | ("Type[SparseArray]")  [operator]
+        cls.__or__ = cls._create_comparison_method(  # type: ignore[operator]
+            operator.or_
+        )
+        # pandas\core\arrays\sparse\array.py:1495: error: Unsupported left
+        # operand type for ^ ("Type[SparseArray]")  [operator]
+        cls.__xor__ = cls._create_arithmetic_method(  # type: ignore[operator]
+            operator.xor
+        )
         super()._add_comparison_ops()
 
     # ----------
