@@ -9048,7 +9048,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         try_cast : bool, default False
             Try to cast the result back to the input type (if possible).
 
-        Returns or None
+        Returns
         -------
         Same type as caller or None if ``inplace=True``.
 
