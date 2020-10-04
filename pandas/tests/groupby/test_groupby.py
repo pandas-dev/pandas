@@ -1310,7 +1310,12 @@ def test_groupby_nan_included():
     df = pd.DataFrame(data)
     grouped = df.groupby("group", dropna=False)
     result = grouped.indices
-    expected = {"g1": np.array([0, 2]), "g2": np.array([3]), np.nan: np.array([1, 4])}
+    dtype = "int64"
+    expected = {
+        "g1": np.array([0, 2], dtype=dtype),
+        "g2": np.array([3], dtype=dtype),
+        np.nan: np.array([1, 4], dtype=dtype),
+    }
     for result_values, expected_values in zip(result.values(), expected.values()):
         tm.assert_numpy_array_equal(result_values, expected_values)
     assert np.isnan(list(result.keys())[2])
