@@ -886,7 +886,9 @@ class DataSplitter:
         return get_group_index_sorter(self.labels, self.ngroups)
 
     def __iter__(self):
-        sdata = self._get_sorted_data()
+        # pandas\core\groupby\ops.py:889: error: Need type annotation for
+        # 'sdata'  [var-annotated]
+        sdata = self._get_sorted_data()  # type: ignore[var-annotated]
 
         if self.ngroups == 0:
             # we are inside a generator, rather than raise StopIteration
