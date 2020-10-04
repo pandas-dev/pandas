@@ -81,7 +81,9 @@ class PandasObject(DirNamesMixin):
         either a value or Series of values
         """
         if hasattr(self, "memory_usage"):
-            mem = self.memory_usage(deep=True)
+            # pandas\core\base.py:84: error: "PandasObject" has no attribute
+            # "memory_usage"  [attr-defined]
+            mem = self.memory_usage(deep=True)  # type: ignore[attr-defined]
             return int(mem if is_scalar(mem) else mem.sum())
 
         # no memory_usage attribute, so fall back to object's 'sizeof'
@@ -191,7 +193,9 @@ class SelectionMixin:
     @cache_readonly
     def _selected_obj(self):
         if self._selection is None or isinstance(self.obj, ABCSeries):
-            return self.obj
+            # pandas\core\base.py:194: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+            return self.obj  # type: ignore[attr-defined]
         else:
             return self.obj[self._selection]
 
@@ -204,18 +208,35 @@ class SelectionMixin:
         if self._selection is not None and isinstance(self.obj, ABCDataFrame):
             return self.obj.reindex(columns=self._selection_list)
 
-        if len(self.exclusions) > 0:
-            return self.obj.drop(self.exclusions, axis=1)
+        # pandas\core\base.py:207: error: "SelectionMixin" has no attribute
+        # "exclusions"  [attr-defined]
+        if len(self.exclusions) > 0:  # type: ignore[attr-defined]
+            # pandas\core\base.py:208: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+
+            # pandas\core\base.py:208: error: "SelectionMixin" has no attribute
+            # "exclusions"  [attr-defined]
+            return self.obj.drop(self.exclusions, axis=1)  # type: ignore[attr-defined]
         else:
-            return self.obj
+            # pandas\core\base.py:210: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+            return self.obj  # type: ignore[attr-defined]
 
     def __getitem__(self, key):
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
-            if len(self.obj.columns.intersection(key)) != len(key):
-                bad_keys = list(set(key).difference(self.obj.columns))
+            # pandas\core\base.py:217: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+            if len(
+                self.obj.columns.intersection(key)  # type: ignore[attr-defined]
+            ) != len(key):
+                # pandas\core\base.py:218: error: "SelectionMixin" has no
+                # attribute "obj"  [attr-defined]
+                bad_keys = list(set(key).difference(
+                    self.obj.columns  # type: ignore[attr-defined]
+                ))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
 
@@ -566,7 +587,11 @@ class SelectionMixin:
 
             from pandas import Series
 
-            result = Series(results, index=keys, name=self.name)
+            # pandas\core\base.py:569: error: "SelectionMixin" has no attribute
+            # "name"  [attr-defined]
+            result = Series(
+                results, index=keys, name=self.name  # type: ignore[attr-defined]
+            )
             if is_nested_object(result):
                 raise ValueError(
                     "cannot combine transform and aggregation operations"
@@ -833,8 +858,13 @@ class IndexOpsMixin:
         array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
               dtype='datetime64[ns]')
         """
-        if is_extension_array_dtype(self.dtype):
-            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
+        # pandas\core\base.py:836: error: "IndexOpsMixin" has no attribute
+        # "dtype"  [attr-defined]
+        if is_extension_array_dtype(self.dtype):  # type: ignore[attr-defined]
+            # pandas\core\base.py:837: error: Too many arguments for "to_numpy"
+            # of "ExtensionArray"  [call-arg]
+            return self.array.to_numpy(  # type: ignore[call-arg]
+                dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
             raise TypeError(
@@ -846,7 +876,9 @@ class IndexOpsMixin:
         if copy or na_value is not lib.no_default:
             result = result.copy()
             if na_value is not lib.no_default:
-                result[self.isna()] = na_value
+                # pandas\core\base.py:849: error: "IndexOpsMixin" has no
+                # attribute "isna"  [attr-defined]
+                result[self.isna()] = na_value  # type: ignore[attr-defined]
         return result
 
     @property
@@ -1119,10 +1151,17 @@ class IndexOpsMixin:
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
-            if is_categorical_dtype(self.dtype):
+
+            # pandas\core\base.py:1122: error: "IndexOpsMixin" has no attribute
+            # "dtype"  [attr-defined]
+            if is_categorical_dtype(self.dtype):  # type: ignore[attr-defined]
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
-                return self._values.map(mapper)
+
+                # pandas\core\base.py:1125: error: Item "ExtensionArray" of
+                # "Union[ExtensionArray, Any]" has no attribute "map"
+                # [union-attr]
+                return self._values.map(mapper)  # type: ignore[union-attr]
 
             values = self._values
 
@@ -1132,14 +1171,21 @@ class IndexOpsMixin:
             return new_values
 
         # we must convert to python types
-        if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
+
+        # pandas\core\base.py:1135: error: "IndexOpsMixin" has no attribute
+        # "dtype"  [attr-defined]
+        if is_extension_array_dtype(
+            self.dtype  # type: ignore[attr-defined]
+        ) and hasattr(self._values, "map"):
             # GH#23179 some EAs do not have `map`
             values = self._values
             if na_action is not None:
                 raise NotImplementedError
             map_f = lambda values, f: values.map(f)
         else:
-            values = self.astype(object)._values
+            # pandas\core\base.py:1142: error: "IndexOpsMixin" has no attribute
+            # "astype"  [attr-defined]
+            values = self.astype(object)._values  # type: ignore[attr-defined]
             if na_action == "ignore":
 
                 def map_f(values, f):
@@ -1255,7 +1301,16 @@ class IndexOpsMixin:
 
         if not isinstance(values, np.ndarray):
             result = values.unique()
-            if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
+            # pandas\core\base.py:1258: error: "IndexOpsMixin" has no attribute
+            # "dtype"  [attr-defined]
+            if (
+                self.dtype.kind  # type: ignore[attr-defined]
+                in [
+                    "m",
+                    "M"
+                ]
+                and isinstance(self, ABCSeries)
+            ):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
                 if getattr(self.dtype, "tz", None) is None:
                     result = np.asarray(result)
@@ -1376,7 +1431,9 @@ class IndexOpsMixin:
         are not components of the array if deep=False or if used on PyPy
         """
         if hasattr(self.array, "memory_usage"):
-            return self.array.memory_usage(deep=deep)
+            # pandas\core\base.py:1379: error: "ExtensionArray" has no
+            # attribute "memory_usage"  [attr-defined]
+            return self.array.memory_usage(deep=deep)  # type: ignore[attr-defined]
 
         v = self.array.nbytes
         if deep and is_object_dtype(self) and not PYPY:
@@ -1504,7 +1561,9 @@ class IndexOpsMixin:
                 return self._shallow_copy()
 
         duplicated = self.duplicated(keep=keep)
-        result = self[np.logical_not(duplicated)]
+        # pandas\core\base.py:1507: error: Value of type "IndexOpsMixin" is not
+        # indexable  [index]
+        result = self[np.logical_not(duplicated)]  # type: ignore[index]
         return result
 
     def duplicated(self, keep="first"):
@@ -1513,6 +1572,11 @@ class IndexOpsMixin:
                 return np.zeros(len(self), dtype=bool)
             return duplicated(self, keep=keep)
         else:
-            return self._constructor(
-                duplicated(self, keep=keep), index=self.index
+            # pandas\core\base.py:1516: error: "IndexOpsMixin" has no attribute
+            # "_constructor"  [attr-defined]
+            return self._constructor(  # type: ignore[attr-defined]
+                duplicated(self, keep=keep),
+                # pandas\core\base.py:1517: error: "IndexOpsMixin" has no attribute
+                # "index"  [attr-defined]
+                index=self.index,  # type: ignore[attr-defined]
             ).__finalize__(self, method="duplicated")
