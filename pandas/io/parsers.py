@@ -903,7 +903,8 @@ class TextFileReader(abc.Iterator):
     def close(self):
         self._engine.close()
 
-    def _refresh_kwargs_based_on_dialect(self, kwds, dialect):
+    @staticmethod
+    def _refresh_kwargs_based_on_dialect(kwds, dialect):
         """Update kwargs based on the dialect parameters."""
         # Any valid dialect should have these attributes.
         # If any are missing, we will raise automatically.
@@ -920,9 +921,7 @@ class TextFileReader(abc.Iterator):
             try:
                 dialect_val = getattr(dialect, param)
             except AttributeError as err:
-                raise ValueError(
-                    f"Invalid dialect {kwds['dialect']} provided"
-                ) from err
+                raise ValueError(f"Invalid dialect {kwds['dialect']} provided") from err
 
             parser_default = _parser_defaults[param]
             provided = kwds.get(param, parser_default)
@@ -947,13 +946,12 @@ class TextFileReader(abc.Iterator):
                     conflict_msgs.append(msg)
 
             if conflict_msgs:
-                warnings.warn(
-                    "\n\n".join(conflict_msgs), ParserWarning, stacklevel=2
-                )
+                warnings.warn("\n\n".join(conflict_msgs), ParserWarning, stacklevel=2)
             kwds[param] = dialect_val
         return kwds
 
-    def _validate_skipfooter(self, kwds):
+    @staticmethod
+    def _validate_skipfooter(kwds):
         if kwds.get("skipfooter"):
             if kwds.get("iterator") or kwds.get("chunksize"):
                 raise ValueError("'skipfooter' not supported for 'iteration'")
