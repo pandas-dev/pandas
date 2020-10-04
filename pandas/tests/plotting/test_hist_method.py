@@ -103,8 +103,8 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_no_overlap(self):
         from matplotlib.pyplot import gcf, subplot
 
-        x = Series(np.random.randn(2))
-        y = Series(np.random.randn(2))
+        x = Series(randn(2))
+        y = Series(randn(2))
         subplot(121)
         x.hist()
         subplot(122)
@@ -163,7 +163,7 @@ class TestDataFramePlots(TestPlotBase):
             _check_plot_works(self.hist_df.hist)
 
         # make sure layout is handled
-        df = DataFrame(np.random.randn(100, 2))
+        df = DataFrame(randn(100, 2))
         df[2] = to_datetime(
             np.random.randint(
                 self.start_date_to_int64,
@@ -178,11 +178,11 @@ class TestDataFramePlots(TestPlotBase):
         assert not axes[1, 1].get_visible()
 
         _check_plot_works(df[[2]].hist)
-        df = DataFrame(np.random.randn(100, 1))
+        df = DataFrame(randn(100, 1))
         _check_plot_works(df.hist)
 
         # make sure layout is handled
-        df = DataFrame(np.random.randn(100, 5))
+        df = DataFrame(randn(100, 5))
         df[5] = to_datetime(
             np.random.randint(
                 self.start_date_to_int64,
@@ -268,8 +268,9 @@ class TestDataFramePlots(TestPlotBase):
             df_o.hist()
 
     @pytest.mark.slow
+    # GH 9351
     def test_hist_layout(self):
-        df = DataFrame(np.random.randn(100, 2))
+        df = DataFrame(randn(100, 2))
         df[2] = to_datetime(
             np.random.randint(
                 self.start_date_to_int64,
@@ -400,12 +401,11 @@ class TestDataFramePlots(TestPlotBase):
 class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_grouped_hist_legacy(self):
-        # GH 9351
         from matplotlib.patches import Rectangle
 
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        df = DataFrame(np.random.randn(500, 1), columns=["A"])
+        df = DataFrame(randn(500, 1), columns=["A"])
         df["B"] = to_datetime(
             np.random.randint(
                 self.start_date_to_int64,

@@ -45,7 +45,6 @@ class TestPlotBase:
             gender = np.random.choice(["Male", "Female"], size=n)
             classroom = np.random.choice(["A", "B", "C"], size=n)
 
-            # GH32590
             self.hist_df = DataFrame(
                 {
                     "gender": gender,

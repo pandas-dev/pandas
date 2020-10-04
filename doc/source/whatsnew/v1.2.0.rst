@@ -165,7 +165,6 @@ Other enhancements
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
 - :meth:`DataFrame.explode` and :meth:`Series.explode` now support exploding of sets (:issue:`35614`)
-- `Styler` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`DataFrame.hist` now supports time series (datetime) data (:issue:`32590`)
 - ``Styler`` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
