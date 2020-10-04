@@ -666,12 +666,10 @@ class HDFStore:
         tables = _tables()
 
         if self._mode != mode:
-
             # if we are changing a write mode to read, ok
             if self._mode in ["a", "w"] and mode in ["r", "r+"]:
                 pass
             elif mode in ["w"]:
-
                 # this would truncate, raise here
                 if self.is_open:
                     raise PossibleDataLossError(
@@ -700,7 +698,6 @@ class HDFStore:
                 raise
 
         except ValueError as err:
-
             # trap PyTables >= 3.1 FILE_OPEN_POLICY exception
             # to provide an updated message
             if "FILE_OPEN_POLICY" in str(err):
@@ -715,11 +712,9 @@ class HDFStore:
                     "which allows\n"
                     "files to be opened multiple times at once\n"
                 )
-
             raise err
 
         except Exception as err:
-
             # trying to read from a non-existent file causes an error which
             # is not part of IOError, make it one
             if self._mode == "r" and "Unable to open/create file" in str(err):
@@ -1646,7 +1641,6 @@ class HDFStore:
         # infer the pt from the passed value
         if pt is None:
             if value is None:
-
                 _tables()
                 assert _table_mod is not None  # for mypy
                 if getattr(group, "table", None) or isinstance(
@@ -1678,10 +1672,8 @@ class HDFStore:
 
         # existing node (and must be a table)
         if tt is None:
-
             # if we are a writer, determine the tt
             if value is not None:
-
                 if pt == "series_table":
                     index = getattr(value, "index", None)
                     if index is not None:
@@ -1886,11 +1878,9 @@ class TableIterator:
         self.auto_close = auto_close
 
     def __iter__(self):
-
         # iterate
         current = self.start
         while current < self.stop:
-
             stop = min(current + self.chunksize, self.stop)
             value = self.func(None, None, self.coordinates[current:stop])
             current = stop
@@ -1906,7 +1896,6 @@ class TableIterator:
             self.store.close()
 
     def get_result(self, coordinates: bool = False):
-
         #  return the actual iterator
         if self.chunksize is not None:
             if not isinstance(self.s, Table):
@@ -2105,7 +2094,6 @@ class IndexCol:
             with an integer size
         """
         if _ensure_decoded(self.kind) == "string":
-
             if isinstance(min_itemsize, dict):
                 min_itemsize = min_itemsize.get(self.name)
 
@@ -2163,7 +2151,6 @@ class IndexCol:
 
             existing_value = idx.get(key)
             if key in idx and value is not None and existing_value != value:
-
                 # frequency/name just warn
                 if key in ["freq", "index_name"]:
                     ws = attribute_conflict_doc % (key, existing_value, value)
@@ -2356,10 +2343,8 @@ class DataCol(IndexCol):
             atom = cls.get_atom_timedelta64(shape)
         elif is_complex_dtype(dtype):
             atom = _tables().ComplexCol(itemsize=itemsize, shape=shape[0])
-
         elif is_string_dtype(dtype):
             atom = cls.get_atom_string(shape, itemsize)
-
         else:
             atom = cls.get_atom_data(shape, kind=dtype.name)
 
@@ -2465,7 +2450,6 @@ class DataCol(IndexCol):
 
         # reverse converts
         if dtype == "datetime64":
-
             # recreate with tz if indicated
             converted = _set_tz(converted, tz, coerce=True)
 
@@ -2482,7 +2466,6 @@ class DataCol(IndexCol):
                 )
 
         elif meta == "category":
-
             # we have a categorical
             categories = metadata
             codes = converted.ravel()
@@ -2837,7 +2820,6 @@ class GenericFixed(Fixed):
                 ret = node[start:stop]
 
             if dtype == "datetime64":
-
                 # reconstruct a timezone if indicated
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, coerce=True)
@@ -3041,7 +3023,6 @@ class GenericFixed(Fixed):
                 self.write_array_empty(key, value)
 
         elif value.dtype.type == np.object_:
-
             # infer the type, warn if we have a non-string type here (for
             # performance)
             inferred_type = lib.infer_dtype(value, skipna=False)
@@ -3725,7 +3706,6 @@ class Table(Fixed):
 
         # if min_itemsize is a dict, add the keys (exclude 'values')
         if isinstance(min_itemsize, dict):
-
             existing_data_columns = set(data_columns)
             data_columns = list(data_columns)  # ensure we do not modify
             data_columns.extend(
@@ -4161,7 +4141,6 @@ class Table(Fixed):
         # find the axes
         for a in self.axes:
             if column == a.name:
-
                 if not a.is_data_indexable:
                     raise ValueError(
                         f"column [{column}] can not be extracted individually; "
@@ -4287,9 +4266,7 @@ class AppendableTable(Table):
         # if dropna==True, then drop ALL nan rows
         masks = []
         if dropna:
-
             for a in self.values_axes:
-
                 # figure the mask: only do if we can successfully process this
                 # column, otherwise ignore the mask
                 mask = isna(a.data).all(axis=0)
@@ -4868,7 +4845,6 @@ def _unconvert_index(
 def _maybe_convert_for_string_atom(
     name: str, block, existing_col, min_itemsize, nan_rep, encoding, errors
 ):
-
     if not block.is_object:
         return block.values
 
@@ -4901,7 +4877,6 @@ def _maybe_convert_for_string_atom(
         # we cannot serialize this data, so report an exception on a column
         # by column basis
         for i in range(len(block.shape[0])):
-
             col = block.iget(i)
             inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
