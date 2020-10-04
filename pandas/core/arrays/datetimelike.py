@@ -253,7 +253,11 @@ class DatelikeOps:
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
         """
-        result = self._format_native_types(date_format=date_format, na_rep=np.nan)
+        # pandas\core\arrays\datetimelike.py:256: error: "DatelikeOps" has no
+        # attribute "_format_native_types"  [attr-defined]
+        result = self._format_native_types(  # type: ignore[attr-defined]
+            date_format=date_format, na_rep=np.nan
+        )
         return result.astype(object)
 
 
@@ -367,19 +371,40 @@ default 'raise'
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
-        if is_datetime64tz_dtype(self.dtype):
+
+        # pandas\core\arrays\datetimelike.py:370: error: "TimelikeOps" has no
+        # attribute "dtype"  [attr-defined]
+        if is_datetime64tz_dtype(self.dtype):  # type: ignore[attr-defined]
             # operate on naive timestamps, then convert back to aware
-            naive = self.tz_localize(None)
+
+            # pandas\core\arrays\datetimelike.py:372: error: "TimelikeOps" has
+            # no attribute "tz_localize"  [attr-defined]
+            naive = self.tz_localize(None)  # type: ignore[attr-defined]
             result = naive._round(freq, mode, ambiguous, nonexistent)
             aware = result.tz_localize(
-                self.tz, ambiguous=ambiguous, nonexistent=nonexistent
+                # pandas\core\arrays\datetimelike.py:375: error: "TimelikeOps"
+                # has no attribute "tz"  [attr-defined]
+                self.tz,  # type: ignore[attr-defined]
+                ambiguous=ambiguous,
+                nonexistent=nonexistent,
             )
             return aware
 
-        values = self.view("i8")
+        # pandas\core\arrays\datetimelike.py:379: error: "TimelikeOps" has no
+        # attribute "view"  [attr-defined]
+        values = self.view("i8")  # type: ignore[attr-defined]
         result = round_nsint64(values, mode, freq)
-        result = self._maybe_mask_results(result, fill_value=NaT)
-        return self._simple_new(result, dtype=self.dtype)
+        # pandas\core\arrays\datetimelike.py:381: error: "TimelikeOps" has no
+        # attribute "_maybe_mask_results"  [attr-defined]
+        result = self._maybe_mask_results(  # type: ignore[attr-defined]
+            result, fill_value=NaT
+        )
+        # pandas\core\arrays\datetimelike.py:382: error: "TimelikeOps" has no
+        # attribute "_simple_new"  [attr-defined]
+
+        # pandas\core\arrays\datetimelike.py:382: error: "TimelikeOps" has no
+        # attribute "dtype"  [attr-defined]
+        return self._simple_new(result, dtype=self.dtype)  # type: ignore[attr-defined]
 
     @Appender((_round_doc + _round_example).format(op="round"))
     def round(self, freq, ambiguous="raise", nonexistent="raise"):
@@ -409,16 +434,22 @@ default 'raise'
         if freq is None:
             # Always valid
             pass
-        elif len(self) == 0 and isinstance(freq, BaseOffset):
+        # pandas\core\arrays\datetimelike.py:412: error: Argument 1 to "len"
+        # has incompatible type "TimelikeOps"; expected "Sized"  [arg-type]
+        elif len(self) == 0 and isinstance(freq, BaseOffset):  # type: ignore[arg-type]
             # Always valid.  In the TimedeltaArray case, we assume this
             #  is a Tick offset.
             pass
         else:
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"
-            freq = to_offset(self.inferred_freq)
+            # pandas\core\arrays\datetimelike.py:419: error: "TimelikeOps" has
+            # no attribute "inferred_freq"  [attr-defined]
+            freq = to_offset(self.inferred_freq)  # type: ignore[attr-defined]
 
-        arr = self.view()
+        # pandas\core\arrays\datetimelike.py:421: error: "TimelikeOps" has no
+        # attribute "view"  [attr-defined]
+        arr = self.view()  # type: ignore[attr-defined]
         arr._freq = freq
         return arr
 
@@ -629,7 +660,12 @@ class DatetimeLikeArrayMixin(
 
     def view(self, dtype=None):
         if dtype is None or dtype is self.dtype:
-            return type(self)(self._ndarray, dtype=self.dtype)
+            # pandas\core\arrays\datetimelike.py:632: error: Too many arguments for
+            # "DatetimeLikeArrayMixin"  [call-arg]
+
+            # pandas\core\arrays\datetimelike.py:632: error: Unexpected keyword
+            # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
+            return type(self)(self._ndarray, dtype=self.dtype)  # type: ignore[call-arg]
         return self._ndarray.view(dtype=dtype)
 
     # ------------------------------------------------------------------
@@ -668,7 +704,12 @@ class DatetimeLikeArrayMixin(
 
     @classmethod
     def _from_factorized(cls, values, original):
-        return cls(values, dtype=original.dtype)
+        # pandas\core\arrays\datetimelike.py:671: error: Too many arguments for
+        # "DatetimeLikeArrayMixin"  [call-arg]
+
+        # pandas\core\arrays\datetimelike.py:671: error: Unexpected keyword
+        # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
+        return cls(values, dtype=original.dtype)  # type: ignore[call-arg]
 
     # ------------------------------------------------------------------
     # Validation Methods
@@ -743,14 +784,23 @@ class DatetimeLikeArrayMixin(
         if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
-            fill_value = self._scalar_type(fill_value)
+            # pandas\core\arrays\datetimelike.py:746: error: Too many arguments
+            # for "object"  [call-arg]
+            fill_value = self._scalar_type(fill_value)  # type: ignore[call-arg]
         else:
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
-                new_fill = Period._from_ordinal(fill_value, freq=self.dtype.freq)
+
+                # pandas\core\arrays\datetimelike.py:751: error:
+                # "ExtensionDtype" has no attribute "freq"  [attr-defined]
+                new_fill = Period._from_ordinal(
+                    fill_value, freq=self.dtype.freq  # type: ignore[attr-defined]
+                )
             else:
-                new_fill = self._scalar_type(fill_value)
+                # pandas\core\arrays\datetimelike.py:753: error: Too many
+                # arguments for "object"  [call-arg]
+                new_fill = self._scalar_type(fill_value)  # type: ignore[call-arg]
 
             # stacklevel here is chosen to be correct when called from
             #  DataFrame.shift or Series.shift
@@ -927,8 +977,14 @@ class DatetimeLikeArrayMixin(
         cls = type(self)
 
         result = value_counts(values, sort=False, dropna=dropna)
+        # pandas\core\arrays\datetimelike.py:931: error: Too many arguments
+        # for "DatetimeLikeArrayMixin"  [call-arg]
+
+        # pandas\core\arrays\datetimelike.py:931: error: Unexpected keyword
+        # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
         index = Index(
-            cls(result.index.view("i8"), dtype=self.dtype), name=result.index.name
+            cls(result.index.view("i8"), dtype=self.dtype),  # type: ignore[call-arg]
+            name=result.index.name,
         )
         return Series(result._values, index=index, name=result.name)
 
@@ -1062,7 +1118,10 @@ class DatetimeLikeArrayMixin(
             return None
 
         try:
-            on_freq = cls._generate_range(
+            # pandas\core\arrays\datetimelike.py:1065: error:
+            # "Type[DatetimeLikeArrayMixin]" has no attribute "_generate_range"
+            # [attr-defined]
+            on_freq = cls._generate_range(  # type: ignore[attr-defined]
                 start=index[0], end=None, periods=len(index), freq=freq, **kwargs
             )
             if not np.array_equal(index.asi8, on_freq.asi8):
@@ -1152,7 +1211,13 @@ class DatetimeLikeArrayMixin(
             # i.e np.timedelta64("NaT"), not recognized by delta_to_nanoseconds
             new_values = np.empty(self.shape, dtype="i8")
             new_values[:] = iNaT
-            return type(self)(new_values, dtype=self.dtype)
+
+            # pandas\core\arrays\datetimelike.py:1155: error: Too many
+            # arguments for "DatetimeLikeArrayMixin"  [call-arg]
+
+            # pandas\core\arrays\datetimelike.py:1155: error: Unexpected
+            # keyword argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
+            return type(self)(new_values, dtype=self.dtype)  # type: ignore[call-arg]
 
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan).view(
@@ -1165,7 +1230,17 @@ class DatetimeLikeArrayMixin(
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        return type(self)(new_values, dtype=self.dtype, freq=new_freq)
+        # pandas\core\arrays\datetimelike.py:1168: error: Too many arguments
+        # for "DatetimeLikeArrayMixin"  [call-arg]
+
+        # pandas\core\arrays\datetimelike.py:1168: error: Unexpected keyword
+        # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
+
+        # pandas\core\arrays\datetimelike.py:1168: error: Unexpected keyword
+        # argument "freq" for "DatetimeLikeArrayMixin"  [call-arg]
+        return type(self)(  # type: ignore[call-arg]
+            new_values, dtype=self.dtype, freq=new_freq
+        )
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1195,7 +1270,12 @@ class DatetimeLikeArrayMixin(
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
 
-        return type(self)(new_values, dtype=self.dtype)
+        # pandas\core\arrays\datetimelike.py:1198: error: Too many arguments
+        # for "DatetimeLikeArrayMixin"  [call-arg]
+
+        # pandas\core\arrays\datetimelike.py:1198: error: Unexpected keyword
+        # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
+        return type(self)(new_values, dtype=self.dtype)  # type: ignore[call-arg]
 
     def _add_nat(self):
         """
@@ -1210,7 +1290,16 @@ class DatetimeLikeArrayMixin(
         # and datetime dtypes
         result = np.zeros(self.shape, dtype=np.int64)
         result.fill(iNaT)
-        return type(self)(result, dtype=self.dtype, freq=None)
+
+        # pandas\core\arrays\datetimelike.py:1213: error: Too many arguments
+        # for "DatetimeLikeArrayMixin"  [call-arg]
+
+        # pandas\core\arrays\datetimelike.py:1213: error: Unexpected keyword
+        # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
+
+        # pandas\core\arrays\datetimelike.py:1213: error: Unexpected keyword
+        # argument "freq" for "DatetimeLikeArrayMixin"  [call-arg]
+        return type(self)(result, dtype=self.dtype, freq=None)  # type: ignore[call-arg]
 
     def _sub_nat(self):
         """
@@ -1300,7 +1389,13 @@ class DatetimeLikeArrayMixin(
         # Note: in the DatetimeTZ case, _generate_range will infer the
         #  appropriate timezone from `start` and `end`, so tz does not need
         #  to be passed explicitly.
-        return self._generate_range(start=start, end=end, periods=None, freq=self.freq)
+
+        # pandas\core\arrays\datetimelike.py:1303: error:
+        # "DatetimeLikeArrayMixin" has no attribute "_generate_range"
+        # [attr-defined]
+        return self._generate_range(  # type: ignore[attr-defined]
+            start=start, end=end, periods=None, freq=self.freq
+        )
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):
@@ -1438,7 +1533,9 @@ class DatetimeLikeArrayMixin(
             # TODO: Can we simplify/generalize these cases at all?
             raise TypeError(f"cannot subtract {type(self).__name__} from {other.dtype}")
         elif is_timedelta64_dtype(self.dtype):
-            return (-self) + other
+            # pandas\core\arrays\datetimelike.py:1441: error: Unsupported
+            # operand type for unary - ("DatetimeLikeArrayMixin")  [operator]
+            return (-self) + other  # type: ignore[operator]
 
         # We get here with e.g. datetime objects
         return -(self - other)
