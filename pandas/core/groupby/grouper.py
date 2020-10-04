@@ -307,7 +307,10 @@ class Grouper:
         a tuple of binner, grouper, obj (possibly sorted)
         """
         self._set_grouper(obj)
-        self.grouper, _, self.obj = get_grouper(
+        # pandas\core\groupby\grouper.py:310: error: Value of type variable
+        # "FrameOrSeries" of "get_grouper" cannot be "Optional[Any]"
+        # [type-var]
+        self.grouper, _, self.obj = get_grouper(  # type: ignore[type-var]
             self.obj,
             [self.key],
             axis=self.axis,
@@ -345,7 +348,9 @@ class Grouper:
             if getattr(self.grouper, "name", None) == key and isinstance(
                 obj, ABCSeries
             ):
-                ax = self._grouper.take(obj.index)
+                # pandas\core\groupby\grouper.py:348: error: Item "None" of
+                # "Optional[Any]" has no attribute "take"  [union-attr]
+                ax = self._grouper.take(obj.index)  # type: ignore
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
@@ -379,7 +384,9 @@ class Grouper:
 
     @property
     def groups(self):
-        return self.grouper.groups
+        # pandas\core\groupby\grouper.py:382: error: Item "None" of
+        # "Optional[Any]" has no attribute "groups"  [union-attr]
+        return self.grouper.groups  # type: ignore[union-attr]
 
     def __repr__(self) -> str:
         attrs_list = (
