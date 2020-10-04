@@ -4305,7 +4305,7 @@ Keep all original rows and also all original values
         Returns
         -------
         Series or None
-            Series with index labels or name altered
+            Series with index labels or name altered or None if ``inplace=True``.
 
         See Also
         --------

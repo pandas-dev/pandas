@@ -4326,7 +4326,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Returns
         -------
         DataFrame or None
-            DataFrame with sorted values if inplace=False, None otherwise.
+            DataFrame with sorted values or None if ``inplace=True``.
 
         See Also
         --------
@@ -6898,7 +6898,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -------
         Series or DataFrame or None
             Returns the same object type as the caller, interpolated at
-            some or all ``NaN`` values
+            some or all ``NaN`` values or None if ``inplace=True``.
 
         See Also
         --------
