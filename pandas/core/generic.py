@@ -2253,7 +2253,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -2777,7 +2777,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -3286,7 +3286,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -3970,7 +3970,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
             Maximum distance between original and new labels for inexact
-            matches. The values of the index at the matching locations most
+            matches. The values of the index at the matching locations must
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
 
             Tolerance may be a scalar value, which applies the same tolerance
@@ -9195,7 +9195,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             extend the index when shifting and preserve the original data.
             If `freq` is specified as "infer" then it will be inferred from
             the freq or inferred_freq attributes of the index. If neither of
-            those attributes exist, a ValueError is thrown
+            those attributes exist, a ValueError is thrown.
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Shift direction.
         fill_value : object, optional
@@ -9528,7 +9528,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
-        if ax.is_all_dates:
+        if ax._is_all_dates:
+            if is_object_dtype(ax.dtype):
+                warnings.warn(
+                    "Treating object-dtype Index of date objects as DatetimeIndex "
+                    "is deprecated, will be removed in a future version.",
+                    FutureWarning,
+                )
             from pandas.core.tools.datetimes import to_datetime
 
             before = to_datetime(before)
