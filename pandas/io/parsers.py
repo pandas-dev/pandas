@@ -876,6 +876,7 @@ class TextFileReader(abc.Iterator):
                 dialect = csv.get_dialect(dialect)
             kwds = self._refresh_kwargs_based_on_dialect(kwds, dialect)
 
+        self._validate_skipfooter(kwds)
 
         if kwds.get("header", "infer") == "infer":
             kwds["header"] = 0 if kwds.get("names") is None else None
@@ -952,6 +953,13 @@ class TextFileReader(abc.Iterator):
                 )
             kwds[param] = dialect_val
         return kwds
+
+    def _validate_skipfooter(self, kwds):
+        if kwds.get("skipfooter"):
+            if kwds.get("iterator") or kwds.get("chunksize"):
+                raise ValueError("'skipfooter' not supported for 'iteration'")
+            if kwds.get("nrows"):
+                raise ValueError("'skipfooter' not supported with 'nrows'")
 
     def _get_options_with_defaults(self, engine):
         kwds = self.orig_options
