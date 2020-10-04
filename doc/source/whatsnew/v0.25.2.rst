@@ -8,7 +8,7 @@ including other versions of pandas.
 
 .. note::
 
-    Pandas 0.25.2 adds compatibility for Python 3.8 (:issue:`28147`).
+    pandas 0.25.2 adds compatibility for Python 3.8 (:issue:`28147`).
 
 .. _whatsnew_0252.bug_fixes:
 

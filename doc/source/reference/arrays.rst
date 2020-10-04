@@ -16,7 +16,7 @@ For some data types, pandas extends NumPy's type system. String aliases for thes
 can be found at :ref:`basics.dtypes`.
 
 =================== ========================= ================== =============================
-Kind of Data        Pandas Data Type          Scalar             Array
+Kind of Data        pandas Data Type          Scalar             Array
 =================== ========================= ================== =============================
 TZ-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :ref:`api.arrays.datetime`
 Timedeltas          (none)                    :class:`Timedelta` :ref:`api.arrays.timedelta`
@@ -29,7 +29,7 @@ Strings             :class:`StringDtype`      :class:`str`       :ref:`api.array
 Boolean (with NA)   :class:`BooleanDtype`     :class:`bool`      :ref:`api.arrays.bool`
 =================== ========================= ================== =============================
 
-Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
+pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
 The top-level :meth:`array` method can be used to create a new array, which may be
 stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFrame`.
 
@@ -43,7 +43,7 @@ stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFra
 Datetime data
 -------------
 
-NumPy cannot natively represent timezone-aware datetimes. Pandas supports this
+NumPy cannot natively represent timezone-aware datetimes. pandas supports this
 with the :class:`arrays.DatetimeArray` extension array, which can hold timezone-naive
 or timezone-aware values.
 
@@ -162,7 +162,7 @@ If the data are tz-aware, then every value in the array must have the same timez
 Timedelta data
 --------------
 
-NumPy can natively represent timedeltas. Pandas provides :class:`Timedelta`
+NumPy can natively represent timedeltas. pandas provides :class:`Timedelta`
 for symmetry with :class:`Timestamp`.
 
 .. autosummary::
@@ -217,7 +217,7 @@ A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
 Timespan data
 -------------
 
-Pandas represents spans of times as :class:`Period` objects.
+pandas represents spans of times as :class:`Period` objects.
 
 Period
 ------
@@ -352,7 +352,7 @@ Nullable integer
 ----------------
 
 :class:`numpy.ndarray` cannot natively represent integer-data with missing values.
-Pandas provides this through :class:`arrays.IntegerArray`.
+pandas provides this through :class:`arrays.IntegerArray`.
 
 .. autosummary::
    :toctree: api/
@@ -378,7 +378,7 @@ Pandas provides this through :class:`arrays.IntegerArray`.
 Categorical data
 ----------------
 
-Pandas defines a custom data type for representing data that can take only a
+pandas defines a custom data type for representing data that can take only a
 limited, fixed set of values. The dtype of a ``Categorical`` can be described by
 a :class:`pandas.api.types.CategoricalDtype`.
 

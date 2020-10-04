@@ -79,7 +79,7 @@ unique with :attr:`Index.is_unique`:
 .. note::
 
    Checking whether an index is unique is somewhat expensive for large datasets.
-   Pandas does cache this result, so re-checking on the same index is very fast.
+   pandas does cache this result, so re-checking on the same index is very fast.
 
 :meth:`Index.duplicated` will return a boolean ndarray indicating whether a
 label is repeated.

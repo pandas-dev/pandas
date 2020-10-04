@@ -5,11 +5,11 @@
 Comparison with R / R libraries
 *******************************
 
-Since ``pandas`` aims to provide a lot of the data manipulation and analysis
+Since pandas aims to provide a lot of the data manipulation and analysis
 functionality that people use `R <https://www.r-project.org/>`__ for, this page
 was started to provide a more detailed look at the `R language
 <https://en.wikipedia.org/wiki/R_(programming_language)>`__ and its many third
-party libraries as they relate to ``pandas``. In comparisons with R and CRAN
+party libraries as they relate to pandas. In comparisons with R and CRAN
 libraries, we care about the following things:
 
 * **Functionality / flexibility**: what can/cannot be done with each tool
@@ -21,7 +21,7 @@ libraries, we care about the following things:
 This page is also here to offer a bit of a translation guide for users of these
 R packages.
 
-For transfer of ``DataFrame`` objects from ``pandas`` to R, one option is to
+For transfer of ``DataFrame`` objects from pandas to R, one option is to
 use HDF5 files, see :ref:`io.external_compatibility` for an
 example.
 
@@ -118,7 +118,7 @@ or by integer location
    df <- data.frame(matrix(rnorm(1000), ncol=100))
    df[, c(1:10, 25:30, 40, 50:100)]
 
-Selecting multiple columns by name in ``pandas`` is straightforward
+Selecting multiple columns by name in pandas is straightforward
 
 .. ipython:: python
 
@@ -235,7 +235,7 @@ since the subclass sizes are possibly irregular. Using a data.frame called
    tapply(baseball$batting.average, baseball.example$team,
           max)
 
-In ``pandas`` we may use :meth:`~pandas.pivot_table` method to handle this:
+In pandas we may use :meth:`~pandas.pivot_table` method to handle this:
 
 .. ipython:: python
 
@@ -268,7 +268,7 @@ column's values are less than another column's values:
    subset(df, a <= b)
    df[df$a <= df$b,]  # note the comma
 
-In ``pandas``, there are a few ways to perform subsetting. You can use
+In pandas, there are a few ways to perform subsetting. You can use
 :meth:`~pandas.DataFrame.query` or pass an expression as if it were an
 index/slice as well as standard boolean indexing:
 
@@ -295,7 +295,7 @@ An expression using a data.frame called ``df`` in R with the columns ``a`` and
    with(df, a + b)
    df$a + df$b  # same as the previous expression
 
-In ``pandas`` the equivalent expression, using the
+In pandas the equivalent expression, using the
 :meth:`~pandas.DataFrame.eval` method, would be:
 
 .. ipython:: python
@@ -347,7 +347,7 @@ summarize ``x`` by ``month``:
          mean = round(mean(x), 2),
          sd = round(sd(x), 2))
 
-In ``pandas`` the equivalent expression, using the
+In pandas the equivalent expression, using the
 :meth:`~pandas.DataFrame.groupby` method, would be:
 
 .. ipython:: python

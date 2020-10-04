@@ -207,7 +207,7 @@ Only core team members can merge pull requests. We have a few guidelines.
 1. You should typically not self-merge your own pull requests. Exceptions include
    things like small changes to fix CI (e.g. pinning a package version).
 2. You should not merge pull requests that have an active discussion, or pull
-   requests that has any ``-1`` votes from a core maintainer. Pandas operates
+   requests that has any ``-1`` votes from a core maintainer. pandas operates
    by consensus.
 3. For larger changes, it's good to have a +1 from at least two core team members.
 

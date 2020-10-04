@@ -614,7 +614,7 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
       grouped["C"].agg(["sum", "sum"])
 
 
-   Pandas *does* allow you to provide multiple lambdas. In this case, pandas
+   pandas *does* allow you to provide multiple lambdas. In this case, pandas
    will mangle the name of the (nameless) lambda functions, appending ``_<i>``
    to each subsequent lambda.
 
@@ -636,7 +636,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
 
 - The keywords are the *output* column names
 - The values are tuples whose first element is the column to select
-  and the second element is the aggregation to apply to that column. Pandas
+  and the second element is the aggregation to apply to that column. pandas
   provides the ``pandas.NamedAgg`` namedtuple with the fields ``['column', 'aggfunc']``
   to make it clearer what the arguments are. As usual, the aggregation can
   be a callable or a string alias.

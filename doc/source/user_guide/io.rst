@@ -894,7 +894,7 @@ take full advantage of the flexibility of the date parsing API:
    )
    df
 
-Pandas will try to call the ``date_parser`` function in three different ways. If
+pandas will try to call the ``date_parser`` function in three different ways. If
 an exception is raised, the next one is tried:
 
 1. ``date_parser`` is first called with one or more arrays as arguments,
@@ -926,7 +926,7 @@ Note that performance-wise, you should try these methods of parsing dates in ord
 Parsing a CSV with mixed timezones
 ++++++++++++++++++++++++++++++++++
 
-Pandas cannot natively represent a column or index with mixed timezones. If your CSV
+pandas cannot natively represent a column or index with mixed timezones. If your CSV
 file contains columns with a mixture of timezones, the default result will be
 an object-dtype column with strings, even with ``parse_dates``.
 
@@ -1602,7 +1602,7 @@ python engine is selected explicitly using ``engine='python'``.
 Reading/writing remote files
 ''''''''''''''''''''''''''''
 
-You can pass in a URL to read or write remote files to many of Pandas' IO
+You can pass in a URL to read or write remote files to many of pandas' IO
 functions - the following example shows reading a CSV file:
 
 .. code-block:: python
@@ -2265,7 +2265,7 @@ The full list of types supported are described in the Table Schema
 spec. This table shows the mapping from pandas types:
 
 =============== =================
-Pandas type     Table Schema type
+pandas type     Table Schema type
 =============== =================
 int64           integer
 float64         number
@@ -2661,7 +2661,7 @@ that contain URLs.
 
    url_df = pd.DataFrame(
        {
-           "name": ["Python", "Pandas"],
+           "name": ["Python", "pandas"],
            "url": ["https://www.python.org/", "https://pandas.pydata.org"],
        }
    )
@@ -3143,7 +3143,7 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 Writing Excel files to memory
 +++++++++++++++++++++++++++++
 
-Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
+pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
 ``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
 
 .. code-block:: python
@@ -3177,7 +3177,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 Excel writer engines
 ''''''''''''''''''''
 
-Pandas chooses an Excel writer via two methods:
+pandas chooses an Excel writer via two methods:
 
 1. the ``engine`` keyword argument
 2. the filename extension (via the default specified in config options)
@@ -3474,7 +3474,7 @@ for some advanced strategies
 
 .. warning::
 
-   Pandas uses PyTables for reading and writing HDF5 files, which allows
+   pandas uses PyTables for reading and writing HDF5 files, which allows
    serializing object-dtype data with pickle. Loading pickled data received from
    untrusted sources can be unsafe.
 
@@ -4734,7 +4734,7 @@ Several caveats.
 
 * Duplicate column names and non-string columns names are not supported.
 * The ``pyarrow`` engine always writes the index to the output, but ``fastparquet`` only writes non-default
-  indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
+  indexes. This extra column can cause problems for non-pandas consumers that are not expecting it. You can
   force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
 * In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
@@ -4894,7 +4894,7 @@ ORC
 .. versionadded:: 1.0.0
 
 Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
-for data frames. It is designed to make reading data frames efficient. Pandas provides *only* a reader for the
+for data frames. It is designed to make reading data frames efficient. pandas provides *only* a reader for the
 ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
 .. _io.sql:
