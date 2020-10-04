@@ -916,7 +916,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categprocal or None
+        cat : Categorical or None
             Categorical with removed categories or None if ``inplace=True``.
 
         Raises
