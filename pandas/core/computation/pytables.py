@@ -43,7 +43,10 @@ class Term(ops.Term):
 
     def __new__(cls, name, env, side=None, encoding=None):
         klass = Constant if not isinstance(name, str) else cls
-        return object.__new__(klass)
+        # pandas\core\computation\pytables.py:46: error: Argument 1 to
+        # "__new__" of "object" has incompatible type "object"; expected
+        # "Type[object]"  [arg-type]
+        return object.__new__(klass)  # type: ignore[arg-type]
 
     def __init__(self, name, env: PyTablesScope, side=None, encoding=None):
         super().__init__(name, env, side=side, encoding=encoding)
@@ -186,7 +189,12 @@ class BinOp(ops.BinOp):
             if self.encoding is not None:
                 encoder = partial(pprint_thing_encoded, encoding=self.encoding)
             else:
-                encoder = pprint_thing
+                # pandas\core\computation\pytables.py:189: error: Incompatible
+                # types in assignment (expression has type "Callable[[Any, int,
+                # Union[Mapping[str, str], Iterable[str], None], bool, bool,
+                # Optional[int]], str]", variable has type "partial[bytes]")
+                # [assignment]
+                encoder = pprint_thing  # type: ignore[assignment]
             return encoder(value)
 
         kind = ensure_decoded(self.kind)
@@ -259,7 +267,11 @@ class FilterBinOp(BinOp):
         if self.filter is not None:
             f = list(self.filter)
             f[1] = self.generate_filter_op(invert=True)
-            self.filter = tuple(f)
+            # pandas\core\computation\pytables.py:262: error: Incompatible
+            # types in assignment (expression has type "Tuple[Any, ...]",
+            # variable has type "Optional[Tuple[Any, Any, Index]]")
+            # [assignment]
+            self.filter = tuple(f)  # type: ignore[assignment]
         return self
 
     def format(self):
@@ -348,20 +360,30 @@ class ConditionBinOp(BinOp):
             # too many values to create the expression?
             if len(values) <= self._max_selectors:
                 vs = [self.generate(v) for v in values]
-                self.condition = f"({' | '.join(vs)})"
+                # pandas\core\computation\pytables.py:351: error: Incompatible
+                # types in assignment (expression has type "str", variable has
+                # type "None")  [assignment]
+                self.condition = f"({' | '.join(vs)})"  # type: ignore[assignment]
 
             # use a filter after reading
             else:
                 return None
         else:
-            self.condition = self.generate(values[0])
+            # pandas\core\computation\pytables.py:357: error: Incompatible
+            # types in assignment (expression has type "str", variable has type
+            # "None")  [assignment]
+            self.condition = self.generate(values[0])  # type: ignore[assignment]
 
         return self
 
 
 class JointConditionBinOp(ConditionBinOp):
     def evaluate(self):
-        self.condition = f"({self.lhs.condition} {self.op} {self.rhs.condition})"
+        # pandas\core\computation\pytables.py:364: error: Incompatible types in
+        # assignment (expression has type "str", variable has type "None")
+        # [assignment]
+        tmp = f"({self.lhs.condition} {self.op} {self.rhs.condition})"
+        self.condition = tmp  # type: ignore[assignment]
         return self
 
 
