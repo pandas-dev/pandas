@@ -363,7 +363,7 @@ Some East Asian countries use Unicode characters its width is corresponding to 2
 .. ipython:: python
 
    df = pd.DataFrame({u"国籍": ["UK", u"日本"], u"名前": ["Alice", u"しのぶ"]})
-   df
+   df;
 
 .. image:: ../_static/option_unicode01.png
 
