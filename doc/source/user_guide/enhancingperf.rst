@@ -77,7 +77,7 @@ We achieve our result by using ``apply`` (row-wise):
 
 .. code-block:: ipython
 
-   In [7]: %timeit df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)
+   In [7]: %timeit df.apply(lambda x: integrate_f(x["a"], x["b"], x["N"]), axis=1)
    10 loops, best of 3: 174 ms per loop
 
 But clearly this isn't fast enough for us. Let's take a look and see where the
@@ -128,7 +128,7 @@ is here to distinguish between function versions):
 
 .. code-block:: ipython
 
-   In [4]: %timeit df.apply(lambda x: integrate_f_plain(x['a'], x['b'], x['N']), axis=1)
+   In [4]: %timeit df.apply(lambda x: integrate_f_plain(x["a"], x["b"], x["N"]), axis=1)
    10 loops, best of 3: 85.5 ms per loop
 
 Already this has shaved a third off, not too bad for a simple copy and paste.
@@ -157,7 +157,7 @@ We get another huge improvement simply by providing type information:
 
 .. code-block:: ipython
 
-   In [4]: %timeit df.apply(lambda x: integrate_f_typed(x['a'], x['b'], x['N']), axis=1)
+   In [4]: %timeit df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
    10 loops, best of 3: 20.3 ms per loop
 
 Now, we're talking! It's now over ten times faster than the original python
@@ -240,9 +240,9 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
 .. code-block:: ipython
 
-   In [4]: %timeit apply_integrate_f(df['a'].to_numpy(),
-                                     df['b'].to_numpy(),
-                                     df['N'].to_numpy())
+   In [4]: %timeit apply_integrate_f(
+                    df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy()
+                )
    1000 loops, best of 3: 1.25 ms per loop
 
 We've gotten another big improvement. Let's check again where the time is spent:
@@ -296,9 +296,9 @@ advanced Cython techniques:
 
 .. code-block:: ipython
 
-   In [4]: %timeit apply_integrate_f_wrap(df['a'].to_numpy(),
-                                          df['b'].to_numpy(),
-                                          df['N'].to_numpy())
+   In [4]: %timeit apply_integrate_f_wrap(
+                    df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy()
+                )
    1000 loops, best of 3: 987 us per loop
 
 Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
@@ -406,15 +406,15 @@ Consider the following toy example of doubling each observation:
 .. code-block:: ipython
 
    # Custom function without numba
-   In [5]: %timeit df['col1_doubled'] = df['a'].apply(double_every_value_nonumba)  # noqa E501
+   In [5]: %timeit df["col1_doubled"] = df["a"].apply(double_every_value_nonumba)  # noqa E501
    1000 loops, best of 3: 797 us per loop
 
    # Standard implementation (faster than a custom function)
-   In [6]: %timeit df['col1_doubled'] = df['a'] * 2
+   In [6]: %timeit df["col1_doubled"] = df["a"] * 2
    1000 loops, best of 3: 233 us per loop
 
    # Custom function with numba
-   In [7]: %timeit df['col1_doubled'] = double_every_value_withnumba(df['a'].to_numpy())
+   In [7]: %timeit df["col1_doubled"] = double_every_value_withnumba(df["a"].to_numpy())
    1000 loops, best of 3: 145 us per loop
 
 Caveats
@@ -490,7 +490,7 @@ These operations are supported by :func:`pandas.eval`:
 * ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
 * Attribute access, e.g., ``df.a``
 * Subscript expressions, e.g., ``df[0]``
-* Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
+* Simple variable evaluation, e.g., ``pd.eval("df")`` (this is not very useful)
 * Math functions: ``sin``, ``cos``, ``exp``, ``log``, ``expm1``, ``log1p``,
   ``sqrt``, ``sinh``, ``cosh``, ``tanh``, ``arcsin``, ``arccos``, ``arctan``, ``arccosh``,
   ``arcsinh``, ``arctanh``, ``abs``, ``arctan2`` and ``log10``.
@@ -822,7 +822,7 @@ you have an expression--for example
        {"strings": np.repeat(list("cba"), 3), "nums": np.repeat(range(3), 3)}
    )
    df
-   df.query('strings == "a" and nums == 1')
+   df.query("strings == "a" and nums == 1")
 
 the numeric part of the comparison (``nums == 1``) will be evaluated by
 ``numexpr``.
