@@ -129,15 +129,27 @@ class Scope:
             # shallow copy here because we don't want to replace what's in
             # scope when we align terms (alignment accesses the underlying
             # numpy array of pandas objects)
-            self.scope = self.scope.new_child((global_dict or frame.f_globals).copy())
+
+            # pandas\core\computation\scope.py:132: error: Incompatible types
+            # in assignment (expression has type "ChainMap[str, Any]", variable
+            # has type "DeepChainMap[str, Any]")  [assignment]
+            tmp = self.scope.new_child((global_dict or frame.f_globals).copy())
+            self.scope = tmp  # type: ignore[assignment]
             if not isinstance(local_dict, Scope):
-                self.scope = self.scope.new_child((local_dict or frame.f_locals).copy())
+                # pandas\core\computation\scope.py:134: error: Incompatible
+                # types in assignment (expression has type "ChainMap[str,
+                # Any]", variable has type "DeepChainMap[str, Any]")
+                # [assignment]
+                tmp = self.scope.new_child((local_dict or frame.f_locals).copy())
+                self.scope = tmp  # type: ignore[assignment]
         finally:
             del frame
 
         # assumes that resolvers are going from outermost scope to inner
         if isinstance(local_dict, Scope):
-            resolvers += tuple(local_dict.resolvers.maps)
+            # pandas\core\computation\scope.py:140: error: Cannot determine
+            # type of 'resolvers'  [has-type]
+            resolvers += tuple(local_dict.resolvers.maps)  # type: ignore[has-type]
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
@@ -225,7 +237,9 @@ class Scope:
 
         for mapping in maps:
             if old_key in mapping:
-                mapping[new_key] = new_value
+                # pandas\core\computation\scope.py:228: error: Unsupported
+                # target for indexed assignment ("Mapping[Any, Any]")  [index]
+                mapping[new_key] = new_value  # type: ignore[index]
                 return
 
     def _get_vars(self, stack, scopes: List[str]):
@@ -244,7 +258,11 @@ class Scope:
         for scope, (frame, _, _, _, _, _) in variables:
             try:
                 d = getattr(frame, "f_" + scope)
-                self.scope = self.scope.new_child(d)
+                # pandas\core\computation\scope.py:247: error: Incompatible
+                # types in assignment (expression has type "ChainMap[str,
+                # Any]", variable has type "DeepChainMap[str, Any]")
+                # [assignment]
+                self.scope = self.scope.new_child(d)  # type: ignore[assignment]
             finally:
                 # won't remove it, but DECREF it
                 # in Py3 this probably isn't necessary since frame won't be
@@ -311,5 +329,16 @@ class Scope:
         vars : DeepChainMap
             All variables in this scope.
         """
-        maps = [self.temps] + self.resolvers.maps + self.scope.maps
+        # pandas\core\computation\scope.py:314: error: Unsupported operand
+        # types for + ("List[Dict[Any, Any]]" and "List[Mapping[Any, Any]]")
+        # [operator]
+
+        # pandas\core\computation\scope.py:314: error: Unsupported operand
+        # types for + ("List[Dict[Any, Any]]" and "List[Mapping[str, Any]]")
+        # [operator]
+        maps = (
+            [self.temps]
+            + self.resolvers.maps  # type: ignore[operator]
+            + self.scope.maps  # type: ignore[operator]
+        )
         return DeepChainMap(*maps)
