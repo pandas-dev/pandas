@@ -9,8 +9,10 @@ import pandas._testing as tm
 class TestTimeSeries:
     def test_timeseries_coercion(self):
         idx = tm.makeDateIndex(10000)
-        ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        assert ser.index.is_all_dates
+        with tm.assert_produces_warning(FutureWarning):
+            ser = Series(np.random.randn(len(idx)), idx.astype(object))
+        with tm.assert_produces_warning(FutureWarning):
+            assert ser.index.is_all_dates
         assert isinstance(ser.index, DatetimeIndex)
 
     def test_contiguous_boolean_preserve_freq(self):

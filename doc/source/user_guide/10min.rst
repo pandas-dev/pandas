@@ -43,12 +43,16 @@ Creating a :class:`DataFrame` by passing a dict of objects that can be converted
 
 .. ipython:: python
 
-   df2 = pd.DataFrame({'A': 1.,
-                       'B': pd.Timestamp('20130102'),
-                       'C': pd.Series(1, index=list(range(4)), dtype='float32'),
-                       'D': np.array([3] * 4, dtype='int32'),
-                       'E': pd.Categorical(["test", "train", "test", "train"]),
-                       'F': 'foo'})
+   df2 = pd.DataFrame(
+       {
+           "A": 1.0,
+           "B": pd.Timestamp("20130102"),
+           "C": pd.Series(1, index=list(range(4)), dtype="float32"),
+           "D": np.array([3] * 4, dtype="int32"),
+           "E": pd.Categorical(["test", "train", "test", "train"]),
+           "F": "foo",
+       }
+   )
    df2
 
 The columns of the resulting :class:`DataFrame` have different
@@ -512,12 +516,14 @@ See the :ref:`Grouping section <groupby>`.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
-                            'foo', 'bar', 'foo', 'foo'],
-                      'B': ['one', 'one', 'two', 'three',
-                            'two', 'two', 'one', 'three'],
-                      'C': np.random.randn(8),
-                      'D': np.random.randn(8)})
+   df = pd.DataFrame(
+       {
+           "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+           "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+           "C": np.random.randn(8),
+           "D": np.random.randn(8),
+       }
+   )
    df
 
 Grouping and then applying the :meth:`~pandas.core.groupby.GroupBy.sum` function to the resulting
@@ -545,10 +551,14 @@ Stack
 
 .. ipython:: python
 
-   tuples = list(zip(*[['bar', 'bar', 'baz', 'baz',
-                        'foo', 'foo', 'qux', 'qux'],
-                       ['one', 'two', 'one', 'two',
-                        'one', 'two', 'one', 'two']]))
+   tuples = list(
+       zip(
+           *[
+               ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+               ["one", "two", "one", "two", "one", "two", "one", "two"],
+           ]
+       )
+   )
    index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
    df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=['A', 'B'])
    df2 = df[:4]
@@ -578,11 +588,15 @@ See the section on :ref:`Pivot Tables <reshaping.pivot>`.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': ['one', 'one', 'two', 'three'] * 3,
-                      'B': ['A', 'B', 'C'] * 4,
-                      'C': ['foo', 'foo', 'foo', 'bar', 'bar', 'bar'] * 2,
-                      'D': np.random.randn(12),
-                      'E': np.random.randn(12)})
+   df = pd.DataFrame(
+       {
+           "A": ["one", "one", "two", "three"] * 3,
+           "B": ["A", "B", "C"] * 4,
+           "C": ["foo", "foo", "foo", "bar", "bar", "bar"] * 2,
+           "D": np.random.randn(12),
+           "E": np.random.randn(12),
+       }
+   )
    df
 
 We can produce pivot tables from this data very easily:
@@ -653,8 +667,10 @@ pandas can include categorical data in a :class:`DataFrame`. For full docs, see 
 
 .. ipython:: python
 
-    df = pd.DataFrame({"id": [1, 2, 3, 4, 5, 6],
-                       "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
+   df = pd.DataFrame(
+       {"id": [1, 2, 3, 4, 5, 6], "raw_grade": ["a", "b", "b", "a", "a", "e"]}
+   )
+
 
 Convert the raw grades to a categorical data type.
 
@@ -674,8 +690,9 @@ Reorder the categories and simultaneously add the missing categories (methods un
 
 .. ipython:: python
 
-    df["grade"] = df["grade"].cat.set_categories(["very bad", "bad", "medium",
-                                                  "good", "very good"])
+    df["grade"] = df["grade"].cat.set_categories(
+        ["very bad", "bad", "medium", "good", "very good"]
+    )
     df["grade"]
 
 Sorting is per order in the categories, not lexical order.
@@ -705,8 +722,7 @@ We use the standard convention for referencing the matplotlib API:
 
 .. ipython:: python
 
-   ts = pd.Series(np.random.randn(1000),
-                  index=pd.date_range('1/1/2000', periods=1000))
+   ts = pd.Series(np.random.randn(1000), index=pd.date_range("1/1/2000", periods=1000))
    ts = ts.cumsum()
 
    @savefig series_plot_basic.png
@@ -717,8 +733,10 @@ of the columns with labels:
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index,
-                     columns=['A', 'B', 'C', 'D'])
+   df = pd.DataFrame(
+       np.random.randn(1000, 4), index=ts.index, columns=["A", "B", "C", "D"]
+   )
+
    df = df.cumsum()
 
    plt.figure()

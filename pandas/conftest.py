@@ -978,6 +978,17 @@ def float_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.FLOAT_EA_DTYPES)
+def float_ea_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.COMPLEX_DTYPES)
 def complex_dtype(request):
     """
@@ -1215,7 +1226,7 @@ def ip():
     from IPython.core.interactiveshell import InteractiveShell
 
     # GH#35711 make sure sqlite history file handle is not leaked
-    from traitlets.config import Config  # noqa: F401 isort:skip
+    from traitlets.config import Config  # isort:skip
 
     c = Config()
     c.HistoryManager.hist_file = ":memory:"
