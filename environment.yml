@@ -25,6 +25,7 @@ dependencies:
   - pre-commit
   - pycodestyle  # used by flake8
   - pyupgrade
+  - virtualenv
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
