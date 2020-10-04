@@ -24,6 +24,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Type,
     TypeVar,
@@ -36,7 +37,7 @@ from pandas._config.config import option_context
 
 from pandas._libs import Timestamp, lib
 import pandas._libs.groupby as libgroupby
-from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Scalar
+from pandas._typing import F, FrameOrSeries, FrameOrSeriesUnion, Label, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly, doc
@@ -284,7 +285,7 @@ f : function
 
     .. versionchanged:: 1.1.0
 *args
-    Positional arguments to pass to func
+    Positional arguments to pass to func.
 engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
@@ -393,7 +394,7 @@ func : function, str, list or dict
 
     .. versionchanged:: 1.1.0
 *args
-    Positional arguments to pass to func
+    Positional arguments to pass to func.
 engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
@@ -488,7 +489,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         axis: int = 0,
         level=None,
         grouper: Optional["ops.BaseGrouper"] = None,
-        exclusions=None,
+        exclusions: Optional[Set[Label]] = None,
         selection=None,
         as_index: bool = True,
         sort: bool = True,
@@ -537,7 +538,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
-        self.exclusions = set(exclusions) if exclusions else set()
+        self.exclusions = exclusions or set()
 
     def __len__(self) -> int:
         return len(self.groups)

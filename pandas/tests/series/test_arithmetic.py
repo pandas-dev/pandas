@@ -254,79 +254,78 @@ class TestSeriesArithmetic:
         result = (dt2.to_frame() - dt.to_frame())[0]
         tm.assert_series_equal(result, expected)
 
+    def test_alignment_doesnt_change_tz(self):
+        # GH#33671
+        dti = pd.date_range("2016-01-01", periods=10, tz="CET")
+        dti_utc = dti.tz_convert("UTC")
+        ser = pd.Series(10, index=dti)
+        ser_utc = pd.Series(10, index=dti_utc)
+
+        # we don't care about the result, just that original indexes are unchanged
+        ser * ser_utc
+
+        assert ser.index is dti
+        assert ser_utc.index is dti_utc
+
 
 # ------------------------------------------------------------------
 # Comparisons
 
 
 class TestSeriesFlexComparison:
-    def test_comparison_flex_basic(self):
+    @pytest.mark.parametrize("axis", [0, None, "index"])
+    def test_comparison_flex_basic(self, axis, all_compare_operators):
+        op = all_compare_operators.strip("__")
+        left = pd.Series(np.random.randn(10))
+        right = pd.Series(np.random.randn(10))
+        result = getattr(left, op)(right, axis=axis)
+        expected = getattr(operator, op)(left, right)
+        tm.assert_series_equal(result, expected)
+
+    def test_comparison_bad_axis(self, all_compare_operators):
+        op = all_compare_operators.strip("__")
         left = pd.Series(np.random.randn(10))
         right = pd.Series(np.random.randn(10))
 
-        tm.assert_series_equal(left.eq(right), left == right)
-        tm.assert_series_equal(left.ne(right), left != right)
-        tm.assert_series_equal(left.le(right), left < right)
-        tm.assert_series_equal(left.lt(right), left <= right)
-        tm.assert_series_equal(left.gt(right), left > right)
-        tm.assert_series_equal(left.ge(right), left >= right)
-
-        for axis in [0, None, "index"]:
-            tm.assert_series_equal(left.eq(right, axis=axis), left == right)
-            tm.assert_series_equal(left.ne(right, axis=axis), left != right)
-            tm.assert_series_equal(left.le(right, axis=axis), left < right)
-            tm.assert_series_equal(left.lt(right, axis=axis), left <= right)
-            tm.assert_series_equal(left.gt(right, axis=axis), left > right)
-            tm.assert_series_equal(left.ge(right, axis=axis), left >= right)
-
         msg = "No axis named 1 for object type"
-        for op in ["eq", "ne", "le", "le", "gt", "ge"]:
-            with pytest.raises(ValueError, match=msg):
-                getattr(left, op)(right, axis=1)
+        with pytest.raises(ValueError, match=msg):
+            getattr(left, op)(right, axis=1)
 
-    def test_comparison_flex_alignment(self):
+    @pytest.mark.parametrize(
+        "values, op",
+        [
+            ([False, False, True, False], "eq"),
+            ([True, True, False, True], "ne"),
+            ([False, False, True, False], "le"),
+            ([False, False, False, False], "lt"),
+            ([False, True, True, False], "ge"),
+            ([False, True, False, False], "gt"),
+        ],
+    )
+    def test_comparison_flex_alignment(self, values, op):
         left = Series([1, 3, 2], index=list("abc"))
         right = Series([2, 2, 2], index=list("bcd"))
+        result = getattr(left, op)(right)
+        expected = pd.Series(values, index=list("abcd"))
+        tm.assert_series_equal(result, expected)
 
-        exp = pd.Series([False, False, True, False], index=list("abcd"))
-        tm.assert_series_equal(left.eq(right), exp)
-
-        exp = pd.Series([True, True, False, True], index=list("abcd"))
-        tm.assert_series_equal(left.ne(right), exp)
-
-        exp = pd.Series([False, False, True, False], index=list("abcd"))
-        tm.assert_series_equal(left.le(right), exp)
-
-        exp = pd.Series([False, False, False, False], index=list("abcd"))
-        tm.assert_series_equal(left.lt(right), exp)
-
-        exp = pd.Series([False, True, True, False], index=list("abcd"))
-        tm.assert_series_equal(left.ge(right), exp)
-
-        exp = pd.Series([False, True, False, False], index=list("abcd"))
-        tm.assert_series_equal(left.gt(right), exp)
-
-    def test_comparison_flex_alignment_fill(self):
+    @pytest.mark.parametrize(
+        "values, op, fill_value",
+        [
+            ([False, False, True, True], "eq", 2),
+            ([True, True, False, False], "ne", 2),
+            ([False, False, True, True], "le", 0),
+            ([False, False, False, True], "lt", 0),
+            ([True, True, True, False], "ge", 0),
+            ([True, True, False, False], "gt", 0),
+        ],
+    )
+    def test_comparison_flex_alignment_fill(self, values, op, fill_value):
         left = Series([1, 3, 2], index=list("abc"))
         right = Series([2, 2, 2], index=list("bcd"))
-
-        exp = pd.Series([False, False, True, True], index=list("abcd"))
-        tm.assert_series_equal(left.eq(right, fill_value=2), exp)
-
-        exp = pd.Series([True, True, False, False], index=list("abcd"))
-        tm.assert_series_equal(left.ne(right, fill_value=2), exp)
-
-        exp = pd.Series([False, False, True, True], index=list("abcd"))
-        tm.assert_series_equal(left.le(right, fill_value=0), exp)
-
-        exp = pd.Series([False, False, False, True], index=list("abcd"))
-        tm.assert_series_equal(left.lt(right, fill_value=0), exp)
-
-        exp = pd.Series([True, True, True, False], index=list("abcd"))
-        tm.assert_series_equal(left.ge(right, fill_value=0), exp)
-
-        exp = pd.Series([True, True, False, False], index=list("abcd"))
-        tm.assert_series_equal(left.gt(right, fill_value=0), exp)
+        result = getattr(left, op)(right, fill_value=fill_value)
+        expected = pd.Series(values, index=list("abcd"))
+        tm.assert_series_equal(result, expected)
 
 
 class TestSeriesComparison:

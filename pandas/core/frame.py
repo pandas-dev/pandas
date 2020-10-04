@@ -449,9 +449,7 @@ class DataFrame(NDFrame):
         if isinstance(data, BlockManager):
             if index is None and columns is None and dtype is None and copy is False:
                 # GH#33357 fastpath
-                NDFrame.__init__(
-                    self, data,
-                )
+                NDFrame.__init__(self, data)
                 return
 
             mgr = self._init_mgr(
@@ -640,10 +638,10 @@ class DataFrame(NDFrame):
         """
         Can we transpose this DataFrame without creating any new array objects.
         """
-        if self._data.any_extension_types:
+        if self._mgr.any_extension_types:
             # TODO(EA2D) special case would be unnecessary with 2D EAs
             return False
-        return len(self._data.blocks) == 1
+        return len(self._mgr.blocks) == 1
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -1218,7 +1216,14 @@ class DataFrame(NDFrame):
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
-        return self.T.dot(np.transpose(other)).T
+        try:
+            return self.T.dot(np.transpose(other)).T
+        except ValueError as err:
+            if "shape mismatch" not in str(err):
+                raise
+            # GH#21581 give exception message for original shapes
+            msg = f"shapes {np.shape(other)} and {self.shape} not aligned"
+            raise ValueError(msg) from err
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
@@ -2300,7 +2305,7 @@ class DataFrame(NDFrame):
         path : str or file-like object
             If a string, it will be used as Root Directory path
             when writing a partitioned dataset. By file-like object,
-            we refer to objects with a write() method, such as a file handler
+            we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function) or io.BytesIO. The engine
             fastparquet does not accept file-like objects.
 
@@ -2339,7 +2344,7 @@ class DataFrame(NDFrame):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -2874,7 +2879,7 @@ class DataFrame(NDFrame):
         Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
         """
-        return self._data.iget_values(i)
+        return self._mgr.iget_values(i)
 
     def _iter_column_arrays(self) -> Iterator[ArrayLike]:
         """
@@ -3190,7 +3195,8 @@ class DataFrame(NDFrame):
 
             # GH31368 preserve name of index
             index_copy = value.index.copy()
-            index_copy.name = self.index.name
+            if self.index.name is not None:
+                index_copy.name = self.index.name
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
@@ -4905,7 +4911,7 @@ class DataFrame(NDFrame):
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> DataFrame:
-        result = self._constructor(self._data.isna(func=isna))
+        result = self._constructor(self._mgr.isna(func=isna))
         return result.__finalize__(self, method="isna")
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
@@ -5134,7 +5140,7 @@ class DataFrame(NDFrame):
         0  Yum Yum   cup     4.0
         2  Indomie   cup     3.5
 
-        To remove duplicates and keep last occurences, use ``keep``.
+        To remove duplicates and keep last occurrences, use ``keep``.
 
         >>> df.drop_duplicates(subset=['brand', 'style'], keep='last')
             brand style  rating
@@ -5747,7 +5753,7 @@ class DataFrame(NDFrame):
                   population    GDP alpha-2
         Tuvalu         11300     38      TV
         Anguilla       11300    311      AI
-        Iceland       337000  17036	     IS
+        Iceland       337000  17036      IS
 
         When using ``keep='last'``, ties are resolved in reverse order:
 
@@ -5892,13 +5898,22 @@ DataFrame
     The resulting index will be a MultiIndex with 'self' and 'other'
     stacked alternately at the inner level.
 
+Raises
+------
+ValueError
+    When the two DataFrames don't have identical labels or shape.
+
 See Also
 --------
 Series.compare : Compare with another Series and show differences.
+DataFrame.equals : Test whether two objects contain the same elements.
 
 Notes
 -----
 Matching NaNs will not appear as a difference.
+
+Can only compare identically-labeled
+(i.e. same shape, identical row and column labels) DataFrames
 
 Examples
 --------
@@ -7142,7 +7157,7 @@ NaN 12.3   33.0
 
         return unstack(self, level, fill_value)
 
-    @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt",))
+    @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt"))
     def melt(
         self,
         id_vars=None,
@@ -8560,6 +8575,7 @@ NaN 12.3   33.0
     ):
 
         assert filter_type is None or filter_type == "bool", filter_type
+        out_dtype = "bool" if filter_type == "bool" else None
 
         dtype_is_dt = np.array(
             [
@@ -8579,10 +8595,9 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        # TODO: Make other agg func handle axis=None properly
+        # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
         labels = self._get_agg_axis(axis)
-        constructor = self._constructor
         assert axis in [0, 1]
 
         def func(values):
@@ -8591,18 +8606,19 @@ NaN 12.3   33.0
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
+        def blk_func(values):
+            if isinstance(values, ExtensionArray):
+                return values._reduce(name, skipna=skipna, **kwds)
+            else:
+                return op(values, axis=1, skipna=skipna, **kwds)
+
         def _get_data() -> DataFrame:
             if filter_type is None:
                 data = self._get_numeric_data()
-            elif filter_type == "bool":
+            else:
                 # GH#25101, GH#24434
+                assert filter_type == "bool"
                 data = self._get_bool_data()
-            else:  # pragma: no cover
-                msg = (
-                    f"Generating numeric_only data with filter_type {filter_type} "
-                    "not supported."
-                )
-                raise NotImplementedError(msg)
             return data
 
         if numeric_only is not None:
@@ -8613,18 +8629,10 @@ NaN 12.3   33.0
                 df = df.T
                 axis = 0
 
-            out_dtype = "bool" if filter_type == "bool" else None
-
-            def blk_func(values):
-                if isinstance(values, ExtensionArray):
-                    return values._reduce(name, skipna=skipna, **kwds)
-                else:
-                    return op(values, axis=1, skipna=skipna, **kwds)
-
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
             res = df._mgr.reduce(blk_func)
-            out = df._constructor(res,).iloc[0].rename(None)
+            out = df._constructor(res).iloc[0].rename(None)
             if out_dtype is not None:
                 out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):
@@ -8636,11 +8644,10 @@ NaN 12.3   33.0
         if not self._is_homogeneous_type or self._mgr.any_extension_types:
             # try to avoid self.values call
 
-            if filter_type is None and axis == 0 and len(self) > 0:
+            if filter_type is None and axis == 0:
                 # operate column-wise
 
                 # numeric_only must be None here, as other cases caught above
-                # require len(self) > 0 bc frame_apply messes up empty prod/sum
 
                 # this can end up with a non-reduction
                 # but not always. if the types are mixed
@@ -8676,19 +8683,17 @@ NaN 12.3   33.0
             with np.errstate(all="ignore"):
                 result = func(values)
 
-        if is_object_dtype(result.dtype):
+        if filter_type == "bool" and notna(result).all():
+            result = result.astype(np.bool_)
+        elif filter_type is None and is_object_dtype(result.dtype):
             try:
-                if filter_type is None:
-                    result = result.astype(np.float64)
-                elif filter_type == "bool" and notna(result).all():
-                    result = result.astype(np.bool_)
+                result = result.astype(np.float64)
             except (ValueError, TypeError):
                 # try to coerce to the original dtypes item by item if we can
                 if axis == 0:
                     result = coerce_to_dtypes(result, data.dtypes)
 
-        if constructor is not None:
-            result = self._constructor_sliced(result, index=labels)
+        result = self._constructor_sliced(result, index=labels)
         return result
 
     def nunique(self, axis=0, dropna=True) -> Series:

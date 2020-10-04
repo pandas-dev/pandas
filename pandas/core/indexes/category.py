@@ -24,7 +24,6 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
 
 from pandas.core import accessor
 from pandas.core.arrays.categorical import Categorical, contains
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
@@ -422,6 +421,17 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         cat = Categorical(values, dtype=self.dtype)
         return type(self)._simple_new(cat, name=self.name)
 
+    def putmask(self, mask, value):
+        try:
+            code_value = self._data._validate_where_value(value)
+        except (TypeError, ValueError):
+            return self.astype(object).putmask(mask, value)
+
+        codes = self._data._ndarray.copy()
+        np.putmask(codes, mask, code_value)
+        cat = self._data._from_backing_data(codes)
+        return type(self)._simple_new(cat, name=self.name)
+
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
         """
         Create index with target's values (move/add/delete values as necessary)
@@ -562,19 +572,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             )
 
         return self.get_indexer(keyarr)
-
-    @doc(Index._convert_arr_indexer)
-    def _convert_arr_indexer(self, keyarr):
-        keyarr = com.asarray_tuplesafe(keyarr)
-
-        if self.categories._defer_to_indexing:
-            return keyarr
-
-        return self._shallow_copy(keyarr)
-
-    @doc(Index._convert_index_indexer)
-    def _convert_index_indexer(self, keyarr):
-        return self._shallow_copy(keyarr)
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side, kind):

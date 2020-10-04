@@ -41,8 +41,8 @@ class RowStringConverter(ABC):
         self.multirow = multirow
         self.clinebuf: List[List[int]] = []
         self.strcols = self._get_strcols()
-        self.strrows: List[List[str]] = (
-            list(zip(*self.strcols))  # type: ignore[arg-type]
+        self.strrows: List[List[str]] = list(
+            zip(*self.strcols)  # type: ignore[arg-type]
         )
 
     def get_strrow(self, row_num: int) -> str:
@@ -431,13 +431,18 @@ class LongTableBuilder(GenericTableBuilder):
     >>> from pandas.io.formats import format as fmt
     >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
     >>> formatter = fmt.DataFrameFormatter(df)
-    >>> builder = LongTableBuilder(formatter, caption='caption', label='lab',
-    ...                            column_format='lrl')
+    >>> builder = LongTableBuilder(formatter, caption='a long table',
+    ...                            label='tab:long', column_format='lrl')
     >>> table = builder.get_result()
     >>> print(table)
     \\begin{longtable}{lrl}
-    \\caption{caption}
-    \\label{lab}\\\\
+    \\caption{a long table}
+    \\label{tab:long}\\\\
+    \\toprule
+    {} &  a &   b \\\\
+    \\midrule
+    \\endfirsthead
+    \\caption[]{a long table} \\\\
     \\toprule
     {} &  a &   b \\\\
     \\midrule
@@ -476,7 +481,16 @@ class LongTableBuilder(GenericTableBuilder):
     @property
     def middle_separator(self) -> str:
         iterator = self._create_row_iterator(over="header")
+
+        # the content between \endfirsthead and \endhead commands
+        # mitigates repeated List of Tables entries in the final LaTeX
+        # document when dealing with longtable environments; GH #34360
         elements = [
+            "\\midrule",
+            "\\endfirsthead",
+            f"\\caption[]{{{self.caption}}} \\\\" if self.caption else "",
+            self.top_separator,
+            self.header,
             "\\midrule",
             "\\endhead",
             "\\midrule",

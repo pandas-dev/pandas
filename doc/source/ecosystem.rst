@@ -170,7 +170,9 @@ invoked with the following command
 
 .. code:: python
 
-    import dtale; dtale.show(df)
+    import dtale
+
+    dtale.show(df)
 
 D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
 & Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
@@ -436,7 +438,7 @@ arrays can be stored inside pandas' Series and DataFrame.
 `Pint-Pandas`_
 ~~~~~~~~~~~~~~
 
-`Pint-Pandas <https://github.com/hgrecco/pint-pandas>` provides an extension type for
+``Pint-Pandas <https://github.com/hgrecco/pint-pandas>`` provides an extension type for
 storing numeric arrays with units. These arrays can be stored inside pandas'
 Series and DataFrame. Operations between Series and DataFrame columns which
 use pint's extension array are then units aware.

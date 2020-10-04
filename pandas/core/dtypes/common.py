@@ -83,7 +83,12 @@ def ensure_float(arr):
     float_arr : The original array cast to the float dtype if
                 possible. Otherwise, the original array is returned.
     """
-    if issubclass(arr.dtype.type, (np.integer, np.bool_)):
+    if is_extension_array_dtype(arr.dtype):
+        if is_float_dtype(arr.dtype):
+            arr = arr.to_numpy(dtype=arr.dtype.numpy_dtype, na_value=np.nan)
+        else:
+            arr = arr.to_numpy(dtype="float64", na_value=np.nan)
+    elif issubclass(arr.dtype.type, (np.integer, np.bool_)):
         arr = arr.astype(float)
     return arr
 
@@ -1215,6 +1220,10 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
     """
     if arr_or_dtype is None:
         return False
+    if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
+        # fastpath
+        dtype = arr_or_dtype
+        return dtype.kind in ["m", "M"] or dtype.type is Period
     return (
         is_datetime_or_timedelta_dtype(arr_or_dtype)
         or is_datetime64tz_dtype(arr_or_dtype)

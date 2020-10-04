@@ -49,7 +49,7 @@ class TestSeriesConstructors:
             (lambda: Series({}), True),
             (lambda: Series(()), False),  # creates a RangeIndex
             (lambda: Series([]), False),  # creates a RangeIndex
-            (lambda: Series((_ for _ in [])), False),  # creates a RangeIndex
+            (lambda: Series(_ for _ in []), False),  # creates a RangeIndex
             (lambda: Series(data=None), True),
             (lambda: Series(data={}), True),
             (lambda: Series(data=()), False),  # creates a RangeIndex
@@ -94,11 +94,11 @@ class TestSeriesConstructors:
     def test_constructor(self, datetime_series):
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             empty_series = Series()
-        assert datetime_series.index.is_all_dates
+        assert datetime_series.index._is_all_dates
 
         # Pass in Series
         derived = Series(datetime_series)
-        assert derived.index.is_all_dates
+        assert derived.index._is_all_dates
 
         assert tm.equalContents(derived.index, datetime_series.index)
         # Ensure new index is not created
@@ -109,9 +109,9 @@ class TestSeriesConstructors:
         assert mixed.dtype == np.object_
         assert mixed[1] is np.NaN
 
-        assert not empty_series.index.is_all_dates
+        assert not empty_series.index._is_all_dates
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-            assert not Series().index.is_all_dates
+            assert not Series().index._is_all_dates
 
         # exception raised is of type Exception
         with pytest.raises(Exception, match="Data must be 1-dimensional"):
@@ -222,8 +222,7 @@ class TestSeriesConstructors:
         # GH 21987
         class Iter:
             def __iter__(self):
-                for i in range(10):
-                    yield i
+                yield from range(10)
 
         expected = Series(list(range(10)), dtype="int64")
         result = Series(Iter(), dtype="int64")
