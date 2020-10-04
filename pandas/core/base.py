@@ -234,9 +234,9 @@ class SelectionMixin:
             ) != len(key):
                 # pandas\core\base.py:218: error: "SelectionMixin" has no
                 # attribute "obj"  [attr-defined]
-                bad_keys = list(set(key).difference(
-                    self.obj.columns  # type: ignore[attr-defined]
-                ))
+                bad_keys = list(
+                    set(key).difference(self.obj.columns)  # type: ignore[attr-defined]
+                )
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
 
@@ -864,7 +864,8 @@ class IndexOpsMixin:
             # pandas\core\base.py:837: error: Too many arguments for "to_numpy"
             # of "ExtensionArray"  [call-arg]
             return self.array.to_numpy(  # type: ignore[call-arg]
-                dtype, copy=copy, na_value=na_value, **kwargs)
+                dtype, copy=copy, na_value=na_value, **kwargs
+            )
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
             raise TypeError(
@@ -1307,7 +1308,7 @@ class IndexOpsMixin:
                 self.dtype.kind  # type: ignore[attr-defined]
                 in [
                     "m",
-                    "M"
+                    "M",
                 ]
                 and isinstance(self, ABCSeries)
             ):
