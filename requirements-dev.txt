@@ -16,7 +16,6 @@ mypy==0.782
 pre-commit
 pycodestyle
 pyupgrade
-virtualenv
 gitpython
 gitdb
 sphinx
