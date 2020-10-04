@@ -660,7 +660,10 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            raise ValueError(f"Invalid function call {node.func.id}")
+            # pandas\core\computation\expr.py:663: error: "expr" has no
+            # attribute "id"  [attr-defined]
+            tmp = node.func.id  # type: ignore[attr-defined]
+            raise ValueError(f"Invalid function call {tmp}")
         if hasattr(res, "value"):
             res = res.value
 
@@ -681,7 +684,10 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    raise ValueError(f"keyword error in function call '{node.func.id}'")
+                    # pandas\core\computation\expr.py:684: error: "expr" has no
+                    # attribute "id"  [attr-defined]
+                    tmp = node.func.id  # type: ignore[attr-defined]
+                    raise ValueError(f"keyword error in function call '{tmp}'")
 
                 if key.arg:
                     kwargs[key.arg] = self.visit(key.value).value
