@@ -154,7 +154,6 @@ def tokenize_backtick_quoted_string(
         The token that represents the backtick quoted string.
         The integer is equal to BACKTICK_QUOTED_STRING (100).
     """
-    string_end = None
     for _, tokval, start, _, _ in token_generator:
         if tokval == "`":
             string_end = start[1]
