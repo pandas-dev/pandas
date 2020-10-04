@@ -140,10 +140,14 @@ class TestDataFrameCombineFirst:
         )
         df2 = DataFrame([[-42.6, np.nan, True], [-5.0, 1.6, False]], index=[1, 2])
 
-        result = df1.combine_first(df2)[2]
+        expected1 = pd.Series([True, True, False], name=2, dtype=object)
+        expected2 = pd.Series([True, True, False], name=2, dtype=object)
+
+        result1 = df1.combine_first(df2)[2]
         result2 = df2.combine_first(df1)[2]
 
-        tm.assert_series_equal(result, result2)
+        tm.assert_series_equal(result1, expected1)
+        tm.assert_series_equal(result2, expected2)
 
         # GH 3593, converting datetime64[ns] incorrectly
         df0 = DataFrame(
@@ -357,17 +361,21 @@ class TestDataFrameCombineFirst:
         tm.assert_frame_equal(res, exp)
 
 
-@pytest.mark.parametrize("val", [pd.NaT, np.nan, None])
-def test_combine_first_timestamp_bug(val):
+@pytest.mark.parametrize("val1, val2", [
+    (datetime(2020, 1, 1), datetime(2020, 1, 2)),
+    (pd.Period("2020-01-01", "D"), pd.Period("2020-01-02", "D")),
+    (pd.Timedelta('89 days'), pd.Timedelta('60 min')),
+])
+def test_combine_first_timestamp_bug(val1, val2, nulls_fixture):
 
-    df1 = pd.DataFrame([[val, val]], columns=["a", "b"])
+    df1 = pd.DataFrame([[nulls_fixture, nulls_fixture]], columns=["a", "b"])
     df2 = pd.DataFrame(
-        [[datetime(2020, 1, 1), datetime(2020, 1, 2)]], columns=["b", "c"]
+        [[val1, val2]], columns=["b", "c"]
     )
 
     res = df1.combine_first(df2)
     exp = pd.DataFrame(
-        [[val, datetime(2020, 1, 1), datetime(2020, 1, 2)]], columns=["a", "b", "c"]
+        [[nulls_fixture, val1, val2]], columns=["a", "b", "c"]
     )
 
     tm.assert_frame_equal(res, exp)
