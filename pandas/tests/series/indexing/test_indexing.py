@@ -377,7 +377,7 @@ def test_2d_to_1d_assignment_raises():
     with pytest.raises(ValueError, match=msg):
         y.loc[range(2)] = x
 
-    msg = r"could not broadcast input array from shape \(2,2\) into shape \(2\)"
+    msg = r"could not broadcast input array from shape \(2,2\) into shape \(2,\)"
     with pytest.raises(ValueError, match=msg):
         y.loc[:] = x
 
