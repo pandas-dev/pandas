@@ -361,21 +361,20 @@ class TestDataFrameCombineFirst:
         tm.assert_frame_equal(res, exp)
 
 
-@pytest.mark.parametrize("val1, val2", [
-    (datetime(2020, 1, 1), datetime(2020, 1, 2)),
-    (pd.Period("2020-01-01", "D"), pd.Period("2020-01-02", "D")),
-    (pd.Timedelta('89 days'), pd.Timedelta('60 min')),
-])
+@pytest.mark.parametrize(
+    "val1, val2",
+    [
+        (datetime(2020, 1, 1), datetime(2020, 1, 2)),
+        (pd.Period("2020-01-01", "D"), pd.Period("2020-01-02", "D")),
+        (pd.Timedelta("89 days"), pd.Timedelta("60 min")),
+    ],
+)
 def test_combine_first_timestamp_bug(val1, val2, nulls_fixture):
 
     df1 = pd.DataFrame([[nulls_fixture, nulls_fixture]], columns=["a", "b"])
-    df2 = pd.DataFrame(
-        [[val1, val2]], columns=["b", "c"]
-    )
+    df2 = pd.DataFrame([[val1, val2]], columns=["b", "c"])
 
     res = df1.combine_first(df2)
-    exp = pd.DataFrame(
-        [[nulls_fixture, val1, val2]], columns=["a", "b", "c"]
-    )
+    exp = pd.DataFrame([[nulls_fixture, val1, val2]], columns=["a", "b", "c"])
 
     tm.assert_frame_equal(res, exp)
