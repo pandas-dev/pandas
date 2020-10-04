@@ -122,20 +122,22 @@ class TestTimedeltas:
         )
 
     @pytest.mark.parametrize(
-        "val",
+        "val, warning",
         [
-            "1M",
-            "1 M",
-            "1Y",
-            "1 Y",
-            "1m",
-            "1 m",
-            "1y",
-            "1 y",
+            ("1M", FutureWarning),
+            ("1 M", FutureWarning),
+            ("1Y", FutureWarning),
+            ("1 Y", FutureWarning),
+            ("1m", FutureWarning),
+            ("1 m", FutureWarning),
+            ("1y", FutureWarning),
+            ("1 y", FutureWarning),
+            ("1 day", None),
+            ("2day", None),
         ],
     )
-    def test_unambiguous_timedelta_values(self, val):
-        with tm.assert_produces_warning(FutureWarning):
+    def test_unambiguous_timedelta_values(self, val, warning):
+        with tm.assert_produces_warning(warning):
             to_timedelta(val)
 
     def test_to_timedelta_via_apply(self):

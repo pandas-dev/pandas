@@ -258,7 +258,9 @@ class TestTimedeltas:
             if unit == "M":
                 expected = Timedelta(np.timedelta64(2, "m").astype("timedelta64[ns]"))
 
-            result = to_timedelta(f"2{unit}")
+            warning = None if unit != "m" else FutureWarning
+            with tm.assert_produces_warning(warning):
+                result = to_timedelta(f"2{unit}")
             assert result == expected
             result = Timedelta(f"2{unit}")
             assert result == expected

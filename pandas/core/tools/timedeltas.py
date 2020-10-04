@@ -1,6 +1,7 @@
 """
 timedelta support tools
 """
+import re
 import warnings
 
 import numpy as np
@@ -127,7 +128,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
             raise ValueError(
                 "unit must not be specified if the input is/contains a str"
             )
-        elif arg.upper().endswith("M") or arg.upper().endswith("Y"):
+        elif re.search(r"^\d+\s?[M|Y|m|y]$", arg):
             warnings.warn(
                 "Denoting units with 'M', 'Y', 'm' or 'y' do not represent unambiguous "
                 "timedelta values durations and will removed in a future version",
