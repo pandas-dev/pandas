@@ -816,7 +816,7 @@ you have an expression--for example
        {"strings": np.repeat(list("cba"), 3), "nums": np.repeat(range(3), 3)}
    )
    df
-   df.query("strings == "a" and nums == 1")
+   df.query("strings == 'a' and nums == 1")
 
 the numeric part of the comparison (``nums == 1``) will be evaluated by
 ``numexpr``.
