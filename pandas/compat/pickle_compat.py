@@ -274,7 +274,14 @@ def patch_pickle():
     """
     orig_loads = pkl.loads
     try:
-        pkl.loads = loads
+        # pandas\compat\pickle_compat.py:277: error: Incompatible types in
+        # assignment (expression has type "Callable[[bytes,
+        # DefaultNamedArg(bool, 'fix_imports'), DefaultNamedArg(str,
+        # 'encoding'), DefaultNamedArg(str, 'errors')], Any]", variable has
+        # type "Callable[[bytes, DefaultNamedArg(bool, 'fix_imports'),
+        # DefaultNamedArg(str, 'encoding'), DefaultNamedArg(str, 'errors'),
+        # DefaultNamedArg(Optional[Iterable[Any]], 'buffers')], Any]")
+        pkl.loads = loads  # type: ignore[assignment]
         yield
     finally:
         pkl.loads = orig_loads
