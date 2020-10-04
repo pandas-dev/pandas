@@ -101,7 +101,7 @@ class TestSeriesGetitemListLike:
     @pytest.mark.parametrize("box", [list, np.array, pd.Index])
     def test_getitem_intlist_intervalindex_non_int(self, box):
         # GH#33404 fall back to positional since ints are unambiguous
-        dti = date_range("2000-01-03", periods=3)
+        dti = date_range("2000-01-03", periods=3)._with_freq(None)
         ii = pd.IntervalIndex.from_breaks(dti)
         ser = Series(range(len(ii)), index=ii)
 

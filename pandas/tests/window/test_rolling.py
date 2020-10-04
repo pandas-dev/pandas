@@ -837,3 +837,34 @@ def test_rolling_on_df_transposed():
 
     result = df.T.rolling(min_periods=1, window=2).sum().T
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("index", "window"),
+    [
+        (
+            pd.period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="T"),
+            "2T",
+        ),
+        (
+            pd.period_range(
+                start="2020-01-01 08:00", end="2020-01-01 12:00", freq="30T"
+            ),
+            "1h",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    ("func", "values"),
+    [
+        ("min", [np.nan, 0, 0, 1, 2, 3, 4, 5, 6]),
+        ("max", [np.nan, 0, 1, 2, 3, 4, 5, 6, 7]),
+        ("sum", [np.nan, 0, 1, 3, 5, 7, 9, 11, 13]),
+    ],
+)
+def test_rolling_period_index(index, window, func, values):
+    # GH: 34225
+    ds = pd.Series([0, 1, 2, 3, 4, 5, 6, 7, 8], index=index)
+    result = getattr(ds.rolling(window, closed="left"), func)()
+    expected = pd.Series(values, index=index)
+    tm.assert_series_equal(result, expected)

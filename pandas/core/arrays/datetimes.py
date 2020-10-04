@@ -299,7 +299,11 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return result
 
     @classmethod
-    def _from_sequence(
+    def _from_sequence(cls, scalars, dtype=None, copy: bool = False):
+        return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_sequence_not_strict(
         cls,
         data,
         dtype=None,
