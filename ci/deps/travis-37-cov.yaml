@@ -32,7 +32,7 @@ dependencies:
   - google-cloud-bigquery>=1.27.2 # GH 36436
   - psycopg2
   - pyarrow>=0.15.0
-  - pymysql=0.7.11
+  - pymysql=0.9.3
   - pytables
   - python-snappy
   - python-dateutil
