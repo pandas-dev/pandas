@@ -170,7 +170,9 @@ invoked with the following command
 
 .. code:: python
 
-    import dtale; dtale.show(df)
+    import dtale
+
+    dtale.show(df)
 
 D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
 & Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
