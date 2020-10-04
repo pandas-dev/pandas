@@ -191,6 +191,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hasnans = property(
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
+
     _mgr: SingleBlockManager
     div: Callable[["Series", Any], "Series"]
     rdiv: Callable[["Series", Any], "Series"]
@@ -4777,7 +4778,7 @@ Keep all original rows and also all original values
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> "Series":
-        return super().isna()
+        return generic.NDFrame.isna(self)
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> "Series":
