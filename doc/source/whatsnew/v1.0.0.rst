@@ -18,7 +18,7 @@ including other versions of pandas.
 New deprecation policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Starting with Pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
+Starting with pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
 version releases. Briefly,
 
 * Deprecations will be introduced in minor releases (e.g. 1.1.0, 1.2.0, 2.1.0, ...)
@@ -763,7 +763,7 @@ Other API changes
 - :class:`core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
-- In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
+- In order to improve tab-completion, pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
   To see which attributes are excluded, see an object's ``_deprecations`` attribute, for example ``pd.DataFrame._deprecations`` (:issue:`28805`).
 - The returned dtype of :func:`unique` now matches the input dtype. (:issue:`27874`)
 - Changed the default configuration value for ``options.matplotlib.register_converters`` from ``True`` to ``"auto"`` (:issue:`18720`).

@@ -134,7 +134,7 @@ want to clone your fork to your machine::
     git remote add upstream https://github.com/pandas-dev/pandas.git
 
 This creates the directory ``pandas-yourname`` and connects your repository to
-the upstream (main project) *pandas* repository.
+the upstream (main project) pandas repository.
 
 Note that performing a shallow clone (with ``--depth==N``, for some ``N`` greater
 or equal to 1) might break some tests and features as ``pd.show_versions()``

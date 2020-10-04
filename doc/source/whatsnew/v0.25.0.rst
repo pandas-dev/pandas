@@ -545,13 +545,13 @@ with :attr:`numpy.nan` in the case of an empty :class:`DataFrame` (:issue:`26397
 ``__str__`` methods now call ``__repr__`` rather than vice versa
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has until now mostly defined string representations in a Pandas objects's
+Pandas has until now mostly defined string representations in a pandas objects's
 ``__str__``/``__unicode__``/``__bytes__`` methods, and called ``__str__`` from the ``__repr__``
 method, if a specific ``__repr__`` method is not found. This is not needed for Python3.
-In Pandas 0.25, the string representations of Pandas objects are now generally
+In Pandas 0.25, the string representations of pandas objects are now generally
 defined in ``__repr__``, and calls to ``__str__`` in general now pass the call on to
 the ``__repr__``, if a specific ``__str__`` method doesn't exist, as is standard for Python.
-This change is backward compatible for direct usage of Pandas, but if you subclass
+This change is backward compatible for direct usage of pandas, but if you subclass
 Pandas objects *and* give your subclasses specific ``__str__``/``__repr__`` methods,
 you may have to adjust your ``__str__``/``__repr__`` methods (:issue:`26495`).
 
@@ -881,7 +881,7 @@ Other API changes
 - Bug in :meth:`DatetimeIndex.snap` which didn't preserving the ``name`` of the input :class:`Index` (:issue:`25575`)
 - The ``arg`` argument in :meth:`pandas.core.groupby.DataFrameGroupBy.agg` has been renamed to ``func`` (:issue:`26089`)
 - The ``arg`` argument in :meth:`pandas.core.window._Window.aggregate` has been renamed to ``func`` (:issue:`26372`)
-- Most Pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
+- Most pandas classes had a ``__bytes__`` method, which was used for getting a python2-style bytestring representation of the object. This method has been removed as a part of dropping Python2 (:issue:`26447`)
 - The ``.str``-accessor has been disabled for 1-level :class:`MultiIndex`, use :meth:`MultiIndex.to_flat_index` if necessary (:issue:`23679`)
 - Removed support of gtk package for clipboards (:issue:`26563`)
 - Using an unsupported version of Beautiful Soup 4 will now raise an ``ImportError`` instead of a ``ValueError`` (:issue:`27063`)

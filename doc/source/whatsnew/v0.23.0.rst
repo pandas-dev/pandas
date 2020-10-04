@@ -884,7 +884,7 @@ Extraction of matching patterns from strings
 
 By default, extracting matching patterns from strings with :func:`str.extract` used to return a
 ``Series`` if a single group was being extracted (a ``DataFrame`` if more than one group was
-extracted). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
+extracted). As of pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
 ``expand`` is set to ``False``. Finally, ``None`` was an accepted value for
 the ``expand`` parameter (which was equivalent to ``False``), but now raises a ``ValueError``. (:issue:`11386`)
 
@@ -1175,7 +1175,7 @@ Performance improvements
 Documentation changes
 ~~~~~~~~~~~~~~~~~~~~~
 
-Thanks to all of the contributors who participated in the Pandas Documentation
+Thanks to all of the contributors who participated in the pandas Documentation
 Sprint, which took place on March 10th. We had about 500 participants from over
 30 locations across the world. You should notice that many of the
 :ref:`API docstrings <api>` have greatly improved.
