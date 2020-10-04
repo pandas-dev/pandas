@@ -670,7 +670,7 @@ pandas can include categorical data in a :class:`DataFrame`. For full docs, see 
     df = pd.DataFrame(
         {"id": [1, 2, 3, 4, 5, 6], "raw_grade": ["a", "b", "b", "a", "a", "e"]}
     )
-    
+
 
 
 Convert the raw grades to a categorical data type.
