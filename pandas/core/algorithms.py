@@ -2124,18 +2124,12 @@ def make_duplicates_of_left_unique_in_right(left, right) -> np.ndarray:
 
     Parameters
     ----------
-    left: Index
-    right: Index
+    left: ndarray
+    right: ndarray
 
     Returns
     -------
-    Duplicates of left unique in right
+    Duplicates of left are unique in right
     """
     left_duplicates = unique(left[duplicated(left)])
-    right_cleared = right[
-        ~(
-                duplicated(right)
-                & np.isin(right, left_duplicates)
-        )
-    ]
-    return right_cleared
+    return right[~(duplicated(right) & np.isin(right, left_duplicates))]

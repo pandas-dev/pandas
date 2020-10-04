@@ -500,8 +500,11 @@ class _Concatenator:
                         # We have to remove the duplicates from obj_labels
                         # in new labels to make them unique, otherwise we would
                         # duplicate or duplicates again
-                        new_labels_cleared = algos.make_duplicates_of_left_unique_in_right(obj_labels.values, new_labels.values)
-                        indexers[ax] = obj_labels.reindex(new_labels_cleared)[1]
+                        if not obj_labels.is_unique:
+                            new_labels = algos.make_duplicates_of_left_unique_in_right(
+                                obj_labels.values, new_labels.values
+                            )
+                        indexers[ax] = obj_labels.reindex(new_labels)[1]
 
                 mgrs_indexers.append((obj._mgr, indexers))
 
