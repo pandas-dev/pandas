@@ -1,18 +1,12 @@
 from datetime import date, datetime, time, timedelta, tzinfo
 import operator
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 import warnings
 
 import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
-from pandas._libs.tslibs import (
-    Resolution,
-    ints_to_pydatetime,
-    parsing,
-    timezones,
-    to_offset,
-)
+from pandas._libs.tslibs import Resolution, ints_to_pydatetime, parsing, to_offset
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
@@ -35,6 +29,9 @@ from pandas.core.indexes.base import Index, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Float64Index, PeriodIndex, TimedeltaIndex
 
 
 def _new_DatetimeIndex(cls, d):
@@ -70,8 +67,7 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    ["to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
-    + DatetimeArray._field_ops
+    DatetimeArray._field_ops
     + [
         method
         for method in DatetimeArray._datetimelike_methods
@@ -226,7 +222,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     tz: Optional[tzinfo]
 
     # --------------------------------------------------------------------
-    # methods that dispatch to array and wrap result in DatetimeIndex
+    # methods that dispatch to DatetimeArray and wrap result
+
+    @doc(DatetimeArray.strftime)
+    def strftime(self, date_format) -> Index:
+        arr = self._data.strftime(date_format)
+        return Index(arr, name=self.name)
 
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> "DatetimeIndex":
@@ -241,9 +242,30 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return type(self)._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_period)
-    def to_period(self, freq=None) -> "DatetimeIndex":
+    def to_period(self, freq=None) -> "PeriodIndex":
+        from pandas.core.indexes.api import PeriodIndex
+
         arr = self._data.to_period(freq)
-        return type(self)._simple_new(arr, name=self.name)
+        return PeriodIndex._simple_new(arr, name=self.name)
+
+    @doc(DatetimeArray.to_perioddelta)
+    def to_perioddelta(self, freq) -> "TimedeltaIndex":
+        from pandas.core.indexes.api import TimedeltaIndex
+
+        arr = self._data.to_perioddelta(freq)
+        return TimedeltaIndex._simple_new(arr, name=self.name)
+
+    @doc(DatetimeArray.to_julian_date)
+    def to_julian_date(self) -> "Float64Index":
+        from pandas.core.indexes.api import Float64Index
+
+        arr = self._data.to_julian_date()
+        return Float64Index._simple_new(arr, name=self.name)
+
+    @doc(DatetimeArray.isocalendar)
+    def isocalendar(self) -> "DataFrame":
+        df = self._data.isocalendar()
+        return df.set_index(self)
 
     # --------------------------------------------------------------------
     # Constructors
@@ -273,7 +295,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         name = maybe_extract_name(name, data, cls)
 
-        dtarr = DatetimeArray._from_sequence(
+        dtarr = DatetimeArray._from_sequence_not_strict(
             data,
             dtype=dtype,
             copy=copy,
@@ -395,9 +417,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         ndarray[int64_t]
         """
-        values = self.asi8
-        if self.tz is not None and not timezones.is_utc(self.tz):
-            values = self._data._local_timestamps()
+        values = self._data._local_timestamps()
 
         nanos = values % (24 * 3600 * 1_000_000_000)
         micros = nanos // 1000

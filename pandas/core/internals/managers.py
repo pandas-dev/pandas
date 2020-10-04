@@ -225,7 +225,7 @@ class BlockManager(PandasObject):
 
     @property
     def _is_single_block(self) -> bool:
-        # Assumes we are 2D; overriden by SingleBlockManager
+        # Assumes we are 2D; overridden by SingleBlockManager
         return len(self.blocks) == 1
 
     def _rebuild_blknos_and_blklocs(self) -> None:
@@ -630,6 +630,13 @@ class BlockManager(PandasObject):
         )
         bm._consolidate_inplace()
         return bm
+
+    def to_native_types(self, **kwargs) -> "BlockManager":
+        """
+        Convert values to native types (strings / python objects) that are used
+        in formatting (repr / csv).
+        """
+        return self.apply("to_native_types", **kwargs)
 
     def is_consolidated(self) -> bool:
         """

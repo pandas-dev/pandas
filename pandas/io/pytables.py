@@ -57,7 +57,7 @@ from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
-    from tables import Col, File, Node  # noqa:F401
+    from tables import Col, File, Node
 
 
 # versioning attribute
@@ -310,7 +310,7 @@ def read_hdf(
         Alternatively, pandas accepts an open :class:`pandas.HDFStore` object.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
@@ -364,7 +364,7 @@ def read_hdf(
 
     if isinstance(path_or_buf, HDFStore):
         if not path_or_buf.is_open:
-            raise IOError("The HDFStore must be open for reading.")
+            raise OSError("The HDFStore must be open for reading.")
 
         store = path_or_buf
         auto_close = False
@@ -615,8 +615,8 @@ class HDFStore:
         ----------
 
         include : str, default 'pandas'
-                When kind equals 'pandas' return pandas objects
-                When kind equals 'native' return native HDF5 Table objects
+                When kind equals 'pandas' return pandas objects.
+                When kind equals 'native' return native HDF5 Table objects.
 
                 .. versionadded:: 1.1.0
 
@@ -693,7 +693,7 @@ class HDFStore:
 
         try:
             self._handle = tables.open_file(self._path, self._mode, **kwargs)
-        except IOError as err:  # pragma: no cover
+        except OSError as err:  # pragma: no cover
             if "can not be written" in str(err):
                 print(f"Opening {self._path} in read-only mode")
                 self._handle = tables.open_file(self._path, "r", **kwargs)
@@ -724,7 +724,7 @@ class HDFStore:
             # trying to read from a non-existent file causes an error which
             # is not part of IOError, make it one
             if self._mode == "r" and "Unable to open/create file" in str(err):
-                raise IOError(str(err)) from err
+                raise OSError(str(err)) from err
             raise
 
     def close(self):

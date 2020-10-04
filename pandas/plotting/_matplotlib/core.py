@@ -342,7 +342,7 @@ class MPLPlot:
         valid_log = {False, True, "sym", None}
         input_log = {self.logx, self.logy, self.loglog}
         if input_log - valid_log:
-            invalid_log = next(iter((input_log - valid_log)))
+            invalid_log = next(iter(input_log - valid_log))
             raise ValueError(
                 f"Boolean, None and 'sym' are valid options, '{invalid_log}' is given."
             )
@@ -1238,7 +1238,7 @@ class LinePlot(MPLPlot):
         # would be too close together.
         condition = (
             not self._use_dynamic_x()
-            and (data.index.is_all_dates and self.use_index)
+            and (data.index._is_all_dates and self.use_index)
             and (not self.subplots or (self.subplots and self.sharex))
         )
 

@@ -584,14 +584,16 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
             elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
                       (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
-        except TypeError as err:
-            # Avoid raising TypeError on tzawareness mismatch
-            # TODO: This try/except can be removed if/when Timestamp
-            #  comparisons are changed to match datetime, see GH#28507
-            if "tz-naive and tz-aware" in str(err):
+        except ValueError:
+            # Avoid raising ValueError when comparing Numpy arrays to other types
+            if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
+                # Only compare scalars to scalars and non-scalars to non-scalars
+                return False
+            elif (not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
+                  and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
+                # Check if non-scalars have the same type
                 return False
             raise
-
     return True
 
 
@@ -650,11 +652,12 @@ cpdef ndarray[object] ensure_string_array(
         Py_ssize_t i = 0, n = len(arr)
 
     result = np.asarray(arr, dtype="object")
+
     if copy and result is arr:
         result = result.copy()
 
     for i in range(n):
-        val = result[i]
+        val = arr[i]
 
         if isinstance(val, str):
             continue

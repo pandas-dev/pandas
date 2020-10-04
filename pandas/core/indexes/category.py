@@ -24,7 +24,6 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
 
 from pandas.core import accessor
 from pandas.core.arrays.categorical import Categorical, contains
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
@@ -380,8 +379,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
-        self._assert_can_do_op(value)
-        return CategoricalIndex(self._data.fillna(value), name=self.name)
+        value = self._validate_scalar(value)
+        cat = self._data.fillna(value)
+        return type(self)._simple_new(cat, name=self.name)
 
     @cache_readonly
     def _engine(self):
@@ -419,6 +419,17 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self._values, other)
         cat = Categorical(values, dtype=self.dtype)
+        return type(self)._simple_new(cat, name=self.name)
+
+    def putmask(self, mask, value):
+        try:
+            code_value = self._data._validate_where_value(value)
+        except (TypeError, ValueError):
+            return self.astype(object).putmask(mask, value)
+
+        codes = self._data._ndarray.copy()
+        np.putmask(codes, mask, code_value)
+        cat = self._data._from_backing_data(codes)
         return type(self)._simple_new(cat, name=self.name)
 
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
@@ -512,10 +523,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _maybe_cast_indexer(self, key):
-        code = self.categories.get_loc(key)
-        code = self.codes.dtype.type(code)
-        return code
+    def _maybe_cast_indexer(self, key) -> int:
+        return self._data._unbox_scalar(key)
 
     @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -563,19 +572,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             )
 
         return self.get_indexer(keyarr)
-
-    @doc(Index._convert_arr_indexer)
-    def _convert_arr_indexer(self, keyarr):
-        keyarr = com.asarray_tuplesafe(keyarr)
-
-        if self.categories._defer_to_indexing:
-            return keyarr
-
-        return self._shallow_copy(keyarr)
-
-    @doc(Index._convert_index_indexer)
-    def _convert_index_indexer(self, keyarr):
-        return self._shallow_copy(keyarr)
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side, kind):

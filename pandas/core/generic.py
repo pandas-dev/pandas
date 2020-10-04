@@ -40,6 +40,7 @@ from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
+    IndexKeyFunc,
     IndexLabel,
     JSONSerializable,
     Label,
@@ -92,6 +93,7 @@ from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.flags import Flags
+from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import Period, PeriodIndex
@@ -100,6 +102,7 @@ from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.shared_docs import _shared_docs
+from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
@@ -1678,10 +1681,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             label_axis_name = "column" if axis == 0 else "index"
             raise ValueError(
-                (
-                    f"The {label_axis_name} label '{key}' "
-                    f"is not unique.{multi_message}"
-                )
+                f"The {label_axis_name} label '{key}' is not unique.{multi_message}"
             )
 
         return values
@@ -1722,10 +1722,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         if invalid_keys:
             raise ValueError(
-                (
-                    "The following keys are not valid labels or "
-                    f"levels for axis {axis}: {invalid_keys}"
-                )
+                "The following keys are not valid labels or "
+                f"levels for axis {axis}: {invalid_keys}"
             )
 
         # Compute levels and labels to drop
@@ -2255,7 +2253,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -2779,7 +2777,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -3151,7 +3149,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         columns: Optional[Sequence[Label]] = None,
         header: Union[bool_t, List[str]] = True,
         index: bool_t = True,
-        index_label: IndexLabel = None,
+        index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         compression: CompressionOptions = "infer",
@@ -3288,7 +3286,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -3408,7 +3406,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if cacher is not None:
             ref = cacher[1]()
 
-            # we are trying to reference a dead referant, hence
+            # we are trying to reference a dead referent, hence
             # a copy
             if ref is None:
                 del self._cacher
@@ -3422,7 +3420,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     ref._item_cache.pop(cacher[0], None)
 
         if verify_is_copy:
-            self._check_setitem_copy(stacklevel=5, t="referant")
+            self._check_setitem_copy(stacklevel=5, t="referent")
 
         if clear:
             self._clear_item_cache()
@@ -3783,10 +3781,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if self._is_view and self._is_cached:
             ref = self._get_cacher()
             if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t="referant", force=True)
+                self._check_setitem_copy(stacklevel=4, t="referent", force=True)
             return True
         elif self._is_copy:
-            self._check_setitem_copy(stacklevel=4, t="referant")
+            self._check_setitem_copy(stacklevel=4, t="referent")
         return False
 
     def _check_setitem_copy(self, stacklevel=4, t="setting", force=False):
@@ -3839,7 +3837,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if isinstance(self._is_copy, str):
             t = self._is_copy
 
-        elif t == "referant":
+        elif t == "referent":
             t = (
                 "\n"
                 "A value is trying to be set on a copy of a slice from a "
@@ -3972,7 +3970,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
             Maximum distance between original and new labels for inexact
-            matches. The values of the index at the matching locations most
+            matches. The values of the index at the matching locations must
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
 
             Tolerance may be a scalar value, which applies the same tolerance
@@ -4406,8 +4404,78 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3  NaN     8     4    D
         4    D     7     2    e
         5    C     4     3    F
+
+        Natural sort with the key argument,
+        using the `natsort <https://github.com/SethMMorton/natsort>` package.
+
+        >>> df = pd.DataFrame({
+        ...    "time": ['0hr', '128hr', '72hr', '48hr', '96hr'],
+        ...    "value": [10, 20, 30, 40, 50]
+        ... })
+        >>> df
+            time  value
+        0    0hr     10
+        1  128hr     20
+        2   72hr     30
+        3   48hr     40
+        4   96hr     50
+        >>> from natsort import index_natsorted
+        >>> df.sort_values(
+        ...    by="time",
+        ...    key=lambda x: np.argsort(index_natsorted(df["time"]))
+        ... )
+            time  value
+        0    0hr     10
+        3   48hr     40
+        2   72hr     30
+        4   96hr     50
+        1  128hr     20
         """
         raise AbstractMethodError(self)
+
+    def sort_index(
+        self,
+        axis=0,
+        level=None,
+        ascending: bool_t = True,
+        inplace: bool_t = False,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        sort_remaining: bool_t = True,
+        ignore_index: bool_t = False,
+        key: IndexKeyFunc = None,
+    ):
+
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        axis = self._get_axis_number(axis)
+        target = self._get_axis(axis)
+
+        indexer = get_indexer_indexer(
+            target, level, ascending, kind, na_position, sort_remaining, key
+        )
+
+        if indexer is None:
+            if inplace:
+                return
+            else:
+                return self.copy()
+
+        baxis = self._get_block_manager_axis(axis)
+        new_data = self._mgr.take(indexer, axis=baxis, verify=False)
+
+        # reconstruct axis if needed
+        new_data.axes[baxis] = new_data.axes[baxis]._sort_levels_monotonic()
+
+        if ignore_index:
+            axis = 1 if isinstance(self, ABCDataFrame) else 0
+            new_data.axes[axis] = ibase.default_index(len(indexer))
+
+        result = self._constructor(new_data)
+
+        if inplace:
+            return self._update_inplace(result)
+        else:
+            return result.__finalize__(self, method="sort_index")
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
@@ -8680,6 +8748,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if is_datetime64tz_dtype(left.index.dtype):
             if left.index.tz != right.index.tz:
                 if join_index is not None:
+                    # GH#33671 ensure we don't change the index on
+                    #  our original Series (NB: by default deep=False)
+                    left = left.copy()
+                    right = right.copy()
                     left.index = join_index
                     right.index = join_index
 
@@ -8767,6 +8839,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if is_datetime64tz_dtype(left.index.dtype):
                 if left.index.tz != right.index.tz:
                     if join_index is not None:
+                        # GH#33671 ensure we don't change the index on
+                        #  our original Series (NB: by default deep=False)
+                        left = left.copy()
+                        right = right.copy()
                         left.index = join_index
                         right.index = join_index
 
@@ -9119,7 +9195,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             extend the index when shifting and preserve the original data.
             If `freq` is specified as "infer" then it will be inferred from
             the freq or inferred_freq attributes of the index. If neither of
-            those attributes exist, a ValueError is thrown
+            those attributes exist, a ValueError is thrown.
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Shift direction.
         fill_value : object, optional
@@ -9452,7 +9528,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
-        if ax.is_all_dates:
+        if ax._is_all_dates:
+            if is_object_dtype(ax.dtype):
+                warnings.warn(
+                    "Treating object-dtype Index of date objects as DatetimeIndex "
+                    "is deprecated, will be removed in a future version.",
+                    FutureWarning,
+                )
             from pandas.core.tools.datetimes import to_datetime
 
             before = to_datetime(before)

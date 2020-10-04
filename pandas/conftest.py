@@ -55,6 +55,9 @@ def pytest_configure(config):
     )
     config.addinivalue_line("markers", "high_memory: mark a test as a high-memory only")
     config.addinivalue_line("markers", "clipboard: mark a pd.read_clipboard test")
+    config.addinivalue_line(
+        "markers", "arm_slow: mark a test as slow for arm64 architecture"
+    )
 
 
 def pytest_addoption(parser):
@@ -169,14 +172,6 @@ def axis(request):
 
 
 axis_frame = axis
-
-
-@pytest.fixture(params=[0, "index"], ids=lambda x: f"axis {repr(x)}")
-def axis_series(request):
-    """
-    Fixture for returning the axis numbers of a Series.
-    """
-    return request.param
 
 
 @pytest.fixture(params=[True, False, None])
@@ -295,7 +290,9 @@ unique_nulls_fixture2 = unique_nulls_fixture
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
-@pytest.fixture(params=[pd.Index, pd.Series], ids=["index", "series"])
+@pytest.fixture(
+    params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
+)
 def index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
@@ -981,6 +978,17 @@ def float_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.FLOAT_EA_DTYPES)
+def float_ea_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.COMPLEX_DTYPES)
 def complex_dtype(request):
     """
@@ -1218,7 +1226,7 @@ def ip():
     from IPython.core.interactiveshell import InteractiveShell
 
     # GH#35711 make sure sqlite history file handle is not leaked
-    from traitlets.config import Config  # noqa: F401 isort:skip
+    from traitlets.config import Config  # isort:skip
 
     c = Config()
     c.HistoryManager.hist_file = ":memory:"
@@ -1234,15 +1242,6 @@ def spmatrix(request):
     from scipy import sparse
 
     return getattr(sparse, request.param + "_matrix")
-
-
-@pytest.fixture(params=list(tm.cython_table))
-def cython_table_items(request):
-    """
-    Yields a tuple of a function and its corresponding name. Correspond to
-    the list of aggregator "Cython functions" used on selected table items.
-    """
-    return request.param
 
 
 @pytest.fixture(

@@ -1,4 +1,4 @@
-from collections import OrderedDict, abc, deque
+from collections import abc, deque
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
@@ -2609,9 +2609,7 @@ bar2,12,13,14,15
             [pd.Series(range(3)), pd.Series(range(4))], keys=["First", "Another"]
         )
         result = pd.concat(
-            OrderedDict(
-                [("First", pd.Series(range(3))), ("Another", pd.Series(range(4)))]
-            )
+            dict([("First", pd.Series(range(3))), ("Another", pd.Series(range(4)))])
         )
         tm.assert_series_equal(result, expected)
 
