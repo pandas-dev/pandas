@@ -16,6 +16,7 @@ from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -114,7 +115,10 @@ class PandasDtype(ExtensionDtype):
 
 
 class PandasArray(
-    NDArrayBackedExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin
+    NDArrayBackedExtensionArray,
+    ExtensionOpsMixin,
+    NDArrayOperatorsMixin,
+    ObjectStringArrayMixin,
 ):
     """
     A pandas ExtensionArray for NumPy data.
@@ -358,23 +362,37 @@ class PandasArray(
 
     @classmethod
     def _create_arithmetic_method(cls, op):
+
+        pd_op = ops.get_array_op(op)
+
         @ops.unpack_zerodim_and_defer(op.__name__)
         def arithmetic_method(self, other):
             if isinstance(other, cls):
                 other = other._ndarray
 
-            with np.errstate(all="ignore"):
-                result = op(self._ndarray, other)
+            result = pd_op(self._ndarray, other)
 
-            if op is divmod:
+            if op is divmod or op is ops.rdivmod:
                 a, b = result
-                return cls(a), cls(b)
+                if isinstance(a, np.ndarray):
+                    # for e.g. op vs TimedeltaArray, we may already
+                    #  have an ExtensionArray, in which case we do not wrap
+                    return cls(a), cls(b)
+                return a, b
 
-            return cls(result)
+            if isinstance(result, np.ndarray):
+                # for e.g. multiplication vs TimedeltaArray, we may already
+                #  have an ExtensionArray, in which case we do not wrap
+                return cls(result)
+            return result
 
         return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
 
     _create_comparison_method = _create_arithmetic_method
+
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = np.nan
 
 
 PandasArray._add_arithmetic_ops()

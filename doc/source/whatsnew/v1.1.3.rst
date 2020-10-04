@@ -16,7 +16,7 @@ Enhancements
 Added support for new Python version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas 1.1.3 now supports Python 3.9 (:issue:`36296`).
+pandas 1.1.3 now supports Python 3.9 (:issue:`36296`).
 
 Development Changes
 ^^^^^^^^^^^^^^^^^^^
@@ -34,8 +34,10 @@ Fixed regressions
 - Fixed regression when adding a :meth:`timedelta_range` to a :class:`Timestamp` raised a ``ValueError`` (:issue:`35897`)
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a tuple (:issue:`35534`)
 - Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a frozenset (:issue:`35747`)
+- Fixed regression in modulo of :class:`Index`, :class:`Series` and :class:`DataFrame` using ``numexpr`` using C not Python semantics (:issue:`36047`, :issue:`36526`)
 - Fixed regression in :meth:`read_excel` with ``engine="odf"`` caused ``UnboundLocalError`` in some cases where cells had nested child nodes (:issue:`36122`, :issue:`35802`)
 - Fixed regression in :meth:`DataFrame.replace` inconsistent replace when using a float in the replace method (:issue:`35376`)
+- Fixed regression in :meth:`Series.loc` on a :class:`Series` with a :class:`MultiIndex` containing :class:`Timestamp` raising ``InvalidIndexError`` (:issue:`35858`)
 - Fixed regression in :class:`DataFrame` and :class:`Series` comparisons between numeric arrays and strings (:issue:`35700`, :issue:`36377`)
 - Fixed regression in :meth:`DataFrame.apply` with ``raw=True`` and user-function returning string (:issue:`35940`)
 - Fixed regression when setting empty :class:`DataFrame` column to a :class:`Series` in preserving name of index in frame (:issue:`36527`)
