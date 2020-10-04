@@ -1996,7 +1996,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if config.get_option("display.html.table_schema"):
             data = self.head(config.get_option("display.max_rows"))
             payload = json.loads(
-                data.to_json(orient="table"), object_pairs_hook=collections.OrderedDict
+                # pandas\core\generic.py:1999: error: Argument 1 to "loads" has
+                # incompatible type "Optional[str]"; expected "Union[str,
+                # bytes, bytearray]"  [arg-type]
+                data.to_json(orient="table"),  # type: ignore[arg-type]
+                object_pairs_hook=collections.OrderedDict,
             )
             return payload
 
@@ -3113,7 +3117,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multirow = config.get_option("display.latex.multirow")
 
         formatter = DataFrameFormatter(
-            self,
+            # pandas\core\generic.py:3116: error: Argument 1 to
+            # "DataFrameFormatter" has incompatible type "NDFrame"; expected
+            # "DataFrame"  [arg-type]
+            self,  # type: ignore[arg-type]
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
@@ -3829,7 +3836,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # the copy weakref
         if self._is_copy is not None and not isinstance(self._is_copy, str):
             r = self._is_copy()
-            if not gc.get_referents(r) or r.shape == self.shape:
+            # pandas\core\generic.py:3832: error: Item "None" of
+            # "Optional[Any]" has no attribute "shape"  [union-attr]
+            if (
+                not gc.get_referents(r)
+                or r.shape == self.shape  # type: ignore[union-attr]
+            ):
                 self._is_copy = None
                 return
 
@@ -7258,9 +7270,23 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         nulls = self.isna() if is_series else self[subset].isna().any(1)
         if nulls.all():
             if is_series:
-                return self._constructor(np.nan, index=where, name=self.name)
+                # pandas\core\generic.py:7261: error: Unexpected keyword
+                # argument "index" for "NDFrame"  [call-arg]
+
+                # pandas\core\generic.py:7261: error: Unexpected keyword
+                # argument "name" for "NDFrame"  [call-arg]
+                return self._constructor(
+                    np.nan, index=where, name=self.name  # type: ignore[call-arg]
+                )
             elif is_list:
-                return self._constructor(np.nan, index=where, columns=self.columns)
+                # pandas\core\generic.py:7263: error: Unexpected keyword
+                # argument "index" for "NDFrame"  [call-arg]
+
+                # pandas\core\generic.py:7263: error: Unexpected keyword
+                # argument "columns" for "NDFrame"  [call-arg]
+                return self._constructor(
+                    np.nan, index=where, columns=self.columns  # type: ignore[call-arg]
+                )
             else:
                 return self._constructor_sliced(
                     np.nan, index=self.columns, name=where[0]
@@ -10399,7 +10425,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         axis_descr, name1, name2 = _doc_parms(cls)
 
-        cls.any = _make_logical_function(
+        # pandas\core\generic.py:10402: error: "Type[NDFrame]" has no attribute
+        # "any"  [attr-defined]
+        cls.any = _make_logical_function(  # type: ignore[attr-defined]
             cls,
             "any",
             name1=name1,
@@ -10411,7 +10439,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             examples=_any_examples,
             empty_value=False,
         )
-        cls.all = _make_logical_function(
+        # pandas\core\generic.py:10414: error: "Type[NDFrame]" has no attribute
+        # "all"  [attr-defined]
+        cls.all = _make_logical_function(  # type: ignore[attr-defined]
             cls,
             "all",
             name1=name1,
@@ -10467,9 +10497,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 demeaned = data.sub(data.mean(axis=1), axis=0)
             return np.abs(demeaned).mean(axis=axis, skipna=skipna)
 
-        cls.mad = mad
+        # pandas\core\generic.py:10470: error: "Type[NDFrame]" has no attribute
+        # "mad"  [attr-defined]
+        cls.mad = mad  # type: ignore[attr-defined]
 
-        cls.sem = _make_stat_function_ddof(
+        # pandas\core\generic.py:10472: error: "Type[NDFrame]" has no attribute
+        # "sem"  [attr-defined]
+        cls.sem = _make_stat_function_ddof(  # type: ignore[attr-defined]
             cls,
             "sem",
             name1=name1,
@@ -10480,7 +10514,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             "using the ddof argument",
             func=nanops.nansem,
         )
-        cls.var = _make_stat_function_ddof(
+        # pandas\core\generic.py:10483: error: "Type[NDFrame]" has no attribute
+        # "var"  [attr-defined]
+        cls.var = _make_stat_function_ddof(  # type: ignore[attr-defined]
             cls,
             "var",
             name1=name1,
@@ -10490,7 +10526,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             "N-1 by default. This can be changed using the ddof argument",
             func=nanops.nanvar,
         )
-        cls.std = _make_stat_function_ddof(
+        # pandas\core\generic.py:10493: error: "Type[NDFrame]" has no attribute
+        # "std"  [attr-defined]
+        cls.std = _make_stat_function_ddof(  # type: ignore[attr-defined]
             cls,
             "std",
             name1=name1,
@@ -10502,7 +10540,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             func=nanops.nanstd,
         )
 
-        cls.cummin = _make_cum_function(
+        # pandas\core\generic.py:10505: error: "Type[NDFrame]" has no attribute
+        # "cummin"  [attr-defined]
+        cls.cummin = _make_cum_function(  # type: ignore[attr-defined]
             cls,
             "cummin",
             name1=name1,
@@ -10513,7 +10553,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             accum_func_name="min",
             examples=_cummin_examples,
         )
-        cls.cumsum = _make_cum_function(
+        # pandas\core\generic.py:10516: error: "Type[NDFrame]" has no attribute
+        # "cumsum"  [attr-defined]
+        cls.cumsum = _make_cum_function(  # type: ignore[attr-defined]
             cls,
             "cumsum",
             name1=name1,
@@ -10524,7 +10566,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             accum_func_name="sum",
             examples=_cumsum_examples,
         )
-        cls.cumprod = _make_cum_function(
+        # pandas\core\generic.py:10527: error: "Type[NDFrame]" has no attribute
+        # "cumprod"  [attr-defined]
+        cls.cumprod = _make_cum_function(  # type: ignore[attr-defined]
             cls,
             "cumprod",
             name1=name1,
@@ -10535,7 +10579,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             accum_func_name="prod",
             examples=_cumprod_examples,
         )
-        cls.cummax = _make_cum_function(
+        # pandas\core\generic.py:10538: error: "Type[NDFrame]" has no attribute
+        # "cummax"  [attr-defined]
+        cls.cummax = _make_cum_function(  # type: ignore[attr-defined]
             cls,
             "cummax",
             name1=name1,
@@ -10547,7 +10593,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             examples=_cummax_examples,
         )
 
-        cls.sum = _make_min_count_stat_function(
+        # pandas\core\generic.py:10550: error: "Type[NDFrame]" has no attribute
+        # "sum"  [attr-defined]
+        cls.sum = _make_min_count_stat_function(  # type: ignore[attr-defined]
             cls,
             "sum",
             name1=name1,
@@ -10559,7 +10607,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             see_also=_stat_func_see_also,
             examples=_sum_examples,
         )
-        cls.mean = _make_stat_function(
+        # pandas\core\generic.py:10562: error: "Type[NDFrame]" has no attribute
+        # "mean"  [attr-defined]
+        cls.mean = _make_stat_function(  # type: ignore[attr-defined]
             cls,
             "mean",
             name1=name1,
@@ -10568,7 +10618,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="Return the mean of the values for the requested axis.",
             func=nanops.nanmean,
         )
-        cls.skew = _make_stat_function(
+        # pandas\core\generic.py:10571: error: "Type[NDFrame]" has no attribute
+        # "skew"  [attr-defined]
+        cls.skew = _make_stat_function(  # type: ignore[attr-defined]
             cls,
             "skew",
             name1=name1,
@@ -10577,7 +10629,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="Return unbiased skew over requested axis.\n\nNormalized by N-1.",
             func=nanops.nanskew,
         )
-        cls.kurt = _make_stat_function(
+        # pandas\core\generic.py:10580: error: "Type[NDFrame]" has no attribute
+        # "kurt"  [attr-defined]
+        cls.kurt = _make_stat_function(  # type: ignore[attr-defined]
             cls,
             "kurt",
             name1=name1,
@@ -10589,8 +10643,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             "by N-1.",
             func=nanops.nankurt,
         )
-        cls.kurtosis = cls.kurt
-        cls.prod = _make_min_count_stat_function(
+        # pandas\core\generic.py:10592: error: "Type[NDFrame]" has no attribute
+        # "kurtosis"  [attr-defined]
+
+        # pandas\core\generic.py:10592: error: "Type[NDFrame]" has no attribute
+        # "kurt"  [attr-defined]
+        cls.kurtosis = cls.kurt  # type: ignore[attr-defined]
+        # pandas\core\generic.py:10593: error: "Type[NDFrame]" has no attribute
+        # "prod"  [attr-defined]
+        cls.prod = _make_min_count_stat_function(  # type: ignore[attr-defined]
             cls,
             "prod",
             name1=name1,
@@ -10600,8 +10661,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             func=nanops.nanprod,
             examples=_prod_examples,
         )
-        cls.product = cls.prod
-        cls.median = _make_stat_function(
+        # pandas\core\generic.py:10603: error: "Type[NDFrame]" has no attribute
+        # "product"  [attr-defined]
+
+        # pandas\core\generic.py:10603: error: "Type[NDFrame]" has no attribute
+        # "prod"  [attr-defined]
+        cls.product = cls.prod  # type: ignore[attr-defined]
+        # pandas\core\generic.py:10604: error: "Type[NDFrame]" has no attribute
+        # "median"  [attr-defined]
+        cls.median = _make_stat_function(  # type: ignore[attr-defined]
             cls,
             "median",
             name1=name1,
@@ -10610,7 +10678,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             desc="Return the median of the values for the requested axis.",
             func=nanops.nanmedian,
         )
-        cls.max = _make_stat_function(
+        # pandas\core\generic.py:10613: error: "Type[NDFrame]" has no attribute
+        # "max"  [attr-defined]
+        cls.max = _make_stat_function(  # type: ignore[attr-defined]
             cls,
             "max",
             name1=name1,
@@ -10623,7 +10693,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             see_also=_stat_func_see_also,
             examples=_max_examples,
         )
-        cls.min = _make_stat_function(
+        # pandas\core\generic.py:10626: error: "Type[NDFrame]" has no attribute
+        # "min"  [attr-defined]
+        cls.min = _make_stat_function(  # type: ignore[attr-defined]
             cls,
             "min",
             name1=name1,
@@ -11565,7 +11637,14 @@ def _make_cum_function(
             axis = self._get_axis_number(axis)
 
         if axis == 1:
-            return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
+            # pandas\core\generic.py:11568: error: "cum_func" gets multiple
+            # values for keyword argument "axis"  [misc]
+
+            # pandas\core\generic.py:11568: error: "cum_func" gets multiple
+            # values for keyword argument "skipna"  [misc]
+            return cum_func(
+                self.T, axis=0, skipna=skipna, *args, **kwargs  # type: ignore[misc]
+            ).T
 
         def block_accum_func(blk_values):
             values = blk_values.T if hasattr(blk_values, "T") else blk_values
