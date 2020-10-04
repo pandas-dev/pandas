@@ -185,7 +185,10 @@ class StringArray(PandasArray):
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
-        self._dtype = StringDtype()
+        # pandas\core\arrays\string_.py:188: error: Incompatible types in
+        # assignment (expression has type "StringDtype", variable has type
+        # "PandasDtype")  [assignment]
+        self._dtype = StringDtype()  # type: ignore[assignment]
         if not isinstance(values, type(self)):
             self._validate()
 
