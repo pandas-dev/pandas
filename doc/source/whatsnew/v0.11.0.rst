@@ -12,7 +12,7 @@ Data have had quite a number of additions, and Dtype support is now full-fledged
 There are also a number of important API changes that long-time pandas users should
 pay close attention to.
 
-There is a new section in the documentation, :ref:`10 Minutes to Pandas <10min>`,
+There is a new section in the documentation, :ref:`10 Minutes to pandas <10min>`,
 primarily geared to new users.
 
 There is a new section in the documentation, :ref:`Cookbook <cookbook>`, a collection

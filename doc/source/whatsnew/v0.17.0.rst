@@ -50,7 +50,7 @@ Highlights include:
 - Development installed versions of pandas will now have ``PEP440`` compliant version strings (:issue:`9518`)
 - Development support for benchmarking with the `Air Speed Velocity library <https://github.com/spacetelescope/asv/>`_ (:issue:`8361`)
 - Support for reading SAS xport files, see :ref:`here <whatsnew_0170.enhancements.sas_xport>`
-- Documentation comparing SAS to *pandas*, see :ref:`here <compare_with_sas>`
+- Documentation comparing SAS to pandas, see :ref:`here <compare_with_sas>`
 - Removal of the automatic TimeSeries broadcasting, deprecated since 0.8.0, see :ref:`here <whatsnew_0170.prior_deprecations>`
 - Display format with plain text can optionally align with Unicode East Asian Width, see :ref:`here <whatsnew_0170.east_asian_width>`
 - Compatibility with Python 3.5 (:issue:`11097`)
