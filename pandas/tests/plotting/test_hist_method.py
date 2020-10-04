@@ -1,7 +1,7 @@
 """ Test cases for .hist method """
 
-from numpy import int64
-from numpy.random import choice, normal, rand, randint, randn
+import numpy as np
+from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
@@ -48,7 +48,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_bins_legacy(self):
-        df = DataFrame(randn(10, 2))
+        df = DataFrame(np.random.randn(10, 2))
         ax = df.hist(bins=2)[0][0]
         assert len(ax.patches) == 2
 
@@ -103,8 +103,8 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_no_overlap(self):
         from matplotlib.pyplot import gcf, subplot
 
-        x = Series(randn(2))
-        y = Series(randn(2))
+        x = Series(np.random.randn(2))
+        y = Series(np.random.randn(2))
         subplot(121)
         x.hist()
         subplot(122)
@@ -135,7 +135,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_with_legend(self, by, expected_axes_num, expected_layout):
         # GH 6279 - Series histogram can have a legend
         index = 15 * ["1"] + 15 * ["2"]
-        s = Series(randn(30), index=index, name="a")
+        s = Series(np.random.randn(30), index=index, name="a")
         s.index.name = "b"
 
         axes = _check_plot_works(s.hist, legend=True, by=by)
@@ -146,7 +146,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_with_legend_raises(self, by):
         # GH 6279 - Series histogram with legend and label raises
         index = 15 * ["1"] + 15 * ["2"]
-        s = Series(randn(30), index=index, name="a")
+        s = Series(np.random.randn(30), index=index, name="a")
         s.index.name = "b"
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
@@ -157,17 +157,19 @@ class TestSeriesPlots(TestPlotBase):
 class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_hist_df_legacy(self):
-        # GH32590
         from matplotlib.patches import Rectangle
 
         with tm.assert_produces_warning(UserWarning):
             _check_plot_works(self.hist_df.hist)
 
         # make sure layout is handled
-        df = DataFrame(randn(100, 2))
+        df = DataFrame(np.random.randn(100, 2))
         df[2] = to_datetime(
-            randint(
-                self.start_date_to_int64, self.end_date_to_int64, size=100, dtype=int64
+            np.random.randint(
+                self.start_date_to_int64,
+                self.end_date_to_int64,
+                size=100,
+                dtype=np.int64,
             )
         )
         with tm.assert_produces_warning(UserWarning):
@@ -176,14 +178,17 @@ class TestDataFramePlots(TestPlotBase):
         assert not axes[1, 1].get_visible()
 
         _check_plot_works(df[[2]].hist)
-        df = DataFrame(randn(100, 1))
+        df = DataFrame(np.random.randn(100, 1))
         _check_plot_works(df.hist)
 
         # make sure layout is handled
-        df = DataFrame(randn(100, 5))
+        df = DataFrame(np.random.randn(100, 5))
         df[5] = to_datetime(
-            randint(
-                self.start_date_to_int64, self.end_date_to_int64, size=100, dtype=int64
+            np.random.randint(
+                self.start_date_to_int64,
+                self.end_date_to_int64,
+                size=100,
+                dtype=np.int64,
             )
         )
         with tm.assert_produces_warning(UserWarning):
@@ -241,13 +246,17 @@ class TestDataFramePlots(TestPlotBase):
         # gh-10444, GH32590
         df = DataFrame(
             {
-                "a": rand(10),
-                "b": randint(0, 10, 10),
+                "a": np.random.rand(10),
+                "b": np.random.randint(0, 10, 10),
                 "c": to_datetime(
-                    randint(1582800000000000000, 1583500000000000000, 10, dtype=int64)
+                    np.random.randint(
+                        1582800000000000000, 1583500000000000000, 10, dtype=np.int64
+                    )
                 ),
                 "d": to_datetime(
-                    randint(1582800000000000000, 1583500000000000000, 10, dtype=int64),
+                    np.random.randint(
+                        1582800000000000000, 1583500000000000000, 10, dtype=np.int64
+                    ),
                     utc=True,
                 ),
             }
@@ -260,11 +269,13 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_layout(self):
-        # GH32590
-        df = DataFrame(randn(100, 2))
+        df = DataFrame(np.random.randn(100, 2))
         df[2] = to_datetime(
-            randint(
-                self.start_date_to_int64, self.end_date_to_int64, size=100, dtype=int64
+            np.random.randint(
+                self.start_date_to_int64,
+                self.end_date_to_int64,
+                size=100,
+                dtype=np.int64,
             )
         )
 
@@ -297,11 +308,14 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_tight_layout(self):
-        # GH 9351, GH32590
-        df = DataFrame(randn(100, 2))
+        # GH 9351
+        df = DataFrame(np.random.randn(100, 2))
         df[2] = to_datetime(
-            randint(
-                self.start_date_to_int64, self.end_date_to_int64, size=100, dtype=int64
+            np.random.randint(
+                self.start_date_to_int64,
+                self.end_date_to_int64,
+                size=100,
+                dtype=np.int64,
             )
         )
         _check_plot_works(df.hist)
@@ -362,7 +376,7 @@ class TestDataFramePlots(TestPlotBase):
             expected_labels = [expected_labels] * 2
 
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
-        df = DataFrame(randn(30, 2), index=index, columns=["a", "b"])
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
 
         axes = _check_plot_works(df.hist, legend=True, by=by, column=column)
         self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
@@ -376,7 +390,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_hist_with_legend_raises(self, by, column):
         # GH 6279 - DataFrame histogram with legend and label raises
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
-        df = DataFrame(randn(30, 2), index=index, columns=["a", "b"])
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             df.hist(legend=True, by=by, column=column, label="d")
@@ -386,18 +400,21 @@ class TestDataFramePlots(TestPlotBase):
 class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_grouped_hist_legacy(self):
-        # GH 9351, GH32590
+        # GH 9351
         from matplotlib.patches import Rectangle
 
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        df = DataFrame(randn(500, 1), columns=["A"])
+        df = DataFrame(np.random.randn(500, 1), columns=["A"])
         df["B"] = to_datetime(
-            randint(
-                self.start_date_to_int64, self.end_date_to_int64, size=500, dtype=int64
+            np.random.randint(
+                self.start_date_to_int64,
+                self.end_date_to_int64,
+                size=500,
+                dtype=np.int64,
             )
         )
-        df["C"] = randint(0, 4, 500)
+        df["C"] = np.random.randint(0, 4, 500)
         df["D"] = ["X"] * 500
 
         axes = _grouped_hist(df.A, by=df.C)
@@ -454,12 +471,11 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_grouped_hist_legacy2(self):
-        # GH32590
         n = 10
-        weight = Series(normal(166, 20, size=n))
-        height = Series(normal(60, 10, size=n))
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
         with tm.RNGContext(42):
-            gender_int = choice([0, 1], size=n)
+            gender_int = np.random.choice([0, 1], size=n)
         df_int = DataFrame({"height": height, "weight": weight, "gender": gender_int})
         gb = df_int.groupby("gender")
         axes = gb.hist()

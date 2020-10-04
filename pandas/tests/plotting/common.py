@@ -21,7 +21,6 @@ class TestPlotBase:
     """
 
     def setup_method(self, method):
-        # GH32590
         import matplotlib as mpl
 
         from pandas.plotting._matplotlib import compat
