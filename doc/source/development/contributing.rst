@@ -837,6 +837,11 @@ to run its checks by running::
 
 without having to have done ``pre-commit install`` beforehand.
 
+Note that if you have conflicting installations of ``virtualenv``, then you may get an
+error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_. If that happens,
+you may want to uninstall your system ``virtualenv`` and then re-install it in your
+``pandas-dev`` environment.
+
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
 
