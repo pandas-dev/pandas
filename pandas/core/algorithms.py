@@ -2112,3 +2112,27 @@ def safe_sort(
         np.putmask(new_codes, mask, na_sentinel)
 
     return ordered, ensure_platform_int(new_codes)
+
+
+def make_duplicates_of_left_unique_in_right(left, right) -> np.ndarray:
+    """
+    Drops all duplicates values from left in right, so that they are
+    unique in right.
+
+    Parameters
+    ----------
+    left: Index
+    right: Index
+
+    Returns
+    -------
+    Duplicates of left unique in right
+    """
+    left_duplicates = unique(left[duplicated(left)])
+    right_cleared = right[
+        ~(
+                duplicated(right)
+                & np.isin(right, left_duplicates)
+        )
+    ]
+    return right_cleared

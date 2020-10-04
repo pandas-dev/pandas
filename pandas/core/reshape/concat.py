@@ -13,6 +13,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
+import pandas.core.algorithms as algos
 from pandas.core.arrays.categorical import (
     factorize_from_iterable,
     factorize_from_iterables,
@@ -498,15 +499,7 @@ class _Concatenator:
                         # We have to remove the duplicates from obj_labels
                         # in new labels to make them unique, otherwise we would
                         # duplicate or duplicates again
-                        obj_labels_duplicates = obj_labels[
-                            obj_labels.duplicated()
-                        ].unique()
-                        new_labels_cleared = new_labels[
-                            ~(
-                                new_labels.duplicated()
-                                & new_labels.isin(obj_labels_duplicates)
-                            )
-                        ]
+                        new_labels_cleared = algos.make_duplicates_of_left_unique_in_right(obj_labels.values, new_labels.values)
                         indexers[ax] = obj_labels.reindex(new_labels_cleared)[1]
 
                 mgrs_indexers.append((obj._mgr, indexers))
