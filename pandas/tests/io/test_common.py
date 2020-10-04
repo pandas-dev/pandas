@@ -1,7 +1,7 @@
 """
 Tests for the pandas.io.common functionalities
 """
-from io import BytesIO, StringIO
+from io import StringIO
 import mmap
 import os
 from pathlib import Path
@@ -417,19 +417,3 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
-
-
-@pytest.mark.parametrize(
-    "encoding", ["utf-8", "utf-16", "utf-16-be", "utf-16-le", "utf-32"]
-)
-def test_parse_encoded_special_characters(encoding):
-    # GH16218 Verify parsing of data with encoded special characters
-    # Data contains a Unicode 'FULLWIDTH COLON' (U+FF1A) at position (0,"a")
-    data = "a\tb\n：foo\t0\nbar\t1\nbaz\t2"
-    encoded_data = BytesIO(data.encode(encoding))
-    result = pd.read_csv(encoded_data, delimiter="\t", encoding=encoding)
-
-    expected = pd.DataFrame(
-        data=[["：foo", 0], ["bar", 1], ["baz", 2]], columns=["a", "b"]
-    )
-    tm.assert_frame_equal(result, expected)
