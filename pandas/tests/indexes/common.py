@@ -935,7 +935,7 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             {} in idx._engine
 
-    def test_copy_copies_cache(self):
+    def test_copy_shares_cache(self):
         # GH32898, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
@@ -943,7 +943,7 @@ class Base:
 
         assert copy._cache is idx._cache
 
-    def test_shallow_copy_copies_cache(self):
+    def test_shallow_copy_shares_cache(self):
         # GH32669, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
