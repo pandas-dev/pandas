@@ -287,12 +287,6 @@ Performance improvements
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_0230.docs:
-
-Documentation changes
-~~~~~~~~~~~~~~~~~~~~~
-- Replaced tokens Pandas, **pandas**, *pandas*, and ``pandas`` with pandas for consistency (:issue:`32316`).
-
 .. _whatsnew_120.bug_fixes:
 
 Bug fixes
