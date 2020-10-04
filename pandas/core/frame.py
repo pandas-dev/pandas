@@ -4851,7 +4851,15 @@ class DataFrame(NDFrame):
                         values, _ = maybe_upcast_putmask(values, mask, np.nan)
 
                     if issubclass(values_type, DatetimeLikeArray):
-                        values = values_type(values, dtype=values_dtype)
+                        # pandas\core\frame.py:4854: error: Too many arguments
+                        # for "DatetimeLikeArrayMixin"  [call-arg]
+
+                        # pandas\core\frame.py:4854: error: Unexpected keyword
+                        # argument "dtype" for "DatetimeLikeArrayMixin"
+                        # [call-arg]
+                        values = values_type(
+                            values, dtype=values_dtype  # type: ignore[call-arg]
+                        )
 
             return values
 
@@ -7376,7 +7384,11 @@ NaN 12.3   33.0
 
         result = None
         try:
-            result, how = self._aggregate(func, axis=axis, *args, **kwargs)
+            # pandas\core\frame.py:7379: error: "_aggregate" gets multiple
+            # values for keyword argument "axis"  [misc]
+            result, how = self._aggregate(  # type: ignore[misc]
+                func, axis=axis, *args, **kwargs
+            )
         except TypeError as err:
             exc = TypeError(
                 "DataFrame constructor called with "
@@ -9277,7 +9289,9 @@ ops.add_special_arithmetic_methods(DataFrame)
 
 
 def _from_nested_dict(data):
-    new_data = collections.defaultdict(dict)
+    # pandas\core\frame.py:9280: error: Need type annotation for 'new_data'
+    # [var-annotated]
+    new_data = collections.defaultdict(dict)  # type: ignore[var-annotated]
     for index, s in data.items():
         for col, v in s.items():
             new_data[col][index] = v
