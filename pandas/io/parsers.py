@@ -1114,24 +1114,17 @@ class TextFileReader(abc.Iterator):
 
         validate_header_arg(options["header"])
 
-        depr_warning = ""
-
         for arg in _deprecated_args:
             parser_default = _c_parser_defaults[arg]
             depr_default = _deprecated_defaults[arg]
-
-            msg = (
-                f"The {repr(arg)} argument has been deprecated and will be "
-                "removed in a future version."
-            )
-
             if result.get(arg, depr_default) != depr_default:
-                depr_warning += msg + "\n\n"
+                msg = (
+                    f"The {repr(arg)} argument has been deprecated and will be "
+                    "removed in a future version.\n\n"
+                )
+                warnings.warn(msg, FutureWarning, stacklevel=2)
             else:
                 result[arg] = parser_default
-
-        if depr_warning != "":
-            warnings.warn(depr_warning, FutureWarning, stacklevel=2)
 
         if index_col is True:
             raise ValueError("The value of index_col couldn't be 'True'")
