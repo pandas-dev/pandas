@@ -2393,6 +2393,9 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.drop_duplicates(keep=False)
         Index(['cow', 'beetle', 'hippo'], dtype='object')
         """
+        if self.is_unique:
+            return self._shallow_copy()
+
         return super().drop_duplicates(keep=keep)
 
     def duplicated(self, keep="first"):
@@ -2449,6 +2452,9 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.duplicated(keep=False)
         array([ True, False,  True, False,  True])
         """
+        if self.is_unique:
+            # fastpath available bc we are immutable
+            return np.zeros(len(self), dtype=bool)
         return super().duplicated(keep=keep)
 
     def _get_unique_index(self, dropna: bool = False):
