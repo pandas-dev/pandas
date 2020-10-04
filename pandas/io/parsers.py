@@ -867,7 +867,7 @@ class TextFileReader(abc.Iterator):
         else:
             engine = "python"
             engine_specified = False
-
+        self.engine = engine
         self._engine_specified = kwds.get("engine_specified", engine_specified)
 
         if kwds.get("dialect") is not None:
@@ -884,7 +884,6 @@ class TextFileReader(abc.Iterator):
         self.orig_options = kwds
 
         # miscellanea
-        self.engine = engine
         self._currow = 0
 
         options = self._get_options_with_defaults(engine)
@@ -1016,7 +1015,6 @@ class TextFileReader(abc.Iterator):
     def _clean_options(self, options, engine):
         result = options.copy()
 
-        engine_specified = self._engine_specified
         fallback_reason = None
 
         # C engine not supported yet
@@ -1080,7 +1078,7 @@ class TextFileReader(abc.Iterator):
                 )
                 engine = "python"
 
-        if fallback_reason and engine_specified:
+        if fallback_reason and self._engine_specified:
             raise ValueError(fallback_reason)
 
         if engine == "c":
