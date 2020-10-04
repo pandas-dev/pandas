@@ -8,6 +8,7 @@ from datetime import date, tzinfo
 import itertools
 import os
 import re
+from textwrap import dedent
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
@@ -5174,15 +5175,16 @@ class Selection:
             # raise a nice message, suggesting that the user should use
             # data_columns
             qkeys = ",".join(q.keys())
-            raise ValueError(
-                f"The passed where expression: {where}\n"
-                "            contains an invalid variable reference\n"
-                "            all of the variable references must be a "
-                "reference to\n"
-                "            an axis (e.g. 'index' or 'columns'), or a "
-                "data_column\n"
-                f"            The currently defined references are: {qkeys}\n"
-            ) from err
+            msg = dedent(
+                f"""\
+                The passed where expression: {where}
+                            contains an invalid variable reference
+                            all of the variable references must be a reference to
+                            an axis (e.g. 'index' or 'columns'), or a data_column
+                            The currently defined references are: {qkeys}
+                """
+            )
+            raise ValueError(msg) from err
 
     def select(self):
         """
