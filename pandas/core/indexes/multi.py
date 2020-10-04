@@ -1089,7 +1089,6 @@ class MultiIndex(Index):
         )
         result._cache = self._cache.copy()
         result._cache.pop("levels", None)  # GH32669
-        result._id = self._id
         return result
 
     def symmetric_difference(self, other, result_name=None, sort=None):
@@ -1193,6 +1192,7 @@ class MultiIndex(Index):
     def view(self, cls=None):
         """ this is defined as a copy with the same identity """
         result = self.copy()
+        result._id = self._id
         return result
 
     @doc(Index.__contains__)

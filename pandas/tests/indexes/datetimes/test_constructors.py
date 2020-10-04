@@ -931,7 +931,7 @@ class TestTimeSeries:
         dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
         assert dti.is_(dti)
         assert dti.is_(dti.view())
-        assert dti.is_(dti.copy())
+        assert not dti.is_(dti.copy())
 
     def test_index_cast_datetime64_other_units(self):
         arr = np.arange(0, 100, 10, dtype=np.int64).view("M8[D]")

@@ -566,8 +566,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._simple_new(values, name=name)
 
         result = self._simple_new(self._values, name=name)
-        result._cache = self._cache.copy()
-        result._id = self._id
+        result._cache = self._cache
         return result
 
     def is_(self, other) -> bool:

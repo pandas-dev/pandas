@@ -523,8 +523,8 @@ class TestIndex(Base):
         assert ind.is_(ind)
         assert ind.is_(ind.view().view().view().view())
         assert not ind.is_(Index(range(10)))
-        assert ind.is_(ind.copy())
-        assert ind.is_(ind.copy(deep=False))
+        assert not ind.is_(ind.copy())
+        assert not ind.is_(ind.copy(deep=False))
         assert not ind.is_(ind[:])
         assert not ind.is_(np.array(range(10)))
 

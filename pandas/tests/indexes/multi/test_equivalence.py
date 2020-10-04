@@ -180,7 +180,7 @@ def test_is_():
     assert mi2.is_(mi)
     assert mi.is_(mi2)
 
-    assert mi.is_(mi.set_names(["C", "D"]))
+    assert not mi.is_(mi.set_names(["C", "D"]))
     mi2 = mi.view()
     mi2.set_names(["E", "F"], inplace=True)
     assert mi.is_(mi2)
