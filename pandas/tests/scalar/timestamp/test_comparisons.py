@@ -56,9 +56,18 @@ class TestTimestampComparison:
         if reverse:
             left, right = arr, ts
 
-        msg = "Cannot compare tz-naive and tz-aware timestamps"
-        with pytest.raises(TypeError, match=msg):
-            op(left, right)
+        if op is operator.eq:
+            expected = np.array([False, False], dtype=bool)
+            result = op(left, right)
+            tm.assert_numpy_array_equal(result, expected)
+        elif op is operator.ne:
+            expected = np.array([True, True], dtype=bool)
+            result = op(left, right)
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            msg = "Cannot compare tz-naive and tz-aware timestamps"
+            with pytest.raises(TypeError, match=msg):
+                op(left, right)
 
     def test_comparison_object_array(self):
         # GH#15183
@@ -139,10 +148,8 @@ class TestTimestampComparison:
         b = Timestamp("3/12/2012", tz=utc_fixture)
 
         msg = "Cannot compare tz-naive and tz-aware timestamps"
-        with pytest.raises(TypeError, match=msg):
-            a == b
-        with pytest.raises(TypeError, match=msg):
-            a != b
+        assert not a == b
+        assert a != b
         with pytest.raises(TypeError, match=msg):
             a < b
         with pytest.raises(TypeError, match=msg):
@@ -152,10 +159,8 @@ class TestTimestampComparison:
         with pytest.raises(TypeError, match=msg):
             a >= b
 
-        with pytest.raises(TypeError, match=msg):
-            b == a
-        with pytest.raises(TypeError, match=msg):
-            b != a
+        assert not b == a
+        assert b != a
         with pytest.raises(TypeError, match=msg):
             b < a
         with pytest.raises(TypeError, match=msg):
