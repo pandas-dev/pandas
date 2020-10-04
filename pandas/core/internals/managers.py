@@ -47,6 +47,7 @@ from pandas.core.internals.blocks import (
     DatetimeTZBlock,
     ExtensionBlock,
     ObjectValuesExtensionBlock,
+    PeriodExtensionBlock,
     extend_blocks,
     get_block_type,
     make_block,
@@ -1739,6 +1740,14 @@ def form_blocks(arrays, names: Index, axes) -> List[Block]:
         external_blocks = [
             make_block(array, klass=ObjectValuesExtensionBlock, placement=i)
             for i, _, array in items_dict["ObjectValuesExtensionBlock"]
+        ]
+
+        blocks.extend(external_blocks)
+
+    if len(items_dict["PeriodExtensionBlock"]):
+        external_blocks = [
+            make_block(array, klass=PeriodExtensionBlock, placement=i)
+            for i, _, array in items_dict["PeriodExtensionBlock"]
         ]
 
         blocks.extend(external_blocks)

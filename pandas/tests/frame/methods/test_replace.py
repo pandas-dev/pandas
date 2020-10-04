@@ -1517,9 +1517,6 @@ class TestDataFrameReplace:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="replace() changes dtype from period to object, see GH34871", strict=True
-    )
     def test_replace_period_ignore_float(self):
         """
         Regression test for GH#34871: if df.replace(1.0, 0.0) is called on a df

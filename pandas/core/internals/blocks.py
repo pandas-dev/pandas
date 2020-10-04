@@ -10,6 +10,7 @@ from pandas._libs import NaT, algos as libalgos, lib, writers
 import pandas._libs.internals as libinternals
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike, Scalar
 from pandas.util._validators import validate_bool_kwarg
@@ -1975,6 +1976,18 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
         return self.values.astype(object)
 
 
+class PeriodExtensionBlock(ObjectValuesExtensionBlock):
+    """
+    Used by PeriodArray to ensure proper type conversions
+    """
+
+    def _can_hold_element(self, element: Any) -> bool:
+        tipo = maybe_infer_dtype_type(element)
+        if tipo is not None:
+            return issubclass(tipo.type, Period)
+        return isinstance(element, Period)
+
+
 class NumericBlock(Block):
     __slots__ = ()
     is_numeric = True
@@ -2747,8 +2760,10 @@ def get_block_type(values, dtype=None):
         cls = DatetimeBlock
     elif is_datetime64tz_dtype(values.dtype):
         cls = DatetimeTZBlock
-    elif is_interval_dtype(dtype) or is_period_dtype(dtype):
+    elif is_interval_dtype(dtype):
         cls = ObjectValuesExtensionBlock
+    elif is_period_dtype(dtype):
+        cls = PeriodExtensionBlock
     elif is_extension_array_dtype(values.dtype):
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
