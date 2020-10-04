@@ -9,8 +9,7 @@ from typing import Any, Callable, Dict, FrozenSet, List, Optional, Union, cast
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import AggFuncType, AggFuncTypeBase, Label
-from pandas._typing import IndexLabel
+from pandas._typing import AggFuncType, AggFuncTypeBase, IndexLabel, Label
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
