@@ -782,7 +782,8 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new index (of same type and class...etc)
+        new index (of same type and class...etc) or None
+            The same type as the caller or None if ``inplace=True``.
 
         Examples
         --------
@@ -961,7 +962,8 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new index (of same type and class...etc)
+        new index (of same type and class...etc) or None
+            The same type as the caller or None if ``inplace=True``.
 
         Examples
         --------
