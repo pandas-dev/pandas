@@ -1,3 +1,4 @@
+import cmath
 import math
 
 import numpy as np
@@ -6,6 +7,7 @@ from numpy cimport import_array
 
 import_array()
 
+from pandas._libs.lib import is_complex
 from pandas._libs.util cimport is_array, is_real_number_object
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -184,6 +186,16 @@ cpdef assert_almost_equal(a, b,
 
         if not math.isclose(fa, fb, rel_tol=rtol, abs_tol=atol):
             assert False, (f"expected {fb:.5f} but got {fa:.5f}, "
+                           f"with rtol={rtol}, atol={atol}")
+        return True
+
+    if is_complex(a) and is_complex(b):
+        if array_equivalent(a, b, strict_nan=True):
+            # inf comparison
+            return True
+
+        if not cmath.isclose(a, b, rel_tol=rtol, abs_tol=atol):
+            assert False, (f"expected {b:.5f} but got {a:.5f}, "
                            f"with rtol={rtol}, atol={atol}")
         return True
 

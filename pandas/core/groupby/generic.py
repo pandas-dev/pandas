@@ -83,7 +83,7 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
-    from pandas.core.internals import Block  # noqa:F401
+    from pandas.core.internals import Block
 
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
@@ -1430,7 +1430,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         except AssertionError:
             raise
         except Exception:
-            # GH#29631 For user-defined function, we cant predict what may be
+            # GH#29631 For user-defined function, we can't predict what may be
             #  raised; see test_transform.test_transform_fastpath_raises
             return path, res
 
