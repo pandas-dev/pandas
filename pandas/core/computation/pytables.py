@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import is_list_like
 import pandas as pd
 import pandas.core.common as com
 from pandas.core.computation import expr, ops, scope as _scope
-from pandas.core.computation.common import _ensure_decoded
+from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
 from pandas.core.construction import extract_array
@@ -63,7 +63,7 @@ class Term(ops.Term):
             return self.name
 
     # read-only property overwriting read/write property
-    @property  # type: ignore
+    @property  # type: ignore[misc]
     def value(self):
         return self._value
 
@@ -189,12 +189,12 @@ class BinOp(ops.BinOp):
                 encoder = pprint_thing
             return encoder(value)
 
-        kind = _ensure_decoded(self.kind)
-        meta = _ensure_decoded(self.meta)
+        kind = ensure_decoded(self.kind)
+        meta = ensure_decoded(self.meta)
         if kind == "datetime64" or kind == "datetime":
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = _ensure_decoded(v)
+            v = ensure_decoded(v)
             v = Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert("UTC")
@@ -554,7 +554,7 @@ class PyTablesExpr(expr.Expr):
                 else:
                     w = _validate_where(w)
                     where[idx] = w
-            _where = " & ".join((f"({w})" for w in com.flatten(where)))
+            _where = " & ".join(f"({w})" for w in com.flatten(where))
         else:
             _where = where
 

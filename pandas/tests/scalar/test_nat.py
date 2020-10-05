@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_datetime64_any_dtype
 
 from pandas import (
     DatetimeIndex,
+    DatetimeTZDtype,
     Index,
     NaT,
     Period,
@@ -308,10 +309,6 @@ def test_overlap_public_nat_methods(klass, expected):
     # In case when Timestamp, Timedelta, and NaT are overlap, the overlap
     # is considered to be with Timestamp and NaT, not Timedelta.
 
-    # "fromisoformat" was introduced in 3.7
-    if klass is Timestamp and not compat.PY37:
-        expected.remove("fromisoformat")
-
     # "fromisocalendar" was introduced in 3.8
     if klass is Timestamp and not compat.PY38:
         expected.remove("fromisocalendar")
@@ -444,7 +441,9 @@ def test_nat_rfloordiv_timedelta(val, expected):
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
         DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
         DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
-        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], tz="US/Pacific"),
+        DatetimeArray._from_sequence(
+            ["2011-01-01", "2011-01-02"], dtype=DatetimeTZDtype(tz="US/Pacific")
+        ),
         TimedeltaIndex(["1 day", "2 day"], name="x"),
     ],
 )
@@ -513,11 +512,67 @@ def test_to_numpy_alias():
     assert isna(expected) and isna(result)
 
 
-@pytest.mark.parametrize("other", [Timedelta(0), Timestamp(0)])
+@pytest.mark.parametrize(
+    "other",
+    [
+        Timedelta(0),
+        Timedelta(0).to_pytimedelta(),
+        pytest.param(
+            Timedelta(0).to_timedelta64(),
+            marks=pytest.mark.xfail(
+                reason="td64 doesnt return NotImplemented, see numpy#17017"
+            ),
+        ),
+        Timestamp(0),
+        Timestamp(0).to_pydatetime(),
+        pytest.param(
+            Timestamp(0).to_datetime64(),
+            marks=pytest.mark.xfail(
+                reason="dt64 doesnt return NotImplemented, see numpy#17017"
+            ),
+        ),
+        Timestamp(0).tz_localize("UTC"),
+        NaT,
+    ],
+)
 def test_nat_comparisons(compare_operators_no_eq_ne, other):
     # GH 26039
-    assert getattr(NaT, compare_operators_no_eq_ne)(other) is False
-    assert getattr(other, compare_operators_no_eq_ne)(NaT) is False
+    opname = compare_operators_no_eq_ne
+
+    assert getattr(NaT, opname)(other) is False
+
+    op = getattr(operator, opname.strip("_"))
+    assert op(NaT, other) is False
+    assert op(other, NaT) is False
+
+
+@pytest.mark.parametrize("other", [np.timedelta64(0, "ns"), np.datetime64("now", "ns")])
+def test_nat_comparisons_numpy(other):
+    # Once numpy#17017 is fixed and the xfailed cases in test_nat_comparisons
+    #  pass, this test can be removed
+    assert not NaT == other
+    assert NaT != other
+    assert not NaT < other
+    assert not NaT > other
+    assert not NaT <= other
+    assert not NaT >= other
+
+
+@pytest.mark.parametrize("other", ["foo", 2, 2.0])
+@pytest.mark.parametrize("op", [operator.le, operator.lt, operator.ge, operator.gt])
+def test_nat_comparisons_invalid(other, op):
+    # GH#35585
+    assert not NaT == other
+    assert not other == NaT
+
+    assert NaT != other
+    assert other != NaT
+
+    with pytest.raises(TypeError):
+        op(NaT, other)
+
+    with pytest.raises(TypeError):
+        op(other, NaT)
 
 
 @pytest.mark.parametrize(

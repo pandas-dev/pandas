@@ -68,6 +68,8 @@ class ArrowStringDtype(ExtensionDtype):
 
 
 class ArrowExtensionArray(ExtensionArray):
+    _data: pa.ChunkedArray
+
     @classmethod
     def from_scalars(cls, values):
         arr = pa.chunked_array([pa.array(np.asarray(values))])
@@ -129,7 +131,7 @@ class ArrowExtensionArray(ExtensionArray):
         return self._boolean_op(other, operator.or_)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return sum(
             x.size
             for chunk in self._data.chunks
@@ -162,14 +164,14 @@ class ArrowExtensionArray(ExtensionArray):
     def __invert__(self):
         return type(self).from_scalars(~self._data.to_pandas())
 
-    def _reduce(self, method, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if skipna:
             arr = self[~self.isna()]
         else:
             arr = self
 
         try:
-            op = getattr(arr, method)
+            op = getattr(arr, name)
         except AttributeError as err:
             raise TypeError from err
         return op(**kwargs)

@@ -52,8 +52,8 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-from pandas.io import pytables as pytables  # noqa: E402 isort:skip
-from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
+from pandas.io import pytables as pytables  # isort:skip
+from pandas.io.pytables import TableIterator  # isort:skip
 
 
 _default_compressor = "blosc"
@@ -512,7 +512,7 @@ class TestHDFStore:
                 # context
                 if mode in ["r", "r+"]:
                     with pytest.raises(IOError):
-                        with HDFStore(path, mode=mode) as store:  # noqa
+                        with HDFStore(path, mode=mode) as store:
                             pass
                 else:
                     with HDFStore(path, mode=mode) as store:
@@ -909,7 +909,6 @@ class TestHDFStore:
         df = DataFrame(np.random.randn(50, 100))
         self._check_roundtrip(df, tm.assert_frame_equal, setup_path)
 
-    @td.xfail_non_writeable
     def test_put_mixed_type(self, setup_path):
         df = tm.makeTimeDataFrame()
         df["obj1"] = "foo"
@@ -1518,9 +1517,7 @@ class TestHDFStore:
                 pd.read_hdf(path, "ss4"), pd.concat([df["B"], df2["B"]])
             )
 
-    @pytest.mark.parametrize(
-        "format", [pytest.param("fixed", marks=td.xfail_non_writeable), "table"]
-    )
+    @pytest.mark.parametrize("format", ["fixed", "table"])
     def test_to_hdf_errors(self, format, setup_path):
 
         data = ["\ud800foo"]
@@ -1751,9 +1748,9 @@ class TestHDFStore:
 
                 # try to index a col which isn't a data_column
                 msg = (
-                    f"column string2 is not a data_column.\n"
-                    f"In order to read column string2 you must reload the dataframe \n"
-                    f"into HDFStore and include string2 with the data_columns argument."
+                    "column string2 is not a data_column.\n"
+                    "In order to read column string2 you must reload the dataframe \n"
+                    "into HDFStore and include string2 with the data_columns argument."
                 )
                 with pytest.raises(AttributeError, match=msg):
                     store.create_table_index("f", columns=["string2"])
@@ -1956,7 +1953,6 @@ class TestHDFStore:
             with pytest.raises(TypeError):
                 store.select("df", where=[("columns=A")])
 
-    @td.xfail_non_writeable
     def test_append_misc(self, setup_path):
 
         with ensure_clean_store(setup_path) as store:
@@ -2164,14 +2160,6 @@ class TestHDFStore:
             with pytest.raises(TypeError):
                 store.append("df_unimplemented", df)
 
-    @td.xfail_non_writeable
-    @pytest.mark.skipif(
-        LooseVersion(np.__version__) == LooseVersion("1.15.0"),
-        reason=(
-            "Skipping  pytables test when numpy version is "
-            "exactly equal to 1.15.0: gh-22098"
-        ),
-    )
     def test_calendar_roundtrip_issue(self, setup_path):
 
         # 8591
@@ -2362,7 +2350,7 @@ class TestHDFStore:
             store.put("df", df, format="table")
             expected = df[df.index > pd.Timestamp("20130105")]
 
-            import datetime  # noqa
+            import datetime
 
             result = store.select("df", "index>datetime.datetime(2013,1,5)")
             tm.assert_frame_equal(result, expected)
@@ -2384,10 +2372,16 @@ class TestHDFStore:
         ts = tm.makeTimeSeries()
         self._check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
 
-        ts2 = Series(ts.index, Index(ts.index, dtype=object))
+        with tm.assert_produces_warning(FutureWarning):
+            # auto-casting object->DatetimeIndex deprecated
+            ts2 = Series(ts.index, Index(ts.index, dtype=object))
         self._check_roundtrip(ts2, tm.assert_series_equal, path=setup_path)
 
-        ts3 = Series(ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object))
+        with tm.assert_produces_warning(FutureWarning):
+            # auto-casting object->DatetimeIndex deprecated
+            ts3 = Series(
+                ts.values, Index(np.asarray(ts.index, dtype=object), dtype=object)
+            )
         self._check_roundtrip(
             ts3, tm.assert_series_equal, path=setup_path, check_index_type=False
         )
@@ -2399,7 +2393,6 @@ class TestHDFStore:
         s = Series(np.random.randn(10), index=index)
         self._check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
-    @td.xfail_non_writeable
     def test_tuple_index(self, setup_path):
 
         # GH #492
@@ -2412,7 +2405,6 @@ class TestHDFStore:
             simplefilter("ignore", pd.errors.PerformanceWarning)
             self._check_roundtrip(DF, tm.assert_frame_equal, path=setup_path)
 
-    @td.xfail_non_writeable
     @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_index_types(self, setup_path):
 
@@ -2474,7 +2466,6 @@ class TestHDFStore:
         except OverflowError:
             pytest.skip("known failer on some windows platforms")
 
-    @td.xfail_non_writeable
     @pytest.mark.parametrize(
         "compression", [False, pytest.param(True, marks=td.skip_if_windows_python_3)]
     )
@@ -2508,7 +2499,6 @@ class TestHDFStore:
         # empty
         self._check_roundtrip(df[:0], tm.assert_frame_equal, path=setup_path)
 
-    @td.xfail_non_writeable
     def test_empty_series_frame(self, setup_path):
         s0 = Series(dtype=object)
         s1 = Series(name="myseries", dtype=object)
@@ -2522,7 +2512,6 @@ class TestHDFStore:
         self._check_roundtrip(df1, tm.assert_frame_equal, path=setup_path)
         self._check_roundtrip(df2, tm.assert_frame_equal, path=setup_path)
 
-    @td.xfail_non_writeable
     @pytest.mark.parametrize(
         "dtype", [np.int64, np.float64, object, "m8[ns]", "M8[ns]"]
     )
@@ -2608,7 +2597,6 @@ class TestHDFStore:
             recons = store["series"]
             tm.assert_series_equal(recons, series)
 
-    @td.xfail_non_writeable
     @pytest.mark.parametrize(
         "compression", [False, pytest.param(True, marks=td.skip_if_windows_python_3)]
     )
@@ -4176,7 +4164,6 @@ class TestHDFStore:
             d1 = store["detector"]
             assert isinstance(d1, DataFrame)
 
-    @td.xfail_non_writeable
     def test_legacy_table_fixed_format_read_py2(self, datapath, setup_path):
         # GH 24510
         # legacy table with fixed format written in Python 2
@@ -4350,7 +4337,6 @@ class TestHDFStore:
             result = store.get("df")
             tm.assert_frame_equal(result, df)
 
-    @td.xfail_non_writeable
     def test_store_datetime_mixed(self, setup_path):
 
         df = DataFrame({"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["a", "b", "c"]})

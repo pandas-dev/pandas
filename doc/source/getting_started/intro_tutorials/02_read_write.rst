@@ -138,7 +138,7 @@ My colleague requested the Titanic data as a spreadsheet.
 
 .. ipython:: python
 
-    titanic.to_excel('titanic.xlsx', sheet_name='passengers', index=False)
+    titanic.to_excel("titanic.xlsx", sheet_name="passengers", index=False)
 
 Whereas ``read_*`` functions are used to read data to pandas, the
 ``to_*`` methods are used to store data. The :meth:`~DataFrame.to_excel` method stores
@@ -151,12 +151,12 @@ named *passengers* instead of the default *Sheet1*. By setting
         </li>
     </ul>
 
-The equivalent read function :meth:`~DataFrame.to_excel` will reload the data to a
+The equivalent read function :meth:`~DataFrame.read_excel` will reload the data to a
 ``DataFrame``:
 
 .. ipython:: python
 
-    titanic = pd.read_excel('titanic.xlsx', sheet_name='passengers')
+    titanic = pd.read_excel("titanic.xlsx", sheet_name="passengers")
 
 .. ipython:: python
 
@@ -166,7 +166,8 @@ The equivalent read function :meth:`~DataFrame.to_excel` will reload the data to
    :suppress:
 
    import os
-   os.remove('titanic.xlsx')
+
+   os.remove("titanic.xlsx")
 
 .. raw:: html
 

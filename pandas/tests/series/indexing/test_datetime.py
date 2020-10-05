@@ -1,3 +1,6 @@
+"""
+Also test support for datetime64[ns] in Series / DataFrame
+"""
 from datetime import datetime, timedelta
 import re
 
@@ -10,11 +13,6 @@ import pandas._libs.index as _index
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
 import pandas._testing as tm
-
-
-"""
-Also test support for datetime64[ns] in Series / DataFrame
-"""
 
 
 def test_fancy_getitem():
@@ -166,6 +164,7 @@ def test_getitem_setitem_datetime_tz_pytz():
 
 def test_getitem_setitem_datetime_tz_dateutil():
     from dateutil.tz import tzutc
+
     from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 
     tz = (
@@ -259,7 +258,7 @@ def test_getitem_setitem_datetimeindex():
 
     lb = datetime(1990, 1, 1, 4)
     rb = datetime(1990, 1, 1, 7)
-    msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+    msg = r"Invalid comparison between dtype=datetime64\[ns, US/Eastern\] and datetime"
     with pytest.raises(TypeError, match=msg):
         # tznaive vs tzaware comparison is invalid
         # see GH#18376, GH#18162
@@ -605,7 +604,9 @@ def test_indexing():
     expected.name = "A"
 
     df = DataFrame(dict(A=ts))
-    result = df["2001"]["A"]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#36179 string indexing on rows for DataFrame deprecated
+        result = df["2001"]["A"]
     tm.assert_series_equal(expected, result)
 
     # setting
@@ -615,7 +616,9 @@ def test_indexing():
 
     df.loc["2001", "A"] = 1
 
-    result = df["2001"]["A"]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#36179 string indexing on rows for DataFrame deprecated
+        result = df["2001"]["A"]
     tm.assert_series_equal(expected, result)
 
     # GH3546 (not including times on the last day)

@@ -5,7 +5,7 @@ Cython implementations of functions resembling the stdlib calendar module
 
 import cython
 
-from numpy cimport int64_t, int32_t
+from numpy cimport int32_t, int64_t
 
 # ----------------------------------------------------------------------
 # Constants
@@ -201,10 +201,10 @@ cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
             iso_week = 1
 
     iso_year = year
-    if iso_week == 1 and doy > 7:
+    if iso_week == 1 and month == 12:
         iso_year += 1
 
-    elif iso_week >= 52 and doy < 7:
+    elif iso_week >= 52 and month == 1:
         iso_year -= 1
 
     return iso_year, iso_week, dow + 1
@@ -241,3 +241,52 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
 
     day_of_year = mo_off + day
     return day_of_year
+
+
+# ---------------------------------------------------------------------
+# Business Helpers
+
+cpdef int get_lastbday(int year, int month) nogil:
+    """
+    Find the last day of the month that is a business day.
+
+    Parameters
+    ----------
+    year : int
+    month : int
+
+    Returns
+    -------
+    last_bday : int
+    """
+    cdef:
+        int wkday, days_in_month
+
+    wkday = dayofweek(year, month, 1)
+    days_in_month = get_days_in_month(year, month)
+    return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
+
+
+cpdef int get_firstbday(int year, int month) nogil:
+    """
+    Find the first day of the month that is a business day.
+
+    Parameters
+    ----------
+    year : int
+    month : int
+
+    Returns
+    -------
+    first_bday : int
+    """
+    cdef:
+        int first, wkday
+
+    wkday = dayofweek(year, month, 1)
+    first = 1
+    if wkday == 5:  # on Saturday
+        first = 3
+    elif wkday == 6:  # on Sunday
+        first = 2
+    return first

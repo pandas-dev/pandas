@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import datetime
 from decimal import Decimal
 
@@ -300,48 +301,78 @@ class TestIsNA:
         tm.assert_series_equal(notna(s), ~exp)
 
 
-def test_array_equivalent():
-    assert array_equivalent(np.array([np.nan, np.nan]), np.array([np.nan, np.nan]))
+@pytest.mark.parametrize("dtype_equal", [True, False])
+def test_array_equivalent(dtype_equal):
     assert array_equivalent(
-        np.array([np.nan, 1, np.nan]), np.array([np.nan, 1, np.nan])
+        np.array([np.nan, np.nan]), np.array([np.nan, np.nan]), dtype_equal=dtype_equal
+    )
+    assert array_equivalent(
+        np.array([np.nan, 1, np.nan]),
+        np.array([np.nan, 1, np.nan]),
+        dtype_equal=dtype_equal,
     )
     assert array_equivalent(
         np.array([np.nan, None], dtype="object"),
         np.array([np.nan, None], dtype="object"),
+        dtype_equal=dtype_equal,
     )
     # Check the handling of nested arrays in array_equivalent_object
     assert array_equivalent(
         np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
         np.array([np.array([np.nan, None], dtype="object"), None], dtype="object"),
+        dtype_equal=dtype_equal,
     )
     assert array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),
         np.array([np.nan, 1 + 1j], dtype="complex"),
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
         np.array([np.nan, 1 + 1j], dtype="complex"),
         np.array([np.nan, 1 + 2j], dtype="complex"),
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
-        np.array([np.nan, 1, np.nan]), np.array([np.nan, 2, np.nan])
+        np.array([np.nan, 1, np.nan]),
+        np.array([np.nan, 2, np.nan]),
+        dtype_equal=dtype_equal,
     )
-    assert not array_equivalent(np.array(["a", "b", "c", "d"]), np.array(["e", "e"]))
-    assert array_equivalent(Float64Index([0, np.nan]), Float64Index([0, np.nan]))
-    assert not array_equivalent(Float64Index([0, np.nan]), Float64Index([1, np.nan]))
-    assert array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]))
-    assert not array_equivalent(DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]))
-    assert array_equivalent(TimedeltaIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
     assert not array_equivalent(
-        TimedeltaIndex([0, np.nan]), TimedeltaIndex([1, np.nan])
+        np.array(["a", "b", "c", "d"]), np.array(["e", "e"]), dtype_equal=dtype_equal
+    )
+    assert array_equivalent(
+        Float64Index([0, np.nan]), Float64Index([0, np.nan]), dtype_equal=dtype_equal
+    )
+    assert not array_equivalent(
+        Float64Index([0, np.nan]), Float64Index([1, np.nan]), dtype_equal=dtype_equal
+    )
+    assert array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]), dtype_equal=dtype_equal
+    )
+    assert array_equivalent(
+        TimedeltaIndex([0, np.nan]),
+        TimedeltaIndex([0, np.nan]),
+        dtype_equal=dtype_equal,
+    )
+    assert not array_equivalent(
+        TimedeltaIndex([0, np.nan]),
+        TimedeltaIndex([1, np.nan]),
+        dtype_equal=dtype_equal,
     )
     assert array_equivalent(
         DatetimeIndex([0, np.nan], tz="US/Eastern"),
         DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
         DatetimeIndex([0, np.nan], tz="US/Eastern"),
         DatetimeIndex([1, np.nan], tz="US/Eastern"),
+        dtype_equal=dtype_equal,
     )
+    # The rest are not dtype_equal
     assert not array_equivalent(
         DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
     )
@@ -351,6 +382,25 @@ def test_array_equivalent():
     )
 
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
+
+
+@pytest.mark.parametrize(
+    "val", [1, 1.1, 1 + 1j, True, "abc", [1, 2], (1, 2), {1, 2}, {"a": 1}, None]
+)
+def test_array_equivalent_series(val):
+    arr = np.array([1, 2])
+    cm = (
+        tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+        if isinstance(val, str)
+        else nullcontext()
+    )
+    with cm:
+        assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
+
+
+def test_array_equivalent_different_dtype_but_equal():
+    # Unclear if this is exposed anywhere in the public-facing API
+    assert array_equivalent(np.array([1, 2]), np.array([1.0, 2.0]))
 
 
 @pytest.mark.parametrize(

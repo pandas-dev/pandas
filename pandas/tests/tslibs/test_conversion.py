@@ -4,7 +4,13 @@ import numpy as np
 import pytest
 from pytz import UTC
 
-from pandas._libs.tslibs import conversion, iNaT, timezones, tzconversion
+from pandas._libs.tslibs import (
+    OutOfBoundsTimedelta,
+    conversion,
+    iNaT,
+    timezones,
+    tzconversion,
+)
 
 from pandas import Timestamp, date_range
 import pandas._testing as tm
@@ -12,9 +18,9 @@ import pandas._testing as tm
 
 def _compare_utc_to_local(tz_didx):
     def f(x):
-        return tzconversion.tz_convert_single(x, UTC, tz_didx.tz)
+        return tzconversion.tz_convert_from_utc_single(x, tz_didx.tz)
 
-    result = tzconversion.tz_convert(tz_didx.asi8, UTC, tz_didx.tz)
+    result = tzconversion.tz_convert_from_utc(tz_didx.asi8, tz_didx.tz)
     expected = np.vectorize(f)(tz_didx.asi8)
 
     tm.assert_numpy_array_equal(result, expected)
@@ -22,9 +28,6 @@ def _compare_utc_to_local(tz_didx):
 
 def _compare_local_to_utc(tz_didx, naive_didx):
     # Check that tz_localize behaves the same vectorized and pointwise.
-    def f(x):
-        return tzconversion.tz_convert_single(x, tz_didx.tz, UTC)
-
     err1 = err2 = None
     try:
         result = tzconversion.tz_localize_to_utc(naive_didx.asi8, tz_didx.tz)
@@ -71,7 +74,15 @@ def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
     ],
 )
 def test_tz_convert_corner(arr):
-    result = tzconversion.tz_convert(arr, UTC, timezones.maybe_get_tz("Asia/Tokyo"))
+    result = tzconversion.tz_convert_from_utc(arr, timezones.maybe_get_tz("Asia/Tokyo"))
+    tm.assert_numpy_array_equal(result, arr)
+
+
+def test_tz_convert_readonly():
+    # GH#35530
+    arr = np.array([0], dtype=np.int64)
+    arr.setflags(write=False)
+    result = tzconversion.tz_convert_from_utc(arr, UTC)
     tm.assert_numpy_array_equal(result, arr)
 
 
@@ -90,6 +101,13 @@ def test_ensure_datetime64ns_bigendian():
 
     expected = np.array([np.datetime64(1, "ms")], dtype="M8[ns]")
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_ensure_timedelta64ns_overflows():
+    arr = np.arange(10).astype("m8[Y]") * 100
+    msg = r"Out of bounds for nanosecond timedelta64\[Y\] 900"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        conversion.ensure_timedelta64ns(arr)
 
 
 class SubDatetime(datetime):

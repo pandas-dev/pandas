@@ -9,57 +9,69 @@ shadows the python class, where we do any heavy lifting.
 import warnings
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport int64_t, int8_t, uint8_t, ndarray
+from numpy cimport int8_t, int64_t, ndarray, uint8_t
+
 cnp.import_array()
 
-from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
-                             Py_EQ, Py_NE)
-
-from cpython.datetime cimport (
-    datetime,
-    time,
-    tzinfo,
-    tzinfo as tzinfo_type,  # alias bc `tzinfo` is a kwarg below
+from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
     PyDateTime_Check,
+    PyDateTime_IMPORT,
     PyDelta_Check,
     PyTZInfo_Check,
-    PyDateTime_IMPORT,
+    datetime,
+    time,
+    tzinfo as tzinfo_type,
 )
+from cpython.object cimport Py_EQ, Py_NE, PyObject_RichCompare, PyObject_RichCompareBool
+
 PyDateTime_IMPORT
 
-from pandas._libs.tslibs.util cimport (
-    is_datetime64_object, is_float_object, is_integer_object,
-    is_timedelta64_object, is_array,
-)
-
-from pandas._libs.tslibs.base cimport ABCTimestamp
-
 from pandas._libs.tslibs cimport ccalendar
-
+from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.conversion cimport (
     _TSObject,
-    convert_to_tsobject,
     convert_datetime_to_tsobject,
+    convert_to_tsobject,
     normalize_i8_stamp,
 )
-from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
+from pandas._libs.tslibs.util cimport (
+    is_array,
+    is_datetime64_object,
+    is_float_object,
+    is_integer_object,
+    is_timedelta64_object,
+)
+
+from pandas._libs.tslibs.fields import get_date_name_field, get_start_end_field
+
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
-    check_dts_bounds, npy_datetimestruct, dt64_to_dtstruct,
+    check_dts_bounds,
     cmp_scalar,
+    dt64_to_dtstruct,
+    npy_datetimestruct,
     pydatetime_to_dt64,
 )
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.offsets cimport to_offset, is_offset_object
-from pandas._libs.tslibs.timedeltas cimport is_any_td_scalar, delta_to_nanoseconds
+
+from pandas._libs.tslibs.offsets cimport is_offset_object, to_offset
+from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds, is_any_td_scalar
+
 from pandas._libs.tslibs.timedeltas import Timedelta
+
 from pandas._libs.tslibs.timezones cimport (
-    is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,
-    get_timezone, tz_compare,
+    get_timezone,
+    is_utc,
+    maybe_get_tz,
+    treat_tz_as_pytz,
+    tz_compare,
+    utc_pytz as UTC,
 )
 from pandas._libs.tslibs.tzconversion cimport (
-    tz_convert_single,
+    tz_convert_from_utc_single,
     tz_localize_to_utc_single,
 )
 
@@ -248,6 +260,10 @@ cdef class _Timestamp(ABCTimestamp):
             if other.dtype.kind == "M":
                 if self.tz is None:
                     return PyObject_RichCompare(self.asm8, other, op)
+                elif op == Py_NE:
+                    return np.ones(other.shape, dtype=np.bool_)
+                elif op == Py_EQ:
+                    return np.zeros(other.shape, dtype=np.bool_)
                 raise TypeError(
                     "Cannot compare tz-naive and tz-aware timestamps"
                 )
@@ -266,7 +282,12 @@ cdef class _Timestamp(ABCTimestamp):
         else:
             return NotImplemented
 
-        self._assert_tzawareness_compat(ots)
+        if not self._can_compare(ots):
+            if op == Py_NE or op == Py_EQ:
+                return NotImplemented
+            raise TypeError(
+                "Cannot compare tz-naive and tz-aware timestamps"
+            )
         return cmp_scalar(self.value, ots.value, op)
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
@@ -274,16 +295,15 @@ cdef class _Timestamp(ABCTimestamp):
         cdef:
             datetime dtval = self.to_pydatetime()
 
-        self._assert_tzawareness_compat(other)
+        if not self._can_compare(other):
+            return NotImplemented
+
         return PyObject_RichCompareBool(dtval, other, op)
 
-    cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
-        if self.tzinfo is None:
-            if other.tzinfo is not None:
-                raise TypeError('Cannot compare tz-naive and tz-aware '
-                                'timestamps')
-        elif other.tzinfo is None:
-            raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
+    cdef bint _can_compare(self, datetime other):
+        if self.tzinfo is not None:
+            return other.tzinfo is not None
+        return other.tzinfo is None
 
     def __add__(self, other):
         cdef:
@@ -491,9 +511,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Returns
         -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """
         return self._get_date_name_field("day_name", locale)
 
@@ -508,9 +526,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Returns
         -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """
         return self._get_date_name_field("month_name", locale)
 
@@ -771,7 +787,6 @@ class Timestamp(_Timestamp):
     year, month, day : int
     hour, minute, second, microsecond : int, optional, default 0
     nanosecond : int, optional, default 0
-        .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice
@@ -1309,7 +1324,7 @@ default 'raise'
         else:
             if tz is None:
                 # reset tz
-                value = tz_convert_single(self.value, UTC, self.tz)
+                value = tz_convert_from_utc_single(self.value, self.tz)
                 return Timestamp(value, tz=tz, freq=self.freq)
             else:
                 raise TypeError(
@@ -1391,7 +1406,7 @@ default 'raise'
         tzobj = self.tzinfo
         value = self.value
         if tzobj is not None:
-            value = tz_convert_single(value, UTC, tzobj)
+            value = tz_convert_from_utc_single(value, tzobj)
 
         # setup components
         dt64_to_dtstruct(value, &dts)

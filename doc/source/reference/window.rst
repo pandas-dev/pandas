@@ -86,3 +86,4 @@ Base class for defining custom window boundaries.
 
    api.indexers.BaseIndexer
    api.indexers.FixedForwardWindowIndexer
+   api.indexers.VariableOffsetWindowIndexer

@@ -9,7 +9,7 @@ pandas code style guide
 .. contents:: Table of contents:
    :local:
 
-*pandas* follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_
+pandas follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_
 standard and uses `Black <https://black.readthedocs.io/en/stable/>`_
 and `Flake8 <https://flake8.pycqa.org/en/latest/>`_ to ensure a
 consistent code format throughout the project. For details see the
@@ -159,3 +159,19 @@ For example:
 
     # wrong
     from common import test_base
+
+
+Miscellaneous
+=============
+
+Reading from a url
+------------------
+
+**Good:**
+
+.. code-block:: python
+
+    from pandas.io.common import urlopen
+
+    with urlopen("http://www.google.com") as url:
+        raw_text = url.read()

@@ -14,17 +14,15 @@ from pandas.core.arrays import Categorical
 import pandas.core.common as com
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import tile_compat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa: F401
+    from pandas import DataFrame, Series
 
 
-@Appender(
-    _shared_docs["melt"]
-    % dict(caller="pd.melt(df, ", versionadded="", other="DataFrame.melt")
-)
+@Appender(_shared_docs["melt"] % dict(caller="pd.melt(df, ", other="DataFrame.melt"))
 def melt(
     frame: "DataFrame",
     id_vars=None,
@@ -32,8 +30,8 @@ def melt(
     var_name=None,
     value_name="value",
     col_level=None,
+    ignore_index: bool = True,
 ) -> "DataFrame":
-    # TODO: what about the existing index?
     # If multiindex, gather names of columns on all level for checking presence
     # of `id_vars` and `value_vars`
     if isinstance(frame.columns, MultiIndex):
@@ -132,20 +130,54 @@ def melt(
         # asanyarray will keep the columns as an Index
         mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
 
-    return frame._constructor(mdata, columns=mcolumns)
+    result = frame._constructor(mdata, columns=mcolumns)
+
+    if not ignore_index:
+        result.index = tile_compat(frame.index, K)
+
+    return result
 
 
 @deprecate_kwarg(old_arg_name="label", new_arg_name=None)
 def lreshape(data: "DataFrame", groups, dropna: bool = True, label=None) -> "DataFrame":
     """
-    Reshape long-format data to wide. Generalized inverse of DataFrame.pivot
+    Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
+
+    Accepts a dictionary, ``groups``, in which each key is a new column name
+    and each value is a list of old column names that will be "melted" under
+    the new column name as part of the reshape.
 
     Parameters
     ----------
     data : DataFrame
+        The wide-format DataFrame.
     groups : dict
-        {new_name : list_of_columns}
-    dropna : boolean, default True
+        {new_name : list_of_columns}.
+    dropna : bool, default True
+        Do not include columns whose entries are all NaN.
+    label : None
+        Not used.
+
+        .. deprecated:: 1.0.0
+
+    Returns
+    -------
+    DataFrame
+        Reshaped DataFrame.
+
+    See Also
+    --------
+    melt : Unpivot a DataFrame from wide to long format, optionally leaving
+        identifiers set.
+    pivot : Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.pivot : Pivot without aggregation that can handle
+        non-numeric data.
+    DataFrame.pivot_table : Generalization of pivot that can handle
+        duplicate values for one index/column pair.
+    DataFrame.unstack : Pivot based on the index values instead of a
+        column.
+    wide_to_long : Wide panel to long format. Less flexible but more
+        user-friendly than melt.
 
     Examples
     --------
@@ -163,10 +195,6 @@ def lreshape(data: "DataFrame", groups, dropna: bool = True, label=None) -> "Dat
     1  Yankees  2007  573
     2  Red Sox  2008  545
     3  Yankees  2008  526
-
-    Returns
-    -------
-    reshaped : DataFrame
     """
     if isinstance(groups, dict):
         keys = list(groups.keys())
@@ -243,18 +271,28 @@ def wide_to_long(
         A regular expression capturing the wanted suffixes. '\\d+' captures
         numeric suffixes. Suffixes with no numbers could be specified with the
         negated character class '\\D+'. You can also further disambiguate
-        suffixes, for example, if your wide variables are of the form
-        A-one, B-two,.., and you have an unrelated column A-rating, you can
-        ignore the last one by specifying `suffix='(!?one|two)'`.
-
-        .. versionchanged:: 0.23.0
-            When all suffixes are numeric, they are cast to int64/float64.
+        suffixes, for example, if your wide variables are of the form A-one,
+        B-two,.., and you have an unrelated column A-rating, you can ignore the
+        last one by specifying `suffix='(!?one|two)'`. When all suffixes are
+        numeric, they are cast to int64/float64.
 
     Returns
     -------
     DataFrame
         A DataFrame that contains each stub name as a variable, with new index
         (i, j).
+
+    See Also
+    --------
+    melt : Unpivot a DataFrame from wide to long format, optionally leaving
+        identifiers set.
+    pivot : Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.pivot : Pivot without aggregation that can handle
+        non-numeric data.
+    DataFrame.pivot_table : Generalization of pivot that can handle
+        duplicate values for one index/column pair.
+    DataFrame.unstack : Pivot based on the index values instead of a
+        column.
 
     Notes
     -----

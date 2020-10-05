@@ -21,7 +21,6 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
-from pandas.arrays import SparseArray
 import pandas.core.common as com
 from pandas.core.indexing import IndexingError
 
@@ -161,10 +160,13 @@ class TestDataFrameIndexing:
         msg = "Columns must be same length as key"
         with pytest.raises(ValueError, match=msg):
             data[["A"]] = float_frame[["A", "B"]]
-
-        msg = "Length of values does not match length of index"
+        newcolumndata = range(len(data.index) - 1)
+        msg = (
+            rf"Length of values \({len(newcolumndata)}\) "
+            rf"does not match length of index \({len(data)}\)"
+        )
         with pytest.raises(ValueError, match=msg):
-            data["A"] = range(len(data.index) - 1)
+            data["A"] = newcolumndata
 
         df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=np.int_)
         df.loc[1, ["tt1", "tt2"]] = [1, 2]
@@ -1089,7 +1091,7 @@ class TestDataFrameIndexing:
             cp.iloc[1.0:5] = 0
 
         with pytest.raises(TypeError, match=msg):
-            result = cp.iloc[1.0:5] == 0  # noqa
+            result = cp.iloc[1.0:5] == 0
 
         assert result.values.all()
         assert (cp.iloc[0:1] == df.iloc[0:1]).values.all()
@@ -1338,7 +1340,8 @@ class TestDataFrameIndexing:
         df = float_frame
         rows = list(df.index) * len(df.columns)
         cols = list(df.columns) * len(df.index)
-        result = df.lookup(rows, cols)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.lookup(rows, cols)
 
         expected = np.array([df.loc[r, c] for r, c in zip(rows, cols)])
         tm.assert_numpy_array_equal(result, expected)
@@ -1347,7 +1350,8 @@ class TestDataFrameIndexing:
         df = float_string_frame
         rows = list(df.index) * len(df.columns)
         cols = list(df.columns) * len(df.index)
-        result = df.lookup(rows, cols)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.lookup(rows, cols)
 
         expected = np.array(
             [df.loc[r, c] for r, c in zip(rows, cols)], dtype=np.object_
@@ -1363,7 +1367,8 @@ class TestDataFrameIndexing:
                 "mask_c": [False, True, False, True],
             }
         )
-        df["mask"] = df.lookup(df.index, "mask_" + df["label"])
+        with tm.assert_produces_warning(FutureWarning):
+            df["mask"] = df.lookup(df.index, "mask_" + df["label"])
 
         exp_mask = np.array(
             [df.loc[r, c] for r, c in zip(df.index, "mask_" + df["label"])]
@@ -1374,13 +1379,16 @@ class TestDataFrameIndexing:
 
     def test_lookup_raises(self, float_frame):
         with pytest.raises(KeyError, match="'One or more row labels was not found'"):
-            float_frame.lookup(["xyz"], ["A"])
+            with tm.assert_produces_warning(FutureWarning):
+                float_frame.lookup(["xyz"], ["A"])
 
         with pytest.raises(KeyError, match="'One or more column labels was not found'"):
-            float_frame.lookup([float_frame.index[0]], ["xyz"])
+            with tm.assert_produces_warning(FutureWarning):
+                float_frame.lookup([float_frame.index[0]], ["xyz"])
 
         with pytest.raises(ValueError, match="same size"):
-            float_frame.lookup(["a", "b", "c"], ["a"])
+            with tm.assert_produces_warning(FutureWarning):
+                float_frame.lookup(["a", "b", "c"], ["a"])
 
     def test_lookup_requires_unique_axes(self):
         # GH#33041 raise with a helpful error message
@@ -1391,14 +1399,17 @@ class TestDataFrameIndexing:
 
         # homogeneous-dtype case
         with pytest.raises(ValueError, match="requires unique index and columns"):
-            df.lookup(rows, cols)
+            with tm.assert_produces_warning(FutureWarning):
+                df.lookup(rows, cols)
         with pytest.raises(ValueError, match="requires unique index and columns"):
-            df.T.lookup(cols, rows)
+            with tm.assert_produces_warning(FutureWarning):
+                df.T.lookup(cols, rows)
 
         # heterogeneous dtype
         df["B"] = 0
         with pytest.raises(ValueError, match="requires unique index and columns"):
-            df.lookup(rows, cols)
+            with tm.assert_produces_warning(FutureWarning):
+                df.lookup(rows, cols)
 
     def test_set_value(self, float_frame):
         for idx in float_frame.index:
@@ -1907,20 +1918,6 @@ class TestDataFrameIndexing:
         expect = df.iloc[[1, -1], 0]
         tm.assert_series_equal(df.loc[0.2, "a"], expect)
 
-    def test_getitem_sparse_column(self):
-        # https://github.com/pandas-dev/pandas/issues/23559
-        data = SparseArray([0, 1])
-        df = pd.DataFrame({"A": data})
-        expected = pd.Series(data, name="A")
-        result = df["A"]
-        tm.assert_series_equal(result, expected)
-
-        result = df.iloc[:, 0]
-        tm.assert_series_equal(result, expected)
-
-        result = df.loc[:, "A"]
-        tm.assert_series_equal(result, expected)
-
     def test_setitem_with_unaligned_tz_aware_datetime_column(self):
         # GH 12981
         # Assignment of unaligned offset-aware datetime series.
@@ -2123,7 +2120,7 @@ class TestDataFrameIndexing:
         )
         dg = df.pivot_table(index="i", columns="c", values=["x", "y"])
 
-        with pytest.raises(TypeError, match="is an invalid key"):
+        with pytest.raises(TypeError, match="unhashable type"):
             dg[:, 0]
 
         index = Index(range(2), name="i")
@@ -2244,3 +2241,12 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert blk.dtype == "m8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)
+
+
+def test_lookup_deprecated():
+    # GH18262
+    df = pd.DataFrame(
+        {"col": ["A", "A", "B", "B"], "A": [80, 23, np.nan, 22], "B": [80, 55, 76, 67]}
+    )
+    with tm.assert_produces_warning(FutureWarning):
+        df.lookup(df.index, df["col"])

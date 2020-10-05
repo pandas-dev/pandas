@@ -1,44 +1,68 @@
 import cython
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport int64_t, int32_t, intp_t, ndarray
+from numpy cimport int32_t, int64_t, intp_t, ndarray
+
 cnp.import_array()
 
 import pytz
 
 # stdlib datetime imports
-from cpython.datetime cimport (datetime, time, tzinfo,
-                               PyDateTime_Check, PyDate_Check,
-                               PyDateTime_IMPORT)
+
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    datetime,
+    time,
+    tzinfo,
+)
+
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
-
 from pandas._libs.tslibs.np_datetime cimport (
-    check_dts_bounds, npy_datetimestruct, pandas_datetime_to_datetimestruct,
-    _string_to_dts, npy_datetime, dt64_to_dtstruct, dtstruct_to_dt64,
-    get_datetime64_unit, get_datetime64_value, pydatetime_to_dt64,
-    NPY_DATETIMEUNIT, NPY_FR_ns)
+    NPY_DATETIMEUNIT,
+    NPY_FR_ns,
+    _string_to_dts,
+    check_dts_bounds,
+    dt64_to_dtstruct,
+    dtstruct_to_dt64,
+    get_datetime64_unit,
+    get_datetime64_value,
+    npy_datetime,
+    npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
+    pydatetime_to_dt64,
+)
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from pandas._libs.tslibs.util cimport (
-    is_datetime64_object, is_integer_object, is_float_object)
-
 from pandas._libs.tslibs.timezones cimport (
-    is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    maybe_get_tz, tz_compare,
+    get_dst_info,
+    get_utcoffset,
+    is_fixed_offset,
+    is_tzlocal,
+    is_utc,
+    maybe_get_tz,
+    tz_compare,
     utc_pytz as UTC,
 )
+from pandas._libs.tslibs.util cimport (
+    is_datetime64_object,
+    is_float_object,
+    is_integer_object,
+)
+
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
-    checknull_with_nat,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
+    checknull_with_nat,
 )
-
 from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_utc_to_tzlocal,
     tz_localize_to_utc_single,
@@ -49,6 +73,15 @@ from pandas._libs.tslibs.tzconversion cimport (
 
 DT64NS_DTYPE = np.dtype('M8[ns]')
 TD64NS_DTYPE = np.dtype('m8[ns]')
+
+
+class OutOfBoundsTimedelta(ValueError):
+    """
+    Raised when encountering a timedelta value that cannot be represented
+    as a timedelta64[ns].
+    """
+    # Timedelta analogue to OutOfBoundsDatetime
+    pass
 
 
 # ----------------------------------------------------------------------
@@ -228,11 +261,34 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
 
     Returns
     -------
-    result : ndarray with dtype timedelta64[ns]
-
+    ndarray[timedelta64[ns]]
     """
-    return arr.astype(TD64NS_DTYPE, copy=copy)
-    # TODO: check for overflows when going from a lower-resolution to nanos
+    assert arr.dtype.kind == "m", arr.dtype
+
+    if arr.dtype == TD64NS_DTYPE:
+        return arr.copy() if copy else arr
+
+    # Re-use the datetime64 machinery to do an overflow-safe `astype`
+    dtype = arr.dtype.str.replace("m8", "M8")
+    dummy = arr.view(dtype)
+    try:
+        dt64_result = ensure_datetime64ns(dummy, copy)
+    except OutOfBoundsDatetime as err:
+        # Re-write the exception in terms of timedelta64 instead of dt64
+
+        # Find the value that we are going to report as causing an overflow
+        tdmin = arr.min()
+        tdmax = arr.max()
+        if np.abs(tdmin) >= np.abs(tdmax):
+            bad_val = tdmin
+        else:
+            bad_val = tdmax
+
+        raise OutOfBoundsTimedelta(
+            f"Out of bounds for nanosecond {arr.dtype.name} {bad_val}"
+        )
+
+    return dt64_result.view(TD64NS_DTYPE)
 
 
 # ----------------------------------------------------------------------
@@ -607,11 +663,20 @@ cdef inline check_overflows(_TSObject obj):
     # GH#12677
     if obj.dts.year == 1677:
         if not (obj.value < 0):
-            raise OutOfBoundsDatetime
+            from pandas._libs.tslibs.timestamps import Timestamp
+            fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
+                   f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
+            raise OutOfBoundsDatetime(
+                f"Converting {fmt} underflows past {Timestamp.min}"
+            )
     elif obj.dts.year == 2262:
         if not (obj.value > 0):
-            raise OutOfBoundsDatetime
-
+            from pandas._libs.tslibs.timestamps import Timestamp
+            fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
+                   f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
+            raise OutOfBoundsDatetime(
+                f"Converting {fmt} overflows past {Timestamp.max}"
+            )
 
 # ----------------------------------------------------------------------
 # Localization
@@ -765,74 +830,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 # ----------------------------------------------------------------------
 # Normalization
 
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz):
-    """
-    Normalize each of the (nanosecond) timezone aware timestamps in the given
-    array by rounding down to the beginning of the day (i.e. midnight).
-    This is midnight for timezone, `tz`.
-
-    Parameters
-    ----------
-    stamps : int64 ndarray
-    tz : tzinfo or None
-
-    Returns
-    -------
-    result : int64 ndarray of converted of normalized nanosecond timestamps
-    """
-    cdef:
-        Py_ssize_t i, n = len(stamps)
-        int64_t[:] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        str typ
-        Py_ssize_t[:] pos
-        int64_t delta, local_val
-
-    if tz is None or is_utc(tz):
-        with nogil:
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                local_val = stamps[i]
-                result[i] = normalize_i8_stamp(local_val)
-    elif is_tzlocal(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            result[i] = normalize_i8_stamp(local_val)
-    else:
-        # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
-
-        if typ not in ['pytz', 'dateutil']:
-            # static/fixed; in this case we know that len(delta) == 1
-            delta = deltas[0]
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                local_val = stamps[i] + delta
-                result[i] = normalize_i8_stamp(local_val)
-        else:
-            pos = trans.searchsorted(stamps, side='right') - 1
-            for i in range(n):
-                if stamps[i] == NPY_NAT:
-                    result[i] = NPY_NAT
-                    continue
-                local_val = stamps[i] + deltas[pos[i]]
-                result[i] = normalize_i8_stamp(local_val)
-
-    return result.base  # `.base` to access underlying ndarray
-
-
-@cython.cdivision
+@cython.cdivision(False)
 cdef inline int64_t normalize_i8_stamp(int64_t local_val) nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
@@ -848,63 +846,3 @@ cdef inline int64_t normalize_i8_stamp(int64_t local_val) nogil:
     cdef:
         int64_t day_nanos = 24 * 3600 * 1_000_000_000
     return local_val - (local_val % day_nanos)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def is_date_array_normalized(const int64_t[:] stamps, tzinfo tz=None):
-    """
-    Check if all of the given (nanosecond) timestamps are normalized to
-    midnight, i.e. hour == minute == second == 0.  If the optional timezone
-    `tz` is not None, then this is midnight for this timezone.
-
-    Parameters
-    ----------
-    stamps : int64 ndarray
-    tz : tzinfo or None
-
-    Returns
-    -------
-    is_normalized : bool True if all stamps are normalized
-    """
-    cdef:
-        Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] trans
-        int64_t[:] deltas
-        intp_t[:] pos
-        int64_t local_val, delta
-        str typ
-        int64_t day_nanos = 24 * 3600 * 1_000_000_000
-
-    if tz is None or is_utc(tz):
-        for i in range(n):
-            local_val = stamps[i]
-            if local_val % day_nanos != 0:
-                return False
-
-    elif is_tzlocal(tz):
-        for i in range(n):
-            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
-            if local_val % day_nanos != 0:
-                return False
-    else:
-        trans, deltas, typ = get_dst_info(tz)
-
-        if typ not in ['pytz', 'dateutil']:
-            # static/fixed; in this case we know that len(delta) == 1
-            delta = deltas[0]
-            for i in range(n):
-                # Adjust datetime64 timestamp, recompute datetimestruct
-                local_val = stamps[i] + delta
-                if local_val % day_nanos != 0:
-                    return False
-
-        else:
-            pos = trans.searchsorted(stamps) - 1
-            for i in range(n):
-                # Adjust datetime64 timestamp, recompute datetimestruct
-                local_val = stamps[i] + deltas[pos[i]]
-                if local_val % day_nanos != 0:
-                    return False
-
-    return True

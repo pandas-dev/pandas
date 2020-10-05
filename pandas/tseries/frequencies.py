@@ -12,7 +12,7 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
     int_to_weekday,
 )
-from pandas._libs.tslibs.fields import build_field_sarray
+from pandas._libs.tslibs.fields import build_field_sarray, month_position_check
 from pandas._libs.tslibs.offsets import (  # noqa:F401
     DateOffset,
     Day,
@@ -20,8 +20,6 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
-from pandas._libs.tslibs.resolution import month_position_check
-from pandas._libs.tslibs.timezones import UTC
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -198,7 +196,9 @@ class _FrequencyInferer:
         # the timezone so they are in local time
         if hasattr(index, "tz"):
             if index.tz is not None:
-                self.i8values = tzconversion.tz_convert(self.i8values, UTC, index.tz)
+                self.i8values = tzconversion.tz_convert_from_utc(
+                    self.i8values, index.tz
+                )
 
         self.warn = warn
 
@@ -548,7 +548,7 @@ def is_superperiod(source, target) -> bool:
 
 
 def _maybe_coerce_freq(code) -> str:
-    """ we might need to coerce a code to a rule_code
+    """we might need to coerce a code to a rule_code
     and uppercase it
 
     Parameters

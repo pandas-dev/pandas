@@ -89,6 +89,27 @@ class TestNumericComparisons:
         b.name = pd.Timestamp("2000-01-01")
         tm.assert_series_equal(a / b, 1 / (b / a))
 
+    def test_numeric_cmp_string_numexpr_path(self, box_with_array):
+        # GH#36377, GH#35700
+        box = box_with_array
+        xbox = box if box is not pd.Index else np.ndarray
+
+        obj = pd.Series(np.random.randn(10 ** 5))
+        obj = tm.box_expected(obj, box, transpose=False)
+
+        result = obj == "a"
+
+        expected = pd.Series(np.zeros(10 ** 5, dtype=bool))
+        expected = tm.box_expected(expected, xbox, transpose=False)
+        tm.assert_equal(result, expected)
+
+        result = obj != "a"
+        tm.assert_equal(result, ~expected)
+
+        msg = "Invalid comparison between dtype=float64 and str"
+        with pytest.raises(TypeError, match=msg):
+            obj < "a"
+
 
 # ------------------------------------------------------------------
 # Numeric dtypes Arithmetic with Datetime/Timedelta Scalar
@@ -99,7 +120,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
     def test_mul_td64arr(self, left, box_cls):
         # GH#22390
@@ -119,7 +140,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, pd.Index, pd.Series])
     @pytest.mark.parametrize(
-        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype),
+        "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
     def test_div_td64arr(self, left, box_cls):
         # GH#22390
@@ -163,10 +184,14 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar(self, scalar_td, numeric_idx, box):
+    def test_numeric_arr_mul_tdscalar(self, scalar_td, numeric_idx, box_with_array):
         # GH#19333
+        box = box_with_array
+        if box is pd.array:
+            pytest.xfail(
+                "we get a PandasArray[timedelta64[ns]] instead of TimedeltaArray"
+            )
         index = numeric_idx
-
         expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(5)])
 
         index = tm.box_expected(index, box)
@@ -187,7 +212,11 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box):
+    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box_with_array):
+        box = box_with_array
+        if box is pd.array:
+            pytest.xfail("IntegerArray.__mul__ doesnt handle timedeltas")
+
         arr = np.arange(2 * 10 ** 4).astype(np.int64)
         obj = tm.box_expected(arr, box, transpose=False)
 
@@ -200,7 +229,11 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = scalar_td * obj
         tm.assert_equal(result, expected)
 
-    def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
+    def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box_with_array):
+        box = box_with_array
+        if box is pd.array:
+            pytest.xfail("We get PandasArray[td64] instead of TimedeltaArray")
+
         index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(["3 Days", "36 Hours"])
@@ -228,7 +261,11 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             pd.offsets.Second(0),
         ],
     )
-    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box):
+    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box_with_array):
+        box = box_with_array
+        if box is pd.array:
+            pytest.xfail("PandasArray[int].__add__ doesnt raise on td64")
+
         left = tm.box_expected(numeric_idx, box)
         msg = (
             "unsupported operand type|"
@@ -256,16 +293,21 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
     )
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
-    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box):
+    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box_with_array):
         # GH#28080 numeric+datetime64 should raise; Timestamp raises
         #  NullFrequencyError instead of TypeError so is excluded.
+        box = box_with_array
         left = tm.box_expected(numeric_idx, box)
 
-        msg = (
-            "unsupported operand type|"
-            "Cannot (add|subtract) NaT (to|from) ndarray|"
-            "Addition/subtraction of integers and integer-arrays|"
-            "Concatenation operation is not implemented for NumPy arrays"
+        msg = "|".join(
+            [
+                "unsupported operand type",
+                "Cannot (add|subtract) NaT (to|from) ndarray",
+                "Addition/subtraction of integers and integer-arrays",
+                "Concatenation operation is not implemented for NumPy arrays",
+                # pd.array vs np.datetime64 case
+                r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -548,22 +590,9 @@ class TestMultiplicationDivision:
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
     # for non-timestamp/timedelta/period dtypes
 
-    @pytest.mark.parametrize(
-        "box",
-        [
-            pytest.param(
-                pd.Index,
-                marks=pytest.mark.xfail(
-                    reason="Index.__div__ always raises", raises=TypeError
-                ),
-            ),
-            pd.Series,
-            pd.DataFrame,
-        ],
-        ids=lambda x: x.__name__,
-    )
-    def test_divide_decimal(self, box):
+    def test_divide_decimal(self, box_with_array):
         # resolves issue GH#9787
+        box = box_with_array
         ser = Series([Decimal(10)])
         expected = Series([Decimal(5)])
 

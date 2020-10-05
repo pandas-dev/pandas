@@ -24,6 +24,6 @@ cdef int64_t get_datetime64_nanos(object val) except? -1
 
 cpdef datetime localize_pydatetime(datetime dt, object tz)
 cdef int64_t cast_from_unit(object ts, str unit) except? -1
+cpdef (int64_t, int) precision_from_unit(str unit)
 
-cpdef ndarray[int64_t] normalize_i8_timestamps(const int64_t[:] stamps, tzinfo tz)
 cdef int64_t normalize_i8_stamp(int64_t local_val) nogil

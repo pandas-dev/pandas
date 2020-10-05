@@ -5,23 +5,24 @@ import warnings
 import cython
 from cython import Py_ssize_t
 
-from cpython.object cimport PyObject_RichCompareBool, Py_EQ
-from cpython.ref cimport Py_INCREF
-from cpython.tuple cimport PyTuple_SET_ITEM, PyTuple_New
-from cpython.iterator cimport PyIter_Check
-from cpython.sequence cimport PySequence_Check
-from cpython.number cimport PyNumber_Check
-
 from cpython.datetime cimport (
-    PyDateTime_Check,
     PyDate_Check,
-    PyTime_Check,
-    PyDelta_Check,
+    PyDateTime_Check,
     PyDateTime_IMPORT,
+    PyDelta_Check,
+    PyTime_Check,
 )
+from cpython.iterator cimport PyIter_Check
+from cpython.number cimport PyNumber_Check
+from cpython.object cimport Py_EQ, PyObject_RichCompareBool
+from cpython.ref cimport Py_INCREF
+from cpython.sequence cimport PySequence_Check
+from cpython.tuple cimport PyTuple_New, PyTuple_SET_ITEM
+
 PyDateTime_IMPORT
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport (
     NPY_OBJECT,
@@ -39,6 +40,7 @@ from numpy cimport (
     uint8_t,
     uint64_t,
 )
+
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
@@ -63,28 +65,23 @@ cdef extern from "src/parse_helper.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
 
 from pandas._libs cimport util
-from pandas._libs.util cimport is_nan, UINT64_MAX, INT64_MAX, INT64_MIN
+from pandas._libs.util cimport INT64_MAX, INT64_MIN, UINT64_MAX, is_nan
 
 from pandas._libs.tslib import array_to_datetime
-from pandas._libs.tslibs.nattype cimport (
-    NPY_NAT,
-    c_NaT as NaT,
-    checknull_with_nat,
-)
-from pandas._libs.tslibs.conversion cimport convert_to_tsobject
-from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
-from pandas._libs.tslibs.timezones cimport tz_compare
-from pandas._libs.tslibs.period cimport is_period_object
-from pandas._libs.tslibs.offsets cimport is_offset_object
 
 from pandas._libs.missing cimport (
+    C_NA,
     checknull,
-    isnaobj,
     is_null_datetime64,
     is_null_timedelta64,
-    C_NA,
+    isnaobj,
 )
-
+from pandas._libs.tslibs.conversion cimport convert_to_tsobject
+from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT, checknull_with_nat
+from pandas._libs.tslibs.offsets cimport is_offset_object
+from pandas._libs.tslibs.period cimport is_period_object
+from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
+from pandas._libs.tslibs.timezones cimport tz_compare
 
 # constants that will be compared to potentially arbitrarily large
 # python int
@@ -587,14 +584,16 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
             elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
                       (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
-        except TypeError as err:
-            # Avoid raising TypeError on tzawareness mismatch
-            # TODO: This try/except can be removed if/when Timestamp
-            #  comparisons are changed to match datetime, see GH#28507
-            if "tz-naive and tz-aware" in str(err):
+        except ValueError:
+            # Avoid raising ValueError when comparing Numpy arrays to other types
+            if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
+                # Only compare scalars to scalars and non-scalars to non-scalars
+                return False
+            elif (not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
+                  and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
+                # Check if non-scalars have the same type
                 return False
             raise
-
     return True
 
 
@@ -621,35 +620,57 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def astype_str(arr: ndarray, skipna: bool=False) -> ndarray[object]:
-    """
-    Convert all elements in an array to string.
+cpdef ndarray[object] ensure_string_array(
+        arr,
+        object na_value=np.nan,
+        bint convert_na_value=True,
+        bint copy=True,
+        bint skipna=True,
+):
+    """Returns a new numpy array with object dtype and only strings and na values.
 
     Parameters
     ----------
-    arr : ndarray
-        The array whose elements we are casting.
-    skipna : bool, default False
+    arr : array-like
+        The values to be converted to str, if needed.
+    na_value : Any
+        The value to use for na. For example, np.nan or pd.NA.
+    convert_na_value : bool, default True
+        If False, existing na values will be used unchanged in the new array.
+    copy : bool, default True
+        Whether to ensure that a new array is returned.
+    skipna : bool, default True
         Whether or not to coerce nulls to their stringified form
-        (e.g. NaN becomes 'nan').
+        (e.g. if False, NaN becomes 'nan').
 
     Returns
     -------
     ndarray
-        A new array with the input array's elements casted.
+        An array with the input array's elements casted to str or nan-like.
     """
     cdef:
-        object arr_i
-        Py_ssize_t i, n = arr.size
-        ndarray[object] result = np.empty(n, dtype=object)
+        Py_ssize_t i = 0, n = len(arr)
+
+    result = np.asarray(arr, dtype="object")
+
+    if copy and result is arr:
+        result = result.copy()
 
     for i in range(n):
-        arr_i = arr[i]
+        val = arr[i]
 
-        if not (skipna and checknull(arr_i)):
-            arr_i = str(arr_i)
+        if isinstance(val, str):
+            continue
 
-        result[i] = arr_i
+        if not checknull(val):
+            result[i] = str(val)
+        else:
+            if convert_na_value:
+                val = na_value
+            if skipna:
+                result[i] = val
+            else:
+                result[i] = str(val)
 
     return result
 
@@ -983,7 +1004,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     False
     >>> is_list_like(np.array([2]))
     True
-    >>> is_list_like(np.array(2)))
+    >>> is_list_like(np.array(2))
     False
     """
     return c_is_list_like(obj, allow_sets)
@@ -1317,8 +1338,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if not isinstance(value, list):
             value = list(value)
 
-        from pandas.core.dtypes.cast import (
-            construct_1d_object_array_from_listlike)
+        from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
 
     # make contiguous
@@ -2364,7 +2384,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer(ndarray arr, object f, bint convert=True):
+def map_infer(ndarray arr, object f, bint convert=True, bint ignore_na=False):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2372,6 +2392,9 @@ def map_infer(ndarray arr, object f, bint convert=True):
     ----------
     arr : ndarray
     f : function
+    convert : bint
+    ignore_na : bint
+        If True, NA values will not have f applied
 
     Returns
     -------
@@ -2385,6 +2408,9 @@ def map_infer(ndarray arr, object f, bint convert=True):
     n = len(arr)
     result = np.empty(n, dtype=object)
     for i in range(n):
+        if ignore_na and checknull(arr[i]):
+            result[i] = arr[i]
+            continue
         val = f(arr[i])
 
         if cnp.PyArray_IsZeroDim(val):

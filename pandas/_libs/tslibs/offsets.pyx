@@ -1,59 +1,78 @@
-import cython
-
 import operator
 import re
 import time
 from typing import Any
 import warnings
-from cpython.datetime cimport (PyDateTime_IMPORT,
-                               PyDateTime_Check,
-                               PyDate_Check,
-                               PyDelta_Check,
-                               datetime, timedelta, date,
-                               time as dt_time)
+
+import cython
+
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    date,
+    datetime,
+    time as dt_time,
+    timedelta,
+)
+
 PyDateTime_IMPORT
 
-from dateutil.relativedelta import relativedelta
 from dateutil.easter import easter
-
+from dateutil.relativedelta import relativedelta
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t, ndarray
+
 cnp.import_array()
 
 # TODO: formalize having _libs.properties "above" tslibs in the dependency structure
+
 from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport (
-    is_integer_object,
     is_datetime64_object,
     is_float_object,
+    is_integer_object,
 )
 
 from pandas._libs.tslibs.ccalendar import (
-    MONTH_ALIASES, MONTH_TO_CAL_NUM, weekday_to_int, int_to_weekday,
+    MONTH_ALIASES,
+    MONTH_TO_CAL_NUM,
+    int_to_weekday,
+    weekday_to_int,
 )
-from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, get_days_in_month, dayofweek
+
+from pandas._libs.tslibs.ccalendar cimport (
+    DAY_NANOS,
+    dayofweek,
+    get_days_in_month,
+    get_firstbday,
+    get_lastbday,
+)
 from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
-    normalize_i8_timestamps,
 )
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct,
-    dtstruct_to_dt64,
     dt64_to_dtstruct,
+    dtstruct_to_dt64,
+    npy_datetimestruct,
     pydate_to_dtstruct,
 )
-from pandas._libs.tslibs.timezones cimport utc_pytz as UTC
-from pandas._libs.tslibs.tzconversion cimport tz_convert_single
+from pandas._libs.tslibs.tzconversion cimport tz_convert_from_utc_single
 
 from .dtypes cimport PeriodDtypeCode
 from .timedeltas cimport delta_to_nanoseconds
+
 from .timedeltas import Timedelta
+
 from .timestamps cimport _Timestamp
+
 from .timestamps import Timestamp
 
 # ---------------------------------------------------------------------
@@ -82,17 +101,38 @@ cdef bint _is_normalized(datetime dt):
     return True
 
 
+def apply_wrapper_core(func, self, other) -> ndarray:
+    result = func(self, other)
+    result = np.asarray(result)
+
+    if self.normalize:
+        # TODO: Avoid circular/runtime import
+        from .vectorized import normalize_i8_timestamps
+        result = normalize_i8_timestamps(result.view("i8"), None)
+
+    return result
+
+
 def apply_index_wraps(func):
+    # Note: normally we would use `@functools.wraps(func)`, but this does
+    # not play nicely with cython class methods
+    def wrapper(self, other):
+        # other is a DatetimeArray
+        result = apply_wrapper_core(func, self, other)
+        result = type(other)(result)
+        warnings.warn("'Offset.apply_index(other)' is deprecated. "
+                      "Use 'offset + other' instead.", FutureWarning)
+        return result
+
+    return wrapper
+
+
+def apply_array_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
     # not play nicely with cython class methods
     def wrapper(self, other) -> np.ndarray:
         # other is a DatetimeArray
-
-        result = func(self, other)
-        result = np.asarray(result)
-
-        if self.normalize:
-            result = normalize_i8_timestamps(result.view("i8"), None)
+        result = apply_wrapper_core(func, self, other)
         return result
 
     # do @functools.wraps(func) manually since it doesn't work on cdef funcs
@@ -177,54 +217,11 @@ cdef _wrap_timedelta_result(result):
 # ---------------------------------------------------------------------
 # Business Helpers
 
-cpdef int get_lastbday(int year, int month) nogil:
-    """
-    Find the last day of the month that is a business day.
-
-    Parameters
-    ----------
-    year : int
-    month : int
-
-    Returns
-    -------
-    last_bday : int
-    """
-    cdef:
-        int wkday, days_in_month
-
-    wkday = dayofweek(year, month, 1)
-    days_in_month = get_days_in_month(year, month)
-    return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
-
-
-cpdef int get_firstbday(int year, int month) nogil:
-    """
-    Find the first day of the month that is a business day.
-
-    Parameters
-    ----------
-    year : int
-    month : int
-
-    Returns
-    -------
-    first_bday : int
-    """
-    cdef:
-        int first, wkday
-
-    wkday = dayofweek(year, month, 1)
-    first = 1
-    if wkday == 5:  # on Saturday
-        first = 3
-    elif wkday == 6:  # on Sunday
-        first = 2
-    return first
-
 
 cdef _get_calendar(weekmask, holidays, calendar):
-    """Generate busdaycalendar"""
+    """
+    Generate busdaycalendar
+    """
     if isinstance(calendar, np.busdaycalendar):
         if not holidays:
             holidays = tuple(calendar.holidays)
@@ -263,7 +260,7 @@ cdef _to_dt64D(dt):
         #  equiv `Timestamp(dt).value` or `dt.timestamp() * 10**9`
         nanos = getattr(dt, "nanosecond", 0)
         i8 = convert_datetime_to_tsobject(dt, tz=None, nanos=nanos).value
-        dt = tz_convert_single(i8, UTC, dt.tzinfo)
+        dt = tz_convert_from_utc_single(i8, dt.tzinfo)
         dt = np.int64(dt).astype('datetime64[ns]')
     else:
         dt = np.datetime64(dt)
@@ -554,6 +551,10 @@ cdef class BaseOffset:
         raises NotImplementedError for offsets without a
         vectorized implementation.
 
+        .. deprecated:: 1.1.0
+
+           Use ``offset + dtindex`` instead.
+
         Parameters
         ----------
         index : DatetimeIndex
@@ -561,7 +562,20 @@ cdef class BaseOffset:
         Returns
         -------
         DatetimeIndex
+
+        Raises
+        ------
+        NotImplementedError
+            When the specific offset subclass does not have a vectorized
+            implementation.
         """
+        raise NotImplementedError(
+            f"DateOffset subclass {type(self).__name__} "
+            "does not have a vectorized implementation"
+        )
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
         raise NotImplementedError(
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
@@ -597,7 +611,7 @@ cdef class BaseOffset:
 
     def _get_offset_day(self, other: datetime) -> int:
         # subclass must implement `_day_opt`; calling from the base class
-        # will raise NotImplementedError.
+        # will implicitly assume day_opt = "business_end", see get_day_of_month.
         cdef:
             npy_datetimestruct dts
         pydate_to_dtstruct(other, &dts)
@@ -647,14 +661,18 @@ cdef class BaseOffset:
         return nint
 
     def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
+        """
+        Reconstruct an instance from a pickled state
+        """
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self._cache = state.pop("_cache", {})
         # At this point we expect state to be empty
 
     def __getstate__(self):
-        """Return a pickleable state"""
+        """
+        Return a pickleable state
+        """
         state = {}
         state["n"] = self.n
         state["normalize"] = self.normalize
@@ -959,7 +977,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
             object.__setattr__(self, key, val)
 
     def __getstate__(self):
-        """Return a pickleable state"""
+        """
+        Return a pickleable state
+        """
         # RelativeDeltaOffset (technically DateOffset) is the only non-cdef
         #  class, so the only one with __dict__
         state = self.__dict__.copy()
@@ -968,7 +988,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
         return state
 
     def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
+        """
+        Reconstruct an instance from a pickled state
+        """
 
         if "offset" in state:
             # Older (<0.22.0) versions have offset attribute instead of _offset
@@ -976,13 +998,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 raise AssertionError("Unexpected key `_offset`")
             state["_offset"] = state.pop("offset")
             state["kwds"]["offset"] = state["_offset"]
-
-        if "_offset" in state and not isinstance(state["_offset"], timedelta):
-            # relativedelta, we need to populate using its kwds
-            offset = state["_offset"]
-            odict = offset.__dict__
-            kwds = {key: odict[key] for key in odict if odict[key]}
-            state.update(kwds)
 
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
@@ -1031,7 +1046,11 @@ cdef class RelativeDeltaOffset(BaseOffset):
         -------
         ndarray[datetime64[ns]]
         """
-        dt64other = np.asarray(dtindex)
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        dt64other = np.asarray(dtarr)
         kwds = self.kwds
         relativedelta_fast = {
             "years",
@@ -1360,7 +1379,11 @@ cdef class BusinessDay(BusinessMixin):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
-        i8other = dtindex.view("i8")
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        i8other = dtarr.view("i8")
         return shift_bdays(i8other, self.n)
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -1843,8 +1866,12 @@ cdef class YearOffset(SingleConstructorOffset):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
         shifted = shift_quarters(
-            dtindex.view("i8"), self.n, self.month, self._day_opt, modby=12
+            dtarr.view("i8"), self.n, self.month, self._day_opt, modby=12
         )
         return shifted
 
@@ -1996,8 +2023,12 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
         shifted = shift_quarters(
-            dtindex.view("i8"), self.n, self.startingMonth, self._day_opt
+            dtarr.view("i8"), self.n, self.startingMonth, self._day_opt
         )
         return shifted
 
@@ -2111,7 +2142,11 @@ cdef class MonthOffset(SingleConstructorOffset):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
-        shifted = shift_months(dtindex.view("i8"), self.n, self._day_opt)
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        shifted = shift_months(dtarr.view("i8"), self.n, self._day_opt)
         return shifted
 
     cpdef __setstate__(self, state):
@@ -2248,8 +2283,14 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
     @cython.wraparound(False)
     @cython.boundscheck(False)
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    def _apply_array(self, dtarr):
         cdef:
-            int64_t[:] i8other = dtindex.view("i8")
+            int64_t[:] i8other = dtarr.view("i8")
             Py_ssize_t i, count = len(i8other)
             int64_t val
             int64_t[:] out = np.empty(count, dtype="i8")
@@ -2407,12 +2448,16 @@ cdef class Week(SingleConstructorOffset):
 
     @apply_index_wraps
     def apply_index(self, dtindex):
+        return self._apply_array(dtindex)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
         if self.weekday is None:
             td = timedelta(days=7 * self.n)
             td64 = np.timedelta64(td, "ns")
-            return dtindex + td64
+            return dtarr + td64
         else:
-            i8other = dtindex.view("i8")
+            i8other = dtarr.view("i8")
             return self._end_apply_index(i8other)
 
     @cython.wraparound(False)
@@ -3185,6 +3230,9 @@ cdef class CustomBusinessDay(BusinessDay):
     def apply_index(self, dtindex):
         raise NotImplementedError
 
+    def _apply_array(self, dtarr):
+        raise NotImplementedError
+
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
@@ -3566,7 +3614,9 @@ def shift_day(other: datetime, days: int) -> datetime:
 
 
 cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
-    """new year number after shifting npy_datetimestruct number of months"""
+    """
+    New year number after shifting npy_datetimestruct number of months.
+    """
     return dts.year + (dts.month + months - 1) // 12
 
 
@@ -3650,7 +3700,6 @@ def shift_months(const int64_t[:] dtindex, int months, object day_opt=None):
                 out[i] = dtstruct_to_dt64(&dts)
     elif day_opt in ["start", "end", "business_start", "business_end"]:
         _shift_months(dtindex, out, count, months, day_opt)
-
     else:
         raise ValueError("day must be None, 'start', 'end', "
                          "'business_start', or 'business_end'")
@@ -3665,10 +3714,12 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
                                Py_ssize_t count,
                                int months,
                                str day_opt) nogil:
-    """See shift_months.__doc__"""
+    """
+    See shift_months.__doc__
+    """
     cdef:
         Py_ssize_t i
-        int months_to_roll, compare_day
+        int months_to_roll
         npy_datetimestruct dts
 
     for i in range(count):
@@ -3678,10 +3729,8 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
 
         dt64_to_dtstruct(dtindex[i], &dts)
         months_to_roll = months
-        compare_day = get_day_of_month(&dts, day_opt)
 
-        months_to_roll = roll_convention(dts.day, months_to_roll,
-                                         compare_day)
+        months_to_roll = _roll_qtrday(&dts, months_to_roll, 0, day_opt)
 
         dts.year = year_add_months(dts, months_to_roll)
         dts.month = month_add_months(dts, months_to_roll)
@@ -3699,7 +3748,9 @@ cdef inline void _shift_quarters(const int64_t[:] dtindex,
                                  int q1start_month,
                                  str day_opt,
                                  int modby) nogil:
-    """See shift_quarters.__doc__"""
+    """
+    See shift_quarters.__doc__
+    """
     cdef:
         Py_ssize_t i
         int months_since, n
@@ -3840,7 +3891,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object=None) -> datetime:
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef inline int get_day_of_month(npy_datetimestruct* dts, day_opt) nogil except? -1:
+cdef inline int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
@@ -3866,27 +3917,23 @@ cdef inline int get_day_of_month(npy_datetimestruct* dts, day_opt) nogil except?
     >>> get_day_of_month(other, 'end')
     30
 
+    Notes
+    -----
+    Caller is responsible for ensuring one of the four accepted day_opt values
+    is passed.
     """
-    cdef:
-        int days_in_month
 
     if day_opt == "start":
         return 1
     elif day_opt == "end":
-        days_in_month = get_days_in_month(dts.year, dts.month)
-        return days_in_month
+        return get_days_in_month(dts.year, dts.month)
     elif day_opt == "business_start":
         # first business day of month
         return get_firstbday(dts.year, dts.month)
-    elif day_opt == "business_end":
+    else:
+        # i.e. day_opt == "business_end":
         # last business day of month
         return get_lastbday(dts.year, dts.month)
-    elif day_opt is not None:
-        raise ValueError(day_opt)
-    elif day_opt is None:
-        # Note: unlike `shift_month`, get_day_of_month does not
-        # allow day_opt = None
-        raise NotImplementedError
 
 
 cpdef int roll_convention(int other, int n, int compare) nogil:
@@ -3940,6 +3987,10 @@ def roll_qtrday(other: datetime, n: int, month: int,
     cdef:
         int months_since
         npy_datetimestruct dts
+
+    if day_opt not in ["start", "end", "business_start", "business_end"]:
+        raise ValueError(day_opt)
+
     pydate_to_dtstruct(other, &dts)
 
     if modby == 12:
@@ -3955,7 +4006,9 @@ cdef inline int _roll_qtrday(npy_datetimestruct* dts,
                              int n,
                              int months_since,
                              str day_opt) nogil except? -1:
-    """See roll_qtrday.__doc__"""
+    """
+    See roll_qtrday.__doc__
+    """
 
     if n > 0:
         if months_since < 0 or (months_since == 0 and
