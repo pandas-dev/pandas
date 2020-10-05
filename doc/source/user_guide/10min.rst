@@ -667,9 +667,10 @@ pandas can include categorical data in a :class:`DataFrame`. For full docs, see 
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-       {"id": [1, 2, 3, 4, 5, 6], "raw_grade": ["a", "b", "b", "a", "a", "e"]}
-   )
+    df = pd.DataFrame(
+        {"id": [1, 2, 3, 4, 5, 6], "raw_grade": ["a", "b", "b", "a", "a", "e"]}
+    )
+
 
 
 Convert the raw grades to a categorical data type.
@@ -718,7 +719,8 @@ We use the standard convention for referencing the matplotlib API:
 .. ipython:: python
 
    import matplotlib.pyplot as plt
-   plt.close('all')
+
+   plt.close("all")
 
 .. ipython:: python
 
