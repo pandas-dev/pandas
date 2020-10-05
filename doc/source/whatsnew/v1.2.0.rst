@@ -348,7 +348,7 @@ Strings
 Interval
 ^^^^^^^^
 
-- Bug in :meth:`DataFrame.replace` and :method:`Series.replace` where :class:`Interval` dtypes would be converted to object dytpes (:issue:34871)
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` where :class:`Interval` dtypes would be converted to object dytpes (:issue:34871)
 -
 
 Indexing
@@ -390,7 +390,7 @@ I/O
 Period
 ^^^^^^
 
-- Bug in :meth:`DataFrame.replace` and :method:`Series.replace` where :class:`Period` dtypes would be converted to object dytpes (:issue:34871)
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` where :class:`Period` dtypes would be converted to object dytpes (:issue:34871)
 
 Plotting
 ^^^^^^^^
