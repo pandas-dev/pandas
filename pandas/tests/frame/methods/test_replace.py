@@ -1517,14 +1517,15 @@ class TestDataFrameReplace:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_replace_period_ignore_float(self):
+    @pytest.mark.parametrize("value", [pd.Period("2020-01"), pd.Interval(0, 5)])
+    def test_replace_period_ignore_float(self, value):
         """
         Regression test for GH#34871: if df.replace(1.0, 0.0) is called on a df
-        with a Period column the old, faulty behavior is to raise TypeError.
+        with a Period/Interval column the old, faulty behavior is to raise TypeError.
         """
-        df = pd.DataFrame({"Per": [pd.Period("2020-01")] * 3})
+        df = pd.DataFrame({"Per": [value] * 3})
         result = df.replace(1.0, 0.0)
-        expected = pd.DataFrame({"Per": [pd.Period("2020-01")] * 3})
+        expected = pd.DataFrame({"Per": [value] * 3})
         tm.assert_frame_equal(expected, result)
 
     def test_replace_value_category_type(self):

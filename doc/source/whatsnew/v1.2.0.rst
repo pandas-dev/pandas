@@ -348,7 +348,7 @@ Strings
 Interval
 ^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.replace` and :method:`Series.replace` where :class:`Interval` dtypes would be converted to object dytpes (:issue:34871)
 -
 
 Indexing
@@ -386,6 +386,11 @@ I/O
 - Bug in :meth:`read_csv` with ``engine='python'`` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
 - Removed ``private_key`` and ``verbose`` from :func:`read_gbq` as they are no longer supported in ``pandas-gbq`` (:issue:`34654`, :issue:`30200`)
 - Bumped minimum pytables version to 3.5.1 to avoid a ``ValueError`` in :meth:`read_hdf` (:issue:`24839`)
+
+Period
+^^^^^^
+
+- Bug in :meth:`DataFrame.replace` and :method:`Series.replace` where :class:`Period` dtypes would be converted to object dytpes (:issue:34871)
 
 Plotting
 ^^^^^^^^

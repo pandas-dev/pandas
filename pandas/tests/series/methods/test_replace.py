@@ -449,3 +449,14 @@ class TestSeriesReplace:
         result = s.replace({regex: "z"}, regex=True)
         expected = pd.Series(["z", "b", "c"])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("value", [pd.Period("2020-01"), pd.Interval(0, 5)])
+    def test_replace_period_ignore_float(self, value):
+        """
+        Regression test for corrolary to GH#34871: if series.replace(1.0, 0.0) is called on a
+        Period/Interval Series, the old, faulty behavior is to raise TypeError.
+        """
+        series = pd.Series([value] * 3)
+        result = series.replace(1.0, 0.0)
+        expected = pd.Series([value] * 3)
+        tm.assert_series_equal(expected, result)
