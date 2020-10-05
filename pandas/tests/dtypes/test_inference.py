@@ -602,7 +602,7 @@ class TestInference:
         # by default, we should not convert IntEnums to ints
         tm.assert_numpy_array_equal(result, expected)
 
-        expected = np.array([1, 2], dtype=int)
+        expected = np.array([1, 2], dtype=int64)
         result = lib.maybe_convert_objects(ind.values, convert_intenum=True)
 
         # still coverts to int if convert_intenum set to True
