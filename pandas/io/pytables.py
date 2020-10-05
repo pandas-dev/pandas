@@ -807,19 +807,19 @@ class HDFStore:
         ----------
         key : str
             Object being retrieved from file.
-        where : list, default None
+        where : list or None
             List of Term (or convertible) objects, optional.
-        start : int, default None
+        start : int or None
             Row number to start selection.
         stop : int, default None
             Row number to stop selection.
-        columns : list, default None
+        columns : list or None
             A list of columns that if not None, will limit the return columns.
-        iterator : bool, default False
+        iterator : bool or False
             Returns an iterator.
-        chunksize : int, default None
+        chunksize : int or None
             Number or rows to include in iteration, return an iterator.
-        auto_close : bool, default False
+        auto_close : bool or False
             Should automatically close the store when finished.
 
         Returns
@@ -1083,11 +1083,10 @@ class HDFStore:
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
         append : bool, default False
-            This will force Table format, append the input data to the
-            existing.
+            This will force Table format, append the input data to the existing.
         data_columns : list, default None
-            List of columns to create as data columns, or True to
-            use all columns. See `here
+            List of columns to create as data columns, or True to use all columns.
+            See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : str, default None
             Provide an encoding for strings.
