@@ -5,7 +5,6 @@ to disk
 from contextlib import suppress
 import copy
 from datetime import date, tzinfo
-from functools import reduce
 import itertools
 import os
 import re
@@ -4282,8 +4281,9 @@ class AppendableTable(Table):
 
         # consolidate masks
         if len(masks):
-            combine_masks = lambda first, second: first & second
-            mask = reduce(combine_masks, masks)
+            mask = masks[0]
+            for m in masks[1:]:
+                mask = mask & m
             mask = mask.ravel()
         else:
             mask = None
