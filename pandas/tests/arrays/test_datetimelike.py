@@ -17,7 +17,12 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 # TODO: more freq variants
 @pytest.fixture(params=["D", "B", "W", "M", "Q", "Y"])
-def period_index(request):
+def freqstr(request):
+    return request.param
+
+
+@pytest.fixture
+def period_index(freqstr):
     """
     A fixture to provide PeriodIndex objects with different frequencies.
 
@@ -25,14 +30,13 @@ def period_index(request):
     so here we just test that the PeriodArray behavior matches
     the PeriodIndex behavior.
     """
-    freqstr = request.param
     # TODO: non-monotone indexes; NaTs, different start dates
     pi = pd.period_range(start=pd.Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
 
 
-@pytest.fixture(params=["D", "B", "W", "M", "Q", "Y"])
-def datetime_index(request):
+@pytest.fixture
+def datetime_index(freqstr):
     """
     A fixture to provide DatetimeIndex objects with different frequencies.
 
@@ -40,14 +44,13 @@ def datetime_index(request):
     so here we just test that the DatetimeArray behavior matches
     the DatetimeIndex behavior.
     """
-    freqstr = request.param
     # TODO: non-monotone indexes; NaTs, different start dates, timezones
     dti = pd.date_range(start=pd.Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return dti
 
 
 @pytest.fixture
-def timedelta_index(request):
+def timedelta_index():
     """
     A fixture to provide TimedeltaIndex objects with different frequencies.
      Most TimedeltaArray behavior is already tested in TimedeltaIndex tests,
@@ -438,16 +441,15 @@ class TestDatetimeArray(SharedTests):
     dtype = pd.Timestamp
 
     @pytest.fixture
-    def arr1d(self, tz_naive_fixture):
+    def arr1d(self, tz_naive_fixture, freqstr):
         tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01 01:01:00", periods=3, freq="H", tz=tz)
+        dti = pd.date_range("2016-01-01 01:01:00", periods=3, freq=freqstr, tz=tz)
         dta = dti._data
         return dta
 
-    def test_round(self, tz_naive_fixture):
+    def test_round(self, arr1d):
         # GH#24064
-        tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01 01:01:00", periods=3, freq="H", tz=tz)
+        dti = self.index_cls(arr1d)
 
         result = dti.round(freq="2T")
         expected = dti - pd.Timedelta(minutes=1)

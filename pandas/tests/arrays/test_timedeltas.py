@@ -61,6 +61,7 @@ class TestTimedeltaArrayConstructor:
 
 
 class TestTimedeltaArray:
+    # TODO: de-duplicate with test_npsum below
     def test_np_sum(self):
         # GH#25282
         vals = np.arange(5, dtype=np.int64).view("m8[h]").astype("m8[ns]")
