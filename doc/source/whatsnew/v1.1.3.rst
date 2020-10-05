@@ -16,7 +16,7 @@ Enhancements
 Added support for new Python version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas 1.1.3 now supports Python 3.9 (:issue:`36296`).
+pandas 1.1.3 now supports Python 3.9 (:issue:`36296`).
 
 Development Changes
 ^^^^^^^^^^^^^^^^^^^
