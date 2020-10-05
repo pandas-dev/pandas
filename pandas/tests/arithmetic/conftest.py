@@ -221,7 +221,9 @@ def mismatched_freq(request):
 # ------------------------------------------------------------------
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame], ids=id_func)
+@pytest.fixture(
+    params=[pd.Index, pd.Series, pd.DataFrame], ids=id_func  # type: ignore[list-item]
+)
 def box(request):
     """
     Several array-like containers that should have effectively identical
