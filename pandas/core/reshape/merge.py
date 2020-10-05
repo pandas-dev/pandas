@@ -831,11 +831,14 @@ class _MergeOperation:
 
                 # if we have an all missing left_indexer
                 # make sure to just use the right values
-                mask = left_indexer == -1
-                if mask.all():
+                mask_left = left_indexer == -1
+                mask_right = right_indexer == -1
+                if mask_left.all():
                     key_col = rvals
+                elif mask_right.all():
+                    key_col = lvals
                 else:
-                    key_col = Index(lvals).where(~mask, rvals)
+                    key_col = Index(lvals).where(~mask_left, rvals)
 
                 if result._is_label_reference(name):
                     result[name] = key_col
