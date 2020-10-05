@@ -370,7 +370,7 @@ Some East Asian countries use Unicode characters its width is corresponding to 2
 .. ipython:: python
 
    pd.set_option("display.unicode.east_asian_width", True)
-   df
+   df;
 
 .. image:: ../_static/option_unicode02.png
 
