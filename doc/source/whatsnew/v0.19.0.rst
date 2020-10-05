@@ -246,7 +246,12 @@ converting to ``Categorical`` after parsing.  See the io :ref:`docs here <io.cat
 
 .. ipython:: python
 
-   data = "col1,col2,col3\na,b,1\na,b,2\nc,d,3"
+   data = """
+   col1,col2,col3
+   a,b,1
+   a,b,2
+   c,d,3
+   """
 
    pd.read_csv(StringIO(data))
    pd.read_csv(StringIO(data)).dtypes
