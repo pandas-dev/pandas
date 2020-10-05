@@ -650,6 +650,32 @@ class TestCategoricalIndex:
         expected = self.df.iloc[[2, 3, 4]]
         tm.assert_frame_equal(result, expected)
 
+    def test_reindexing_with_missing_values(self):
+        # GH 24206
+
+        index = pd.MultiIndex(
+            [pd.CategoricalIndex(["A", "B"]), pd.CategoricalIndex(["a", "b"])],
+            [[0, 0, -1, 1], [0, 1, 0, 1]],
+        )
+        data = {"col": range(len(index))}
+        df = DataFrame(data=data, index=index)
+
+        res = df.reset_index()
+
+        expected = pd.DataFrame(
+            {
+                "level_0": pd.Categorical.from_codes(
+                    [0, 0, 1, 1], categories=["A", "B"]
+                ),
+                "level_1": pd.Categorical.from_codes(
+                    [0, 1, 0, 1], categories=["a", "b"]
+                ),
+                "col": range(4),
+            }
+        )
+
+        tm.assert_frame_equal(res, expected)
+
     def test_loc_and_at_with_categorical_index(self):
         # GH 20629
         s = Series([1, 2, 3], index=pd.CategoricalIndex(["A", "B", "C"]))
