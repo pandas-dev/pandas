@@ -33,7 +33,7 @@ By default, duplicates continue to be allowed
 
    pd.Series([1, 2], index=['a', 'a']).set_flags(allows_duplicate_labels=False)
 
-Pandas will propagate the ``allows_duplicate_labels`` property through many operations.
+pandas will propagate the ``allows_duplicate_labels`` property through many operations.
 
 .. ipython:: python
    :okexcept:
@@ -175,7 +175,7 @@ Other enhancements
 Increased minimum version for Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas 1.2.0 supports Python 3.7.1 and higher (:issue:`35214`).
+pandas 1.2.0 supports Python 3.7.1 and higher (:issue:`35214`).
 
 .. _whatsnew_120.api_breaking.deps:
 
@@ -308,6 +308,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with ``datetime64``, ``timedelta64`` or ``Period`` dtype placement of ``NaT`` values being inconsistent with ``NumPy`` (:issue:`36176`, :issue:`36254`)
 - Inconsistency in :class:`DatetimeArray`, :class:`TimedeltaArray`, and :class:`PeriodArray`  setitem casting arrays of strings to datetimelike scalars but not scalar strings (:issue:`36261`)
 - Bug in :class:`DatetimeIndex.shift` incorrectly raising when shifting empty indexes (:issue:`14811`)
+- :class:`Timestamp` and :class:`DatetimeIndex` comparisons between timezone-aware and timezone-naive objects now follow the standard library ``datetime`` behavior, returning ``True``/``False`` for ``!=``/``==`` and raising for inequality comparisons (:issue:`28507`)
 - Bug in :meth:`DatetimeIndex.equals` and :meth:`TimedeltaIndex.equals` incorrectly considering ``int64`` indexes as equal (:issue:`36744`)
 
 Timedelta
