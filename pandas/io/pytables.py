@@ -1091,8 +1091,6 @@ class HDFStore:
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : str, default None
             Provide an encoding for strings.
-        dropna : bool, default False, do not write an ALL nan row to
-            The store settable by the option 'io.hdf.dropna_table'.
         track_times : bool, default True
             Parameter is propagated to 'create_table' method of 'PyTables'.
             If set to False it enables to have the same h5 files (same hashes)
