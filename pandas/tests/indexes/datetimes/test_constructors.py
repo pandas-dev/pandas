@@ -16,7 +16,9 @@ from pandas.core.arrays import DatetimeArray, period_array
 
 
 class TestDatetimeIndex:
-    @pytest.mark.parametrize("dt_cls", [DatetimeIndex, DatetimeArray._from_sequence])
+    @pytest.mark.parametrize(
+        "dt_cls", [DatetimeIndex, DatetimeArray._from_sequence_not_strict]
+    )
     def test_freq_validation_with_nat(self, dt_cls):
         # GH#11587 make sure we get a useful error message when generate_range
         #  raises
