@@ -274,7 +274,7 @@ def patch_pickle():
     """
     orig_loads = pkl.loads
     try:
-        pkl.loads = loads
+        setattr(pkl, "loads", loads)
         yield
     finally:
-        pkl.loads = orig_loads
+        setattr(pkl, "loads", orig_loads)
