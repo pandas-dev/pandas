@@ -421,6 +421,8 @@ class DataFrame(NDFrame, OpsMixin):
         Data type to force. Only a single dtype is allowed. If None, infer.
     copy : bool, default False
         Copy data from inputs. Only affects DataFrame / 2d ndarray input.
+    consolidate : bool or None, default None
+        Whether to consolidate the arrays in the new DataFrame.
 
     See Also
     --------
@@ -508,11 +510,15 @@ class DataFrame(NDFrame, OpsMixin):
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
+        consolidate=None,
     ):
         if data is None:
             data = {}
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
+
+        if consolidate is None:
+            consolidate = not copy
 
         if isinstance(data, DataFrame):
             data = data._mgr
@@ -528,7 +534,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif isinstance(data, dict):
-            mgr = init_dict(data, index, columns, dtype=dtype)
+            mgr = init_dict(data, index, columns, dtype=dtype, consolidate=consolidate)
         elif isinstance(data, ma.MaskedArray):
             import numpy.ma.mrecords as mrecords
 
@@ -545,7 +551,14 @@ class DataFrame(NDFrame, OpsMixin):
                     data[mask] = fill_value
                 else:
                     data = data.copy()
-                mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+                mgr = init_ndarray(
+                    data,
+                    index,
+                    columns,
+                    dtype=dtype,
+                    copy=copy,
+                    consolidate=consolidate,
+                )
 
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
@@ -553,11 +566,26 @@ class DataFrame(NDFrame, OpsMixin):
                 data = {k: data[k] for k in data_columns}
                 if columns is None:
                     columns = data_columns
-                mgr = init_dict(data, index, columns, dtype=dtype)
+                mgr = init_dict(
+                    data, index, columns, dtype=dtype, consolidate=consolidate
+                )
             elif getattr(data, "name", None) is not None:
-                mgr = init_dict({data.name: data}, index, columns, dtype=dtype)
+                mgr = init_dict(
+                    {data.name: data},
+                    index,
+                    columns,
+                    dtype=dtype,
+                    consolidate=consolidate,
+                )
             else:
-                mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+                mgr = init_ndarray(
+                    data,
+                    index,
+                    columns,
+                    dtype=dtype,
+                    copy=copy,
+                    consolidate=consolidate,
+                )
 
         # For data is list-like, or Iterable (will consume into list)
         elif isinstance(data, abc.Iterable) and not isinstance(data, (str, bytes)):
@@ -581,11 +609,27 @@ class DataFrame(NDFrame, OpsMixin):
                         else:
                             index = ibase.default_index(len(data))
 
-                    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype)
+                    mgr = arrays_to_mgr(
+                        arrays,
+                        columns,
+                        index,
+                        columns,
+                        dtype=dtype,
+                        consolidate=consolidate,
+                    )
                 else:
-                    mgr = init_ndarray(data, index, columns, dtype=dtype, copy=copy)
+                    mgr = init_ndarray(
+                        data,
+                        index,
+                        columns,
+                        dtype=dtype,
+                        copy=copy,
+                        consolidate=consolidate,
+                    )
             else:
-                mgr = init_dict({}, index, columns, dtype=dtype)
+                mgr = init_dict(
+                    {}, index, columns, dtype=dtype, consolidate=consolidate
+                )
         # For data is scalar
         else:
             if index is None or columns is None:
@@ -601,7 +645,9 @@ class DataFrame(NDFrame, OpsMixin):
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
-                mgr = arrays_to_mgr(values, columns, index, columns, dtype=None)
+                mgr = arrays_to_mgr(
+                    values, columns, index, columns, dtype=None, consolidate=consolidate
+                )
             else:
                 # Attempt to coerce to a numpy array
                 try:
@@ -621,7 +667,12 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
                 mgr = init_ndarray(
-                    values, index, columns, dtype=values.dtype, copy=False
+                    values,
+                    index,
+                    columns,
+                    dtype=values.dtype,
+                    copy=False,
+                    consolidate=consolidate,
                 )
 
         NDFrame.__init__(self, mgr)
@@ -1733,6 +1784,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns=None,
         coerce_float=False,
         nrows=None,
+        consolidate: bool = True,
     ) -> DataFrame:
         """
         Convert structured or record ndarray to DataFrame.
@@ -1760,6 +1812,8 @@ class DataFrame(NDFrame, OpsMixin):
             decimal.Decimal) to floating point, useful for SQL result sets.
         nrows : int, default None
             Number of rows to read if data is an iterator.
+        consolidate: bool, default True
+            Whether to consolidate the arrays in the new DataFrame.
 
         Returns
         -------
@@ -1895,7 +1949,9 @@ class DataFrame(NDFrame, OpsMixin):
             arr_columns = arr_columns.drop(arr_exclude)
             columns = columns.drop(exclude)
 
-        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns)
+        mgr = arrays_to_mgr(
+            arrays, arr_columns, result_index, columns, consolidate=consolidate
+        )
 
         return cls(mgr)
 
@@ -2074,6 +2130,7 @@ class DataFrame(NDFrame, OpsMixin):
         index,
         dtype: Optional[Dtype] = None,
         verify_integrity: bool = True,
+        consolidate: bool = True,
     ) -> DataFrame:
         """
         Create DataFrame from a list of arrays corresponding to the columns.
@@ -2094,6 +2151,8 @@ class DataFrame(NDFrame, OpsMixin):
             stored in a block (numpy ndarray or ExtensionArray), have the same
             length as and are aligned with the index, and that `columns` and
             `index` are ensured to be an Index object.
+        consolidate: bool, default True
+            Whether to consolidate the passed arrays in the new DataFrame.
 
         Returns
         -------
@@ -2109,6 +2168,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns,
             dtype=dtype,
             verify_integrity=verify_integrity,
+            consolidate=consolidate,
         )
         return cls(mgr)
 
@@ -6047,7 +6107,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise NotImplementedError(right)
 
         return type(self)._from_arrays(
-            arrays, self.columns, self.index, verify_integrity=False
+            arrays, self.columns, self.index, verify_integrity=False, consolidate=False
         )
 
     def _combine_frame(self, other: DataFrame, func, fill_value=None):
