@@ -53,6 +53,11 @@ class TestFrameComparisons:
                 msgs = [
                     r"Invalid comparison between dtype=datetime64\[ns\] and ndarray",
                     "invalid type promotion",
+                    (
+                        # npdev 1.20.0
+                        r"The DTypes <class 'numpy.dtype\[.*\]'> and "
+                        r"<class 'numpy.dtype\[.*\]'> do not have a common DType."
+                    ),
                 ]
                 msg = "|".join(msgs)
                 with pytest.raises(TypeError, match=msg):
@@ -790,13 +795,17 @@ def test_frame_with_zero_len_series_corner_cases():
     expected = pd.DataFrame(df.values * np.nan, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
-    result = df == ser
+    with tm.assert_produces_warning(FutureWarning):
+        # Automatic alignment for comparisons deprecated
+        result = df == ser
     expected = pd.DataFrame(False, index=df.index, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
     # non-float case should not raise on comparison
     df2 = pd.DataFrame(df.values.view("M8[ns]"), columns=df.columns)
-    result = df2 == ser
+    with tm.assert_produces_warning(FutureWarning):
+        # Automatic alignment for comparisons deprecated
+        result = df2 == ser
     expected = pd.DataFrame(False, index=df.index, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 

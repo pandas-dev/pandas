@@ -32,6 +32,11 @@ class DatetimeLike(Base):
         idx = self.create_index()
         tm.assert_index_equal(idx, idx.shift(0))
 
+    def test_shift_empty(self):
+        # GH#14811
+        idx = self.create_index()[:0]
+        tm.assert_index_equal(idx, idx.shift(1))
+
     def test_str(self):
 
         # test the string repr
@@ -103,3 +108,10 @@ class DatetimeLike(Base):
 
         result = index[:]
         assert result.freq == index.freq
+
+    def test_not_equals_numeric(self):
+        index = self.create_index()
+
+        assert not index.equals(pd.Index(index.asi8))
+        assert not index.equals(pd.Index(index.asi8.astype("u8")))
+        assert not index.equals(pd.Index(index.asi8).astype("f8"))

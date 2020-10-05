@@ -8,7 +8,7 @@ from pandas.core.groupby.groupby import get_groupby
 
 
 class TestGrouperGrouping:
-    def setup_method(self, method):
+    def setup_method(self):
         self.series = Series(np.arange(10))
         self.frame = DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
@@ -45,9 +45,9 @@ class TestGrouperGrouping:
 
         # GH 13174
         g = self.frame.groupby("A")
-        r = g.rolling(2)
+        r = g.rolling(2, min_periods=0)
         g_mutated = get_groupby(self.frame, by="A", mutated=True)
-        expected = g_mutated.B.apply(lambda x: x.rolling(2).count())
+        expected = g_mutated.B.apply(lambda x: x.rolling(2, min_periods=0).count())
 
         result = r.B.count()
         tm.assert_series_equal(result, expected)
@@ -55,19 +55,37 @@ class TestGrouperGrouping:
         result = r.B.count()
         tm.assert_series_equal(result, expected)
 
-    def test_rolling(self):
+    @pytest.mark.parametrize(
+        "f",
+        [
+            "sum",
+            "mean",
+            "min",
+            "max",
+            pytest.param(
+                "count",
+                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
+            ),
+            "kurt",
+            "skew",
+        ],
+    )
+    def test_rolling(self, f):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
 
-        for f in ["sum", "mean", "min", "max", "count", "kurt", "skew"]:
-            result = getattr(r, f)()
-            expected = g.apply(lambda x: getattr(x.rolling(4), f)())
-            tm.assert_frame_equal(result, expected)
+        result = getattr(r, f)()
+        expected = g.apply(lambda x: getattr(x.rolling(4), f)())
+        tm.assert_frame_equal(result, expected)
 
-        for f in ["std", "var"]:
-            result = getattr(r, f)(ddof=1)
-            expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
-            tm.assert_frame_equal(result, expected)
+    @pytest.mark.parametrize("f", ["std", "var"])
+    def test_rolling_ddof(self, f):
+        g = self.frame.groupby("A")
+        r = g.rolling(window=4)
+
+        result = getattr(r, f)(ddof=1)
+        expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
@@ -81,26 +99,26 @@ class TestGrouperGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_rolling_corr_cov(self):
+    @pytest.mark.parametrize("f", ["corr", "cov"])
+    def test_rolling_corr_cov(self, f):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
 
-        for f in ["corr", "cov"]:
-            result = getattr(r, f)(self.frame)
+        result = getattr(r, f)(self.frame)
 
-            def func(x):
-                return getattr(x.rolling(4), f)(self.frame)
+        def func(x):
+            return getattr(x.rolling(4), f)(self.frame)
 
-            expected = g.apply(func)
-            tm.assert_frame_equal(result, expected)
+        expected = g.apply(func)
+        tm.assert_frame_equal(result, expected)
 
-            result = getattr(r.B, f)(pairwise=True)
+        result = getattr(r.B, f)(pairwise=True)
 
-            def func(x):
-                return getattr(x.B.rolling(4), f)(pairwise=True)
+        def func(x):
+            return getattr(x.B.rolling(4), f)(pairwise=True)
 
-            expected = g.apply(func)
-            tm.assert_series_equal(result, expected)
+        expected = g.apply(func)
+        tm.assert_series_equal(result, expected)
 
     def test_rolling_apply(self, raw):
         g = self.frame.groupby("A")
@@ -134,20 +152,25 @@ class TestGrouperGrouping:
         result = g.rolling(window=2).sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_expanding(self):
+    @pytest.mark.parametrize(
+        "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
+    )
+    def test_expanding(self, f):
         g = self.frame.groupby("A")
         r = g.expanding()
 
-        for f in ["sum", "mean", "min", "max", "count", "kurt", "skew"]:
+        result = getattr(r, f)()
+        expected = g.apply(lambda x: getattr(x.expanding(), f)())
+        tm.assert_frame_equal(result, expected)
 
-            result = getattr(r, f)()
-            expected = g.apply(lambda x: getattr(x.expanding(), f)())
-            tm.assert_frame_equal(result, expected)
+    @pytest.mark.parametrize("f", ["std", "var"])
+    def test_expanding_ddof(self, f):
+        g = self.frame.groupby("A")
+        r = g.expanding()
 
-        for f in ["std", "var"]:
-            result = getattr(r, f)(ddof=0)
-            expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
-            tm.assert_frame_equal(result, expected)
+        result = getattr(r, f)(ddof=0)
+        expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
@@ -161,26 +184,26 @@ class TestGrouperGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_expanding_corr_cov(self):
+    @pytest.mark.parametrize("f", ["corr", "cov"])
+    def test_expanding_corr_cov(self, f):
         g = self.frame.groupby("A")
         r = g.expanding()
 
-        for f in ["corr", "cov"]:
-            result = getattr(r, f)(self.frame)
+        result = getattr(r, f)(self.frame)
 
-            def func(x):
-                return getattr(x.expanding(), f)(self.frame)
+        def func(x):
+            return getattr(x.expanding(), f)(self.frame)
 
-            expected = g.apply(func)
-            tm.assert_frame_equal(result, expected)
+        expected = g.apply(func)
+        tm.assert_frame_equal(result, expected)
 
-            result = getattr(r.B, f)(pairwise=True)
+        result = getattr(r.B, f)(pairwise=True)
 
-            def func(x):
-                return getattr(x.B.expanding(), f)(pairwise=True)
+        def func(x):
+            return getattr(x.B.expanding(), f)(pairwise=True)
 
-            expected = g.apply(func)
-            tm.assert_series_equal(result, expected)
+        expected = g.apply(func)
+        tm.assert_series_equal(result, expected)
 
     def test_expanding_apply(self, raw):
         g = self.frame.groupby("A")
