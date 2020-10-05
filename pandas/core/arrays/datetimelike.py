@@ -117,7 +117,9 @@ class AttributesMixin:
     _data: np.ndarray
 
     @classmethod
-    def _simple_new(cls, values: np.ndarray, **kwargs):
+    def _simple_new(
+        cls, values: np.ndarray, freq: Optional[BaseOffset] = None, dtype=None
+    ):
         raise AbstractMethodError(cls)
 
     @property
@@ -683,7 +685,11 @@ class DatetimeLikeArrayMixin(
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
             other = self._scalar_type(other)  # type: ignore[call-arg]
-            self._check_compatible_with(other)
+            try:
+                self._check_compatible_with(other)
+            except TypeError as err:
+                # e.g. tzawareness mismatch
+                raise InvalidComparison(other) from err
 
         elif not is_list_like(other):
             raise InvalidComparison(other)
@@ -694,8 +700,13 @@ class DatetimeLikeArrayMixin(
         else:
             try:
                 other = self._validate_listlike(other, opname, allow_object=True)
+                self._check_compatible_with(other)
             except TypeError as err:
-                raise InvalidComparison(other) from err
+                if is_object_dtype(getattr(other, "dtype", None)):
+                    # We will have to operate element-wise
+                    pass
+                else:
+                    raise InvalidComparison(other) from err
 
         return other
 
@@ -1276,8 +1287,8 @@ class DatetimeLikeArrayMixin(
             result = self + offset
             return result
 
-        if periods == 0:
-            # immutable so OK
+        if periods == 0 or len(self) == 0:
+            # GH#14811 empty case
             return self.copy()
 
         if self.freq is None:

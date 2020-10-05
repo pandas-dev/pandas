@@ -1521,6 +1521,20 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
         """
+        if not isinstance(ascending, (list, bool)):
+            raise TypeError(
+                "ascending must be a single bool value or"
+                "a list of bool values of length 1"
+            )
+
+        if isinstance(ascending, list):
+            if len(ascending) != 1:
+                raise TypeError("ascending must be a list of bool values of length 1")
+            ascending = ascending[0]
+
+        if not isinstance(ascending, bool):
+            raise TypeError("ascending must be a bool value")
+
         return self.sort_values(return_indexer=True, ascending=ascending)
 
     def _get_level_values(self, level):
@@ -2092,11 +2106,24 @@ class Index(IndexOpsMixin, PandasObject):
         return lib.infer_dtype(self._values, skipna=False)
 
     @cache_readonly
-    def is_all_dates(self) -> bool:
+    def _is_all_dates(self) -> bool:
         """
         Whether or not the index values only consist of dates.
         """
         return is_datetime_array(ensure_object(self._values))
+
+    @cache_readonly
+    def is_all_dates(self):
+        """
+        Whether or not the index values only consist of dates.
+        """
+        warnings.warn(
+            "Index.is_all_dates is deprecated, will be removed in a future version.  "
+            "check index.inferred_type instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._is_all_dates
 
     # --------------------------------------------------------------------
     # Pickle Methods
@@ -2928,7 +2955,7 @@ class Index(IndexOpsMixin, PandasObject):
               distances are broken by preferring the larger index value.
         tolerance : int or float, optional
             Maximum distance from index value for inexact matches. The value of
-            the index at the matching location most satisfy the equation
+            the index at the matching location must satisfy the equation
             ``abs(index[loc] - key) <= tolerance``.
 
         Returns
@@ -2993,7 +3020,7 @@ class Index(IndexOpsMixin, PandasObject):
             inexact matches.
         tolerance : optional
             Maximum distance between original and new labels for inexact
-            matches. The values of the index at the matching locations most
+            matches. The values of the index at the matching locations must
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
 
             Tolerance may be a scalar value, which applies the same tolerance

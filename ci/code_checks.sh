@@ -335,7 +335,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests strings.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/strings.py
+    pytest -q --doctest-modules pandas/core/strings/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Directories
