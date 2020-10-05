@@ -581,7 +581,6 @@ class TestDatetimeArray(SharedTests):
         assert asobj.dtype == "O"
         assert list(asobj) == list(dti)
 
-    @pytest.mark.parametrize("freqstr", ["D", "B", "W", "M", "Q", "Y"])
     def test_to_perioddelta(self, datetime_index, freqstr):
         # GH#23113
         dti = datetime_index
@@ -600,7 +599,6 @@ class TestDatetimeArray(SharedTests):
         #  an EA-specific tm.assert_ function
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
-    @pytest.mark.parametrize("freqstr", ["D", "B", "W", "M", "Q", "Y"])
     def test_to_period(self, datetime_index, freqstr):
         dti = datetime_index
         arr = DatetimeArray(dti)
@@ -614,10 +612,10 @@ class TestDatetimeArray(SharedTests):
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
     @pytest.mark.parametrize("propname", pd.DatetimeIndex._bool_ops)
-    def test_bool_properties(self, datetime_index, propname):
+    def test_bool_properties(self, arr1d, propname):
         # in this case _bool_ops is just `is_leap_year`
-        dti = datetime_index
-        arr = DatetimeArray(dti)
+        dti = self.index_cls(arr1d)
+        arr = arr1d
         assert dti.freq == arr.freq
 
         result = getattr(arr, propname)
@@ -626,21 +624,21 @@ class TestDatetimeArray(SharedTests):
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("propname", pd.DatetimeIndex._field_ops)
-    def test_int_properties(self, datetime_index, propname):
+    def test_int_properties(self, arr1d, propname):
         if propname in ["week", "weekofyear"]:
             # GH#33595 Deprecate week and weekofyear
             return
-        dti = datetime_index
-        arr = DatetimeArray(dti)
+        dti = self.index_cls(arr1d)
+        arr = arr1d
 
         result = getattr(arr, propname)
         expected = np.array(getattr(dti, propname), dtype=result.dtype)
 
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_take_fill_valid(self, datetime_index, tz_naive_fixture):
-        dti = datetime_index.tz_localize(tz_naive_fixture)
-        arr = DatetimeArray(dti)
+    def test_take_fill_valid(self, arr1d):
+        arr = arr1d
+        dti = self.index_cls(arr1d)
 
         now = pd.Timestamp.now().tz_localize(dti.tz)
         result = arr.take([-1, 1], allow_fill=True, fill_value=now)
@@ -675,10 +673,9 @@ class TestDatetimeArray(SharedTests):
             # require appropriate-dtype if we have a NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
-    def test_concat_same_type_invalid(self, datetime_index):
+    def test_concat_same_type_invalid(self, arr1d):
         # different timezones
-        dti = datetime_index
-        arr = DatetimeArray(dti)
+        arr = arr1d
 
         if arr.tz is None:
             other = arr.tz_localize("UTC")
@@ -706,8 +703,8 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_datetime_array_equal(result, expected)
 
-    def test_strftime(self, datetime_index):
-        arr = DatetimeArray(datetime_index)
+    def test_strftime(self, arr1d):
+        arr = arr1d
 
         result = arr.strftime("%Y %b")
         expected = np.array([ts.strftime("%Y %b") for ts in arr], dtype=object)
@@ -852,9 +849,9 @@ class TestPeriodArray(SharedTests):
     def arr1d(self, period_index):
         return period_index._data
 
-    def test_from_pi(self, period_index):
-        pi = period_index
-        arr = PeriodArray(pi)
+    def test_from_pi(self, arr1d):
+        pi = self.index_cls(arr1d)
+        arr = arr1d
         assert list(arr) == list(pi)
 
         # Check that Index.__new__ knows what to do with PeriodArray
@@ -862,17 +859,16 @@ class TestPeriodArray(SharedTests):
         assert isinstance(pi2, pd.PeriodIndex)
         assert list(pi2) == list(arr)
 
-    def test_astype_object(self, period_index):
-        pi = period_index
-        arr = PeriodArray(pi)
+    def test_astype_object(self, arr1d):
+        pi = self.index_cls(arr1d)
+        arr = arr1d
         asobj = arr.astype("O")
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == "O"
         assert list(asobj) == list(pi)
 
-    def test_take_fill_valid(self, period_index):
-        pi = period_index
-        arr = PeriodArray(pi)
+    def test_take_fill_valid(self, arr1d):
+        arr = arr1d
 
         value = pd.NaT.value
         msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
@@ -887,9 +883,9 @@ class TestPeriodArray(SharedTests):
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
     @pytest.mark.parametrize("how", ["S", "E"])
-    def test_to_timestamp(self, how, period_index):
-        pi = period_index
-        arr = PeriodArray(pi)
+    def test_to_timestamp(self, how, arr1d):
+        pi = self.index_cls(arr1d)
+        arr = arr1d
 
         expected = DatetimeArray(pi.to_timestamp(how=how))
         result = arr.to_timestamp(how=how)
@@ -910,10 +906,10 @@ class TestPeriodArray(SharedTests):
             pi._data.to_timestamp()
 
     @pytest.mark.parametrize("propname", PeriodArray._bool_ops)
-    def test_bool_properties(self, period_index, propname):
+    def test_bool_properties(self, arr1d, propname):
         # in this case _bool_ops is just `is_leap_year`
-        pi = period_index
-        arr = PeriodArray(pi)
+        pi = self.index_cls(arr1d)
+        arr = arr1d
 
         result = getattr(arr, propname)
         expected = np.array(getattr(pi, propname))
@@ -921,17 +917,17 @@ class TestPeriodArray(SharedTests):
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("propname", PeriodArray._field_ops)
-    def test_int_properties(self, period_index, propname):
-        pi = period_index
-        arr = PeriodArray(pi)
+    def test_int_properties(self, arr1d, propname):
+        pi = self.index_cls(arr1d)
+        arr = arr1d
 
         result = getattr(arr, propname)
         expected = np.array(getattr(pi, propname))
 
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_array_interface(self, period_index):
-        arr = PeriodArray(period_index)
+    def test_array_interface(self, arr1d):
+        arr = arr1d
 
         # default asarray gives objects
         result = np.asarray(arr)
@@ -954,8 +950,8 @@ class TestPeriodArray(SharedTests):
         expected = np.asarray(arr).astype("S20")
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_strftime(self, period_index):
-        arr = PeriodArray(period_index)
+    def test_strftime(self, arr1d):
+        arr = arr1d
 
         result = arr.strftime("%Y")
         expected = np.array([per.strftime("%Y") for per in arr], dtype=object)
