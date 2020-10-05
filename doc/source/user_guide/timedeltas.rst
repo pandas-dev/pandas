@@ -230,7 +230,7 @@ Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` ob
 Frequency conversion
 --------------------
 
-Timedelta Series, ``TimedeltaIndex``, and ``Timedelta`` scalars can be converted to other 'frequencies' by dividing by another timedelta,
+Timedelta Series, ``TimedeltaIndex``, and ``Timedelta`` scalars can be converted to other "frequencies" by dividing by another timedelta,
 or by astyping to a specific timedelta type. These operations yield Series and propagate ``NaT`` -> ``nan``.
 Note that division by the NumPy scalar is true division, while astyping is equivalent of floor division.
 
@@ -355,7 +355,7 @@ or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent miss
        ]
    )
 
-The string 'infer' can be passed in order to set the frequency of the index as the
+The string "infer" can be passed in order to set the frequency of the index as the
 inferred frequency upon creation:
 
 .. ipython:: python
