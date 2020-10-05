@@ -966,7 +966,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        return format_object_attrs(self)
+        # pandas\core\indexes\base.py:969: error: Argument 1 to
+        # "format_object_attrs" has incompatible type "Index"; expected
+        # "Sequence[Any]"  [arg-type]
+        return format_object_attrs(self)  # type: ignore[arg-type]
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -1603,8 +1606,12 @@ class Index(IndexOpsMixin, PandasObject):
             )
         # The two checks above guarantee that here self is a MultiIndex
 
-        new_levels = list(self.levels)
-        new_codes = list(self.codes)
+        # pandas\core\indexes\base.py:1606: error: "Index" has no attribute
+        # "levels"; maybe "nlevels"?  [attr-defined]
+        new_levels = list(self.levels)  # type: ignore[attr-defined]
+        # pandas\core\indexes\base.py:1607: error: "Index" has no attribute
+        # "codes"  [attr-defined]
+        new_codes = list(self.codes)  # type: ignore[attr-defined]
         new_names = list(self.names)
 
         for i in levnums:
@@ -3754,7 +3761,9 @@ class Index(IndexOpsMixin, PandasObject):
             how = {"right": "left", "left": "right"}.get(how, how)
 
         level = left._get_level_number(level)
-        old_level = left.levels[level]
+        # pandas\core\indexes\base.py:3757: error: "Index" has no attribute
+        # "levels"; maybe "nlevels"?  [attr-defined]
+        old_level = left.levels[level]  # type: ignore[attr-defined]
 
         if not right.is_unique:
             raise NotImplementedError(
@@ -3770,21 +3779,33 @@ class Index(IndexOpsMixin, PandasObject):
                 left_indexer = None
                 join_index = left
             else:  # sort the leaves
-                left_indexer = _get_leaf_sorter(left.codes[: level + 1])
+                # pandas\core\indexes\base.py:3773: error: "Index" has no
+                # attribute "codes"  [attr-defined]
+                left_indexer = _get_leaf_sorter(
+                    left.codes[: level + 1]  # type: ignore[attr-defined]
+                )
                 join_index = left[left_indexer]
 
         else:
             left_lev_indexer = ensure_int64(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
 
+            # pandas\core\indexes\base.py:3781: error: "Index" has no attribute
+            # "codes"  [attr-defined]
             new_lev_codes = algos.take_nd(
-                rev_indexer, left.codes[level], allow_fill=False
+                rev_indexer,
+                left.codes[level],  # type: ignore[attr-defined]
+                allow_fill=False,
             )
 
-            new_codes = list(left.codes)
+            # pandas\core\indexes\base.py:3784: error: "Index" has no attribute
+            # "codes"  [attr-defined]
+            new_codes = list(left.codes)  # type: ignore[attr-defined]
             new_codes[level] = new_lev_codes
 
-            new_levels = list(left.levels)
+            # pandas\core\indexes\base.py:3787: error: "Index" has no attribute
+            # "levels"; maybe "nlevels"?  [attr-defined]
+            new_levels = list(left.levels)  # type: ignore[attr-defined]
             new_levels[level] = new_level
 
             if keep_order:  # just drop missing values. o.w. keep order
@@ -3827,11 +3848,17 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if right_lev_indexer is not None:
+            # pandas\core\indexes\base.py:3831: error: "Index" has no attribute
+            # "codes"  [attr-defined]
             right_indexer = algos.take_nd(
-                right_lev_indexer, join_index.codes[level], allow_fill=False
+                right_lev_indexer,
+                join_index.codes[level],  # type: ignore[attr-defined]
+                allow_fill=False,
             )
         else:
-            right_indexer = join_index.codes[level]
+            # pandas\core\indexes\base.py:3834: error: "Index" has no attribute
+            # "codes"  [attr-defined]
+            right_indexer = join_index.codes[level]  # type: ignore[attr-defined]
 
         if flip_order:
             left_indexer, right_indexer = right_indexer, left_indexer
@@ -4798,7 +4825,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if self._index_as_unique:
             return self.get_indexer(target, **kwargs)
-        indexer, _ = self.get_indexer_non_unique(target, **kwargs)
+        # pandas\core\indexes\base.py:4801: error: Too many arguments for
+        # "get_indexer_non_unique" of "Index"  [call-arg]
+        indexer, _ = self.get_indexer_non_unique(
+            target, **kwargs  # type: ignore[call-arg]
+        )
         return indexer
 
     @property
@@ -5394,36 +5425,90 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Add in comparison methods.
         """
-        cls.__eq__ = _make_comparison_op(operator.eq, cls)
-        cls.__ne__ = _make_comparison_op(operator.ne, cls)
-        cls.__lt__ = _make_comparison_op(operator.lt, cls)
-        cls.__gt__ = _make_comparison_op(operator.gt, cls)
-        cls.__le__ = _make_comparison_op(operator.le, cls)
-        cls.__ge__ = _make_comparison_op(operator.ge, cls)
+        # pandas\core\indexes\base.py:5397: error: Cannot assign to a method
+        # [assignment]
+        cls.__eq__ = _make_comparison_op(operator.eq, cls)  # type: ignore[assignment]
+        # pandas\core\indexes\base.py:5398: error: Cannot assign to a method
+        # [assignment]
+        cls.__ne__ = _make_comparison_op(operator.ne, cls)  # type: ignore[assignment]
+        # pandas\core\indexes\base.py:5399: error: Unsupported left operand
+        # type for < ("Type[Index]")  [operator]
+        cls.__lt__ = _make_comparison_op(operator.lt, cls)  # type: ignore[operator]
+        # pandas\core\indexes\base.py:5400: error: Unsupported left operand
+        # type for > ("Type[Index]")  [operator]
+        cls.__gt__ = _make_comparison_op(operator.gt, cls)  # type: ignore[operator]
+        # pandas\core\indexes\base.py:5401: error: Unsupported left operand
+        # type for <= ("Type[Index]")  [operator]
+        cls.__le__ = _make_comparison_op(operator.le, cls)  # type: ignore[operator]
+        # pandas\core\indexes\base.py:5402: error: Unsupported left operand
+        # type for >= ("Type[Index]")  [operator]
+        cls.__ge__ = _make_comparison_op(operator.ge, cls)  # type: ignore[operator]
 
     @classmethod
     def _add_numeric_methods_binary(cls):
         """
         Add in numeric methods.
         """
-        cls.__add__ = _make_arithmetic_op(operator.add, cls)
-        cls.__radd__ = _make_arithmetic_op(ops.radd, cls)
-        cls.__sub__ = _make_arithmetic_op(operator.sub, cls)
-        cls.__rsub__ = _make_arithmetic_op(ops.rsub, cls)
-        cls.__rpow__ = _make_arithmetic_op(ops.rpow, cls)
-        cls.__pow__ = _make_arithmetic_op(operator.pow, cls)
+        # pandas\core\indexes\base.py:5409: error: Unsupported left operand
+        # type for + ("Type[Index]")  [operator]
+        cls.__add__ = _make_arithmetic_op(operator.add, cls)  # type: ignore[operator]
+        # pandas\core\indexes\base.py:5410: error: "Type[Index]" has no
+        # attribute "__radd__"  [attr-defined]
+        cls.__radd__ = _make_arithmetic_op(ops.radd, cls)  # type: ignore[attr-defined]
+        # pandas\core\indexes\base.py:5411: error: Unsupported left operand
+        # type for - ("Type[Index]")  [operator]
+        cls.__sub__ = _make_arithmetic_op(operator.sub, cls)  # type: ignore[operator]
+        # pandas\core\indexes\base.py:5412: error: "Type[Index]" has no
+        # attribute "__rsub__"  [attr-defined]
+        cls.__rsub__ = _make_arithmetic_op(ops.rsub, cls)  # type: ignore[attr-defined]
+        # pandas\core\indexes\base.py:5413: error: "Type[Index]" has no
+        # attribute "__rpow__"  [attr-defined]
+        cls.__rpow__ = _make_arithmetic_op(ops.rpow, cls)  # type: ignore[attr-defined]
+        # pandas\core\indexes\base.py:5414: error: Unsupported left operand
+        # type for ** ("Type[Index]")  [operator]
+        cls.__pow__ = _make_arithmetic_op(operator.pow, cls)  # type: ignore[operator]
 
-        cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
-        cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
+        # pandas\core\indexes\base.py:5416: error: Unsupported left operand
+        # type for / ("Type[Index]")  [operator]
+        cls.__truediv__ = _make_arithmetic_op(  # type: ignore[operator]
+            operator.truediv, cls
+        )
+        # pandas\core\indexes\base.py:5417: error: "Type[Index]" has no
+        # attribute "__rtruediv__"  [attr-defined]
+        cls.__rtruediv__ = _make_arithmetic_op(  # type: ignore[attr-defined]
+            ops.rtruediv, cls
+        )
 
-        cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
-        cls.__rmod__ = _make_arithmetic_op(ops.rmod, cls)
-        cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
-        cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
-        cls.__divmod__ = _make_arithmetic_op(divmod, cls)
-        cls.__rdivmod__ = _make_arithmetic_op(ops.rdivmod, cls)
-        cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
-        cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
+        # pandas\core\indexes\base.py:5419: error: Unsupported left operand
+        # type for % ("Type[Index]")  [operator]
+        cls.__mod__ = _make_arithmetic_op(operator.mod, cls)  # type: ignore[operator]
+        # pandas\core\indexes\base.py:5420: error: "Type[Index]" has no
+        # attribute "__rmod__"  [attr-defined]
+        cls.__rmod__ = _make_arithmetic_op(ops.rmod, cls)  # type: ignore[attr-defined]
+        # pandas\core\indexes\base.py:5421: error: Unsupported left operand
+        # type for // ("Type[Index]")  [operator]
+        cls.__floordiv__ = _make_arithmetic_op(  # type: ignore[operator]
+            operator.floordiv, cls
+        )
+        # pandas\core\indexes\base.py:5422: error: "Type[Index]" has no
+        # attribute "__rfloordiv__"  [attr-defined]
+        cls.__rfloordiv__ = _make_arithmetic_op(  # type: ignore[attr-defined]
+            ops.rfloordiv, cls
+        )
+        # pandas\core\indexes\base.py:5423: error: Unsupported left operand
+        # type for divmod ("Type[Index]")  [operator]
+        cls.__divmod__ = _make_arithmetic_op(divmod, cls)  # type: ignore[operator]
+        # pandas\core\indexes\base.py:5424: error: "Type[Index]" has no
+        # attribute "__rdivmod__"  [attr-defined]
+        cls.__rdivmod__ = _make_arithmetic_op(  # type: ignore[attr-defined]
+            ops.rdivmod, cls
+        )
+        # pandas\core\indexes\base.py:5425: error: Unsupported left operand
+        # type for * ("Type[Index]")  [operator]
+        cls.__mul__ = _make_arithmetic_op(operator.mul, cls)  # type: ignore[operator]
+        # pandas\core\indexes\base.py:5426: error: "Type[Index]" has no
+        # attribute "__rmul__"  [attr-defined]
+        cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)  # type: ignore[attr-defined]
 
     @classmethod
     def _add_numeric_methods_unary(cls):
@@ -5440,10 +5525,26 @@ class Index(IndexOpsMixin, PandasObject):
             _evaluate_numeric_unary.__name__ = opstr
             return _evaluate_numeric_unary
 
-        cls.__neg__ = _make_evaluate_unary(operator.neg, "__neg__")
-        cls.__pos__ = _make_evaluate_unary(operator.pos, "__pos__")
-        cls.__abs__ = _make_evaluate_unary(np.abs, "__abs__")
-        cls.__inv__ = _make_evaluate_unary(lambda x: -x, "__inv__")
+        # pandas\core\indexes\base.py:5443: error: Unsupported operand type for
+        # unary - ("Type[Index]")  [operator]
+        cls.__neg__ = _make_evaluate_unary(  # type: ignore[operator]
+            operator.neg, "__neg__"
+        )
+        # pandas\core\indexes\base.py:5444: error: Unsupported operand type for
+        # unary + ("Type[Index]")  [operator]
+        cls.__pos__ = _make_evaluate_unary(  # type: ignore[operator]
+            operator.pos, "__pos__"
+        )
+        # pandas\core\indexes\base.py:5445: error: "Type[Index]" has no
+        # attribute "__abs__"  [attr-defined]
+        cls.__abs__ = _make_evaluate_unary(  # type: ignore[attr-defined]
+            np.abs, "__abs__"
+        )
+        # pandas\core\indexes\base.py:5446: error: "Type[Index]" has no
+        # attribute "__inv__"  [attr-defined]
+        cls.__inv__ = _make_evaluate_unary(  # type: ignore[attr-defined]
+            lambda x: -x, "__inv__"
+        )
 
     @classmethod
     def _add_numeric_methods(cls):
@@ -5555,10 +5656,14 @@ class Index(IndexOpsMixin, PandasObject):
             logical_func.__name__ = name
             return logical_func
 
-        cls.all = _make_logical_function(
+        # pandas\core\indexes\base.py:5558: error: "Type[Index]" has no
+        # attribute "all"  [attr-defined]
+        cls.all = _make_logical_function(  # type: ignore[attr-defined]
             "all", "Return whether all elements are True.", np.all
         )
-        cls.any = _make_logical_function(
+        # pandas\core\indexes\base.py:5561: error: "Type[Index]" has no
+        # attribute "any"  [attr-defined]
+        cls.any = _make_logical_function(  # type: ignore[attr-defined]
             "any", "Return whether any element is True.", np.any
         )
 
@@ -5567,8 +5672,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Add in logical methods to disable.
         """
-        cls.all = make_invalid_op("all")
-        cls.any = make_invalid_op("any")
+        # pandas\core\indexes\base.py:5570: error: "Type[Index]" has no
+        # attribute "all"  [attr-defined]
+        cls.all = make_invalid_op("all")  # type: ignore[attr-defined]
+        # pandas\core\indexes\base.py:5571: error: "Type[Index]" has no
+        # attribute "any"  [attr-defined]
+        cls.any = make_invalid_op("any")  # type: ignore[attr-defined]
 
     @property
     def shape(self):
