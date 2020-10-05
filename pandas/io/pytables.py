@@ -710,20 +710,7 @@ class HDFStore:
             )
             raise ValueError(msg)
 
-        try:
-            self._handle = tables.open_file(self._path, self._mode, **kwargs)
-        except OSError as err:  # pragma: no cover
-            if "can not be written" in str(err):
-                print(f"Opening {self._path} in read-only mode")
-                self._handle = tables.open_file(self._path, "r", **kwargs)
-            else:
-                raise
-        except Exception as err:
-            # trying to read from a non-existent file causes an error which
-            # is not part of IOError, make it one
-            if self._mode == "r" and "Unable to open/create file" in str(err):
-                raise OSError(str(err)) from err
-            raise
+        self._handle = tables.open_file(self._path, self._mode, **kwargs)
 
     def close(self):
         """
