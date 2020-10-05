@@ -4879,7 +4879,7 @@ class DataFrame(NDFrame):
                     if issubclass(values_type, DatetimeLikeArray):
                         values = values._data  # TODO: can we de-kludge yet?
 
-                    if mask.any():
+                    if mask.any() and isinstance(values, np.ndarray):
                         values, _ = maybe_upcast_putmask(values, mask, np.nan)
 
                     if issubclass(values_type, DatetimeLikeArray):
