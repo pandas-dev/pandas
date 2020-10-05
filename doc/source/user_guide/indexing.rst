@@ -933,19 +933,21 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 
    df2.loc[criterion & (df2['b'] == 'x'), 'b':'c']
 
-``iloc`` distinguishes between different types of boolean indexing.  If the type of boolean indexing is ``Series``,
-an error will be raised. For instance, in the following example, ``df.iloc[sr.values, 1]`` is ok. 
-This type of boolean indexing is array. But ``df.iloc[sr, 1]`` would raise ValueError.
+.. warning::
 
-.. ipython:: python
+   ``iloc`` supports two kinds of boolean indexing. If the indexer is a boolean ``Series``,
+   an error will be raised. For instance, in the following example, ``df.iloc[sr.values, 1]`` is ok. 
+   This type of boolean indexing is array. But ``df.iloc[sr, 1]`` would raise ``ValueError``.
 
-   df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], list('abc'), ['column_1', 'column_2'])
-   sr = (df['column_1'] > 2)
-   sr
+   .. ipython:: python
 
-   df.loc[sr, df.columns[1]]
+      df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], list('abc'), ['A', 'B'])
+      sr = (df['A'] > 2)
+      sr
 
-   df.iloc[sr.values, 1]
+      df.loc[sr, df.columns[1]]
+
+      df.iloc[sr.values, 1]
 
 .. _indexing.basics.indexing_isin:
 
