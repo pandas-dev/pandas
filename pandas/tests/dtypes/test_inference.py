@@ -596,17 +596,17 @@ class TestInference:
             blue = 2
 
         ind = pd.Index([Colors.red, Colors.blue], dtype=object)
-        exp = np.array([Colors.red, Colors.blue], dtype=object)
-        out = lib.maybe_convert_objects(ind.values)
+        expected = np.array([Colors.red, Colors.blue], dtype=object)
+        result = lib.maybe_convert_objects(ind.values)
 
         # by default, we should not convert IntEnums to ints
-        tm.assert_numpy_array_equal(out, exp)
+        tm.assert_numpy_array_equal(result, expected)
 
-        exp = np.array([1, 2], dtype=int)
-        out = lib.maybe_convert_objects(ind.values, convert_intenum=True)
+        expected = np.array([1, 2], dtype=int)
+        result = lib.maybe_convert_objects(ind.values, convert_intenum=True)
 
         # still coverts to int if convert_intenum set to True
-        tm.assert_numpy_array_equal(out, exp)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
