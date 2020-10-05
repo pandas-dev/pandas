@@ -457,6 +457,38 @@ class TestMergeMulti:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_na_datetime_keys_empty_df(self):
+        data = [
+            [pd.Timestamp("1950-01-01"), "A", 1.5],
+            [pd.Timestamp("1950-01-01"), "B", 1.5],
+            [pd.Timestamp("1950-01-01"), "B", 1.5],
+            [pd.Timestamp("1950-01-01"), "B", np.nan],
+            [pd.Timestamp("1950-01-01"), "B", 4.0],
+            [pd.Timestamp("1950-01-01"), "C", 4.0],
+            [pd.Timestamp("1950-01-01"), "C", np.nan],
+            [pd.Timestamp("1950-01-01"), "C", 3.0],
+            [pd.Timestamp("1950-01-01"), "C", 4.0],
+        ]
+
+        frame = DataFrame(data, columns=["date", "panel", "data"]).set_index(
+            ["date", "panel"]
+        )
+
+        other_data = []
+        other = DataFrame(other_data, columns=["date", "panel", "state"]).set_index(
+            ["date", "panel"]
+        )
+
+        expected = DataFrame([], columns=["date", "panel", "data", "state"])
+        expected[["date", "panel", "data"]] = frame.reset_index()[
+            ["date", "panel", "data"]
+        ]
+        expected = expected.set_index(["date", "panel"])
+
+        result = frame.merge(other, how="left", on=["date", "panel"])
+
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("klass", [None, np.asarray, Series, Index])
     def test_merge_datetime_index(self, klass):
         # see gh-19038
