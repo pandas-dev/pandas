@@ -697,6 +697,19 @@ class HDFStore:
                 self._complevel, self._complib, fletcher32=self._fletcher32
             )
 
+        ver = tables.__version__
+        if ver >= "3.1" and _table_file_open_policy_is_strict and self.is_open:
+            msg = dedent(
+                """\
+                PyTables [{ver}] no longer supports opening multiple files
+                even in read-only mode on this HDF5 version [{hdf_version}].
+                You can accept this and not open the same file multiple times at once,
+                upgrade the HDF5 version, or downgrade to PyTables 3.0.0 which allows
+                files to be opened multiple times at once.
+                """
+            )
+            raise ValueError(msg)
+
         try:
             self._handle = tables.open_file(self._path, self._mode, **kwargs)
         except OSError as err:  # pragma: no cover
@@ -705,24 +718,6 @@ class HDFStore:
                 self._handle = tables.open_file(self._path, "r", **kwargs)
             else:
                 raise
-
-        except ValueError as err:
-            # trap PyTables >= 3.1 FILE_OPEN_POLICY exception
-            # to provide an updated message
-            if "FILE_OPEN_POLICY" in str(err):
-                hdf_version = tables.get_hdf5_version()
-                err = ValueError(
-                    f"PyTables [{tables.__version__}] no longer supports "
-                    "opening multiple files\n"
-                    "even in read-only mode on this HDF5 version "
-                    f"[{hdf_version}]. You can accept this\n"
-                    "and not open the same file multiple times at once,\n"
-                    "upgrade the HDF5 version, or downgrade to PyTables 3.0.0 "
-                    "which allows\n"
-                    "files to be opened multiple times at once\n"
-                )
-            raise err
-
         except Exception as err:
             # trying to read from a non-existent file causes an error which
             # is not part of IOError, make it one
