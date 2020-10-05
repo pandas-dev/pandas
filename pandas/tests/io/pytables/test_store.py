@@ -83,29 +83,26 @@ class TestHDFStore:
                 HDFStore(path, format="table")
 
     def test_context(self, setup_path):
-        path = create_tempfile(setup_path)
-        try:
-            with HDFStore(path) as tbl:
-                raise ValueError("blah")
-        except ValueError:
-            pass
-        finally:
-            with tm.ensure_clean(path):
-
-        try:
-            with HDFStore(path) as tbl:
-                tbl["a"] = tm.makeDataFrame()
-
-            with HDFStore(path) as tbl:
-                assert len(tbl) == 1
-                assert type(tbl["a"]) == DataFrame
-        finally:
-            with tm.ensure_clean(path):
+        with tm.ensure_clean() as path:
+            try:
+                with HDFStore(path) as tbl:
+                    raise ValueError("blah")
+            except ValueError:
+                pass
+            try:
+                with HDFStore(path) as tbl:
+                    tbl["a"] = tm.makeDataFrame()
+            except ValueError:
+                pass
+            try:
+                with HDFStore(path) as tbl:
+                    assert len(tbl) == 1
+                    assert type(tbl["a"]) == DataFrame
+            except ValueError:
+                pass
 
     def test_conv_read_write(self, setup_path):
-        path = create_tempfile(setup_path)
-        try:
-
+        with tm.ensure_clean() as path:
             def roundtrip(key, obj, **kwargs):
                 obj.to_hdf(path, key, **kwargs)
                 return read_hdf(path, key)
@@ -125,8 +122,6 @@ class TestHDFStore:
             result = read_hdf(path, "table", where=["index>2"])
             tm.assert_frame_equal(df[df.index > 2], result)
 
-        finally:
-            with tm.ensure_clean(path):
 
     def test_long_strings(self, setup_path):
 
@@ -4259,21 +4254,18 @@ class TestHDFStore:
                         os.close(fd)
                     except (OSError, ValueError):
                         pass
-                    with tm.ensure_clean(new_f):
+                    os.remove(new_f)
 
+        # new table
+        df = tm.makeDataFrame()
 
-            # new table
-            df = tm.makeDataFrame()
-
-            try:
-                path = create_tempfile(setup_path)
+        try:
+            with tm.ensure_clean() as path:
                 st = HDFStore(path)
                 st.append("df", df, data_columns=["A"])
                 st.close()
                 do_copy(f=path)
                 do_copy(f=path, propindexes=False)
-            finally:
-                with tm.ensure_clean(path):
 
     def test_store_datetime_fractional_secs(self, setup_path):
 
