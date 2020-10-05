@@ -679,7 +679,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
             self._reset_cache("_selected_obj")
 
-    def _set_result_index_ordered(self, result):
+    def _set_result_index_ordered(self, result: FrameOrSeries) -> FrameOrSeries:
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
