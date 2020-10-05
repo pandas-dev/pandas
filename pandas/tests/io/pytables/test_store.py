@@ -4256,16 +4256,15 @@ class TestHDFStore:
                         pass
                     os.remove(new_f)
 
-        # new table
-        df = tm.makeDataFrame()
-
-        try:
-            with tm.ensure_clean() as path:
-                st = HDFStore(path)
-                st.append("df", df, data_columns=["A"])
-                st.close()
-                do_copy(f=path)
-                do_copy(f=path, propindexes=False)
+            # new table
+            df = tm.makeDataFrame()
+            try:
+                with tm.ensure_clean() as path:
+                    st = HDFStore(path)
+                    st.append("df", df, data_columns=["A"])
+                    st.close()
+                    do_copy(f=path)
+                    do_copy(f=path, propindexes=False)
 
     def test_store_datetime_fractional_secs(self, setup_path):
 
