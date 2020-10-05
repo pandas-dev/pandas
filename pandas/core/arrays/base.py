@@ -1176,84 +1176,22 @@ class ExtensionOpsMixin:
 
     @classmethod
     def _add_arithmetic_ops(cls):
-        # pandas\core\arrays\base.py:1179: error: Unsupported left operand type
-        # for + ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__add__ = cls._create_arithmetic_method(  # type: ignore[operator]
-            operator.add
-        )
-        # pandas\core\arrays\base.py:1180: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__radd__"  [attr-defined]
-        cls.__radd__ = cls._create_arithmetic_method(  # type: ignore[attr-defined]
-            ops.radd
-        )
-        # pandas\core\arrays\base.py:1181: error: Unsupported left operand type
-        # for - ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__sub__ = cls._create_arithmetic_method(  # type: ignore[operator]
-            operator.sub
-        )
-        # pandas\core\arrays\base.py:1182: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__rsub__"  [attr-defined]
-        cls.__rsub__ = cls._create_arithmetic_method(  # type: ignore[attr-defined]
-            ops.rsub
-        )
-        # pandas\core\arrays\base.py:1183: error: Unsupported left operand type
-        # for * ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__mul__ = cls._create_arithmetic_method(  # type: ignore[operator]
-            operator.mul
-        )
-        # pandas\core\arrays\base.py:1184: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__rmul__"  [attr-defined]
-        cls.__rmul__ = cls._create_arithmetic_method(  # type: ignore[attr-defined]
-            ops.rmul
-        )
-        # pandas\core\arrays\base.py:1185: error: Unsupported left operand type
-        # for ** ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__pow__ = cls._create_arithmetic_method(  # type: ignore[operator]
-            operator.pow
-        )
-        # pandas\core\arrays\base.py:1186: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__rpow__"  [attr-defined]
-        cls.__rpow__ = cls._create_arithmetic_method(  # type: ignore[attr-defined]
-            ops.rpow
-        )
-        # pandas\core\arrays\base.py:1187: error: Unsupported left operand type
-        # for % ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__mod__ = cls._create_arithmetic_method(  # type: ignore[operator]
-            operator.mod
-        )
-        # pandas\core\arrays\base.py:1188: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__rmod__"  [attr-defined]
-        cls.__rmod__ = cls._create_arithmetic_method(  # type: ignore[attr-defined]
-            ops.rmod
-        )
-        # pandas\core\arrays\base.py:1189: error: Unsupported left operand type
-        # for // ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__floordiv__ = cls._create_arithmetic_method(  # type: ignore[operator]
-            operator.floordiv
-        )
-        # pandas\core\arrays\base.py:1190: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__rfloordiv__"  [attr-defined]
-        cls.__rfloordiv__ = cls._create_arithmetic_method(  # type: ignore[attr-defined]
-            ops.rfloordiv
-        )
-        # pandas\core\arrays\base.py:1191: error: Unsupported left operand type
-        # for / ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__truediv__ = cls._create_arithmetic_method(  # type: ignore[operator]
-            operator.truediv
-        )
-        # pandas\core\arrays\base.py:1192: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__rtruediv__"  [attr-defined]
-        cls.__rtruediv__ = cls._create_arithmetic_method(  # type: ignore[attr-defined]
-            ops.rtruediv
-        )
-        # pandas\core\arrays\base.py:1193: error: Unsupported left operand type
-        # for divmod ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__divmod__ = cls._create_arithmetic_method(divmod)  # type: ignore[operator]
-        # pandas\core\arrays\base.py:1194: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__rdivmod__"  [attr-defined]
-        cls.__rdivmod__ = cls._create_arithmetic_method(  # type: ignore[attr-defined]
-            ops.rdivmod
-        )
+        setattr(cls, "__add__", cls._create_arithmetic_method(operator.add))
+        setattr(cls, "__radd__", cls._create_arithmetic_method(ops.radd))
+        setattr(cls, "__sub__", cls._create_arithmetic_method(operator.sub))
+        setattr(cls, "__rsub__", cls._create_arithmetic_method(ops.rsub))
+        setattr(cls, "__mul__", cls._create_arithmetic_method(operator.mul))
+        setattr(cls, "__rmul__", cls._create_arithmetic_method(ops.rmul))
+        setattr(cls, "__pow__", cls._create_arithmetic_method(operator.pow))
+        setattr(cls, "__rpow__", cls._create_arithmetic_method(ops.rpow))
+        setattr(cls, "__mod__", cls._create_arithmetic_method(operator.mod))
+        setattr(cls, "__rmod__", cls._create_arithmetic_method(ops.rmod))
+        setattr(cls, "__floordiv__", cls._create_arithmetic_method(operator.floordiv))
+        setattr(cls, "__rfloordiv__", cls._create_arithmetic_method(ops.rfloordiv))
+        setattr(cls, "__truediv__", cls._create_arithmetic_method(operator.truediv))
+        setattr(cls, "__rtruediv__", cls._create_arithmetic_method(ops.rtruediv))
+        setattr(cls, "__divmod__", cls._create_arithmetic_method(divmod))
+        setattr(cls, "__rdivmod__", cls._create_arithmetic_method(ops.rdivmod))
 
     @classmethod
     def _create_comparison_method(cls, op):
@@ -1261,36 +1199,12 @@ class ExtensionOpsMixin:
 
     @classmethod
     def _add_comparison_ops(cls):
-        # pandas\core\arrays\base.py:1202: error: Cannot assign to a method
-        # [assignment]
-        cls.__eq__ = cls._create_comparison_method(  # type: ignore[assignment]
-            operator.eq
-        )
-        # pandas\core\arrays\base.py:1203: error: Cannot assign to a method
-        # [assignment]
-        cls.__ne__ = cls._create_comparison_method(  # type: ignore[assignment]
-            operator.ne
-        )
-        # pandas\core\arrays\base.py:1204: error: Unsupported left operand type
-        # for < ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__lt__ = cls._create_comparison_method(  # type: ignore[operator]
-            operator.lt
-        )
-        # pandas\core\arrays\base.py:1205: error: Unsupported left operand type
-        # for > ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__gt__ = cls._create_comparison_method(  # type: ignore[operator]
-            operator.gt
-        )
-        # pandas\core\arrays\base.py:1206: error: Unsupported left operand type
-        # for <= ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__le__ = cls._create_comparison_method(  # type: ignore[operator]
-            operator.le
-        )
-        # pandas\core\arrays\base.py:1207: error: Unsupported left operand type
-        # for >= ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__ge__ = cls._create_comparison_method(  # type: ignore[operator]
-            operator.ge
-        )
+        setattr(cls, "__eq__", cls._create_comparison_method(operator.eq))
+        setattr(cls, "__ne__", cls._create_comparison_method(operator.ne))
+        setattr(cls, "__lt__", cls._create_comparison_method(operator.lt))
+        setattr(cls, "__gt__", cls._create_comparison_method(operator.gt))
+        setattr(cls, "__le__", cls._create_comparison_method(operator.le))
+        setattr(cls, "__ge__", cls._create_comparison_method(operator.ge))
 
     @classmethod
     def _create_logical_method(cls, op):
@@ -1298,30 +1212,12 @@ class ExtensionOpsMixin:
 
     @classmethod
     def _add_logical_ops(cls):
-        # pandas\core\arrays\base.py:1215: error: Unsupported left operand type
-        # for & ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__and__ = cls._create_logical_method(  # type: ignore[operator]
-            operator.and_
-        )
-        # pandas\core\arrays\base.py:1216: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__rand__"  [attr-defined]
-        cls.__rand__ = cls._create_logical_method(  # type: ignore[attr-defined]
-            ops.rand_
-        )
-        # pandas\core\arrays\base.py:1217: error: Unsupported left operand type
-        # for | ("Type[ExtensionOpsMixin]")  [operator]
-        cls.__or__ = cls._create_logical_method(operator.or_)  # type: ignore[operator]
-        # pandas\core\arrays\base.py:1218: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__ror__"  [attr-defined]
-        cls.__ror__ = cls._create_logical_method(ops.ror_)  # type: ignore[attr-defined]
-        # pandas\core\arrays\base.py:1219: error: Unsupported left operand type
-        # for ^ ("Type[ExtensionOpsMixin]")
-        cls.__xor__ = cls._create_logical_method(operator.xor)  # type: ignore[operator]
-        # pandas\core\arrays\base.py:1220: error: "Type[ExtensionOpsMixin]" has
-        # no attribute "__rxor__"
-        cls.__rxor__ = cls._create_logical_method(  # type: ignore[attr-defined]
-            ops.rxor
-        )
+        setattr(cls, "__and__", cls._create_logical_method(operator.and_))
+        setattr(cls, "__rand__", cls._create_logical_method(ops.rand_))
+        setattr(cls, "__or__", cls._create_logical_method(operator.or_))
+        setattr(cls, "__ror__", cls._create_logical_method(ops.ror_))
+        setattr(cls, "__xor__", cls._create_logical_method(operator.xor))
+        setattr(cls, "__rxor__", cls._create_logical_method(ops.rxor))
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
