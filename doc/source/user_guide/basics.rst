@@ -809,7 +809,7 @@ Is equivalent to:
 
 .. ipython:: python
 
-    (df_p.pipe(extract_city_name).pipe(add_country_name, country_name="US"))
+    df_p.pipe(extract_city_name).pipe(add_country_name, country_name="US")
 
 Pandas encourages the second style, which is known as method chaining.
 ``pipe`` makes it easy to use your own or another library's functions
