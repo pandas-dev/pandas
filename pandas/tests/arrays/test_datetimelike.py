@@ -503,11 +503,10 @@ class TestDatetimeArray(SharedTests):
             expected = np.asarray(arr).astype(dtype)
             tm.assert_numpy_array_equal(result, expected)
 
-    def test_array_object_dtype(self, tz_naive_fixture):
+    def test_array_object_dtype(self, arr1d):
         # GH#23524
-        tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01", periods=3, tz=tz)
-        arr = DatetimeArray(dti)
+        arr = arr1d
+        dti = self.index_cls(arr1d)
 
         expected = np.array(list(dti))
 
@@ -518,11 +517,10 @@ class TestDatetimeArray(SharedTests):
         result = np.array(dti, dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_array_tz(self, tz_naive_fixture):
+    def test_array_tz(self, arr1d):
         # GH#23524
-        tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01", periods=3, tz=tz)
-        arr = DatetimeArray(dti)
+        arr = arr1d
+        dti = self.index_cls(arr1d)
 
         expected = dti.asi8.view("M8[ns]")
         result = np.array(arr, dtype="M8[ns]")
@@ -539,10 +537,9 @@ class TestDatetimeArray(SharedTests):
         assert result.base is expected.base
         assert result.base is not None
 
-    def test_array_i8_dtype(self, tz_naive_fixture):
-        tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01", periods=3, tz=tz)
-        arr = DatetimeArray(dti)
+    def test_array_i8_dtype(self, arr1d):
+        arr = arr1d
+        dti = self.index_cls(arr1d)
 
         expected = dti.asi8
         result = np.array(arr, dtype="i8")
@@ -565,10 +562,9 @@ class TestDatetimeArray(SharedTests):
         dta = DatetimeArray(arr[:0])
         assert dta._data.base is arr
 
-    def test_from_dti(self, tz_naive_fixture):
-        tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01", periods=3, tz=tz)
-        arr = DatetimeArray(dti)
+    def test_from_dti(self, arr1d):
+        arr = arr1d
+        dti = self.index_cls(arr1d)
         assert list(dti) == list(arr)
 
         # Check that Index.__new__ knows what to do with DatetimeArray
@@ -576,10 +572,10 @@ class TestDatetimeArray(SharedTests):
         assert isinstance(dti2, pd.DatetimeIndex)
         assert list(dti2) == list(arr)
 
-    def test_astype_object(self, tz_naive_fixture):
-        tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01", periods=3, tz=tz)
-        arr = DatetimeArray(dti)
+    def test_astype_object(self, arr1d):
+        arr = arr1d
+        dti = self.index_cls(arr1d)
+
         asobj = arr.astype("O")
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == "O"
