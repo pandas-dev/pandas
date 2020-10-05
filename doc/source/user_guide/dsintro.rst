@@ -78,13 +78,13 @@ Series can be instantiated from dicts:
 
    When the data is a dict, and an index is not passed, the ``Series`` index
    will be ordered by the dict's insertion order, if you're using Python
-   version >= 3.6 and Pandas version >= 0.23.
+   version >= 3.6 and pandas version >= 0.23.
 
-   If you're using Python < 3.6 or Pandas < 0.23, and an index is not passed,
+   If you're using Python < 3.6 or pandas < 0.23, and an index is not passed,
    the ``Series`` index will be the lexically ordered list of dict keys.
 
 In the example above, if you were on a Python version lower than 3.6 or a
-Pandas version lower than 0.23, the ``Series`` would be ordered by the lexical
+pandas version lower than 0.23, the ``Series`` would be ordered by the lexical
 order of the dict keys (i.e. ``['a', 'b', 'c']`` rather than ``['b', 'a', 'c']``).
 
 If an index is passed, the values in data corresponding to the labels in the
@@ -151,7 +151,7 @@ index (to disable :ref:`automatic alignment <dsintro.alignment>`, for example).
 
 :attr:`Series.array` will always be an :class:`~pandas.api.extensions.ExtensionArray`.
 Briefly, an ExtensionArray is a thin wrapper around one or more *concrete* arrays like a
-:class:`numpy.ndarray`. Pandas knows how to take an ``ExtensionArray`` and
+:class:`numpy.ndarray`. pandas knows how to take an ``ExtensionArray`` and
 store it in a ``Series`` or a column of a ``DataFrame``.
 See :ref:`basics.dtypes` for more.
 
@@ -290,9 +290,9 @@ based on common sense rules.
 
    When the data is a dict, and ``columns`` is not specified, the ``DataFrame``
    columns will be ordered by the dict's insertion order, if you are using
-   Python version >= 3.6 and Pandas >= 0.23.
+   Python version >= 3.6 and pandas >= 0.23.
 
-   If you are using Python < 3.6 or Pandas < 0.23, and ``columns`` is not
+   If you are using Python < 3.6 or pandas < 0.23, and ``columns`` is not
    specified, the ``DataFrame`` columns will be the lexically ordered list of dict
    keys.
 
