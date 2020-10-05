@@ -697,16 +697,10 @@ class HDFStore:
                 self._complevel, self._complib, fletcher32=self._fletcher32
             )
 
-        ver = tables.__version__
-        if ver >= "3.1" and _table_file_open_policy_is_strict and self.is_open:
-            msg = dedent(
-                """\
-                PyTables [{ver}] no longer supports opening multiple files
-                even in read-only mode on this HDF5 version [{hdf_version}].
-                You can accept this and not open the same file multiple times at once,
-                upgrade the HDF5 version, or downgrade to PyTables 3.0.0 which allows
-                files to be opened multiple times at once.
-                """
+        if _table_file_open_policy_is_strict and self.is_open:
+            msg = (
+                "Cannot open HDF5 file, which is already opened, "
+                "even in read-only mode."
             )
             raise ValueError(msg)
 
