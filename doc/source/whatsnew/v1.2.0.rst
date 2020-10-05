@@ -284,7 +284,7 @@ Performance improvements
 - ``Styler`` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
 - Performance improvement in :meth:`pd.to_datetime` with non-ns time unit for ``float`` ``dtype`` columns (:issue:`20445`)
 - Performance improvement in setting values on a :class:`IntervalArray` (:issue:`36310`)
-- Performance improvement in :meth:`RollingGroupby.count` (:issue:``)
+- Performance improvement in :meth:`RollingGroupby.count` (:issue:`35625`)
 
 .. ---------------------------------------------------------------------------
 
