@@ -65,6 +65,7 @@ def arrays_to_mgr(
     columns,
     dtype: Optional[DtypeObj] = None,
     verify_integrity: bool = True,
+    consolidate: bool = True,
 ):
     """
     Segregate Series based on type and coerce into matrices.
@@ -91,7 +92,9 @@ def arrays_to_mgr(
     # from BlockManager perspective
     axes = [columns, index]
 
-    return create_block_manager_from_arrays(arrays, arr_names, axes)
+    return create_block_manager_from_arrays(
+        arrays, arr_names, axes, consolidate=consolidate
+    )
 
 
 def masked_rec_array_to_mgr(
@@ -130,7 +133,9 @@ def masked_rec_array_to_mgr(
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype)
+    mgr = arrays_to_mgr(
+        arrays, arr_columns, index, columns, dtype, consolidate=True
+    )  # FIXME: dont hardcode
 
     if copy:
         mgr = mgr.copy()
@@ -141,7 +146,14 @@ def masked_rec_array_to_mgr(
 # DataFrame Constructor Interface
 
 
-def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
+def init_ndarray(
+    values,
+    index,
+    columns,
+    dtype: Optional[DtypeObj],
+    copy: bool,
+    consolidate: bool = True,
+):
     # input must be a ndarray, list, Series, index
 
     if isinstance(values, ABCSeries):
@@ -170,7 +182,9 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
             values = values.copy()
 
         index, columns = _get_axes(len(values), 1, index, columns)
-        return arrays_to_mgr([values], columns, index, columns, dtype=dtype)
+        return arrays_to_mgr(
+            [values], columns, index, columns, dtype=dtype, consolidate=consolidate
+        )
     elif is_extension_array_dtype(values) or is_extension_array_dtype(dtype):
         # GH#19157
 
@@ -184,7 +198,9 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
         if columns is None:
             columns = Index(range(len(values)))
 
-        return arrays_to_mgr(values, columns, index, columns, dtype=dtype)
+        return arrays_to_mgr(
+            values, columns, index, columns, dtype=dtype, consolidate=consolidate
+        )
 
     # by definition an array here
     # the dtypes will be coerced to a single dtype
@@ -233,10 +249,18 @@ def init_ndarray(values, index, columns, dtype: Optional[DtypeObj], copy: bool):
     else:
         block_values = [values]
 
-    return create_block_manager_from_blocks(block_values, [columns, index])
+    return create_block_manager_from_blocks(
+        block_values, [columns, index], consolidate=consolidate
+    )
 
 
-def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
+def init_dict(
+    data: Dict,
+    index,
+    columns,
+    dtype: Optional[DtypeObj] = None,
+    consolidate: bool = True,
+):
     """
     Segregate Series based on type and coerce into matrices.
     Needs to handle a lot of exceptional cases.
@@ -282,7 +306,9 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
         arrays = [
             arr if not is_datetime64tz_dtype(arr) else arr.copy() for arr in arrays
         ]
-    return arrays_to_mgr(arrays, data_names, index, columns, dtype=dtype)
+    return arrays_to_mgr(
+        arrays, data_names, index, columns, dtype=dtype, consolidate=consolidate
+    )
 
 
 # ---------------------------------------------------------------------

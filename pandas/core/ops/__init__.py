@@ -272,7 +272,7 @@ def dispatch_to_series(left, right, func, axis: Optional[int] = None):
         raise NotImplementedError(right)
 
     return type(left)._from_arrays(
-        arrays, left.columns, left.index, verify_integrity=False
+        arrays, left.columns, left.index, verify_integrity=False, consolidate=False
     )
 
 

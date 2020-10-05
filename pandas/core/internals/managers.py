@@ -1595,7 +1595,9 @@ class SingleBlockManager(BlockManager):
 # Constructor Helpers
 
 
-def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
+def create_block_manager_from_blocks(
+    blocks, axes: List[Index], consolidate: bool = True
+) -> BlockManager:
     try:
         if len(blocks) == 1 and not isinstance(blocks[0], Block):
             # if blocks[0] is of length 0, return empty blocks
@@ -1610,7 +1612,8 @@ def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
                 ]
 
         mgr = BlockManager(blocks, axes)
-        mgr._consolidate_inplace()
+        if consolidate:
+            mgr._consolidate_inplace()
         return mgr
 
     except ValueError as e:
@@ -1620,7 +1623,10 @@ def create_block_manager_from_blocks(blocks, axes: List[Index]) -> BlockManager:
 
 
 def create_block_manager_from_arrays(
-    arrays, names: Index, axes: List[Index]
+    arrays,
+    names: Index,
+    axes: List[Index],
+    consolidate: bool = True,
 ) -> BlockManager:
     assert isinstance(names, Index)
     assert isinstance(axes, list)
@@ -1629,10 +1635,11 @@ def create_block_manager_from_arrays(
     try:
         blocks = form_blocks(arrays, names, axes)
         mgr = BlockManager(blocks, axes)
-        mgr._consolidate_inplace()
-        return mgr
     except ValueError as e:
         raise construction_error(len(arrays), arrays[0].shape, axes, e)
+    if consolidate:
+        mgr._consolidate_inplace()
+    return mgr
 
 
 def construction_error(tot_items, block_shape, axes, e=None):
