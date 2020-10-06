@@ -545,10 +545,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._left)
 
-    def __getitem__(self, value):
-        value = check_array_indexer(self, value)
-        left = self._left[value]
-        right = self._right[value]
+    def __getitem__(self, key):
+        key = check_array_indexer(self, key)
+        left = self._left[key]
+        right = self._right[key]
 
         if not isinstance(left, (np.ndarray, ExtensionArray)):
             # scalar
