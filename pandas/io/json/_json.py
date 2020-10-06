@@ -937,7 +937,7 @@ class Parser:
         """
         obj = self.obj
         assert obj is not None  # for mypy
-        for axis_name in obj:
+        for axis_name in obj._AXIS_ORDERS:
             new_axis, result = self._try_convert_data(
                 name=axis_name,
                 data=obj._get_axis(axis_name),
