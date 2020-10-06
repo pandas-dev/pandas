@@ -457,7 +457,7 @@ class TestMergeMulti:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_merge_na_datetime_keys_empty_df(self):
+    def test_merge_datetime_index_empty_df(self):
         data = [
             [pd.Timestamp("1950-01-01"), "A", 1.5],
             [pd.Timestamp("1950-01-02"), "B", 1.5],
@@ -473,16 +473,22 @@ class TestMergeMulti:
         frame = DataFrame(data, columns=["date", "panel", "data"]).set_index(
             ["date", "panel"]
         )
-
-        other_data = []
-        other = DataFrame(other_data, columns=["date", "panel", "state"]).set_index(
+        other = DataFrame(columns=["date", "panel", "state"]).set_index(
             ["date", "panel"]
         )
-
-        expected = DataFrame([], columns=["date", "panel", "data", "state"])
-        expected[["date", "panel", "data"]] = frame.reset_index()[
-            ["date", "panel", "data"]
+        expected_data = [
+            [pd.Timestamp("1950-01-01"), "A", 1.5, pd.NA],
+            [pd.Timestamp("1950-01-02"), "B", 1.5, pd.NA],
+            [pd.Timestamp("1950-01-03"), "B", 1.5, pd.NA],
+            [pd.Timestamp("1950-01-04"), "B", np.nan, pd.NA],
+            [pd.Timestamp("1950-01-05"), "B", 4.0, pd.NA],
+            [pd.Timestamp("1950-01-06"), "C", 4.0, pd.NA],
+            [pd.Timestamp("1950-01-07"), "C", np.nan, pd.NA],
+            [pd.Timestamp("1950-01-08"), "C", 3.0, pd.NA],
+            [pd.Timestamp("1950-01-09"), "C", 4.0, pd.NA],
         ]
+
+        expected = DataFrame(expected_data, columns=["date", "panel", "data", "state"])
         expected = expected.set_index(["date", "panel"])
 
         result = frame.merge(other, how="left", on=["date", "panel"])
