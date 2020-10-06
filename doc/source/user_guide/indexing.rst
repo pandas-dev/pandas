@@ -941,13 +941,15 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 
    .. ipython:: python
 
-      df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], list('abc'), ['A', 'B'])
-      sr = (df['A'] > 2)
-      sr
+      df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
+                        index = list('abc'),
+                        columns = ['A', 'B'])
+      s = (df['A'] > 2)
+      s
 
-      df.loc[sr, df.columns[1]]
+      df.loc[s, 'B']
 
-      df.iloc[sr.values, 1]
+      df.iloc[s.values, 1]
 
 .. _indexing.basics.indexing_isin:
 
