@@ -298,7 +298,7 @@ class TestMerge:
             "outer": np.ones(len(out), dtype="bool"),
         }
 
-        for how in "left", "right", "outer", "inner":
+        for how in ["left", "right", "outer", "inner"]:
             mask = jmask[how]
             frame = align(out[mask].copy())
             assert mask.all() ^ mask.any() or how == "outer"
