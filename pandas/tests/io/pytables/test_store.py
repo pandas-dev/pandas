@@ -33,7 +33,6 @@ from pandas import (
     isna,
     timedelta_range,
 )
-
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
