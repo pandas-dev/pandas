@@ -4963,7 +4963,7 @@ Keep all original rows and also all original values
     hist = pandas.plotting.hist_series
 
     # ----------------------------------------------------------------------
-    # Template-Based Methods
+    # Template-Based Arithmetic/Comparison Methods
 
     def _cmp_method(self, other, op) -> "Series":
         res_name = ops.get_op_result_name(self, other)
