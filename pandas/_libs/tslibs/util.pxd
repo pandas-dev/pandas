@@ -121,6 +121,10 @@ cdef inline bint is_bool_object(object obj) nogil:
             PyObject_TypeCheck(obj, &PyBoolArrType_Type))
 
 
+cdef inline bint is_real_number_object(object obj) nogil:
+    return is_bool_object(obj) or is_integer_object(obj) or is_float_object(obj)
+
+
 cdef inline bint is_timedelta64_object(object obj) nogil:
     """
     Cython equivalent of `isinstance(val, np.timedelta64)`

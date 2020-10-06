@@ -68,7 +68,8 @@ API changes
      :suppress:
 
      import pandas.tseries.offsets as offsets
-     d = pd.Timestamp('2014-01-01 09:00')
+
+     d = pd.Timestamp("2014-01-01 09:00")
 
   .. ipython:: python
 
@@ -100,10 +101,10 @@ Enhancements
      import pandas.tseries.offsets as offsets
 
      day = offsets.Day()
-     day.apply(pd.Timestamp('2014-01-01 09:00'))
+     day.apply(pd.Timestamp("2014-01-01 09:00"))
 
      day = offsets.Day(normalize=True)
-     day.apply(pd.Timestamp('2014-01-01 09:00'))
+     day.apply(pd.Timestamp("2014-01-01 09:00"))
 
 - ``PeriodIndex`` is represented as the same format as ``DatetimeIndex`` (:issue:`7601`)
 - ``StringMethods`` now work on empty Series (:issue:`7242`)
@@ -123,8 +124,7 @@ Enhancements
 
   .. ipython:: python
 
-     rng = pd.date_range('3/6/2012 00:00', periods=10, freq='D',
-                         tz='dateutil/Europe/London')
+     rng = pd.date_range("3/6/2012 00:00", periods=10, freq="D", tz="dateutil/Europe/London")
      rng.tz
 
   See :ref:`the docs <timeseries.timezone>`.
