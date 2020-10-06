@@ -42,7 +42,10 @@ class Term(ops.Term):
     env: PyTablesScope
 
     def __new__(cls, name, env, side=None, encoding=None):
-        klass = Constant if not isinstance(name, str) else cls
+        if isinstance(name, str):
+            klass = cls
+        else:
+            klass = Constant
         return object.__new__(klass)
 
     def __init__(self, name, env: PyTablesScope, side=None, encoding=None):
@@ -83,6 +86,7 @@ class BinOp(ops.BinOp):
 
     op: str
     queryables: Dict[str, Any]
+    condition: Optional[str]
 
     def __init__(self, op: str, lhs, rhs, queryables: Dict[str, Any], encoding):
         super().__init__(op, lhs, rhs)
@@ -184,10 +188,8 @@ class BinOp(ops.BinOp):
 
         def stringify(value):
             if self.encoding is not None:
-                encoder = partial(pprint_thing_encoded, encoding=self.encoding)
-            else:
-                encoder = pprint_thing
-            return encoder(value)
+                return pprint_thing_encoded(value, encoding=self.encoding)
+            return pprint_thing(value)
 
         kind = ensure_decoded(self.kind)
         meta = ensure_decoded(self.meta)
@@ -257,9 +259,11 @@ class FilterBinOp(BinOp):
     def invert(self):
         """ invert the filter """
         if self.filter is not None:
-            f = list(self.filter)
-            f[1] = self.generate_filter_op(invert=True)
-            self.filter = tuple(f)
+            self.filter = (
+                self.filter[0],
+                self.generate_filter_op(invert=True),
+                self.filter[2],
+            )
         return self
 
     def format(self):
