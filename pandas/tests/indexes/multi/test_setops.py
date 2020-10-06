@@ -379,14 +379,23 @@ def test_setops_disallow_true(method):
 
 
 @pytest.mark.parametrize(
-    "tuples", [[("val1", "test1")], [("val1", "test1"), ("val1", "test1")]]
+    ("tuples", "exp_tuples"),
+    [
+        ([("val1", "test1")], [("val1", "test1")]),
+        ([("val1", "test1"), ("val1", "test1")], [("val1", "test1")]),
+        (
+            [("val2", "test2"), ("val1", "test1")],
+            [("val2", "test2"), ("val1", "test1")],
+        ),
+    ],
 )
-def test_intersect_with_duplicates(tuples):
+def test_intersect_with_duplicates(tuples, exp_tuples):
     # GH: 36915
     left = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
     right = pd.MultiIndex.from_tuples(
-        [("val1", "test1"), ("val1", "test1")], names=["first", "second"]
+        [("val1", "test1"), ("val1", "test1"), ("val2", "test2")],
+        names=["first", "second"],
     )
     result = left.intersection(right)
-    expected = pd.MultiIndex.from_tuples([("val1", "test1")], names=["first", "second"])
+    expected = pd.MultiIndex.from_tuples(exp_tuples, names=["first", "second"])
     tm.assert_index_equal(result, expected)

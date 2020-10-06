@@ -3492,7 +3492,9 @@ class MultiIndex(Index):
                 sort = False  # uniq_tuples is already sorted
             except TypeError:
                 pass
-        uniq_tuples = algos.unique(inner_tuples)
+            else:
+                uniq_tuples = algos.unique(inner_tuples)
+
         if uniq_tuples is None:
             other_uniq = set(rvals)
             seen = set()
