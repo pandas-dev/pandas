@@ -935,28 +935,22 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             {} in idx._engine
 
-    def test_copy_copies_cache(self):
-        # GH32898
+    def test_copy_shares_cache(self):
+        # GH32898, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
         copy = idx.copy()
 
-        # check that the copied cache is a copy of the original
-        assert idx._cache == copy._cache
-        assert idx._cache is not copy._cache
-        # cache values should reference the same object
-        for key, val in idx._cache.items():
-            assert copy._cache[key] is val, key
+        assert copy._cache is idx._cache
 
-    def test_shallow_copy_copies_cache(self):
-        # GH32669
+    def test_shallow_copy_shares_cache(self):
+        # GH32669, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
         shallow_copy = idx._shallow_copy()
 
-        # check that the shallow_copied cache is a copy of the original
-        assert idx._cache == shallow_copy._cache
-        assert idx._cache is not shallow_copy._cache
-        # cache values should reference the same object
-        for key, val in idx._cache.items():
-            assert shallow_copy._cache[key] is val, key
+        assert shallow_copy._cache is idx._cache
+
+        shallow_copy = idx._shallow_copy(idx._data)
+        assert shallow_copy._cache is not idx._cache
+        assert shallow_copy._cache == {}
