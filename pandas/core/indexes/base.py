@@ -79,7 +79,6 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
-from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
@@ -163,7 +162,7 @@ def _new_Index(cls, d):
 _IndexT = TypeVar("_IndexT", bound="Index")
 
 
-class Index(OpsMixin, IndexOpsMixin, PandasObject):
+class Index(IndexOpsMixin, PandasObject):
     """
     Immutable sequence used for indexing and alignment. The basic object
     storing axis labels for all pandas objects.

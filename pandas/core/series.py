@@ -191,6 +191,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hasnans = property(
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
+    __hash__ = generic.NDFrame.__hash__
     _mgr: SingleBlockManager
     div: Callable[["Series", Any], "Series"]
     rdiv: Callable[["Series", Any], "Series"]
@@ -4960,6 +4961,22 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
     hist = pandas.plotting.hist_series
+
+    # ----------------------------------------------------------------------
+    # Template-Based Methods
+
+    def _cmp_method(self, other, op) -> "Series":
+        res_name = ops.get_op_result_name(self, other)
+
+        if isinstance(other, Series) and not self._indexed_same(other):
+            raise ValueError("Can only compare identically-labeled Series objects")
+
+        lvalues = extract_array(self, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True)
+
+        res_values = ops.comparison_op(lvalues, rvalues, op)
+
+        return self._construct_result(res_values, name=res_name)
 
 
 Series._add_numeric_operations()
