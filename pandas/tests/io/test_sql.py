@@ -281,7 +281,6 @@ class PandasSQLTest:
 
     @pytest.fixture(params=[("io", "data", "csv", "iris.csv")])
     def load_iris_data(self, datapath, request):
-        import io
 
         iris_csv_file = datapath(*request.param)
 
@@ -291,7 +290,7 @@ class PandasSQLTest:
         self.drop_table("iris")
         self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
-        with io.open(iris_csv_file, mode="r", newline=None) as iris_csv:
+        with open(iris_csv_file, mode="r", newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
@@ -2349,9 +2348,6 @@ _formatters = {
 
 
 def format_query(sql, *args):
-    """
-
-    """
     processed_args = []
     for arg in args:
         if isinstance(arg, float) and isna(arg):

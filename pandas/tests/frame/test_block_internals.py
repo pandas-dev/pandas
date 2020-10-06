@@ -78,7 +78,7 @@ class TestDataFrameBlockInternals:
     def test_values_consolidate(self, float_frame):
         float_frame["E"] = 7.0
         assert not float_frame._mgr.is_consolidated()
-        _ = float_frame.values  # noqa
+        _ = float_frame.values
         assert float_frame._mgr.is_consolidated()
 
     def test_modify_values(self, float_frame):
@@ -644,3 +644,40 @@ def test_to_dict_of_blocks_item_cache():
     assert df.loc[0, "b"] == "foo"
 
     assert df["b"] is ser
+
+
+def test_update_inplace_sets_valid_block_values():
+    # https://github.com/pandas-dev/pandas/issues/33457
+    df = pd.DataFrame({"a": pd.Series([1, 2, None], dtype="category")})
+
+    # inplace update of a single column
+    df["a"].fillna(1, inplace=True)
+
+    # check we havent put a Series into any block.values
+    assert isinstance(df._mgr.blocks[0].values, pd.Categorical)
+
+    # smoketest for OP bug from GH#35731
+    assert df.isnull().sum().sum() == 0
+
+
+def test_nonconsolidated_item_cache_take():
+    # https://github.com/pandas-dev/pandas/issues/35521
+
+    # create non-consolidated dataframe with object dtype columns
+    df = pd.DataFrame()
+    df["col1"] = pd.Series(["a"], dtype=object)
+    df["col2"] = pd.Series([0], dtype=object)
+
+    # access column (item cache)
+    df["col1"] == "A"
+    # take operation
+    # (regression was that this consolidated but didn't reset item cache,
+    # resulting in an invalid cache and the .at operation not working properly)
+    df[df["col2"] == 0]
+
+    # now setting value should update actual dataframe
+    df.at[0, "col1"] = "A"
+
+    expected = pd.DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+    assert df.at[0, "col1"] == "A"

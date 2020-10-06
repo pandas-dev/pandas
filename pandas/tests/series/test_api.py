@@ -493,7 +493,7 @@ class TestSeriesMisc:
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        code = "import pandas as pd; s = pd.Series()"
+        code = "import pandas as pd; s = pd.Series(dtype=object)"
         await ip.run_code(code)
 
         # TODO: remove it when Ipython updates
@@ -523,6 +523,32 @@ class TestSeriesMisc:
         s.attrs["version"] = 1
         result = s + 1
         assert result.attrs == {"version": 1}
+
+    @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
+    def test_set_flags(self, allows_duplicate_labels):
+        df = pd.Series([1, 2])
+        result = df.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+        if allows_duplicate_labels is None:
+            # We don't update when it's not provided
+            assert result.flags.allows_duplicate_labels is True
+        else:
+            assert result.flags.allows_duplicate_labels is allows_duplicate_labels
+
+        # We made a copy
+        assert df is not result
+        # We didn't mutate df
+        assert df.flags.allows_duplicate_labels is True
+
+        # But we didn't copy data
+        result.iloc[0] = 0
+        assert df.iloc[0] == 0
+
+        # Now we do copy.
+        result = df.set_flags(
+            copy=True, allows_duplicate_labels=allows_duplicate_labels
+        )
+        result.iloc[0] = 10
+        assert df.iloc[0] == 0
 
 
 class TestCategoricalSeries:

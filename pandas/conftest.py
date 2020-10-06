@@ -55,6 +55,9 @@ def pytest_configure(config):
     )
     config.addinivalue_line("markers", "high_memory: mark a test as a high-memory only")
     config.addinivalue_line("markers", "clipboard: mark a pd.read_clipboard test")
+    config.addinivalue_line(
+        "markers", "arm_slow: mark a test as slow for arm64 architecture"
+    )
 
 
 def pytest_addoption(parser):
@@ -169,14 +172,6 @@ def axis(request):
 
 
 axis_frame = axis
-
-
-@pytest.fixture(params=[0, "index"], ids=lambda x: f"axis {repr(x)}")
-def axis_series(request):
-    """
-    Fixture for returning the axis numbers of a Series.
-    """
-    return request.param
 
 
 @pytest.fixture(params=[True, False, None])
@@ -295,7 +290,9 @@ unique_nulls_fixture2 = unique_nulls_fixture
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
-@pytest.fixture(params=[pd.Index, pd.Series], ids=["index", "series"])
+@pytest.fixture(
+    params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
+)
 def index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
@@ -435,6 +432,29 @@ def index(request):
 
 # Needed to generate cartesian product of indices
 index_fixture2 = index
+
+
+@pytest.fixture(params=indices_dict.keys())
+def index_with_missing(request):
+    """
+    Fixture for indices with missing values
+    """
+    if request.param in ["int", "uint", "range", "empty", "repeats"]:
+        pytest.xfail("missing values not supported")
+    # GH 35538. Use deep copy to avoid illusive bug on np-dev
+    # Azure pipeline that writes into indices_dict despite copy
+    ind = indices_dict[request.param].copy(deep=True)
+    vals = ind.values
+    if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
+        # For setting missing values in the top level of MultiIndex
+        vals = ind.tolist()
+        vals[0] = tuple([None]) + vals[0][1:]
+        vals[-1] = tuple([None]) + vals[-1][1:]
+        return MultiIndex.from_tuples(vals)
+    else:
+        vals[0] = None
+        vals[-1] = None
+        return type(ind)(vals)
 
 
 # ----------------------------------------------------------------
@@ -958,6 +978,17 @@ def float_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.FLOAT_EA_DTYPES)
+def float_ea_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.COMPLEX_DTYPES)
 def complex_dtype(request):
     """
@@ -1027,6 +1058,19 @@ def any_nullable_int_dtype(request):
     * 'UInt32'
     * 'Int32'
     * 'UInt64'
+    * 'Int64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.SIGNED_EA_INT_DTYPES)
+def any_signed_nullable_int_dtype(request):
+    """
+    Parameterized fixture for any signed nullable integer dtype.
+
+    * 'Int8'
+    * 'Int16'
+    * 'Int32'
     * 'Int64'
     """
     return request.param
@@ -1182,7 +1226,7 @@ def ip():
     from IPython.core.interactiveshell import InteractiveShell
 
     # GH#35711 make sure sqlite history file handle is not leaked
-    from traitlets.config import Config  # noqa: F401 isort:skip
+    from traitlets.config import Config  # isort:skip
 
     c = Config()
     c.HistoryManager.hist_file = ":memory:"
@@ -1198,15 +1242,6 @@ def spmatrix(request):
     from scipy import sparse
 
     return getattr(sparse, request.param + "_matrix")
-
-
-@pytest.fixture(params=list(tm.cython_table))
-def cython_table_items(request):
-    """
-    Yields a tuple of a function and its corresponding name. Correspond to
-    the list of aggregator "Cython functions" used on selected table items.
-    """
-    return request.param
 
 
 @pytest.fixture(

@@ -4,6 +4,7 @@ and Index.__new__.
 
 These should not depend on core.internals.
 """
+from __future__ import annotations
 
 from collections import abc
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union, cast
@@ -36,6 +37,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_sparse,
+    is_string_dtype,
     is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -49,16 +51,14 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray  # noqa: F401
-    from pandas.core.indexes.api import Index  # noqa: F401
-    from pandas.core.series import Series  # noqa: F401
+    from pandas import ExtensionArray, Index, Series
 
 
 def array(
     data: Union[Sequence[object], AnyArrayLike],
     dtype: Optional[Dtype] = None,
     copy: bool = True,
-) -> "ExtensionArray":
+) -> ExtensionArray:
     """
     Create an array.
 
@@ -102,6 +102,7 @@ def array(
         :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
         :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
         :class:`int`                   :class:`pandas.arrays.IntegerArray`
+        :class:`float`                 :class:`pandas.arrays.FloatingArray`
         :class:`str`                   :class:`pandas.arrays.StringArray`
         :class:`bool`                  :class:`pandas.arrays.BooleanArray`
         ============================== =====================================
@@ -113,6 +114,11 @@ def array(
            Pandas infers nullable-integer dtype for integer data,
            string dtype for string data, and nullable-boolean dtype
            for boolean data.
+
+        .. versionchanged:: 1.2.0
+
+            Pandas now also infers nullable-floating dtype for float-like
+            input data
 
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
@@ -205,6 +211,11 @@ def array(
     [1, 2, <NA>]
     Length: 3, dtype: Int64
 
+    >>> pd.array([1.1, 2.2])
+    <FloatingArray>
+    [1.1, 2.2]
+    Length: 2, dtype: Float64
+
     >>> pd.array(["a", None, "c"])
     <StringArray>
     ['a', <NA>, 'c']
@@ -231,10 +242,10 @@ def array(
     If pandas does not infer a dedicated extension type a
     :class:`arrays.PandasArray` is returned.
 
-    >>> pd.array([1.1, 2.2])
+    >>> pd.array([1 + 1j, 3 + 2j])
     <PandasArray>
-    [1.1, 2.2]
-    Length: 2, dtype: float64
+    [(1+1j), (3+2j)]
+    Length: 2, dtype: complex128
 
     As mentioned in the "Notes" section, new extension types may be added
     in the future (by pandas or 3rd party libraries), causing the return
@@ -258,6 +269,7 @@ def array(
     from pandas.core.arrays import (
         BooleanArray,
         DatetimeArray,
+        FloatingArray,
         IntegerArray,
         IntervalArray,
         PandasArray,
@@ -320,6 +332,9 @@ def array(
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
 
+        elif inferred_dtype in ("floating", "mixed-integer-float"):
+            return FloatingArray._from_sequence(data, copy=copy)
+
         elif inferred_dtype == "boolean":
             return BooleanArray._from_sequence(data, copy=copy)
 
@@ -336,7 +351,7 @@ def array(
     return result
 
 
-def extract_array(obj, extract_numpy: bool = False):
+def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -384,12 +399,14 @@ def extract_array(obj, extract_numpy: bool = False):
     if extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
-    return obj
+    # error: Incompatible return value type (got "Index", expected "ExtensionArray")
+    # error: Incompatible return value type (got "Series", expected "ExtensionArray")
+    return obj  # type: ignore[return-value]
 
 
 def sanitize_array(
     data,
-    index: Optional["Index"],
+    index: Optional[Index],
     dtype: Optional[DtypeObj] = None,
     copy: bool = False,
     raise_cast_failure: bool = False,
@@ -437,7 +454,12 @@ def sanitize_array(
             subarr = subarr.copy()
         return subarr
 
-    elif isinstance(data, (list, tuple)) and len(data) > 0:
+    elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
+        if isinstance(data, set):
+            # Raise only for unordered sets, e.g., not for dict_keys
+            raise TypeError("Set type is unordered")
+        data = list(data)
+
         if dtype is not None:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
@@ -449,8 +471,6 @@ def sanitize_array(
         # GH#16804
         arr = np.arange(data.start, data.stop, data.step, dtype="int64")
         subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
-    elif isinstance(data, abc.Set):
-        raise TypeError("Set type is unordered")
     elif lib.is_scalar(data) and index is not None and dtype is not None:
         data = maybe_cast_to_datetime(data, dtype)
         if not lib.is_scalar(data):
@@ -468,7 +488,7 @@ def sanitize_array(
 
             # figure out the dtype from the value (upcast if necessary)
             if dtype is None:
-                dtype, value = infer_dtype_from_scalar(value)
+                dtype, value = infer_dtype_from_scalar(value, pandas_dtype=True)
             else:
                 # need to possibly convert the value here
                 value = maybe_cast_to_datetime(value, dtype)
@@ -506,7 +526,8 @@ def sanitize_array(
                     data = np.array(data, dtype=dtype, copy=False)
                 subarr = np.array(data, dtype=object, copy=copy)
 
-        if is_object_dtype(subarr.dtype) and not is_object_dtype(dtype):
+        is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
+        if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
             inferred = lib.infer_dtype(subarr, skipna=False)
             if inferred in {"interval", "period"}:
                 subarr = array(subarr)
@@ -594,13 +615,13 @@ def is_empty_data(data: Any) -> bool:
 
 def create_series_with_explicit_dtype(
     data: Any = None,
-    index: Optional[Union[ArrayLike, "Index"]] = None,
+    index: Optional[Union[ArrayLike, Index]] = None,
     dtype: Optional[Dtype] = None,
     name: Optional[str] = None,
     copy: bool = False,
     fastpath: bool = False,
     dtype_if_empty: Dtype = object,
-) -> "Series":
+) -> Series:
     """
     Helper to pass an explicit dtype when instantiating an empty Series.
 

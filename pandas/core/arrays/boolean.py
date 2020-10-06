@@ -27,7 +27,7 @@ from pandas.core import ops
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 @register_extension_dtype
@@ -58,8 +58,9 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
+    # mypy: https://github.com/python/mypy/issues/4125
     @property
-    def type(self) -> Type[np.bool_]:
+    def type(self) -> Type:  # type: ignore[override]
         return np.bool_
 
     @property
@@ -98,7 +99,7 @@ class BooleanDtype(BaseMaskedDtype):
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -375,7 +376,10 @@ class BooleanArray(BaseMaskedArray):
 
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
-            return BooleanArray(values, mask, copy=False)
+            if not copy:
+                return self
+            else:
+                return BooleanArray(values, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -603,10 +607,9 @@ class BooleanArray(BaseMaskedArray):
     def _create_comparison_method(cls, op):
         @ops.unpack_zerodim_and_defer(op.__name__)
         def cmp_method(self, other):
-            from pandas.arrays import IntegerArray
+            from pandas.arrays import FloatingArray, IntegerArray
 
-            if isinstance(other, IntegerArray):
-                # Rely on pandas to unbox and dispatch to us.
+            if isinstance(other, (IntegerArray, FloatingArray)):
                 return NotImplemented
 
             mask = None

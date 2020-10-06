@@ -144,9 +144,7 @@ class Base:
 
             tm.assert_almost_equal(result, expected)
 
-    def check_result(
-        self, method, key, typs=None, axes=None, fails=None,
-    ):
+    def check_result(self, method, key, typs=None, axes=None, fails=None):
         def _eq(axis, obj, key):
             """ compare equal for these 2 keys """
             axified = _axify(obj, key, axis)

@@ -161,8 +161,6 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
-        .. versionadded:: 0.23.0
-
     Attributes
     ----------
     io : str or file-like
@@ -180,8 +178,6 @@ class _HtmlFrameParser:
 
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
-
-        .. versionadded:: 0.23.0
 
     Notes
     -----
@@ -723,7 +719,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 r = r.getroot()
             except AttributeError:
                 pass
-        except (UnicodeDecodeError, IOError) as e:
+        except (UnicodeDecodeError, OSError) as e:
             # if the input is a blob of html goop
             if not is_url(self.io):
                 r = fromstring(self.io, parser=parser)
