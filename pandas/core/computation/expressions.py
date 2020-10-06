@@ -248,6 +248,7 @@ def where(cond, a, b, use_numexpr=True):
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
+    assert _where is not None
     return _where(cond, a, b) if use_numexpr else _where_standard(cond, a, b)
 
 
