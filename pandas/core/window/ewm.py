@@ -48,8 +48,34 @@ def get_center_of_mass(
     elif halflife is not None:
         if halflife <= 0:
             raise ValueError("halflife must satisfy: halflife > 0")
-        decay = 1 - np.exp(np.log(0.5) / halflife)
-        comass = 1 / decay - 1
+        # pandas\core\window\ewm.py:51: error: Unsupported operand types for -
+        # ("int" and "generic")  [operator]
+
+        # pandas\core\window\ewm.py:51: note: Right operand is of type
+        # "Union[ndarray, generic]"
+
+        # pandas\core\window\ewm.py:51: error: Unsupported operand types for /
+        # ("generic" and "float")  [operator]
+
+        # pandas\core\window\ewm.py:51: note: Left operand is of type
+        # "Union[ndarray, generic]"
+        decay = 1 - np.exp(np.log(0.5) / halflife)  # type: ignore[operator]
+        # pandas\core\window\ewm.py:52: error: Unsupported operand types for /
+        # ("int" and "generic")  [operator]
+
+        # pandas\core\window\ewm.py:52: note: Right operand is of type
+        # "Union[ndarray, generic, int]"
+
+        # pandas\core\window\ewm.py:52: error: Unsupported operand types for -
+        # ("generic" and "int")  [operator]
+
+        # pandas\core\window\ewm.py:52: error: Incompatible types in assignment
+        # (expression has type "Union[ndarray, generic, float]", variable has
+        # type "Optional[float]")  [assignment]
+
+        # pandas\core\window\ewm.py:52: note: Left operand is of type
+        # "Union[ndarray, generic, float]"
+        comass = 1 / decay - 1  # type: ignore[operator, assignment]
     elif alpha is not None:
         if alpha <= 0 or alpha > 1:
             raise ValueError("alpha must satisfy: 0 < alpha <= 1")
@@ -57,7 +83,10 @@ def get_center_of_mass(
     else:
         raise ValueError("Must pass one of comass, span, halflife, or alpha")
 
-    return float(comass)
+    # pandas\core\window\ewm.py:60: error: Argument 1 to "float" has
+    # incompatible type "Optional[float]"; expected "Union[SupportsFloat,
+    # _SupportsIndex, str, bytes, bytearray]"  [arg-type]
+    return float(comass)  # type: ignore[arg-type]
 
 
 class ExponentialMovingWindow(BaseWindow):
@@ -249,7 +278,10 @@ class ExponentialMovingWindow(BaseWindow):
                     "halflife can only be a timedelta convertible argument if "
                     "times is not None."
                 )
-            self.times = None
+            # pandas\core\window\ewm.py:252: error: Incompatible types in
+            # assignment (expression has type "None", variable has type
+            # "ndarray")  [assignment]
+            self.times = None  # type: ignore[assignment]
             self.halflife = None
             # error: Argument 3 to "get_center_of_mass" has incompatible type
             # "Union[float, Any, None, timedelta64, int64]"; expected

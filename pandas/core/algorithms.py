@@ -1266,7 +1266,11 @@ class SelectNSeries(SelectN):
 
             elif is_bool_dtype(pandas_dtype):
                 # GH 26154: ensure False is smaller than True
-                arr = 1 - (-arr)
+
+                # pandas\core\algorithms.py:1269: error: Incompatible types in
+                # assignment (expression has type "Union[ndarray, generic]",
+                # variable has type "ndarray")  [assignment]
+                arr = 1 - (-arr)  # type: ignore[assignment]
 
         if self.keep == "last":
             arr = arr[::-1]
@@ -2118,7 +2122,12 @@ def safe_sort(
     if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
-        values = np.asarray(values, dtype=dtype)
+        # pandas\core\algorithms.py:2121: error: Argument "dtype" to "asarray"
+        # has incompatible type "Union[dtype, ExtensionDtype]"; expected
+        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"  [arg-type]
+        values = np.asarray(values, dtype=dtype)  # type: ignore[arg-type]
 
     def sort_mixed(values):
         # order ints before strings, safe in py3

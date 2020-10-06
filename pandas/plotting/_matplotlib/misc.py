@@ -442,7 +442,12 @@ def autocorrelation_plot(
     if ax is None:
         ax = plt.gca(xlim=(1, n), ylim=(-1.0, 1.0))
     mean = np.mean(data)
-    c0 = np.sum((data - mean) ** 2) / float(n)
+    # pandas\plotting\_matplotlib\misc.py:445: error: Unsupported operand types
+    # for ** ("generic" and "int")  [operator]
+
+    # pandas\plotting\_matplotlib\misc.py:445: note: Left operand is of type
+    # "Union[ndarray, generic]"
+    c0 = np.sum((data - mean) ** 2) / float(n)  # type: ignore[operator]
 
     def r(h):
         return ((data[: n - h] - mean) * (data[h:] - mean)).sum() / float(n) / c0
@@ -451,11 +456,35 @@ def autocorrelation_plot(
     y = [r(loc) for loc in x]
     z95 = 1.959963984540054
     z99 = 2.5758293035489004
-    ax.axhline(y=z99 / np.sqrt(n), linestyle="--", color="grey")
-    ax.axhline(y=z95 / np.sqrt(n), color="grey")
+    # pandas\plotting\_matplotlib\misc.py:454: error: Unsupported operand types
+    # for / ("float" and "generic")  [operator]
+
+    # pandas\plotting\_matplotlib\misc.py:454: note: Right operand is of type
+    # "Union[ndarray, generic]"
+    ax.axhline(
+        y=z99 / np.sqrt(n), linestyle="--", color="grey"  # type: ignore[operator]
+    )
+    # pandas\plotting\_matplotlib\misc.py:455: error: Unsupported operand types
+    # for / ("float" and "generic")  [operator]
+
+    # pandas\plotting\_matplotlib\misc.py:455: note: Right operand is of type
+    # "Union[ndarray, generic]"
+    ax.axhline(y=z95 / np.sqrt(n), color="grey")  # type: ignore[operator]
     ax.axhline(y=0.0, color="black")
-    ax.axhline(y=-z95 / np.sqrt(n), color="grey")
-    ax.axhline(y=-z99 / np.sqrt(n), linestyle="--", color="grey")
+    # pandas\plotting\_matplotlib\misc.py:457: error: Unsupported operand types
+    # for / ("float" and "generic")  [operator]
+
+    # pandas\plotting\_matplotlib\misc.py:457: note: Right operand is of type
+    # "Union[ndarray, generic]"
+    ax.axhline(y=-z95 / np.sqrt(n), color="grey")  # type: ignore[operator]
+    # pandas\plotting\_matplotlib\misc.py:458: error: Unsupported operand types
+    # for / ("float" and "generic")  [operator]
+
+    # pandas\plotting\_matplotlib\misc.py:458: note: Right operand is of type
+    # "Union[ndarray, generic]"
+    ax.axhline(
+        y=-z99 / np.sqrt(n), linestyle="--", color="grey"  # type: ignore[operator]
+    )
     ax.set_xlabel("Lag")
     ax.set_ylabel("Autocorrelation")
     ax.plot(x, y, **kwds)

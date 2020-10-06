@@ -150,7 +150,9 @@ def _generate_range_overflow_safe_signed(
         addend = np.int64(periods) * np.int64(stride)
         try:
             # easy case with no overflows
-            return np.int64(endpoint) + addend
+            # pandas\core\arrays\_ranges.py:153: error: Incompatible return
+            # value type (got "signedinteger", expected "int")  [return-value]
+            return np.int64(endpoint) + addend  # type: ignore[return-value]
         except (FloatingPointError, OverflowError):
             # with endpoint negative and addend positive we risk
             #  FloatingPointError; with reversed signed we risk OverflowError
@@ -168,7 +170,10 @@ def _generate_range_overflow_safe_signed(
             i64max = np.uint64(np.iinfo(np.int64).max)
             assert result > i64max
             if result <= i64max + np.uint64(stride):
-                return result
+                # pandas\core\arrays\_ranges.py:171: error: Incompatible return
+                # value type (got "unsignedinteger", expected "int")
+                # [return-value]
+                return result  # type: ignore[return-value]
 
     raise OutOfBoundsDatetime(
         f"Cannot generate range with {side}={endpoint} and periods={periods}"

@@ -5114,14 +5114,20 @@ def _get_data_and_dtype_name(data: ArrayLike):
     dtype_name = data.dtype.name.split("[")[0]
 
     if data.dtype.kind in ["m", "M"]:
-        data = np.asarray(data.view("i8"))
+        # pandas\io\pytables.py:5117: error: Incompatible types in assignment
+        # (expression has type "ndarray", variable has type "ExtensionArray")
+        # [assignment]
+        data = np.asarray(data.view("i8"))  # type: ignore[assignment]
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?
 
     elif isinstance(data, PeriodIndex):
         data = data.asi8
 
-    data = np.asarray(data)
+    # pandas\io\pytables.py:5124: error: Incompatible types in assignment
+    # (expression has type "ndarray", variable has type "ExtensionArray")
+    # [assignment]
+    data = np.asarray(data)  # type: ignore[assignment]
     return data, dtype_name
 
 

@@ -699,7 +699,14 @@ def _get_counts_nanvar(
     """
     dtype = get_dtype(dtype)
     count = _get_counts(value_counts, mask, axis, dtype=dtype)
-    d = count - dtype.type(ddof)
+    # pandas\core\nanops.py:702: error: Unsupported operand types for - ("int"
+    # and "generic")  [operator]
+
+    # pandas\core\nanops.py:702: error: Unsupported operand types for -
+    # ("float" and "generic")  [operator]
+
+    # pandas\core\nanops.py:702: note: Both left and right operands are unions
+    d = count - dtype.type(ddof)  # type: ignore[operator]
 
     # always return NaN, never inf
     if is_scalar(count):
@@ -875,7 +882,14 @@ def nansem(
     )
     var = nanvar(values, axis, skipna, ddof=ddof)
 
-    return np.sqrt(var) / np.sqrt(count)
+    # pandas\core\nanops.py:878: error: Unsupported left operand type for /
+    # ("generic")  [operator]
+
+    # pandas\core\nanops.py:878: note: Both left and right operands are unions
+
+    # pandas\core\nanops.py:878: error: Incompatible return value type (got
+    # "Union[ndarray, generic, Any]", expected "float")  [return-value]
+    return np.sqrt(var) / np.sqrt(count)  # type: ignore[operator,return-value]
 
 
 def _nanminmax(meth, fill_value_typ):
@@ -1072,7 +1086,32 @@ def nanskew(
     m3 = _zero_out_fperr(m3)
 
     with np.errstate(invalid="ignore", divide="ignore"):
-        result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2 ** 1.5)
+        # pandas\core\nanops.py:1075: error: Unsupported operand types for *
+        # ("int" and "generic")  [operator]
+
+        # pandas\core\nanops.py:1075: error: Unsupported operand types for *
+        # ("float" and "generic")  [operator]
+
+        # pandas\core\nanops.py:1075: note: Both left and right operands are
+        # unions
+
+        # pandas\core\nanops.py:1075: error: Unsupported operand types for /
+        # ("float" and "generic")  [operator]
+
+        # pandas\core\nanops.py:1075: error: Unsupported operand types for /
+        # ("generic" and "float")  [operator]
+
+        # pandas\core\nanops.py:1075: error: Unsupported left operand type for
+        # / ("generic")  [operator]
+
+        # pandas\core\nanops.py:1075: error: Unsupported operand types for **
+        # ("generic" and "float")  [operator]
+
+        # pandas\core\nanops.py:1075: note: Left operand is of type
+        # "Union[float, ndarray, generic]"
+        result = (
+            count * (count - 1) ** 0.5 / (count - 2)  # type: ignore[operator]
+        ) * (m3 / m2 ** 1.5)
 
     dtype = values.dtype
     if is_float_dtype(dtype):
@@ -1151,9 +1190,68 @@ def nankurt(
     m4 = adjusted4.sum(axis, dtype=np.float64)
 
     with np.errstate(invalid="ignore", divide="ignore"):
-        adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
-        numer = count * (count + 1) * (count - 1) * m4
-        denom = (count - 2) * (count - 3) * m2 ** 2
+        # pandas\core\nanops.py:1154: error: Unsupported operand types for *
+        # ("int" and "generic")  [operator]
+
+        # pandas\core\nanops.py:1154: note: Right operand is of type
+        # "Union[float, ndarray, generic, Any]"
+
+        # pandas\core\nanops.py:1154: error: Unsupported operand types for /
+        # ("float" and "generic")  [operator]
+
+        # pandas\core\nanops.py:1154: error: Unsupported operand types for /
+        # ("generic" and "float")  [operator]
+
+        # pandas\core\nanops.py:1154: error: Unsupported left operand type for
+        # / ("generic")  [operator]
+
+        # pandas\core\nanops.py:1154: note: Both left and right operands are
+        # unions
+
+        # pandas\core\nanops.py:1154: error: Unsupported operand types for **
+        # ("generic" and "int")  [operator]
+
+        # pandas\core\nanops.py:1154: note: Left operand is of type
+        # "Union[float, ndarray, generic]"
+
+        # pandas\core\nanops.py:1154: error: Unsupported operand types for *
+        # ("float" and "generic")  [operator]
+
+        # pandas\core\nanops.py:1154: error: Unsupported operand types for *
+        # ("generic" and "float")  [operator]
+
+        # pandas\core\nanops.py:1154: error: Unsupported left operand type for
+        # * ("generic")  [operator]
+        adj = (
+            3 * (count - 1) ** 2 / ((count - 2) * (count - 3))  # type: ignore[operator]
+        )
+        # pandas\core\nanops.py:1155: error: Unsupported operand types for *
+        # ("int" and "generic")  [operator]
+
+        # pandas\core\nanops.py:1155: error: Unsupported operand types for *
+        # ("float" and "generic")  [operator]
+
+        # pandas\core\nanops.py:1155: note: Both left and right operands are
+        # unions
+
+        # pandas\core\nanops.py:1155: error: Unsupported operand types for *
+        # ("generic" and "float")  [operator]
+
+        # pandas\core\nanops.py:1155: error: Unsupported left operand type for
+        # * ("generic")  [operator]
+        numer = count * (count + 1) * (count - 1) * m4  # type: ignore[operator]
+        # pandas\core\nanops.py:1156: error: Unsupported operand types for *
+        # ("float" and "generic")  [operator]
+
+        # pandas\core\nanops.py:1156: error: Unsupported operand types for *
+        # ("generic" and "float")  [operator]
+
+        # pandas\core\nanops.py:1156: error: Unsupported left operand type for
+        # * ("generic")  [operator]
+
+        # pandas\core\nanops.py:1156: note: Both left and right operands are
+        # unions
+        denom = (count - 2) * (count - 3) * m2 ** 2  # type: ignore[operator]
 
     # floating point error
     #

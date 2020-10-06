@@ -1648,44 +1648,21 @@ def format_percentiles(
     with np.errstate(invalid="ignore"):
         if (
             not is_numeric_dtype(percentiles)
-            # pandas\io\formats\format.py:1649: error: Unsupported operand
-            # types for >= ("List[Union[int, float]]" and "int")  [operator]
-            # pandas\io\formats\format.py:1649: error: Unsupported operand
-            # types for >= ("List[float]" and "int")  [operator]
-            # pandas\io\formats\format.py:1649: error: Unsupported operand
-            # types for >= ("List[Union[str, float]]" and "int")  [operator]
-            or not np.all(percentiles >= 0)  # type: ignore[operator]
-            # pandas\io\formats\format.py:1650: error: Unsupported operand
-            # types for <= ("List[Union[int, float]]" and "int")  [operator]
-            # pandas\io\formats\format.py:1650: error: Unsupported operand
-            # types for <= ("List[float]" and "int")  [operator]
-            # pandas\io\formats\format.py:1650: error: Unsupported operand
-            # types for <= ("List[Union[str, float]]" and "int")  [operator]
-            or not np.all(percentiles <= 1)  # type: ignore[operator]
+            or not np.all(percentiles >= 0)
+            or not np.all(percentiles <= 1)
         ):
             raise ValueError("percentiles should all be in the interval [0,1]")
 
-    percentiles = 100 * percentiles
-    # pandas\io\formats\format.py:1669: error: Item "List[Union[int, float]]"
-    # of "Union[Any, List[Union[int, float]], List[Union[str, float]]]" has no
-    # attribute "astype"  [union-attr]
+    # pandas\io\formats\format.py:1668: error: Incompatible types in assignment
+    # (expression has type "Union[ndarray, generic]", variable has type
+    # "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
+    # float]]]")  [assignment]
+    percentiles = 100 * percentiles  # type: ignore[assignment]
 
-    # pandas\io\formats\format.py:1669: error: Item "List[Union[str, float]]"
-    # of "Union[Any, List[Union[int, float]], List[Union[str, float]]]" has no
-    # attribute "astype"  [union-attr]
-    int_idx = np.isclose(
-        percentiles.astype(int), percentiles  # type: ignore[union-attr]
-    )
+    int_idx = np.isclose(percentiles.astype(int), percentiles)
 
     if np.all(int_idx):
-        # pandas\io\formats\format.py:1672: error: Item "List[Union[int,
-        # float]]" of "Union[Any, List[Union[int, float]], List[Union[str,
-        # float]]]" has no attribute "astype"  [union-attr]
-
-        # pandas\io\formats\format.py:1672: error: Item "List[Union[str,
-        # float]]" of "Union[Any, List[Union[int, float]], List[Union[str,
-        # float]]]" has no attribute "astype"  [union-attr]
-        out = percentiles.astype(int).astype(str)  # type: ignore[union-attr]
+        out = percentiles.astype(int).astype(str)
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
@@ -1700,16 +1677,8 @@ def format_percentiles(
     # ndarray, generic]", variable has type "Union[ndarray, generic]")
     prec = max(1, prec)  # type: ignore[assignment]
     out = np.empty_like(percentiles, dtype=object)
-    # error: No overload variant of "__getitem__" of "list" matches argument
-    # type "Union[bool_, ndarray]"
-    out[int_idx] = (
-        percentiles[int_idx].astype(int).astype(str)  # type: ignore[call-overload]
-    )
-    # error: No overload variant of "__getitem__" of "list" matches argument
-    # type "Union[bool_, ndarray]"
-    out[~int_idx] = (
-        percentiles[~int_idx].round(prec).astype(str)  # type: ignore[call-overload]
-    )
+    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
+    out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
 
 

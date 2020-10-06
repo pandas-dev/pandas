@@ -617,7 +617,9 @@ class ExtensionArray:
                 )
             value = value[mask]
 
-        if mask.any():
+        # pandas\core\arrays\base.py:620: error: "ExtensionArray" has no
+        # attribute "any"  [attr-defined]
+        if mask.any():  # type: ignore[attr-defined]
             if method is not None:
                 func = get_fill_func(method)
                 new_values = func(self.astype(object), limit=limit, mask=mask)
@@ -638,7 +640,9 @@ class ExtensionArray:
         -------
         valid : ExtensionArray
         """
-        return self[~self.isna()]
+        # pandas\core\arrays\base.py:641: error: Unsupported operand type for ~
+        # ("ExtensionArray")  [operator]
+        return self[~self.isna()]  # type: ignore[operator]
 
     def shift(self, periods: int = 1, fill_value: object = None) -> "ExtensionArray":
         """

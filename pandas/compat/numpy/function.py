@@ -20,7 +20,9 @@ easier to adjust to future upstream changes in the analogous numpy signatures.
 from distutils.version import LooseVersion
 from typing import Any, Dict, Optional, Union
 
-from numpy import __version__, ndarray
+# pandas\compat\numpy\function.py:23: error: Module 'numpy' has no attribute
+# '__version__'; maybe "version"?  [attr-defined]
+from numpy import __version__, ndarray  # type: ignore[attr-defined]
 
 from pandas._libs.lib import is_bool, is_integer
 from pandas.errors import UnsupportedFunctionCall

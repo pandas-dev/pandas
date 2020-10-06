@@ -377,7 +377,10 @@ def _get_empty_dtype_and_na(join_units: Sequence[JoinUnit]) -> Tuple[DtypeObj, A
         else:
             dtypes[i] = unit.dtype
 
-    upcast_classes = _get_upcast_classes(join_units, dtypes)
+    # pandas\core\internals\concat.py:380: error: Argument 2 to
+    # "_get_upcast_classes" has incompatible type "List[None]"; expected
+    # "Sequence[Union[dtype, ExtensionDtype]]"  [arg-type]
+    upcast_classes = _get_upcast_classes(join_units, dtypes)  # type: ignore[arg-type]
 
     # TODO: de-duplicate with maybe_promote?
     # create the result

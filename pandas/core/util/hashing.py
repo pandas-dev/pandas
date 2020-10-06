@@ -45,10 +45,46 @@ def combine_hash_arrays(arrays, num_items: int):
     for i, a in enumerate(arrays):
         inverse_i = num_items - i
         out ^= a
-        out *= mult
-        mult += np.uint64(82520 + inverse_i + inverse_i)
+        # pandas\core\util\hashing.py:48: error: No overload variant of
+        # "__call__" of "_UnsignedIntOp" matches argument type "generic"
+        # [call-overload]
+
+        # pandas\core\util\hashing.py:48: note: Possible overload variants:
+
+        # pandas\core\util\hashing.py:48: note:     def __call__(self,
+        # Union[bool, unsignedinteger]) -> unsignedinteger
+
+        # pandas\core\util\hashing.py:48: note:     def __call__(self,
+        # Union[int, signedinteger]) -> Union[signedinteger, float64]
+
+        # pandas\core\util\hashing.py:48: note:     <2 more similar overloads
+        # not shown, out of 4 total overloads>
+
+        # pandas\core\util\hashing.py:48: note: Left operand is of type
+        # "Union[ndarray, generic]"
+        out *= mult  # type: ignore[call-overload]
+        # pandas\core\util\hashing.py:49: error: Incompatible types in
+        # assignment (expression has type "unsignedinteger", variable has type
+        # "uint64")  [assignment]
+        mult += np.uint64(82520 + inverse_i + inverse_i)  # type: ignore[assignment]
     assert i + 1 == num_items, "Fed in wrong num_items"
-    out += np.uint64(97531)
+    # pandas\core\util\hashing.py:51: error: No overload variant of "__call__"
+    # of "_UnsignedIntOp" matches argument type "generic"  [call-overload]
+
+    # pandas\core\util\hashing.py:51: note: Possible overload variants:
+
+    # pandas\core\util\hashing.py:51: note:     def __call__(self, Union[bool,
+    # unsignedinteger]) -> unsignedinteger
+
+    # pandas\core\util\hashing.py:51: note:     def __call__(self, Union[int,
+    # signedinteger]) -> Union[signedinteger, float64]
+
+    # pandas\core\util\hashing.py:51: note:     <2 more similar overloads not
+    # shown, out of 4 total overloads>
+
+    # pandas\core\util\hashing.py:51: note: Left operand is of type
+    # "Union[ndarray, generic]"
+    out += np.uint64(97531)  # type: ignore[call-overload]
     return out
 
 
