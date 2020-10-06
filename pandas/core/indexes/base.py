@@ -119,41 +119,6 @@ _index_shared_docs = dict()
 str_t = str
 
 
-def _make_comparison_op(op, cls):
-    def cmp_method(self, other):
-        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
-            if other.ndim > 0 and len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
-
-        if is_object_dtype(self.dtype) and isinstance(other, ABCCategorical):
-            left = type(other)(self._values, dtype=other.dtype)
-            return op(left, other)
-        elif is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
-            # e.g. PeriodArray
-            with np.errstate(all="ignore"):
-                result = op(self._values, other)
-
-        elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
-            # don't pass MultiIndex
-            with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
-
-        elif is_interval_dtype(self.dtype):
-            with np.errstate(all="ignore"):
-                result = op(self._values, np.asarray(other))
-
-        else:
-            with np.errstate(all="ignore"):
-                result = ops.comparison_op(self._values, np.asarray(other), op)
-
-        if is_bool_dtype(result):
-            return result
-        return ops.invalid_comparison(self, other, op)
-
-    name = f"__{op.__name__}__"
-    return set_function_name(cmp_method, name, cls)
-
-
 def _make_arithmetic_op(op, cls):
     def index_arithmetic_method(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
@@ -5395,17 +5360,56 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
 
-    @classmethod
-    def _add_comparison_methods(cls):
+    def _cmp_method(self, other, op):
         """
-        Add in comparison methods.
+        Wrapper used to dispatch comparison operations.
         """
-        cls.__eq__ = _make_comparison_op(operator.eq, cls)
-        cls.__ne__ = _make_comparison_op(operator.ne, cls)
-        cls.__lt__ = _make_comparison_op(operator.lt, cls)
-        cls.__gt__ = _make_comparison_op(operator.gt, cls)
-        cls.__le__ = _make_comparison_op(operator.le, cls)
-        cls.__ge__ = _make_comparison_op(operator.ge, cls)
+        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
+            if other.ndim > 0 and len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
+
+        if is_object_dtype(self.dtype) and isinstance(other, ABCCategorical):
+            left = type(other)(self._values, dtype=other.dtype)
+            return op(left, other)
+        elif is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
+            # e.g. PeriodArray
+            with np.errstate(all="ignore"):
+                result = op(self._values, other)
+
+        elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
+            # don't pass MultiIndex
+            with np.errstate(all="ignore"):
+                result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
+
+        elif is_interval_dtype(self.dtype):
+            with np.errstate(all="ignore"):
+                result = op(self._values, np.asarray(other))
+
+        else:
+            with np.errstate(all="ignore"):
+                result = ops.comparison_op(self._values, np.asarray(other), op)
+
+        if is_bool_dtype(result):
+            return result
+        return ops.invalid_comparison(self, other, op)
+
+    def __eq__(self, other):
+        return self._cmp_method(other, operator.eq)
+
+    def __ne__(self, other):
+        return self._cmp_method(other, operator.ne)
+
+    def __lt__(self, other):
+        return self._cmp_method(other, operator.lt)
+
+    def __le__(self, other):
+        return self._cmp_method(other, operator.le)
+
+    def __gt__(self, other):
+        return self._cmp_method(other, operator.gt)
+
+    def __ge__(self, other):
+        return self._cmp_method(other, operator.ge)
 
     @classmethod
     def _add_numeric_methods_binary(cls):
@@ -5589,7 +5593,6 @@ class Index(IndexOpsMixin, PandasObject):
 
 Index._add_numeric_methods()
 Index._add_logical_methods()
-Index._add_comparison_methods()
 
 
 def ensure_index_from_sequences(sequences, names=None):
