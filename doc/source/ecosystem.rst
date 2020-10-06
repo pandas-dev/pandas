@@ -5,22 +5,22 @@
 {{ header }}
 
 ****************
-pandas ecosystem
+Pandas ecosystem
 ****************
 
-Increasingly, packages are being built on top of pandas to address specific needs
+Increasingly, packages are being built on top of Pandas to address specific needs
 in data preparation, analysis and visualization.
-This is encouraging because it means pandas is not only helping users to handle
+This is encouraging because it means Pandas is not only helping users to handle
 their data tasks but also that it provides a better starting point for developers to
 build powerful and more focused data tools.
-The creation of libraries that complement pandas' functionality also allows pandas
+The creation of libraries that complement Pandas' functionality also allows Pandas
 development to remain focused around it's original requirements.
 
-This is an inexhaustive list of projects that build on pandas in order to provide
-tools in the PyData space. For a list of projects that depend on pandas,
+This is an inexhaustive list of projects that build on Pandas in order to provide
+tools in the PyData space. For a list of projects that depend on Pandas,
 see the
-`libraries.io usage page for pandas <https://libraries.io/pypi/pandas/usage>`_
-or `search pypi for pandas <https://pypi.org/search/?q=pandas>`_.
+`libraries.io usage page for Pandas <https://libraries.io/pypi/Pandas/usage>`_
+or `search pypi for pandas <https://pypi.org/search/?q=Pandas>`_.
 
 We'd like to make it easier for users to find these projects, if you know of other
 substantial projects that you feel should be on this list, please let us know.
@@ -41,13 +41,13 @@ Pyjanitor provides a clean API for cleaning data, using method chaining.
 Engarde is a lightweight library used to explicitly state assumptions about your datasets
 and check that they're *actually* true.
 
-`pandas-path <https://github.com/drivendataorg/pandas-path/>`__
+`Pandas-path <https://github.com/drivendataorg/Pandas-path/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since Python 3.4, `pathlib <https://docs.python.org/3/library/pathlib.html>`_ has been
 included in the Python standard library. Path objects provide a simple
-and delightful way to interact with the file system. The pandas-path package enables the
-Path API for pandas through a custom accessor ``.path``. Getting just the filenames from
+and delightful way to interact with the file system. The Pandas-path package enables the
+Path API for Pandas through a custom accessor ``.path``. Getting just the filenames from
 a series of full file paths is as simple as ``my_files.path.name``. Other convenient operations like
 joining paths, replacing file extensions, and checking if files exist are also available.
 
@@ -56,29 +56,29 @@ joining paths, replacing file extensions, and checking if files exist are also a
 Statistics and machine learning
 -------------------------------
 
-`pandas-tfrecords <https://pypi.org/project/pandas-tfrecords/>`__
+`Pandas-tfrecords <https://pypi.org/project/Pandas-tfrecords/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Easy saving pandas dataframe to tensorflow tfrecords format and reading tfrecords to pandas.
+Easy saving Pandas dataframe to tensorflow tfrecords format and reading tfrecords to Pandas.
 
 `Statsmodels <https://www.statsmodels.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Statsmodels is the prominent Python "statistics and econometrics library" and it has
-a long-standing special relationship with pandas. Statsmodels provides powerful statistics,
-econometrics, analysis and modeling functionality that is out of pandas' scope.
-Statsmodels leverages pandas objects as the underlying data container for computation.
+a long-standing special relationship with Pandas. Statsmodels provides powerful statistics,
+econometrics, analysis and modeling functionality that is out of Pandas' scope.
+Statsmodels leverages Pandas objects as the underlying data container for computation.
 
-`sklearn-pandas <https://github.com/paulgb/sklearn-pandas>`__
+`sklearn-Pandas <https://github.com/paulgb/sklearn-Pandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use pandas DataFrames in your `scikit-learn <https://scikit-learn.org/>`__
+Use Pandas DataFrames in your `scikit-learn <https://scikit-learn.org/>`__
 ML pipeline.
 
 `Featuretools <https://github.com/featuretools/featuretools/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community.
+Featuretools is a Python library for automated feature engineering built on top of Pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community.
 
 `Compose <https://github.com/FeatureLabs/compose>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -98,7 +98,7 @@ With Altair, you can spend more time understanding your data and its
 meaning. Altair's API is simple, friendly and consistent and built on
 top of the powerful Vega-Lite JSON specification. This elegant
 simplicity produces beautiful and effective visualizations with a
-minimal amount of code. Altair works with pandas DataFrames.
+minimal amount of code. Altair works with Pandas DataFrames.
 
 
 `Bokeh <https://bokeh.pydata.org>`__
@@ -110,11 +110,11 @@ graphics in the style of Protovis/D3, while delivering high-performance interact
 large data to thin clients.
 
 `Pandas-Bokeh <https://github.com/PatrikHlobil/Pandas-Bokeh>`__ provides a high level API
-for Bokeh that can be loaded as a native pandas plotting backend via
+for Bokeh that can be loaded as a native Pandas plotting backend via
 
 .. code:: python
 
-    pd.set_option("plotting.backend", "pandas_bokeh")
+    pd.set_option("plotting.backend", "Pandas_bokeh")
 
 It is very similar to the matplotlib plotting backend, but provides interactive
 web-based charts and maps.
@@ -126,9 +126,9 @@ web-based charts and maps.
 Seaborn is a Python visualization library based on
 `matplotlib <https://matplotlib.org>`__. It provides a high-level, dataset-oriented
 interface for creating attractive statistical graphics. The plotting functions
-in seaborn understand pandas objects and leverage pandas grouping operations
+in seaborn understand Pandas objects and leverage Pandas grouping operations
 internally to support concise specification of complex visualizations. Seaborn
-also goes beyond matplotlib and pandas with the option to perform statistical
+also goes beyond matplotlib and Pandas with the option to perform statistical
 estimation while plotting, aggregating across observations and visualizing the
 fit of statistical models to emphasize patterns in a dataset.
 
@@ -150,20 +150,20 @@ A good implementation for Python users is `has2k1/plotnine <https://github.com/h
 `Plotly <https://plot.ly/python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
+`Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <https://d3js.org/>`__. The library supports plotting directly from a Pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
 
-`Qtpandas <https://github.com/draperjames/qtpandas>`__
+`QtPandas <https://github.com/draperjames/qtPandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
+Spun off from the main Pandas library, the `qtPandas <https://github.com/draperjames/qtPandas>`__
 library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
 
 `D-Tale <https://github.com/man-group/dtale>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-D-Tale is a lightweight web client for visualizing pandas data structures. It
+D-Tale is a lightweight web client for visualizing Pandas data structures. It
 provides a rich spreadsheet-style grid which acts as a wrapper for a lot of
-pandas functionality (query, sort, describe, corr...) so users can quickly
+Pandas functionality (query, sort, describe, corr...) so users can quickly
 manipulate their data. There is also an interactive chart-builder using Plotly
 Dash allowing users to build nice portable visualizations. D-Tale can be
 invoked with the following command
@@ -187,7 +187,7 @@ IDE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 IPython is an interactive command shell and distributed computing
-environment. IPython tab completion works with pandas methods and also
+environment. IPython tab completion works with Pandas methods and also
 attributes like DataFrame columns.
 
 `Jupyter Notebook / Jupyter Lab <https://jupyter.org>`__
@@ -201,7 +201,7 @@ Jupyter notebooks can be converted to a number of open standard output formats
 Python) through 'Download As' in the web interface and ``jupyter convert``
 in a shell.
 
-pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
+Pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
 which are utilized by Jupyter Notebook for displaying
 (abbreviated) HTML or LaTeX tables. LaTeX output is properly escaped.
 (Note: HTML tables may or may not be
@@ -209,7 +209,7 @@ compatible with non-HTML Jupyter output formats.)
 
 See :ref:`Options and Settings <options>` and
 :ref:`Available Options <options.available>`
-for pandas ``display.`` settings.
+for Pandas ``display.`` settings.
 
 `Quantopian/qgrid <https://github.com/quantopian/qgrid>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -226,19 +226,19 @@ data exploration, interactive execution, deep inspection and rich visualization
 capabilities of a scientific environment like MATLAB or Rstudio.
 
 Its `Variable Explorer <https://docs.spyder-ide.org/variableexplorer.html>`__
-allows users to view, manipulate and edit pandas ``Index``, ``Series``,
+allows users to view, manipulate and edit Pandas ``Index``, ``Series``,
 and ``DataFrame`` objects like a "spreadsheet", including copying and modifying
 values, sorting, displaying a "heatmap", converting data types and more.
-pandas objects can also be renamed, duplicated, new columns added,
+Pandas objects can also be renamed, duplicated, new columns added,
 copyed/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
 Spyder can also import data from a variety of plain text and binary files
-or the clipboard into a new pandas DataFrame via a sophisticated import wizard.
+or the clipboard into a new Pandas DataFrame via a sophisticated import wizard.
 
-Most pandas classes, methods and data attributes can be autocompleted in
+Most Pandas classes, methods and data attributes can be autocompleted in
 Spyder's `Editor <https://docs.spyder-ide.org/editor.html>`__ and
 `IPython Console <https://docs.spyder-ide.org/ipythonconsole.html>`__,
 and Spyder's `Help pane <https://docs.spyder-ide.org/help.html>`__ can retrieve
-and render Numpydoc documentation on pandas objects in rich text with Sphinx
+and render Numpydoc documentation on Pandas objects in rich text with Sphinx
 both automatically and on-demand.
 
 
@@ -247,12 +247,12 @@ both automatically and on-demand.
 API
 ---
 
-`pandas-datareader <https://github.com/pydata/pandas-datareader>`__
+`Pandas-datareader <https://github.com/pydata/Pandas-datareader>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-``pandas-datareader`` is a remote data access library for pandas (PyPI:``pandas-datareader``).
-It is based on functionality that was located in ``pandas.io.data`` and ``pandas.io.wb`` but was
+``Pandas-datareader`` is a remote data access library for Pandas (PyPI:``Pandas-datareader``).
+It is based on functionality that was located in ``Pandas.io.data`` and ``Pandas.io.wb`` but was
 split off in v0.19.
-See more in the  `pandas-datareader docs <https://pandas-datareader.readthedocs.io/en/latest/>`_:
+See more in the  `Pandas-datareader docs <https://Pandas-datareader.readthedocs.io/en/latest/>`_:
 
 The following data feeds are available:
 
@@ -276,24 +276,24 @@ The following data feeds are available:
 `Quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Quandl API for Python wraps the Quandl REST API to return
-pandas DataFrames with timeseries indexes.
+Pandas DataFrames with timeseries indexes.
 
 `Pydatastream <https://github.com/vfilimonov/pydatastream>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 PyDatastream is a Python interface to the
 `Refinitiv Datastream (DWS) <https://www.refinitiv.com/en/products/datastream-macroeconomic-analysis>`__
-REST API to return indexed pandas DataFrames with financial data.
+REST API to return indexed Pandas DataFrames with financial data.
 This package requires valid credentials for this API (non free).
 
-`pandaSDMX <https://pandasdmx.readthedocs.io>`__
+`PandasDMX <https://Pandasdmx.readthedocs.io>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pandaSDMX is a library to retrieve and acquire statistical data
+PandasDMX is a library to retrieve and acquire statistical data
 and metadata disseminated in
 `SDMX <https://www.sdmx.org>`_ 2.1, an ISO-standard
 widely used by institutions such as statistics offices, central banks,
-and international organisations. pandaSDMX can expose datasets and related
+and international organisations. PandasDMX can expose datasets and related
 structural metadata including data flows, code-lists,
-and data structure definitions as pandas Series
+and data structure definitions as Pandas Series
 or MultiIndexed DataFrames.
 
 `fredapi <https://github.com/mortada/fredapi>`__
@@ -302,15 +302,15 @@ fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <http
 provided by the Federal Reserve Bank of St. Louis. It works with both the FRED database and ALFRED database that
 contains point-in-time data (i.e. historic data revisions). fredapi provides a wrapper in Python to the FRED
 HTTP API, and also provides several convenient methods for parsing and analyzing point-in-time data from ALFRED.
-fredapi makes use of pandas and returns data in a Series or DataFrame. This module requires a FRED API key that
+fredapi makes use of Pandas and returns data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
 
 `dataframe_sql <https://github.com/zbrookle/dataframe_sql>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ``dataframe_sql`` is a Python package that translates SQL syntax directly into
-operations on pandas DataFrames. This is useful when migrating from a database to
-using pandas or for users more comfortable with SQL looking for a way to interface
-with pandas.
+operations on Pandas DataFrames. This is useful when migrating from a database to
+using Pandas or for users more comfortable with SQL looking for a way to interface
+with Pandas.
 
 
 .. _ecosystem.domain:
@@ -318,20 +318,20 @@ with pandas.
 Domain specific
 ---------------
 
-`Geopandas <https://github.com/kjordahl/geopandas>`__
+`GeoPandas <https://github.com/kjordahl/geoPandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Geopandas extends pandas data objects to include geographic information which support
+GeoPandas extends Pandas data objects to include geographic information which support
 geometric operations. If your work entails maps and geographical coordinates, and
-you love pandas, you should take a close look at Geopandas.
+you love Pandas, you should take a close look at GeoPandas.
 
 `xarray <https://github.com/pydata/xarray>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-xarray brings the labeled data power of pandas to the physical sciences by
-providing N-dimensional variants of the core pandas data structures. It aims to
-provide a pandas-like and pandas-compatible toolkit for analytics on multi-
-dimensional arrays, rather than the tabular data for which pandas excels.
+xarray brings the labeled data power of Pandas to the physical sciences by
+providing N-dimensional variants of the core Pandas data structures. It aims to
+provide a Pandas-like and Pandas-compatible toolkit for analytics on multi-
+dimensional arrays, rather than the tabular data for which Pandas excels.
 
 
 .. _ecosystem.io:
@@ -339,10 +339,10 @@ dimensional arrays, rather than the tabular data for which pandas excels.
 IO
 --
 
-`BCPandas <https://github.com/yehoshuadimarsky/bcpandas>`__
+`BCPandas <https://github.com/yehoshuadimarsky/bcPandas>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-BCPandas provides high performance writes from pandas to Microsoft SQL Server,
+BCPandas provides high performance writes from Pandas to Microsoft SQL Server,
 far exceeding the performance of the native ``df.to_sql`` method. Internally, it uses
 Microsoft's BCP utility, but the complexity is fully abstracted away from the end user.
 Rigorously tested, it is a complete replacement for ``df.to_sql``.
@@ -357,7 +357,7 @@ Out-of-core
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Blaze provides a standard API for doing computations with various
-in-memory and on-disk backends: NumPy, pandas, SQLAlchemy, MongoDB, PyTables,
+in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB, PyTables,
 PySpark.
 
 `Dask <https://dask.readthedocs.io/en/latest/>`__
@@ -374,21 +374,21 @@ Dask-ML enables parallel and distributed machine learning using Dask alongside e
 `Koalas <https://koalas.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Koalas provides a familiar pandas DataFrame interface on top of Apache Spark. It enables users to leverage multi-cores on one machine or a cluster of machines to speed up or scale their DataFrame code.
+Koalas provides a familiar Pandas DataFrame interface on top of Apache Spark. It enables users to leverage multi-cores on one machine or a cluster of machines to speed up or scale their DataFrame code.
 
 `Odo <http://odo.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Odo provides a uniform API for moving data between different formats. It uses
-pandas own ``read_csv`` for CSV IO and leverages many existing packages such as
-PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
+Pandas own ``read_csv`` for CSV IO and leverages many existing packages such as
+PyTables, h5py, and pymongo to move data between non Pandas formats. Its graph
 based approach is also extensible by end users for custom formats that may be
 too specific for the core of odo.
 
 `Pandarallel <https://github.com/nalepae/pandarallel>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandarallel provides a simple way to parallelize your pandas operations on all your CPUs by changing only one line of code.
+Pandarallel provides a simple way to parallelize your Pandas operations on all your CPUs by changing only one line of code.
 If also displays progress bars.
 
 .. code:: python
@@ -400,46 +400,46 @@ If also displays progress bars.
     # df.apply(func)
     df.parallel_apply(func)
 
-`Ray <https://ray.readthedocs.io/en/latest/pandas_on_ray.html>`__
+`Ray <https://ray.readthedocs.io/en/latest/Pandas_on_ray.html>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-pandas on Ray is an early stage DataFrame library that wraps pandas and transparently distributes the data and computation. The user does not need to know how many cores their system has, nor do they need to specify how to distribute the data. In fact, users can continue using their previous pandas notebooks while experiencing a considerable speedup from pandas on Ray, even on a single machine. Only a modification of the import statement is needed, as we demonstrate below. Once you’ve changed your import statement, you’re ready to use pandas on Ray just like you would pandas.
+Pandas on Ray is an early stage DataFrame library that wraps Pandas and transparently distributes the data and computation. The user does not need to know how many cores their system has, nor do they need to specify how to distribute the data. In fact, users can continue using their previous Pandas notebooks while experiencing a considerable speedup from Pandas on Ray, even on a single machine. Only a modification of the import statement is needed, as we demonstrate below. Once you’ve changed your import statement, you’re ready to use Pandas on Ray just like you would Pandas.
 
 .. code:: python
 
-    # import pandas as pd
+    # import Pandas as pd
     import ray.dataframe as pd
 
 
 `Vaex <https://docs.vaex.io/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
+Increasingly, packages are being built on top of Pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to Pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
 
- * vaex.from_pandas
- * vaex.to_pandas_df
+ * vaex.from_Pandas
+ * vaex.to_Pandas_df
 
 .. _ecosystem.extensions:
 
 Extension data types
 --------------------
 
-pandas provides an interface for defining
+Pandas provides an interface for defining
 :ref:`extension types <extending.extension-types>` to extend NumPy's type
 system. The following libraries implement that interface to provide types not
-found in NumPy or pandas, which work well with pandas' data containers.
+found in NumPy or Pandas, which work well with Pandas' data containers.
 
-`Cyberpandas`_
+`CyberPandas`_
 ~~~~~~~~~~~~~~
 
-Cyberpandas provides an extension type for storing arrays of IP Addresses. These
-arrays can be stored inside pandas' Series and DataFrame.
+CyberPandas provides an extension type for storing arrays of IP Addresses. These
+arrays can be stored inside Pandas' Series and DataFrame.
 
 `Pint-Pandas`_
 ~~~~~~~~~~~~~~
 
-``Pint-Pandas <https://github.com/hgrecco/pint-pandas>`` provides an extension type for
-storing numeric arrays with units. These arrays can be stored inside pandas'
+``Pint-Pandas <https://github.com/hgrecco/pint-Pandas>`` provides an extension type for
+storing numeric arrays with units. These arrays can be stored inside Pandas'
 Series and DataFrame. Operations between Series and DataFrame columns which
 use pint's extension array are then units aware.
 
@@ -455,17 +455,17 @@ discover new accessors and for library authors to coordinate on the namespace.
 =============== ========== ========================= ===============================================================
 Library         Accessor   Classes                   Description
 =============== ========== ========================= ===============================================================
-`cyberpandas`_  ``ip``     ``Series``                Provides common operations for working with IP addresses.
+`cyberPandas`_  ``ip``     ``Series``                Provides common operations for working with IP addresses.
 `pdvega`_       ``vgplot`` ``Series``, ``DataFrame`` Provides plotting functions from the Altair_ library.
-`pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
-`pint-pandas`_  ``pint``   ``Series``, ``DataFrame`` Provides units support for numeric Series and DataFrames.
+`Pandas_path`_  ``path``   ``Index``, ``Series``     Provides `pathlib.Path`_ functions for Series.
+`pint-Pandas`_  ``pint``   ``Series``, ``DataFrame`` Provides units support for numeric Series and DataFrames.
 `composeml`_    ``slice``  ``DataFrame``             Provides a generator for enhanced data slicing.
 =============== ========== ========================= ===============================================================
 
-.. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
+.. _cyberPandas: https://cyberPandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/
 .. _Altair: https://altair-viz.github.io/
-.. _pandas_path: https://github.com/drivendataorg/pandas-path/
+.. _Pandas_path: https://github.com/drivendataorg/Pandas-path/
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
-.. _pint-pandas: https://github.com/hgrecco/pint-pandas
+.. _pint-Pandas: https://github.com/hgrecco/pint-Pandas
 .. _composeml: https://github.com/FeatureLabs/compose
