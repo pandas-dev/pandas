@@ -458,23 +458,26 @@ class TestMergeMulti:
         tm.assert_frame_equal(result, expected)
 
     def test_merge_datetime_index_empty_df(self):
-        data = [
-            [pd.Timestamp("1950-01-01"), "A", 1.5],
-            [pd.Timestamp("1950-01-02"), "B", 1.5],
-        ]
 
-        frame = DataFrame(data, columns=["date", "panel", "data"]).set_index(
+        date = np.array(
+            [pd.Timestamp("1950-01-01"), pd.Timestamp("1950-01-02")],
+            dtype=np.datetime64,
+        )
+        panel = np.array(["A", "B"], dtype=object)
+        data = np.array([1.5, 1.5], dtype=np.float64)
+
+        frame = DataFrame({"date": date, "panel": panel, "data": data}).set_index(
             ["date", "panel"]
         )
         other = DataFrame(columns=["date", "panel", "state"]).set_index(
             ["date", "panel"]
         )
-        expected_data = [
-            [pd.Timestamp("1950-01-01"), "A", 1.5, pd.NA],
-            [pd.Timestamp("1950-01-02"), "B", 1.5, pd.NA],
-        ]
 
-        expected = DataFrame(expected_data, columns=["date", "panel", "data", "state"])
+        state = np.array([np.nan, np.nan], dtype=object)
+
+        expected = DataFrame(
+            {"date": date, "panel": panel, "data": data, "state": state}
+        )
         expected = expected.set_index(["date", "panel"])
 
         result = frame.merge(other, how="left", on=["date", "panel"])
