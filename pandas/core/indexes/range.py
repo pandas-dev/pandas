@@ -746,10 +746,10 @@ class RangeIndex(Int64Index):
                 return self._simple_new(new_range, name=self.name)
         return self._int64index // other
 
-    def all(self) -> bool:
+    def all(self, *args, **kwargs) -> bool:
         return 0 not in self._range
 
-    def any(self) -> bool:
+    def any(self, *args, **kwargs) -> bool:
         return any(self._range)
 
     @classmethod
