@@ -537,12 +537,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._left)
 
-    def __getitem__(self, value):
-        value = check_array_indexer(self, value)
+    def __getitem__(self, key):
+        key = check_array_indexer(self, key)
 
-        result = self._combined[value]
+        result = self._combined[key]
 
-        if is_integer(value):
+        if is_integer(key):
             left, right = result[0], result[1]
             if isna(left):
                 return self._fill_value
