@@ -248,12 +248,8 @@ def where(cond, a, b, use_numexpr=True):
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
-    # pandas\core\computation\expressions.py:251: error: "None" not callable  [misc]
-    return (
-        _where(cond, a, b)  # type: ignore[misc]
-        if use_numexpr
-        else _where_standard(cond, a, b)
-    )
+    assert _where is not None
+    return _where(cond, a, b) if use_numexpr else _where_standard(cond, a, b)
 
 
 def set_test_mode(v: bool = True) -> None:
