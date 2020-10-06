@@ -108,3 +108,31 @@ class DatetimeLike(Base):
 
         result = index[:]
         assert result.freq == index.freq
+
+    def test_not_equals_numeric(self):
+        index = self.create_index()
+
+        assert not index.equals(pd.Index(index.asi8))
+        assert not index.equals(pd.Index(index.asi8.astype("u8")))
+        assert not index.equals(pd.Index(index.asi8).astype("f8"))
+
+    def test_where_cast_str(self):
+        index = self.create_index()
+
+        mask = np.ones(len(index), dtype=bool)
+        mask[-1] = False
+
+        result = index.where(mask, str(index[0]))
+        expected = index.where(mask, index[0])
+        tm.assert_index_equal(result, expected)
+
+        result = index.where(mask, [str(index[0])])
+        tm.assert_index_equal(result, expected)
+
+        msg = "Where requires matching dtype, not foo"
+        with pytest.raises(TypeError, match=msg):
+            index.where(mask, "foo")
+
+        msg = r"Where requires matching dtype, not \['foo'\]"
+        with pytest.raises(TypeError, match=msg):
+            index.where(mask, ["foo"])
