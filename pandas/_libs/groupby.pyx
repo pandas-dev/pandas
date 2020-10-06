@@ -344,7 +344,7 @@ def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
 @cython.boundscheck(False)
 def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
                          ndarray[uint8_t] mask, object direction,
-                         int64_t limit):
+                         int64_t limit, bint dropna):
     """
     Indexes how to fill values forwards or backwards within a group.
 
@@ -389,6 +389,9 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
             else:  # reset items when not missing
                 filled_vals = 0
                 curr_fill_idx = idx
+            
+            if dropna and labels[idx] == -1:
+                curr_fill_idx = -1
 
             out[idx] = curr_fill_idx
 

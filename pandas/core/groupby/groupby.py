@@ -1847,17 +1847,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if limit is None:
             limit = -1
 
-        def _nan_group_gets_nan_values(values, *args):
-            if not self.dropna:
-                return values
-            in_nan_group = DataFrame(self.grouper.codes).eq(-1).any()
-            if in_nan_group.any():
-                filler = {np.datetime64: np.datetime64("NaT")}.get(
-                    values.dtype.type, np.nan
-                )
-                values[in_nan_group] = filler
-            return values
-
         res = self._get_cythonized_result(
             "group_fillna_indexer",
             numeric_only=False,
@@ -1866,7 +1855,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result_is_index=True,
             direction=direction,
             limit=limit,
-            post_processing=_nan_group_gets_nan_values,
+            dropna=self.dropna
         )
 
         return res
