@@ -64,7 +64,7 @@ def test_transform_listlike(axis, float_frame, ops, names):
 
 @pytest.mark.parametrize("ops", [[], np.array([])])
 def test_transform_empty_listlike(float_frame, ops):
-    with pytest.raises(ValueError, match="no results"):
+    with pytest.raises(ValueError, match="No transform functions were provided"):
         float_frame.transform(ops)
 
 
@@ -93,7 +93,7 @@ def test_transform_dictlike(axis, float_frame, box):
     ],
 )
 def test_transform_empty_dictlike(float_frame, ops):
-    with pytest.raises(ValueError, match="no results"):
+    with pytest.raises(ValueError, match="No transform functions were provided"):
         float_frame.transform(ops)
 
 

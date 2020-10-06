@@ -53,7 +53,7 @@ def test_transform_listlike(string_series, ops, names):
 
 @pytest.mark.parametrize("ops", [[], np.array([])])
 def test_transform_empty_listlike(string_series, ops):
-    with pytest.raises(ValueError, match="no results"):
+    with pytest.raises(ValueError, match="No transform functions were provided"):
         string_series.transform(ops)
 
 
@@ -79,7 +79,7 @@ def test_transform_dictlike(string_series, box):
     ],
 )
 def test_transform_empty_dictlike(string_series, ops):
-    with pytest.raises(ValueError, match="no results"):
+    with pytest.raises(ValueError, match="No transform functions were provided"):
         string_series.transform(ops)
 
 

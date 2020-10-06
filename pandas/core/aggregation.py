@@ -475,7 +475,7 @@ def transform_dict_like(
     from pandas.core.reshape.concat import concat
 
     if len(func) == 0:
-        raise ValueError("no results")
+        raise ValueError("No transform functions were provided")
 
     if obj.ndim != 1:
         # Check for missing columns on a frame
@@ -494,7 +494,10 @@ def transform_dict_like(
         try:
             results[name] = transform(colg, how, 0, *args, **kwargs)
         except Exception as err:
-            if str(err) == "Function did not transform" or str(err) == "no results":
+            if (
+                str(err) == "Function did not transform"
+                or str(err) == "No transform functions were provided"
+            ):
                 raise err
 
     # combine results
