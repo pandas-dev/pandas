@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :class:`RollingGroupby` with ``sort=False`` not being respected (:issue:`36889`)
 
 .. ---------------------------------------------------------------------------
 
