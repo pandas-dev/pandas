@@ -390,7 +390,6 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
             else:  # reset items when not missing
                 filled_vals = 0
                 curr_fill_idx = idx
-            
             if dropna and labels[idx] == -1:
                 curr_fill_idx = -1
 
