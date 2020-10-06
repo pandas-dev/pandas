@@ -187,10 +187,6 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     def test_numeric_arr_mul_tdscalar(self, scalar_td, numeric_idx, box_with_array):
         # GH#19333
         box = box_with_array
-        if box is pd.array:
-            pytest.xfail(
-                "we get a PandasArray[timedelta64[ns]] instead of TimedeltaArray"
-            )
         index = numeric_idx
         expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(5)])
 
@@ -214,8 +210,6 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     )
     def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box_with_array):
         box = box_with_array
-        if box is pd.array:
-            pytest.xfail("IntegerArray.__mul__ doesnt handle timedeltas")
 
         arr = np.arange(2 * 10 ** 4).astype(np.int64)
         obj = tm.box_expected(arr, box, transpose=False)
@@ -231,8 +225,6 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
 
     def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box_with_array):
         box = box_with_array
-        if box is pd.array:
-            pytest.xfail("We get PandasArray[td64] instead of TimedeltaArray")
 
         index = numeric_idx[1:3]
 
@@ -263,8 +255,6 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     )
     def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box_with_array):
         box = box_with_array
-        if box is pd.array:
-            pytest.xfail("PandasArray[int].__add__ doesnt raise on td64")
 
         left = tm.box_expected(numeric_idx, box)
         msg = (
