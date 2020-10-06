@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -335,4 +335,28 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
         mi = mi.set_levels(levels, level="groups")
 
     expected = pd.DataFrame(selected_data, index=mi)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_nan_included():
+    # GH 35646, GH 35542
+    data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
+    df = pd.DataFrame(data)
+    grouped = df.groupby("group", dropna=False)
+    result = grouped.indices
+    dtype = "int64"
+    expected = {
+        "g1": np.array([0, 2], dtype=dtype),
+        "g2": np.array([3], dtype=dtype),
+        np.nan: np.array([1, 4], dtype=dtype),
+    }
+    for result_values, expected_values in zip(result.values(), expected.values()):
+        tm.assert_numpy_array_equal(result_values, expected_values)
+    assert np.isnan(list(result.keys())[2])
+    assert list(result.keys())[0:2] == ["g1", "g2"]
+
+    result = grouped.mean()
+    expected = pd.DataFrame(
+        {"B": [1.0, 3.0, 2.5]}, index=pd.Index(["g1", "g2", np.nan], name="group")
+    )
     tm.assert_frame_equal(result, expected)

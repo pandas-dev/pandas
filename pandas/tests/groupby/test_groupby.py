@@ -1298,33 +1298,10 @@ def test_groupby_nat_exclude():
 
 
 def test_groupby_two_group_keys_all_nan():
-    # Grouping over two group keys all nan raised an error previously
+    # GH #36842: Grouping over two group keys shouldn't raise an error
     df = pd.DataFrame({"a": [np.nan, np.nan], "b": [np.nan, np.nan], "c": [1, 2]})
     result = df.groupby(["a", "b"]).indices
     assert result == {}
-
-
-def test_groupby_nan_included():
-    # GH 35646, GH 35542
-    data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
-    df = pd.DataFrame(data)
-    grouped = df.groupby("group", dropna=False)
-    result = grouped.indices
-    dtype = "int64"
-    expected = {
-        "g1": np.array([0, 2], dtype=dtype),
-        "g2": np.array([3], dtype=dtype),
-        np.nan: np.array([1, 4], dtype=dtype),
-    }
-    for result_values, expected_values in zip(result.values(), expected.values()):
-        tm.assert_numpy_array_equal(result_values, expected_values)
-    assert np.isnan(list(result.keys())[2])
-
-    result = grouped.mean()
-    expected = pd.DataFrame(
-        {"B": [1.0, 3.0, 2.5]}, index=pd.Index(["g1", "g2", np.nan], name="group")
-    )
-    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_2d_malformed():

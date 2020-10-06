@@ -410,7 +410,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.sum()` returned wrong values when dtypes where mixed between float and integer and axis was equal to one (:issue:`20649`, :issue:`35596`)
 - Bug in :meth:`Rolling.count` returned ``np.nan`` with :class:`pandas.api.indexers.FixedForwardWindowIndexer` as window, ``min_periods=0`` and only missing values in window (:issue:`35579`)
 - Bug where :class:`pandas.core.window.Rolling` produces incorrect window sizes when using a ``PeriodIndex`` (:issue:`34225`)
-- Bug in :meth:`Groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
+- Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
 
 Reshaping
 ^^^^^^^^^
