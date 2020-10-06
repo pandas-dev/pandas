@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
+    Dict,
     Iterable,
     List,
     Optional,
@@ -22,7 +23,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_extension_array_dtype,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
@@ -517,17 +518,21 @@ def get_flattened_list(
     return [tuple(array) for array in arrays.values()]
 
 
-def get_indexer_dict(label_list, keys):
+def get_indexer_dict(
+    label_list: List[ABCIndex], keys: List[np.ndarray]
+) -> Dict[Union[str, Tuple], np.ndarray]:
     """
     Returns
     -------
-    dict
+    dict:
         Labels mapped to indexers.
     """
     shape = [len(x) for x in keys]
 
     group_index = get_group_index(label_list, shape, sort=True, xnull=True)
     if np.all(group_index == -1):
+        # When all keys are nan and dropna=True, indices_fast can't handle this
+        # and the return is empty anyway
         return {}
     ngroups = (
         ((group_index.size and group_index.max()) + 1)
