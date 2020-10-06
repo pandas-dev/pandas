@@ -44,6 +44,7 @@ import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
+from pandas.core.ops import unpack_zerodim_and_defer
 
 _interval_shared_docs = {}
 
@@ -566,6 +567,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         self._left[key] = value_left
         self._right[key] = value_right
 
+    @unpack_zerodim_and_defer("__eq__")
     def __eq__(self, other):
         # ensure pandas array for list-like and eliminate non-interval scalars
         if is_list_like(other):

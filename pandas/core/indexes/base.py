@@ -65,7 +65,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCCategorical,
-    ABCDataFrame,
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPandasArray,
@@ -120,9 +119,12 @@ str_t = str
 
 
 def _make_comparison_op(op, cls):
+    opname = f"__{op.__name__}__"
+
+    @ops.unpack_zerodim_and_defer(opname)
     def cmp_method(self, other):
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
-            if other.ndim > 0 and len(self) != len(other):
+            if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
         if is_object_dtype(self.dtype) and isinstance(other, ABCCategorical):
@@ -150,15 +152,14 @@ def _make_comparison_op(op, cls):
             return result
         return ops.invalid_comparison(self, other, op)
 
-    name = f"__{op.__name__}__"
-    return set_function_name(cmp_method, name, cls)
+    return set_function_name(cmp_method, opname, cls)
 
 
 def _make_arithmetic_op(op, cls):
-    def index_arithmetic_method(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
-            return NotImplemented
+    opname = f"__{op.__name__}__"
 
+    @ops.unpack_zerodim_and_defer(opname)
+    def index_arithmetic_method(self, other):
         from pandas import Series
 
         result = op(Series(self), other)
@@ -166,8 +167,7 @@ def _make_arithmetic_op(op, cls):
             return (Index(result[0]), Index(result[1]))
         return Index(result)
 
-    name = f"__{op.__name__}__"
-    return set_function_name(index_arithmetic_method, name, cls)
+    return set_function_name(index_arithmetic_method, opname, cls)
 
 
 _o_dtype = np.dtype(object)
