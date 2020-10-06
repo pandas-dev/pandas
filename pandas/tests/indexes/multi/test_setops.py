@@ -376,3 +376,17 @@ def test_setops_disallow_true(method):
 
     with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
         getattr(idx1, method)(idx2, sort=True)
+
+
+@pytest.mark.parametrize(
+    "tuples", [[("val1", "test1")], [("val1", "test1"), ("val1", "test1")]]
+)
+def test_intersect_with_duplicates(tuples):
+    # GH: 36915
+    left = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
+    right = pd.MultiIndex.from_tuples(
+        [("val1", "test1"), ("val1", "test1")], names=["first", "second"]
+    )
+    result = left.intersection(right)
+    expected = pd.MultiIndex.from_tuples([("val1", "test1")], names=["first", "second"])
+    tm.assert_index_equal(result, expected)

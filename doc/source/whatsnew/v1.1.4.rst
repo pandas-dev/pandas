@@ -14,7 +14,8 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+
+- Regression in :meth:`MultiIndex.intersection` returned duplicates when at least one of the indexes had duplicates (:issue:`36915`)
 
 .. ---------------------------------------------------------------------------
 
