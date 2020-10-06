@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
 )
 
-import pandas as pd
+from pandas.core.reshape.concat import concat
 
 from pandas.io.formats.format import format_percentiles
 
@@ -210,7 +210,7 @@ class DataFrameDescriber(NDFrameDescriber, StrategyCreatorMixin):
             strategy = self.create_strategy(series, percentiles)
             ldesc.append(strategy.describe())
 
-        df = pd.concat(
+        df = concat(
             self._reindex_columns(ldesc),
             axis=1,
             sort=False,
@@ -267,7 +267,9 @@ class StrategyAbstract(ABC):
 
     def describe(self) -> "Series":
         """Describe series."""
-        return pd.Series(
+        from pandas.core.series import Series
+
+        return Series(
             self.array,
             index=self.names,
             name=self.data.name,
