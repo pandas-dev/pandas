@@ -103,7 +103,7 @@ and the values are the data.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'x': [1, 3, 5], 'y': [2, 4, 6]})
+   df = pd.DataFrame({"x": [1, 3, 5], "y": [2, 4, 6]})
    df
 
 
@@ -127,8 +127,10 @@ the data set if presented with a url.
 
 .. ipython:: python
 
-   url = ('https://raw.github.com/pandas-dev'
-          '/pandas/master/pandas/tests/io/data/csv/tips.csv')
+   url = (
+       "https://raw.github.com/pandas-dev"
+       "/pandas/master/pandas/tests/io/data/csv/tips.csv"
+   )
    tips = pd.read_csv(url)
    tips.head()
 
@@ -139,16 +141,16 @@ the pandas command would be:
 
 .. code-block:: python
 
-   tips = pd.read_csv('tips.csv', sep='\t', header=None)
+   tips = pd.read_csv("tips.csv", sep="\t", header=None)
 
    # alternatively, read_table is an alias to read_csv with tab delimiter
-   tips = pd.read_table('tips.csv', header=None)
+   tips = pd.read_table("tips.csv", header=None)
 
-Pandas can also read Stata data sets in ``.dta`` format with the :func:`read_stata` function.
+pandas can also read Stata data sets in ``.dta`` format with the :func:`read_stata` function.
 
 .. code-block:: python
 
-   df = pd.read_stata('data.dta')
+   df = pd.read_stata("data.dta")
 
 In addition to text/csv and Stata files, pandas supports a variety of other data formats
 such as Excel, SAS, HDF5, Parquet, and SQL databases.  These are all read via a ``pd.read_*``
@@ -168,13 +170,13 @@ Similarly in pandas, the opposite of ``read_csv`` is :meth:`DataFrame.to_csv`.
 
 .. code-block:: python
 
-   tips.to_csv('tips2.csv')
+   tips.to_csv("tips2.csv")
 
-Pandas can also export to Stata file format with the :meth:`DataFrame.to_stata` method.
+pandas can also export to Stata file format with the :meth:`DataFrame.to_stata` method.
 
 .. code-block:: python
 
-   tips.to_stata('tips2.dta')
+   tips.to_stata("tips2.dta")
 
 
 Data operations
@@ -200,11 +202,11 @@ drops a column from the ``DataFrame``.
 
 .. ipython:: python
 
-   tips['total_bill'] = tips['total_bill'] - 2
-   tips['new_bill'] = tips['total_bill'] / 2
+   tips["total_bill"] = tips["total_bill"] - 2
+   tips["new_bill"] = tips["total_bill"] / 2
    tips.head()
 
-   tips = tips.drop('new_bill', axis=1)
+   tips = tips.drop("new_bill", axis=1)
 
 Filtering
 ~~~~~~~~~
@@ -220,7 +222,7 @@ DataFrames can be filtered in multiple ways; the most intuitive of which is usin
 
 .. ipython:: python
 
-   tips[tips['total_bill'] > 10].head()
+   tips[tips["total_bill"] > 10].head()
 
 If/then logic
 ~~~~~~~~~~~~~
@@ -237,13 +239,13 @@ the ``where`` method from ``numpy``.
 
 .. ipython:: python
 
-   tips['bucket'] = np.where(tips['total_bill'] < 10, 'low', 'high')
+   tips["bucket"] = np.where(tips["total_bill"] < 10, "low", "high")
    tips.head()
 
 .. ipython:: python
    :suppress:
 
-   tips = tips.drop('bucket', axis=1)
+   tips = tips.drop("bucket", axis=1)
 
 Date functionality
 ~~~~~~~~~~~~~~~~~~
@@ -273,22 +275,26 @@ see the :ref:`timeseries documentation<timeseries>` for more details.
 
 .. ipython:: python
 
-   tips['date1'] = pd.Timestamp('2013-01-15')
-   tips['date2'] = pd.Timestamp('2015-02-15')
-   tips['date1_year'] = tips['date1'].dt.year
-   tips['date2_month'] = tips['date2'].dt.month
-   tips['date1_next'] = tips['date1'] + pd.offsets.MonthBegin()
-   tips['months_between'] = (tips['date2'].dt.to_period('M')
-                             - tips['date1'].dt.to_period('M'))
+   tips["date1"] = pd.Timestamp("2013-01-15")
+   tips["date2"] = pd.Timestamp("2015-02-15")
+   tips["date1_year"] = tips["date1"].dt.year
+   tips["date2_month"] = tips["date2"].dt.month
+   tips["date1_next"] = tips["date1"] + pd.offsets.MonthBegin()
+   tips["months_between"] = tips["date2"].dt.to_period("M") - tips[
+       "date1"
+   ].dt.to_period("M")
 
-   tips[['date1', 'date2', 'date1_year', 'date2_month', 'date1_next',
-         'months_between']].head()
+   tips[
+       ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"]
+   ].head()
 
 .. ipython:: python
    :suppress:
 
-   tips = tips.drop(['date1', 'date2', 'date1_year', 'date2_month',
-                     'date1_next', 'months_between'], axis=1)
+   tips = tips.drop(
+       ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"],
+       axis=1,
+   )
 
 Selection of columns
 ~~~~~~~~~~~~~~~~~~~~
@@ -310,13 +316,13 @@ to a variable.
 .. ipython:: python
 
    # keep
-   tips[['sex', 'total_bill', 'tip']].head()
+   tips[["sex", "total_bill", "tip"]].head()
 
    # drop
-   tips.drop('sex', axis=1).head()
+   tips.drop("sex", axis=1).head()
 
    # rename
-   tips.rename(columns={'total_bill': 'total_bill_2'}).head()
+   tips.rename(columns={"total_bill": "total_bill_2"}).head()
 
 
 Sorting by values
@@ -333,7 +339,7 @@ takes a list of columns to sort by.
 
 .. ipython:: python
 
-   tips = tips.sort_values(['sex', 'total_bill'])
+   tips = tips.sort_values(["sex", "total_bill"])
    tips.head()
 
 
@@ -357,8 +363,8 @@ Use ``len`` and ``rstrip`` to exclude trailing blanks.
 
 .. ipython:: python
 
-   tips['time'].str.len().head()
-   tips['time'].str.rstrip().str.len().head()
+   tips["time"].str.len().head()
+   tips["time"].str.rstrip().str.len().head()
 
 
 Finding position of substring
@@ -380,7 +386,7 @@ the function will return -1 if it fails to find the substring.
 
 .. ipython:: python
 
-   tips['sex'].str.find("ale").head()
+   tips["sex"].str.find("ale").head()
 
 
 Extracting substring by position
@@ -398,7 +404,7 @@ indexes are zero-based.
 
 .. ipython:: python
 
-   tips['sex'].str[0:1].head()
+   tips["sex"].str[0:1].head()
 
 
 Extracting nth word
@@ -425,9 +431,9 @@ approaches, but this just shows a simple approach.
 
 .. ipython:: python
 
-   firstlast = pd.DataFrame({'string': ['John Smith', 'Jane Cook']})
-   firstlast['First_Name'] = firstlast['string'].str.split(" ", expand=True)[0]
-   firstlast['Last_Name'] = firstlast['string'].str.rsplit(" ", expand=True)[0]
+   firstlast = pd.DataFrame({"string": ["John Smith", "Jane Cook"]})
+   firstlast["First_Name"] = firstlast["string"].str.split(" ", expand=True)[0]
+   firstlast["Last_Name"] = firstlast["string"].str.rsplit(" ", expand=True)[0]
    firstlast
 
 
@@ -455,10 +461,10 @@ The equivalent Python functions are ``upper``, ``lower``, and ``title``.
 
 .. ipython:: python
 
-   firstlast = pd.DataFrame({'string': ['John Smith', 'Jane Cook']})
-   firstlast['upper'] = firstlast['string'].str.upper()
-   firstlast['lower'] = firstlast['string'].str.lower()
-   firstlast['title'] = firstlast['string'].str.title()
+   firstlast = pd.DataFrame({"string": ["John Smith", "Jane Cook"]})
+   firstlast["upper"] = firstlast["string"].str.upper()
+   firstlast["lower"] = firstlast["string"].str.lower()
+   firstlast["title"] = firstlast["string"].str.title()
    firstlast
 
 Merging
@@ -468,11 +474,9 @@ The following tables will be used in the merge examples
 
 .. ipython:: python
 
-   df1 = pd.DataFrame({'key': ['A', 'B', 'C', 'D'],
-                       'value': np.random.randn(4)})
+   df1 = pd.DataFrame({"key": ["A", "B", "C", "D"], "value": np.random.randn(4)})
    df1
-   df2 = pd.DataFrame({'key': ['B', 'D', 'D', 'E'],
-                       'value': np.random.randn(4)})
+   df2 = pd.DataFrame({"key": ["B", "D", "D", "E"], "value": np.random.randn(4)})
    df2
 
 In Stata, to perform a merge, one data set must be in memory
@@ -534,16 +538,16 @@ types are accomplished via the ``how`` keyword.
 
 .. ipython:: python
 
-   inner_join = df1.merge(df2, on=['key'], how='inner')
+   inner_join = df1.merge(df2, on=["key"], how="inner")
    inner_join
 
-   left_join = df1.merge(df2, on=['key'], how='left')
+   left_join = df1.merge(df2, on=["key"], how="left")
    left_join
 
-   right_join = df1.merge(df2, on=['key'], how='right')
+   right_join = df1.merge(df2, on=["key"], how="right")
    right_join
 
-   outer_join = df1.merge(df2, on=['key'], how='outer')
+   outer_join = df1.merge(df2, on=["key"], how="outer")
    outer_join
 
 
@@ -558,8 +562,8 @@ operations, and is ignored by default for aggregations.
 .. ipython:: python
 
    outer_join
-   outer_join['value_x'] + outer_join['value_y']
-   outer_join['value_x'].sum()
+   outer_join["value_x"] + outer_join["value_y"]
+   outer_join["value_x"].sum()
 
 One difference is that missing data cannot be compared to its sentinel value.
 For example, in Stata you could do this to filter missing values.
@@ -576,10 +580,10 @@ should be used for comparisons.
 
 .. ipython:: python
 
-   outer_join[pd.isna(outer_join['value_x'])]
-   outer_join[pd.notna(outer_join['value_x'])]
+   outer_join[pd.isna(outer_join["value_x"])]
+   outer_join[pd.notna(outer_join["value_x"])]
 
-Pandas also provides a variety of methods to work with missing data -- some of
+pandas also provides a variety of methods to work with missing data -- some of
 which would be challenging to express in Stata. For example, there are methods to
 drop all rows with any missing values, replacing missing values with a specified
 value, like the mean, or forward filling from previous rows. See the
@@ -591,10 +595,10 @@ value, like the mean, or forward filling from previous rows. See the
    outer_join.dropna()
 
    # Fill forwards
-   outer_join.fillna(method='ffill')
+   outer_join.fillna(method="ffill")
 
    # Impute missing values with the mean
-   outer_join['value_x'].fillna(outer_join['value_x'].mean())
+   outer_join["value_x"].fillna(outer_join["value_x"].mean())
 
 
 GroupBy
@@ -617,7 +621,7 @@ for more details and examples.
 
 .. ipython:: python
 
-   tips_summed = tips.groupby(['sex', 'smoker'])[['total_bill', 'tip']].sum()
+   tips_summed = tips.groupby(["sex", "smoker"])[["total_bill", "tip"]].sum()
    tips_summed.head()
 
 
@@ -640,8 +644,8 @@ operation.
 
 .. ipython:: python
 
-   gb = tips.groupby('smoker')['total_bill']
-   tips['adj_total_bill'] = tips['total_bill'] - gb.transform('mean')
+   gb = tips.groupby("smoker")["total_bill"]
+   tips["adj_total_bill"] = tips["total_bill"] - gb.transform("mean")
    tips.head()
 
 
@@ -661,7 +665,7 @@ In pandas this would be written as:
 
 .. ipython:: python
 
-   tips.groupby(['sex', 'smoker']).first()
+   tips.groupby(["sex", "smoker"]).first()
 
 
 Other considerations
@@ -670,7 +674,7 @@ Other considerations
 Disk vs memory
 ~~~~~~~~~~~~~~
 
-Pandas and Stata both operate exclusively in memory. This means that the size of
+pandas and Stata both operate exclusively in memory. This means that the size of
 data able to be loaded in pandas is limited by your machine's memory.
 If out of core processing is needed, one possibility is the
 `dask.dataframe <https://dask.pydata.org/en/latest/dataframe.html>`_

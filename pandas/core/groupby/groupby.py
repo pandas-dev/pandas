@@ -285,7 +285,7 @@ f : function
 
     .. versionchanged:: 1.1.0
 *args
-    Positional arguments to pass to func
+    Positional arguments to pass to func.
 engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
@@ -394,7 +394,7 @@ func : function, str, list or dict
 
     .. versionchanged:: 1.1.0
 *args
-    Positional arguments to pass to func
+    Positional arguments to pass to func.
 engine : str, default None
     * ``'cython'`` : Runs the function through C-extensions from cython.
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
