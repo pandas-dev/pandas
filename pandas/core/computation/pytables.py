@@ -352,30 +352,21 @@ class ConditionBinOp(BinOp):
             # too many values to create the expression?
             if len(values) <= self._max_selectors:
                 vs = [self.generate(v) for v in values]
-                # pandas\core\computation\pytables.py:351: error: Incompatible
-                # types in assignment (expression has type "str", variable has
-                # type "None")  [assignment]
-                self.condition = f"({' | '.join(vs)})"  # type: ignore[assignment]
+                self.condition = f"({' | '.join(vs)})"
 
             # use a filter after reading
             else:
                 return None
         else:
-            # pandas\core\computation\pytables.py:357: error: Incompatible
-            # types in assignment (expression has type "str", variable has type
-            # "None")  [assignment]
-            self.condition = self.generate(values[0])  # type: ignore[assignment]
+            self.condition = self.generate(values[0])
 
         return self
 
 
 class JointConditionBinOp(ConditionBinOp):
     def evaluate(self):
-        # pandas\core\computation\pytables.py:364: error: Incompatible types in
-        # assignment (expression has type "str", variable has type "None")
-        # [assignment]
         tmp = f"({self.lhs.condition} {self.op} {self.rhs.condition})"
-        self.condition = tmp  # type: ignore[assignment]
+        self.condition = tmp
         return self
 
 
