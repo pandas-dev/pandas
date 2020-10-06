@@ -1068,10 +1068,10 @@ class TestDataFrameAnalytics:
             pytest.param(np.any, {"A": pd.Series([0, 1], dtype="m8[ns]")}, True),
             pytest.param(np.all, {"A": pd.Series([1, 2], dtype="m8[ns]")}, True),
             pytest.param(np.any, {"A": pd.Series([1, 2], dtype="m8[ns]")}, True),
-            (np.all, {"A": pd.Series([0, 1], dtype="category")}, True),
-            (np.any, {"A": pd.Series([0, 1], dtype="category")}, False),
+            (np.all, {"A": pd.Series([0, 1], dtype="category")}, False),
+            (np.any, {"A": pd.Series([0, 1], dtype="category")}, True),
             (np.all, {"A": pd.Series([1, 2], dtype="category")}, True),
-            (np.any, {"A": pd.Series([1, 2], dtype="category")}, False),
+            (np.any, {"A": pd.Series([1, 2], dtype="category")}, True),
             # Mix GH#21484
             pytest.param(
                 np.all,
