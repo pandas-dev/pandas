@@ -942,8 +942,8 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
    .. ipython:: python
 
       df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
-                        index = list('abc'),
-                        columns = ['A', 'B'])
+                        index=list('abc'),
+                        columns=['A', 'B'])
       s = (df['A'] > 2)
       s
 
