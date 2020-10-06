@@ -160,6 +160,16 @@ class SharedTests:
         result = arr.take([-1, 1], allow_fill=True, fill_value=pd.NaT)
         assert result[0] is pd.NaT
 
+    def test_take_fill_str(self, arr1d):
+        # Cast str fill_value matching other fill_value-taking methods
+        result = arr1d.take([-1, 1], allow_fill=True, fill_value=str(arr1d[-1]))
+        expected = arr1d[[-1, 1]]
+        tm.assert_equal(result, expected)
+
+        msg = r"'fill_value' should be a <.*>\. Got 'foo'"
+        with pytest.raises(ValueError, match=msg):
+            arr1d.take([-1, 1], allow_fill=True, fill_value="foo")
+
     def test_concat_same_type(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
