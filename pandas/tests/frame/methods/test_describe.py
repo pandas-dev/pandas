@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Series, Timestamp, date_range
@@ -331,6 +332,16 @@ class TestDataFrameDescribe:
         with tm.assert_produces_warning(FutureWarning):
             result = df.describe(include="all")
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("exclude", ["x", "y", ["x", "y"], ["x", "z"]])
+    def test_describe_when_include_all_exclude_not_allowed(self, exclude):
+        """
+        When include is 'all', then setting exclude != None is not allowed.
+        """
+        df = pd.DataFrame({"x": [1], "y": [2], "z": [3]})
+        msg = "exclude must be None when include is 'all'"
+        with pytest.raises(ValueError, match=msg):
+            df.describe(include="all", exclude=exclude)
 
     def test_describe_percentiles_integer_idx(self):
         # GH#26660
