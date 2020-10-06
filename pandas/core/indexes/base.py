@@ -659,6 +659,12 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.ravel
         """
+        warnings.warn(
+            "Index.ravel returning ndarray is deprecated; in a future version "
+            "this will return a view on self.",
+            FutureWarning,
+            stacklevel=2,
+        )
         values = self._get_engine_target()
         return values.ravel(order=order)
 
