@@ -605,7 +605,9 @@ class TestDataFrameMisc:
         #  raise NotImplementedError
         df = DataFrame()
 
-        inspect.getmembers(df)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # _AXIS_NAMES deprecated
+            inspect.getmembers(df)
 
         with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
