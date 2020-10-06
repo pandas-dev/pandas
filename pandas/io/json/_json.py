@@ -1098,7 +1098,7 @@ class SeriesParser(Parser):
             #  gets multiple values for keyword argument "dtype_if_empty
             self.obj = create_series_with_explicit_dtype(
                 *data, dtype_if_empty=object
-            )  # type:ignore [misc]
+            )  # type:ignore[misc]
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 

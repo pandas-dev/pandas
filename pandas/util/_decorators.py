@@ -279,7 +279,7 @@ def deprecate_nonkeyword_arguments(
         else:
             spec = inspect.getfullargspec(func)
             # mypy doesn't know that spec.defaults is Sized
-            allow_args = spec.args[: -len(spec.defaults)]  # type:ignore [arg-type]
+            allow_args = spec.args[: -len(spec.defaults)]  # type:ignore[arg-type]
 
         @wraps(func)
         def wrapper(*args, **kwargs):
