@@ -79,6 +79,7 @@ from pandas.core.dtypes.missing import array_equivalent, isna
 from pandas.core import ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
@@ -162,7 +163,7 @@ def _new_Index(cls, d):
 _IndexT = TypeVar("_IndexT", bound="Index")
 
 
-class Index(IndexOpsMixin, PandasObject):
+class Index(OpsMixin, IndexOpsMixin, PandasObject):
     """
     Immutable sequence used for indexing and alignment. The basic object
     storing axis labels for all pandas objects.
@@ -5392,24 +5393,6 @@ class Index(IndexOpsMixin, PandasObject):
         if is_bool_dtype(result):
             return result
         return ops.invalid_comparison(self, other, op)
-
-    def __eq__(self, other):
-        return self._cmp_method(other, operator.eq)
-
-    def __ne__(self, other):
-        return self._cmp_method(other, operator.ne)
-
-    def __lt__(self, other):
-        return self._cmp_method(other, operator.lt)
-
-    def __le__(self, other):
-        return self._cmp_method(other, operator.le)
-
-    def __gt__(self, other):
-        return self._cmp_method(other, operator.gt)
-
-    def __ge__(self, other):
-        return self._cmp_method(other, operator.ge)
 
     @classmethod
     def _add_numeric_methods_binary(cls):
