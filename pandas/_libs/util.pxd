@@ -48,4 +48,3 @@ cdef inline void set_array_not_contiguous(ndarray ao) nogil:
     # ao->flags &= ~(NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS);
     PyArray_CLEARFLAGS(ao,
                        (NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS))
-

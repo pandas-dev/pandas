@@ -47,3 +47,8 @@ repos:
     rev: v1.2.2
     hooks:
     -   id: yesqa
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+    -   id: end-of-file-fixer
+        exclude: '.html$|^LICENSES/|.csv$|.txt$|.svg$|.py$'

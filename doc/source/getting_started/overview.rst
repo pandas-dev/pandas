@@ -174,4 +174,3 @@ License
 -------
 
 .. literalinclude:: ../../../LICENSE
-
