@@ -285,6 +285,8 @@ Performance improvements
 - ``Styler`` uuid method altered to compress data transmission over web whilst maintaining reasonably low table collision probability (:issue:`36345`)
 - Performance improvement in :meth:`pd.to_datetime` with non-ns time unit for ``float`` ``dtype`` columns (:issue:`20445`)
 - Performance improvement in setting values on a :class:`IntervalArray` (:issue:`36310`)
+- The internal index method :meth:`~Index._shallow_copy` now makes the new index and original index share cached attributes,
+  avoiding creating these again, if created on either. This can speed up operations that depend on creating copies of existing indexes (:issue:`36840`)
 - Performance improvement in :meth:`RollingGroupby.count` (:issue:`35625`)
 
 .. ---------------------------------------------------------------------------
