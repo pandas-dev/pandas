@@ -7,34 +7,11 @@ from numpy cimport import_array
 
 import_array()
 
-from pandas._libs.util cimport is_array
 from pandas._libs.lib import is_complex
+from pandas._libs.util cimport is_array, is_real_number_object
 
 from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.missing import array_equivalent, isna
-
-
-cdef NUMERIC_TYPES = (
-    bool,
-    int,
-    float,
-    np.bool_,
-    np.int8,
-    np.int16,
-    np.int32,
-    np.int64,
-    np.uint8,
-    np.uint16,
-    np.uint32,
-    np.uint64,
-    np.float16,
-    np.float32,
-    np.float64,
-)
-
-
-cdef bint is_comparable_as_number(obj):
-    return isinstance(obj, NUMERIC_TYPES)
 
 
 cdef bint isiterable(obj):
@@ -200,7 +177,7 @@ cpdef assert_almost_equal(a, b,
         # object comparison
         return True
 
-    if is_comparable_as_number(a) and is_comparable_as_number(b):
+    if is_real_number_object(a) and is_real_number_object(b):
         if array_equivalent(a, b, strict_nan=True):
             # inf comparison
             return True
