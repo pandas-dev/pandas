@@ -648,7 +648,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     def _convert_arr_indexer(self, keyarr):
         try:
             return self._data._validate_listlike(
-                keyarr, "convert_arr_indexer", cast_str=True, allow_object=True
+                keyarr, "convert_arr_indexer", allow_object=True
             )
         except (ValueError, TypeError):
             return com.asarray_tuplesafe(keyarr)
