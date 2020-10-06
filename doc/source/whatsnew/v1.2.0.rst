@@ -189,6 +189,8 @@ Other enhancements
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
 - Added methods :meth:`IntegerArray.prod`, :meth:`IntegerArray.min`, and :meth:`IntegerArray.max` (:issue:`33790`)
+- Calling a NumPy ufunc on a ``DataFrame`` with extension types now presrves the extension types when possible (:issue:`23743`).
+- Calling a binary-input NumPy ufunc on multiple ``DataFrame`` objects now aligns, matching the behavior of binary operations and ufuncs on ``Series`` (:issue:`23743`).
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 
 .. _whatsnew_120.api_breaking.python:
@@ -289,6 +291,7 @@ Deprecations
 - Deprecated :meth:`Index.is_all_dates` (:issue:`27744`)
 - Deprecated automatic alignment on comparison operations between :class:`DataFrame` and :class:`Series`, do ``frame, ser = frame.align(ser, axis=1, copy=False)`` before e.g. ``frame == ser`` (:issue:`28759`)
 - :meth:`Rolling.count` with ``min_periods=None`` will default to the size of the window in a future version (:issue:`31302`)
+- Using "outer" ufuncs on DataFrames to return 4d ndarray is now deprecated. Convert to an ndarray first (:issue:`23743`)
 - :meth:`Index.ravel` returning a ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
 
 .. ---------------------------------------------------------------------------

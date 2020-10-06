@@ -557,6 +557,10 @@ class DataFrame(NDFrame):
         NDFrame.__init__(self, mgr)
 
     # ----------------------------------------------------------------------
+    # Array interface
+    _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
+
+    # ----------------------------------------------------------------------
 
     @property
     def axes(self) -> List[Index]:

@@ -87,11 +87,11 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas.core import missing, nanops
+from pandas.core import missing, nanops, ops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
-from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.construction import create_series_with_explicit_dtype, extract_array
 from pandas.core.flags import Flags
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, ensure_index
@@ -1911,6 +1911,102 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self._constructor(result, **d).__finalize__(
             self, method="__array_wrap__"
         )
+
+    @ops.defer_or_dispatch_ufunc
+    def __array_ufunc__(
+        self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any
+    ):
+        # XXX: check outer
+        # align all the inputs.
+        types = tuple(type(x) for x in inputs)
+        alignable = [x for x, t in zip(inputs, types) if issubclass(t, NDFrame)]
+
+        if len(alignable) > 1:
+            # This triggers alignment.
+            # At the moment, there aren't any ufuncs with more than two inputs
+            # so this ends up just being x1.index | x2.index, but we write
+            # it to handle *args.
+
+            if len(set(types)) > 1:
+                # We currently don't handle ufunc(DataFrame, Series)
+                # well. Previously this raised an internal ValueError. We might
+                # support it someday, so raise a NotImplementedError.
+                raise NotImplementedError(
+                    "Cannot apply ufunc {} to mixed DataFrame and Series "
+                    "inputs.".format(ufunc)
+                )
+            axes = self.axes
+            for obj in alignable[1:]:
+                # this relies on the fact that we aren't handling mixed
+                # series / frame ufuncs.
+                for i, (ax1, ax2) in enumerate(zip(axes, obj.axes)):
+                    axes[i] = ax1 | ax2
+
+            reconstruct_axes = dict(zip(self._AXIS_ORDERS, axes))
+            inputs = tuple(
+                x.reindex(**reconstruct_axes) if issubclass(t, NDFrame) else x
+                for x, t in zip(inputs, types)
+            )
+        else:
+            reconstruct_axes = dict(zip(self._AXIS_ORDERS, self.axes))
+
+        if self.ndim == 1:
+            names = [getattr(x, "name") for x in inputs if hasattr(x, "name")]
+            name = names[0] if len(set(names)) == 1 else None
+            reconstruct_kwargs = {"name": name}
+        else:
+            reconstruct_kwargs = {}
+
+        def reconstruct(result):
+            if lib.is_scalar(result):
+                return result
+            if result.ndim != self.ndim:
+                if method == "outer":
+                    if self.ndim == 2:
+                        # we already deprecated for Series
+                        msg = (
+                            "outer method for ufunc {} is not implemented on "
+                            "pandas objects. Returning an ndarray, but in the "
+                            "future this will raise a 'NotImplementedError'. "
+                            "Consider explicitly converting the DataFrame "
+                            "to an array with '.to_numpy()' first."
+                        )
+                        warnings.warn(msg.format(ufunc), FutureWarning, stacklevel=4)
+                        return result
+                    raise NotImplementedError
+                return result
+            if isinstance(result, BlockManager):
+                # we went through BlockManager.apply
+                return self._constructor(result, **reconstruct_kwargs, copy=False)
+            else:
+                # we converted an array, lost our axes
+                return self._constructor(
+                    result, **reconstruct_axes, **reconstruct_kwargs, copy=False
+                )
+
+        if self.ndim > 1 and (len(inputs) > 1 or ufunc.nout > 1):
+            # Just give up on preserving types in the complex case.
+            # In theory we could preserve them for them.
+            # * nout>1 is doable if BlockManager.apply took nout and
+            #   returned a Tuple[BlockManager].
+            # * len(inputs) > 1 is doable when we know that we have
+            #   aligned blocks / dtypes.
+            inputs = tuple(np.asarray(x) for x in inputs)
+            result = getattr(ufunc, method)(*inputs)
+        elif self.ndim == 1:
+            # ufunc(series, ...)
+            inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
+            result = getattr(ufunc, method)(*inputs, **kwargs)
+        else:
+            # ufunc(dataframe)
+            mgr = inputs[0]._mgr
+            result = mgr.apply(getattr(ufunc, method))
+
+        if ufunc.nout > 1:
+            result = tuple(reconstruct(x) for x in result)
+        else:
+            result = reconstruct(result)
+        return result
 
     # ideally we would define this to avoid the getattr checks, but
     # is slower
