@@ -427,7 +427,7 @@ class IntegerArray(BaseMaskedArray):
 
         result = getattr(ufunc, method)(*inputs2, **kwargs)
         if isinstance(result, tuple):
-            tuple(reconstruct(x) for x in result)
+            return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
 
