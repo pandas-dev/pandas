@@ -285,7 +285,8 @@ ToLatex
 .. ipython:: python
 
     data = [[1, 2, 3], [4, 5, 6], [7, 8, 9.001]]
-    df = pd.DataFrame(data, columns=["a", "b", "c"], index=["foo", "bar", "foobar"])
+    df = pd.DataFrame(data, columns=["a", "b", "c"], 
+        index=["foo", "bar", "foobar"])
     result = df.to_latex(formatters=["d", ".2f", lambda x: f"{x:.3f}"])
 
 
