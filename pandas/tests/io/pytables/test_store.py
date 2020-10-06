@@ -33,6 +33,7 @@ from pandas import (
     isna,
     timedelta_range,
 )
+
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
@@ -4223,7 +4224,7 @@ class TestHDFStore:
                         fd, new_f = tempfile.mkstemp()
 
                         tstore = store.copy(
-                        new_f, keys=keys, propindexes=propindexes, **kwargs)
+                            new_f, keys=keys, propindexes=propindexes, **kwargs)
 
                     # check keys
                     if keys is None:
