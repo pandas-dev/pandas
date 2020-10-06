@@ -44,6 +44,7 @@ Fixed regressions
 - Fixed regression in :class:`Period` incorrect value for ordinal over the maximum timestamp (:issue:`36430`)
 - Fixed regression in :func:`read_table` raised ``ValueError`` when ``delim_whitespace`` was set to ``True`` (:issue:`35958`)
 - Fixed regression in :meth:`Series.dt.normalize` when normalizing pre-epoch dates the result was shifted one day (:issue:`36294`)
+- Fixed regression in :class:`RollingGroupby` with ``sort=False`` not being respected (:issue:`36889`)
 
 .. ---------------------------------------------------------------------------
 
