@@ -977,72 +977,36 @@ def test_ffill_bfill_non_unique_multilevel(func, expected_status):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["ffill", "bfill"])
 @pytest.mark.parametrize("dropna", [True, False])
-@pytest.mark.parametrize("limit", [None, 1])
-@pytest.mark.parametrize("method", ["ffill", "bfill", "pad", "backfill"])
-@pytest.mark.parametrize("by", ["grp1", ["grp1"], ["grp1", "grp2"]])
-@pytest.mark.parametrize("has_nan", [[], ["grp1"], ["grp1", "grp2"]])
-def test_pad_handles_nan_groups(dropna, limit, method, by, has_nan):
+@pytest.mark.parametrize("has_nan_group", [True, False])
+def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
     # GH 34725
 
-    # Create two rows with many different dytypes. The first row will be in
-    # the 'good' group which never has a nan in the grouping column(s). The
-    # second row will be in the 'bad' grouping which sometimes has a nan in
-    # the group column(s).
-    rows = pd.DataFrame(
-        {
-            "int": pd.array([1, 2], dtype="Int64"),
-            "float": [0.1, 0.2],
-            "bool": pd.array([True, False], dtype="bool"),
-            "date": [pd.Timestamp(2010, 1, 1), pd.Timestamp(2020, 2, 2)],
-            "period": pd.array(
-                [pd.Period("2010-01"), pd.Period("2020-2")], dtype="period[M]"
-            ),
-            "obj": ["hello", "world"],
-            "cat": pd.Categorical(["a", "b"], categories=["a", "b", "c"]),
-        }
-    )
+    df_without_nan_rows = pd.DataFrame([(1, 0.1), (2, 0.2)])
 
-    # Put those rows into a 10-row dataframe at rows 2 and 7. This will
-    # allows us to ffill and bfill the rows and confirm that our method is
-    # behaving as expected
-    ridx = pd.Series([None] * 10)
-    ridx[2] = 0
-    ridx[7] = 1
-    df = rows.reindex(ridx).reset_index(drop=True)
+    ridx = [-1, 0, -1, -1, 1, -1]
+    df = df_without_nan_rows.reindex(ridx).reset_index(drop=True)
 
-    # Add the grouping column(s).
-    grps = pd.Series(["good"] * 5 + ["bad"] * 5)
-    if type(by) is list:
-        grps = pd.concat([grps] * len(by), axis=1)
-    df[by] = grps
+    group_b = np.nan if has_nan_group else "b"
+    df["group_col"] = pd.Series(["a"] * 3 + [group_b] * 3)
 
-    # Our 'has_nan' arg sometimes lists more columns than we are actually
-    # grouping by (our 'by' arg), i.e. has_nan=['grp1', 'grp2'] when
-    # by=['grp1']. We can just reduce 'has_nan' to its intersection with 'by'.
-    by = [by] if type(by) is not list else by
-    has_nan = list(set(has_nan).intersection(set(by)))
+    grouped = df.groupby(by="group_col", dropna=dropna)
+    result = getattr(grouped, method)(limit=None)
 
-    # For the colunms that are in 'has_nan' replace 'bad' with 'nan'
-    df[has_nan] = df[has_nan].replace("bad", np.nan)
+    expected_rows = {
+        ("ffill", True, True): [-1, 0, 0, -1, -1, -1],
+        ("ffill", True, False): [-1, 0, 0, -1, 1, 1],
+        ("ffill", False, True): [-1, 0, 0, -1, 1, 1],
+        ("ffill", False, False): [-1, 0, 0, -1, 1, 1],
+        ("bfill", True, True): [0, 0, -1, -1, -1, -1],
+        ("bfill", True, False): [0, 0, -1, 1, 1, -1],
+        ("bfill", False, True): [0, 0, -1, 1, 1, -1],
+        ("bfill", False, False): [0, 0, -1, 1, 1, -1],
+    }
 
-    grouped = df.groupby(by=by, dropna=dropna)
-    result = getattr(grouped, method)(limit=limit)
-
-    # If dropna=True and 'bad' has been replaced by 'nan', then the second
-    # 5 rows will all be nan, which is what we want: the nan group contains
-    # only nan values
-    if dropna and (len(has_nan) > 0):
-        ridx[7] = None
-
-    # To get our expected/benchmark output, we ffill/bfill the rows directly
-    # (not via a groupby), so we don't want limit=None for this part. With 5
-    # rows per group and the value rows in positions 2&7, we ffill/bfill
-    #  with limit=2. If we use limit=None rows 2&7 will ffill/bfill into the
-    # other group
-    lim = 2 if limit is None else limit
-    ridx = getattr(ridx, method)(limit=lim)
-    expected = rows.reindex(ridx).reset_index(drop=True)
+    ridx = expected_rows.get((method, dropna, has_nan_group))
+    expected = df_without_nan_rows.reindex(ridx).reset_index(drop=True)
 
     tm.assert_frame_equal(result, expected)
 

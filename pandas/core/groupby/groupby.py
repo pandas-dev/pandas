@@ -1855,7 +1855,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result_is_index=True,
             direction=direction,
             limit=limit,
-            dropna=self.dropna
+            dropna=self.dropna,
         )
 
         return res
