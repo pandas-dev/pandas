@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 
@@ -100,7 +101,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import RangeIndex, Series
+    from pandas import MultiIndex, RangeIndex, Series
 
 
 __all__ = ["Index"]
@@ -1608,6 +1609,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "levels: at least one level must be left."
             )
         # The two checks above guarantee that here self is a MultiIndex
+        self = cast("MultiIndex", self)
 
         new_levels = list(self.levels)
         new_codes = list(self.codes)
@@ -3759,6 +3761,8 @@ class Index(IndexOpsMixin, PandasObject):
             left, right = right, left
             how = {"right": "left", "left": "right"}.get(how, how)
 
+        assert isinstance(left, MultiIndex)
+
         level = left._get_level_number(level)
         old_level = left.levels[level]
 
@@ -4804,7 +4808,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if self._index_as_unique:
             return self.get_indexer(target, **kwargs)
-        indexer, _ = self.get_indexer_non_unique(target, **kwargs)
+        indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
     @property
@@ -5400,36 +5404,36 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Add in comparison methods.
         """
-        cls.__eq__ = _make_comparison_op(operator.eq, cls)
-        cls.__ne__ = _make_comparison_op(operator.ne, cls)
-        cls.__lt__ = _make_comparison_op(operator.lt, cls)
-        cls.__gt__ = _make_comparison_op(operator.gt, cls)
-        cls.__le__ = _make_comparison_op(operator.le, cls)
-        cls.__ge__ = _make_comparison_op(operator.ge, cls)
+        setattr(cls, "__eq__", _make_comparison_op(operator.eq, cls))
+        setattr(cls, "__ne__", _make_comparison_op(operator.ne, cls))
+        setattr(cls, "__lt__", _make_comparison_op(operator.lt, cls))
+        setattr(cls, "__gt__", _make_comparison_op(operator.gt, cls))
+        setattr(cls, "__le__", _make_comparison_op(operator.le, cls))
+        setattr(cls, "__ge__", _make_comparison_op(operator.ge, cls))
 
     @classmethod
     def _add_numeric_methods_binary(cls):
         """
         Add in numeric methods.
         """
-        cls.__add__ = _make_arithmetic_op(operator.add, cls)
-        cls.__radd__ = _make_arithmetic_op(ops.radd, cls)
-        cls.__sub__ = _make_arithmetic_op(operator.sub, cls)
-        cls.__rsub__ = _make_arithmetic_op(ops.rsub, cls)
-        cls.__rpow__ = _make_arithmetic_op(ops.rpow, cls)
-        cls.__pow__ = _make_arithmetic_op(operator.pow, cls)
+        setattr(cls, "__add__", _make_arithmetic_op(operator.add, cls))
+        setattr(cls, "__radd__", _make_arithmetic_op(ops.radd, cls))
+        setattr(cls, "__sub__", _make_arithmetic_op(operator.sub, cls))
+        setattr(cls, "__rsub__", _make_arithmetic_op(ops.rsub, cls))
+        setattr(cls, "__rpow__", _make_arithmetic_op(ops.rpow, cls))
+        setattr(cls, "__pow__", _make_arithmetic_op(operator.pow, cls))
 
-        cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
-        cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
+        setattr(cls, "__truediv__", _make_arithmetic_op(operator.truediv, cls))
+        setattr(cls, "__rtruediv__", _make_arithmetic_op(ops.rtruediv, cls))
 
-        cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
-        cls.__rmod__ = _make_arithmetic_op(ops.rmod, cls)
-        cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
-        cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
-        cls.__divmod__ = _make_arithmetic_op(divmod, cls)
-        cls.__rdivmod__ = _make_arithmetic_op(ops.rdivmod, cls)
-        cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
-        cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
+        setattr(cls, "__mod__", _make_arithmetic_op(operator.mod, cls))
+        setattr(cls, "__rmod__", _make_arithmetic_op(ops.rmod, cls))
+        setattr(cls, "__floordiv__", _make_arithmetic_op(operator.floordiv, cls))
+        setattr(cls, "__rfloordiv__", _make_arithmetic_op(ops.rfloordiv, cls))
+        setattr(cls, "__divmod__", _make_arithmetic_op(divmod, cls))
+        setattr(cls, "__rdivmod__", _make_arithmetic_op(ops.rdivmod, cls))
+        setattr(cls, "__mul__", _make_arithmetic_op(operator.mul, cls))
+        setattr(cls, "__rmul__", _make_arithmetic_op(ops.rmul, cls))
 
     @classmethod
     def _add_numeric_methods_unary(cls):
@@ -5446,10 +5450,10 @@ class Index(IndexOpsMixin, PandasObject):
             _evaluate_numeric_unary.__name__ = opstr
             return _evaluate_numeric_unary
 
-        cls.__neg__ = _make_evaluate_unary(operator.neg, "__neg__")
-        cls.__pos__ = _make_evaluate_unary(operator.pos, "__pos__")
-        cls.__abs__ = _make_evaluate_unary(np.abs, "__abs__")
-        cls.__inv__ = _make_evaluate_unary(lambda x: -x, "__inv__")
+        setattr(cls, "__neg__", _make_evaluate_unary(operator.neg, "__neg__"))
+        setattr(cls, "__pos__", _make_evaluate_unary(operator.pos, "__pos__"))
+        setattr(cls, "__abs__", _make_evaluate_unary(np.abs, "__abs__"))
+        setattr(cls, "__inv__", _make_evaluate_unary(lambda x: -x, "__inv__"))
 
     @classmethod
     def _add_numeric_methods(cls):
@@ -5561,11 +5565,19 @@ class Index(IndexOpsMixin, PandasObject):
             logical_func.__name__ = name
             return logical_func
 
-        cls.all = _make_logical_function(
-            "all", "Return whether all elements are True.", np.all
+        setattr(
+            cls,
+            "all",
+            _make_logical_function(
+                "all", "Return whether all elements are True.", np.all
+            ),
         )
-        cls.any = _make_logical_function(
-            "any", "Return whether any element is True.", np.any
+        setattr(
+            cls,
+            "any",
+            _make_logical_function(
+                "any", "Return whether any element is True.", np.any
+            ),
         )
 
     @classmethod
@@ -5573,8 +5585,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Add in logical methods to disable.
         """
-        cls.all = make_invalid_op("all")
-        cls.any = make_invalid_op("any")
+        setattr(cls, "all", make_invalid_op("all"))
+        setattr(cls, "any", make_invalid_op("any"))
 
     @property
     def shape(self):
