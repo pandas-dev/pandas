@@ -358,6 +358,7 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
     direction : {'ffill', 'bfill'}
         Direction for fill to be applied (forwards or backwards, respectively)
     limit : Consecutive values to fill before stopping, or -1 for no limit
+    dropna : Flag to indicate if NaN groups should return all NaN values
 
     Notes
     -----
