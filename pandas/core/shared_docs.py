@@ -265,16 +265,17 @@ Produced {klass} will have same axis length as self.
 
 Parameters
 ----------
-func : function, str, list or dict
+func : function, str, list-like or dict-like
     Function to use for transforming the data. If a function, must either
-    work when passed a {klass} or when passed to {klass}.apply.
+    work when passed a {klass} or when passed to {klass}.apply. If func
+    is both list-like and dict-like, dict-like behavior takes precedence.
 
     Accepted combinations are:
 
     - function
     - string function name
-    - list of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
-    - dict of axis labels -> functions, function names or list of such.
+    - list-like of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
+    - dict-like of axis labels -> functions, function names or list-like of such.
 {axis}
 *args
     Positional arguments to pass to `func`.
