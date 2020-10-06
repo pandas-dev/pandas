@@ -102,6 +102,7 @@ class TestHDFStore:
 
     def test_conv_read_write(self, setup_path):
         with tm.ensure_clean() as path:
+
             def roundtrip(key, obj, **kwargs):
                 obj.to_hdf(path, key, **kwargs)
                 return read_hdf(path, key)
@@ -4223,7 +4224,8 @@ class TestHDFStore:
                         fd, new_f = tempfile.mkstemp()
 
                         tstore = store.copy(
-                            new_f, keys=keys, propindexes=propindexes, **kwargs)
+                            new_f, keys=keys, propindexes=propindexes, **kwargs
+                        )
 
                     # check keys
                     if keys is None:
