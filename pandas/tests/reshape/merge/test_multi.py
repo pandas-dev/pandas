@@ -461,13 +461,6 @@ class TestMergeMulti:
         data = [
             [pd.Timestamp("1950-01-01"), "A", 1.5],
             [pd.Timestamp("1950-01-02"), "B", 1.5],
-            [pd.Timestamp("1950-01-03"), "B", 1.5],
-            [pd.Timestamp("1950-01-04"), "B", np.nan],
-            [pd.Timestamp("1950-01-05"), "B", 4.0],
-            [pd.Timestamp("1950-01-06"), "C", 4.0],
-            [pd.Timestamp("1950-01-07"), "C", np.nan],
-            [pd.Timestamp("1950-01-08"), "C", 3.0],
-            [pd.Timestamp("1950-01-09"), "C", 4.0],
         ]
 
         frame = DataFrame(data, columns=["date", "panel", "data"]).set_index(
@@ -479,13 +472,6 @@ class TestMergeMulti:
         expected_data = [
             [pd.Timestamp("1950-01-01"), "A", 1.5, pd.NA],
             [pd.Timestamp("1950-01-02"), "B", 1.5, pd.NA],
-            [pd.Timestamp("1950-01-03"), "B", 1.5, pd.NA],
-            [pd.Timestamp("1950-01-04"), "B", np.nan, pd.NA],
-            [pd.Timestamp("1950-01-05"), "B", 4.0, pd.NA],
-            [pd.Timestamp("1950-01-06"), "C", 4.0, pd.NA],
-            [pd.Timestamp("1950-01-07"), "C", np.nan, pd.NA],
-            [pd.Timestamp("1950-01-08"), "C", 3.0, pd.NA],
-            [pd.Timestamp("1950-01-09"), "C", 4.0, pd.NA],
         ]
 
         expected = DataFrame(expected_data, columns=["date", "panel", "data", "state"])
