@@ -1847,7 +1847,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if limit is None:
             limit = -1
 
-        res = self._get_cythonized_result(
+        return self._get_cythonized_result(
             "group_fillna_indexer",
             numeric_only=False,
             needs_mask=True,
@@ -1857,8 +1857,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             limit=limit,
             dropna=self.dropna,
         )
-
-        return res
 
     @Substitution(name="groupby")
     def pad(self, limit=None):
