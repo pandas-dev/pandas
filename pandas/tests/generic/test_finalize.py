@@ -330,7 +330,7 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.inv),
     (pd.Series, [1], operator.inv),
     (pd.DataFrame, frame_data, abs),
-    pytest.param((pd.Series, [1], abs), marks=not_implemented_mark),
+    (pd.Series, [1], abs),
     pytest.param((pd.DataFrame, frame_data, round), marks=not_implemented_mark),
     (pd.Series, [1], round),
     (pd.DataFrame, frame_data, operator.methodcaller("take", [0, 0])),

@@ -410,6 +410,7 @@ class DataFrame(NDFrame):
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
     _typ = "dataframe"
+    _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
 
     @property
     def _constructor(self) -> Type[DataFrame]:
@@ -555,10 +556,6 @@ class DataFrame(NDFrame):
                 )
 
         NDFrame.__init__(self, mgr)
-
-    # ----------------------------------------------------------------------
-    # Array interface
-    _HANDLED_TYPES = (Series, Index, ExtensionArray, np.ndarray)
 
     # ----------------------------------------------------------------------
 

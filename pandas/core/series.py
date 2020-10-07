@@ -176,6 +176,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     """
 
     _typ = "series"
+    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
     _name: Label
     _metadata: List[str] = ["name"]
@@ -681,7 +682,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ----------------------------------------------------------------------
     # NDArray Compat
-    _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
     def __array__(self, dtype=None) -> np.ndarray:
         """

@@ -2000,14 +2000,21 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 return result
             if isinstance(result, BlockManager):
                 # we went through BlockManager.apply
-                return self._constructor(result, **reconstruct_kwargs, copy=False)
+                result = self._constructor(result, **reconstruct_kwargs, copy=False)
             else:
                 # we converted an array, lost our axes
-                return self._constructor(
+                result = self._constructor(
                     result, **reconstruct_axes, **reconstruct_kwargs, copy=False
                 )
+            # TODO: When we support multiple values in __finalize__, this
+            # should pass alignable to `__fianlize__` instead of self.
+            # Then `np.add(a, b)` would consider attrs from both a and b
+            # when a and b are NDFrames.
+            return result.__finalize__(self)
 
-        if self.ndim > 1 and (len(inputs) > 1 or ufunc.nout > 1):
+        if self.ndim > 1 and (
+            len(inputs) > 1 or ufunc.nout > 1
+        ):  # type: ignore[attr-defined]
             # Just give up on preserving types in the complex case.
             # In theory we could preserve them for them.
             # * nout>1 is doable if BlockManager.apply took nout and
@@ -2025,7 +2032,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             mgr = inputs[0]._mgr
             result = mgr.apply(getattr(ufunc, method))
 
-        if ufunc.nout > 1:
+        if ufunc.nout > 1:  # type: ignore[attr-defined]
             result = tuple(reconstruct(x) for x in result)
         else:
             result = reconstruct(result)
