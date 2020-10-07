@@ -83,11 +83,11 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_cast_to_datetime,
+    maybe_casted_values,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
     maybe_upcast,
-    maybe_upcast_putmask,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -114,7 +114,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
@@ -125,15 +125,12 @@ from pandas.core.aggregation import (
     transform,
 )
 from pandas.core.arrays import Categorical, ExtensionArray
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
-from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
-from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -4847,46 +4844,6 @@ class DataFrame(NDFrame):
         else:
             new_obj = self.copy()
 
-        def _maybe_casted_values(index, labels=None):
-            values = index._values
-            if not isinstance(index, (PeriodIndex, DatetimeIndex)):
-                if values.dtype == np.object_:
-                    values = lib.maybe_convert_objects(values)
-
-            # if we have the labels, extract the values with a mask
-            if labels is not None:
-                mask = labels == -1
-
-                # we can have situations where the whole mask is -1,
-                # meaning there is nothing found in labels, so make all nan's
-                if mask.size > 0 and mask.all():
-                    dtype = index.dtype
-                    fill_value = na_value_for_dtype(dtype)
-                    values = construct_1d_arraylike_from_scalar(
-                        fill_value, len(mask), dtype
-                    )
-                else:
-                    values = values.take(labels)
-
-                    # TODO(https://github.com/pandas-dev/pandas/issues/24206)
-                    # Push this into maybe_upcast_putmask?
-                    # We can't pass EAs there right now. Looks a bit
-                    # complicated.
-                    # So we unbox the ndarray_values, op, re-box.
-                    values_type = type(values)
-                    values_dtype = values.dtype
-
-                    if issubclass(values_type, DatetimeLikeArray):
-                        values = values._data  # TODO: can we de-kludge yet?
-
-                    if mask.any():
-                        values, _ = maybe_upcast_putmask(values, mask, np.nan)
-
-                    if issubclass(values_type, DatetimeLikeArray):
-                        values = values_type(values, dtype=values_dtype)
-
-            return values
-
         new_index = ibase.default_index(len(new_obj))
         if level is not None:
             if not isinstance(level, (tuple, list)):
@@ -4929,7 +4886,7 @@ class DataFrame(NDFrame):
                     name_lst += [col_fill] * missing
                     name = tuple(name_lst)
                 # to ndarray and maybe infer different dtype
-                level_values = _maybe_casted_values(lev, lab)
+                level_values = maybe_casted_values(lev, lab)
                 new_obj.insert(0, name, level_values)
 
         new_obj.index = new_index
