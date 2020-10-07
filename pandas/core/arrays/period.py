@@ -148,7 +148,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # --------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values, dtype=None, freq=None, copy=False):
+    def __init__(self, values, freq=None, dtype=None, copy=False):
         freq = validate_dtype_freq(dtype, freq)
 
         if freq is not None:
