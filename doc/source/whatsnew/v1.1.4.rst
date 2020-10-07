@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- `dict_keys` not being accepted as valid column names by `pandas.io.parsers._validate_names`
+- ``dict_keys`` not being accepted as valid column names by ``pandas.io.parsers._validate_names``
 
 .. ---------------------------------------------------------------------------
 
