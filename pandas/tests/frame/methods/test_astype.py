@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalDtype,
     DataFrame,
@@ -137,7 +138,7 @@ class TestAstype:
             df.astype(dtype)
 
     @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
-    @pytest.mark.parametrize("val", [np.nan])
+    @pytest.mark.parametrize("val", [np.nan, NA])
     def test_astype_cast_via_loc_nan_int(self, val, dtype):
         # see GH#31861
         expected = DataFrame({"a": ["foo"], "b": integer_array([val], dtype=dtype)})
