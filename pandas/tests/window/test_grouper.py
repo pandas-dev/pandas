@@ -458,7 +458,6 @@ class TestGrouperGrouping:
         ).set_index(["group", "index"])
         tm.assert_frame_equal(result, expected)
 
-
     @pytest.mark.parametrize(
         ("rollings", "key"), [({"on": "a"}, "a"), ({"on": None}, "index")]
     )
