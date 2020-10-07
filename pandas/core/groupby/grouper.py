@@ -563,16 +563,12 @@ class Grouping:
         if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
-        if self.sort:
-            values = Categorical(self.grouper)
-            return values._reverse_indexer()
-        else:
-            # GH 36889
-            indices_dict = {}
-            codes, uniques = algorithms.factorize(self.grouper, sort=False)
-            for i, category in enumerate(uniques):
-                indices_dict[category] = np.flatnonzero(codes == i)
-            return indices_dict
+        # GH 36889
+        indices_dict = {}
+        codes, uniques = algorithms.factorize(self.grouper, sort=self.sort)
+        for i, category in enumerate(Index(uniques)):
+            indices_dict[category] = np.flatnonzero(codes == i)
+        return indices_dict
 
     @property
     def codes(self) -> np.ndarray:
