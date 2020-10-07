@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, FrozenSet, List, Optional, TypeVar, Unio
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import AggFuncType, AggFuncTypeBase, Label
+from pandas._typing import AggFuncType, AggFuncTypeBase, IndexLabel, Label
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -30,6 +30,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
@@ -138,7 +139,7 @@ class SelectionMixin:
     object sub-classes need to define: obj, exclusions
     """
 
-    _selection = None
+    _selection: Optional[IndexLabel] = None
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
@@ -589,7 +590,7 @@ class SelectionMixin:
         return self._builtin_table.get(arg, arg)
 
 
-class IndexOpsMixin:
+class IndexOpsMixin(OpsMixin):
     """
     Common ops mixin to support a unified interface / docs for Series / Index
     """
