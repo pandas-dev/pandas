@@ -13,26 +13,16 @@ dependencies:
   - pytest-azurepipelines
 
   # pandas dependencies
-  - beautifulsoup4
+  - botocore>=1.11
   - fsspec>=0.7.4
-  - html5lib
-  - lxml
-  - matplotlib
-  - numexpr
   - numpy
-  - openpyxl
-  - patsy
-  - psycopg2
-  - pymysql
-  - pytables
   - python-dateutil
+  - nomkl
+  - pyarrow
   - pytz
   - s3fs>=0.4.0
   - moto>=1.3.14
-  - scipy
-  - sqlalchemy
-  - xlrd
-  - xlsxwriter
-  - xlwt
-  - moto
   - flask
+  - tabulate
+  - pyreadstat
+  - pip
