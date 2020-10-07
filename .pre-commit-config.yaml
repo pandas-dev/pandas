@@ -39,10 +39,11 @@ repos:
     -   id: pip_to_conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
-        language: system
+        language: python
         entry: python -m scripts.generate_pip_deps_from_conda
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
+        additional_dependencies: [pyyaml]
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
