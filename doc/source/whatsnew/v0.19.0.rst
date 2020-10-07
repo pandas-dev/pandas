@@ -1091,7 +1091,9 @@ Previously, most ``Index`` classes returned ``np.ndarray``, and ``DatetimeIndex`
 .. ipython:: python
 
    pd.Index([1, 2, 3]).unique()
-   pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz="Asia/Tokyo").unique()
+   pd.DatetimeIndex(
+       ["2011-01-01", "2011-01-02", "2011-01-03"], tz="Asia/Tokyo"
+   ).unique()
 
 .. _whatsnew_0190.api.multiindex:
 

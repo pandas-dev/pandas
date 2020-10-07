@@ -444,7 +444,7 @@ def wide_to_long(
     8      3      3     2.1     2.9
 
     >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age',
-    ...                     sep='_', suffix='\w+')
+    ...                     sep='_', suffix=r'\w+')
     >>> l
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht
