@@ -382,7 +382,9 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
     with nogil:
         for i in range(N):
             idx = sorted_labels[i]
-            if mask[idx] == 1:  # is missing
+            if dropna and labels[idx] == -1: # nan-group gets nan-values
+                curr_fill_idx = -1
+            elif mask[idx] == 1:  # is missing
                 # Stop filling once we've hit the limit
                 if filled_vals >= limit and limit != -1:
                     curr_fill_idx = -1
@@ -390,8 +392,6 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
             else:  # reset items when not missing
                 filled_vals = 0
                 curr_fill_idx = idx
-            if dropna and labels[idx] == -1:
-                curr_fill_idx = -1
 
             out[idx] = curr_fill_idx
 
