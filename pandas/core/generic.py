@@ -2690,6 +2690,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
         An `sqlalchemy.engine.Connection` can also be passed to to `con`:
+
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
         ...     df1.to_sql('users', con=connection, if_exists='append')
@@ -9244,11 +9245,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> df.shift(periods=1, axis="columns")
                     Col1  Col2  Col3
-        2020-01-01   NaN  10.0  13.0
-        2020-01-02   NaN  20.0  23.0
-        2020-01-03   NaN  15.0  18.0
-        2020-01-04   NaN  30.0  33.0
-        2020-01-05   NaN  45.0  48.0
+        2020-01-01   NaN    10    13
+        2020-01-02   NaN    20    23
+        2020-01-03   NaN    15    18
+        2020-01-04   NaN    30    33
+        2020-01-05   NaN    45    48
 
         >>> df.shift(periods=3, fill_value=0)
                     Col1  Col2  Col3
