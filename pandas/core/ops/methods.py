@@ -46,7 +46,6 @@ def _get_method_wrappers(cls):
     from pandas.core.ops import (
         arith_method_FRAME,
         arith_method_SERIES,
-        bool_method_SERIES,
         comp_method_FRAME,
         flex_comp_method_FRAME,
         flex_method_SERIES,
@@ -58,7 +57,7 @@ def _get_method_wrappers(cls):
         comp_flex = flex_method_SERIES
         arith_special = arith_method_SERIES
         comp_special = None
-        bool_special = bool_method_SERIES
+        bool_special = None
     elif issubclass(cls, ABCDataFrame):
         arith_flex = arith_method_FRAME
         comp_flex = flex_comp_method_FRAME
@@ -118,13 +117,23 @@ def add_special_arithmetic_methods(cls):
         )
     )
 
-    new_methods.update(
-        dict(
-            __iand__=_wrap_inplace_method(new_methods["__and__"]),
-            __ior__=_wrap_inplace_method(new_methods["__or__"]),
-            __ixor__=_wrap_inplace_method(new_methods["__xor__"]),
+    if bool_method is None:
+        # Series gets bool_method via OpsMixin
+        new_methods.update(
+            dict(
+                __iand__=_wrap_inplace_method(cls.__and__),
+                __ior__=_wrap_inplace_method(cls.__or__),
+                __ixor__=_wrap_inplace_method(cls.__xor__),
+            )
         )
-    )
+    else:
+        new_methods.update(
+            dict(
+                __iand__=_wrap_inplace_method(new_methods["__and__"]),
+                __ior__=_wrap_inplace_method(new_methods["__or__"]),
+                __ixor__=_wrap_inplace_method(new_methods["__xor__"]),
+            )
+        )
 
     _add_methods(cls, new_methods=new_methods)
 
