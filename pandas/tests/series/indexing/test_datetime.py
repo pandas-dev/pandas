@@ -273,7 +273,7 @@ def test_getitem_setitem_datetimeindex():
 
     lb = datetime(1990, 1, 1, 4)
     rb = datetime(1990, 1, 1, 7)
-    msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+    msg = r"Invalid comparison between dtype=datetime64\[ns, US/Eastern\] and datetime"
     with pytest.raises(TypeError, match=msg):
         # tznaive vs tzaware comparison is invalid
         # see GH#18376, GH#18162
