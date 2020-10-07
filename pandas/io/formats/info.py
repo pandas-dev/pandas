@@ -516,7 +516,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
         super().__init__(info=info)
         self.with_counts = with_counts
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
-        self.gross_column_widths = self._get_gross_column_widths()
+        self.gross_column_widths: Sequence[int] = self._get_gross_column_widths()
 
     @property
     def headers(self) -> Sequence[str]:
@@ -544,7 +544,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
         return [len(col) for col in self.headers]
 
     def _get_gross_column_widths(self) -> Sequence[int]:
-        """Widths of columns containing both headers and actual content."""
+        """Get widths of columns containing both headers and actual content."""
         body_column_widths = self._get_body_column_widths()
         return [
             max(*widths)
@@ -552,7 +552,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
         ]
 
     def _get_body_column_widths(self) -> Sequence[int]:
-        """Widths of table content columns."""
+        """Get widths of table content columns."""
         strcols: Sequence[Sequence[str]] = list(zip(*self.strrows))
         return [max(len(x) for x in col) for col in strcols]
 
