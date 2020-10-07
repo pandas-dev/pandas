@@ -2010,7 +2010,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             # should pass alignable to `__fianlize__` instead of self.
             # Then `np.add(a, b)` would consider attrs from both a and b
             # when a and b are NDFrames.
-            return result.__finalize__(self)
+            if len(alignable) == 1:
+                result = result.__finalize__(self)
+            return result
 
         if self.ndim > 1 and (
             len(inputs) > 1 or ufunc.nout > 1
