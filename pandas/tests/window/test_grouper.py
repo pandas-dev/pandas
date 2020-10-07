@@ -45,9 +45,9 @@ class TestGrouperGrouping:
 
         # GH 13174
         g = self.frame.groupby("A")
-        r = g.rolling(2)
+        r = g.rolling(2, min_periods=0)
         g_mutated = get_groupby(self.frame, by="A", mutated=True)
-        expected = g_mutated.B.apply(lambda x: x.rolling(2).count())
+        expected = g_mutated.B.apply(lambda x: x.rolling(2, min_periods=0).count())
 
         result = r.B.count()
         tm.assert_series_equal(result, expected)
@@ -56,7 +56,19 @@ class TestGrouperGrouping:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
+        "f",
+        [
+            "sum",
+            "mean",
+            "min",
+            "max",
+            pytest.param(
+                "count",
+                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
+            ),
+            "kurt",
+            "skew",
+        ],
     )
     def test_rolling(self, f):
         g = self.frame.groupby("A")
@@ -415,4 +427,33 @@ class TestGrouperGrouping:
         expected = pd.DataFrame({"s1": [], "s2": []})
         result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
         expected.index = pd.MultiIndex.from_tuples([], names=["s1", "s2", None])
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_rolling_string_index(self):
+        # GH: 36727
+        df = pd.DataFrame(
+            [
+                ["A", "group_1", pd.Timestamp(2019, 1, 1, 9)],
+                ["B", "group_1", pd.Timestamp(2019, 1, 2, 9)],
+                ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9)],
+                ["H", "group_1", pd.Timestamp(2019, 1, 6, 9)],
+                ["E", "group_2", pd.Timestamp(2019, 1, 20, 9)],
+            ],
+            columns=["index", "group", "eventTime"],
+        ).set_index("index")
+
+        groups = df.groupby("group")
+        df["count_to_date"] = groups.cumcount()
+        rolling_groups = groups.rolling("10d", on="eventTime")
+        result = rolling_groups.apply(lambda df: df.shape[0])
+        expected = pd.DataFrame(
+            [
+                ["A", "group_1", pd.Timestamp(2019, 1, 1, 9), 1.0],
+                ["B", "group_1", pd.Timestamp(2019, 1, 2, 9), 2.0],
+                ["H", "group_1", pd.Timestamp(2019, 1, 6, 9), 3.0],
+                ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9), 1.0],
+                ["E", "group_2", pd.Timestamp(2019, 1, 20, 9), 1.0],
+            ],
+            columns=["index", "group", "eventTime", "count_to_date"],
+        ).set_index(["group", "index"])
         tm.assert_frame_equal(result, expected)

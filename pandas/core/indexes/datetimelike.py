@@ -134,6 +134,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
         if not isinstance(other, Index):
             return False
+        elif other.dtype.kind in ["f", "i", "u", "c"]:
+            return False
         elif not isinstance(other, type(self)):
             try:
                 other = type(self)(other)
@@ -644,7 +646,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     def _convert_arr_indexer(self, keyarr):
         try:
             return self._data._validate_listlike(
-                keyarr, "convert_arr_indexer", cast_str=True, allow_object=True
+                keyarr, "convert_arr_indexer", allow_object=True
             )
         except (ValueError, TypeError):
             return com.asarray_tuplesafe(keyarr)
@@ -669,17 +671,15 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
-        cache = self._cache.copy() if values is None else {}
 
-        if values is None:
-            values = self._data
-
-        if isinstance(values, np.ndarray):
+        if values is not None:
             # TODO: We would rather not get here
-            values = type(self._data)(values, dtype=self.dtype)
+            if isinstance(values, np.ndarray):
+                values = type(self._data)(values, dtype=self.dtype)
+            return self._simple_new(values, name=name)
 
-        result = type(self)._simple_new(values, name=name)
-        result._cache = cache
+        result = self._simple_new(self._data, name=name)
+        result._cache = self._cache
         return result
 
     # --------------------------------------------------------------------
