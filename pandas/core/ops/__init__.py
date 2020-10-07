@@ -27,10 +27,7 @@ from pandas.core.ops.array_ops import (  # noqa:F401
     get_array_op,
     logical_op,
 )
-from pandas.core.ops.common import (  # noqa:F401
-    defer_or_dispatch_ufunc,
-    unpack_zerodim_and_defer,
-)
+from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
