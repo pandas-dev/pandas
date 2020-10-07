@@ -6,8 +6,14 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
-from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_bool_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+    is_string_dtype,
+    pandas_dtype,
+)
 
 from pandas import compat
 from pandas.core import ops
@@ -18,7 +24,7 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 @register_extension_dtype
@@ -79,7 +85,7 @@ class StringDtype(ExtensionDtype):
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -198,11 +204,20 @@ class StringArray(PandasArray):
         if dtype:
             assert dtype == "string"
 
-        result = np.asarray(scalars, dtype="object")
-        # convert non-na-likes to str, and nan-likes to StringDtype.na_value
-        result = lib.ensure_string_array(
-            result, na_value=StringDtype.na_value, copy=copy
-        )
+        from pandas.core.arrays.masked import BaseMaskedArray
+
+        if isinstance(scalars, BaseMaskedArray):
+            # avoid costly conversion to object dtype
+            na_values = scalars._mask
+            result = scalars._data
+            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result[na_values] = StringDtype.na_value
+
+        else:
+            # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+            result = lib.ensure_string_array(
+                scalars, na_value=StringDtype.na_value, copy=copy
+            )
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
@@ -293,7 +308,7 @@ class StringArray(PandasArray):
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes
         if deep:
             return result + lib.memory_usage_of_objects(self._ndarray)
@@ -348,6 +363,58 @@ class StringArray(PandasArray):
         cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
 
     _create_comparison_method = _create_arithmetic_method
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = StringDtype.na_value
+
+    def _str_map(self, f, na_value=None, dtype=None):
+        from pandas.arrays import BooleanArray, IntegerArray, StringArray
+        from pandas.core.arrays.string_ import StringDtype
+
+        if dtype is None:
+            dtype = StringDtype()
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            constructor: Union[Type[IntegerArray], Type[BooleanArray]]
+            if is_integer_dtype(dtype):
+                constructor = IntegerArray
+            else:
+                constructor = BooleanArray
+
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                na_value = 1
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                dtype=np.dtype(dtype),
+            )
+
+            if not na_value_is_na:
+                mask[:] = False
+
+            return constructor(result, mask)
+
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+            # i.e. StringDtype
+            result = lib.map_infer_mask(
+                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+            )
+            return StringArray(result)
+        else:
+            # This is when the result type is object. We reach this when
+            # -> We know the result type is truly object (e.g. .encode returns bytes
+            #    or .findall returns a list).
+            # -> We don't know the result type. E.g. `.get` can return anything.
+            return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
 
 StringArray._add_arithmetic_ops()

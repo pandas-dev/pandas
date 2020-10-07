@@ -28,7 +28,6 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution, cache_readonly
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -48,11 +47,9 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
-from pandas.core import missing, nanops, ops
+from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
@@ -120,7 +117,9 @@ class AttributesMixin:
     _data: np.ndarray
 
     @classmethod
-    def _simple_new(cls, values: np.ndarray, **kwargs):
+    def _simple_new(
+        cls, values: np.ndarray, freq: Optional[BaseOffset] = None, dtype=None
+    ):
         raise AbstractMethodError(cls)
 
     @property
@@ -171,7 +170,7 @@ class AttributesMixin:
         value : Period, Timestamp, Timedelta, or NaT
             Depending on subclass.
         setitem : bool, default False
-            Whether to check compatiblity with setitem strictness.
+            Whether to check compatibility with setitem strictness.
 
         Returns
         -------
@@ -686,7 +685,11 @@ class DatetimeLikeArrayMixin(
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
             other = self._scalar_type(other)  # type: ignore[call-arg]
-            self._check_compatible_with(other)
+            try:
+                self._check_compatible_with(other)
+            except TypeError as err:
+                # e.g. tzawareness mismatch
+                raise InvalidComparison(other) from err
 
         elif not is_list_like(other):
             raise InvalidComparison(other)
@@ -697,8 +700,13 @@ class DatetimeLikeArrayMixin(
         else:
             try:
                 other = self._validate_listlike(other, opname, allow_object=True)
+                self._check_compatible_with(other)
             except TypeError as err:
-                raise InvalidComparison(other) from err
+                if is_object_dtype(getattr(other, "dtype", None)):
+                    # We will have to operate element-wise
+                    pass
+                else:
+                    raise InvalidComparison(other) from err
 
         return other
 
@@ -757,9 +765,7 @@ class DatetimeLikeArrayMixin(
 
         return self._unbox(fill_value)
 
-    def _validate_scalar(
-        self, value, msg: Optional[str] = None, cast_str: bool = False
-    ):
+    def _validate_scalar(self, value, msg: Optional[str] = None):
         """
         Validate that the input value can be cast to our scalar_type.
 
@@ -770,14 +776,12 @@ class DatetimeLikeArrayMixin(
             Message to raise in TypeError on invalid input.
             If not provided, `value` is cast to a str and used
             as the message.
-        cast_str : bool, default False
-            Whether to try to parse string input to scalar_type.
 
         Returns
         -------
         self._scalar_type or NaT
         """
-        if cast_str and isinstance(value, str):
+        if isinstance(value, str):
             # NB: Careful about tzawareness
             try:
                 value = self._scalar_from_string(value)
@@ -799,9 +803,7 @@ class DatetimeLikeArrayMixin(
 
         return value
 
-    def _validate_listlike(
-        self, value, opname: str, cast_str: bool = False, allow_object: bool = False
-    ):
+    def _validate_listlike(self, value, opname: str, allow_object: bool = False):
         if isinstance(value, type(self)):
             return value
 
@@ -810,7 +812,7 @@ class DatetimeLikeArrayMixin(
         value = array(value)
         value = extract_array(value, extract_numpy=True)
 
-        if cast_str and is_dtype_equal(value.dtype, "string"):
+        if is_dtype_equal(value.dtype, "string"):
             # We got a StringArray
             try:
                 # TODO: Could use from_sequence_of_strings if implemented
@@ -840,9 +842,9 @@ class DatetimeLikeArrayMixin(
     def _validate_searchsorted_value(self, value):
         msg = "searchsorted requires compatible dtype or scalar"
         if not is_list_like(value):
-            value = self._validate_scalar(value, msg, cast_str=True)
+            value = self._validate_scalar(value, msg)
         else:
-            value = self._validate_listlike(value, "searchsorted", cast_str=True)
+            value = self._validate_listlike(value, "searchsorted")
 
         rv = self._unbox(value)
         return self._rebox_native(rv)
@@ -853,15 +855,15 @@ class DatetimeLikeArrayMixin(
             f"or array of those. Got '{type(value).__name__}' instead."
         )
         if is_list_like(value):
-            value = self._validate_listlike(value, "setitem", cast_str=True)
+            value = self._validate_listlike(value, "setitem")
         else:
-            value = self._validate_scalar(value, msg, cast_str=True)
+            value = self._validate_scalar(value, msg)
 
         return self._unbox(value, setitem=True)
 
     def _validate_insert_value(self, value):
         msg = f"cannot insert {type(self).__name__} with incompatible label"
-        value = self._validate_scalar(value, msg, cast_str=False)
+        value = self._validate_scalar(value, msg)
 
         self._check_compatible_with(value, setitem=True)
         # TODO: if we dont have compat, should we raise or astype(object)?
@@ -978,53 +980,6 @@ class DatetimeLikeArrayMixin(
                 fill_value = np.nan
             result[self._isnan] = fill_value
         return result
-
-    def fillna(self, value=None, method=None, limit=None):
-        # TODO(GH-20300): remove this
-        # Just overriding to ensure that we avoid an astype(object).
-        # Either 20300 or a `_values_for_fillna` would avoid this duplication.
-        if isinstance(value, ABCSeries):
-            value = value.array
-
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                if method == "pad":
-                    func = missing.pad_1d
-                else:
-                    func = missing.backfill_1d
-
-                values = self._ndarray
-                if not is_period_dtype(self.dtype):
-                    # For PeriodArray self._ndarray is i8, which gets copied
-                    #  by `func`.  Otherwise we need to make a copy manually
-                    # to avoid modifying `self` in-place.
-                    values = values.copy()
-
-                new_values = func(values, limit=limit, mask=mask)
-                if is_datetime64tz_dtype(self.dtype):
-                    # we need to pass int64 values to the constructor to avoid
-                    #  re-localizing incorrectly
-                    new_values = new_values.view("i8")
-                new_values = type(self)(new_values, dtype=self.dtype)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     # ------------------------------------------------------------------
     # Frequency Properties/Methods
@@ -1173,7 +1128,7 @@ class DatetimeLikeArrayMixin(
         raise TypeError(f"cannot subtract Period from a {type(self).__name__}")
 
     def _add_period(self, other: Period):
-        # Overriden by TimedeltaArray
+        # Overridden by TimedeltaArray
         raise TypeError(f"cannot add Period to a {type(self).__name__}")
 
     def _add_offset(self, offset):
@@ -1326,8 +1281,8 @@ class DatetimeLikeArrayMixin(
             result = self + offset
             return result
 
-        if periods == 0:
-            # immutable so OK
+        if periods == 0 or len(self) == 0:
+            # GH#14811 empty case
             return self.copy()
 
         if self.freq is None:
@@ -1502,13 +1457,6 @@ class DatetimeLikeArrayMixin(
 
     # --------------------------------------------------------------
     # Reductions
-
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
-        op = getattr(self, name, None)
-        if op:
-            return op(skipna=skipna, **kwargs)
-        else:
-            return super()._reduce(name, skipna, **kwargs)
 
     def min(self, axis=None, skipna=True, *args, **kwargs):
         """
