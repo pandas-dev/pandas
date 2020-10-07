@@ -111,6 +111,8 @@ def to_json(
 
 
 class Writer:
+    _default_orient: str
+
     def __init__(
         self,
         obj,
@@ -126,8 +128,7 @@ class Writer:
         self.obj = obj
 
         if orient is None:
-            # error: "Writer" has no attribute "_default_orient"
-            orient = self._default_orient  # type: ignore[attr-defined]
+            orient = self._default_orient
 
         self.orient = orient
         self.date_format = date_format
