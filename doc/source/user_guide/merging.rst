@@ -154,6 +154,14 @@ functionality below.
    frames = [ process_your_file(f) for f in files ]
    result = pd.concat(frames)
 
+.. note::
+
+   When concatenating DataFrames with named axes, pandas will attempt to preserve
+   these index/column names whenever possible. In the case where all inputs share a
+   common name, this name will be assigned to the result. When the input names do
+   not all agree, the result will be unnamed. The same is true for :class:`MultiIndex`,
+   but the logic is applied separately on a level-by-level basis.
+
 
 Set logic on the other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
