@@ -1,16 +1,6 @@
 from abc import ABC, abstractmethod
 import sys
-from typing import (
-    IO,
-    TYPE_CHECKING,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Type,
-    Union,
-)
+from typing import IO, TYPE_CHECKING, Iterator, List, Mapping, Optional, Sequence, Union
 
 from pandas._config import get_option
 
@@ -345,30 +335,31 @@ class InfoPrinter:
 
     def to_buffer(self, buf: Optional[IO[str]] = None) -> None:
         """Save dataframe info into buffer."""
-        klass = self._select_table_builder()
-        table_builder = klass(info=self.info)
+        table_builder = self._create_table_builder()
         lines = table_builder.get_lines()
         if buf is None:  # pragma: no cover
             buf = sys.stdout
         fmt.buffer_put_lines(buf, lines)
 
-    def _select_table_builder(self) -> Type["DataFrameTableBuilder"]:
-        """Select table builder based on verbosity and display settings."""
+    def _create_table_builder(self) -> "DataFrameTableBuilder":
+        """
+        Create instance of table builder based on verbosity and display settings.
+        """
         if self.verbose:
-            if self.show_counts:
-                return DataFrameTableBuilderVerboseWithCounts
-            else:
-                return DataFrameTableBuilderVerboseNoCounts
+            return DataFrameTableBuilderVerbose(
+                info=self.info,
+                with_counts=self.show_counts,
+            )
         elif self.verbose is False:  # specifically set to False, not necessarily None
-            return DataFrameTableBuilderNonVerbose
+            return DataFrameTableBuilderNonVerbose(info=self.info)
         else:
             if self.exceeds_info_cols:
-                return DataFrameTableBuilderNonVerbose
+                return DataFrameTableBuilderNonVerbose(info=self.info)
             else:
-                if self.show_counts:
-                    return DataFrameTableBuilderVerboseWithCounts
-                else:
-                    return DataFrameTableBuilderVerboseNoCounts
+                return DataFrameTableBuilderVerbose(
+                    info=self.info,
+                    with_counts=self.show_counts,
+                )
 
 
 class TableBuilderAbstract(ABC):
@@ -514,18 +505,33 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
     """Info table builder for verbose output."""
 
     SPACING = " " * 2
-    HEADERS: Sequence[str]
 
-    def __init__(self, *, info):
+    def __init__(
+        self,
+        *,
+        info: DataFrameInfo,
+        with_counts: bool,
+    ):
         super().__init__(info=info)
+        self.with_counts = with_counts
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
 
-    @abstractmethod
+    @property
+    def headers(self) -> Sequence[str]:
+        """Headers names of the columns in verbose table."""
+        if self.with_counts:
+            return [" # ", "Column", "Non-Null Count", "Dtype"]
+        return [" # ", "Column", "Dtype"]
+
     def _gen_rows(self) -> Iterator[Sequence[str]]:
         """Generator function yielding rows content.
 
         Each element represents a row comprising a sequence of strings.
         """
+        if self.with_counts:
+            return self._gen_rows_with_counts()
+        else:
+            return self._gen_rows_without_counts()
 
     def add_columns_summary_line(self) -> None:
         self._lines.append(f"Data columns (total {self.col_count} columns):")
@@ -533,7 +539,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
     @property
     def header_column_widths(self) -> Sequence[int]:
         """Widths of header columns (only titles)."""
-        return [len(col) for col in self.HEADERS]
+        return [len(col) for col in self.headers]
 
     @property
     def body_column_widths(self) -> Sequence[int]:
@@ -553,7 +559,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
         header_line = self.SPACING.join(
             [
                 _put_str(header, col_width)
-                for header, col_width in zip(self.HEADERS, self.gross_column_widths)
+                for header, col_width in zip(self.headers, self.gross_column_widths)
             ]
         )
         self._lines.append(header_line)
@@ -579,6 +585,21 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
             )
             self._lines.append(body_line)
 
+    def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
+        yield from zip(
+            self._gen_line_numbers(),
+            self._gen_columns(),
+            self._gen_dtypes(),
+        )
+
+    def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
+        yield from zip(
+            self._gen_line_numbers(),
+            self._gen_columns(),
+            self._gen_non_null_counts(),
+            self._gen_dtypes(),
+        )
+
     def _gen_line_numbers(self) -> Iterator[str]:
         """Iterator with string representation of column numbers."""
         for i, _ in enumerate(self.ids):
@@ -593,33 +614,6 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
         """Iterator with string representation of column dtypes."""
         for dtype in self.dtypes:
             yield pprint_thing(dtype)
-
-
-class DataFrameTableBuilderVerboseNoCounts(DataFrameTableBuilderVerbose):
-    """Verbose info table builder without non-null counts column."""
-
-    HEADERS = [" # ", "Column", "Dtype"]
-
-    def _gen_rows(self) -> Iterator[Sequence[str]]:
-        yield from zip(
-            self._gen_line_numbers(),
-            self._gen_columns(),
-            self._gen_dtypes(),
-        )
-
-
-class DataFrameTableBuilderVerboseWithCounts(DataFrameTableBuilderVerbose):
-    """Verbose info table builder with non-null counts column."""
-
-    HEADERS = [" # ", "Column", "Non-Null Count", "Dtype"]
-
-    def _gen_rows(self) -> Iterator[Sequence[str]]:
-        yield from zip(
-            self._gen_line_numbers(),
-            self._gen_columns(),
-            self._gen_non_null_counts(),
-            self._gen_dtypes(),
-        )
 
     def _gen_non_null_counts(self) -> Iterator[str]:
         for count in self.non_null_counts:
