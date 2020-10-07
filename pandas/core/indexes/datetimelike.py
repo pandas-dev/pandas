@@ -671,17 +671,15 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
         name = self.name if name is lib.no_default else name
-        cache = self._cache.copy() if values is None else {}
 
-        if values is None:
-            values = self._data
-
-        if isinstance(values, np.ndarray):
+        if values is not None:
             # TODO: We would rather not get here
-            values = type(self._data)(values, dtype=self.dtype)
+            if isinstance(values, np.ndarray):
+                values = type(self._data)(values, dtype=self.dtype)
+            return self._simple_new(values, name=name)
 
-        result = type(self)._simple_new(values, name=name)
-        result._cache = cache
+        result = self._simple_new(self._data, name=name)
+        result._cache = self._cache
         return result
 
     # --------------------------------------------------------------------

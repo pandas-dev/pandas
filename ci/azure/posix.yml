@@ -20,39 +20,35 @@ jobs:
           CONDA_PY: "37"
           PATTERN: "not slow and not network and not clipboard"
 
+        py37:
+          ENV_FILE: ci/deps/azure-37.yaml
+          CONDA_PY: "37"
+          PATTERN: "not slow and not network and not clipboard"
+
         py37_locale_slow:
           ENV_FILE: ci/deps/azure-37-locale_slow.yaml
           CONDA_PY: "37"
           PATTERN: "slow"
-          # pandas does not use the language (zh_CN), but should support different encodings (utf8)
-          # we should test with encodings different than utf8, but doesn't seem like Ubuntu supports any
-          LANG: "zh_CN.utf8"
-          LC_ALL: "zh_CN.utf8"
-          EXTRA_APT: "language-pack-zh-hans"
+          LANG: "it_IT.utf8"
+          LC_ALL: "it_IT.utf8"
+          EXTRA_APT: "language-pack-it xsel"
 
         py37_slow:
           ENV_FILE: ci/deps/azure-37-slow.yaml
           CONDA_PY: "37"
           PATTERN: "slow"
 
-        py37_locale:
-          ENV_FILE: ci/deps/azure-37-locale.yaml
-          CONDA_PY: "37"
-          PATTERN: "not slow and not network"
-          LANG: "it_IT.utf8"
-          LC_ALL: "it_IT.utf8"
-          EXTRA_APT: "language-pack-it xsel"
-
-#        py37_32bit:
-#          ENV_FILE: ci/deps/azure-37-32bit.yaml
-#          CONDA_PY: "37"
-#          PATTERN: "not slow and not network and not clipboard"
-#          BITS32: "yes"
+        py38:
+          ENV_FILE: ci/deps/azure-38.yaml
+          CONDA_PY: "38"
+          PATTERN: "not slow and not network and not clipboard"
 
         py38_locale:
           ENV_FILE: ci/deps/azure-38-locale.yaml
           CONDA_PY: "38"
           PATTERN: "not slow and not network"
+          # pandas does not use the language (zh_CN), but should support different encodings (utf8)
+          # we should test with encodings different than utf8, but doesn't seem like Ubuntu supports any
           LANG: "zh_CN.utf8"
           LC_ALL: "zh_CN.utf8"
           EXTRA_APT: "language-pack-zh-hans xsel"
