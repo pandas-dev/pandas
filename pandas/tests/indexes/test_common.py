@@ -399,6 +399,11 @@ class TestCommon:
         else:
             assert result.name == index.name
 
+    def test_ravel_deprecation(self, index):
+        # GH#19956 ravel returning ndarray is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            index.ravel()
+
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
