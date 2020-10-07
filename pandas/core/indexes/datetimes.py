@@ -25,7 +25,7 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, maybe_extract_name
+from pandas.core.indexes.base import Index, get_unanimous_names, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
@@ -405,6 +405,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 this = this._fast_union(other)
             else:
                 this = Index.union(this, other)
+
+        res_name = get_unanimous_names(self, *others)[0]
+        if this.name != res_name:
+            return this.rename(res_name)
         return this
 
     # --------------------------------------------------------------------

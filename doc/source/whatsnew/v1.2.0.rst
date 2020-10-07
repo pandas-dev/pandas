@@ -157,6 +157,26 @@ Alternatively, you can also use the dtype object:
    behaviour or API may still change without warning. Expecially the behaviour
    regarding NaN (distinct from NA missing values) is subject to change.
 
+.. _whatsnew_120.index_name_preservation:
+
+Index/column name preservation when aggregating
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When aggregating using :meth:`concat` or the :class:`DataFrame` constructor, Pandas
+will attempt to preserve index (and column) names whenever possible (:issue:`35847`).
+In the case where all inputs share a common name, this name will be assigned to the
+result. When the input names do not all agree, the result will be unnamed. Here is an
+example where the index name is preserved:
+
+.. ipython:: python
+
+    idx = pd.Index(range(5), name='abc')
+    ser = pd.Series(range(5, 10), index=idx)
+    pd.concat({'x': ser[1:], 'y': ser[:-1]}, axis=1)
+
+The same is true for :class:`MultiIndex`, but the logic is applied separately on a
+level-by-level basis.
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements

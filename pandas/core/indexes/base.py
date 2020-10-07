@@ -1,5 +1,6 @@
 from copy import copy as copy_func
 from datetime import datetime
+from itertools import zip_longest
 import operator
 from textwrap import dedent
 from typing import (
@@ -11,6 +12,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Tuple,
     TypeVar,
     Union,
 )
@@ -2525,7 +2527,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         name = get_op_result_name(self, other)
         if self.name != name:
-            return self._shallow_copy(name=name)
+            return self.rename(name)
         return self
 
     def _union_incompatible_dtypes(self, other, sort):
@@ -2633,7 +2635,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._can_union_without_object_cast(other):
             return self._union_incompatible_dtypes(other, sort=sort)
 
-        return self._union(other, sort=sort)
+        result = self._union(other, sort=sort)
+
+        return self._wrap_setop_result(other, result)
 
     def _union(self, other, sort):
         """
@@ -2655,10 +2659,10 @@ class Index(IndexOpsMixin, PandasObject):
         Index
         """
         if not len(other) or self.equals(other):
-            return self._get_reconciled_name_object(other)
+            return self
 
         if not len(self):
-            return other._get_reconciled_name_object(self)
+            return other
 
         # TODO(EA): setops-refactor, clean all this up
         lvals = self._values
@@ -2700,12 +2704,16 @@ class Index(IndexOpsMixin, PandasObject):
                         stacklevel=3,
                     )
 
-        # for subclasses
-        return self._wrap_setop_result(other, result)
+        return self._shallow_copy(result)
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
-        return self._shallow_copy(result, name=name)
+        if isinstance(result, Index):
+            if result.name != name:
+                return result.rename(name)
+            return result
+        else:
+            return self._shallow_copy(result, name=name)
 
     # TODO: standardize return type of non-union setops type(self vs other)
     def intersection(self, other, sort=False):
@@ -2775,15 +2783,12 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
-        taken = other.take(indexer)
-        res_name = get_op_result_name(self, other)
+        result = other.take(indexer)
 
         if sort is None:
-            taken = algos.safe_sort(taken.values)
-            return self._shallow_copy(taken, name=res_name)
+            result = algos.safe_sort(result.values)
 
-        taken.name = res_name
-        return taken
+        return self._wrap_setop_result(other, result)
 
     def difference(self, other, sort=None):
         """
@@ -5968,3 +5973,22 @@ def _maybe_asobject(dtype, klass, data, copy: bool, name: Label, **kwargs):
         return index.astype(object)
 
     return klass(data, dtype=dtype, copy=copy, name=name, **kwargs)
+
+
+def get_unanimous_names(*indexes: Index) -> Tuple[Label, ...]:
+    """
+    Return common name if all indices agree, otherwise None (level-by-level).
+
+    Parameters
+    ----------
+    indexes : list of Index objects
+
+    Returns
+    -------
+    list
+        A list representing the unanimous 'names' found.
+    """
+    name_tups = [tuple(i.names) for i in indexes]
+    name_sets = [{*ns} for ns in zip_longest(*name_tups)]
+    names = tuple(ns.pop() if len(ns) == 1 else None for ns in name_sets)
+    return names

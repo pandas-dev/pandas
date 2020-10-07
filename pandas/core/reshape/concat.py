@@ -23,8 +23,8 @@ from pandas.core.indexes.api import (
     MultiIndex,
     all_indexes_same,
     ensure_index,
-    get_consensus_names,
     get_objs_combined_axis,
+    get_unanimous_names,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
@@ -655,7 +655,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
                 )
 
             # also copies
-            names = names + get_consensus_names(indexes)
+            names = list(names) + list(get_unanimous_names(*indexes))
 
         return MultiIndex(
             levels=levels, codes=codes_list, names=names, verify_integrity=False
