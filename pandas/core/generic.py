@@ -2015,8 +2015,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return result
 
         if self.ndim > 1 and (
-            len(inputs) > 1 or ufunc.nout > 1
-        ):  # type: ignore[attr-defined]
+            len(inputs) > 1 or ufunc.nout > 1  # type: ignore[attr-defined]
+        ):
             # Just give up on preserving types in the complex case.
             # In theory we could preserve them for them.
             # * nout>1 is doable if BlockManager.apply took nout and
