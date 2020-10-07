@@ -115,6 +115,64 @@ def test_info_verbose():
             assert line.startswith(line_nr)
 
 
+@pytest.mark.parametrize(
+    "size, header_exp, separator_exp, first_line_exp, last_line_exp",
+    [
+        (
+            4,
+            " #   Column  Non-Null Count  Dtype  ",
+            "---  ------  --------------  -----  ",
+            " 0   0       3 non-null      float64",
+            " 3   3       3 non-null      float64",
+        ),
+        (
+            11,
+            " #   Column  Non-Null Count  Dtype  ",
+            "---  ------  --------------  -----  ",
+            " 0   0       3 non-null      float64",
+            " 10  10      3 non-null      float64",
+        ),
+        (
+            101,
+            " #    Column  Non-Null Count  Dtype  ",
+            "---   ------  --------------  -----  ",
+            " 0    0       3 non-null      float64",
+            " 100  100     3 non-null      float64",
+        ),
+        (
+            1001,
+            " #     Column  Non-Null Count  Dtype  ",
+            "---    ------  --------------  -----  ",
+            " 0     0       3 non-null      float64",
+            " 1000  1000    3 non-null      float64",
+        ),
+        (
+            10001,
+            " #      Column  Non-Null Count  Dtype  ",
+            "---     ------  --------------  -----  ",
+            " 0      0       3 non-null      float64",
+            " 10000  10000   3 non-null      float64",
+        ),
+    ],
+)
+def test_info_verbose_with_counts_spacing(
+    size, header_exp, separator_exp, first_line_exp, last_line_exp
+):
+    """Test header column, spacer, first line and last line in verbose mode."""
+    frame = DataFrame(np.random.randn(3, size))
+    buf = StringIO()
+    frame.info(verbose=True, null_counts=True, buf=buf)
+    all_lines = buf.getvalue().splitlines()
+    # Here table would contain only header, separator and table lines
+    # dframe repr, index summary, memory usage and dtypes are excluded
+    table = all_lines[3:-2]
+    header, separator, first_line, *rest, last_line = table
+    assert header == header_exp
+    assert separator == separator_exp
+    assert first_line == first_line_exp
+    assert last_line == last_line_exp
+
+
 def test_info_memory():
     # https://github.com/pandas-dev/pandas/issues/21056
     df = DataFrame({"a": Series([1, 2], dtype="i8")})

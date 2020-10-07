@@ -397,12 +397,12 @@ class RangeIndex(Int64Index):
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = self.name if name is no_default else name
 
-        if values is None:
-            result = self._simple_new(self._range, name=name)
-            result._cache = self._cache.copy()
-            return result
-        else:
+        if values is not None:
             return Int64Index._simple_new(values, name=name)
+
+        result = self._simple_new(self._range, name=name)
+        result._cache = self._cache
+        return result
 
     @doc(Int64Index.copy)
     def copy(self, name=None, deep=False, dtype=None, names=None):
@@ -467,6 +467,9 @@ class RangeIndex(Int64Index):
         if isinstance(other, RangeIndex):
             return self._range == other._range
         return super().equals(other)
+
+    # --------------------------------------------------------------------
+    # Set Operations
 
     def intersection(self, other, sort=False):
         """
@@ -536,7 +539,8 @@ class RangeIndex(Int64Index):
             new_index = new_index[::-1]
         if sort is None:
             new_index = new_index.sort_values()
-        return new_index
+
+        return self._wrap_setop_result(other, new_index)
 
     def _min_fitting_element(self, lower_limit: int) -> int:
         """Returns the smallest element greater than or equal to the limit"""
@@ -633,6 +637,57 @@ class RangeIndex(Int64Index):
                 ):
                     return type(self)(start_r, end_r + step_o, step_o)
         return self._int64index._union(other, sort=sort)
+
+    def difference(self, other, sort=None):
+        # optimized set operation if we have another RangeIndex
+        self._validate_sort_keyword(sort)
+
+        if not isinstance(other, RangeIndex):
+            return super().difference(other, sort=sort)
+
+        res_name = ops.get_op_result_name(self, other)
+
+        first = self._range[::-1] if self.step < 0 else self._range
+        overlap = self.intersection(other)
+        if overlap.step < 0:
+            overlap = overlap[::-1]
+
+        if len(overlap) == 0:
+            return self._shallow_copy(name=res_name)
+        if len(overlap) == len(self):
+            return self[:0].rename(res_name)
+        if not isinstance(overlap, RangeIndex):
+            # We wont end up with RangeIndex, so fall back
+            return super().difference(other, sort=sort)
+
+        if overlap[0] == first.start:
+            # The difference is everything after the intersection
+            new_rng = range(overlap[-1] + first.step, first.stop, first.step)
+        elif overlap[-1] == first.stop:
+            # The difference is everything before the intersection
+            new_rng = range(first.start, overlap[0] - first.step, first.step)
+        else:
+            # The difference is not range-like
+            return super().difference(other, sort=sort)
+
+        new_index = type(self)._simple_new(new_rng, name=res_name)
+        if first is not self._range:
+            new_index = new_index[::-1]
+        return new_index
+
+    def symmetric_difference(self, other, result_name=None, sort=None):
+        if not isinstance(other, RangeIndex) or sort is not None:
+            return super().symmetric_difference(other, result_name, sort)
+
+        left = self.difference(other)
+        right = other.difference(self)
+        result = left.union(right)
+
+        if result_name is not None:
+            result = result.rename(result_name)
+        return result
+
+    # --------------------------------------------------------------------
 
     @doc(Int64Index.join)
     def join(self, other, how="left", level=None, return_indexers=False, sort=False):
@@ -746,11 +801,16 @@ class RangeIndex(Int64Index):
                 return self._simple_new(new_range, name=self.name)
         return self._int64index // other
 
+    # --------------------------------------------------------------------
+    # Reductions
+
     def all(self) -> bool:
         return 0 not in self._range
 
     def any(self) -> bool:
         return any(self._range)
+
+    # --------------------------------------------------------------------
 
     @classmethod
     def _add_numeric_methods_binary(cls):
