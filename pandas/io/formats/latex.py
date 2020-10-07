@@ -397,7 +397,13 @@ class GenericTableBuilder(TableBuilderAbstract):
             \caption{caption_string}.
         """
         if self.caption:
-            return f"\\caption{self._short_caption_macro}{{{self.caption}}}"
+            return "".join(
+                [
+                    r"\caption",
+                    self._short_caption_macro,
+                    f"{{{self.caption}}}",
+                ]
+            )
         return ""
 
     @property
