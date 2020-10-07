@@ -49,11 +49,12 @@ from pandas.io.pytables import (
     HDFStore,
     PossibleDataLossError,
     Term,
+    _maybe_adjust_name,
     read_hdf,
 )
 
-from pandas.io import pytables as pytables  # noqa: E402 isort:skip
-from pandas.io.pytables import TableIterator  # noqa: E402 isort:skip
+from pandas.io import pytables as pytables  # isort:skip
+from pandas.io.pytables import TableIterator  # isort:skip
 
 
 _default_compressor = "blosc"
@@ -512,7 +513,7 @@ class TestHDFStore:
                 # context
                 if mode in ["r", "r+"]:
                     with pytest.raises(IOError):
-                        with HDFStore(path, mode=mode) as store:  # noqa
+                        with HDFStore(path, mode=mode) as store:
                             pass
                 else:
                     with HDFStore(path, mode=mode) as store:
@@ -2350,7 +2351,7 @@ class TestHDFStore:
             store.put("df", df, format="table")
             expected = df[df.index > pd.Timestamp("20130105")]
 
-            import datetime  # noqa
+            import datetime
 
             result = store.select("df", "index>datetime.datetime(2013,1,5)")
             tm.assert_frame_equal(result, expected)
@@ -4921,3 +4922,10 @@ class TestHDFStore:
 
         with pytest.raises(ValueError, match=message):
             pd.read_hdf(data_path)
+
+
+@pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])
+def test_maybe_adjust_name_bad_version_raises(bad_version):
+    msg = "Version is incorrect, expected sequence of 3 integers"
+    with pytest.raises(ValueError, match=msg):
+        _maybe_adjust_name("values_block_0", version=bad_version)
