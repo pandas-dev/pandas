@@ -77,7 +77,7 @@ class TestHDFStore:
 
         msg = "format is not a defined argument for HDFStore"
 
-        with ensure_clean_path(setup_path) as path:
+        with tm.ensure_clean(setup_path) as path:
             with pytest.raises(ValueError, match=msg):
                 HDFStore(path, format="table")
 
@@ -597,7 +597,7 @@ class TestHDFStore:
 
     def test_open_args(self, setup_path):
 
-        with ensure_clean_path(setup_path) as path:
+        with tm.ensure_clean(setup_path) as path:
 
             df = tm.makeDataFrame()
 
@@ -4703,7 +4703,7 @@ class TestHDFStore:
 
     def test_invalid_complib(self, setup_path):
         df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
-        with ensure_clean_path(setup_path) as path:
+        with tm.ensure_clean(setup_path) as path:
             with pytest.raises(ValueError):
                 df.to_hdf(path, "df", complib="foolib")
 
