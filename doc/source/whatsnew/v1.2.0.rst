@@ -375,6 +375,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
+- Bug in :meth:`DataFrame.reset_index` with ``NaT`` values in index raises ``ValueError`` with message ``"cannot convert float NaN to integer"`` (:issue:`36541`)
 -
 
 I/O
