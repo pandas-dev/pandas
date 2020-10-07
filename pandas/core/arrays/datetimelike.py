@@ -24,7 +24,6 @@ from pandas._libs.tslibs.timestamps import (
     round_nsint64,
 )
 from pandas._typing import DatetimeLikeScalar, DtypeObj
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -51,8 +50,8 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.base import ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer, check_setitem_lengths
@@ -71,46 +70,6 @@ class InvalidComparison(Exception):
     """
 
     pass
-
-
-def _datetimelike_array_cmp(cls, op):
-    """
-    Wrap comparison operations to convert Timestamp/Timedelta/Period-like to
-    boxed scalars/arrays.
-    """
-    opname = f"__{op.__name__}__"
-    nat_result = opname == "__ne__"
-
-    @unpack_zerodim_and_defer(opname)
-    def wrapper(self, other):
-        if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
-            # TODO: handle 2D-like listlikes
-            return op(self.ravel(), other.ravel()).reshape(self.shape)
-
-        try:
-            other = self._validate_comparison_value(other, opname)
-        except InvalidComparison:
-            return invalid_comparison(self, other, op)
-
-        dtype = getattr(other, "dtype", None)
-        if is_object_dtype(dtype):
-            # We have to use comp_method_OBJECT_ARRAY instead of numpy
-            #  comparison otherwise it would fail to raise when
-            #  comparing tz-aware and tz-naive
-            with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self.astype(object), other)
-            return result
-
-        other_i8 = self._unbox(other)
-        result = op(self.asi8, other_i8)
-
-        o_mask = isna(other)
-        if self._hasnans | np.any(o_mask):
-            result[self._isnan | o_mask] = nat_result
-
-        return result
-
-    return set_function_name(wrapper, opname, cls)
 
 
 class AttributesMixin:
@@ -426,9 +385,7 @@ default 'raise'
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
 
-class DatetimeLikeArrayMixin(
-    ExtensionOpsMixin, AttributesMixin, NDArrayBackedExtensionArray
-):
+class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -1096,7 +1053,35 @@ class DatetimeLikeArrayMixin(
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
-    _create_comparison_method = classmethod(_datetimelike_array_cmp)
+
+    def _cmp_method(self, other, op):
+        if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
+            # TODO: handle 2D-like listlikes
+            return op(self.ravel(), other.ravel()).reshape(self.shape)
+
+        try:
+            other = self._validate_comparison_value(other, f"__{op.__name__}__")
+        except InvalidComparison:
+            return invalid_comparison(self, other, op)
+
+        dtype = getattr(other, "dtype", None)
+        if is_object_dtype(dtype):
+            # We have to use comp_method_OBJECT_ARRAY instead of numpy
+            #  comparison otherwise it would fail to raise when
+            #  comparing tz-aware and tz-naive
+            with np.errstate(all="ignore"):
+                result = ops.comp_method_OBJECT_ARRAY(op, self.astype(object), other)
+            return result
+
+        other_i8 = self._unbox(other)
+        result = op(self.asi8, other_i8)
+
+        o_mask = isna(other)
+        if self._hasnans | np.any(o_mask):
+            nat_result = op is operator.ne
+            result[self._isnan | o_mask] = nat_result
+
+        return result
 
     # pow is invalid for all three subclasses; TimedeltaArray will override
     #  the multiplication and division ops
@@ -1189,7 +1174,7 @@ class DatetimeLikeArrayMixin(
             self_i8, other_i8, arr_mask=self._isnan, b_mask=other._isnan
         )
         if self._hasnans or other._hasnans:
-            mask = (self._isnan) | (other._isnan)
+            mask = self._isnan | other._isnan
             new_values[mask] = iNaT
 
         return type(self)(new_values, dtype=self.dtype)
@@ -1564,8 +1549,28 @@ class DatetimeLikeArrayMixin(
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
 
+    def median(self, axis: Optional[int] = None, skipna: bool = True, *args, **kwargs):
+        nv.validate_median(args, kwargs)
 
-DatetimeLikeArrayMixin._add_comparison_ops()
+        if axis is not None and abs(axis) >= self.ndim:
+            raise ValueError("abs(axis) must be less than ndim")
+
+        if self.size == 0:
+            if self.ndim == 1 or axis is None:
+                return NaT
+            shape = list(self.shape)
+            del shape[axis]
+            shape = [1 if x == 0 else x for x in shape]
+            result = np.empty(shape, dtype="i8")
+            result.fill(iNaT)
+            return self._from_backing_data(result)
+
+        mask = self.isna()
+        result = nanops.nanmedian(self.asi8, axis=axis, skipna=skipna, mask=mask)
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result.astype("i8"))
+
 
 # -------------------------------------------------------------------
 # Shared Constructor Helpers

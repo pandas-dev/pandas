@@ -709,6 +709,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
             raise TypeError(msg) from err
 
+    def equals(self, other) -> bool:
+        if type(self) != type(other):
+            return False
+
+        return bool(
+            self.closed == other.closed
+            and self.left.equals(other.left)
+            and self.right.equals(other.right)
+        )
+
     @classmethod
     def _concat_same_type(cls, to_concat):
         """

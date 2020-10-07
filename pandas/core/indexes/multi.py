@@ -47,7 +47,12 @@ from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
+from pandas.core.indexes.base import (
+    Index,
+    _index_shared_docs,
+    ensure_index,
+    get_unanimous_names,
+)
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
@@ -3430,7 +3435,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other):
-            return self
+            return self.rename(result_names)
 
         # TODO: Index.union returns other when `len(self)` is 0.
 
@@ -3472,7 +3477,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
-            return self
+            return self.rename(result_names)
 
         if not is_object_dtype(other.dtype):
             # The intersection is empty
@@ -3543,7 +3548,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0:
-            return self
+            return self.rename(result_names)
 
         if self.equals(other):
             return MultiIndex(
@@ -3591,7 +3596,8 @@ class MultiIndex(Index):
                 except TypeError as err:
                     raise TypeError(msg) from err
         else:
-            result_names = self.names if self.names == other.names else None
+            result_names = get_unanimous_names(self, other)
+
         return other, result_names
 
     # --------------------------------------------------------------------

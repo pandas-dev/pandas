@@ -2022,6 +2022,7 @@ def objects_to_datetime64ns(
     utc : bool, default False
         Whether to convert timezone-aware timestamps to UTC.
     errors : {'raise', 'ignore', 'coerce'}
+    require_iso8601 : bool, default False
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
