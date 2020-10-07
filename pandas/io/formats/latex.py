@@ -433,16 +433,10 @@ class GenericTableBuilder(TableBuilderAbstract):
             return "".join(
                 [
                     r"\caption",
-                    self._short_caption_macro,
+                    f"[{self.short_caption}]" if self.short_caption else "",
                     f"{{{self.caption}}}",
                 ]
             )
-        return ""
-
-    @property
-    def _short_caption_macro(self) -> str:
-        if self.short_caption:
-            return f"[{self.short_caption}]"
         return ""
 
     @property
