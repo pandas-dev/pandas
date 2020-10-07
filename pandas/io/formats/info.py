@@ -73,6 +73,15 @@ def _sizeof_fmt(num: Union[int, float], size_qualifier: str) -> str:
     return f"{num:3.1f}{size_qualifier} PB"
 
 
+def _initialize_memory_usage(
+    memory_usage: Optional[Union[bool, str]] = None,
+) -> Union[bool, str]:
+    """Get memory usage based on inputs and display options."""
+    if memory_usage is None:
+        memory_usage = get_option("display.memory_usage")
+    return memory_usage
+
+
 class BaseInfo(ABC):
     """Base class for DataFrameInfo and SeriesInfo.
 
@@ -92,15 +101,7 @@ class BaseInfo(ABC):
         memory_usage: Optional[Union[bool, str]] = None,
     ):
         self.data = data
-        self.memory_usage = self._initialize_memory_usage(memory_usage)
-
-    @staticmethod
-    def _initialize_memory_usage(
-        memory_usage: Optional[Union[bool, str]] = None,
-    ) -> Union[bool, str]:
-        if memory_usage is None:
-            memory_usage = get_option("display.memory_usage")
-        return memory_usage
+        self.memory_usage = _initialize_memory_usage(memory_usage)
 
     @property
     @abstractmethod
