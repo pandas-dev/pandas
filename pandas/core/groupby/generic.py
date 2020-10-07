@@ -1647,10 +1647,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         indexed_output = {key.position: val for key, val in output.items()}
 
         agg_axis = self._obj_with_exclusions._get_axis(1 - self.axis)
-        if isinstance(agg_axis, MultiIndex):
-            columns = Index([key.label for key in output], names=agg_axis.names)
-        else:
-            columns = Index([key.label for key in output], name=agg_axis.name)
+        columns = Index([key.label for key in output], names=agg_axis.names)
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns
