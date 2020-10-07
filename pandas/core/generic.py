@@ -1764,7 +1764,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Iteration
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         raise TypeError(
             f"{repr(type(self).__name__)} objects are mutable, "
             f"thus they cannot be hashed"
@@ -9245,11 +9245,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> df.shift(periods=1, axis="columns")
                     Col1  Col2  Col3
-        2020-01-01   NaN  10.0  13.0
-        2020-01-02   NaN  20.0  23.0
-        2020-01-03   NaN  15.0  18.0
-        2020-01-04   NaN  30.0  33.0
-        2020-01-05   NaN  45.0  48.0
+        2020-01-01   NaN    10    13
+        2020-01-02   NaN    20    23
+        2020-01-03   NaN    15    18
+        2020-01-04   NaN    30    33
+        2020-01-05   NaN    45    48
 
         >>> df.shift(periods=3, fill_value=0)
                     Col1  Col2  Col3

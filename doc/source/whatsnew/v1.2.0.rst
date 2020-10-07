@@ -157,6 +157,26 @@ Alternatively, you can also use the dtype object:
    behaviour or API may still change without warning. Expecially the behaviour
    regarding NaN (distinct from NA missing values) is subject to change.
 
+.. _whatsnew_120.index_name_preservation:
+
+Index/column name preservation when aggregating
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When aggregating using :meth:`concat` or the :class:`DataFrame` constructor, Pandas
+will attempt to preserve index (and column) names whenever possible (:issue:`35847`).
+In the case where all inputs share a common name, this name will be assigned to the
+result. When the input names do not all agree, the result will be unnamed. Here is an
+example where the index name is preserved:
+
+.. ipython:: python
+
+    idx = pd.Index(range(5), name='abc')
+    ser = pd.Series(range(5, 10), index=idx)
+    pd.concat({'x': ser[1:], 'y': ser[:-1]}, axis=1)
+
+The same is true for :class:`MultiIndex`, but the logic is applied separately on a
+level-by-level basis.
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements
@@ -169,6 +189,7 @@ Other enhancements
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
 - Added methods :meth:`IntegerArray.prod`, :meth:`IntegerArray.min`, and :meth:`IntegerArray.max` (:issue:`33790`)
+- Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -336,6 +357,7 @@ Numeric
 - Bug in :class:`Series` where two :class:`Series` each have a :class:`DatetimeIndex` with different timezones having those indexes incorrectly changed when performing arithmetic operations (:issue:`33671`)
 - Bug in :meth:`pd._testing.assert_almost_equal` was incorrect for complex numeric types (:issue:`28235`)
 - Bug in :meth:`DataFrame.__rmatmul__` error handling reporting transposed shapes (:issue:`21581`)
+- Bug in :class:`Series` flex arithmetic methods where the result when operating with a ``list``, ``tuple`` or ``np.ndarray`` would have an incorrect name (:issue:`36760`)
 - Bug in :class:`IntegerArray` multiplication with ``timedelta`` and ``np.timedelta64`` objects (:issue:`36870`)
 - Bug in :class:`IntervalArray` comparisons with :class:`Series` not returning :class:`Series` (:issue:`36908`)
 
@@ -376,6 +398,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
+- Bug in :meth:`DataFrame.reset_index` with ``NaT`` values in index raises ``ValueError`` with message ``"cannot convert float NaN to integer"`` (:issue:`36541`)
 -
 
 I/O
@@ -393,6 +416,7 @@ I/O
 - Bug in :meth:`read_csv` with ``engine='python'`` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
 - Removed ``private_key`` and ``verbose`` from :func:`read_gbq` as they are no longer supported in ``pandas-gbq`` (:issue:`34654`, :issue:`30200`)
 - Bumped minimum pytables version to 3.5.1 to avoid a ``ValueError`` in :meth:`read_hdf` (:issue:`24839`)
+- Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
 
 Plotting
 ^^^^^^^^
