@@ -457,3 +457,35 @@ class TestGrouperGrouping:
             columns=["index", "group", "eventTime", "count_to_date"],
         ).set_index(["group", "index"])
         tm.assert_frame_equal(result, expected)
+
+    def test_groupby_rolling_count_closed_on(self):
+        # GH 35869
+        df = pd.DataFrame(
+            {
+                "column1": range(6),
+                "column2": range(6),
+                "group": 3 * ["A", "B"],
+                "date": pd.date_range(end="20190101", periods=6),
+            }
+        )
+        result = (
+            df.groupby("group")
+            .rolling("3d", on="date", closed="left")["column1"]
+            .count()
+        )
+        expected = pd.Series(
+            [np.nan, 1.0, 1.0, np.nan, 1.0, 1.0],
+            name="column1",
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ("A", pd.Timestamp("2018-12-27")),
+                    ("A", pd.Timestamp("2018-12-29")),
+                    ("A", pd.Timestamp("2018-12-31")),
+                    ("B", pd.Timestamp("2018-12-28")),
+                    ("B", pd.Timestamp("2018-12-30")),
+                    ("B", pd.Timestamp("2019-01-01")),
+                ],
+                names=["group", "date"],
+            ),
+        )
+        tm.assert_series_equal(result, expected)
