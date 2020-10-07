@@ -1019,8 +1019,6 @@ cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
         and not (util.is_array(obj) and obj.ndim == 0)
         # exclude sets if allow_sets is False
         and not (allow_sets is False and isinstance(obj, abc.Set))
-        # allow dict_keys objects
-        or isinstance(obj, abc.KeysView)
     )
 
 

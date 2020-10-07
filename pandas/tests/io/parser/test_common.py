@@ -2224,9 +2224,12 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers):
 
 
 def test_dict_keys_as_names(all_parsers):
-    data = "a,b\n1,2"
+    # GH: 36928
+    data = "1,2"
 
     keys = {"a": int, "b": int}.keys()
     parser = all_parsers
 
-    parser.read_csv(StringIO(data), names=keys)
+    result = parser.read_csv(StringIO(data), names=keys)
+    expected = DataFrame({"a": [1], "b": [2]})
+    tm.assert_frame_equal(result, expected)
