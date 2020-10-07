@@ -539,7 +539,8 @@ class RangeIndex(Int64Index):
             new_index = new_index[::-1]
         if sort is None:
             new_index = new_index.sort_values()
-        return new_index
+
+        return self._wrap_setop_result(other, new_index)
 
     def _min_fitting_element(self, lower_limit: int) -> int:
         """Returns the smallest element greater than or equal to the limit"""

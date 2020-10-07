@@ -124,6 +124,93 @@ class TestCommon:
         expected = index.drop(index).set_names(expected_name)
         tm.assert_index_equal(union, expected)
 
+    @pytest.mark.parametrize(
+        "fname, sname, expected_name",
+        [
+            ("A", "A", "A"),
+            ("A", "B", None),
+            ("A", None, None),
+            (None, "B", None),
+            (None, None, None),
+        ],
+    )
+    def test_union_unequal(self, index, fname, sname, expected_name):
+        if isinstance(index, MultiIndex) or not index.is_unique:
+            pytest.skip("Not for MultiIndex or repeated indices")
+
+        # test copy.union(subset) - need sort for unicode and string
+        first = index.copy().set_names(fname)
+        second = index[1:].set_names(sname)
+        union = first.union(second).sort_values()
+        expected = index.set_names(expected_name).sort_values()
+        tm.assert_index_equal(union, expected)
+
+    @pytest.mark.parametrize(
+        "fname, sname, expected_name",
+        [
+            ("A", "A", "A"),
+            ("A", "B", None),
+            ("A", None, None),
+            (None, "B", None),
+            (None, None, None),
+        ],
+    )
+    def test_corner_intersect(self, index, fname, sname, expected_name):
+        # GH35847
+        # Test intersections with various name combinations
+
+        if isinstance(index, MultiIndex) or not index.is_unique:
+            pytest.skip("Not for MultiIndex or repeated indices")
+
+        # Test copy.intersection(copy)
+        first = index.copy().set_names(fname)
+        second = index.copy().set_names(sname)
+        intersect = first.intersection(second)
+        expected = index.copy().set_names(expected_name)
+        tm.assert_index_equal(intersect, expected)
+
+        # Test copy.intersection(empty)
+        first = index.copy().set_names(fname)
+        second = index.drop(index).set_names(sname)
+        intersect = first.intersection(second)
+        expected = index.drop(index).set_names(expected_name)
+        tm.assert_index_equal(intersect, expected)
+
+        # Test empty.intersection(copy)
+        first = index.drop(index).set_names(fname)
+        second = index.copy().set_names(sname)
+        intersect = first.intersection(second)
+        expected = index.drop(index).set_names(expected_name)
+        tm.assert_index_equal(intersect, expected)
+
+        # Test empty.intersection(empty)
+        first = index.drop(index).set_names(fname)
+        second = index.drop(index).set_names(sname)
+        intersect = first.intersection(second)
+        expected = index.drop(index).set_names(expected_name)
+        tm.assert_index_equal(intersect, expected)
+
+    @pytest.mark.parametrize(
+        "fname, sname, expected_name",
+        [
+            ("A", "A", "A"),
+            ("A", "B", None),
+            ("A", None, None),
+            (None, "B", None),
+            (None, None, None),
+        ],
+    )
+    def test_intersect_unequal(self, index, fname, sname, expected_name):
+        if isinstance(index, MultiIndex) or not index.is_unique:
+            pytest.skip("Not for MultiIndex or repeated indices")
+
+        # test copy.intersection(subset) - need sort for unicode and string
+        first = index.copy().set_names(fname)
+        second = index[1:].set_names(sname)
+        intersect = first.intersection(second).sort_values()
+        expected = index[1:].set_names(expected_name).sort_values()
+        tm.assert_index_equal(intersect, expected)
+
     def test_to_flat_index(self, index):
         # 22866
         if isinstance(index, MultiIndex):
