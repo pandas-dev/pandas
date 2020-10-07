@@ -5480,8 +5480,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             #  so we pretend this is "mixed'"
             return True
 
-        dtypes = self.dtypes.unique()
-        return len(dtypes) > 1
+        return self.dtypes.nunique() > 1
 
     def _check_inplace_setting(self, value) -> bool_t:
         """ check whether we allow in-place setting with this type of value """
