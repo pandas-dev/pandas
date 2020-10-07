@@ -103,6 +103,7 @@ class TestDataFrameCombineFirst:
         combined = frame1.combine_first(frame2)
         assert len(combined.columns) == 5
 
+    def test_combine_first_same_as_in_update(self):
         # gh 3016 (same as in update)
         df = DataFrame(
             [[1.0, 2.0, False, True], [4.0, 5.0, True, False]],
@@ -118,6 +119,7 @@ class TestDataFrameCombineFirst:
         df.loc[0, "A"] = 45
         tm.assert_frame_equal(result, df)
 
+    def test_combine_first_doc_example(self):
         # doc example
         df1 = DataFrame(
             {"A": [1.0, np.nan, 3.0, 5.0, np.nan], "B": [np.nan, 2.0, 3.0, np.nan, 6.0]}
@@ -134,6 +136,7 @@ class TestDataFrameCombineFirst:
         expected = DataFrame({"A": [1, 2, 3, 5, 3, 7.0], "B": [np.nan, 2, 3, 4, 6, 8]})
         tm.assert_frame_equal(result, expected)
 
+    def test_combine_first_return_obj_type_with_bools(self):
         # GH3552, return object dtype with bools
         df1 = DataFrame(
             [[np.nan, 3.0, True], [-4.6, np.nan, True], [np.nan, 7.0, False]]
@@ -149,6 +152,7 @@ class TestDataFrameCombineFirst:
         tm.assert_series_equal(result1, expected1)
         tm.assert_series_equal(result2, expected2)
 
+    def test_combine_first_convert_datatime_correctly(self):
         # GH 3593, converting datetime64[ns] incorrectly
         df0 = DataFrame(
             {"a": [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)]}
@@ -344,10 +348,14 @@ class TestDataFrameCombineFirst:
         df1 = pd.DataFrame({"a": [0, 1, 3, 5]}, dtype="int64")
         df2 = pd.DataFrame({"a": [1, 4]}, dtype="int64")
 
-        res = df1.combine_first(df2)
-        res2 = df1.combine_first(df2)
+        exp1 = pd.DataFrame({"a": [0, 1, 3, 5]}, dtype="float64")
+        exp2 = pd.DataFrame({"a": [1, 4, 3, 5]}, dtype="float64")
 
-        assert res["a"].dtype == res2["a"].dtype
+        res1 = df1.combine_first(df2)
+        res2 = df2.combine_first(df1)
+
+        tm.assert_frame_equal(res1, exp1)
+        tm.assert_frame_equal(res2, exp2)
 
     @pytest.mark.parametrize("val", [1, 1.0])
     def test_combine_first_with_asymmetric_other(self, val):
