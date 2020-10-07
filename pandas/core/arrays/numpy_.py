@@ -14,6 +14,7 @@ from pandas.core.dtypes.missing import isna
 from pandas import compat
 from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
 from pandas.core.strings.object_array import ObjectStringArrayMixin
@@ -115,6 +116,7 @@ class PandasDtype(ExtensionDtype):
 
 
 class PandasArray(
+    OpsMixin,
     NDArrayBackedExtensionArray,
     ExtensionOpsMixin,
     NDArrayOperatorsMixin,
@@ -370,31 +372,32 @@ class PandasArray(
     def __invert__(self):
         return type(self)(~self._ndarray)
 
-    @classmethod
-    def _create_arithmetic_method(cls, op):
+    def _cmp_method(self, other, op):
+        if isinstance(other, PandasArray):
+            other = other._ndarray
 
         pd_op = ops.get_array_op(op)
+        result = pd_op(self._ndarray, other)
 
+        if op is divmod or op is ops.rdivmod:
+            a, b = result
+            if isinstance(a, np.ndarray):
+                # for e.g. op vs TimedeltaArray, we may already
+                #  have an ExtensionArray, in which case we do not wrap
+                return self._wrap_ndarray_result(a), self._wrap_ndarray_result(b)
+            return a, b
+
+        if isinstance(result, np.ndarray):
+            # for e.g. multiplication vs TimedeltaArray, we may already
+            #  have an ExtensionArray, in which case we do not wrap
+            return self._wrap_ndarray_result(result)
+        return result
+
+    @classmethod
+    def _create_arithmetic_method(cls, op):
         @ops.unpack_zerodim_and_defer(op.__name__)
         def arithmetic_method(self, other):
-            if isinstance(other, cls):
-                other = other._ndarray
-
-            result = pd_op(self._ndarray, other)
-
-            if op is divmod or op is ops.rdivmod:
-                a, b = result
-                if isinstance(a, np.ndarray):
-                    # for e.g. op vs TimedeltaArray, we may already
-                    #  have an ExtensionArray, in which case we do not wrap
-                    return self._wrap_ndarray_result(a), self._wrap_ndarray_result(b)
-                return a, b
-
-            if isinstance(result, np.ndarray):
-                # for e.g. multiplication vs TimedeltaArray, we may already
-                #  have an ExtensionArray, in which case we do not wrap
-                return self._wrap_ndarray_result(result)
-            return result
+            return self._cmp_method(other, op)
 
         return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
 
@@ -415,4 +418,3 @@ class PandasArray(
 
 
 PandasArray._add_arithmetic_ops()
-PandasArray._add_comparison_ops()
