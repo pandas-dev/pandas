@@ -318,12 +318,6 @@ class TestSeriesMisc:
         # assert is lazy (generators don't define reverse, lists do)
         assert not hasattr(string_series.items(), "reverse")
 
-    def test_raise_on_info(self):
-        s = Series(np.random.randn(10))
-        msg = "'Series' object has no attribute 'info'"
-        with pytest.raises(AttributeError, match=msg):
-            s.info()
-
     def test_copy(self):
 
         for deep in [None, False, True]:
