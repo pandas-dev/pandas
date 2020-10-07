@@ -997,19 +997,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if self.is_(other):
             return True
 
-        # if we can coerce to an IntervalIndex then we can compare
         if not isinstance(other, IntervalIndex):
-            if not is_interval_dtype(other):
-                return False
-            other = Index(other)
-            if not isinstance(other, IntervalIndex):
-                return False
+            return False
 
-        return (
-            self.left.equals(other.left)
-            and self.right.equals(other.right)
-            and self.closed == other.closed
-        )
+        return self._data.equals(other._data)
 
     # --------------------------------------------------------------------
     # Set Operations
