@@ -115,3 +115,17 @@ class DatetimeLike(Base):
         assert not index.equals(pd.Index(index.asi8))
         assert not index.equals(pd.Index(index.asi8.astype("u8")))
         assert not index.equals(pd.Index(index.asi8).astype("f8"))
+
+    def test_equals(self):
+        index = self.create_index()
+
+        assert index.equals(index.astype(object))
+        assert index.equals(pd.CategoricalIndex(index))
+        assert index.equals(pd.CategoricalIndex(index.astype(object)))
+
+    def test_not_equals_strings(self):
+        index = self.create_index()
+
+        other = pd.Index([str(x) for x in index], dtype=object)
+        assert not index.equals(other)
+        assert not index.equals(pd.CategoricalIndex(other))
