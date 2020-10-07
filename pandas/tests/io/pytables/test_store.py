@@ -613,8 +613,8 @@ class TestHDFStore:
 
             store.close()
 
-            # the file should not have actually been written
-            assert not os.path.exists(path)
+        # the file should not have actually been written
+        assert not os.path.exists(path)
 
     def test_flush(self, setup_path):
 

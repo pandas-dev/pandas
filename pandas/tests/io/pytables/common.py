@@ -13,6 +13,14 @@ tables.parameters.MAX_BLOSC_THREADS = 1
 tables.parameters.MAX_THREADS = 1
 
 
+def safe_remove(path):
+    if path is not None:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
 def safe_close(store):
     try:
         if store is not None:
@@ -43,7 +51,7 @@ def ensure_clean_store(path, mode="a", complevel=None, complib=None, fletcher32=
     finally:
         safe_close(store)
         if mode == "w" or mode == "a":
-            os.remove(path)
+            safe_remove(path)
 
 
 @contextmanager
@@ -62,7 +70,7 @@ def ensure_clean_path(path):
             yield filenames[0]
     finally:
         for f in filenames:
-            os.remove(f)
+            safe_remove(f)
 
 
 def _maybe_remove(store, key):
