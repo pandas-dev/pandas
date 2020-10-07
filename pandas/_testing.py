@@ -25,7 +25,7 @@ from pandas._config.localization import (  # noqa:F401
 from pandas._libs.lib import no_default
 import pandas._libs.testing as _testing
 from pandas._typing import Dtype, FilePathOrBuffer, FrameOrSeries
-from pandas.compat import _get_lzma_file, _import_lzma
+from pandas.compat import get_lzma_file, import_lzma
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -70,7 +70,7 @@ from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.io.common import urlopen
 from pandas.io.formats.printing import pprint_thing
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 _N = 30
 _K = 4
@@ -84,6 +84,7 @@ ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
 FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
+FLOAT_EA_DTYPES: List[Dtype] = ["Float32", "Float64"]
 COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: List[Dtype] = [str, "str", "U"]
 
@@ -243,7 +244,7 @@ def decompress_file(path, compression):
     elif compression == "bz2":
         f = bz2.BZ2File(path, "rb")
     elif compression == "xz":
-        f = _get_lzma_file(lzma)(path, "rb")
+        f = get_lzma_file(lzma)(path, "rb")
     elif compression == "zip":
         zip_file = zipfile.ZipFile(path)
         zip_names = zip_file.namelist()
@@ -288,7 +289,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     elif compression == "bz2":
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        compress_method = _get_lzma_file(lzma)
+        compress_method = get_lzma_file(lzma)
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 
@@ -976,8 +977,14 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     """
     _check_isinstance(left, right, IntervalArray)
 
-    assert_index_equal(left.left, right.left, exact=exact, obj=f"{obj}.left")
-    assert_index_equal(left.right, right.right, exact=exact, obj=f"{obj}.left")
+    kwargs = {}
+    if left._left.dtype.kind in ["m", "M"]:
+        # We have a DatetimeArray or TimedeltaArray
+        kwargs["check_freq"] = False
+
+    assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
+    assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
+
     assert_attr_equal("closed", left, right, obj=obj)
 
 
@@ -988,20 +995,22 @@ def assert_period_array_equal(left, right, obj="PeriodArray"):
     assert_attr_equal("freq", left, right, obj=obj)
 
 
-def assert_datetime_array_equal(left, right, obj="DatetimeArray"):
+def assert_datetime_array_equal(left, right, obj="DatetimeArray", check_freq=True):
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
-    assert_attr_equal("freq", left, right, obj=obj)
+    if check_freq:
+        assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
 
 
-def assert_timedelta_array_equal(left, right, obj="TimedeltaArray"):
+def assert_timedelta_array_equal(left, right, obj="TimedeltaArray", check_freq=True):
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
-    assert_attr_equal("freq", left, right, obj=obj)
+    if check_freq:
+        assert_attr_equal("freq", left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
@@ -1225,6 +1234,7 @@ def assert_series_equal(
     check_categorical=True,
     check_category_order=True,
     check_freq=True,
+    check_flags=True,
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="Series",
@@ -1271,6 +1281,11 @@ def assert_series_equal(
         .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+    check_flags : bool, default True
+        Whether to check the `flags` attribute.
+
+        .. versionadded:: 1.2.0
+
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -1306,6 +1321,9 @@ def assert_series_equal(
         msg1 = f"{len(left)}, {left.index}"
         msg2 = f"{len(right)}, {right.index}"
         raise_assert_detail(obj, "Series length are different", msg1, msg2)
+
+    if check_flags:
+        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
     # index comparison
     assert_index_equal(
@@ -1429,6 +1447,7 @@ def assert_frame_equal(
     check_categorical=True,
     check_like=False,
     check_freq=True,
+    check_flags=True,
     rtol=1.0e-5,
     atol=1.0e-8,
     obj="DataFrame",
@@ -1490,6 +1509,8 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+    check_flags : bool, default True
+        Whether to check the `flags` attribute.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -1562,6 +1583,9 @@ def assert_frame_equal(
 
     if check_like:
         left, right = left.reindex_like(right), right
+
+    if check_flags:
+        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
     # index comparison
     assert_index_equal(
@@ -1945,8 +1969,7 @@ def index_subclass_makers_generator():
         makeCategoricalIndex,
         makeMultiIndex,
     ]
-    for make_index_func in make_index_funcs:
-        yield make_index_func
+    yield from make_index_funcs
 
 
 def all_timeseries_index_generator(k=10):
@@ -2389,7 +2412,7 @@ def can_connect(url, error_classes=None):
 @optional_args
 def network(
     t,
-    url="http://www.google.com",
+    url="https://www.google.com",
     raise_on_error=_RAISE_NETWORK_ERROR_DEFAULT,
     check_before_test=False,
     error_classes=None,
@@ -2413,7 +2436,7 @@ def network(
         The test requiring network connectivity.
     url : path
         The url to test via ``pandas.io.common.urlopen`` to check
-        for connectivity. Defaults to 'http://www.google.com'.
+        for connectivity. Defaults to 'https://www.google.com'.
     raise_on_error : bool
         If True, never catches errors.
     check_before_test : bool
@@ -2457,7 +2480,7 @@ def network(
 
       You can specify alternative URLs::
 
-        >>> @network("http://www.yahoo.com")
+        >>> @network("https://www.yahoo.com")
         ... def test_something_with_yahoo():
         ...    raise IOError("Failure Message")
         >>> test_something_with_yahoo()
@@ -2698,7 +2721,7 @@ def use_numexpr(use, min_elements=None):
     if min_elements is None:
         min_elements = expr._MIN_ELEMENTS
 
-    olduse = expr._USE_NUMEXPR
+    olduse = expr.USE_NUMEXPR
     oldmin = expr._MIN_ELEMENTS
     expr.set_use_numexpr(use)
     expr._MIN_ELEMENTS = min_elements

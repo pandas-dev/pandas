@@ -3,11 +3,13 @@ import datetime
 from distutils.version import LooseVersion
 from io import BytesIO
 import os
+import pathlib
 from warnings import catch_warnings
 
 import numpy as np
 import pytest
 
+from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -22,14 +24,14 @@ from pandas.io.parquet import (
 )
 
 try:
-    import pyarrow  # noqa
+    import pyarrow
 
     _HAVE_PYARROW = True
 except ImportError:
     _HAVE_PYARROW = False
 
 try:
-    import fastparquet  # noqa
+    import fastparquet
 
     _HAVE_FASTPARQUET = True
 except ImportError:
@@ -564,8 +566,19 @@ class TestParquetPyArrow(Base):
             write_kwargs=s3so,
         )
 
-    @td.skip_if_no("s3fs")
-    @pytest.mark.parametrize("partition_col", [["A"], []])
+    @td.skip_if_no("s3fs")  # also requires flask
+    @pytest.mark.parametrize(
+        "partition_col",
+        [
+            pytest.param(
+                ["A"],
+                marks=pytest.mark.xfail(
+                    PY38, reason="Getting back empty DataFrame", raises=AssertionError
+                ),
+            ),
+            [],
+        ],
+    )
     def test_s3_roundtrip_for_dir(
         self, df_compat, s3_resource, pa, partition_col, s3so
     ):
@@ -650,6 +663,20 @@ class TestParquetPyArrow(Base):
             dataset = pq.ParquetDataset(path, validate_schema=False)
             assert len(dataset.partitions.partition_names) == 1
             assert dataset.partitions.partition_names == set(partition_cols_list)
+
+    @pytest.mark.parametrize(
+        "path_type", [lambda path: path, lambda path: pathlib.Path(path)]
+    )
+    def test_partition_cols_pathlib(self, pa, df_compat, path_type):
+        # GH 35902
+
+        partition_cols = "B"
+        partition_cols_list = [partition_cols]
+        df = df_compat
+
+        with tm.ensure_clean_dir() as path_str:
+            path = path_type(path_str)
+            df.to_parquet(path, partition_cols=partition_cols_list)
 
     def test_empty_dataframe(self, pa):
         # GH #27339
@@ -791,7 +818,7 @@ class TestParquetFastParquet(Base):
                 compression=None,
             )
             assert os.path.exists(path)
-            import fastparquet  # noqa: F811
+            import fastparquet
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2
@@ -808,7 +835,7 @@ class TestParquetFastParquet(Base):
                 compression=None,
             )
             assert os.path.exists(path)
-            import fastparquet  # noqa: F811
+            import fastparquet
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 1
@@ -825,7 +852,7 @@ class TestParquetFastParquet(Base):
                 partition_on=partition_cols,
             )
             assert os.path.exists(path)
-            import fastparquet  # noqa: F811
+            import fastparquet
 
             actual_partition_cols = fastparquet.ParquetFile(path, False).cats
             assert len(actual_partition_cols) == 2

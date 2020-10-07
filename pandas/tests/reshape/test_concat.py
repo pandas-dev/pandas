@@ -1,4 +1,4 @@
-from collections import OrderedDict, abc, deque
+from collections import abc, deque
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
@@ -1108,6 +1108,23 @@ class TestAppend:
         # column order is different
         expected = expected[["c", "d", "date", "a", "b"]]
         result = df.append([s, s], ignore_index=True)
+        tm.assert_frame_equal(result, expected)
+
+    def test_append_empty_tz_frame_with_datetime64ns(self):
+        # https://github.com/pandas-dev/pandas/issues/35460
+        df = pd.DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
+
+        # pd.NaT gets inferred as tz-naive, so append result is tz-naive
+        result = df.append({"a": pd.NaT}, ignore_index=True)
+        expected = pd.DataFrame({"a": [pd.NaT]}).astype("datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+        # also test with typed value to append
+        df = pd.DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
+        result = df.append(
+            pd.Series({"a": pd.NaT}, dtype="datetime64[ns]"), ignore_index=True
+        )
+        expected = pd.DataFrame({"a": [pd.NaT]}).astype("datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
 
@@ -2592,9 +2609,7 @@ bar2,12,13,14,15
             [pd.Series(range(3)), pd.Series(range(4))], keys=["First", "Another"]
         )
         result = pd.concat(
-            OrderedDict(
-                [("First", pd.Series(range(3))), ("Another", pd.Series(range(4)))]
-            )
+            dict([("First", pd.Series(range(3))), ("Another", pd.Series(range(4)))])
         )
         tm.assert_series_equal(result, expected)
 
@@ -2900,4 +2915,13 @@ def test_concat_frame_axis0_extension_dtypes():
 
     result = pd.concat([df2, df1], ignore_index=True)
     expected = pd.DataFrame({"a": [4, 5, 6, 1, 2, 3]}, dtype="Int64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_preserves_extension_int64_dtype():
+    # GH 24768
+    df_a = pd.DataFrame({"a": [-1]}, dtype="Int64")
+    df_b = pd.DataFrame({"b": [1]}, dtype="Int64")
+    result = pd.concat([df_a, df_b], ignore_index=True)
+    expected = pd.DataFrame({"a": [-1, None], "b": [None, 1]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)

@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import is_list_like
 import pandas as pd
 import pandas.core.common as com
 from pandas.core.computation import expr, ops, scope as _scope
-from pandas.core.computation.common import _ensure_decoded
+from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
 from pandas.core.computation.ops import UndefinedVariableError, is_term
 from pandas.core.construction import extract_array
@@ -42,7 +42,10 @@ class Term(ops.Term):
     env: PyTablesScope
 
     def __new__(cls, name, env, side=None, encoding=None):
-        klass = Constant if not isinstance(name, str) else cls
+        if isinstance(name, str):
+            klass = cls
+        else:
+            klass = Constant
         return object.__new__(klass)
 
     def __init__(self, name, env: PyTablesScope, side=None, encoding=None):
@@ -83,6 +86,7 @@ class BinOp(ops.BinOp):
 
     op: str
     queryables: Dict[str, Any]
+    condition: Optional[str]
 
     def __init__(self, op: str, lhs, rhs, queryables: Dict[str, Any], encoding):
         super().__init__(op, lhs, rhs)
@@ -184,17 +188,15 @@ class BinOp(ops.BinOp):
 
         def stringify(value):
             if self.encoding is not None:
-                encoder = partial(pprint_thing_encoded, encoding=self.encoding)
-            else:
-                encoder = pprint_thing
-            return encoder(value)
+                return pprint_thing_encoded(value, encoding=self.encoding)
+            return pprint_thing(value)
 
-        kind = _ensure_decoded(self.kind)
-        meta = _ensure_decoded(self.meta)
+        kind = ensure_decoded(self.kind)
+        meta = ensure_decoded(self.meta)
         if kind == "datetime64" or kind == "datetime":
             if isinstance(v, (int, float)):
                 v = stringify(v)
-            v = _ensure_decoded(v)
+            v = ensure_decoded(v)
             v = Timestamp(v)
             if v.tz is not None:
                 v = v.tz_convert("UTC")
@@ -257,9 +259,11 @@ class FilterBinOp(BinOp):
     def invert(self):
         """ invert the filter """
         if self.filter is not None:
-            f = list(self.filter)
-            f[1] = self.generate_filter_op(invert=True)
-            self.filter = tuple(f)
+            self.filter = (
+                self.filter[0],
+                self.generate_filter_op(invert=True),
+                self.filter[2],
+            )
         return self
 
     def format(self):
@@ -554,7 +558,7 @@ class PyTablesExpr(expr.Expr):
                 else:
                     w = _validate_where(w)
                     where[idx] = w
-            _where = " & ".join((f"({w})" for w in com.flatten(where)))
+            _where = " & ".join(f"({w})" for w in com.flatten(where))
         else:
             _where = where
 

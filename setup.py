@@ -34,7 +34,7 @@ def is_platform_mac():
 
 
 min_numpy_ver = "1.16.5"
-min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
+min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
     import Cython
@@ -51,8 +51,8 @@ except ImportError:
 # The import of Extension must be after the import of Cython, otherwise
 # we do not get the appropriately patched class.
 # See https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html # noqa
-from distutils.extension import Extension  # noqa: E402 isort:skip
-from distutils.command.build import build  # noqa: E402 isort:skip
+from distutils.extension import Extension  # isort:skip
+from distutils.command.build import build  # isort:skip
 
 if _CYTHON_INSTALLED:
     from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
@@ -99,7 +99,7 @@ class build_ext(_build_ext):
                 # if .pxi.in is not updated, no need to output .pxi
                 continue
 
-            with open(pxifile, "r") as f:
+            with open(pxifile) as f:
                 tmpl = f.read()
             pyxcontent = tempita.sub(tmpl)
 
@@ -199,6 +199,7 @@ CLASSIFIERS = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Cython",
     "Topic :: Scientific/Engineering",
 ]
@@ -386,8 +387,7 @@ class CythonCommand(build_ext):
 
 
 class DummyBuildSrc(Command):
-    """ numpy's build_src command interferes with Cython's build_ext.
-    """
+    """numpy's build_src command interferes with Cython's build_ext."""
 
     user_options = []
 

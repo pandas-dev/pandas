@@ -17,7 +17,7 @@ from pandas.plotting._matplotlib import compat
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
-    from matplotlib.lines import Line2D  # noqa:F401
+    from matplotlib.lines import Line2D
     from matplotlib.table import Table
 
 
@@ -100,7 +100,7 @@ def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int
 # copied from matplotlib/pyplot.py and modified for pandas.plotting
 
 
-def _subplots(
+def create_subplots(
     naxes: int,
     sharex: bool = False,
     sharey: bool = False,
@@ -194,7 +194,7 @@ def _subplots(
         fig = plt.figure(**fig_kw)
     else:
         if is_list_like(ax):
-            ax = _flatten(ax)
+            ax = flatten_axes(ax)
             if layout is not None:
                 warnings.warn(
                     "When passing multiple axes, layout keyword is ignored", UserWarning
@@ -221,7 +221,7 @@ def _subplots(
             if squeeze:
                 return fig, ax
             else:
-                return fig, _flatten(ax)
+                return fig, flatten_axes(ax)
         else:
             warnings.warn(
                 "To output multiple subplots, the figure containing "
@@ -264,7 +264,7 @@ def _subplots(
         for ax in axarr[naxes:]:
             ax.set_visible(False)
 
-    _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey)
+    handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey)
 
     if squeeze:
         # Reshape the array to have the final desired dimension (nrow,ncol),
@@ -297,7 +297,57 @@ def _remove_labels_from_axis(axis: "Axis"):
     axis.get_label().set_visible(False)
 
 
-def _handle_shared_axes(
+def _has_externally_shared_axis(ax1: "matplotlib.axes", compare_axis: "str") -> bool:
+    """
+    Return whether an axis is externally shared.
+
+    Parameters
+    ----------
+    ax1 : matplotlib.axes
+        Axis to query.
+    compare_axis : str
+        `"x"` or `"y"` according to whether the X-axis or Y-axis is being
+        compared.
+
+    Returns
+    -------
+    bool
+        `True` if the axis is externally shared. Otherwise `False`.
+
+    Notes
+    -----
+    If two axes with different positions are sharing an axis, they can be
+    referred to as *externally* sharing the common axis.
+
+    If two axes sharing an axis also have the same position, they can be
+    referred to as *internally* sharing the common axis (a.k.a twinning).
+
+    _handle_shared_axes() is only interested in axes externally sharing an
+    axis, regardless of whether either of the axes is also internally sharing
+    with a third axis.
+    """
+    if compare_axis == "x":
+        axes = ax1.get_shared_x_axes()
+    elif compare_axis == "y":
+        axes = ax1.get_shared_y_axes()
+    else:
+        raise ValueError(
+            "_has_externally_shared_axis() needs 'x' or 'y' as a second parameter"
+        )
+
+    axes = axes.get_siblings(ax1)
+
+    # Retain ax1 and any of its siblings which aren't in the same position as it
+    ax1_points = ax1.get_position().get_points()
+
+    for ax2 in axes:
+        if not np.array_equal(ax1_points, ax2.get_position().get_points()):
+            return True
+
+    return False
+
+
+def handle_shared_axes(
     axarr: Iterable["Axes"],
     nplots: int,
     naxes: int,
@@ -307,7 +357,7 @@ def _handle_shared_axes(
     sharey: bool,
 ):
     if nplots > 1:
-        if compat._mpl_ge_3_2_0():
+        if compat.mpl_ge_3_2_0():
             row_num = lambda x: x.get_subplotspec().rowspan.start
             col_num = lambda x: x.get_subplotspec().colspan.start
         else:
@@ -328,7 +378,7 @@ def _handle_shared_axes(
                     # the last in the column, because below is no subplot/gap.
                     if not layout[row_num(ax) + 1, col_num(ax)]:
                         continue
-                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
+                    if sharex or _has_externally_shared_axis(ax, "x"):
                         _remove_labels_from_axis(ax.xaxis)
 
             except IndexError:
@@ -337,7 +387,7 @@ def _handle_shared_axes(
                 for ax in axarr:
                     if ax.is_last_row():
                         continue
-                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
+                    if sharex or _has_externally_shared_axis(ax, "x"):
                         _remove_labels_from_axis(ax.xaxis)
 
         if ncols > 1:
@@ -347,11 +397,11 @@ def _handle_shared_axes(
                 # have a subplot there, we can skip the layout test
                 if ax.is_first_col():
                     continue
-                if sharey or len(ax.get_shared_y_axes().get_siblings(ax)) > 1:
+                if sharey or _has_externally_shared_axis(ax, "y"):
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def _flatten(axes: Union["Axes", Sequence["Axes"]]) -> Sequence["Axes"]:
+def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> Sequence["Axes"]:
     if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndexClass)):
@@ -359,7 +409,7 @@ def _flatten(axes: Union["Axes", Sequence["Axes"]]) -> Sequence["Axes"]:
     return np.array(axes)
 
 
-def _set_ticks_props(
+def set_ticks_props(
     axes: Union["Axes", Sequence["Axes"]],
     xlabelsize=None,
     xrot=None,
@@ -368,7 +418,7 @@ def _set_ticks_props(
 ):
     import matplotlib.pyplot as plt
 
-    for ax in _flatten(axes):
+    for ax in flatten_axes(axes):
         if xlabelsize is not None:
             plt.setp(ax.get_xticklabels(), fontsize=xlabelsize)
         if xrot is not None:
@@ -380,7 +430,7 @@ def _set_ticks_props(
     return axes
 
 
-def _get_all_lines(ax: "Axes") -> List["Line2D"]:
+def get_all_lines(ax: "Axes") -> List["Line2D"]:
     lines = ax.get_lines()
 
     if hasattr(ax, "right_ax"):
@@ -392,7 +442,7 @@ def _get_all_lines(ax: "Axes") -> List["Line2D"]:
     return lines
 
 
-def _get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
+def get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata(orig=False)
