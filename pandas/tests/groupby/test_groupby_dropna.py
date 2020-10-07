@@ -339,7 +339,7 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
 
 
 def test_groupby_nan_included():
-    # GH 35646, GH 35542
+    # GH 35646
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
     df = pd.DataFrame(data)
     grouped = df.groupby("group", dropna=False)
@@ -354,9 +354,3 @@ def test_groupby_nan_included():
         tm.assert_numpy_array_equal(result_values, expected_values)
     assert np.isnan(list(result.keys())[2])
     assert list(result.keys())[0:2] == ["g1", "g2"]
-
-    result = grouped.mean()
-    expected = pd.DataFrame(
-        {"B": [1.0, 3.0, 2.5]}, index=pd.Index(["g1", "g2", np.nan], name="group")
-    )
-    tm.assert_frame_equal(result, expected)
