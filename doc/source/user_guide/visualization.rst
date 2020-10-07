@@ -1453,7 +1453,11 @@ Here is an example of one way to easily plot group means with standard deviation
    )
 
    df3 = pd.DataFrame(
-       {"data1": [3, 2, 4, 3, 2, 4, 3, 2], "data2": [6, 5, 7, 5, 4, 5, 6, 5]}, index=ix3
+       {
+           "data1": [3, 2, 4, 3, 2, 4, 3, 2],
+           "data2": [6, 5, 7, 5, 4, 5, 6, 5],
+       },
+       index=ix3,
    )
 
    # Group by index labels and take the means and standard deviations

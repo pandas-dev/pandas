@@ -101,7 +101,9 @@ Output formatting enhancements
 
   .. ipython:: python
 
-     df = pd.DataFrame([pd.Timestamp("20010101"), pd.Timestamp("20040601")], columns=["age"])
+     df = pd.DataFrame(
+         [pd.Timestamp("20010101"), pd.Timestamp("20040601")], columns=["age"]
+     )
      df["today"] = pd.Timestamp("20130419")
      df["diff"] = df["today"] - df["age"]
      df
@@ -206,7 +208,9 @@ Enhancements
   .. code-block:: python
 
       # Try to infer the format for the index column
-      df = pd.read_csv("foo.csv", index_col=0, parse_dates=True, infer_datetime_format=True)
+      df = pd.read_csv(
+          "foo.csv", index_col=0, parse_dates=True, infer_datetime_format=True
+      )
 
 - ``date_format`` and ``datetime_format`` keywords can now be specified when writing to ``excel``
   files (:issue:`4133`)

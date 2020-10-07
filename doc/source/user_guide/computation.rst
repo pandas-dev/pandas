@@ -787,7 +787,11 @@ can even be omitted:
 
 .. ipython:: python
 
-   covs = df[["B", "C", "D"]].rolling(window=50).cov(df[["A", "B", "C"]], pairwise=True)
+   covs = (
+       df[["B", "C", "D"]]
+       .rolling(window=50)
+       .cov(df[["A", "B", "C"]], pairwise=True)
+   )
    covs.loc["2002-09-22":]
 
 .. ipython:: python

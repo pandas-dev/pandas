@@ -1065,7 +1065,9 @@ join key), using ``join`` may be more convenient. Here is a simple example:
 
 .. ipython:: python
 
-   result = pd.merge(left, right, left_on="key", right_index=True, how="left", sort=False)
+   result = pd.merge(
+       left, right, left_on="key", right_index=True, how="left", sort=False
+   )
 
 .. ipython:: python
    :suppress:
@@ -1196,7 +1198,9 @@ the left argument, as in this example:
    left = pd.DataFrame({"v1": range(12)}, index=leftindex)
    left
 
-   rightindex = pd.MultiIndex.from_product([list("abc"), list("xy")], names=["abc", "xy"])
+   rightindex = pd.MultiIndex.from_product(
+       [list("abc"), list("xy")], names=["abc", "xy"]
+   )
    right = pd.DataFrame({"v2": [100 * i for i in range(1, 7)]}, index=rightindex)
    right
 
@@ -1210,7 +1214,9 @@ done using the following code.
    leftindex = pd.MultiIndex.from_tuples(
        [("K0", "X0"), ("K0", "X1"), ("K1", "X2")], names=["key", "X"]
    )
-   left = pd.DataFrame({"A": ["A0", "A1", "A2"], "B": ["B0", "B1", "B2"]}, index=leftindex)
+   left = pd.DataFrame(
+       {"A": ["A0", "A1", "A2"], "B": ["B0", "B1", "B2"]}, index=leftindex
+   )
 
    rightindex = pd.MultiIndex.from_tuples(
        [("K0", "Y0"), ("K1", "Y1"), ("K2", "Y2"), ("K2", "Y3")], names=["key", "Y"]
@@ -1376,7 +1382,9 @@ one object from values for matching indices in the other. Here is an example:
 
 .. ipython:: python
 
-   df1 = pd.DataFrame([[np.nan, 3.0, 5.0], [-4.6, np.nan, np.nan], [np.nan, 7.0, np.nan]])
+   df1 = pd.DataFrame(
+       [[np.nan, 3.0, 5.0], [-4.6, np.nan, np.nan], [np.nan, 7.0, np.nan]]
+   )
    df2 = pd.DataFrame([[-42.6, np.nan, -8.2], [-5.0, 1.6, 4]], index=[1, 2])
 
 For this, use the :meth:`~DataFrame.combine_first` method:

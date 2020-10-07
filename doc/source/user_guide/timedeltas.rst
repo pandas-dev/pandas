@@ -409,7 +409,10 @@ Similarly to other of the datetime-like indices, ``DatetimeIndex`` and ``PeriodI
 
 .. ipython:: python
 
-   s = pd.Series(np.arange(100), index=pd.timedelta_range("1 days", periods=100, freq="h"))
+   s = pd.Series(
+       np.arange(100),
+       index=pd.timedelta_range("1 days", periods=100, freq="h"),
+   )
    s
 
 Selections work similarly, with coercion on string-likes and slices:

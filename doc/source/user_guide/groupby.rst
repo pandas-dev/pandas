@@ -267,7 +267,9 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    height = np.random.normal(60, 10, size=n)
    time = pd.date_range("1/1/2000", periods=n)
    gender = np.random.choice(["male", "female"], size=n)
-   df = pd.DataFrame({"height": height, "weight": weight, "gender": gender}, index=time)
+   df = pd.DataFrame(
+       {"height": height, "weight": weight, "gender": gender}, index=time
+   )
 
 .. ipython:: python
 
@@ -767,7 +769,10 @@ For example, suppose we wished to standardize the data within each group:
    ts.head()
    ts.tail()
 
-   transformed = ts.groupby(lambda x: x.year).transform(lambda x: (x - x.mean()) / x.std())
+   transformed = ts.groupby(lambda x: x.year).transform(
+       lambda x: (x - x.mean()) / x.std()
+   )
+
 
 We would expect the result to now have mean 0 and standard deviation 1 within
 each group, which we can easily check:
