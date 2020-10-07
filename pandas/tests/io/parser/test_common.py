@@ -2221,3 +2221,12 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers):
     )
     with pytest.raises(ValueError, match=msg):
         parser.read_table(f, delim_whitespace=True, sep=",")
+
+
+def test_dict_keys_as_names(all_parsers):
+    data = "a,b\n1,2"
+
+    keys = {"a": int, "b": int}.keys()
+    parser = all_parsers
+
+    parser.read_csv(StringIO(data), names=keys)
