@@ -721,15 +721,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        res_name = get_op_result_name(self, other)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
         if len(self) == 0:
-            return self.copy()
+            return self.copy()._get_reconciled_name_object(other)
         if len(other) == 0:
-            return other.copy()
+            return other.copy()._get_reconciled_name_object(self)
 
         if not isinstance(other, type(self)):
             result = Index.intersection(self, other, sort=sort)
@@ -737,7 +736,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 if result.freq is None:
                     # TODO: no tests rely on this; needed?
                     result = result._with_freq("infer")
-            result.name = res_name
             return result
 
         elif not self._can_fast_intersect(other):
@@ -745,9 +743,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # We need to invalidate the freq because Index.intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
             #  self.freq if we're not careful.
-            result = result._with_freq(None)._with_freq("infer")
-            result.name = res_name
-            return result
+            return result._with_freq(None)._with_freq("infer")
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -761,11 +757,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            return type(self)(data=[], dtype=self.dtype, freq=self.freq, name=res_name)
+            result = type(self)(data=[], dtype=self.dtype, freq=self.freq)
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left._values[lslice]
-            return type(self)._simple_new(left_chunk, name=res_name)
+            result = type(self)._simple_new(left_chunk)
+
+        return self._wrap_setop_result(other, result)
 
     def _can_fast_intersect(self: _T, other: _T) -> bool:
         if self.freq is None:
@@ -860,7 +858,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
             dates = type(self._data)(dates, freq=self.freq)
-            result = type(self)._simple_new(dates, name=self.name)
+            result = type(self)._simple_new(dates)
             return result
         else:
             return left
@@ -885,8 +883,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 result = result._with_freq("infer")
             return result
         else:
-            i8self = Int64Index._simple_new(self.asi8, name=self.name)
-            i8other = Int64Index._simple_new(other.asi8, name=other.name)
+            i8self = Int64Index._simple_new(self.asi8)
+            i8other = Int64Index._simple_new(other.asi8)
             i8result = i8self._union(i8other, sort=sort)
             result = type(self)(i8result, dtype=self.dtype, freq="infer")
             return result
