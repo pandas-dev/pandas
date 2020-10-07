@@ -5,7 +5,6 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
-    Hashable,
     Iterable,
     List,
     Optional,
@@ -17,7 +16,7 @@ import numpy as np
 
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
-from pandas._typing import IndexKeyFunc
+from pandas._typing import IndexKeyFunc, Label
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -520,7 +519,7 @@ def get_flattened_list(
 
 
 def get_indexer_dict(
-    label_list: List[np.ndarray], keys: Hashable
+    label_list: List[np.ndarray], keys: List[Label]
 ) -> Dict[Union[str, Tuple], np.ndarray]:
     """
     Returns
