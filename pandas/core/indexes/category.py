@@ -312,7 +312,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 "categories",
                 ibase.default_pprint(self.categories, max_seq_items=max_categories),
             ),
-            ("ordered", self.ordered),
+            # pandas\core\indexes\category.py:315: error: "CategoricalIndex"
+            # has no attribute "ordered"  [attr-defined]
+            ("ordered", self.ordered),  # type: ignore[attr-defined]
         ]
         if self.name is not None:
             attrs.append(("name", ibase.default_pprint(self.name)))
@@ -544,7 +546,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 "method='nearest' not implemented yet for CategoricalIndex"
             )
 
-        codes = self._values._validate_listlike(target._values)
+        # pandas\core\indexes\category.py:547: error: Item "ExtensionArray" of
+        # "Union[ExtensionArray, Any]" has no attribute "_validate_listlike"
+        # [union-attr]
+        codes = self._values._validate_listlike(  # type: ignore[union-attr]
+            target._values
+        )
         indexer, _ = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer)
 
@@ -552,7 +559,12 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     def get_indexer_non_unique(self, target):
         target = ibase.ensure_index(target)
 
-        codes = self._values._validate_listlike(target._values)
+        # pandas\core\indexes\category.py:555: error: Item "ExtensionArray" of
+        # "Union[ExtensionArray, Any]" has no attribute "_validate_listlike"
+        # [union-attr]
+        codes = self._values._validate_listlike(  # type: ignore[union-attr]
+            target._values
+        )
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer), missing
 
@@ -658,7 +670,9 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        mapped = self._values.map(mapper)
+        # pandas\core\indexes\category.py:661: error: Item "ExtensionArray" of
+        # "Union[ExtensionArray, Any]" has no attribute "map"  [union-attr]
+        mapped = self._values.map(mapper)  # type: ignore[union-attr]
         return Index(mapped, name=self.name)
 
     def delete(self, loc):
@@ -701,7 +715,15 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others
-        codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
+
+        # pandas\core\indexes\category.py:704: error: "bool" has no attribute
+        # "codes"  [attr-defined]
+        codes = np.concatenate(
+            [
+                self._is_dtype_compat(c).codes  # type: ignore[attr-defined]
+                for c in to_concat
+            ]
+        )
         cat = self._data._from_backing_data(codes)
         return type(self)._simple_new(cat, name=name)
 
