@@ -562,12 +562,12 @@ class Index(IndexOpsMixin, PandasObject):
         name : Label, defaults to self.name
         """
         name = self.name if name is no_default else name
-        cache = self._cache.copy() if values is None else {}
-        if values is None:
-            values = self._values
 
-        result = self._simple_new(values, name=name)
-        result._cache = cache
+        if values is not None:
+            return self._simple_new(values, name=name)
+
+        result = self._simple_new(self._values, name=name)
+        result._cache = self._cache
         return result
 
     def is_(self, other) -> bool:
