@@ -857,6 +857,10 @@ TIMEZONES = [
     "Asia/Tokyo",
     "dateutil/US/Pacific",
     "dateutil/Asia/Singapore",
+    "+01:15",
+    "-02:15",
+    "UTC+01:15",
+    "UTC-02:15",
     tzutc(),
     tzlocal(),
     FixedOffset(300),
@@ -1226,7 +1230,7 @@ def ip():
     from IPython.core.interactiveshell import InteractiveShell
 
     # GH#35711 make sure sqlite history file handle is not leaked
-    from traitlets.config import Config  # noqa: F401 isort:skip
+    from traitlets.config import Config  # isort:skip
 
     c = Config()
     c.HistoryManager.hist_file = ":memory:"

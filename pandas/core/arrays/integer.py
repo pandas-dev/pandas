@@ -1,10 +1,11 @@
+from datetime import timedelta
 import numbers
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import Timedelta, iNaT, lib, missing as libmissing
 from pandas._typing import ArrayLike, DtypeObj
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
@@ -25,7 +26,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.array_algos import masked_reductions
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
@@ -413,7 +413,7 @@ class IntegerArray(BaseMaskedArray):
 
         result = getattr(ufunc, method)(*inputs2, **kwargs)
         if isinstance(result, tuple):
-            tuple(reconstruct(x) for x in result)
+            return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
 
@@ -550,10 +550,19 @@ class IntegerArray(BaseMaskedArray):
 
     def sum(self, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
-        result = masked_reductions.sum(
-            values=self._data, mask=self._mask, skipna=skipna, min_count=min_count
-        )
-        return result
+        return super()._reduce("sum", skipna=skipna, min_count=min_count)
+
+    def prod(self, skipna=True, min_count=0, **kwargs):
+        nv.validate_prod((), kwargs)
+        return super()._reduce("prod", skipna=skipna, min_count=min_count)
+
+    def min(self, skipna=True, **kwargs):
+        nv.validate_min((), kwargs)
+        return super()._reduce("min", skipna=skipna)
+
+    def max(self, skipna=True, **kwargs):
+        nv.validate_max((), kwargs)
+        return super()._reduce("max", skipna=skipna)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
@@ -572,6 +581,12 @@ class IntegerArray(BaseMaskedArray):
         ):
             result[mask] = np.nan
             return result
+
+        if result.dtype == "timedelta64[ns]":
+            from pandas.core.arrays import TimedeltaArray
+
+            result[mask] = iNaT
+            return TimedeltaArray._simple_new(result)
 
         return type(self)(result, mask, copy=False)
 
@@ -600,6 +615,9 @@ class IntegerArray(BaseMaskedArray):
                     raise ValueError("Lengths must match")
                 if not (is_float_dtype(other) or is_integer_dtype(other)):
                     raise TypeError("can only perform ops with numeric values")
+
+            elif isinstance(other, (timedelta, np.timedelta64)):
+                other = Timedelta(other)
 
             else:
                 if not (is_float(other) or is_integer(other) or other is libmissing.NA):
