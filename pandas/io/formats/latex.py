@@ -11,6 +11,39 @@ from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.io.formats.format import DataFrameFormatter, TableFormatter
 
 
+def _split_into_full_short_caption(
+    caption: Optional[Union[str, Tuple[str, str]]]
+) -> Tuple[str, str]:
+    """Extract full and short captions from caption string/tuple.
+
+    Parameters
+    ----------
+    caption : str or tuple, optional
+        Either table caption string or tuple (full_caption, short_caption).
+        If string is provided, then it is treated as table full caption,
+        while short_caption is considered an empty string.
+
+    Returns
+    -------
+    full_caption, short_caption : tuple
+        Tuple of full_caption, short_caption strings.
+    """
+    if caption:
+        if isinstance(caption, str):
+            full_caption = caption
+            short_caption = ""
+        else:
+            try:
+                full_caption, short_caption = caption
+            except ValueError as err:
+                msg = "caption must be either a string or a tuple of two strings"
+                raise ValueError(msg) from err
+    else:
+        full_caption = ""
+        short_caption = ""
+    return full_caption, short_caption
+
+
 class RowStringConverter(ABC):
     r"""Converter for dataframe rows into LaTeX strings.
 
@@ -672,7 +705,7 @@ class LatexFormatter(TableFormatter):
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
-        self.caption, self.short_caption = self._split_into_long_short_caption(caption)
+        self.caption, self.short_caption = _split_into_full_short_caption(caption)
         self.label = label
         self.position = position
 
@@ -712,24 +745,6 @@ class LatexFormatter(TableFormatter):
         if any([self.caption, self.label, self.position]):
             return RegularTableBuilder
         return TabularBuilder
-
-    def _split_into_long_short_caption(
-        self, caption: Optional[Union[str, Tuple[str, str]]]
-    ) -> Tuple[str, str]:
-        if caption:
-            if isinstance(caption, str):
-                long_caption = caption
-                short_caption = ""
-            else:
-                try:
-                    long_caption, short_caption = caption
-                except ValueError as err:
-                    msg = "caption must be either a string or a tuple of two strings"
-                    raise ValueError(msg) from err
-        else:
-            long_caption = ""
-            short_caption = ""
-        return long_caption, short_caption
 
     @property
     def column_format(self) -> Optional[str]:
