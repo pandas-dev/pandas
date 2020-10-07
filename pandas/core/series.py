@@ -4965,7 +4965,7 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Template-Based Arithmetic/Comparison Methods
 
-    def _cmp_method(self, other, op) -> "Series":
+    def _cmp_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)
 
         if isinstance(other, Series) and not self._indexed_same(other):
