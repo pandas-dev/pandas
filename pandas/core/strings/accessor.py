@@ -1289,16 +1289,17 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
         """
         if regex is None:
-            if (
-                isinstance(pat, str)
-                and len(pat) > 1
-                and any(c in pat for c in ".+*|^$?[](){}\\")
-            ):
+            if isinstance(pat, str) and any(c in pat for c in ".+*|^$?[](){}\\"):
                 # warn only in cases where regex behavior would differ from literal
                 msg = (
-                    "The default value of regex will change from "
-                    "True to False in a future version."
+                    "The default value of regex will change from True to False "
+                    "in a future version."
                 )
+                if len(pat) == 1:
+                    msg += (
+                        " In addition, single character regexes will not be "
+                        "treated as literal strings when regex=True."
+                    )
                 warnings.warn(msg, FutureWarning, stacklevel=3)
             regex = True
         result = self._array._str_replace(
