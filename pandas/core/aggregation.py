@@ -17,9 +17,17 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
 )
 
-from pandas._typing import AggFuncType, Axis, FrameOrSeries, Label
+from pandas._typing import (
+    AggFuncType,
+    AggFuncTypeBase,
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Label,
+)
 
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
@@ -391,7 +399,7 @@ def validate_func_kwargs(
 
 def transform(
     obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs
-) -> FrameOrSeries:
+) -> FrameOrSeriesUnion:
     """
     Transform a DataFrame or Series
 
@@ -424,16 +432,20 @@ def transform(
         assert not is_series
         return transform(obj.T, func, 0, *args, **kwargs).T
 
-    if isinstance(func, list):
+    if is_list_like(func) and not is_dict_like(func):
+        func = cast(List[AggFuncTypeBase], func)
+        # Convert func equivalent dict
         if is_series:
             func = {com.get_callable_name(v) or v: v for v in func}
         else:
             func = {col: func for col in obj}
 
-    if isinstance(func, dict):
+    if is_dict_like(func):
+        func = cast(Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], func)
         return transform_dict_like(obj, func, *args, **kwargs)
 
     # func is either str or callable
+    func = cast(AggFuncTypeBase, func)
     try:
         result = transform_str_or_callable(obj, func, *args, **kwargs)
     except Exception:
@@ -451,29 +463,42 @@ def transform(
     return result
 
 
-def transform_dict_like(obj, func, *args, **kwargs):
+def transform_dict_like(
+    obj: FrameOrSeries,
+    func: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    *args,
+    **kwargs,
+):
     """
     Compute transform in the case of a dict-like func
     """
     from pandas.core.reshape.concat import concat
 
+    if len(func) == 0:
+        raise ValueError("No transform functions were provided")
+
     if obj.ndim != 1:
+        # Check for missing columns on a frame
         cols = sorted(set(func.keys()) - set(obj.columns))
         if len(cols) > 0:
             raise SpecificationError(f"Column(s) {cols} do not exist")
 
-    if any(isinstance(v, dict) for v in func.values()):
+    # Can't use func.values(); wouldn't work for a Series
+    if any(is_dict_like(v) for _, v in func.items()):
         # GH 15931 - deprecation of renaming keys
         raise SpecificationError("nested renamer is not supported")
 
-    results = {}
+    results: Dict[Label, FrameOrSeriesUnion] = {}
     for name, how in func.items():
         colg = obj._gotitem(name, ndim=1)
         try:
             results[name] = transform(colg, how, 0, *args, **kwargs)
-        except Exception as e:
-            if str(e) == "Function did not transform":
-                raise e
+        except Exception as err:
+            if (
+                str(err) == "Function did not transform"
+                or str(err) == "No transform functions were provided"
+            ):
+                raise err
 
     # combine results
     if len(results) == 0:
@@ -481,7 +506,9 @@ def transform_dict_like(obj, func, *args, **kwargs):
     return concat(results, axis=1)
 
 
-def transform_str_or_callable(obj, func, *args, **kwargs):
+def transform_str_or_callable(
+    obj: FrameOrSeries, func: AggFuncTypeBase, *args, **kwargs
+) -> FrameOrSeriesUnion:
     """
     Compute transform in the case of a string or callable func
     """

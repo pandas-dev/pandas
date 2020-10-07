@@ -1091,7 +1091,7 @@ class TestDataFrameIndexing:
             cp.iloc[1.0:5] = 0
 
         with pytest.raises(TypeError, match=msg):
-            result = cp.iloc[1.0:5] == 0  # noqa
+            result = cp.iloc[1.0:5] == 0
 
         assert result.values.all()
         assert (cp.iloc[0:1] == df.iloc[0:1]).values.all()

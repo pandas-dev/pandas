@@ -100,6 +100,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_float,
     is_float_dtype,
     is_hashable,
     is_integer,
@@ -638,10 +639,10 @@ class DataFrame(NDFrame):
         """
         Can we transpose this DataFrame without creating any new array objects.
         """
-        if self._data.any_extension_types:
+        if self._mgr.any_extension_types:
             # TODO(EA2D) special case would be unnecessary with 2D EAs
             return False
-        return len(self._data.blocks) == 1
+        return len(self._mgr.blocks) == 1
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -1216,7 +1217,14 @@ class DataFrame(NDFrame):
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
-        return self.T.dot(np.transpose(other)).T
+        try:
+            return self.T.dot(np.transpose(other)).T
+        except ValueError as err:
+            if "shape mismatch" not in str(err):
+                raise
+            # GH#21581 give exception message for original shapes
+            msg = f"shapes {np.shape(other)} and {self.shape} not aligned"
+            raise ValueError(msg) from err
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
@@ -2337,7 +2345,7 @@ class DataFrame(NDFrame):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -2872,7 +2880,7 @@ class DataFrame(NDFrame):
         Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
         """
-        return self._data.iget_values(i)
+        return self._mgr.iget_values(i)
 
     def _iter_column_arrays(self) -> Iterator[ArrayLike]:
         """
@@ -4458,7 +4466,34 @@ class DataFrame(NDFrame):
         return res.__finalize__(self)
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> DataFrame:
+    def shift(
+        self, periods=1, freq=None, axis=0, fill_value=lib.no_default
+    ) -> DataFrame:
+        axis = self._get_axis_number(axis)
+
+        ncols = len(self.columns)
+        if axis == 1 and periods != 0 and fill_value is lib.no_default and ncols > 0:
+            # We will infer fill_value to match the closest column
+
+            if periods > 0:
+                result = self.iloc[:, :-periods]
+                for col in range(min(ncols, abs(periods))):
+                    # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
+                    # Define filler inside loop so we get a copy
+                    filler = self.iloc[:, 0].shift(len(self))
+                    result.insert(0, col, filler, allow_duplicates=True)
+            else:
+                result = self.iloc[:, -periods:]
+                for col in range(min(ncols, abs(periods))):
+                    # Define filler inside loop so we get a copy
+                    filler = self.iloc[:, -1].shift(len(self))
+                    result.insert(
+                        len(result.columns), col, filler, allow_duplicates=True
+                    )
+
+            result.columns = self.columns.copy()
+            return result
+
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
         )
@@ -4904,7 +4939,7 @@ class DataFrame(NDFrame):
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> DataFrame:
-        result = self._constructor(self._data.isna(func=isna))
+        result = self._constructor(self._mgr.isna(func=isna))
         return result.__finalize__(self, method="isna")
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
@@ -7208,13 +7243,13 @@ NaN 12.3   33.0
         Difference with previous column
 
         >>> df.diff(axis=1)
-            a    b     c
-        0 NaN  0.0   0.0
-        1 NaN -1.0   3.0
-        2 NaN -1.0   7.0
-        3 NaN -1.0  13.0
-        4 NaN  0.0  20.0
-        5 NaN  2.0  28.0
+            a  b   c
+        0 NaN  0   0
+        1 NaN -1   3
+        2 NaN -1   7
+        3 NaN -1  13
+        4 NaN  0  20
+        5 NaN  2  28
 
         Difference with 3rd previous row
 
@@ -7248,12 +7283,15 @@ NaN 12.3   33.0
         ),
     )
     def diff(self, periods: int = 1, axis: Axis = 0) -> DataFrame:
+        if not isinstance(periods, int):
+            if not (is_float(periods) and periods.is_integer()):
+                raise ValueError("periods must be an integer")
+            periods = int(periods)
 
         bm_axis = self._get_block_manager_axis(axis)
-        self._consolidate_inplace()
 
         if bm_axis == 0 and periods != 0:
-            return self.T.diff(periods, axis=0).T
+            return self - self.shift(periods, axis=axis)  # type: ignore[operator]
 
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
@@ -7263,7 +7301,7 @@ NaN 12.3   33.0
 
     def _gotitem(
         self,
-        key: Union[str, List[str]],
+        key: Union[Label, List[Label]],
         ndim: int,
         subset: Optional[FrameOrSeriesUnion] = None,
     ) -> FrameOrSeriesUnion:
@@ -8568,6 +8606,7 @@ NaN 12.3   33.0
     ):
 
         assert filter_type is None or filter_type == "bool", filter_type
+        out_dtype = "bool" if filter_type == "bool" else None
 
         dtype_is_dt = np.array(
             [
@@ -8587,10 +8626,9 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        # TODO: Make other agg func handle axis=None properly
+        # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
         labels = self._get_agg_axis(axis)
-        constructor = self._constructor
         assert axis in [0, 1]
 
         def func(values):
@@ -8599,18 +8637,19 @@ NaN 12.3   33.0
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
+        def blk_func(values):
+            if isinstance(values, ExtensionArray):
+                return values._reduce(name, skipna=skipna, **kwds)
+            else:
+                return op(values, axis=1, skipna=skipna, **kwds)
+
         def _get_data() -> DataFrame:
             if filter_type is None:
                 data = self._get_numeric_data()
-            elif filter_type == "bool":
+            else:
                 # GH#25101, GH#24434
+                assert filter_type == "bool"
                 data = self._get_bool_data()
-            else:  # pragma: no cover
-                msg = (
-                    f"Generating numeric_only data with filter_type {filter_type} "
-                    "not supported."
-                )
-                raise NotImplementedError(msg)
             return data
 
         if numeric_only is not None:
@@ -8620,14 +8659,6 @@ NaN 12.3   33.0
             if axis == 1:
                 df = df.T
                 axis = 0
-
-            out_dtype = "bool" if filter_type == "bool" else None
-
-            def blk_func(values):
-                if isinstance(values, ExtensionArray):
-                    return values._reduce(name, skipna=skipna, **kwds)
-                else:
-                    return op(values, axis=1, skipna=skipna, **kwds)
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
@@ -8644,11 +8675,10 @@ NaN 12.3   33.0
         if not self._is_homogeneous_type or self._mgr.any_extension_types:
             # try to avoid self.values call
 
-            if filter_type is None and axis == 0 and len(self) > 0:
+            if filter_type is None and axis == 0:
                 # operate column-wise
 
                 # numeric_only must be None here, as other cases caught above
-                # require len(self) > 0 bc frame_apply messes up empty prod/sum
 
                 # this can end up with a non-reduction
                 # but not always. if the types are mixed
@@ -8684,19 +8714,17 @@ NaN 12.3   33.0
             with np.errstate(all="ignore"):
                 result = func(values)
 
-        if is_object_dtype(result.dtype):
+        if filter_type == "bool" and notna(result).all():
+            result = result.astype(np.bool_)
+        elif filter_type is None and is_object_dtype(result.dtype):
             try:
-                if filter_type is None:
-                    result = result.astype(np.float64)
-                elif filter_type == "bool" and notna(result).all():
-                    result = result.astype(np.bool_)
+                result = result.astype(np.float64)
             except (ValueError, TypeError):
                 # try to coerce to the original dtypes item by item if we can
                 if axis == 0:
                     result = coerce_to_dtypes(result, data.dtypes)
 
-        if constructor is not None:
-            result = self._constructor_sliced(result, index=labels)
+        result = self._constructor_sliced(result, index=labels)
         return result
 
     def nunique(self, axis=0, dropna=True) -> Series:
