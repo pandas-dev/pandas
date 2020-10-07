@@ -192,12 +192,18 @@ class SelectionMixin:
 
     @cache_readonly
     def _selected_obj(self):
-        if self._selection is None or isinstance(self.obj, ABCSeries):
+        # pandas\core\base.py:195: error: "SelectionMixin" has no attribute
+        # "obj"  [attr-defined]
+        if self._selection is None or isinstance(
+            self.obj, ABCSeries  # type: ignore[attr-defined]
+        ):
             # pandas\core\base.py:194: error: "SelectionMixin" has no attribute
             # "obj"  [attr-defined]
             return self.obj  # type: ignore[attr-defined]
         else:
-            return self.obj[self._selection]
+            # pandas\core\base.py:204: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+            return self.obj[self._selection]  # type: ignore[attr-defined]
 
     @cache_readonly
     def ndim(self) -> int:
@@ -205,8 +211,16 @@ class SelectionMixin:
 
     @cache_readonly
     def _obj_with_exclusions(self):
-        if self._selection is not None and isinstance(self.obj, ABCDataFrame):
-            return self.obj.reindex(columns=self._selection_list)
+        # pandas\core\base.py:209: error: "SelectionMixin" has no attribute
+        # "obj"  [attr-defined]
+        if self._selection is not None and isinstance(
+            self.obj, ABCDataFrame  # type: ignore[attr-defined]
+        ):
+            # pandas\core\base.py:217: error: "SelectionMixin" has no attribute
+            # "obj"  [attr-defined]
+            return self.obj.reindex(  # type: ignore[attr-defined]
+                columns=self._selection_list
+            )
 
         # pandas\core\base.py:207: error: "SelectionMixin" has no attribute
         # "exclusions"  [attr-defined]
