@@ -12,14 +12,13 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Sized,
     Tuple,
     TypeVar,
     Union,
 )
 
 from pandas._config import get_option
-
-from pandas._typing import AnyArrayLike
 
 from pandas.core.dtypes.inference import is_sequence
 
@@ -505,7 +504,7 @@ def _justify(
 
 
 def format_object_attrs(
-    obj: Union[Sequence, AnyArrayLike], include_dtype: bool = True
+    obj: Sized, include_dtype: bool = True
 ) -> List[Tuple[str, Union[str, int]]]:
     """
     Return a list of tuples of the (attr, formatted_value)
@@ -514,7 +513,7 @@ def format_object_attrs(
     Parameters
     ----------
     obj : object
-        must be iterable
+        Must be sized.
     include_dtype : bool
         If False, dtype won't be in the returned list
 
@@ -525,17 +524,17 @@ def format_object_attrs(
     """
     attrs: List[Tuple[str, Union[str, int]]] = []
     if hasattr(obj, "dtype") and include_dtype:
-        # error: "Sequence[Any]" has no attribute "dtype"
-        attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore[union-attr]
+        # error: "Sized" has no attribute "dtype"
+        attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore[attr-defined]
     if getattr(obj, "name", None) is not None:
-        # error: "Sequence[Any]" has no attribute "name"
-        attrs.append(("name", default_pprint(obj.name)))  # type: ignore[union-attr]
-    # error: "Sequence[Any]" has no attribute "names"
+        # error: "Sized" has no attribute "name"
+        attrs.append(("name", default_pprint(obj.name)))  # type: ignore[attr-defined]
+    # error: "Sized" has no attribute "names"
     elif getattr(obj, "names", None) is not None and any(
-        obj.names  # type: ignore[union-attr]
+        obj.names  # type: ignore[attr-defined]
     ):
-        # error: "Sequence[Any]" has no attribute "names"
-        attrs.append(("names", default_pprint(obj.names)))  # type: ignore[union-attr]
+        # error: "Sized" has no attribute "names"
+        attrs.append(("names", default_pprint(obj.names)))  # type: ignore[attr-defined]
     max_seq_items = get_option("display.max_seq_items") or len(obj)
     if len(obj) > max_seq_items:
         attrs.append(("length", len(obj)))
