@@ -169,6 +169,7 @@ Other enhancements
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
 - Added methods :meth:`IntegerArray.prod`, :meth:`IntegerArray.min`, and :meth:`IntegerArray.max` (:issue:`33790`)
+- Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -376,6 +377,7 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
+- Bug in :meth:`DataFrame.reset_index` with ``NaT`` values in index raises ``ValueError`` with message ``"cannot convert float NaN to integer"`` (:issue:`36541`)
 -
 
 I/O
@@ -393,6 +395,7 @@ I/O
 - Bug in :meth:`read_csv` with ``engine='python'`` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
 - Removed ``private_key`` and ``verbose`` from :func:`read_gbq` as they are no longer supported in ``pandas-gbq`` (:issue:`34654`, :issue:`30200`)
 - Bumped minimum pytables version to 3.5.1 to avoid a ``ValueError`` in :meth:`read_hdf` (:issue:`24839`)
+- Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
 
 Plotting
 ^^^^^^^^
