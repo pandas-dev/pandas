@@ -62,7 +62,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
     return property(f)
 
 
-class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
+class TimedeltaArray(dtl.TimelikeOps):
     """
     Pandas ExtensionArray for timedelta data.
 
@@ -261,9 +261,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
     @classmethod
-    def _generate_range(
-        cls, start, end, periods, freq, closed=None
-    ) -> "TimedeltaArray":
+    def _generate_range(cls, start, end, periods, freq, closed=None):
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
