@@ -675,10 +675,14 @@ class TestGetSliceBounds:
         self, box, kind, side, expected, tz_aware_fixture
     ):
         # GH 35690
-        index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz_aware_fixture)
-        result = index.get_slice_bound(
-            box(year=2000, month=1, day=7), kind=kind, side=side
-        )
+        tz = tz_aware_fixture
+        index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
+        key = box(year=2000, month=1, day=7)
+
+        warn = None if tz is None else FutureWarning
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            # GH#36148 will require tzawareness-compat
+            result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
 
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
@@ -689,19 +693,27 @@ class TestGetSliceBounds:
         self, box, kind, side, year, expected, tz_aware_fixture
     ):
         # GH 35690
-        index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz_aware_fixture)
-        result = index.get_slice_bound(
-            box(year=year, month=1, day=7), kind=kind, side=side
-        )
+        tz = tz_aware_fixture
+        index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
+        key = box(year=year, month=1, day=7)
+
+        warn = None if tz is None else FutureWarning
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            # GH#36148 will require tzawareness-compat
+            result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
 
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     def test_slice_datetime_locs(self, box, kind, tz_aware_fixture):
         # GH 34077
-        index = DatetimeIndex(["2010-01-01", "2010-01-03"]).tz_localize(
-            tz_aware_fixture
-        )
-        result = index.slice_locs(box(2010, 1, 1), box(2010, 1, 2))
+        tz = tz_aware_fixture
+        index = DatetimeIndex(["2010-01-01", "2010-01-03"]).tz_localize(tz)
+        key = box(2010, 1, 1)
+
+        warn = None if tz is None else FutureWarning
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            # GH#36148 will require tzawareness-compat
+            result = index.slice_locs(key, box(2010, 1, 2))
         expected = (0, 1)
         assert result == expected

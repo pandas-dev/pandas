@@ -101,7 +101,13 @@ class TestTruncate:
         # GH 9243
         idx = date_range("4/1/2005", "4/30/2005", freq="D", tz="US/Pacific")
         s = Series(range(len(idx)), index=idx)
-        result = s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#36148 in the future will require tzawareness compat
+            s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
+
+        lb = idx[1]
+        ub = idx[3]
+        result = s.truncate(lb.to_pydatetime(), ub.to_pydatetime())
         expected = Series([1, 2, 3], index=idx[1:4])
         tm.assert_series_equal(result, expected)
 
