@@ -103,7 +103,6 @@ class Block(PandasObject):
     is_timedelta = False
     is_bool = False
     is_object = False
-    is_categorical = False
     is_extension = False
     _can_hold_na = False
     _can_consolidate = True
@@ -182,6 +181,10 @@ class Block(PandasObject):
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         return self.values.base is not None
+
+    @property
+    def is_categorical(self) -> bool:
+        return self._holder is Categorical
 
     @property
     def is_datelike(self) -> bool:
@@ -1712,10 +1715,6 @@ class ExtensionBlock(Block):
     def is_view(self) -> bool:
         """Extension arrays are never treated as views."""
         return False
-
-    @property
-    def is_categorical(self) -> bool:
-        return self._holder is Categorical
 
     @property
     def is_numeric(self):
