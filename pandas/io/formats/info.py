@@ -267,6 +267,10 @@ class BaseInfo(metaclass=ABCMeta):
         fmt.buffer_put_lines(self.buf, lines)
 
 
+class SeriesInfo(BaseInfo):
+    pass
+
+
 class DataFrameInfo(BaseInfo):
     def _get_mem_usage(self, deep: bool) -> int:
         return self.data.memory_usage(index=True, deep=deep).sum()
