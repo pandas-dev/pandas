@@ -153,8 +153,9 @@ def test_transform_bad_dtype(op):
 
     msg = "Transform function failed"
 
-    # tshift is deprecated
-    warn = None if op != "tshift" else FutureWarning
+    # tshift is deprecated, pct_change calls is_bool which has deprecated
+    #  behavior for object-dtype
+    warn = None if op not in ["tshift", "pct_change"] else FutureWarning
     with tm.assert_produces_warning(warn, check_stacklevel=False):
         with pytest.raises(ValueError, match=msg):
             s.transform(op)
