@@ -587,6 +587,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
             self._lines.append(body_line)
 
     def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
+        """Iterator with string representation of body data without counts."""
         yield from zip(
             self._gen_line_numbers(),
             self._gen_columns(),
@@ -594,6 +595,7 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
         )
 
     def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
+        """Iterator with string representation of body data with counts."""
         yield from zip(
             self._gen_line_numbers(),
             self._gen_columns(),
@@ -617,5 +619,6 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder):
             yield pprint_thing(dtype)
 
     def _gen_non_null_counts(self) -> Iterator[str]:
+        """Iterator with string representation of non-null counts."""
         for count in self.non_null_counts:
             yield f"{count} non-null"
