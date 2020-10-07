@@ -474,6 +474,7 @@ Other
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
 - Fixed metadata propagation in the :class:`Series.dt` accessor (:issue:`28283`)
+- Fixed metadata propagation in :meth:`Series.abs` and ufuncs called on Series (:issue:`28283`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 
 .. ---------------------------------------------------------------------------
