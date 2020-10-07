@@ -23,7 +23,8 @@ New features
 .. code-block:: python
 
    from pandas.tools.plotting import scatter_matrix
-   scatter_matrix(df, alpha=0.2)        # noqa F821
+
+   scatter_matrix(df, alpha=0.2)  # noqa F821
 
 
 - Add ``stacked`` argument to Series and DataFrame's ``plot`` method for
@@ -31,12 +32,12 @@ New features
 
 .. code-block:: python
 
-   df.plot(kind='bar', stacked=True)    # noqa F821
+   df.plot(kind="bar", stacked=True)  # noqa F821
 
 
 .. code-block:: python
 
-   df.plot(kind='barh', stacked=True)   # noqa F821
+   df.plot(kind="barh", stacked=True)  # noqa F821
 
 
 - Add log x and y :ref:`scaling options <visualization.basic>` to
@@ -52,9 +53,9 @@ Reverted some changes to how NA values (represented typically as ``NaN`` or
 
 .. ipython:: python
 
-   series = pd.Series(['Steve', np.nan, 'Joe'])
-   series == 'Steve'
-   series != 'Steve'
+   series = pd.Series(["Steve", np.nan, "Joe"])
+   series == "Steve"
+   series != "Steve"
 
 In comparisons, NA / NaN will always come through as ``False`` except with
 ``!=`` which is ``True``. *Be very careful* with boolean arithmetic, especially
@@ -63,7 +64,7 @@ filter into boolean array operations if you are worried about this:
 
 .. ipython:: python
 
-   mask = series == 'Steve'
+   mask = series == "Steve"
    series[mask & series.notnull()]
 
 While propagating NA in comparisons may seem like the right behavior to some
@@ -82,15 +83,18 @@ Series, to be more consistent with the ``groupby`` behavior with DataFrame:
 .. ipython:: python
     :okwarning:
 
-    df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
-                             'foo', 'bar', 'foo', 'foo'],
-                       'B': ['one', 'one', 'two', 'three',
-                             'two', 'two', 'one', 'three'],
-                       'C': np.random.randn(8), 'D': np.random.randn(8)})
+    df = pd.DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.randn(8),
+            "D": np.random.randn(8),
+        }
+    )
     df
-    grouped = df.groupby('A')['C']
+    grouped = df.groupby("A")["C"]
     grouped.describe()
-    grouped.apply(lambda x: x.sort_values()[-2:])    # top 2 values
+    grouped.apply(lambda x: x.sort_values()[-2:])  # top 2 values
 
 
 .. _whatsnew_0.7.3.contributors:
