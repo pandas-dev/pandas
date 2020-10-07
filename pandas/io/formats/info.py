@@ -355,21 +355,20 @@ class InfoPrinter:
     def _select_table_builder(self) -> Type["DataFrameTableBuilder"]:
         """Select table builder based on verbosity and display settings."""
         if self.verbose:
-            return self._select_verbose_table_builder()
+            if self.show_counts:
+                return DataFrameTableBuilderVerboseWithCounts
+            else:
+                return DataFrameTableBuilderVerboseNoCounts
         elif self.verbose is False:  # specifically set to False, not necessarily None
             return DataFrameTableBuilderNonVerbose
         else:
             if self.exceeds_info_cols:
                 return DataFrameTableBuilderNonVerbose
             else:
-                return self._select_verbose_table_builder()
-
-    def _select_verbose_table_builder(self) -> Type["DataFrameTableBuilderVerbose"]:
-        """Select verbose table builder: with or without non-null counts."""
-        if self.show_counts:
-            return DataFrameTableBuilderVerboseWithCounts
-        else:
-            return DataFrameTableBuilderVerboseNoCounts
+                if self.show_counts:
+                    return DataFrameTableBuilderVerboseWithCounts
+                else:
+                    return DataFrameTableBuilderVerboseNoCounts
 
 
 class TableBuilderAbstract(ABC):
