@@ -42,7 +42,7 @@ For example, the below now works:
 
 .. _whatsnew_110.period_index_partial_string_slicing:
 
-Non-monotonic PeriodIndex Partial String Slicing
+Non-monotonic PeriodIndex partial string slicing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :class:`PeriodIndex` now supports partial string slicing for non-monotonic indexes, mirroring :class:`DatetimeIndex` behavior (:issue:`31096`)
@@ -413,7 +413,7 @@ And the differences in reindexing ``df`` with ``mi_2`` and using ``method='pad'`
 
 .. _whatsnew_110.notable_bug_fixes.indexing_raises_key_errors:
 
-Failed Label-Based Lookups Always Raise KeyError
+Failed label-based lookups always raise KeyError
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Label lookups ``series[key]``, ``series.loc[key]`` and ``frame.loc[key]``
@@ -786,7 +786,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-Development Changes
+Development changes
 ^^^^^^^^^^^^^^^^^^^
 
 - The minimum version of Cython is now the most recent bug-fix version (0.29.16) (:issue:`33334`).
@@ -1051,8 +1051,8 @@ MultiIndex
 
 - Bug when joining two :class:`MultiIndex` without specifying level with different columns. Return-indexers parameter was ignored. (:issue:`34074`)
 
-I/O
-^^^
+IO
+^^
 - Passing a ``set`` as ``names`` argument to :func:`pandas.read_csv`, :func:`pandas.read_table`, or :func:`pandas.read_fwf` will raise ``ValueError: Names should be an ordered collection.`` (:issue:`34946`)
 - Bug in print-out when ``display.precision`` is zero. (:issue:`20359`)
 - Bug in :func:`read_json` where integer overflow was occurring when json contains big number strings. (:issue:`30320`)
@@ -1108,7 +1108,7 @@ Plotting
 - Bug in :meth:`pandas.plotting.bootstrap_plot` was causing cluttered axes and overlapping labels (:issue:`34905`)
 - Bug in :meth:`DataFrame.plot.scatter` caused an error when plotting variable marker sizes (:issue:`32904`)
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Using a :class:`pandas.api.indexers.BaseIndexer` with ``count``, ``min``, ``max``, ``median``, ``skew``,  ``cov``, ``corr`` will now return correct results for any monotonic :class:`pandas.api.indexers.BaseIndexer` descendant (:issue:`32865`)
