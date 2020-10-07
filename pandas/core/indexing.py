@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Hashable, List, Tuple, Union
+from contextlib import suppress
+from typing import TYPE_CHECKING, Any, Hashable, List, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
@@ -610,17 +611,13 @@ class _LocationIndexer(NDFrameIndexerBase):
         ax = self.obj._get_axis(0)
 
         if isinstance(ax, ABCMultiIndex) and self.name != "iloc":
-            try:
-                return ax.get_loc(key)
-            except (TypeError, KeyError, InvalidIndexError):
+            with suppress(TypeError, KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
-                pass
+                return ax.get_loc(key)
 
         if isinstance(key, tuple):
-            try:
+            with suppress(IndexingError):
                 return self._convert_tuple(key, is_setter=True)
-            except IndexingError:
-                pass
 
         if isinstance(key, range):
             return list(key)
@@ -707,9 +704,8 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         Check the key for valid keys across my indexer.
         """
+        self._validate_key_length(key)
         for i, k in enumerate(key):
-            if i >= self.ndim:
-                raise IndexingError("Too many indexers")
             try:
                 self._validate_key(k, i)
             except ValueError as err:
@@ -740,12 +736,16 @@ class _LocationIndexer(NDFrameIndexerBase):
                 else:
                     keyidx.append(slice(None))
         else:
+            self._validate_key_length(key)
             for i, k in enumerate(key):
-                if i >= self.ndim:
-                    raise IndexingError("Too many indexers")
                 idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
                 keyidx.append(idx)
+
         return tuple(keyidx)
+
+    def _validate_key_length(self, key: Sequence[Any]) -> None:
+        if len(key) > self.ndim:
+            raise IndexingError("Too many indexers")
 
     def _getitem_tuple_same_dim(self, tup: Tuple):
         """
@@ -782,14 +782,10 @@ class _LocationIndexer(NDFrameIndexerBase):
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
         if isinstance(ax0, ABCMultiIndex) and self.name != "iloc":
-            try:
-                result = self._handle_lowerdim_multi_index_axis0(tup)
-                return result
-            except IndexingError:
-                pass
+            with suppress(IndexingError):
+                return self._handle_lowerdim_multi_index_axis0(tup)
 
-        if len(tup) > self.ndim:
-            raise IndexingError("Too many indexers. handle elsewhere")
+        self._validate_key_length(tup)
 
         for i, key in enumerate(tup):
             if is_label_like(key):
@@ -834,11 +830,8 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            try:
-                result = self._handle_lowerdim_multi_index_axis0(tup)
-                return result
-            except IndexingError:
-                pass
+            with suppress(IndexingError):
+                return self._handle_lowerdim_multi_index_axis0(tup)
 
             # this is a series with a multi-index specified a tuple of
             # selectors
@@ -877,11 +870,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         if type(key) is tuple:
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
-                try:
-                    return self.obj._get_value(*key, takeable=self._takeable)
-                except (KeyError, IndexError, AttributeError):
+                with suppress(KeyError, IndexError, AttributeError):
                     # AttributeError for IntervalTree get_value
-                    pass
+                    return self.obj._get_value(*key, takeable=self._takeable)
             return self._getitem_tuple(key)
         else:
             # we by definition only have the 0th axis
@@ -1052,10 +1043,8 @@ class _LocIndexer(_LocationIndexer):
         )
 
     def _getitem_tuple(self, tup: Tuple):
-        try:
+        with suppress(IndexingError):
             return self._getitem_lowerdim(tup)
-        except IndexingError:
-            pass
 
         # no multi-index, so validate all of the indexers
         self._has_valid_tuple(tup)
@@ -1082,7 +1071,7 @@ class _LocIndexer(_LocationIndexer):
         except KeyError as ek:
             # raise KeyError if number of indexers match
             # else IndexingError will be raised
-            if len(tup) <= self.obj.index.nlevels and len(tup) > self.ndim:
+            if self.ndim < len(tup) <= self.obj.index.nlevels:
                 raise ek
 
         raise IndexingError("No label returned")
@@ -1295,8 +1284,6 @@ class _LocIndexer(_LocationIndexer):
             If at least one key was requested but none was found, and
             raise_missing=True.
         """
-        ax = self.obj._get_axis(axis)
-
         if len(key) == 0:
             return
 
@@ -1308,6 +1295,8 @@ class _LocIndexer(_LocationIndexer):
             if missing == len(indexer):
                 axis_name = self.obj._get_axis_name(axis)
                 raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+            ax = self.obj._get_axis(axis)
 
             # We (temporarily) allow for some missing keys with .loc, except in
             # some cases (e.g. setting) in which "raise_missing" will be False
@@ -1391,21 +1380,22 @@ class _iLocIndexer(_LocationIndexer):
         """
         if isinstance(indexer, dict):
             raise IndexError("iloc cannot enlarge its target object")
-        else:
-            if not isinstance(indexer, tuple):
-                indexer = _tuplify(self.ndim, indexer)
-            for ax, i in zip(self.obj.axes, indexer):
-                if isinstance(i, slice):
-                    # should check the stop slice?
-                    pass
-                elif is_list_like_indexer(i):
-                    # should check the elements?
-                    pass
-                elif is_integer(i):
-                    if i >= len(ax):
-                        raise IndexError("iloc cannot enlarge its target object")
-                elif isinstance(i, dict):
+
+        if not isinstance(indexer, tuple):
+            indexer = _tuplify(self.ndim, indexer)
+
+        for ax, i in zip(self.obj.axes, indexer):
+            if isinstance(i, slice):
+                # should check the stop slice?
+                pass
+            elif is_list_like_indexer(i):
+                # should check the elements?
+                pass
+            elif is_integer(i):
+                if i >= len(ax):
                     raise IndexError("iloc cannot enlarge its target object")
+            elif isinstance(i, dict):
+                raise IndexError("iloc cannot enlarge its target object")
 
         return True
 
@@ -1453,10 +1443,8 @@ class _iLocIndexer(_LocationIndexer):
     def _getitem_tuple(self, tup: Tuple):
 
         self._has_valid_tuple(tup)
-        try:
+        with suppress(IndexingError):
             return self._getitem_lowerdim(tup)
-        except IndexingError:
-            pass
 
         return self._getitem_tuple_same_dim(tup)
 
@@ -2286,15 +2274,10 @@ def maybe_convert_ix(*args):
     """
     We likely want to take the cross-product.
     """
-    ixify = True
     for arg in args:
         if not isinstance(arg, (np.ndarray, list, ABCSeries, Index)):
-            ixify = False
-
-    if ixify:
-        return np.ix_(*args)
-    else:
-        return args
+            return args
+    return np.ix_(*args)
 
 
 def is_nested_tuple(tup, labels) -> bool:
