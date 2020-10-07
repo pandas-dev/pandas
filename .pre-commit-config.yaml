@@ -49,8 +49,8 @@ repos:
         language: python
         entry: flake8-rst
         types: [rst]
-        args: ['--filename=*.rst']
-        additional_dependencies: ['flake8-rst==0.7.0', 'flake8==3.7.9']
+        args: [--filename=*.rst]
+        additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
