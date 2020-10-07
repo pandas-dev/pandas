@@ -292,6 +292,7 @@ Deprecations
 - Deprecated automatic alignment on comparison operations between :class:`DataFrame` and :class:`Series`, do ``frame, ser = frame.align(ser, axis=1, copy=False)`` before e.g. ``frame == ser`` (:issue:`28759`)
 - :meth:`Rolling.count` with ``min_periods=None`` will default to the size of the window in a future version (:issue:`31302`)
 - Using "outer" ufuncs on DataFrames to return 4d ndarray is now deprecated. Convert to an ndarray first (:issue:`23743`)
+- Deprecated slice-indexing on timezone-aware :class:`DatetimeIndex` with naive ``datetime`` objects, to match scalar indexing behavior (:issue:`36148`)
 - :meth:`Index.ravel` returning a ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
 
 .. ---------------------------------------------------------------------------
