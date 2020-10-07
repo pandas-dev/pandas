@@ -304,7 +304,8 @@ whereas a tuple of lists refer to several values within a level:
 .. ipython:: python
 
    s = pd.Series(
-       [1, 2, 3, 4, 5, 6], index=pd.MultiIndex.from_product([["A", "B"], ["c", "d", "e"]])
+       [1, 2, 3, 4, 5, 6],
+       index=pd.MultiIndex.from_product([["A", "B"], ["c", "d", "e"]]),
    )
    s.loc[[("A", "c"), ("B", "d")]]  # list of tuples
    s.loc[(["A", "B"], ["c", "d"])]  # tuple of lists
@@ -819,7 +820,9 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
 .. ipython:: python
 
-   df3 = pd.DataFrame({"A": np.arange(3), "B": pd.Series(list("abc")).astype("category")})
+   df3 = pd.DataFrame(
+       {"A": np.arange(3), "B": pd.Series(list("abc")).astype("category")}
+   )
    df3 = df3.set_index("B")
    df3
 
@@ -934,7 +937,9 @@ example, be millisecond offsets.
                np.random.randn(5, 2), index=np.arange(5) * 250.0, columns=list("AB")
            ),
            pd.DataFrame(
-               np.random.randn(6, 2), index=np.arange(4, 10) * 250.1, columns=list("AB")
+               np.random.randn(6, 2),
+               index=np.arange(4, 10) * 250.1,
+               columns=list("AB"),
            ),
        ]
    )

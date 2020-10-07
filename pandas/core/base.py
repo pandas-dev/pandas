@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, FrozenSet, List, Optional, Union, cast
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import AggFuncType, AggFuncTypeBase, Label
+from pandas._typing import AggFuncType, AggFuncTypeBase, IndexLabel, Label
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -138,7 +138,7 @@ class SelectionMixin:
     object sub-classes need to define: obj, exclusions
     """
 
-    _selection = None
+    _selection: Optional[IndexLabel] = None
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 

@@ -1261,7 +1261,7 @@ class DatetimeLikeArrayMixin(
             self_i8, other_i8, arr_mask=self._isnan, b_mask=other._isnan
         )
         if self._hasnans or other._hasnans:
-            mask = (self._isnan) | (other._isnan)
+            mask = self._isnan | other._isnan
             new_values[mask] = iNaT
 
         # pandas\core\arrays\datetimelike.py:1198: error: Too many arguments
@@ -1655,6 +1655,28 @@ class DatetimeLikeArrayMixin(
         result = nanops.nanmean(values.view("i8"), skipna=skipna)
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
+
+    def median(self, axis: Optional[int] = None, skipna: bool = True, *args, **kwargs):
+        nv.validate_median(args, kwargs)
+
+        if axis is not None and abs(axis) >= self.ndim:
+            raise ValueError("abs(axis) must be less than ndim")
+
+        if self.size == 0:
+            if self.ndim == 1 or axis is None:
+                return NaT
+            shape = list(self.shape)
+            del shape[axis]
+            shape = [1 if x == 0 else x for x in shape]
+            result = np.empty(shape, dtype="i8")
+            result.fill(iNaT)
+            return self._from_backing_data(result)
+
+        mask = self.isna()
+        result = nanops.nanmedian(self.asi8, axis=axis, skipna=skipna, mask=mask)
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result.astype("i8"))
 
 
 DatetimeLikeArrayMixin._add_comparison_ops()

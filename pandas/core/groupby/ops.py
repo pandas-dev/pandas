@@ -7,7 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import List, Optional, Sequence, Tuple, Type
+from typing import Dict, Hashable, List, Optional, Sequence, Tuple, Type
 
 import numpy as np
 
@@ -249,7 +249,7 @@ class BaseGrouper:
         return Series(out, index=self.result_index, dtype="int64")
 
     @cache_readonly
-    def groups(self):
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         """ dict {group name -> group labels} """
         if len(self.groupings) == 1:
             return self.groupings[0].groups
