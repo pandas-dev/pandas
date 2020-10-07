@@ -20,13 +20,13 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
 from pandas.core.construction import extract_array
-from pandas.core.ops.array_ops import (
+from pandas.core.ops.array_ops import (  # noqa:F401
     arithmetic_op,
+    comp_method_OBJECT_ARRAY,
     comparison_op,
     get_array_op,
     logical_op,
 )
-from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
@@ -310,42 +310,14 @@ def arith_method_SERIES(cls, op, special):
 
     @unpack_zerodim_and_defer(op_name)
     def wrapper(left, right):
-
-        left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
+        left, right = _align_method_SERIES(left, right)
 
         lvalues = extract_array(left, extract_numpy=True)
         rvalues = extract_array(right, extract_numpy=True)
         result = arithmetic_op(lvalues, rvalues, op)
 
         return left._construct_result(result, name=res_name)
-
-    wrapper.__name__ = op_name
-    return wrapper
-
-
-def comp_method_SERIES(cls, op, special):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    assert special  # non-special uses flex_method_SERIES
-    op_name = _get_op_name(op, special)
-
-    @unpack_zerodim_and_defer(op_name)
-    def wrapper(self, other):
-
-        res_name = get_op_result_name(self, other)
-
-        if isinstance(other, ABCSeries) and not self._indexed_same(other):
-            raise ValueError("Can only compare identically-labeled Series objects")
-
-        lvalues = extract_array(self, extract_numpy=True)
-        rvalues = extract_array(other, extract_numpy=True)
-
-        res_values = comparison_op(lvalues, rvalues, op)
-
-        return self._construct_result(res_values, name=res_name)
 
     wrapper.__name__ = op_name
     return wrapper
@@ -361,8 +333,8 @@ def bool_method_SERIES(cls, op, special):
 
     @unpack_zerodim_and_defer(op_name)
     def wrapper(self, other):
-        self, other = _align_method_SERIES(self, other, align_asobject=True)
         res_name = get_op_result_name(self, other)
+        self, other = _align_method_SERIES(self, other, align_asobject=True)
 
         lvalues = extract_array(self, extract_numpy=True)
         rvalues = extract_array(other, extract_numpy=True)
@@ -385,13 +357,17 @@ def flex_method_SERIES(cls, op, special):
         if axis is not None:
             self._get_axis_number(axis)
 
+        res_name = get_op_result_name(self, other)
+
         if isinstance(other, ABCSeries):
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif isinstance(other, (np.ndarray, list, tuple)):
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index)
-            return self._binop(other, op, level=level, fill_value=fill_value)
+            result = self._binop(other, op, level=level, fill_value=fill_value)
+            result.name = res_name
+            return result
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)

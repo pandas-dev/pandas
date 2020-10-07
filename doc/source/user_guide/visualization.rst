@@ -776,7 +776,7 @@ See the `matplotlib pie documentation <https://matplotlib.org/api/pyplot_api.htm
 Plotting with missing data
 --------------------------
 
-Pandas tries to be pragmatic about plotting ``DataFrames`` or ``Series``
+pandas tries to be pragmatic about plotting ``DataFrames`` or ``Series``
 that contain missing data. Missing values are dropped, left out, or filled
 depending on the plot type.
 
@@ -1239,7 +1239,7 @@ Custom formatters for timeseries plots
 
 .. versionchanged:: 1.0.0
 
-Pandas provides custom formatters for timeseries plots. These change the
+pandas provides custom formatters for timeseries plots. These change the
 formatting of the axis labels for dates and times. By default,
 the custom formatters are applied only to plots created by pandas with
 :meth:`DataFrame.plot` or :meth:`Series.plot`. To have them apply to all
@@ -1453,7 +1453,11 @@ Here is an example of one way to easily plot group means with standard deviation
    )
 
    df3 = pd.DataFrame(
-       {"data1": [3, 2, 4, 3, 2, 4, 3, 2], "data2": [6, 5, 7, 5, 4, 5, 6, 5]}, index=ix3
+       {
+           "data1": [3, 2, 4, 3, 2, 4, 3, 2],
+           "data2": [6, 5, 7, 5, 4, 5, 6, 5],
+       },
+       index=ix3,
    )
 
    # Group by index labels and take the means and standard deviations
