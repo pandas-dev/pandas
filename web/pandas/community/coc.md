@@ -63,4 +63,3 @@ and the [Swift Code of Conduct][swift].
 [homepage]: https://www.contributor-covenant.org
 [version]: https://www.contributor-covenant.org/version/1/3/0/
 [swift]: https://swift.org/community/#code-of-conduct
-

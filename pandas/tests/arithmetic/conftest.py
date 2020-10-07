@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 # ------------------------------------------------------------------
 # Helper Functions
@@ -221,19 +222,19 @@ def mismatched_freq(request):
 # ------------------------------------------------------------------
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame], ids=id_func)
-def box(request):
-    """
-    Several array-like containers that should have effectively identical
-    behavior with respect to arithmetic operations.
-    """
-    return request.param
-
-
 @pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, pd.array], ids=id_func)
 def box_with_array(request):
     """
     Fixture to test behavior for Index, Series, DataFrame, and pandas Array
+    classes
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=id_func)
+def box_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
     classes
     """
     return request.param
