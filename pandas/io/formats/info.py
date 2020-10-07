@@ -131,12 +131,12 @@ class BaseInfo(ABC):
         return self.data.dtypes
 
     @property
-    def mem_usage(self) -> int:
+    def memory_usage_bytes(self) -> int:
         """Memory usage in bytes.
 
         Returns
         -------
-        mem_usage : int
+        memory_usage_bytes : int
             Object's total memory usage in bytes.
         """
         if self.memory_usage == "deep":
@@ -148,7 +148,7 @@ class BaseInfo(ABC):
     @property
     def memory_usage_string(self) -> str:
         """Memory usage in a form of human readable string."""
-        return f"{_sizeof_fmt(self.mem_usage, self.size_qualifier)}\n"
+        return f"{_sizeof_fmt(self.memory_usage_bytes, self.size_qualifier)}\n"
 
     @property
     def size_qualifier(self) -> str:
