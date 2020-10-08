@@ -2221,7 +2221,10 @@ def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
         "delim_whitespace=True; you can only specify one."
     )
     with pytest.raises(ValueError, match=msg):
-        parser.read_table(f, delim_whitespace=True, sep=",")
+        parser.read_csv(f, delim_whitespace=True, sep=delimiter)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
 
 
 @pytest.mark.parametrize("delimiter", [",", "\t"])
