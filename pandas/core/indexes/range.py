@@ -804,10 +804,10 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
     # Reductions
 
-    def all(self) -> bool:
+    def all(self, *args, **kwargs) -> bool:
         return 0 not in self._range
 
-    def any(self) -> bool:
+    def any(self, *args, **kwargs) -> bool:
         return any(self._range)
 
     # --------------------------------------------------------------------

@@ -1120,9 +1120,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return Index.__ge__(self, other)
 
 
-IntervalIndex._add_logical_methods_disabled()
-
-
 def _is_valid_endpoint(endpoint) -> bool:
     """
     Helper for interval_range to check if start/end are valid types.

@@ -3723,7 +3723,6 @@ class MultiIndex(Index):
 
 MultiIndex._add_numeric_methods_disabled()
 MultiIndex._add_numeric_methods_add_sub_disabled()
-MultiIndex._add_logical_methods_disabled()
 
 
 def sparsify_labels(label_list, start: int = 0, sentinel=""):

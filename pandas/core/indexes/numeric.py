@@ -276,7 +276,6 @@ class Int64Index(IntegerIndex):
 
 
 Int64Index._add_numeric_methods()
-Int64Index._add_logical_methods()
 
 _uint64_descr_args = dict(
     klass="UInt64Index", ltype="unsigned integer", dtype="uint64", extra=""
@@ -323,7 +322,6 @@ class UInt64Index(IntegerIndex):
 
 
 UInt64Index._add_numeric_methods()
-UInt64Index._add_logical_methods()
 
 _float64_descr_args = dict(
     klass="Float64Index", dtype="float64", ltype="float", extra=""
@@ -430,4 +428,3 @@ class Float64Index(NumericIndex):
 
 
 Float64Index._add_numeric_methods()
-Float64Index._add_logical_methods_disabled()
