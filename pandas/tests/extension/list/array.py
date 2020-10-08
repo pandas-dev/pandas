@@ -10,6 +10,8 @@ from typing import Type
 
 import numpy as np
 
+from pandas.util._decorators import cache_readonly
+
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
@@ -34,7 +36,6 @@ class ListDtype(ExtensionDtype):
 
 
 class ListArray(ExtensionArray):
-    dtype = ListDtype()
     __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False):
@@ -50,6 +51,10 @@ class ListArray(ExtensionArray):
         data = np.empty(len(scalars), dtype=object)
         data[:] = scalars
         return cls(data)
+
+    @cache_readonly
+    def dtype(self) -> ListDtype:
+        return ListDtype()
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):

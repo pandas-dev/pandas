@@ -21,6 +21,8 @@ from typing import Any, Mapping, Type
 
 import numpy as np
 
+from pandas.util._decorators import cache_readonly
+
 from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
@@ -45,7 +47,6 @@ class JSONDtype(ExtensionDtype):
 
 
 class JSONArray(ExtensionArray):
-    dtype = JSONDtype()
     __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False):
@@ -68,6 +69,10 @@ class JSONArray(ExtensionArray):
     @classmethod
     def _from_factorized(cls, values, original):
         return cls([UserDict(x) for x in values if x != ()])
+
+    @cache_readonly
+    def dtype(self) -> JSONDtype:
+        return JSONDtype()
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):

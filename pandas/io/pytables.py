@@ -2307,8 +2307,7 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        # error: "ExtensionDtype" has no attribute "itemsize"
-        itemsize = dtype.itemsize  # type: ignore[attr-defined]
+        itemsize = dtype.itemsize
 
         shape = values.shape
         if values.ndim == 1:
