@@ -10,7 +10,7 @@ import itertools
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 import warnings
 
 import numpy as np
@@ -63,7 +63,13 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import get_filepath_or_buffer, get_handle, validate_header_arg
+from pandas.io.common import (
+    get_compression_method,
+    get_filepath_or_buffer,
+    get_handle,
+    stringify_path,
+    validate_header_arg,
+)
 from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
@@ -428,17 +434,16 @@ def _validate_names(names):
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
-    encoding = kwds.get("encoding", None)
     storage_options = kwds.get("storage_options", None)
-    if encoding is not None:
-        encoding = re.sub("_", "-", encoding).lower()
-        kwds["encoding"] = encoding
-    compression = kwds.get("compression", "infer")
 
     ioargs = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression, storage_options=storage_options
+        filepath_or_buffer,
+        kwds.get("encoding", None),
+        kwds.get("compression", "infer"),
+        storage_options=storage_options,
     )
     kwds["compression"] = ioargs.compression
+    kwds["encoding"] = ioargs.encoding
 
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
@@ -1403,7 +1408,19 @@ class ParserBase:
             )
 
     def close(self):
+        if self._original_handle or isinstance(self.source, str):
+            # user-provided file handle or a string when using memory_map=True
+            pass
+        elif self._non_closeable_wrapper and not self.source.closed:
+            # user provided file handle that is wrap inside TextIOWrapper
+            # closing TextIOWrapper would close the file handle as well
+            self.source.detach()
+        else:
+            self.source.close()
         for f in self.handles:
+            if self.source == f:
+                # skip: if we alreay detached/closed the buffer
+                continue
             f.close()
 
     @property
@@ -1838,23 +1855,39 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        encoding = kwds.get("encoding")
+        if kwds.get("memory_map", False):
+            # memory-mapped files are directly handled by the TextReader.
+            # compression and file-object were never supported by it.
+            src = stringify_path(src)
 
-        # parsers.TextReader doesn't support compression dicts
-        if isinstance(kwds.get("compression"), dict):
-            kwds["compression"] = kwds["compression"]["method"]
+            if not isinstance(src, str):
+                raise ValueError(
+                    "read_csv supports only string-like objects with engine='c' "
+                    + "and memory_map=True. Please use engine='python' instead."
+                )
 
-        if kwds.get("compression") is None and encoding:
-            if isinstance(src, str):
-                src = open(src, "rb")
-                self.handles.append(src)
+            if get_compression_method(kwds.get("compression", None))[0] is not None:
+                raise ValueError(
+                    "read_csv does not support compression with memory_map=True. "
+                    + "Please use memory_map=False instead."
+                )
 
-            # Handle the file object with universal line mode enabled.
-            # We will handle the newline character ourselves later on.
-            if hasattr(src, "read") and not hasattr(src, "encoding"):
-                src = TextIOWrapper(src, encoding=encoding, newline="")
-
-            kwds["encoding"] = "utf-8"
+            self.source = src
+            self.handles = []
+        else:
+            self.source, self.handles = get_handle(
+                src,
+                mode="r",
+                encoding=kwds.get("encoding", None),
+                compression=kwds.get("compression", None),
+                is_text=True,
+            )
+            kwds.pop("encoding", None)
+        kwds.pop("memory_map", None)
+        kwds.pop("compression", None)
+        self._original_handle, self._non_closeable_wrapper = _can_close(
+            src, self.source
+        )
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -1863,7 +1896,7 @@ class CParserWrapper(ParserBase):
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
-        self._reader = parsers.TextReader(src, **kwds)
+        self._reader = parsers.TextReader(self.source, **kwds)
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -1942,11 +1975,10 @@ class CParserWrapper(ParserBase):
 
         self._implicit_index = self._reader.leading_cols > 0
 
-    def close(self):
-        for f in self.handles:
-            f.close()
+    def close(self) -> None:
+        super().close()
 
-        # close additional handles opened by C parser (for compression)
+        # close additional handles opened by C parser (for memory_map)
         try:
             self._reader.close()
         except ValueError:
@@ -2237,7 +2269,7 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        f, handles = get_handle(
+        self.source, handles = get_handle(
             f,
             "r",
             encoding=self.encoding,
@@ -2245,12 +2277,13 @@ class PythonParser(ParserBase):
             memory_map=self.memory_map,
         )
         self.handles.extend(handles)
+        self._original_handle, self._non_closeable_wrapper = _can_close(f, self.source)
 
         # Set self.data to something that can read lines.
-        if hasattr(f, "readline"):
-            self._make_reader(f)
+        if hasattr(self.source, "readline"):
+            self._make_reader(self.source)
         else:
-            self.data = f
+            self.data = self.source
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
@@ -3852,3 +3885,19 @@ def _validate_skipfooter(kwds: Dict[str, Any]) -> None:
             raise ValueError("'skipfooter' not supported for iteration")
         if kwds.get("nrows"):
             raise ValueError("'skipfooter' not supported with 'nrows'")
+
+
+def _can_close(
+    original_handle: FilePathOrBuffer, wrapped_handle: FilePathOrBuffer
+) -> Tuple[bool, bool]:
+    """Check whether the output of get_handle can be closed."""
+    # do not close user-provided file handles
+    is_original_handle = id(wrapped_handle) == id(original_handle)
+
+    # TextIOWrapper closes wrapped file handles, we cannot close it if the user
+    # provided a file handler. Needs to be detached (and flushed when writing).
+    non_closeable_wrapper = hasattr(original_handle, "read") and isinstance(
+        wrapped_handle, TextIOWrapper
+    )
+
+    return is_original_handle, non_closeable_wrapper

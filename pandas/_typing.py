@@ -153,7 +153,7 @@ FloatFormatType = Union[str, Callable, "EngFormatter"]
 
 
 @dataclass
-class IOargs(Generic[ModeVar, EncodingVar]):
+class IOArgs(Generic[ModeVar, EncodingVar]):
     """
     Return value of io/common.py:get_filepath_or_buffer.
 

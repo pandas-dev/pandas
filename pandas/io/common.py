@@ -3,7 +3,7 @@
 import bz2
 from collections import abc
 import gzip
-from io import BufferedIOBase, BytesIO, RawIOBase
+from io import BufferedIOBase, BytesIO, RawIOBase, TextIOWrapper
 import mmap
 import os
 import pathlib
@@ -36,7 +36,7 @@ from pandas._typing import (
     EncodingVar,
     FileOrBuffer,
     FilePathOrBuffer,
-    IOargs,
+    IOArgs,
     ModeVar,
     StorageOptions,
 )
@@ -176,7 +176,7 @@ def get_filepath_or_buffer(
     compression: CompressionOptions = None,
     mode: ModeVar = None,  # type: ignore[assignment]
     storage_options: StorageOptions = None,
-) -> IOargs[ModeVar, EncodingVar]:
+) -> IOArgs[ModeVar, EncodingVar]:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -201,7 +201,7 @@ def get_filepath_or_buffer(
 
     ..versionchange:: 1.2.0
 
-      Returns the dataclass IOargs.
+      Returns the dataclass IOArgs.
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
@@ -224,6 +224,10 @@ def get_filepath_or_buffer(
         compression_method = None
 
     compression = dict(compression, method=compression_method)
+
+    # uniform encoding names
+    if encoding is not None:
+        encoding = encoding.replace("_", "-").lower()
 
     # bz2 and xz do not write the byte order mark for utf-16 and utf-32
     # print a warning when writing such files
@@ -258,7 +262,7 @@ def get_filepath_or_buffer(
             compression = {"method": "gzip"}
         reader = BytesIO(req.read())
         req.close()
-        return IOargs(
+        return IOArgs(
             filepath_or_buffer=reader,
             encoding=encoding,
             compression=compression,
@@ -310,7 +314,7 @@ def get_filepath_or_buffer(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
             ).open()
 
-        return IOargs(
+        return IOArgs(
             filepath_or_buffer=file_obj,
             encoding=encoding,
             compression=compression,
@@ -323,7 +327,7 @@ def get_filepath_or_buffer(
         )
 
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
-        return IOargs(
+        return IOArgs(
             filepath_or_buffer=_expand_user(filepath_or_buffer),
             encoding=encoding,
             compression=compression,
@@ -335,7 +339,7 @@ def get_filepath_or_buffer(
         msg = f"Invalid file path or buffer object type: {type(filepath_or_buffer)}"
         raise ValueError(msg)
 
-    return IOargs(
+    return IOArgs(
         filepath_or_buffer=filepath_or_buffer,
         encoding=encoding,
         compression=compression,
@@ -535,6 +539,10 @@ def get_handle(
     handles: List[Union[IO, _MMapWrapper]] = list()
     f = path_or_buf
 
+    # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
+    if encoding is None:
+        encoding = "utf-8"
+
     # Convert pathlib.Path/py.path.local or string
     path_or_buf = stringify_path(path_or_buf)
     is_path = isinstance(path_or_buf, str)
@@ -594,18 +602,17 @@ def get_handle(
         if encoding and not is_binary_mode:
             # Encoding
             f = open(path_or_buf, mode, encoding=encoding, errors=errors, newline="")
-        elif is_text and not is_binary_mode:
-            # No explicit encoding
-            f = open(path_or_buf, mode, errors="replace", newline="")
         else:
             # Binary mode
             f = open(path_or_buf, mode)
         handles.append(f)
 
     # Convert BytesIO or file objects passed with an encoding
-    if is_text and (compression or isinstance(f, need_text_wrapping)):
-        from io import TextIOWrapper
-
+    if is_text and (
+        compression
+        or isinstance(f, need_text_wrapping)
+        or "b" in getattr(f, "mode", "")
+    ):
         g = TextIOWrapper(f, encoding=encoding, errors=errors, newline="")
         if not isinstance(f, (BufferedIOBase, RawIOBase)):
             handles.append(g)

@@ -87,6 +87,7 @@ lzma = import_lzma()
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
+    int64_t DEFAULT_CHUNKSIZE = 256 * 1024
 
 
 cdef extern from "headers/portable.h":
@@ -275,14 +276,16 @@ cdef extern from "parser/io.h":
                           size_t *bytes_read, int *status)
 
 
-DEFAULT_CHUNKSIZE = 256 * 1024
-
-
 cdef class TextReader:
     """
 
     # source: StringIO or file object
 
+    ..versionchange:: 1.2.0
+        removed 'compression' argument (outsourced to CParserWrapper).
+        removed 'memory_map' argument: CParserWrapper converts all
+            non-memory-mapped files to file handles. The remaining
+            (string) objects will be opened with 'memory_map=True'.
     """
 
     cdef:
@@ -299,7 +302,7 @@ cdef class TextReader:
 
     cdef public:
         int64_t leading_cols, table_width, skipfooter, buffer_lines
-        bint allow_leading_cols, mangle_dupe_cols, memory_map, low_memory
+        bint allow_leading_cols, mangle_dupe_cols, low_memory
         bint delim_whitespace
         object delimiter, converters
         object na_values
@@ -307,8 +310,6 @@ cdef class TextReader:
         object index_col
         object skiprows
         object dtype
-        object encoding
-        object compression
         object usecols
         list dtype_cast_order
         set unnamed_cols
@@ -321,10 +322,8 @@ cdef class TextReader:
                   header_end=0,
                   index_col=None,
                   names=None,
-                  bint memory_map=False,
                   tokenize_chunksize=DEFAULT_CHUNKSIZE,
                   bint delim_whitespace=False,
-                  compression=None,
                   converters=None,
                   bint skipinitialspace=False,
                   escapechar=None,
@@ -364,8 +363,6 @@ cdef class TextReader:
         else:
             self.c_encoding = NULL
 
-        self.encoding = encoding
-
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
@@ -373,9 +370,6 @@ cdef class TextReader:
 
         # For timekeeping
         self.clocks = []
-
-        self.compression = compression
-        self.memory_map = memory_map
 
         self.parser.usecols = (usecols is not None)
 
@@ -562,11 +556,6 @@ cdef class TextReader:
         parser_del(self.parser)
 
     def close(self):
-        # we need to properly close an open derived
-        # filehandle here, e.g. and UTFRecoder
-        if self.handle is not None:
-            self.handle.close()
-
         # also preemptively free all allocated memory
         parser_free(self.parser)
         if self.true_set:
@@ -617,69 +606,21 @@ cdef class TextReader:
         self.parser.cb_io = NULL
         self.parser.cb_cleanup = NULL
 
-        if self.compression:
-            if self.compression == 'gzip':
-                if isinstance(source, str):
-                    source = gzip.GzipFile(source, 'rb')
-                else:
-                    source = gzip.GzipFile(fileobj=source)
-            elif self.compression == 'bz2':
-                source = bz2.BZ2File(source, 'rb')
-            elif self.compression == 'zip':
-                zip_file = zipfile.ZipFile(source)
-                zip_names = zip_file.namelist()
-
-                if len(zip_names) == 1:
-                    file_name = zip_names.pop()
-                    source = zip_file.open(file_name)
-
-                elif len(zip_names) == 0:
-                    raise ValueError(f'Zero files found in compressed '
-                                     f'zip file {source}')
-                else:
-                    raise ValueError(f'Multiple files found in compressed '
-                                     f'zip file {zip_names}')
-            elif self.compression == 'xz':
-                if isinstance(source, str):
-                    source = get_lzma_file(lzma)(source, 'rb')
-                else:
-                    source = get_lzma_file(lzma)(filename=source)
-            else:
-                raise ValueError(f'Unrecognized compression type: '
-                                 f'{self.compression}')
-
-            if (self.encoding and hasattr(source, "read") and
-                    not hasattr(source, "encoding")):
-                source = io.TextIOWrapper(
-                    source, self.encoding.decode('utf-8'), newline='')
-
-                self.encoding = b'utf-8'
-                self.c_encoding = <char*>self.encoding
-
-            self.handle = source
-
         if isinstance(source, str):
             encoding = sys.getfilesystemencoding() or "utf-8"
-            usource = source
             source = source.encode(encoding)
-
-            if self.memory_map:
-                ptr = new_mmap(source)
-                if ptr == NULL:
-                    # fall back
-                    ptr = new_file_source(source, self.parser.chunksize)
-                    self.parser.cb_io = &buffer_file_bytes
-                    self.parser.cb_cleanup = &del_file_source
-                else:
-                    self.parser.cb_io = &buffer_mmap_bytes
-                    self.parser.cb_cleanup = &del_mmap
-            else:
+            ptr = new_mmap(source)
+            if ptr == NULL:
+                # fall back
                 ptr = new_file_source(source, self.parser.chunksize)
                 self.parser.cb_io = &buffer_file_bytes
                 self.parser.cb_cleanup = &del_file_source
+            else:
+                self.parser.cb_io = &buffer_mmap_bytes
+                self.parser.cb_cleanup = &del_mmap
             self.parser.source = ptr
 
-        elif hasattr(source, 'read'):
+        elif hasattr(source, "read"):
             # e.g., StringIO
 
             ptr = new_rd_source(source)

@@ -6,7 +6,7 @@ import codecs
 import csv
 from datetime import datetime
 from inspect import signature
-from io import StringIO
+from io import BytesIO, StringIO
 import os
 import platform
 from urllib.error import URLError
@@ -2253,3 +2253,70 @@ def test_dict_keys_as_names(all_parsers):
     result = parser.read_csv(StringIO(data), names=keys)
     expected = DataFrame({"a": [1], "b": [2]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("io_class", [StringIO, BytesIO])
+@pytest.mark.parametrize("encoding", [None, "utf-8"])
+def test_read_csv_file_handle(all_parsers, io_class, encoding):
+    """
+    Test whether read_csv does not close user-provided file handles.
+
+    GH 36980
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    content = "a,b\n1,2"
+    if io_class == BytesIO:
+        content = content.encode("utf-8")
+    handle = io_class(content)
+
+    tm.assert_frame_equal(parser.read_csv(handle, encoding=encoding), expected)
+    assert not handle.closed
+
+
+def test_memory_map_compression_error(c_parser_only):
+    """
+    c-parsers do not support memory_map=True with compression.
+
+    GH 36997
+    """
+    parser = c_parser_only
+    df = DataFrame({"a": [1], "b": [2]})
+    msg = (
+        "read_csv does not support compression with memory_map=True. "
+        + "Please use memory_map=False instead."
+    )
+
+    with tm.ensure_clean() as path:
+        df.to_csv(path, compression="gzip", index=False)
+
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(path, memory_map=True, compression="gzip")
+
+
+def test_memory_map_file_handle_error(all_parsers):
+    """
+    c-parsers do support only string-like files with memory_map=True.
+
+    GH 36997
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+    msg = (
+        "read_csv supports only string-like objects with engine='c' "
+        + "and memory_map=True. Please use engine='python' instead."
+    )
+
+    handle = StringIO("a,b\n1,2")
+
+    if parser.engine != "python":
+        # c engine should fail
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(handle, memory_map=True)
+    else:
+        # verify that python engine supports the same call
+        tm.assert_frame_equal(
+            parser.read_csv(handle, memory_map=True),
+            expected,
+        )

@@ -32,12 +32,14 @@ class TestTextReader:
             reader.read()
 
     def test_string_filename(self):
+        # this is using memory_map=True
         reader = TextReader(self.csv1, header=None)
         reader.read()
 
     def test_file_handle_mmap(self):
+        # this was never using memory_map=True
         with open(self.csv1, "rb") as f:
-            reader = TextReader(f, memory_map=True, header=None)
+            reader = TextReader(f, header=None)
             reader.read()
 
     def test_StringIO(self):
