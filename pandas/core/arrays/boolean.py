@@ -1,5 +1,5 @@
 import numbers
-from typing import TYPE_CHECKING, List, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, List, Tuple, Type, Union
 import warnings
 
 import numpy as np
@@ -547,7 +547,7 @@ class BooleanArray(BaseMaskedArray):
         result = values.all()
         return self._handle_skipna(result, skipna)
 
-    def _handle_skipna(self, x: bool, skipna: bool) -> Union[bool, Type[libmissing.NA]]:
+    def _handle_skipna(self, x: bool, skipna: bool) -> Any:
         """Handle skipna.
 
         If ``skipna=False`` is specified and missing values are present,
