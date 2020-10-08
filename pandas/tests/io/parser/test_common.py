@@ -2211,7 +2211,8 @@ def test_read_table_delim_whitespace_default_sep(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_table_delim_whitespace_non_default_sep(all_parsers):
+@pytest.mark.parametrize("delimiter", [",", "\t"])
+def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
     # GH: 35958
     f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
     parser = all_parsers
@@ -2220,4 +2221,23 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers):
         "delim_whitespace=True; you can only specify one."
     )
     with pytest.raises(ValueError, match=msg):
-        parser.read_table(f, delim_whitespace=True, sep=",")
+        parser.read_csv(f, delim_whitespace=True, sep=delimiter)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
+
+
+@pytest.mark.parametrize("delimiter", [",", "\t"])
+def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    msg = (
+        "Specified a delimiter with both sep and "
+        "delim_whitespace=True; you can only specify one."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, sep=delimiter)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
