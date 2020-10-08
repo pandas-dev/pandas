@@ -13,8 +13,8 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_array_like,
+    is_categorical_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -1844,7 +1844,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         Insert new row(s) or column(s) into the Series or DataFrame.
         """
-        from pandas import Series, DataFrame
+        from pandas import DataFrame, Series
 
         def check_valid_categorical(new_values, obj_dtype):
             if is_categorical_dtype(obj_dtype):
