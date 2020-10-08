@@ -21,6 +21,7 @@ from pandas.api.extensions import (
     register_extension_dtype,
     take,
 )
+from pandas.core.arraylike import OpsMixin
 
 
 @register_extension_dtype
@@ -67,7 +68,7 @@ class ArrowStringDtype(ExtensionDtype):
         return ArrowStringArray
 
 
-class ArrowExtensionArray(ExtensionArray):
+class ArrowExtensionArray(OpsMixin, ExtensionArray):
     _data: pa.ChunkedArray
 
     @classmethod
@@ -109,7 +110,7 @@ class ArrowExtensionArray(ExtensionArray):
     def dtype(self):
         return self._dtype
 
-    def _boolean_op(self, other, op):
+    def _logical_method(self, other, op):
         if not isinstance(other, type(self)):
             raise NotImplementedError()
 
@@ -122,13 +123,7 @@ class ArrowExtensionArray(ExtensionArray):
         if not isinstance(other, type(self)):
             return False
 
-        return self._boolean_op(other, operator.eq)
-
-    def __and__(self, other):
-        return self._boolean_op(other, operator.and_)
-
-    def __or__(self, other):
-        return self._boolean_op(other, operator.or_)
+        return self._logical_method(other, operator.eq)
 
     @property
     def nbytes(self) -> int:

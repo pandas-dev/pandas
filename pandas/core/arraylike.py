@@ -8,6 +8,7 @@ import operator
 
 from pandas.errors import AbstractMethodError
 
+from pandas.core.ops import roperator
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 
@@ -41,3 +42,33 @@ class OpsMixin:
     @unpack_zerodim_and_defer("__ge__")
     def __ge__(self, other):
         return self._cmp_method(other, operator.ge)
+
+    # -------------------------------------------------------------
+    # Logical Methods
+
+    def _logical_method(self, other, op):
+        raise AbstractMethodError(self)
+
+    @unpack_zerodim_and_defer("__and__")
+    def __and__(self, other):
+        return self._logical_method(other, operator.and_)
+
+    @unpack_zerodim_and_defer("__rand__")
+    def __rand__(self, other):
+        return self._logical_method(other, roperator.rand_)
+
+    @unpack_zerodim_and_defer("__or__")
+    def __or__(self, other):
+        return self._logical_method(other, operator.or_)
+
+    @unpack_zerodim_and_defer("__ror__")
+    def __ror__(self, other):
+        return self._logical_method(other, roperator.ror_)
+
+    @unpack_zerodim_and_defer("__xor__")
+    def __xor__(self, other):
+        return self._logical_method(other, operator.xor)
+
+    @unpack_zerodim_and_defer("__rxor__")
+    def __rxor__(self, other):
+        return self._logical_method(other, roperator.rxor)
