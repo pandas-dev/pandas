@@ -6,7 +6,7 @@ from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.util.numba_ import (
-    check_kwargs_and_nopython,
+    NUMBA_FUNC_CACHE,
     get_jit_arguments,
     jit_user_function,
 )
@@ -42,14 +42,14 @@ def generate_numba_apply_func(
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
 
-    check_kwargs_and_nopython(kwargs, nopython)
+    cache_key = (func, "rolling_apply")
+    if cache_key in NUMBA_FUNC_CACHE:
+        return NUMBA_FUNC_CACHE[cache_key]
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-
     numba = import_optional_dependency("numba")
-
     if parallel:
         loop_range = numba.prange
     else:
@@ -57,7 +57,7 @@ def generate_numba_apply_func(
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_apply(
-        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int,
+        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
     ) -> np.ndarray:
         result = np.empty(len(begin))
         for i in loop_range(len(result)):

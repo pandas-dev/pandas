@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import timedelta
 
 import numpy as np
@@ -37,25 +36,22 @@ class TestDataFrameDataTypes:
 
     def test_empty_frame_dtypes(self):
         empty_df = pd.DataFrame()
-        tm.assert_series_equal(empty_df.dtypes, pd.Series(dtype=np.object))
+        tm.assert_series_equal(empty_df.dtypes, pd.Series(dtype=object))
 
         nocols_df = pd.DataFrame(index=[1, 2, 3])
-        tm.assert_series_equal(nocols_df.dtypes, pd.Series(dtype=np.object))
+        tm.assert_series_equal(nocols_df.dtypes, pd.Series(dtype=object))
 
         norows_df = pd.DataFrame(columns=list("abc"))
-        tm.assert_series_equal(
-            norows_df.dtypes, pd.Series(np.object, index=list("abc"))
-        )
+        tm.assert_series_equal(norows_df.dtypes, pd.Series(object, index=list("abc")))
 
         norows_int_df = pd.DataFrame(columns=list("abc")).astype(np.int32)
         tm.assert_series_equal(
             norows_int_df.dtypes, pd.Series(np.dtype("int32"), index=list("abc"))
         )
 
-        odict = OrderedDict
-        df = pd.DataFrame(odict([("a", 1), ("b", True), ("c", 1.0)]), index=[1, 2, 3])
+        df = pd.DataFrame(dict([("a", 1), ("b", True), ("c", 1.0)]), index=[1, 2, 3])
         ex_dtypes = pd.Series(
-            odict([("a", np.int64), ("b", np.bool), ("c", np.float64)])
+            dict([("a", np.int64), ("b", np.bool_), ("c", np.float64)])
         )
         tm.assert_series_equal(df.dtypes, ex_dtypes)
 
@@ -87,17 +83,16 @@ class TestDataFrameDataTypes:
     def test_dtypes_are_correct_after_column_slice(self):
         # GH6525
         df = pd.DataFrame(index=range(5), columns=list("abc"), dtype=np.float_)
-        odict = OrderedDict
         tm.assert_series_equal(
             df.dtypes,
-            pd.Series(odict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
+            pd.Series(dict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
         )
         tm.assert_series_equal(
-            df.iloc[:, 2:].dtypes, pd.Series(odict([("c", np.float_)]))
+            df.iloc[:, 2:].dtypes, pd.Series(dict([("c", np.float_)]))
         )
         tm.assert_series_equal(
             df.dtypes,
-            pd.Series(odict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
+            pd.Series(dict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
         )
 
     def test_dtypes_gh8722(self, float_string_frame):

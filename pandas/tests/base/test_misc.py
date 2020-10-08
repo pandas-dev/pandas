@@ -99,7 +99,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
         assert getattr(obj, p, None) is not None
 
     # deprecated properties
-    for p in ["flags", "strides", "itemsize", "base", "data"]:
+    for p in ["strides", "itemsize", "base", "data"]:
         assert not hasattr(obj, p)
 
     msg = "can only convert an array of size 1 to a Python scalar"
@@ -116,6 +116,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_obj):
     obj = index_or_series_obj
+
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
 
@@ -127,7 +128,8 @@ def test_memory_usage(index_or_series_obj):
     )
 
     if len(obj) == 0:
-        assert res_deep == res == 0
+        expected = 0 if isinstance(obj, Index) else 80
+        assert res_deep == res == expected
     elif is_object or is_categorical:
         # only deep will pick them up
         assert res_deep > res
@@ -173,8 +175,7 @@ def test_searchsorted(index_or_series_obj):
     assert 0 <= index <= len(obj)
 
 
-def test_access_by_position(indices):
-    index = indices
+def test_access_by_position(index):
 
     if len(index) == 0:
         pytest.skip("Test doesn't make sense on empty data")
@@ -201,4 +202,4 @@ def test_get_indexer_non_unique_dtype_mismatch():
     # GH 25459
     indexes, missing = pd.Index(["A", "B"]).get_indexer_non_unique(pd.Index([0]))
     tm.assert_numpy_array_equal(np.array([-1], dtype=np.intp), indexes)
-    tm.assert_numpy_array_equal(np.array([0], dtype=np.int64), missing)
+    tm.assert_numpy_array_equal(np.array([0], dtype=np.intp), missing)

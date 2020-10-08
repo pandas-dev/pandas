@@ -89,7 +89,8 @@ class TestSeriesDatetimeValues:
         for s in cases:
             for prop in ok_for_dt:
                 # we test freq below
-                if prop != "freq":
+                # we ignore week and weekofyear because they are deprecated
+                if prop not in ["freq", "week", "weekofyear"]:
                     compare(s, prop)
 
             for prop in ok_for_dt_methods:
@@ -122,7 +123,8 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt:
 
             # we test freq below
-            if prop != "freq":
+            # we ignore week and weekofyear because they are deprecated
+            if prop not in ["freq", "week", "weekofyear"]:
                 compare(s, prop)
 
         for prop in ok_for_dt_methods:
@@ -623,7 +625,8 @@ class TestSeriesDatetimeValues:
     def test_dt_accessor_updates_on_inplace(self):
         s = Series(pd.date_range("2018-01-01", periods=10))
         s[2] = None
-        s.fillna(pd.Timestamp("2018-01-01"), inplace=True)
+        return_value = s.fillna(pd.Timestamp("2018-01-01"), inplace=True)
+        assert return_value is None
         result = s.dt.date
         assert result[0] == result[2]
 
@@ -679,6 +682,9 @@ class TestSeriesDatetimeValues:
             [[pd.NaT], [[np.NaN, np.NaN, np.NaN]]],
             [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
             [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]]],
+            # see GH#36032
+            [["2016-01-08", "2016-01-04"], [[2016, 1, 5], [2016, 1, 1]]],
+            [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
         ],
     )
     def test_isocalendar(self, input_series, expected_output):
@@ -687,3 +693,20 @@ class TestSeriesDatetimeValues:
             expected_output, columns=["year", "week", "day"], dtype="UInt32"
         )
         tm.assert_frame_equal(result, expected_frame)
+
+
+def test_week_and_weekofyear_are_deprecated():
+    # GH#33595 Deprecate week and weekofyear
+    series = pd.to_datetime(pd.Series(["2020-01-01"]))
+    with tm.assert_produces_warning(FutureWarning):
+        series.dt.week
+    with tm.assert_produces_warning(FutureWarning):
+        series.dt.weekofyear
+
+
+def test_normalize_pre_epoch_dates():
+    # GH: 36294
+    s = pd.to_datetime(pd.Series(["1969-01-01 09:00:00", "2016-01-01 09:00:00"]))
+    result = s.dt.normalize()
+    expected = pd.to_datetime(pd.Series(["1969-01-01", "2016-01-01"]))
+    tm.assert_series_equal(result, expected)

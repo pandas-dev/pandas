@@ -27,7 +27,7 @@ def test_bytes_io_input(all_parsers):
 
 def test_read_csv_unicode(all_parsers):
     parser = all_parsers
-    data = BytesIO("\u0141aski, Jan;1".encode("utf-8"))
+    data = BytesIO("\u0141aski, Jan;1".encode())
 
     result = parser.read_csv(data, sep=";", encoding="utf-8", header=None)
     expected = DataFrame([["\u0141aski, Jan", 1]])
@@ -133,19 +133,21 @@ def test_read_csv_utf_aliases(all_parsers, utf_value, encoding_fmt):
 
 
 @pytest.mark.parametrize(
-    "fname,encoding",
+    "file_path,encoding",
     [
-        ("test1.csv", "utf-8"),
-        ("unicode_series.csv", "latin-1"),
-        ("sauron.SHIFT_JIS.csv", "shiftjis"),
+        (("io", "data", "csv", "test1.csv"), "utf-8"),
+        (("io", "parser", "data", "unicode_series.csv"), "latin-1"),
+        (("io", "parser", "data", "sauron.SHIFT_JIS.csv"), "shiftjis"),
     ],
 )
-def test_binary_mode_file_buffers(all_parsers, csv_dir_path, fname, encoding):
+def test_binary_mode_file_buffers(
+    all_parsers, csv_dir_path, file_path, encoding, datapath
+):
     # gh-23779: Python csv engine shouldn't error on files opened in binary.
     # gh-31575: Python csv engine shouldn't error on files opened in raw binary.
     parser = all_parsers
 
-    fpath = os.path.join(csv_dir_path, fname)
+    fpath = datapath(*file_path)
     expected = parser.read_csv(fpath, encoding=encoding)
 
     with open(fpath, mode="r", encoding=encoding) as fa:

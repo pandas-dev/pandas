@@ -30,7 +30,7 @@ import pandas._testing as tm
     ]
 )
 def nontemporal_method(request):
-    """ Fixture that returns an (method name, required kwargs) pair.
+    """Fixture that returns an (method name, required kwargs) pair.
 
     This fixture does not include method 'time' as a parameterization; that
     method requires a Series with a DatetimeIndex, and is generally tested
@@ -60,7 +60,7 @@ def nontemporal_method(request):
     ]
 )
 def interp_methods_ind(request):
-    """ Fixture that returns a (method name, required kwargs) pair to
+    """Fixture that returns a (method name, required kwargs) pair to
     be tested for various Index types.
 
     This fixture does not include methods - 'time', 'index', 'nearest',
@@ -340,6 +340,14 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=invalid_method, limit=-1)
 
+    def test_interp_invalid_method_and_value(self):
+        # GH#36624
+        ser = Series([1, 3, np.nan, 12, np.nan, 25])
+
+        msg = "Cannot pass both fill_value and method"
+        with pytest.raises(ValueError, match=msg):
+            ser.interpolate(fill_value=3, method="pad")
+
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
 
@@ -428,6 +436,27 @@ class TestSeriesInterpolateData:
         msg = r"Invalid limit_area: expecting one of \['inside', 'outside'\], got abc"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="linear", limit_area="abc")
+
+    @pytest.mark.parametrize(
+        "method, limit_direction, expected",
+        [
+            ("pad", "backward", "forward"),
+            ("ffill", "backward", "forward"),
+            ("backfill", "forward", "backward"),
+            ("bfill", "forward", "backward"),
+            ("pad", "both", "forward"),
+            ("ffill", "both", "forward"),
+            ("backfill", "both", "backward"),
+            ("bfill", "both", "backward"),
+        ],
+    )
+    def test_interp_limit_direction_raises(self, method, limit_direction, expected):
+        # https://github.com/pandas-dev/pandas/pull/34746
+        s = Series([1, 2, 3])
+
+        msg = f"`limit_direction` must be '{expected}' for method `{method}`"
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(method=method, limit_direction=limit_direction)
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.

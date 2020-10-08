@@ -85,6 +85,24 @@ def test_max_min_non_numeric():
     assert "ss" in result
 
 
+def test_min_date_with_nans():
+    # GH26321
+    dates = pd.to_datetime(
+        pd.Series(["2019-05-09", "2019-05-09", "2019-05-09"]), format="%Y-%m-%d"
+    ).dt.date
+    df = pd.DataFrame({"a": [np.nan, "1", np.nan], "b": [0, 1, 1], "c": dates})
+
+    result = df.groupby("b", as_index=False)["c"].min()["c"]
+    expected = pd.to_datetime(
+        pd.Series(["2019-05-09", "2019-05-09"], name="c"), format="%Y-%m-%d"
+    ).dt.date
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("b")["c"].min()
+    expected.index.name = "b"
+    tm.assert_series_equal(result, expected)
+
+
 def test_intercept_builtin_sum():
     s = Series([1.0, 2.0, np.nan, 3.0])
     grouped = s.groupby([0, 1, 2, 2])
@@ -280,7 +298,7 @@ def test_non_cython_api():
     result = g.mad()
     tm.assert_frame_equal(result, expected)
 
-    expected = DataFrame([[0.0, 0.0], [0, np.nan]], columns=["A", "B"], index=[0, 1])
+    expected = DataFrame([[1, 0.0], [3, np.nan]], columns=["A", "B"], index=[0, 1])
     result = gni.mad()
     tm.assert_frame_equal(result, expected)
 
@@ -477,51 +495,6 @@ def test_idxmin_idxmax_returns_int_types(func, values):
     tm.assert_frame_equal(result, expected)
 
 
-def test_fill_consistency():
-
-    # GH9221
-    # pass thru keyword arguments to the generated wrapper
-    # are set if the passed kw is None (only)
-    df = DataFrame(
-        index=pd.MultiIndex.from_product(
-            [["value1", "value2"], date_range("2014-01-01", "2014-01-06")]
-        ),
-        columns=Index(["1", "2"], name="id"),
-    )
-    df["1"] = [
-        np.nan,
-        1,
-        np.nan,
-        np.nan,
-        11,
-        np.nan,
-        np.nan,
-        2,
-        np.nan,
-        np.nan,
-        22,
-        np.nan,
-    ]
-    df["2"] = [
-        np.nan,
-        3,
-        np.nan,
-        np.nan,
-        33,
-        np.nan,
-        np.nan,
-        4,
-        np.nan,
-        np.nan,
-        44,
-        np.nan,
-    ]
-
-    expected = df.groupby(level=0, axis=0).fillna(method="ffill")
-    result = df.T.groupby(level=0, axis=1).fillna(method="ffill").T
-    tm.assert_frame_equal(result, expected)
-
-
 def test_groupby_cumprod():
     # GH 4095
     df = pd.DataFrame({"key": ["b"] * 10, "value": 2})
@@ -570,28 +543,6 @@ def test_ops_general(op, targop):
 
     result = getattr(df.groupby(labels), op)().astype(float)
     expected = df.groupby(labels).agg(targop)
-    tm.assert_frame_equal(result, expected)
-
-
-def test_ops_not_as_index(reduction_func):
-    # GH 10355
-    # Using as_index=False should not modify grouped column
-
-    if reduction_func in ("nth", "ngroup", "size",):
-        pytest.skip("Skip until behavior is determined (GH #5755)")
-
-    if reduction_func in ("corrwith", "idxmax", "idxmin", "mad", "nunique", "skew",):
-        pytest.xfail(
-            "_GroupBy._python_apply_general incorrectly modifies grouping columns"
-        )
-
-    df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
-    expected = getattr(df.groupby("a"), reduction_func)().reset_index()
-
-    result = getattr(df.groupby("a", as_index=False), reduction_func)()
-    tm.assert_frame_equal(result, expected)
-
-    result = getattr(df.groupby("a", as_index=False)["b"], reduction_func)()
     tm.assert_frame_equal(result, expected)
 
 
@@ -671,7 +622,7 @@ def test_nlargest_mi_grouper():
     ]
 
     expected = Series(exp_values, index=exp_idx)
-    tm.assert_series_equal(result, expected, check_exact=False)
+    tm.assert_series_equal(result, expected, check_exact=False, rtol=1e-3)
 
 
 def test_nsmallest():
@@ -944,10 +895,6 @@ def test_frame_describe_multikey(tsframe):
     groupedT = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
     result = groupedT.describe()
     expected = tsframe.describe().T
-    expected.index = pd.MultiIndex(
-        levels=[[0, 1], expected.index],
-        codes=[[0, 0, 1, 1], range(len(expected.index))],
-    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -993,6 +940,68 @@ def test_frame_describe_unstacked_format():
         index=pd.Index([24990, 25499], name="PRICE"),
         columns=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.filterwarnings(
+    "ignore:"
+    "indexing past lexsort depth may impact performance:"
+    "pandas.errors.PerformanceWarning"
+)
+@pytest.mark.parametrize("as_index", [True, False])
+def test_describe_with_duplicate_output_column_names(as_index):
+    # GH 35314
+    df = pd.DataFrame(
+        {
+            "a": [99, 99, 99, 88, 88, 88],
+            "b": [1, 2, 3, 4, 5, 6],
+            "c": [10, 20, 30, 40, 50, 60],
+        },
+        columns=["a", "b", "b"],
+    )
+
+    expected = (
+        pd.DataFrame.from_records(
+            [
+                ("a", "count", 3.0, 3.0),
+                ("a", "mean", 88.0, 99.0),
+                ("a", "std", 0.0, 0.0),
+                ("a", "min", 88.0, 99.0),
+                ("a", "25%", 88.0, 99.0),
+                ("a", "50%", 88.0, 99.0),
+                ("a", "75%", 88.0, 99.0),
+                ("a", "max", 88.0, 99.0),
+                ("b", "count", 3.0, 3.0),
+                ("b", "mean", 5.0, 2.0),
+                ("b", "std", 1.0, 1.0),
+                ("b", "min", 4.0, 1.0),
+                ("b", "25%", 4.5, 1.5),
+                ("b", "50%", 5.0, 2.0),
+                ("b", "75%", 5.5, 2.5),
+                ("b", "max", 6.0, 3.0),
+                ("b", "count", 3.0, 3.0),
+                ("b", "mean", 5.0, 2.0),
+                ("b", "std", 1.0, 1.0),
+                ("b", "min", 4.0, 1.0),
+                ("b", "25%", 4.5, 1.5),
+                ("b", "50%", 5.0, 2.0),
+                ("b", "75%", 5.5, 2.5),
+                ("b", "max", 6.0, 3.0),
+            ],
+        )
+        .set_index([0, 1])
+        .T
+    )
+    expected.columns.names = [None, None]
+    expected.index = pd.Index([88, 99], name="a")
+
+    if as_index:
+        expected = expected.drop(columns=["a"], level=0)
+    else:
+        expected = expected.reset_index(drop=True)
+
+    result = df.groupby("a", as_index=as_index).describe()
+
     tm.assert_frame_equal(result, expected)
 
 

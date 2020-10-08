@@ -769,3 +769,17 @@ class TestGroupBy:
         expected = grouped.count()
 
         tm.assert_frame_equal(result, expected)
+
+    def test_grouper_period_index(self):
+        # GH 32108
+        periods = 2
+        index = pd.period_range(
+            start="2018-01", periods=periods, freq="M", name="Month"
+        )
+        period_series = pd.Series(range(periods), index=index)
+        result = period_series.groupby(period_series.index.month).sum()
+
+        expected = pd.Series(
+            range(0, periods), index=Index(range(1, periods + 1), name=index.name)
+        )
+        tm.assert_series_equal(result, expected)

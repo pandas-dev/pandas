@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer_dtype,
     is_list_like,
+    is_numeric_v_string_like,
     is_object_dtype,
     is_scalar,
 )
@@ -85,13 +86,7 @@ def masked_arith_op(x: np.ndarray, y, op):
         yrav = y.ravel()
         mask = notna(xrav) & ymask.ravel()
 
-        if yrav.shape != mask.shape:
-            # FIXME: GH#5284, GH#5035, GH#19448
-            # Without specifically raising here we get mismatched
-            # errors in Py3 (TypeError) vs Py2 (ValueError)
-            # Note: Only = an issue in DataFrame case
-            raise ValueError("Cannot broadcast operands together.")
-
+        # See GH#5284, GH#5035, GH#19448 for historical reference
         if mask.any():
             with np.errstate(all="ignore"):
                 result[mask] = op(xrav[mask], yrav[mask])
@@ -241,6 +236,10 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         else:
             res_values = np.zeros(lvalues.shape, dtype=bool)
 
+    elif is_numeric_v_string_like(lvalues, rvalues):
+        # GH#36377 going through the numexpr path would incorrectly raise
+        return invalid_comparison(lvalues, rvalues, op)
+
     elif is_object_dtype(lvalues.dtype):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
@@ -355,7 +354,8 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
         res_values = na_logical_op(lvalues, rvalues, op)
-        res_values = filler(res_values)  # type: ignore
+        # error: Cannot call function of unknown type
+        res_values = filler(res_values)  # type: ignore[operator]
 
     return res_values
 
@@ -378,13 +378,28 @@ def get_array_op(op):
         # TODO: avoid getting here
         return op
 
-    op_name = op.__name__.strip("_")
+    op_name = op.__name__.strip("_").lstrip("r")
+    if op_name == "arith_op":
+        # Reached via DataFrame._combine_frame
+        return op
+
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
         return partial(comparison_op, op=op)
     elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
         return partial(logical_op, op=op)
-    else:
+    elif op_name in {
+        "add",
+        "sub",
+        "mul",
+        "truediv",
+        "floordiv",
+        "mod",
+        "divmod",
+        "pow",
+    }:
         return partial(arithmetic_op, op=op)
+    else:
+        raise NotImplementedError(op_name)
 
 
 def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:

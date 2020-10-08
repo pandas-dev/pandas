@@ -68,9 +68,9 @@ class TestSeriesConcat:
             (np.bool_, np.int32, np.int32),
             (np.bool_, np.float32, np.object_),
             # datetime-like
-            ("m8[ns]", np.bool, np.object_),
+            ("m8[ns]", np.bool_, np.object_),
             ("m8[ns]", np.int64, np.object_),
-            ("M8[ns]", np.bool, np.object_),
+            ("M8[ns]", np.bool_, np.object_),
             ("M8[ns]", np.int64, np.object_),
             # categorical
             ("category", "category", "category"),

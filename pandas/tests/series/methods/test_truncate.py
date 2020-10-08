@@ -101,7 +101,13 @@ class TestTruncate:
         # GH 9243
         idx = date_range("4/1/2005", "4/30/2005", freq="D", tz="US/Pacific")
         s = Series(range(len(idx)), index=idx)
-        result = s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#36148 in the future will require tzawareness compat
+            s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
+
+        lb = idx[1]
+        ub = idx[3]
+        result = s.truncate(lb.to_pydatetime(), ub.to_pydatetime())
         expected = Series([1, 2, 3], index=idx[1:4])
         tm.assert_series_equal(result, expected)
 
@@ -126,3 +132,29 @@ class TestTruncate:
 
         expected_idx2 = pd.PeriodIndex([pd.Period("2017-09-02")])
         tm.assert_series_equal(result2, pd.Series([2], index=expected_idx2))
+
+    def test_truncate_multiindex(self):
+        # GH 34564
+        mi = pd.MultiIndex.from_product([[1, 2, 3, 4], ["A", "B"]], names=["L1", "L2"])
+        s1 = pd.Series(range(mi.shape[0]), index=mi, name="col")
+        result = s1.truncate(before=2, after=3)
+
+        df = pd.DataFrame.from_dict(
+            {"L1": [2, 2, 3, 3], "L2": ["A", "B", "A", "B"], "col": [2, 3, 4, 5]}
+        )
+        return_value = df.set_index(["L1", "L2"], inplace=True)
+        assert return_value is None
+        expected = df.col
+
+        tm.assert_series_equal(result, expected)
+
+    def test_truncate_one_element_series(self):
+        # GH 35544
+        series = pd.Series([0.1], index=pd.DatetimeIndex(["2020-08-04"]))
+        before = pd.Timestamp("2020-08-02")
+        after = pd.Timestamp("2020-08-04")
+
+        result = series.truncate(before=before, after=after)
+
+        # the input Series and the expected Series are the same
+        tm.assert_series_equal(result, series)

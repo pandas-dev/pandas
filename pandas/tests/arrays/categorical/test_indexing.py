@@ -77,13 +77,21 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
             pd.Categorical(["b", "a"], categories=["a", "b", "c"], ordered=True),
         ],
     )
-    def test_setitem_same_ordered_rasies(self, other):
+    def test_setitem_same_ordered_raises(self, other):
         # Gh-24142
         target = pd.Categorical(["a", "b"], categories=["a", "b"], ordered=True)
         mask = np.array([True, False])
         msg = "Cannot set a Categorical with another, without identical categories"
         with pytest.raises(ValueError, match=msg):
             target[mask] = other[mask]
+
+    def test_setitem_tuple(self):
+        # GH#20439
+        cat = pd.Categorical([(0, 1), (0, 2), (0, 1)])
+
+        # This should not raise
+        cat[1] = cat[0]
+        assert cat[1] == (0, 1)
 
 
 class TestCategoricalIndexing:
@@ -185,7 +193,7 @@ class TestCategoricalIndexing:
         # GH 21448
         key = key_class(key_values, categories=range(1, 5))
         # Test for flat index and CategoricalIndex with same/different cats:
-        for dtype in None, "category", key.dtype:
+        for dtype in [None, "category", key.dtype]:
             idx = Index(idx_values, dtype=dtype)
             expected, exp_miss = idx.get_indexer_non_unique(key_values)
             result, res_miss = idx.get_indexer_non_unique(key)

@@ -17,11 +17,10 @@ This module provides a set of commonly used default arguments for functions
 and methods that are spread throughout the codebase. This module will make it
 easier to adjust to future upstream changes in the analogous numpy signatures.
 """
-from collections import OrderedDict
 from distutils.version import LooseVersion
 from typing import Any, Dict, Optional, Union
 
-from numpy import __version__ as _np_version, ndarray
+from numpy import __version__, ndarray
 
 from pandas._libs.lib import is_bool, is_integer
 from pandas.errors import UnsupportedFunctionCall
@@ -117,12 +116,12 @@ def validate_argmax_with_skipna(skipna, args, kwargs):
     return skipna
 
 
-ARGSORT_DEFAULTS: "OrderedDict[str, Optional[Union[int, str]]]" = OrderedDict()
+ARGSORT_DEFAULTS: Dict[str, Optional[Union[int, str]]] = {}
 ARGSORT_DEFAULTS["axis"] = -1
 ARGSORT_DEFAULTS["kind"] = "quicksort"
 ARGSORT_DEFAULTS["order"] = None
 
-if LooseVersion(_np_version) >= LooseVersion("1.17.0"):
+if LooseVersion(__version__) >= LooseVersion("1.17.0"):
     # GH-26361. NumPy added radix sort and changed default to None.
     ARGSORT_DEFAULTS["kind"] = None
 
@@ -133,7 +132,7 @@ validate_argsort = CompatValidator(
 
 # two different signatures of argsort, this second validation
 # for when the `kind` param is supported
-ARGSORT_DEFAULTS_KIND: "OrderedDict[str, Optional[int]]" = OrderedDict()
+ARGSORT_DEFAULTS_KIND: Dict[str, Optional[int]] = {}
 ARGSORT_DEFAULTS_KIND["axis"] = -1
 ARGSORT_DEFAULTS_KIND["order"] = None
 validate_argsort_kind = CompatValidator(
@@ -178,7 +177,7 @@ def validate_clip_with_axis(axis, args, kwargs):
     return axis
 
 
-CUM_FUNC_DEFAULTS: "OrderedDict[str, Any]" = OrderedDict()
+CUM_FUNC_DEFAULTS: Dict[str, Any] = {}
 CUM_FUNC_DEFAULTS["dtype"] = None
 CUM_FUNC_DEFAULTS["out"] = None
 validate_cum_func = CompatValidator(
@@ -204,7 +203,7 @@ def validate_cum_func_with_skipna(skipna, args, kwargs, name):
     return skipna
 
 
-ALLANY_DEFAULTS: "OrderedDict[str, Optional[bool]]" = OrderedDict()
+ALLANY_DEFAULTS: Dict[str, Optional[bool]] = {}
 ALLANY_DEFAULTS["dtype"] = None
 ALLANY_DEFAULTS["out"] = None
 ALLANY_DEFAULTS["keepdims"] = False
@@ -241,13 +240,13 @@ validate_round = CompatValidator(
     ROUND_DEFAULTS, fname="round", method="both", max_fname_arg_count=1
 )
 
-SORT_DEFAULTS: "OrderedDict[str, Optional[Union[int, str]]]" = OrderedDict()
+SORT_DEFAULTS: Dict[str, Optional[Union[int, str]]] = {}
 SORT_DEFAULTS["axis"] = -1
 SORT_DEFAULTS["kind"] = "quicksort"
 SORT_DEFAULTS["order"] = None
 validate_sort = CompatValidator(SORT_DEFAULTS, fname="sort", method="kwargs")
 
-STAT_FUNC_DEFAULTS: "OrderedDict[str, Optional[Any]]" = OrderedDict()
+STAT_FUNC_DEFAULTS: Dict[str, Optional[Any]] = {}
 STAT_FUNC_DEFAULTS["dtype"] = None
 STAT_FUNC_DEFAULTS["out"] = None
 
@@ -281,13 +280,13 @@ validate_median = CompatValidator(
     MEDIAN_DEFAULTS, fname="median", method="both", max_fname_arg_count=1
 )
 
-STAT_DDOF_FUNC_DEFAULTS: "OrderedDict[str, Optional[bool]]" = OrderedDict()
+STAT_DDOF_FUNC_DEFAULTS: Dict[str, Optional[bool]] = {}
 STAT_DDOF_FUNC_DEFAULTS["dtype"] = None
 STAT_DDOF_FUNC_DEFAULTS["out"] = None
 STAT_DDOF_FUNC_DEFAULTS["keepdims"] = False
 validate_stat_ddof_func = CompatValidator(STAT_DDOF_FUNC_DEFAULTS, method="kwargs")
 
-TAKE_DEFAULTS: "OrderedDict[str, Optional[str]]" = OrderedDict()
+TAKE_DEFAULTS: Dict[str, Optional[str]] = {}
 TAKE_DEFAULTS["out"] = None
 TAKE_DEFAULTS["mode"] = "raise"
 validate_take = CompatValidator(TAKE_DEFAULTS, fname="take", method="kwargs")

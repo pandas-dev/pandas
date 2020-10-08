@@ -181,15 +181,32 @@ def test_quantile_missing_group_values_no_segfaults():
         grp.quantile()
 
 
-def test_quantile_missing_group_values_correct_results():
-    # GH 28662
-    data = np.array([1.0, np.nan, 3.0, np.nan])
-    df = pd.DataFrame(dict(key=data, val=range(4)))
+@pytest.mark.parametrize(
+    "key, val, expected_key, expected_val",
+    [
+        ([1.0, np.nan, 3.0, np.nan], range(4), [1.0, 3.0], [0.0, 2.0]),
+        ([1.0, np.nan, 2.0, 2.0], range(4), [1.0, 2.0], [0.0, 2.5]),
+        (["a", "b", "b", np.nan], range(4), ["a", "b"], [0, 1.5]),
+        ([0], [42], [0], [42.0]),
+        ([], [], np.array([], dtype="float64"), np.array([], dtype="float64")),
+    ],
+)
+def test_quantile_missing_group_values_correct_results(
+    key, val, expected_key, expected_val
+):
+    # GH 28662, GH 33200, GH 33569
+    df = pd.DataFrame({"key": key, "val": val})
 
-    result = df.groupby("key").quantile()
     expected = pd.DataFrame(
-        [1.0, 3.0], index=pd.Index([1.0, 3.0], name="key"), columns=["val"]
+        expected_val, index=pd.Index(expected_key, name="key"), columns=["val"]
     )
+
+    grp = df.groupby("key")
+
+    result = grp.quantile(0.5)
+    tm.assert_frame_equal(result, expected)
+
+    result = grp.quantile()
     tm.assert_frame_equal(result, expected)
 
 
@@ -215,3 +232,11 @@ def test_groupby_quantile_nullable_array(values, q):
 
     expected = pd.Series(true_quantiles * 2, index=idx, name="b")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
+def test_groupby_quantile_skips_invalid_dtype(q):
+    df = pd.DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
+    result = df.groupby("a").quantile(q)
+    expected = df.groupby("a")[["b"]].quantile(q)
+    tm.assert_frame_equal(result, expected)

@@ -244,7 +244,10 @@ class BaseSetitemTests(BaseExtensionTests):
 
     def test_setitem_frame_invalid_length(self, data):
         df = pd.DataFrame({"A": [1] * len(data)})
-        xpr = "Length of values does not match length of index"
+        xpr = (
+            rf"Length of values \({len(data[:5])}\) "
+            rf"does not match length of index \({len(df)}\)"
+        )
         with pytest.raises(ValueError, match=xpr):
             df["B"] = data[:5]
 
@@ -301,3 +304,31 @@ class BaseSetitemTests(BaseExtensionTests):
         data[0] = data[1]
         assert view1[0] == data[1]
         assert view2[0] == data[1]
+
+    def test_setitem_dataframe_column_with_index(self, data):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+        result.loc[df.index, "data"] = df["data"]
+        self.assert_frame_equal(result, expected)
+
+    def test_setitem_dataframe_column_without_index(self, data):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+        result.loc[:, "data"] = df["data"]
+        self.assert_frame_equal(result, expected)
+
+    def test_setitem_series_with_index(self, data):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        ser = expected = pd.Series(data, name="data")
+        result = pd.Series(index=ser.index, dtype=object, name="data")
+        result.loc[ser.index] = ser
+        self.assert_series_equal(result, expected)
+
+    def test_setitem_series_without_index(self, data):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        ser = expected = pd.Series(data, name="data")
+        result = pd.Series(index=ser.index, dtype=object, name="data")
+        result.loc[:] = ser
+        self.assert_series_equal(result, expected)
