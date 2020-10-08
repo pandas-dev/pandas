@@ -4,13 +4,18 @@ import functools
 from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import IO, Any, Callable, Dict, List, Optional, Type, Union
+from typing import IO, Any, Callable, List, Mapping, Optional, Type, Union
 
 import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas._typing import CompressionOptions, JSONSerializable, StorageOptions
+from pandas._typing import (
+    CompressionOptions,
+    IndexLabel,
+    JSONSerializable,
+    StorageOptions,
+)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments
 
@@ -161,15 +166,16 @@ class Writer(ABC):
 
     @property
     @abstractmethod
-    def obj_to_write(self) -> Union[NDFrame, Dict[str, Any]]:
+    def obj_to_write(self) -> Union[NDFrame, Mapping[IndexLabel, Any]]:
         """Object to write in JSON format."""
+        pass
 
 
 class SeriesWriter(Writer):
     _default_orient = "index"
 
     @property
-    def obj_to_write(self) -> Union[NDFrame, Dict[str, Any]]:
+    def obj_to_write(self) -> Union[NDFrame, Mapping[IndexLabel, Any]]:
         if not self.index and self.orient == "split":
             return {"name": self.obj.name, "data": self.obj.values}
         else:
@@ -184,7 +190,7 @@ class FrameWriter(Writer):
     _default_orient = "columns"
 
     @property
-    def obj_to_write(self) -> Union[NDFrame, Dict[str, Any]]:
+    def obj_to_write(self) -> Union[NDFrame, Mapping[IndexLabel, Any]]:
         if not self.index and self.orient == "split":
             obj_to_write = self.obj.to_dict(orient="split")
             del obj_to_write["index"]
@@ -284,7 +290,7 @@ class JSONTableWriter(FrameWriter):
         self.index = index
 
     @property
-    def obj_to_write(self) -> Union[NDFrame, Dict[str, Any]]:
+    def obj_to_write(self) -> Union[NDFrame, Mapping[IndexLabel, Any]]:
         return {"schema": self.schema, "data": self.obj}
 
 
