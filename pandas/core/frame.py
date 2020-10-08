@@ -8972,7 +8972,7 @@ NaN 12.3   33.0
 
         By default, missing values are not considered, and the mode of wings
         are both 0 and 2. The second row of species and legs contains ``NaN``,
-        because they have only one mode, but the DataFrame has two rows.
+        because they have only one mode, but the resulting DataFrame has two rows.
 
         >>> df.mode()
           species  legs  wings
