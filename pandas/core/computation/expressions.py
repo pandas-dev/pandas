@@ -133,7 +133,10 @@ _op_str_mapping = {
     roperator.rtruediv: "/",
     operator.floordiv: "//",
     roperator.rfloordiv: "//",
-    operator.mod: "%",
+    # we require Python semantics for mod of negative for backwards compatibility
+    # see https://github.com/pydata/numexpr/issues/365
+    # so sticking with unaccelerated for now
+    operator.mod: None,
     roperator.rmod: "%",
     operator.pow: "**",
     roperator.rpow: "**",
@@ -245,6 +248,7 @@ def where(cond, a, b, use_numexpr=True):
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
+    assert _where is not None
     return _where(cond, a, b) if use_numexpr else _where_standard(cond, a, b)
 
 

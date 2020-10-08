@@ -44,28 +44,26 @@ def _get_method_wrappers(cls):
     # TODO: make these non-runtime imports once the relevant functions
     #  are no longer in __init__
     from pandas.core.ops import (
-        _arith_method_FRAME,
-        _arith_method_SERIES,
-        _bool_method_SERIES,
-        _comp_method_FRAME,
-        _comp_method_SERIES,
-        _flex_comp_method_FRAME,
-        _flex_method_SERIES,
+        arith_method_FRAME,
+        arith_method_SERIES,
+        comp_method_FRAME,
+        flex_comp_method_FRAME,
+        flex_method_SERIES,
     )
 
     if issubclass(cls, ABCSeries):
         # Just Series
-        arith_flex = _flex_method_SERIES
-        comp_flex = _flex_method_SERIES
-        arith_special = _arith_method_SERIES
-        comp_special = _comp_method_SERIES
-        bool_special = _bool_method_SERIES
+        arith_flex = flex_method_SERIES
+        comp_flex = flex_method_SERIES
+        arith_special = arith_method_SERIES
+        comp_special = None
+        bool_special = None
     elif issubclass(cls, ABCDataFrame):
-        arith_flex = _arith_method_FRAME
-        comp_flex = _flex_comp_method_FRAME
-        arith_special = _arith_method_FRAME
-        comp_special = _comp_method_FRAME
-        bool_special = _arith_method_FRAME
+        arith_flex = arith_method_FRAME
+        comp_flex = flex_comp_method_FRAME
+        arith_special = arith_method_FRAME
+        comp_special = comp_method_FRAME
+        bool_special = arith_method_FRAME
     return arith_flex, comp_flex, arith_special, comp_special, bool_special
 
 
@@ -119,13 +117,23 @@ def add_special_arithmetic_methods(cls):
         )
     )
 
-    new_methods.update(
-        dict(
-            __iand__=_wrap_inplace_method(new_methods["__and__"]),
-            __ior__=_wrap_inplace_method(new_methods["__or__"]),
-            __ixor__=_wrap_inplace_method(new_methods["__xor__"]),
+    if bool_method is None:
+        # Series gets bool_method via OpsMixin
+        new_methods.update(
+            dict(
+                __iand__=_wrap_inplace_method(cls.__and__),
+                __ior__=_wrap_inplace_method(cls.__or__),
+                __ixor__=_wrap_inplace_method(cls.__xor__),
+            )
         )
-    )
+    else:
+        new_methods.update(
+            dict(
+                __iand__=_wrap_inplace_method(new_methods["__and__"]),
+                __ior__=_wrap_inplace_method(new_methods["__or__"]),
+                __ixor__=_wrap_inplace_method(new_methods["__xor__"]),
+            )
+        )
 
     _add_methods(cls, new_methods=new_methods)
 
@@ -171,8 +179,6 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         mul=arith_method(cls, operator.mul, special),
         truediv=arith_method(cls, operator.truediv, special),
         floordiv=arith_method(cls, operator.floordiv, special),
-        # Causes a floating point exception in the tests when numexpr enabled,
-        # so for now no speedup
         mod=arith_method(cls, operator.mod, special),
         pow=arith_method(cls, operator.pow, special),
         # not entirely sure why this is necessary, but previously was included
@@ -191,16 +197,18 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         new_methods["divmod"] = arith_method(cls, divmod, special)
         new_methods["rdivmod"] = arith_method(cls, rdivmod, special)
 
-    new_methods.update(
-        dict(
-            eq=comp_method(cls, operator.eq, special),
-            ne=comp_method(cls, operator.ne, special),
-            lt=comp_method(cls, operator.lt, special),
-            gt=comp_method(cls, operator.gt, special),
-            le=comp_method(cls, operator.le, special),
-            ge=comp_method(cls, operator.ge, special),
+    if comp_method is not None:
+        # Series already has this pinned
+        new_methods.update(
+            dict(
+                eq=comp_method(cls, operator.eq, special),
+                ne=comp_method(cls, operator.ne, special),
+                lt=comp_method(cls, operator.lt, special),
+                gt=comp_method(cls, operator.gt, special),
+                le=comp_method(cls, operator.le, special),
+                ge=comp_method(cls, operator.ge, special),
+            )
         )
-    )
 
     if bool_method:
         new_methods.update(

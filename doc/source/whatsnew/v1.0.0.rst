@@ -18,7 +18,7 @@ including other versions of pandas.
 New deprecation policy
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Starting with Pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
+Starting with pandas 1.0.0, pandas will adopt a variant of `SemVer`_ to
 version releases. Briefly,
 
 * Deprecations will be introduced in minor releases (e.g. 1.1.0, 1.2.0, 2.1.0, ...)
@@ -196,7 +196,7 @@ You can use the alias ``"boolean"`` as well.
 
 .. _whatsnew_100.convert_dtypes:
 
-``convert_dtypes`` method to ease use of supported extension dtypes
+Method ``convert_dtypes`` to ease use of supported extension dtypes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In order to encourage use of the extension dtypes ``StringDtype``,
@@ -250,7 +250,7 @@ Other enhancements
 - :func:`read_excel` now can read binary Excel (``.xlsb``) files by passing ``engine='pyxlsb'``. For more details and example usage, see the :ref:`Binary Excel files documentation <io.xlsb>`. Closes :issue:`8540`.
 - The ``partition_cols`` argument in :meth:`DataFrame.to_parquet` now accepts a string (:issue:`27117`)
 - :func:`pandas.read_json` now parses ``NaN``, ``Infinity`` and ``-Infinity`` (:issue:`12213`)
-- DataFrame constructor preserve `ExtensionArray` dtype with `ExtensionArray` (:issue:`11363`)
+- DataFrame constructor preserve ``ExtensionArray`` dtype with ``ExtensionArray`` (:issue:`11363`)
 - :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` have gained ``ignore_index`` keyword to be able to reset index after sorting (:issue:`30114`)
 - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` have gained ``ignore_index`` keyword to reset index (:issue:`30114`)
 - :meth:`DataFrame.drop_duplicates` has gained ``ignore_index`` keyword to reset index (:issue:`30114`)
@@ -610,7 +610,7 @@ When :class:`Categorical` contains ``np.nan``,
 Default dtype of empty :class:`pandas.Series`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Initialising an empty :class:`pandas.Series` without specifying a dtype will raise a `DeprecationWarning` now
+Initialising an empty :class:`pandas.Series` without specifying a dtype will raise a ``DeprecationWarning`` now
 (:issue:`17261`). The default dtype will change from ``float64`` to ``object`` in future releases so that it is
 consistent with the behaviour of :class:`DataFrame` and :class:`Index`.
 
@@ -676,7 +676,7 @@ depending on how the results are cast back to the original dtype.
 Increased minimum version for Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas 1.0.0 supports Python 3.6.1 and higher (:issue:`29212`).
+pandas 1.0.0 supports Python 3.6.1 and higher (:issue:`29212`).
 
 .. _whatsnew_100.api_breaking.deps:
 
@@ -749,7 +749,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Build changes
 ^^^^^^^^^^^^^
 
-Pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
+pandas has added a `pyproject.toml <https://www.python.org/dev/peps/pep-0517/>`_ file and will no longer include
 cythonized files in the source distribution uploaded to PyPI (:issue:`28341`, :issue:`20775`). If you're installing
 a built distribution (wheel) or via conda, this shouldn't have any effect on you. If you're building pandas from
 source, you should no longer need to install Cython into your build environment before calling ``pip install pandas``.
@@ -763,7 +763,7 @@ Other API changes
 - :class:`core.groupby.GroupBy.transform` now raises on invalid operation names (:issue:`27489`)
 - :meth:`pandas.api.types.infer_dtype` will now return "integer-na" for integer and ``np.nan`` mix (:issue:`27283`)
 - :meth:`MultiIndex.from_arrays` will no longer infer names from arrays if ``names=None`` is explicitly provided (:issue:`27292`)
-- In order to improve tab-completion, Pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
+- In order to improve tab-completion, pandas does not include most deprecated attributes when introspecting a pandas object using ``dir`` (e.g. ``dir(df)``).
   To see which attributes are excluded, see an object's ``_deprecations`` attribute, for example ``pd.DataFrame._deprecations`` (:issue:`28805`).
 - The returned dtype of :func:`unique` now matches the input dtype. (:issue:`27874`)
 - Changed the default configuration value for ``options.matplotlib.register_converters`` from ``True`` to ``"auto"`` (:issue:`18720`).
@@ -974,7 +974,7 @@ or ``matplotlib.Axes.plot``. See :ref:`plotting.formatters` for more.
 - The 'outer' method on Numpy ufuncs, e.g. ``np.subtract.outer`` operating on :class:`Series` objects is no longer supported, and will raise ``NotImplementedError`` (:issue:`27198`)
 - Removed ``Series.get_dtype_counts`` and ``DataFrame.get_dtype_counts`` (:issue:`27145`)
 - Changed the default "fill_value" argument in :meth:`Categorical.take` from ``True`` to ``False`` (:issue:`20841`)
-- Changed the default value for the `raw` argument in :func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` from ``None`` to ``False`` (:issue:`20584`)
+- Changed the default value for the ``raw`` argument in :func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` from ``None`` to ``False`` (:issue:`20584`)
 - Removed deprecated behavior of :meth:`Series.argmin` and :meth:`Series.argmax`, use :meth:`Series.idxmin` and :meth:`Series.idxmax` for the old behavior (:issue:`16955`)
 - Passing a tz-aware ``datetime.datetime`` or :class:`Timestamp` into the :class:`Timestamp` constructor with the ``tz`` argument now raises a ``ValueError`` (:issue:`23621`)
 - Removed ``Series.base``, ``Index.base``, ``Categorical.base``, ``Series.flags``, ``Index.flags``, ``PeriodArray.flags``, ``Series.strides``, ``Index.strides``, ``Series.itemsize``, ``Index.itemsize``, ``Series.data``, ``Index.data`` (:issue:`20721`)
@@ -1058,7 +1058,7 @@ Datetimelike
 - Bug in :class:`Series` and :class:`DataFrame` with integer dtype failing to raise ``TypeError`` when adding or subtracting a ``np.datetime64`` object (:issue:`28080`)
 - Bug in :meth:`Series.astype`, :meth:`Index.astype`, and :meth:`DataFrame.astype` failing to handle ``NaT`` when casting to an integer dtype (:issue:`28492`)
 - Bug in :class:`Week` with ``weekday`` incorrectly raising ``AttributeError`` instead of ``TypeError`` when adding or subtracting an invalid type (:issue:`28530`)
-- Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype `'timedelta64[ns]'` (:issue:`28049`)
+- Bug in :class:`DataFrame` arithmetic operations when operating with a :class:`Series` with dtype ``'timedelta64[ns]'`` (:issue:`28049`)
 - Bug in :func:`core.groupby.generic.SeriesGroupBy.apply` raising ``ValueError`` when a column in the original DataFrame is a datetime and the column labels are not standard integers (:issue:`28247`)
 - Bug in :func:`pandas._config.localization.get_locales` where the ``locales -a`` encodes the locales list as windows-1252 (:issue:`23638`, :issue:`24760`, :issue:`27368`)
 - Bug in :meth:`Series.var` failing to raise ``TypeError`` when called with ``timedelta64[ns]`` dtype (:issue:`28289`)
@@ -1066,7 +1066,7 @@ Datetimelike
 - Bug in masking datetime-like arrays with a boolean mask of an incorrect length not raising an ``IndexError`` (:issue:`30308`)
 - Bug in :attr:`Timestamp.resolution` being a property instead of a class attribute (:issue:`29910`)
 - Bug in :func:`pandas.to_datetime` when called with ``None`` raising ``TypeError`` instead of returning ``NaT`` (:issue:`30011`)
-- Bug in :func:`pandas.to_datetime` failing for `deques` when using ``cache=True`` (the default) (:issue:`29403`)
+- Bug in :func:`pandas.to_datetime` failing for ``deques`` when using ``cache=True`` (the default) (:issue:`29403`)
 - Bug in :meth:`Series.item` with ``datetime64`` or ``timedelta64`` dtype, :meth:`DatetimeIndex.item`, and :meth:`TimedeltaIndex.item` returning an integer instead of a :class:`Timestamp` or :class:`Timedelta` (:issue:`30175`)
 - Bug in :class:`DatetimeIndex` addition when adding a non-optimized :class:`DateOffset` incorrectly dropping timezone information (:issue:`30336`)
 - Bug in :meth:`DataFrame.drop` where attempting to drop non-existent values from a DatetimeIndex would yield a confusing error message (:issue:`30399`)
@@ -1082,12 +1082,10 @@ Timedelta
 ^^^^^^^^^
 - Bug in subtracting a :class:`TimedeltaIndex` or :class:`TimedeltaArray` from a ``np.datetime64`` object (:issue:`29558`)
 -
--
 
 Timezones
 ^^^^^^^^^
 
--
 -
 
 
@@ -1095,10 +1093,10 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.quantile` with zero-column :class:`DataFrame` incorrectly raising (:issue:`23925`)
 - :class:`DataFrame` flex inequality comparisons methods (:meth:`DataFrame.lt`, :meth:`DataFrame.le`, :meth:`DataFrame.gt`, :meth:`DataFrame.ge`) with object-dtype and ``complex`` entries failing to raise ``TypeError`` like their :class:`Series` counterparts (:issue:`28079`)
-- Bug in :class:`DataFrame` logical operations (`&`, `|`, `^`) not matching :class:`Series` behavior by filling NA values (:issue:`28741`)
+- Bug in :class:`DataFrame` logical operations (``&``, ``|``, ``^``) not matching :class:`Series` behavior by filling NA values (:issue:`28741`)
 - Bug in :meth:`DataFrame.interpolate` where specifying axis by name references variable before it is assigned (:issue:`29142`)
 - Bug in :meth:`Series.var` not computing the right value with a nullable integer dtype series not passing through ddof argument (:issue:`29128`)
-- Improved error message when using `frac` > 1 and `replace` = False (:issue:`27451`)
+- Improved error message when using ``frac`` > 1 and ``replace`` = False (:issue:`27451`)
 - Bug in numeric indexes resulted in it being possible to instantiate an :class:`Int64Index`, :class:`UInt64Index`, or :class:`Float64Index` with an invalid dtype (e.g. datetime-like) (:issue:`29539`)
 - Bug in :class:`UInt64Index` precision loss while constructing from a list with values in the ``np.uint64`` range (:issue:`29526`)
 - Bug in :class:`NumericIndex` construction that caused indexing to fail when integers in the ``np.uint64`` range were used (:issue:`28023`)
@@ -1113,7 +1111,6 @@ Numeric
 Conversion
 ^^^^^^^^^^
 
--
 -
 
 Strings
@@ -1137,8 +1134,8 @@ Indexing
 
 - Bug in assignment using a reverse slicer (:issue:`26939`)
 - Bug in :meth:`DataFrame.explode` would duplicate frame in the presence of duplicates in the index (:issue:`28010`)
-- Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a `Period` (:issue:`28323`) (:issue:`28337`)
-- Fix assignment of column via `.loc` with numpy non-ns datetime type (:issue:`27395`)
+- Bug in reindexing a :meth:`PeriodIndex` with another type of index that contained a ``Period`` (:issue:`28323`) (:issue:`28337`)
+- Fix assignment of column via ``.loc`` with numpy non-ns datetime type (:issue:`27395`)
 - Bug in :meth:`Float64Index.astype` where ``np.inf`` was not handled properly when casting to an integer dtype (:issue:`28475`)
 - :meth:`Index.union` could fail when the left contained duplicates (:issue:`28257`)
 - Bug when indexing with ``.loc`` where the index was a :class:`CategoricalIndex` with non-string categories didn't work (:issue:`17569`, :issue:`30225`)
@@ -1153,17 +1150,16 @@ Missing
 ^^^^^^^
 
 -
--
 
 MultiIndex
 ^^^^^^^^^^
 
 - Constructor for :class:`MultiIndex` verifies that the given ``sortorder`` is compatible with the actual ``lexsort_depth``  if ``verify_integrity`` parameter is ``True`` (the default) (:issue:`28735`)
-- Series and MultiIndex `.drop` with `MultiIndex` raise exception if labels not in given in level (:issue:`8594`)
+- Series and MultiIndex ``.drop`` with ``MultiIndex`` raise exception if labels not in given in level (:issue:`8594`)
 -
 
-I/O
-^^^
+IO
+^^
 
 - :meth:`read_csv` now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
 - Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
@@ -1171,7 +1167,7 @@ I/O
 - Bug in :meth:`DataFrame.to_csv` where values were truncated when the length of ``na_rep`` was shorter than the text input data. (:issue:`25099`)
 - Bug in :func:`DataFrame.to_string` where values were truncated using display options instead of outputting the full content (:issue:`9784`)
 - Bug in :meth:`DataFrame.to_json` where a datetime column label would not be written out in ISO format with ``orient="table"`` (:issue:`28130`)
-- Bug in :func:`DataFrame.to_parquet` where writing to GCS would fail with `engine='fastparquet'` if the file did not already exist (:issue:`28326`)
+- Bug in :func:`DataFrame.to_parquet` where writing to GCS would fail with ``engine='fastparquet'`` if the file did not already exist (:issue:`28326`)
 - Bug in :func:`read_hdf` closing stores that it didn't open when Exceptions are raised (:issue:`28699`)
 - Bug in :meth:`DataFrame.read_json` where using ``orient="index"`` would not maintain the order (:issue:`28557`)
 - Bug in :meth:`DataFrame.to_html` where the length of the ``formatters`` argument was not verified (:issue:`28469`)
@@ -1183,9 +1179,9 @@ I/O
 - Bug in :func:`read_json` where default encoding was not set to ``utf-8`` (:issue:`29565`)
 - Bug in :class:`PythonParser` where str and bytes were being mixed when dealing with the decimal field (:issue:`29650`)
 - :meth:`read_gbq` now accepts ``progress_bar_type`` to display progress bar while the data downloads. (:issue:`29857`)
-- Bug in :func:`pandas.io.json.json_normalize` where a missing value in the location specified by `record_path` would raise a ``TypeError`` (:issue:`30148`)
+- Bug in :func:`pandas.io.json.json_normalize` where a missing value in the location specified by ``record_path`` would raise a ``TypeError`` (:issue:`30148`)
 - :func:`read_excel` now accepts binary data (:issue:`15914`)
-- Bug in :meth:`read_csv` in which encoding handling was limited to just the string `utf-16` for the C engine (:issue:`24130`)
+- Bug in :meth:`read_csv` in which encoding handling was limited to just the string ``utf-16`` for the C engine (:issue:`24130`)
 
 Plotting
 ^^^^^^^^
@@ -1203,7 +1199,7 @@ Plotting
 - Allow :meth:`DataFrame.plot.scatter` to plot ``objects`` and ``datetime`` type data (:issue:`18755`, :issue:`30391`)
 - Bug in :meth:`DataFrame.hist`, ``xrot=0`` does not work with ``by`` and subplots (:issue:`30288`).
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`core.groupby.DataFrameGroupBy.apply` only showing output from a single group when function returns an :class:`Index` (:issue:`28652`)
@@ -1236,7 +1232,7 @@ Reshaping
 - Bug in :func:`merge`, did not append suffixes correctly with MultiIndex (:issue:`28518`)
 - :func:`qcut` and :func:`cut` now handle boolean input (:issue:`20303`)
 - Fix to ensure all int dtypes can be used in :func:`merge_asof` when using a tolerance value. Previously every non-int64 type would raise an erroneous ``MergeError`` (:issue:`28870`).
-- Better error message in :func:`get_dummies` when `columns` isn't a list-like value (:issue:`28383`)
+- Better error message in :func:`get_dummies` when ``columns`` isn't a list-like value (:issue:`28383`)
 - Bug in :meth:`Index.join` that caused infinite recursion error for mismatched ``MultiIndex`` name orders. (:issue:`25760`, :issue:`28956`)
 - Bug :meth:`Series.pct_change` where supplying an anchored frequency would throw a ``ValueError`` (:issue:`28664`)
 - Bug where :meth:`DataFrame.equals` returned True incorrectly in some cases when two DataFrames had the same columns in different orders (:issue:`28839`)
@@ -1244,8 +1240,8 @@ Reshaping
 - Bug in :func:`melt` where supplying mixed strings and numeric values for ``id_vars`` or ``value_vars`` would incorrectly raise a ``ValueError`` (:issue:`29718`)
 - Dtypes are now preserved when transposing a ``DataFrame`` where each column is the same extension dtype (:issue:`30091`)
 - Bug in :func:`merge_asof` merging on a tz-aware ``left_index`` and ``right_on`` a tz-aware column (:issue:`29864`)
-- Improved error message and docstring in :func:`cut` and :func:`qcut` when `labels=True` (:issue:`13318`)
-- Bug in missing `fill_na` parameter to :meth:`DataFrame.unstack` with list of levels (:issue:`30740`)
+- Improved error message and docstring in :func:`cut` and :func:`qcut` when ``labels=True`` (:issue:`13318`)
+- Bug in missing ``fill_na`` parameter to :meth:`DataFrame.unstack` with list of levels (:issue:`30740`)
 
 Sparse
 ^^^^^^
