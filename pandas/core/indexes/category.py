@@ -743,6 +743,3 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         name = get_op_result_name(self, other)
         cat = self._data._from_backing_data(joined)
         return type(self)._simple_new(cat, name=name)
-
-
-CategoricalIndex._add_logical_methods_disabled()
