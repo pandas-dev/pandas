@@ -485,13 +485,7 @@ class BooleanArray(BaseMaskedArray):
         values = self._data.copy()
         np.putmask(values, self._mask, False)
         result = values.any()
-        if skipna:
-            return result
-        else:
-            if result or len(self) == 0 or not self._mask.any():
-                return result
-            else:
-                return self.dtype.na_value
+        return self._handle_skipna(result, skipna)
 
     def all(self, skipna: bool = True, **kwargs):
         """
@@ -551,12 +545,19 @@ class BooleanArray(BaseMaskedArray):
         values = self._data.copy()
         np.putmask(values, self._mask, True)
         result = values.all()
+        return self._handle_skipna(result, skipna)
 
+    def _handle_skipna(self, x: bool, skipna: bool) -> Union[bool, Type[libmissing.NA]]:
+        """Handle skipna.
+
+        If ``skipna=False`` is specified and missing values are present,
+        similar :ref:`Kleene logic <boolean.kleene>` is used as for logical operations.
+        """
         if skipna:
-            return result
+            return x
         else:
-            if not result or len(self) == 0 or not self._mask.any():
-                return result
+            if not x or len(self) == 0 or not self._mask.any():
+                return x
             else:
                 return self.dtype.na_value
 
