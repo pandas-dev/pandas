@@ -4,7 +4,7 @@ repos:
     hooks:
     -   id: black
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.3
+    rev: 3.8.4
     hooks:
     -   id: flake8
         additional_dependencies: [flake8-comprehensions>=3.1.0]
@@ -21,10 +21,12 @@ repos:
           - file
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.2.2
+    rev: 5.6.0
     hooks:
     -   id: isort
         exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$
+        files: '.pxd$|.py$'
+        types: [file]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.7.2
     hooks:
@@ -47,3 +49,8 @@ repos:
     rev: v1.2.2
     hooks:
     -   id: yesqa
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+    -   id: end-of-file-fixer
+        exclude: '.html$|^LICENSES/|.csv$|.txt$|.svg$|.py$'
