@@ -3834,8 +3834,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # the copy weakref
         if self._is_copy is not None and not isinstance(self._is_copy, str):
             r = self._is_copy()
-            assert r is not None  # for mypy
-            if not gc.get_referents(r) or r.shape == self.shape:
+            if not gc.get_referents(r) or (r is not None and r.shape == self.shape):
                 self._is_copy = None
                 return
 
