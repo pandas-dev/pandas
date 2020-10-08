@@ -761,7 +761,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     end_casted = self._maybe_cast_slice_bound(end, "right", kind)
                     mask = (self <= end_casted) & mask
 
-                indexer = mask.nonzero()[0][::step]
+                # pandas\core\indexes\datetimes.py:764: error: "bool" has no
+                # attribute "nonzero"  [attr-defined]
+                indexer = mask.nonzero()[0][::step]  # type: ignore[attr-defined]
                 if len(indexer) == len(self):
                     return slice(None)
                 else:
