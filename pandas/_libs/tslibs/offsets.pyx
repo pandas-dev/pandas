@@ -1209,9 +1209,8 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + DateOffset(months=2)
     Timestamp('2017-03-01 09:10:11')
     """
-
-    pass
-
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
 
 # --------------------------------------------------------------------
 
