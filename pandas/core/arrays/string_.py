@@ -314,43 +314,46 @@ class StringArray(PandasArray):
             return result + lib.memory_usage_of_objects(self._ndarray)
         return result
 
+    def _cmp_method(self, other, op):
+        from pandas.arrays import BooleanArray
+
+        if isinstance(other, StringArray):
+            other = other._ndarray
+
+        mask = isna(self) | isna(other)
+        valid = ~mask
+
+        if not lib.is_scalar(other):
+            if len(other) != len(self):
+                # prevent improper broadcasting when other is 2D
+                raise ValueError(
+                    f"Lengths of operands do not match: {len(self)} != {len(other)}"
+                )
+
+            other = np.asarray(other)
+            other = other[valid]
+
+        if op.__name__ in ops.ARITHMETIC_BINOPS:
+            result = np.empty_like(self._ndarray, dtype="object")
+            result[mask] = StringDtype.na_value
+            result[valid] = op(self._ndarray[valid], other)
+            return StringArray(result)
+        else:
+            # logical
+            result = np.zeros(len(self._ndarray), dtype="bool")
+            result[valid] = op(self._ndarray[valid], other)
+            return BooleanArray(result, mask)
+
     # Override parent because we have different return types.
     @classmethod
     def _create_arithmetic_method(cls, op):
         # Note: this handles both arithmetic and comparison methods.
 
+        assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
+
         @ops.unpack_zerodim_and_defer(op.__name__)
         def method(self, other):
-            from pandas.arrays import BooleanArray
-
-            assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
-
-            if isinstance(other, cls):
-                other = other._ndarray
-
-            mask = isna(self) | isna(other)
-            valid = ~mask
-
-            if not lib.is_scalar(other):
-                if len(other) != len(self):
-                    # prevent improper broadcasting when other is 2D
-                    raise ValueError(
-                        f"Lengths of operands do not match: {len(self)} != {len(other)}"
-                    )
-
-                other = np.asarray(other)
-                other = other[valid]
-
-            if op.__name__ in ops.ARITHMETIC_BINOPS:
-                result = np.empty_like(self._ndarray, dtype="object")
-                result[mask] = StringDtype.na_value
-                result[valid] = op(self._ndarray[valid], other)
-                return StringArray(result)
-            else:
-                # logical
-                result = np.zeros(len(self._ndarray), dtype="bool")
-                result[valid] = op(self._ndarray[valid], other)
-                return BooleanArray(result, mask)
+            return self._cmp_method(other, op)
 
         return compat.set_function_name(method, f"__{op.__name__}__", cls)
 
@@ -362,7 +365,6 @@ class StringArray(PandasArray):
         cls.__mul__ = cls._create_arithmetic_method(operator.mul)
         cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
 
-    _create_comparison_method = _create_arithmetic_method
     # ------------------------------------------------------------------------
     # String methods interface
     _str_na_value = StringDtype.na_value
@@ -418,4 +420,3 @@ class StringArray(PandasArray):
 
 
 StringArray._add_arithmetic_ops()
-StringArray._add_comparison_ops()
