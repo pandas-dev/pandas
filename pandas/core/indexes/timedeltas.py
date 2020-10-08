@@ -261,9 +261,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         return "timedelta64"
 
 
-TimedeltaIndex._add_logical_methods_disabled()
-
-
 def timedelta_range(
     start=None, end=None, periods=None, freq=None, name=None, closed=None
 ) -> TimedeltaIndex:
