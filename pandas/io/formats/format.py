@@ -1474,7 +1474,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
             if self.fixed_width:
                 if is_complex:
                     result = _trim_zeros_complex(values, self.decimal)
-                    result = _post_process_complex(result)
                 else:
                     result = _trim_zeros_float(values, self.decimal)
                 return np.asarray(result, dtype="object")
@@ -1862,22 +1861,13 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[s
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
-    return [
+    trimmed = [
         "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal))
         for x in str_complexes
     ]
 
-
-def _post_process_complex(complex_strings: List[str]) -> List[str]:
-    """
-    Zero pad complex number strings produced by _trim_zeros_complex.
-
-    Input strings are assumed to be of the form " 1.000+1.000j" with a
-    leading space and the real and imaginary parts having equal precision.
-    The output strings will all have length equal to that of the longest
-    input string.
-    """
-    lengths = [len(s) for s in complex_strings]
+    # pad strings to the length of the longest trimmed string for alignment
+    lengths = [len(s) for s in trimmed]
     max_length = max(lengths)
     padded = [
         s[: -((k - 1) // 2 + 1)]  # real part
@@ -1886,7 +1876,7 @@ def _post_process_complex(complex_strings: List[str]) -> List[str]:
         + s[-((k - 1) // 2) : -1]  # imaginary part
         + (max_length - k) // 2 * "0"
         + s[-1]
-        for s, k in zip(complex_strings, lengths)
+        for s, k in zip(trimmed, lengths)
     ]
     return padded
 
