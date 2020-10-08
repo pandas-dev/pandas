@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime, tzinfo
-from typing import Any, List, Optional, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union, cast
 
 import numpy as np
 
@@ -41,6 +41,9 @@ from pandas.core.indexes.extension import (
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
+
+if TYPE_CHECKING:
+    from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -151,6 +154,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             if other.dtype == object:
                 should_try = other.inferred_type in inferrable
             elif is_categorical_dtype(other.dtype):
+                other = cast("CategoricalIndex", other)
                 should_try = other.categories.inferred_type in inferrable
 
             if should_try:
