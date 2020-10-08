@@ -3776,7 +3776,7 @@ def _merge_with_dialect_properties(
         try:
             dialect_val = getattr(dialect, param)
         except AttributeError as err:
-            raise ValueError(f"Invalid dialect {kwds['dialect']} provided") from err
+            raise ValueError(f"Invalid dialect {dialect.__name__} provided") from err
 
         parser_default = _parser_defaults[param]
         provided = kwds.get(param, parser_default)
