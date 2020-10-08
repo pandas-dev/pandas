@@ -28,7 +28,6 @@ from pandas import (
     option_context,
     to_datetime,
 )
-
 import pandas._testing as tm
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
