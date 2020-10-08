@@ -9306,8 +9306,8 @@ ops.add_flex_arithmetic_methods(DataFrame)
 ops.add_special_arithmetic_methods(DataFrame)
 
 
-def _from_nested_dict(data):
-    new_data = collections.defaultdict(dict)
+def _from_nested_dict(data) -> collections.defaultdict:
+    new_data: collections.defaultdict = collections.defaultdict(dict)
     for index, s in data.items():
         for col, v in s.items():
             new_data[col][index] = v

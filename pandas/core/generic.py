@@ -112,6 +112,7 @@ from pandas.io.formats.printing import pprint_thing
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
 
+    from pandas.core.frame import DataFrame
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
     from pandas.core.window.indexers import BaseIndexer
@@ -130,7 +131,7 @@ _shared_doc_kwargs = dict(
 )
 
 
-def _single_replace(self, to_replace, method, inplace, limit):
+def _single_replace(self: "Series", to_replace, method, inplace, limit):
     """
     Replaces values in a Series using the fill method specified when no
     replacement value is given in the replace method
@@ -541,6 +542,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         from pandas.core.computation.parsing import clean_column_name
 
         if isinstance(self, ABCSeries):
+            self = cast("Series", self)
             return {clean_column_name(self.name): self}
 
         return {
@@ -1995,9 +1997,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if config.get_option("display.html.table_schema"):
             data = self.head(config.get_option("display.max_rows"))
-            payload = json.loads(
-                data.to_json(orient="table"), object_pairs_hook=collections.OrderedDict
-            )
+
+            as_json = data.to_json(orient="table")
+            as_json = cast(str, as_json)
+            payload = json.loads(as_json, object_pairs_hook=collections.OrderedDict)
             return payload
 
     # ----------------------------------------------------------------------
@@ -3113,6 +3116,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
 
+        self = cast("DataFrame", self)
         formatter = DataFrameFormatter(
             self,
             columns=columns,
@@ -3830,6 +3834,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # the copy weakref
         if self._is_copy is not None and not isinstance(self._is_copy, str):
             r = self._is_copy()
+            assert r is not None  # for mypy
             if not gc.get_referents(r) or r.shape == self.shape:
                 self._is_copy = None
                 return
@@ -6684,6 +6689,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     return self.apply(
                         _single_replace, args=(to_replace, method, inplace, limit)
                     )
+                self = cast("Series", self)
                 return _single_replace(self, to_replace, method, inplace, limit)
 
             if not is_dict_like(to_replace):
@@ -7265,10 +7271,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         nulls = self.isna() if is_series else self[subset].isna().any(1)
         if nulls.all():
             if is_series:
+                self = cast("Series", self)
                 return self._constructor(np.nan, index=where, name=self.name)
             elif is_list:
+                self = cast("DataFrame", self)
                 return self._constructor(np.nan, index=where, columns=self.columns)
             else:
+                self = cast("DataFrame", self)
                 return self._constructor_sliced(
                     np.nan, index=self.columns, name=where[0]
                 )
