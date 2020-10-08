@@ -58,21 +58,6 @@ def get_standard_colors(
             raise ValueError("color_type must be either 'default' or 'random'")
 
     if isinstance(colors, str):
-        conv = matplotlib.colors.ColorConverter()
-
-        def _is_cn_color(color: str) -> bool:
-            return bool(color in ["C" + str(x) for x in range(10)])
-
-        def _is_single_color(colors: Union[str, Sequence[str]]) -> bool:
-            if _is_cn_color(colors):
-                return True
-            try:
-                conv.to_rgba(colors)
-            except ValueError:
-                return False
-            else:
-                return True
-
         if _is_single_color(colors):
             colors = [colors]
 
@@ -90,3 +75,29 @@ def get_standard_colors(
         colors += colors[:mod]
 
     return colors
+
+
+def _is_cn_color(color: str) -> bool:
+    """Check if color string is CN color, like 'C0', 'C1', etc."""
+    return bool(color in ["C" + str(x) for x in range(10)])
+
+
+def _is_single_color(colors: Union[str, Sequence[str]]) -> bool:
+    """Check if ``colors`` is a single color.
+
+    Examples of single colors:
+        - 'r'
+        - 'g'
+        - 'red'
+        - 'green'
+        - 'C3'
+    """
+    conv = matplotlib.colors.ColorConverter()
+    if _is_cn_color(colors):
+        return True
+    try:
+        conv.to_rgba(colors)
+    except ValueError:
+        return False
+    else:
+        return True
