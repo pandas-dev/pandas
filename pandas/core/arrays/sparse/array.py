@@ -1459,18 +1459,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     _logical_method = _cmp_method
 
-    @unpack_zerodim_and_defer("__and__")
-    def __and__(self, other) -> "SparseArray":
-        return self._logical_method(other, operator.and_)
-
-    @unpack_zerodim_and_defer("__or__")
-    def __or__(self, other) -> "SparseArray":
-        return self._logical_method(other, operator.or_)
-
-    @unpack_zerodim_and_defer("__xor__")
-    def __xor__(self, other) -> "SparseArray":
-        return self._logical_method(other, operator.xor)
-
     def _unary_method(self, op) -> "SparseArray":
         fill_value = op(np.array(self.fill_value)).item()
         values = op(self.sp_values)
