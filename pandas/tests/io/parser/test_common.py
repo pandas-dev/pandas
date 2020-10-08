@@ -18,7 +18,16 @@ from pandas._libs.tslib import Timestamp
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, MultiIndex, Series, compat, concat, option_context, to_datetime
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    compat,
+    concat,
+    option_context,
+    to_datetime,
+)
 
 import pandas._testing as tm
 
@@ -2196,7 +2205,7 @@ a,b
     result = parser.read_csv(StringIO(data), dtype="string", parse_dates=["b"])
     tm.assert_frame_equal(result, expected)
 
-    
+
 def test_read_csv_names_not_accepting_sets(all_parsers):
     # GH 34946
     data = """\
