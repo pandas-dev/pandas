@@ -181,7 +181,6 @@ class TestDataFramePlots(TestPlotBase):
 
             no_warning_raised = len(w) == 0
             assert no_warning_raised, "MatplotlibDeprecationWarning was raised"
-            warnings.resetwarnings()
 
     def test_color_single_series_list(self):
         # GH 3486
