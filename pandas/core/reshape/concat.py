@@ -467,7 +467,17 @@ class _Concatenator:
                 arrs = [ser._values for ser in self.objs]
 
                 res = concat_compat(arrs, axis=0)
-                result = cons(res, index=self.new_axes[0], name=name, dtype=res.dtype)
+                # pandas\core\reshape\concat.py:470: error: Unexpected keyword
+                # argument "index" for "NDFrame"  [call-arg]
+
+                # pandas\core\reshape\concat.py:470: error: Unexpected keyword
+                # argument "name" for "NDFrame"  [call-arg]
+
+                # pandas\core\reshape\concat.py:470: error: Unexpected keyword
+                # argument "dtype" for "NDFrame"  [call-arg]
+                result = cons(  # type: ignore[call-arg]
+                    res, index=self.new_axes[0], name=name, dtype=res.dtype
+                )
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
@@ -478,7 +488,13 @@ class _Concatenator:
                 cons = self.objs[0]._constructor_expanddim
 
                 index, columns = self.new_axes
-                df = cons(data, index=index)
+                # pandas\core\reshape\concat.py:481: error: Argument 1 to
+                # "NDFrame" has incompatible type "Dict[int, FrameOrSeries]";
+                # expected "BlockManager"  [arg-type]
+
+                # pandas\core\reshape\concat.py:484: error: Unexpected keyword
+                # argument "index" for "NDFrame"  [call-arg]
+                df = cons(data, index=index)  # type: ignore[arg-type, call-arg]
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 

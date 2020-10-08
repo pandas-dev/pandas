@@ -443,7 +443,10 @@ def get_names_from_index(data):
         if n is not None:
             index[i] = n
         else:
-            index[i] = f"Unnamed {count}"
+            # pandas\core\internals\construction.py:446: error: No overload
+            # variant of "__setitem__" of "list" matches argument types "int",
+            # "str"  [call-overload]
+            index[i] = f"Unnamed {count}"  # type: ignore[call-overload]
             count += 1
 
     return index

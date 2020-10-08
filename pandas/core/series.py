@@ -1793,8 +1793,16 @@ Name: Max Speed, dtype: float64
         if isinstance(level, str):
             level = self.index._get_level_number(level)
 
-        lev = self.index.levels[level]
-        level_codes = np.array(self.index.codes[level], subok=False, copy=True)
+        # pandas\core\series.py:1796: error: "Index" has no attribute "levels";
+        # maybe "nlevels"?  [attr-defined]
+        lev = self.index.levels[level]  # type: ignore[attr-defined]
+        # pandas\core\series.py:1797: error: "Index" has no attribute "codes"
+        # [attr-defined]
+        level_codes = np.array(
+            self.index.codes[level],  # type: ignore[attr-defined]
+            subok=False,
+            copy=True,
+        )
 
         mask = level_codes == -1
         if mask.any():

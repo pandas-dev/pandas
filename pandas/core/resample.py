@@ -93,7 +93,10 @@ class Resampler(BaseGroupBy, ShallowMixin):
         self.as_index = True
         self.exclusions = set()
         self.binner = None
-        self.grouper = None
+        # pandas\core\resample.py:96: error: Incompatible types in assignment
+        # (expression has type "None", variable has type "BaseGrouper")
+        # [assignment]
+        self.grouper = None  # type: ignore[assignment]
 
         if self.groupby is not None:
             self.groupby._set_grouper(self._convert_obj(obj), sort=True)
@@ -405,14 +408,21 @@ class Resampler(BaseGroupBy, ShallowMixin):
         result : Series or DataFrame
             the result of resample
         """
+        # pandas\core\resample.py:409: error: Cannot determine type of
+        # 'loffset'  [has-type]
         needs_offset = (
-            isinstance(self.loffset, (DateOffset, timedelta, np.timedelta64))
+            isinstance(
+                self.loffset,  # type: ignore[has-type]
+                (DateOffset, timedelta, np.timedelta64),
+            )
             and isinstance(result.index, DatetimeIndex)
             and len(result.index) > 0
         )
 
         if needs_offset:
-            result.index = result.index + self.loffset
+            # pandas\core\resample.py:415: error: Cannot determine type of
+            # 'loffset'  [has-type]
+            result.index = result.index + self.loffset  # type: ignore[has-type]
 
         self.loffset = None
         return result
@@ -847,7 +857,9 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Standard deviation of values within each group.
         """
         nv.validate_resampler_func("std", args, kwargs)
-        return self._downsample("std", ddof=ddof)
+        # pandas\core\resample.py:850: error: Unexpected keyword argument
+        # "ddof" for "_downsample"  [call-arg]
+        return self._downsample("std", ddof=ddof)  # type: ignore[call-arg]
 
     def var(self, ddof=1, *args, **kwargs):
         """
@@ -864,7 +876,9 @@ class Resampler(BaseGroupBy, ShallowMixin):
             Variance of values within each group.
         """
         nv.validate_resampler_func("var", args, kwargs)
-        return self._downsample("var", ddof=ddof)
+        # pandas\core\resample.py:867: error: Unexpected keyword argument
+        # "ddof" for "_downsample"  [call-arg]
+        return self._downsample("var", ddof=ddof)  # type: ignore[call-arg]
 
     @doc(GroupBy.size)
     def size(self):
@@ -917,7 +931,12 @@ class Resampler(BaseGroupBy, ShallowMixin):
         DataFrame.quantile
         DataFrameGroupBy.quantile
         """
-        return self._downsample("quantile", q=q, **kwargs)
+        # pandas\core\resample.py:920: error: Unexpected keyword argument "q"
+        # for "_downsample"  [call-arg]
+
+        # pandas\core\resample.py:920: error: Too many arguments for
+        # "_downsample"  [call-arg]
+        return self._downsample("quantile", q=q, **kwargs)  # type: ignore[call-arg]
 
 
 # downsample methods
@@ -969,7 +988,9 @@ class _GroupByMixin(GotItemMixin):
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
-        super().__init__(None)
+        # pandas\core\resample.py:972: error: Too many arguments for "__init__"
+        # of "object"  [call-arg]
+        super().__init__(None)  # type: ignore[call-arg]
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -1034,7 +1055,12 @@ class DatetimeIndexResampler(Resampler):
         # do we have a regular frequency
         if ax.freq is not None or ax.inferred_freq is not None:
 
-            if len(self.grouper.binlabels) > len(ax) and how is None:
+            # pandas\core\resample.py:1037: error: "BaseGrouper" has no
+            # attribute "binlabels"  [attr-defined]
+            if (
+                len(self.grouper.binlabels) > len(ax)  # type: ignore[attr-defined]
+                and how is None
+            ):
 
                 # let's do an asfreq
                 return self.asfreq()
