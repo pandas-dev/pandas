@@ -125,6 +125,7 @@ def add_special_arithmetic_methods(cls):
                 __ixor__=_wrap_inplace_method(cls.__xor__),
             )
         )
+
     else:
         new_methods.update(
             dict(
