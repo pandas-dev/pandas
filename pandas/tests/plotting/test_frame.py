@@ -170,10 +170,18 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_mpl2_color_cycle_str(self):
         # GH 15516
-        colors = ["C" + str(x) for x in range(10)]
         df = DataFrame(randn(10, 3), columns=["a", "b", "c"])
-        for c in colors:
-            _check_plot_works(df.plot, color=c)
+        colors = ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]
+        with warnings.catch_warnings(record=True) as w:
+            # GH 36972
+            warnings.simplefilter("always", "MatplotlibDeprecationWarning")
+
+            for color in colors:
+                _check_plot_works(df.plot, color=color)
+
+            no_warning_raised = len(w) == 0
+            assert no_warning_raised, "MatplotlibDeprecationWarning was raised"
+            warnings.resetwarnings()
 
     def test_color_single_series_list(self):
         # GH 3486
