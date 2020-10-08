@@ -1,5 +1,4 @@
 from cpython.datetime cimport datetime, tzinfo
-
 from numpy cimport int64_t
 
 from pandas._libs.tslibs.base cimport ABCTimestamp

@@ -1,6 +1,6 @@
 from cpython.datetime cimport date, datetime
+from numpy cimport int32_t, int64_t
 
-from numpy cimport int64_t, int32_t
 
 cdef extern from "numpy/ndarrayobject.h":
     ctypedef int64_t npy_timedelta

@@ -1,7 +1,8 @@
-from pandas._libs.tslibs.util cimport *
-
 cimport numpy as cnp
 from numpy cimport ndarray
+
+from pandas._libs.tslibs.util cimport *
+
 
 cdef extern from "numpy/ndarraytypes.h":
     void PyArray_CLEARFLAGS(ndarray arr, int flags) nogil
