@@ -491,11 +491,11 @@ class Block(PandasObject):
 
         return extend_blocks([b.downcast(downcast) for b in blocks])
 
-    def downcast(self, dtypes=None):
+    def downcast(self, dtypes=None) -> List["Block"]:
         """ try to downcast each item to the dict of dtypes if present """
         # turn it off completely
         if dtypes is False:
-            return self
+            return [self]
 
         values = self.values
 
@@ -506,11 +506,11 @@ class Block(PandasObject):
                 dtypes = "infer"
 
             nv = maybe_downcast_to_dtype(values, dtypes)
-            return self.make_block(nv)
+            return [self.make_block(nv)]
 
         # ndim > 1
         if dtypes is None:
-            return self
+            return [self]
 
         if not (dtypes == "infer" or isinstance(dtypes, dict)):
             raise ValueError(
@@ -639,13 +639,13 @@ class Block(PandasObject):
         numeric: bool = True,
         timedelta: bool = True,
         coerce: bool = False,
-    ):
+    ) -> List["Block"]:
         """
         attempt to coerce any object types to better types return a copy
         of the block (if copy = True) by definition we are not an ObjectBlock
         here!
         """
-        return self.copy() if copy else self
+        return [self.copy()] if copy else [self]
 
     def _can_hold_element(self, element: Any) -> bool:
         """ require the same dtype as ourselves """
@@ -788,7 +788,9 @@ class Block(PandasObject):
                 convert=convert,
             )
         if convert:
-            blocks = [b.convert(numeric=False, copy=not inplace) for b in blocks]
+            blocks = extend_blocks(
+                [b.convert(numeric=False, copy=not inplace) for b in blocks]
+            )
         return blocks
 
     def _replace_single(self, *args, **kwargs):
@@ -2461,12 +2463,10 @@ class ObjectBlock(Block):
         numeric: bool = True,
         timedelta: bool = True,
         coerce: bool = False,
-    ):
+    ) -> List["Block"]:
         """
         attempt to coerce any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
-
-        can return multiple blocks!
         """
         # operate column-by-column
         def f(mask, val, idx):
@@ -2639,8 +2639,10 @@ class ObjectBlock(Block):
         # convert
         block = self.make_block(new_values)
         if convert:
-            block = block.convert(numeric=False)
-        return block
+            nbs = block.convert(numeric=False)
+        else:
+            nbs = [block]
+        return nbs
 
     def _replace_coerce(
         self, to_replace, value, inplace=True, regex=False, convert=False, mask=None
@@ -2669,7 +2671,7 @@ class ObjectBlock(Block):
         A new block if there is anything to replace or the original block.
         """
         if mask.any():
-            block = super()._replace_coerce(
+            nbs = super()._replace_coerce(
                 to_replace=to_replace,
                 value=value,
                 inplace=inplace,
@@ -2678,11 +2680,11 @@ class ObjectBlock(Block):
                 mask=mask,
             )
             if convert:
-                block = [b.convert(numeric=False, copy=True) for b in block]
-            return block
+                nbs = extend_blocks([b.convert(numeric=False, copy=True) for b in nbs])
+            return nbs
         if convert:
-            return [self.convert(numeric=False, copy=True)]
-        return self
+            return self.convert(numeric=False, copy=True)
+        return [self]
 
 
 class CategoricalBlock(ExtensionBlock):
