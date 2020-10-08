@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import date, datetime
 import itertools
 import operator
@@ -165,7 +164,7 @@ def create_mgr(descr, item_shape=None):
 
     offset = 0
     mgr_items = []
-    block_placements = OrderedDict()
+    block_placements = {}
     for d in descr.split(";"):
         d = d.strip()
         if not len(d):
@@ -273,13 +272,6 @@ class TestBlockManager:
         assert mgr.nblocks == 2
         assert len(mgr) == 6
 
-    def test_is_mixed_dtype(self):
-        assert not create_mgr("a,b:f8").is_mixed_type
-        assert not create_mgr("a:f8-1; b:f8-2").is_mixed_type
-
-        assert create_mgr("a,b:f8; c,d: f4").is_mixed_type
-        assert create_mgr("a,b:f8; c,d: object").is_mixed_type
-
     def test_duplicate_ref_loc_failure(self):
         tmp_mgr = create_mgr("a:bool; a: f8")
 
@@ -377,7 +369,7 @@ class TestBlockManager:
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
 
             # view assertion
-            assert cp_blk.equals(blk)
+            tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
                 assert cp_blk.values.base is blk.values.base
             else:
@@ -389,7 +381,7 @@ class TestBlockManager:
 
             # copy assertion we either have a None for a base or in case of
             # some blocks it is an array (e.g. datetimetz), but was copied
-            assert cp_blk.equals(blk)
+            tm.assert_equal(cp_blk.values, blk.values)
             if not isinstance(cp_blk.values, np.ndarray):
                 assert cp_blk.values._data.base is not blk.values._data.base
             else:
@@ -892,16 +884,16 @@ class TestIndexing:
                 fill_value,
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, mgr.axes[ax][::-1], np.arange(mgr.shape[ax]), fill_value,
+                mgr, ax, mgr.axes[ax][::-1], np.arange(mgr.shape[ax]), fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax])[::-1], fill_value,
+                mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax])[::-1], fill_value
             )
             assert_reindex_indexer_is_ok(
                 mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 0, 0], fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, pd.Index(["foo", "bar", "baz"]), [-1, 0, -1], fill_value,
+                mgr, ax, pd.Index(["foo", "bar", "baz"]), [-1, 0, -1], fill_value
             )
             assert_reindex_indexer_is_ok(
                 mgr,
@@ -913,7 +905,7 @@ class TestIndexing:
 
             if mgr.shape[ax] >= 3:
                 assert_reindex_indexer_is_ok(
-                    mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value,
+                    mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value
                 )
 
 

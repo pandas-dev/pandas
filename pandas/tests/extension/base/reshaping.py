@@ -62,11 +62,11 @@ class BaseReshapingTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
         # simple test for just EA and one other
-        result = pd.concat([df1, df2])
+        result = pd.concat([df1, df2.astype(object)])
         expected = pd.concat([df1.astype("object"), df2.astype("object")])
         self.assert_frame_equal(result, expected)
 
-        result = pd.concat([df1["A"], df2["A"]])
+        result = pd.concat([df1["A"], df2["A"].astype(object)])
         expected = pd.concat([df1["A"].astype("object"), df2["A"].astype("object")])
         self.assert_series_equal(result, expected)
 
@@ -105,6 +105,19 @@ class BaseReshapingTests(BaseExtensionTests):
             }
         )
         result = pd.concat([df1, df2], axis=1, copy=False)
+        self.assert_frame_equal(result, expected)
+
+    def test_concat_with_reindex(self, data):
+        # GH-33027
+        a = pd.DataFrame({"a": data[:5]})
+        b = pd.DataFrame({"b": data[:5]})
+        result = pd.concat([a, b], ignore_index=True)
+        expected = pd.DataFrame(
+            {
+                "a": data.take(list(range(5)) + ([-1] * 5), allow_fill=True),
+                "b": data.take(([-1] * 5) + list(range(5)), allow_fill=True),
+            }
+        )
         self.assert_frame_equal(result, expected)
 
     def test_align(self, data, na_value):

@@ -122,8 +122,12 @@ aggregating statistics for given columns can be defined using the
 
 .. ipython:: python
 
-    titanic.agg({'Age': ['min', 'max', 'median', 'skew'],
-                 'Fare': ['min', 'max', 'median', 'mean']})
+    titanic.agg(
+        {
+            "Age": ["min", "max", "median", "skew"],
+            "Fare": ["min", "max", "median", "mean"],
+        }
+    )
 
 .. raw:: html
 
@@ -197,7 +201,7 @@ on the grouped data as well:
    :align: center
 
 .. note::
-    The `Pclass` column contains numerical data but actually
+    The ``Pclass`` column contains numerical data but actually
     represents 3 categories (or factors) with respectively the labels ‘1’,
     ‘2’ and ‘3’. Calculating statistics on these does not make much sense.
     Therefore, pandas provides a ``Categorical`` data type to handle this

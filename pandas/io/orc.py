@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 def read_orc(
-    path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs,
+    path: FilePathOrBuffer, columns: Optional[List[str]] = None, **kwargs
 ) -> "DataFrame":
     """
     Load an ORC object from the file path, returning a DataFrame.
@@ -31,7 +31,7 @@ def read_orc(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     columns : list, default None
         If not None, only these columns will be read from the file.
@@ -50,7 +50,7 @@ def read_orc(
 
     import pyarrow.orc
 
-    path, _, _, _ = get_filepath_or_buffer(path)
-    orc_file = pyarrow.orc.ORCFile(path)
+    ioargs = get_filepath_or_buffer(path)
+    orc_file = pyarrow.orc.ORCFile(ioargs.filepath_or_buffer)
     result = orc_file.read(columns=columns, **kwargs).to_pandas()
     return result

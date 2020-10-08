@@ -14,11 +14,6 @@ import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray, SparseDtype
 
 
-@pytest.fixture(params=["integer", "block"])
-def kind(request):
-    return request.param
-
-
 class TestSparseArray:
     def setup_method(self, method):
         self.arr_data = np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
@@ -74,22 +69,22 @@ class TestSparseArray:
 
     def test_constructor_object_dtype(self):
         # GH 11856
-        arr = SparseArray(["A", "A", np.nan, "B"], dtype=np.object)
-        assert arr.dtype == SparseDtype(np.object)
+        arr = SparseArray(["A", "A", np.nan, "B"], dtype=object)
+        assert arr.dtype == SparseDtype(object)
         assert np.isnan(arr.fill_value)
 
-        arr = SparseArray(["A", "A", np.nan, "B"], dtype=np.object, fill_value="A")
-        assert arr.dtype == SparseDtype(np.object, "A")
+        arr = SparseArray(["A", "A", np.nan, "B"], dtype=object, fill_value="A")
+        assert arr.dtype == SparseDtype(object, "A")
         assert arr.fill_value == "A"
 
         # GH 17574
         data = [False, 0, 100.0, 0.0]
-        arr = SparseArray(data, dtype=np.object, fill_value=False)
-        assert arr.dtype == SparseDtype(np.object, False)
+        arr = SparseArray(data, dtype=object, fill_value=False)
+        assert arr.dtype == SparseDtype(object, False)
         assert arr.fill_value is False
-        arr_expected = np.array(data, dtype=np.object)
+        arr_expected = np.array(data, dtype=object)
         it = (type(x) == type(y) and x == y for x, y in zip(arr, arr_expected))
-        assert np.fromiter(it, dtype=np.bool).all()
+        assert np.fromiter(it, dtype=np.bool_).all()
 
     @pytest.mark.parametrize("dtype", [SparseDtype(int, 0), int])
     def test_constructor_na_dtype(self, dtype):
@@ -193,10 +188,7 @@ class TestSparseArray:
             assert result == fill_value
 
     @pytest.mark.parametrize("format", ["coo", "csc", "csr"])
-    @pytest.mark.parametrize(
-        "size",
-        [pytest.param(0, marks=td.skip_if_np_lt("1.16", reason="NumPy-11383")), 10],
-    )
+    @pytest.mark.parametrize("size", [0, 10])
     @td.skip_if_no_scipy
     def test_from_spmatrix(self, size, format):
         import scipy.sparse
@@ -280,6 +272,11 @@ class TestSparseArray:
 
         exp = SparseArray(np.take(self.arr_data, [0, 1, 2]))
         tm.assert_sp_array_equal(self.arr.take([0, 1, 2]), exp)
+
+    def test_take_all_empty(self):
+        a = pd.array([0, 0], dtype=pd.SparseDtype("int64"))
+        result = a.take([0, 1], allow_fill=True, fill_value=np.nan)
+        tm.assert_sp_array_equal(a, result)
 
     def test_take_fill_value(self):
         data = np.array([1, np.nan, 0, 3, 0])
@@ -445,15 +442,15 @@ class TestSparseArray:
 
     def test_constructor_bool_fill_value(self):
         arr = SparseArray([True, False, True], dtype=None)
-        assert arr.dtype == SparseDtype(np.bool)
+        assert arr.dtype == SparseDtype(np.bool_)
         assert not arr.fill_value
 
-        arr = SparseArray([True, False, True], dtype=np.bool)
-        assert arr.dtype == SparseDtype(np.bool)
+        arr = SparseArray([True, False, True], dtype=np.bool_)
+        assert arr.dtype == SparseDtype(np.bool_)
         assert not arr.fill_value
 
-        arr = SparseArray([True, False, True], dtype=np.bool, fill_value=True)
-        assert arr.dtype == SparseDtype(np.bool, True)
+        arr = SparseArray([True, False, True], dtype=np.bool_, fill_value=True)
+        assert arr.dtype == SparseDtype(np.bool_, True)
         assert arr.fill_value
 
     def test_constructor_float32(self):
@@ -588,7 +585,7 @@ class TestSparseArray:
         arr.fill_value = np.nan
         assert np.isnan(arr.fill_value)
 
-        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
+        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool_)
         arr.fill_value = True
         assert arr.fill_value
 
@@ -605,7 +602,7 @@ class TestSparseArray:
 
     @pytest.mark.parametrize("val", [[1, 2, 3], np.array([1, 2]), (1, 2, 3)])
     def test_set_fill_invalid_non_scalar(self, val):
-        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
+        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool_)
         msg = "fill_value must be a scalar"
 
         with pytest.raises(ValueError, match=msg):
@@ -625,7 +622,7 @@ class TestSparseArray:
             ([0, 0, 0, 0, 0], (5,), None),
             ([], (0,), None),
             ([0], (1,), None),
-            (["A", "A", np.nan, "B"], (4,), np.object),
+            (["A", "A", np.nan, "B"], (4,), object),
         ],
     )
     def test_shape(self, data, shape, dtype):
@@ -689,17 +686,13 @@ class TestSparseArray:
         dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
 
         sparse = SparseArray(dense)
-        res = sparse[
-            4:,
-        ]  # noqa: E231
-        exp = SparseArray(dense[4:,])  # noqa: E231
+        res = sparse[(slice(4, None),)]
+        exp = SparseArray(dense[4:])
         tm.assert_sp_array_equal(res, exp)
 
         sparse = SparseArray(dense, fill_value=0)
-        res = sparse[
-            4:,
-        ]  # noqa: E231
-        exp = SparseArray(dense[4:,], fill_value=0)  # noqa: E231
+        res = sparse[(slice(4, None),)]
+        exp = SparseArray(dense[4:], fill_value=0)
         tm.assert_sp_array_equal(res, exp)
 
         msg = "too many indices for array"
@@ -899,7 +892,6 @@ class TestSparseArrayAnalytics:
             ([1.0, 2.0, 1.0], 1.0, 0.0),
         ],
     )
-    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_all(self, data, pos, neg):
         # GH 17570
         out = np.all(SparseArray(data))
@@ -951,7 +943,6 @@ class TestSparseArrayAnalytics:
             ([0.0, 2.0, 0.0], 2.0, 0.0),
         ],
     )
-    @td.skip_if_np_lt("1.15")  # prior didn't dispatch
     def test_numpy_any(self, data, pos, neg):
         # GH 17570
         out = np.any(SparseArray(data))
@@ -1295,3 +1286,15 @@ def test_map_missing():
 
     result = arr.map({0: 10, 1: 11})
     tm.assert_sp_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("fill_value", [np.nan, 1])
+def test_dropna(fill_value):
+    # GH-28287
+    arr = SparseArray([np.nan, 1], fill_value=fill_value)
+    exp = SparseArray([1.0], fill_value=fill_value)
+    tm.assert_sp_array_equal(arr.dropna(), exp)
+
+    df = pd.DataFrame({"a": [0, 1], "b": arr})
+    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Int64Index([1]))
+    tm.assert_equal(df.dropna(), expected_df)

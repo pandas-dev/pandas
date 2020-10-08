@@ -696,3 +696,11 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = df.idxmax()
         assert isinstance(result, tm.SubclassedSeries)
+
+    def test_equals_subclass(self):
+        # https://github.com/pandas-dev/pandas/pull/34402
+        # allow subclass in both directions
+        df1 = pd.DataFrame({"a": [1, 2, 3]})
+        df2 = tm.SubclassedDataFrame({"a": [1, 2, 3]})
+        assert df1.equals(df2)
+        assert df2.equals(df1)

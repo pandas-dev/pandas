@@ -3,20 +3,12 @@ import operator
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
 class TestSeriesAnalytics:
-    def test_prod_numpy16_bug(self):
-        s = Series([1.0, 1.0, 1.0], index=range(3))
-        result = s.prod()
-
-        assert not isinstance(result, Series)
-
     def test_matmul(self):
         # matmul test is for GH #10259
         a = Series(np.random.randn(4), index=["p", "q", "r", "s"])
@@ -127,77 +119,3 @@ class TestSeriesAnalytics:
         s = Series(list(reversed(s.tolist())))
         assert s.is_monotonic is False
         assert s.is_monotonic_decreasing is True
-
-    @pytest.mark.parametrize("func", [np.any, np.all])
-    @pytest.mark.parametrize("kwargs", [dict(keepdims=True), dict(out=object())])
-    @td.skip_if_np_lt("1.15")
-    def test_validate_any_all_out_keepdims_raises(self, kwargs, func):
-        s = pd.Series([1, 2])
-        param = list(kwargs)[0]
-        name = func.__name__
-
-        msg = (
-            f"the '{param}' parameter is not "
-            "supported in the pandas "
-            fr"implementation of {name}\(\)"
-        )
-        with pytest.raises(ValueError, match=msg):
-            func(s, **kwargs)
-
-    @td.skip_if_np_lt("1.15")
-    def test_validate_sum_initial(self):
-        s = pd.Series([1, 2])
-        msg = (
-            r"the 'initial' parameter is not "
-            r"supported in the pandas "
-            r"implementation of sum\(\)"
-        )
-        with pytest.raises(ValueError, match=msg):
-            np.sum(s, initial=10)
-
-    def test_validate_median_initial(self):
-        s = pd.Series([1, 2])
-        msg = (
-            r"the 'overwrite_input' parameter is not "
-            r"supported in the pandas "
-            r"implementation of median\(\)"
-        )
-        with pytest.raises(ValueError, match=msg):
-            # It seems like np.median doesn't dispatch, so we use the
-            # method instead of the ufunc.
-            s.median(overwrite_input=True)
-
-    @td.skip_if_np_lt("1.15")
-    def test_validate_stat_keepdims(self):
-        s = pd.Series([1, 2])
-        msg = (
-            r"the 'keepdims' parameter is not "
-            r"supported in the pandas "
-            r"implementation of sum\(\)"
-        )
-        with pytest.raises(ValueError, match=msg):
-            np.sum(s, keepdims=True)
-
-    def test_td64_summation_overflow(self):
-        # GH 9442
-        s = pd.Series(pd.date_range("20130101", periods=100000, freq="H"))
-        s[0] += pd.Timedelta("1s 1ms")
-
-        # mean
-        result = (s - s.min()).mean()
-        expected = pd.Timedelta((pd.TimedeltaIndex((s - s.min())).asi8 / len(s)).sum())
-
-        # the computation is converted to float so
-        # might be some loss of precision
-        assert np.allclose(result.value / 1000, expected.value / 1000)
-
-        # sum
-        msg = "overflow in timedelta operation"
-        with pytest.raises(ValueError, match=msg):
-            (s - s.min()).sum()
-
-        s1 = s[0:10000]
-        with pytest.raises(ValueError, match=msg):
-            (s1 - s1.min()).sum()
-        s2 = s[0:1000]
-        (s2 - s2.min()).sum()

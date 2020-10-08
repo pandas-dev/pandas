@@ -269,11 +269,11 @@ generated/pandas.core.resample.Resampler.std,../reference/api/pandas.core.resamp
 generated/pandas.core.resample.Resampler.sum,../reference/api/pandas.core.resample.Resampler.sum
 generated/pandas.core.resample.Resampler.transform,../reference/api/pandas.core.resample.Resampler.transform
 generated/pandas.core.resample.Resampler.var,../reference/api/pandas.core.resample.Resampler.var
-generated/pandas.core.window.EWM.corr,../reference/api/pandas.core.window.EWM.corr
-generated/pandas.core.window.EWM.cov,../reference/api/pandas.core.window.EWM.cov
-generated/pandas.core.window.EWM.mean,../reference/api/pandas.core.window.EWM.mean
-generated/pandas.core.window.EWM.std,../reference/api/pandas.core.window.EWM.std
-generated/pandas.core.window.EWM.var,../reference/api/pandas.core.window.EWM.var
+generated/pandas.core.window.ExponentialMovingWindow.corr,../reference/api/pandas.core.window.ExponentialMovingWindow.corr
+generated/pandas.core.window.ExponentialMovingWindow.cov,../reference/api/pandas.core.window.ExponentialMovingWindow.cov
+generated/pandas.core.window.ExponentialMovingWindow.mean,../reference/api/pandas.core.window.ExponentialMovingWindow.mean
+generated/pandas.core.window.ExponentialMovingWindow.std,../reference/api/pandas.core.window.ExponentialMovingWindow.std
+generated/pandas.core.window.ExponentialMovingWindow.var,../reference/api/pandas.core.window.ExponentialMovingWindow.var
 generated/pandas.core.window.Expanding.aggregate,../reference/api/pandas.core.window.Expanding.aggregate
 generated/pandas.core.window.Expanding.apply,../reference/api/pandas.core.window.Expanding.apply
 generated/pandas.core.window.Expanding.corr,../reference/api/pandas.core.window.Expanding.corr

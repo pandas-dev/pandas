@@ -52,4 +52,4 @@ class TestSeriesAlterAxes:
 
         s = Series(range(10))
         s.index = idx
-        assert s.index.is_all_dates
+        assert s.index._is_all_dates

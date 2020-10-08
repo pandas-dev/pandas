@@ -2,20 +2,20 @@
 Routines for filling missing data.
 """
 
+from typing import Any, List, Optional, Set, Union
+
 import numpy as np
 
 from pandas._libs import algos, lib
+from pandas._typing import DtypeObj
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.common import (
     ensure_float64,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_integer_dtype,
     is_numeric_v_string_like,
     is_scalar,
-    is_timedelta64_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.missing import isna
@@ -70,7 +70,7 @@ def mask_missing(arr, values_to_mask):
     return mask
 
 
-def clean_fill_method(method, allow_nearest=False):
+def clean_fill_method(method, allow_nearest: bool = False):
     # asfreq is compat for resampling
     if method in [None, "asfreq"]:
         return None
@@ -92,30 +92,37 @@ def clean_fill_method(method, allow_nearest=False):
     return method
 
 
-def clean_interp_method(method, **kwargs):
+# interpolation methods that dispatch to np.interp
+
+NP_METHODS = ["linear", "time", "index", "values"]
+
+# interpolation methods that dispatch to _interpolate_scipy_wrapper
+
+SP_METHODS = [
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "barycentric",
+    "krogh",
+    "spline",
+    "polynomial",
+    "from_derivatives",
+    "piecewise_polynomial",
+    "pchip",
+    "akima",
+    "cubicspline",
+]
+
+
+def clean_interp_method(method: str, **kwargs) -> str:
     order = kwargs.get("order")
-    valid = [
-        "linear",
-        "time",
-        "index",
-        "values",
-        "nearest",
-        "zero",
-        "slinear",
-        "quadratic",
-        "cubic",
-        "barycentric",
-        "polynomial",
-        "krogh",
-        "piecewise_polynomial",
-        "pchip",
-        "akima",
-        "spline",
-        "from_derivatives",
-        "cubicspline",
-    ]
+
     if method in ("spline", "polynomial") and order is None:
         raise ValueError("You must specify the order of the spline or polynomial.")
+
+    valid = NP_METHODS + SP_METHODS
     if method not in valid:
         raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
 
@@ -160,15 +167,15 @@ def find_valid_index(values, how: str):
 
 
 def interpolate_1d(
-    xvalues,
-    yvalues,
-    method="linear",
-    limit=None,
-    limit_direction="forward",
-    limit_area=None,
-    fill_value=None,
-    bounds_error=False,
-    order=None,
+    xvalues: np.ndarray,
+    yvalues: np.ndarray,
+    method: Optional[str] = "linear",
+    limit: Optional[int] = None,
+    limit_direction: str = "forward",
+    limit_area: Optional[str] = None,
+    fill_value: Optional[Any] = None,
+    bounds_error: bool = False,
+    order: Optional[int] = None,
     **kwargs,
 ):
     """
@@ -178,8 +185,6 @@ def interpolate_1d(
     Bounds_error is currently hardcoded to False since non-scipy ones don't
     take it as an argument.
     """
-    # Treat the original, non-scipy methods first.
-
     invalid = isna(yvalues)
     valid = ~invalid
 
@@ -194,7 +199,7 @@ def interpolate_1d(
         return yvalues
 
     if method == "time":
-        if not getattr(xvalues, "is_all_dates", None):
+        if not getattr(xvalues, "_is_all_dates", None):
             # if not issubclass(xvalues.dtype.type, np.datetime64):
             raise ValueError(
                 "time-weighted interpolation only works "
@@ -221,7 +226,7 @@ def interpolate_1d(
             )
 
     # default limit is unlimited GH #16282
-    limit = algos._validate_limit(nobs=None, limit=limit)
+    limit = algos.validate_limit(nobs=None, limit=limit)
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
@@ -238,6 +243,7 @@ def interpolate_1d(
     # are more than'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
+    preserve_nans: Union[List, Set]
     if limit_direction == "forward":
         preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
@@ -258,50 +264,32 @@ def interpolate_1d(
     # sort preserve_nans and covert to list
     preserve_nans = sorted(preserve_nans)
 
-    xvalues = getattr(xvalues, "values", xvalues)
     yvalues = getattr(yvalues, "values", yvalues)
     result = yvalues.copy()
 
-    if method in ["linear", "time", "index", "values"]:
+    # xvalues to pass to NumPy/SciPy
+
+    xvalues = getattr(xvalues, "values", xvalues)
+    if method == "linear":
+        inds = xvalues
+    else:
+        inds = np.asarray(xvalues)
+
+        # hack for DatetimeIndex, #1646
+        if needs_i8_conversion(inds.dtype):
+            inds = inds.view(np.int64)
+
         if method in ("values", "index"):
-            inds = np.asarray(xvalues)
-            # hack for DatetimeIndex, #1646
-            if needs_i8_conversion(inds.dtype):
-                inds = inds.view(np.int64)
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
-        else:
-            inds = xvalues
+
+    if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
         indexer = np.argsort(inds[valid])
         result[invalid] = np.interp(
             inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
         )
-        result[preserve_nans] = np.nan
-        return result
-
-    sp_methods = [
-        "nearest",
-        "zero",
-        "slinear",
-        "quadratic",
-        "cubic",
-        "barycentric",
-        "krogh",
-        "spline",
-        "polynomial",
-        "from_derivatives",
-        "piecewise_polynomial",
-        "pchip",
-        "akima",
-        "cubicspline",
-    ]
-
-    if method in sp_methods:
-        inds = np.asarray(xvalues)
-        # hack for DatetimeIndex, #1646
-        if issubclass(inds.dtype.type, np.datetime64):
-            inds = inds.view(np.int64)
+    else:
         result[invalid] = _interpolate_scipy_wrapper(
             inds[valid],
             yvalues[valid],
@@ -312,8 +300,9 @@ def interpolate_1d(
             order=order,
             **kwargs,
         )
-        result[preserve_nans] = np.nan
-        return result
+
+    result[preserve_nans] = np.nan
+    return result
 
 
 def _interpolate_scipy_wrapper(
@@ -338,7 +327,7 @@ def _interpolate_scipy_wrapper(
         "piecewise_polynomial": _from_derivatives,
     }
 
-    if getattr(x, "is_all_dates", False):
+    if getattr(x, "_is_all_dates", False):
         # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
@@ -552,7 +541,10 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
 
 def interpolate_2d(
-    values, method="pad", axis=0, limit=None, fill_value=None, dtype=None
+    values,
+    method="pad",
+    axis=0,
+    limit=None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
@@ -569,80 +561,73 @@ def interpolate_2d(
             raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
-    if fill_value is None:
-        mask = None
-    else:  # todo create faster fill func without masking
-        mask = mask_missing(transf(values), fill_value)
-
     method = clean_fill_method(method)
+    tvalues = transf(values)
     if method == "pad":
-        values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
+        result = _pad_2d(tvalues, limit=limit)
     else:
-        values = transf(
-            backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype)
-        )
+        result = _backfill_2d(tvalues, limit=limit)
 
+    result = transf(result)
     # reshape back
     if ndim == 1:
-        values = values[0]
+        result = result[0]
 
     if orig_values.dtype.kind == "M":
         # convert float back to datetime64
-        values = values.astype(orig_values.dtype)
+        result = result.astype(orig_values.dtype)
 
-    return values
+    return result
 
 
-def _cast_values_for_fillna(values, dtype):
+def _cast_values_for_fillna(values, dtype: DtypeObj, has_mask: bool):
     """
     Cast values to a dtype that algos.pad and algos.backfill can handle.
     """
     # TODO: for int-dtypes we make a copy, but for everything else this
     #  alters the values in-place.  Is this intentional?
 
-    if (
-        is_datetime64_dtype(dtype)
-        or is_datetime64tz_dtype(dtype)
-        or is_timedelta64_dtype(dtype)
-    ):
+    if needs_i8_conversion(dtype):
         values = values.view(np.int64)
 
-    elif is_integer_dtype(values):
+    elif is_integer_dtype(values) and not has_mask:
         # NB: this check needs to come after the datetime64 check above
+        # has_mask check to avoid casting i8 values that have already
+        #  been cast from PeriodDtype
         values = ensure_float64(values)
 
     return values
 
 
-def _fillna_prep(values, mask=None, dtype=None):
-    # boilerplate for pad_1d, backfill_1d, pad_2d, backfill_2d
-    if dtype is None:
-        dtype = values.dtype
+def _fillna_prep(values, mask=None):
+    # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
+    dtype = values.dtype
 
-    if mask is None:
+    has_mask = mask is not None
+    if not has_mask:
         # This needs to occur before datetime/timedeltas are cast to int64
         mask = isna(values)
 
-    values = _cast_values_for_fillna(values, dtype)
+    values = _cast_values_for_fillna(values, dtype, has_mask)
 
     mask = mask.view(np.uint8)
     return values, mask
 
 
-def pad_1d(values, limit=None, mask=None, dtype=None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _pad_1d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
     return values
 
 
-def backfill_1d(values, limit=None, mask=None, dtype=None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _backfill_1d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
     return values
 
 
-def pad_2d(values, limit=None, mask=None, dtype=None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _pad_2d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
         algos.pad_2d_inplace(values, mask, limit=limit)
@@ -652,8 +637,8 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
     return values
 
 
-def backfill_2d(values, limit=None, mask=None, dtype=None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _backfill_2d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
         algos.backfill_2d_inplace(values, mask, limit=limit)
@@ -663,7 +648,7 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
     return values
 
 
-_fill_methods = {"pad": pad_1d, "backfill": backfill_1d}
+_fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
 
 
 def get_fill_func(method):
@@ -732,15 +717,15 @@ def _interp_limit(invalid, fw_limit, bw_limit):
             # just use forwards
             return f_idx
         else:
-            b_idx = list(inner(invalid[::-1], bw_limit))
-            b_idx = set(N - 1 - np.asarray(b_idx))
+            b_idx_inv = list(inner(invalid[::-1], bw_limit))
+            b_idx = set(N - 1 - np.asarray(b_idx_inv))
             if fw_limit == 0:
                 return b_idx
 
     return f_idx & b_idx
 
 
-def _rolling_window(a, window):
+def _rolling_window(a: np.ndarray, window: int):
     """
     [True, True, False, True, False], 2 ->
 
