@@ -790,13 +790,13 @@ class TextFileReader(abc.Iterator):
         self.engine = engine
         self._engine_specified = kwds.get("engine_specified", engine_specified)
 
+        _validate_skipfooter(kwds)
+
         if kwds.get("dialect") is not None:
             dialect = kwds["dialect"]
             if dialect in csv.list_dialects():
                 dialect = csv.get_dialect(dialect)
             kwds = _merge_with_dialect_properties(kwds, dialect)
-
-        _validate_skipfooter(kwds)
 
         if kwds.get("header", "infer") == "infer":
             kwds["header"] = 0 if kwds.get("names") is None else None
@@ -3741,7 +3741,26 @@ def _merge_with_dialect_properties(
     kwds: Dict[str, Any],
     dialect: csv.Dialect,
 ) -> Dict[str, Any]:
-    """Update kwargs based on the dialect parameters."""
+    """
+    Merge kwargs in TextFileReader with dialect parameters.
+
+    Parameters
+    ----------
+    kwds : dict
+        Keyword arguments passed to TextFileReader.
+    dialect : csv.Dialect
+        Concrete csv dialect. See csv.Dialect documentation for more details.
+
+    Returns
+    -------
+    kwds : dict
+        Updated keyword arguments, merged with dialect parameters.
+
+    Raises
+    ------
+    ValueError
+        If incorrect dialect is provided.
+    """
     # Any valid dialect should have these attributes.
     # If any are missing, we will raise automatically.
     mandatory_dialect_attrs = (
@@ -3788,6 +3807,19 @@ def _merge_with_dialect_properties(
 
 
 def _validate_skipfooter(kwds: Dict[str, Any]) -> None:
+    """
+    Check whether skipfooter is compatible with other kwargs in TextFileReader.
+
+    Parameters
+    ----------
+    kwds : dict
+        Keyword arguments passed to TextFileReader.
+
+    Raises
+    ------
+    ValueError
+        If skipfooter is not compatible with other parameters.
+    """
     if kwds.get("skipfooter"):
         if kwds.get("iterator") or kwds.get("chunksize"):
             raise ValueError("'skipfooter' not supported for 'iteration'")
