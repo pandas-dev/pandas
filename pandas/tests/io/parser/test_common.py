@@ -2137,6 +2137,65 @@ def test_no_header_two_extra_columns(all_parsers):
         df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
     tm.assert_frame_equal(df, ref)
 
+def test_read_csv_names_not_accepting_sets(all_parsers):
+    # GH 34946
+    data = """\
+    1,2,3
+    4,5,6\n"""
+    parser = all_parsers
+    with pytest.raises(ValueError, match="Names should be an ordered collection."):
+        parser.read_csv(StringIO(data), names=set("QAZ"))
+
+
+def test_read_csv_with_use_inf_as_na(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/35493
+    parser = all_parsers
+    data = "1.0\nNaN\n3.0"
+    with option_context("use_inf_as_na", True):
+        result = parser.read_csv(StringIO(data), header=None)
+    expected = DataFrame([1.0, np.nan, 3.0])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_table_delim_whitespace_default_sep(all_parsers):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    result = parser.read_table(f, delim_whitespace=True)
+    expected = DataFrame({"a": [1, 4], "b": [-2, 5], "c": [-3, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("delimiter", [",", "\t"])
+def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    msg = (
+        "Specified a delimiter with both sep and "
+        "delim_whitespace=True; you can only specify one."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(f, delim_whitespace=True, sep=delimiter)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
+
+
+@pytest.mark.parametrize("delimiter", [",", "\t"])
+def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    msg = (
+        "Specified a delimiter with both sep and "
+        "delim_whitespace=True; you can only specify one."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, sep=delimiter)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
 
 def test_first_row_length(all_parsers):
     stream = StringIO("col1,col2,col3\n0,1,2,X\n4,5,6,\n6,7,8")
