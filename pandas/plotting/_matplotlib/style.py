@@ -63,7 +63,7 @@ def get_standard_colors(
         def _is_cn_color(color: str) -> bool:
             return bool(color in ["C" + str(x) for x in range(10)])
 
-        def _is_valid_color(colors: Union[str, Sequence[str]]) -> bool:
+        def _is_single_color(colors: Union[str, Sequence[str]]) -> bool:
             if _is_cn_color(colors):
                 return True
             try:
@@ -76,18 +76,12 @@ def get_standard_colors(
         def _is_color_cycle(colors: Union[str, Sequence[str]]) -> bool:
             if _is_cn_color(colors):
                 return False
-            return all([_is_valid_color(c) for c in colors])
+            return all([_is_single_color(c) for c in colors])
 
-        # check whether the string can be convertible to single color
-        maybe_single_color = _is_valid_color(colors)
-
-        # check whether each character can be convertible to colors
-        maybe_color_cycle = _is_color_cycle(colors)
-
-        if maybe_single_color and maybe_color_cycle and len(colors) > 1:
+        if _is_single_color(colors) and _is_color_cycle(colors) and len(colors) > 1:
             hex_color = [c["color"] for c in list(plt.rcParams["axes.prop_cycle"])]
             colors = [hex_color[int(colors[1])]]
-        elif maybe_single_color:
+        elif _is_single_color(colors):
             colors = [colors]
         else:
             # ``colors`` is regarded as color cycle.
