@@ -82,23 +82,23 @@ class TestHDFStore:
                 HDFStore(path, format="table")
 
     def test_context(self, setup_path):
-        with tm.ensure_clean() as path:
+        with tm.ensure_clean(setup_path) as path:
             try:
                 with HDFStore(path) as tbl:
                     raise ValueError("blah")
             except ValueError:
-                pass
+                print("Context error")
             try:
                 with HDFStore(path) as tbl:
                     tbl["a"] = tm.makeDataFrame()
             except ValueError:
-                pass
+                print("Context error")
             try:
                 with HDFStore(path) as tbl:
                     assert len(tbl) == 1
                     assert type(tbl["a"]) == DataFrame
             except ValueError:
-                pass
+                print("Context error")
 
     def test_conv_read_write(self, setup_path):
         with tm.ensure_clean() as path:
