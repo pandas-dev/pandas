@@ -557,8 +557,12 @@ class BlockManager(PandasObject):
         return self.apply("interpolate", **kwargs)
 
     def shift(self, periods: int, axis: int, fill_value) -> "BlockManager":
+        if fill_value is lib.no_default:
+            fill_value = None
+
         if axis == 0 and self.ndim == 2 and self.nblocks > 1:
             # GH#35488 we need to watch out for multi-block cases
+            # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
             if periods > 0:
                 indexer = [-1] * periods + list(range(ncols - periods))
@@ -650,12 +654,6 @@ class BlockManager(PandasObject):
         dtypes = [blk.dtype for blk in self.blocks if blk._can_consolidate]
         self._is_consolidated = len(dtypes) == len(set(dtypes))
         self._known_consolidated = True
-
-    @property
-    def is_mixed_type(self) -> bool:
-        # Warning, consolidation needs to get checked upstairs
-        self._consolidate_inplace()
-        return len(self.blocks) > 1
 
     @property
     def is_numeric_mixed_type(self) -> bool:

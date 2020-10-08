@@ -544,10 +544,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._left)
 
-    def __getitem__(self, value):
-        value = check_array_indexer(self, value)
-        left = self._left[value]
-        right = self._right[value]
+    def __getitem__(self, key):
+        key = check_array_indexer(self, key)
+        left = self._left[key]
+        right = self._right[key]
 
         if not isinstance(left, (np.ndarray, ExtensionArray)):
             # scalar
@@ -705,6 +705,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         except (TypeError, ValueError) as err:
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
             raise TypeError(msg) from err
+
+    def equals(self, other) -> bool:
+        if type(self) != type(other):
+            return False
+
+        return bool(
+            self.closed == other.closed
+            and self.left.equals(other.left)
+            and self.right.equals(other.right)
+        )
 
     @classmethod
     def _concat_same_type(cls, to_concat):
