@@ -84,7 +84,8 @@ cpdef value_count_{{dtype}}({{c_type}}[:] values, bint dropna):
         int64_t[:] result_counts
         {{endif}}
 
-        Py_ssize_t k
+        # Don't use Py_ssize_t, since table.n_buckets is unsigned
+        khiter_t k
 
     table = kh_init_{{ttype}}()
     {{if dtype == 'object'}}
@@ -132,7 +133,8 @@ def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep='first'):
         {{if dtype != 'object'}}
         {{dtype}}_t value
         {{endif}}
-        Py_ssize_t k, i, n = len(values)
+        Py_ssize_t i, n = len(values)
+        khiter_t k
         kh_{{ttype}}_t *table = kh_init_{{ttype}}()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
 
@@ -222,7 +224,8 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, {{c_type}}[:] values):
     boolean ndarry len of (arr)
     """
     cdef:
-        Py_ssize_t i, n, k
+        Py_ssize_t i, n
+        khiter_t k
         int ret = 0
         ndarray[uint8_t] result
         {{c_type}} val
@@ -295,7 +298,8 @@ def mode_{{dtype}}({{ctype}}[:] values, bint dropna):
     cdef:
         int count, max_count = 1
         int j = -1  # so you can do +=
-        Py_ssize_t k
+        # Don't use Py_ssize_t, since table.n_buckets is unsigned
+        khiter_t k
         kh_{{table_type}}_t *table
         ndarray[{{ctype}}] modes
 

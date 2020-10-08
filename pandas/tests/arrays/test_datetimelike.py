@@ -546,6 +546,9 @@ class TestDatetimeArray(SharedTests):
 
     @pytest.mark.parametrize("propname", pd.DatetimeIndex._field_ops)
     def test_int_properties(self, datetime_index, propname):
+        if propname in ["week", "weekofyear"]:
+            # GH#33595 Deprecate week and weekofyear
+            return
         dti = datetime_index
         arr = DatetimeArray(dti)
 

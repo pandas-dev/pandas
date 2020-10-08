@@ -109,7 +109,8 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-    result = df1.groupby("val1", squeeze=True).apply(func)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df1.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)
 
     df2 = DataFrame(
@@ -124,12 +125,14 @@ def test_groupby_return_type():
     def func(dataf):
         return dataf["val2"] - dataf["val2"].mean()
 
-    result = df2.groupby("val1", squeeze=True).apply(func)
+    with tm.assert_produces_warning(FutureWarning):
+        result = df2.groupby("val1", squeeze=True).apply(func)
     assert isinstance(result, Series)
 
     # GH3596, return a consistent type (regression in 0.11 from 0.10.1)
     df = DataFrame([[1, 1], [1, 1]], columns=["X", "Y"])
-    result = df.groupby("X", squeeze=False).count()
+    with tm.assert_produces_warning(FutureWarning):
+        result = df.groupby("X", squeeze=False).count()
     assert isinstance(result, DataFrame)
 
 
@@ -656,6 +659,34 @@ def test_groupby_as_index_agg(df):
         right = getattr(gr, attr)().reset_index(drop=True)
 
         tm.assert_frame_equal(left, right)
+
+
+def test_ops_not_as_index(reduction_func):
+    # GH 10355, 21090
+    # Using as_index=False should not modify grouped column
+
+    if reduction_func in ("corrwith",):
+        pytest.skip("Test not applicable")
+
+    if reduction_func in ("nth", "ngroup", "size",):
+        pytest.skip("Skip until behavior is determined (GH #5755)")
+
+    df = DataFrame(np.random.randint(0, 5, size=(100, 2)), columns=["a", "b"])
+    expected = getattr(df.groupby("a"), reduction_func)().reset_index()
+
+    g = df.groupby("a", as_index=False)
+
+    result = getattr(g, reduction_func)()
+    tm.assert_frame_equal(result, expected)
+
+    result = g.agg(reduction_func)
+    tm.assert_frame_equal(result, expected)
+
+    result = getattr(g["b"], reduction_func)()
+    tm.assert_frame_equal(result, expected)
+
+    result = g["b"].agg(reduction_func)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_as_index_series_return_frame(df):

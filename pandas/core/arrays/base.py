@@ -20,7 +20,7 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
-from pandas.core.dtypes.common import is_array_like, is_list_like
+from pandas.core.dtypes.common import is_array_like, is_list_like, pandas_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -178,7 +178,7 @@ class ExtensionArray:
         ----------
         scalars : Sequence
             Each element will be an instance of the scalar type for this
-            array, ``cls.dtype.type``.
+            array, ``cls.dtype.type`` or be converted into this type in this method.
         dtype : dtype, optional
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
@@ -451,6 +451,12 @@ class ExtensionArray:
         array : ndarray
             NumPy ndarray with 'dtype' for its dtype.
         """
+        from pandas.core.arrays.string_ import StringDtype
+
+        dtype = pandas_dtype(dtype)
+        if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
+
         return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> ArrayLike:

@@ -5,7 +5,7 @@ Expressions
 Offer fast expression evaluation through numexpr
 
 """
-
+import operator
 import warnings
 
 import numpy as np
@@ -15,6 +15,7 @@ from pandas._config import get_option
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
+from pandas.core.ops import roperator
 
 if _NUMEXPR_INSTALLED:
     import numexpr as ne
@@ -120,6 +121,38 @@ def _evaluate_numexpr(op, op_str, a, b):
     return result
 
 
+_op_str_mapping = {
+    operator.add: "+",
+    roperator.radd: "+",
+    operator.mul: "*",
+    roperator.rmul: "*",
+    operator.sub: "-",
+    roperator.rsub: "-",
+    operator.truediv: "/",
+    roperator.rtruediv: "/",
+    operator.floordiv: "//",
+    roperator.rfloordiv: "//",
+    operator.mod: "%",
+    roperator.rmod: "%",
+    operator.pow: "**",
+    roperator.rpow: "**",
+    operator.eq: "==",
+    operator.ne: "!=",
+    operator.le: "<=",
+    operator.lt: "<",
+    operator.ge: ">=",
+    operator.gt: ">",
+    operator.and_: "&",
+    roperator.rand_: "&",
+    operator.or_: "|",
+    roperator.ror_: "|",
+    operator.xor: "^",
+    roperator.rxor: "^",
+    divmod: None,
+    roperator.rdivmod: None,
+}
+
+
 def _where_standard(cond, a, b):
     # Caller is responsible for extracting ndarray if necessary
     return np.where(cond, a, b)
@@ -178,23 +211,23 @@ def _bool_arith_check(
     return True
 
 
-def evaluate(op, op_str, a, b, use_numexpr=True):
+def evaluate(op, a, b, use_numexpr: bool = True):
     """
     Evaluate and return the expression of the op on a and b.
 
     Parameters
     ----------
     op : the actual operand
-    op_str : str
-        The string version of the op.
     a : left operand
     b : right operand
     use_numexpr : bool, default True
         Whether to try to use numexpr.
     """
-    use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
-    if use_numexpr:
-        return _evaluate(op, op_str, a, b)
+    op_str = _op_str_mapping[op]
+    if op_str is not None:
+        use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
+        if use_numexpr:
+            return _evaluate(op, op_str, a, b)  # type: ignore
     return _evaluate_standard(op, op_str, a, b)
 
 

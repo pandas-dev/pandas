@@ -538,8 +538,8 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return conversion.is_date_array_normalized(self.asi8, self.tz)
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution(self):
-        return libresolution.resolution(self.asi8, self.tz)
+    def _resolution(self) -> libresolution.Resolution:
+        return libresolution.get_resolution(self.asi8, self.tz)
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
@@ -1272,17 +1272,17 @@ default 'raise'
         --------
         >>> idx = pd.date_range(start='2019-12-29', freq='D', periods=4)
         >>> idx.isocalendar()
-           year  week  day
-        0  2019    52    7
-        1  2020     1    1
-        2  2020     1    2
-        3  2020     1    3
+                    year  week  day
+        2019-12-29  2019    52    7
+        2019-12-30  2020     1    1
+        2019-12-31  2020     1    2
+        2020-01-01  2020     1    3
         >>> idx.isocalendar().week
-        0    52
-        1     1
-        2     1
-        3     1
-        Name: week, dtype: UInt32
+        2019-12-29    52
+        2019-12-30     1
+        2019-12-31     1
+        2020-01-01     1
+        Freq: D, Name: week, dtype: UInt32
         """
         from pandas import DataFrame
 
@@ -1297,6 +1297,32 @@ default 'raise'
         if self._hasnans:
             iso_calendar_df.iloc[self._isnan] = None
         return iso_calendar_df
+
+    @property
+    def weekofyear(self):
+        """
+        The week ordinal of the year.
+
+        .. deprecated:: 1.1.0
+
+        weekofyear and week have been deprecated.
+        Please use DatetimeIndex.isocalendar().week instead.
+        """
+        warnings.warn(
+            "weekofyear and week have been deprecated, please use "
+            "DatetimeIndex.isocalendar().week instead, which returns "
+            "a Series.  To exactly reproduce the behavior of week and "
+            "weekofyear and return an Index, you may call "
+            "pd.Int64Index(idx.isocalendar().week)",
+            FutureWarning,
+            stacklevel=3,
+        )
+        week_series = self.isocalendar().week
+        if week_series.hasnans:
+            return week_series.to_numpy(dtype="float64", na_value=np.nan)
+        return week_series.to_numpy(dtype="int64")
+
+    week = weekofyear
 
     year = _field_accessor(
         "year",
@@ -1482,14 +1508,6 @@ default 'raise'
         dtype: int64
         """,
     )
-    weekofyear = _field_accessor(
-        "weekofyear",
-        "woy",
-        """
-        The week ordinal of the year.
-        """,
-    )
-    week = weekofyear
     _dayofweek_doc = """
     The day of the week with Monday=0, Sunday=6.
 

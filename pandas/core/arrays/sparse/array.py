@@ -1063,7 +1063,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str
-        sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
+        # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
+        # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
+        sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
         if sp_values is self.sp_values and copy:
             sp_values = sp_values.copy()
 

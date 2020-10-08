@@ -40,8 +40,6 @@ class TestDatetimeIndexOps:
         [
             "dayofweek",
             "dayofyear",
-            "week",
-            "weekofyear",
             "quarter",
             "days_in_month",
             "is_month_start",
@@ -57,6 +55,12 @@ class TestDatetimeIndexOps:
         idx = tm.makeDateIndex(100)
         expected = getattr(idx, field)[-1]
         result = getattr(Timestamp(idx[-1]), field)
+        assert result == expected
+
+    def test_dti_timestamp_isocalendar_fields(self):
+        idx = tm.makeDateIndex(100)
+        expected = tuple(idx.isocalendar().iloc[-1].to_list())
+        result = idx[-1].isocalendar()
         assert result == expected
 
     def test_dti_timestamp_freq_fields(self):

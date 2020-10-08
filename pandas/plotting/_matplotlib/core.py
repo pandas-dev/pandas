@@ -8,6 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_float,
     is_hashable,
     is_integer,
     is_iterator,
@@ -1188,6 +1189,8 @@ class LinePlot(MPLPlot):
         from matplotlib.ticker import FixedLocator
 
         def get_label(i):
+            if is_float(i) and i.is_integer():
+                i = int(i)
             try:
                 return pprint_thing(data.index[i])
             except Exception:

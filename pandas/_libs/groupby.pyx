@@ -777,7 +777,13 @@ def group_quantile(ndarray[float64_t] out,
                 non_na_counts[lab] += 1
 
     # Get an index of values sorted by labels and then values
-    order = (values, labels)
+    if labels.any():
+        # Put '-1' (NaN) labels as the last group so it does not interfere
+        # with the calculations.
+        labels_for_lexsort = np.where(labels == -1, labels.max() + 1, labels)
+    else:
+        labels_for_lexsort = labels
+    order = (values, labels_for_lexsort)
     sort_arr = np.lexsort(order).astype(np.int64, copy=False)
 
     with nogil:

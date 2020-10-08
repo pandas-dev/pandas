@@ -680,8 +680,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         array : ExtensionArray or ndarray
             ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
         """
+        from pandas.core.arrays.string_ import StringDtype
+
         if dtype is not None:
             dtype = pandas_dtype(dtype)
+
         if is_interval_dtype(dtype):
             if dtype == self.dtype:
                 return self.copy() if copy else self
@@ -698,6 +701,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return self._shallow_copy(new_left, new_right)
         elif is_categorical_dtype(dtype):
             return Categorical(np.asarray(self))
+        elif isinstance(dtype, StringDtype):
+            return dtype.construct_array_type()._from_sequence(self, copy=False)
+
         # TODO: This try/except will be repeated.
         try:
             return np.asarray(self).astype(dtype, copy=copy)

@@ -16,8 +16,15 @@ cnp.import_array()
 from cpython.object cimport (PyObject_RichCompareBool, PyObject_RichCompare,
                              Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
-from cpython.datetime cimport (datetime, time, PyDateTime_Check, PyDelta_Check,
-                               PyTZInfo_Check, PyDateTime_IMPORT)
+from cpython.datetime cimport (
+    datetime,
+    time,
+    tzinfo,
+    PyDateTime_Check,
+    PyDelta_Check,
+    PyTZInfo_Check,
+    PyDateTime_IMPORT,
+)
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.util cimport (
@@ -25,14 +32,16 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object, is_array,
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta, ABCTimestamp
+from pandas._libs.tslibs.base cimport ABCTimestamp
 
 from pandas._libs.tslibs cimport ccalendar
 
-from pandas._libs.tslibs.conversion import normalize_i8_timestamps
 from pandas._libs.tslibs.conversion cimport (
-    _TSObject, convert_to_tsobject,
-    convert_datetime_to_tsobject)
+    _TSObject,
+    convert_to_tsobject,
+    convert_datetime_to_tsobject,
+    normalize_i8_timestamps,
+)
 from pandas._libs.tslibs.fields import get_start_end_field, get_date_name_field
 from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
@@ -41,6 +50,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.offsets cimport to_offset, is_tick_object, is_offset_object
+from pandas._libs.tslibs.timedeltas cimport is_any_td_scalar, delta_to_nanoseconds
 from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._libs.tslibs.timezones cimport (
     is_utc, maybe_get_tz, treat_tz_as_pytz, utc_pytz as UTC,
@@ -191,10 +201,10 @@ def integer_op_not_supported(obj):
 
     # GH#30886 using an fstring raises SystemError
     int_addsub_msg = (
-        "Addition/subtraction of integers and integer-arrays with {cls} is "
+        f"Addition/subtraction of integers and integer-arrays with {cls} is "
         "no longer supported.  Instead of adding/subtracting `n`, "
         "use `n * obj.freq`"
-    ).format(cls=cls)
+    )
     return TypeError(int_addsub_msg)
 
 
@@ -344,37 +354,15 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __add__(self, other):
         cdef:
-            int64_t other_int, nanos = 0
+            int64_t nanos = 0
 
-        if is_timedelta64_object(other):
-            other_int = other.astype('timedelta64[ns]').view('i8')
-            return type(self)(self.value + other_int, tz=self.tzinfo, freq=self.freq)
+        if is_any_td_scalar(other):
+            nanos = delta_to_nanoseconds(other)
+            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
+            return result
 
         elif is_integer_object(other):
             raise integer_op_not_supported(self)
-
-        elif PyDelta_Check(other):
-            # logic copied from delta_to_nanoseconds to prevent circular import
-            if isinstance(other, ABCTimedelta):
-                # pd.Timedelta
-                nanos = other.value
-            else:
-                nanos = (other.days * 24 * 60 * 60 * 1000000 +
-                         other.seconds * 1000000 +
-                         other.microseconds) * 1000
-
-            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
-            return result
-
-        elif is_tick_object(other):
-            try:
-                nanos = other.nanos
-            except OverflowError as err:
-                raise OverflowError(
-                    f"the add operation between {other} and {self} will overflow"
-                ) from err
-            result = type(self)(self.value + nanos, tz=self.tzinfo, freq=self.freq)
-            return result
 
         elif is_array(other):
             if other.dtype.kind in ['i', 'u']:
@@ -395,8 +383,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __sub__(self, other):
 
-        if (is_timedelta64_object(other) or is_integer_object(other) or
-                PyDelta_Check(other) or is_tick_object(other)):
+        if is_any_td_scalar(other) or is_integer_object(other):
             neg_other = -other
             return self + neg_other
 
@@ -434,7 +421,6 @@ cdef class _Timestamp(ABCTimestamp):
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
-            from pandas._libs.tslibs.timedeltas import Timedelta
             try:
                 return Timedelta(self.value - other.value)
             except (OverflowError, OutOfBoundsDatetime) as err:
@@ -808,7 +794,7 @@ class Timestamp(_Timestamp):
         # check that only ts_input is passed
         # checking verbosely, because cython doesn't optimize
         # list comprehensions (as of cython 0.29.x)
-        if (isinstance(ts_input, Timestamp) and freq is None and
+        if (isinstance(ts_input, _Timestamp) and freq is None and
                 tz is None and unit is None and year is None and
                 month is None and day is None and hour is None and
                 minute is None and second is None and
@@ -1461,13 +1447,18 @@ default 'raise'
         """
         Normalize Timestamp to midnight, preserving tz information.
         """
-        if self.tz is None or is_utc(self.tz):
+        cdef:
+            ndarray[int64_t] normalized
+            tzinfo own_tz = self.tzinfo  # could be None
+
+        if own_tz is None or is_utc(own_tz):
             DAY_NS = ccalendar.DAY_NANOS
             normalized_value = self.value - (self.value % DAY_NS)
-            return Timestamp(normalized_value).tz_localize(self.tz)
-        normalized_value = normalize_i8_timestamps(
-            np.array([self.value], dtype='i8'), tz=self.tz)[0]
-        return Timestamp(normalized_value).tz_localize(self.tz)
+            return Timestamp(normalized_value).tz_localize(own_tz)
+
+        normalized = normalize_i8_timestamps(
+            np.array([self.value], dtype='i8'), tz=own_tz)
+        return Timestamp(normalized[0]).tz_localize(own_tz)
 
 
 # Add the min and max fields at the class level

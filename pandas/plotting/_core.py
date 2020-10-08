@@ -1475,7 +1475,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
+            >>> plot = df.plot.pie(subplots=True, figsize=(11, 6))
         """
         if (
             isinstance(self._parent, ABCDataFrame)

@@ -1896,7 +1896,7 @@ class MultiIndex(Index):
 
     def __getitem__(self, key):
         if is_scalar(key):
-            key = com.cast_scalar_indexer(key)
+            key = com.cast_scalar_indexer(key, warn_float=True)
 
             retval = []
             for lev, level_codes in zip(self.levels, self.codes):
@@ -3217,7 +3217,8 @@ class MultiIndex(Index):
             if not is_object_dtype(other.dtype):
                 # other cannot contain tuples, so cannot match self
                 return False
-
+            elif len(self) != len(other):
+                return False
             return array_equivalent(self._values, other._values)
 
         if self.nlevels != other.nlevels:

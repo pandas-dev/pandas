@@ -406,7 +406,7 @@ def test_all_methods_categorized(mframe):
     if new_names:
         msg = f"""
 There are uncatgeorized methods defined on the Grouper class:
-{names}.
+{new_names}.
 
 Was a new method recently added?
 

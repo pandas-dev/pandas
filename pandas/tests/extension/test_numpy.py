@@ -139,6 +139,12 @@ class TestCasting(BaseNumPyTests, base.BaseCastingTests):
         # ValueError: setting an array element with a sequence
         super().test_astype_str(data)
 
+    @skip_nested
+    def test_astype_string(self, data):
+        # GH-33465
+        # ValueError: setting an array element with a sequence
+        super().test_astype_string(data)
+
 
 class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
     @pytest.mark.skip(reason="We don't register our dtype")

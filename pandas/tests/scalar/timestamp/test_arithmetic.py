@@ -38,14 +38,17 @@ class TestTimestampArithmetic:
             r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
             "will overflow"
         )
+        lmsg = "|".join(
+            ["Python int too large to convert to C long", "int too big to convert"]
+        )
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
         with pytest.raises(OverflowError, match=msg):
             offset_overflow + stamp
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp - offset_overflow
 
         # xref https://github.com/pandas-dev/pandas/issues/14080
@@ -54,13 +57,13 @@ class TestTimestampArithmetic:
         stamp = Timestamp("2000/1/1")
         offset_overflow = to_offset("D") * 100 ** 5
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
         with pytest.raises(OverflowError, match=msg):
             offset_overflow + stamp
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp - offset_overflow
 
     def test_overflow_timestamp_raises(self):
