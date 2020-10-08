@@ -98,7 +98,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def size(self) -> int:
         return np.prod(self.shape)
 
-    @cache_readonly
+    @property
     def nbytes(self) -> int:
         return self._ndarray.nbytes
 

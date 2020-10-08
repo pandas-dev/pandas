@@ -419,7 +419,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         # TODO: should probably raise on `how` here, so we don't ignore it.
         return super().astype(dtype, copy=copy)
 
-    @property
+    @cache_readonly
     def is_full(self) -> bool:
         """
         Returns True if this PeriodIndex is range-like in that all Periods
@@ -432,7 +432,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
 
-    @property
+    @cache_readonly
     def inferred_type(self) -> str:
         # b/c data is represented as ints make sure we can't have ambiguous
         # indexing

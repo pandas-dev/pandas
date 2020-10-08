@@ -274,7 +274,7 @@ class RangeIndex(Int64Index):
         )
         return self.step
 
-    @cache_readonly
+    @property
     def nbytes(self) -> int:
         """
         Return the number of bytes in the underlying data.
@@ -310,11 +310,11 @@ class RangeIndex(Int64Index):
         """
         return self.nbytes
 
-    @property
+    @cache_readonly
     def dtype(self) -> np.dtype:
         return np.dtype(np.int64)
 
-    @property
+    @cache_readonly
     def is_unique(self) -> bool:
         """ return if the index has unique values """
         return True

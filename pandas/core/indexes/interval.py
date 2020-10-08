@@ -385,7 +385,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
-    @cache_readonly
+    @property
     def values(self) -> IntervalArray:
         """
         Return the IntervalIndex's data as an IntervalArray.
@@ -414,7 +414,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             return self._shallow_copy(new_values)
         return Index.astype(self, dtype, copy=copy)
 
-    @property
+    @cache_readonly
     def inferred_type(self) -> str:
         """Return a string of the type inferred from the values"""
         return "interval"
@@ -1096,7 +1096,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    @property
+    @cache_readonly
     def _is_all_dates(self) -> bool:
         """
         This is False even when left/right contain datetime-like objects,

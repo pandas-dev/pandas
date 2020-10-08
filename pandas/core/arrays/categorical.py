@@ -373,7 +373,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         self._dtype = self._dtype.update_dtype(dtype)
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
 
-    @property
+    @cache_readonly
     def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.

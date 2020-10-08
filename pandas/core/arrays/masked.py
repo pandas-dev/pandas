@@ -45,7 +45,7 @@ class BaseMaskedDtype(ExtensionDtype):
         """ Return an instance of our numpy dtype """
         return np.dtype(self.type)
 
-    @cache_readonly
+    @property
     def kind(self) -> str:
         return self.numpy_dtype.kind
 
@@ -95,7 +95,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         self._data = values
         self._mask = mask
 
-    @property
+    @cache_readonly
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 

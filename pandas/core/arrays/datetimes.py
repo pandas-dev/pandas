@@ -23,6 +23,7 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas.errors import PerformanceWarning
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -484,7 +485,7 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
     def _box_func(self, x) -> Union[Timestamp, NaTType]:
         return Timestamp(x, freq=self.freq, tz=self.tz)
 
-    @property
+    @cache_readonly
     def dtype(self) -> Union[np.dtype, DatetimeTZDtype]:
         """
         The dtype for the DatetimeArray.

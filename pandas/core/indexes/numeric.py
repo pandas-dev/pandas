@@ -148,7 +148,7 @@ class NumericIndex(Index):
         """
         pass
 
-    @property
+    @cache_readonly
     def _is_all_dates(self) -> bool:
         """
         Checks that all the labels are datetime objects.
@@ -240,7 +240,7 @@ class IntegerIndex(NumericIndex):
         except (OverflowError, TypeError, ValueError):
             return False
 
-    @property
+    @cache_readonly
     def inferred_type(self) -> str:
         """
         Always 'integer' for ``Int64Index`` and ``UInt64Index``
@@ -335,7 +335,7 @@ class Float64Index(NumericIndex):
     _engine_type = libindex.Float64Engine
     _default_dtype = np.float64
 
-    @property
+    @cache_readonly
     def inferred_type(self) -> str:
         """
         Always 'floating' for ``Float64Index``

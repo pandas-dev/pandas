@@ -1228,7 +1228,7 @@ class MultiIndex(Index):
         # a tuple representation unnecessarily
         return self._nbytes(deep)
 
-    @cache_readonly
+    @property
     def nbytes(self) -> int:
         """ return the number of bytes in the underlying data """
         return self._nbytes(False)
@@ -1748,7 +1748,7 @@ class MultiIndex(Index):
         """
         return Index(self._values, tupleize_cols=False)
 
-    @property
+    @cache_readonly
     def _is_all_dates(self) -> bool:
         return False
 

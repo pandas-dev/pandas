@@ -7,6 +7,7 @@ from numpy.lib.mixins import NDArrayOperatorsMixin
 from pandas._libs import lib
 from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import isna
@@ -194,7 +195,7 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Data
 
-    @property
+    @cache_readonly
     def dtype(self) -> PandasDtype:
         return self._dtype
 

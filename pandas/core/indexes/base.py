@@ -1643,7 +1643,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.is_monotonic_increasing
 
-    @property
+    @cache_readonly
     def is_monotonic_increasing(self) -> bool:
         """
         Return if the index is monotonic increasing (only equal or
@@ -1660,7 +1660,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._engine.is_monotonic_increasing
 
-    @property
+    @cache_readonly
     def is_monotonic_decreasing(self) -> bool:
         """
         Return if the index is monotonic decreasing (only equal or

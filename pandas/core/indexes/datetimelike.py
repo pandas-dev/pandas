@@ -95,13 +95,13 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     _bool_ops: List[str] = []
     _field_ops: List[str] = []
 
-    # error: "Callable[[Any], Any]" has no attribute "fget"
-    hasnans = cache_readonly(
-        DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
-    )
+    @cache_readonly
+    def hasnans(self) -> bool:
+        return self._data._hasnans
+
     _hasnans = hasnans  # for index / array -agnostic code
 
-    @property
+    @cache_readonly
     def _is_all_dates(self) -> bool:
         return True
 

@@ -19,6 +19,7 @@ from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64, parse_timedelta_unit
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -122,7 +123,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
     def _box_func(self, x) -> Union[Timedelta, NaTType]:
         return Timedelta(x, unit="ns")
 
-    @property
+    @cache_readonly
     def dtype(self) -> np.dtype:
         """
         The dtype for the TimedeltaArray.

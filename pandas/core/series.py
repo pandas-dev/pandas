@@ -1106,6 +1106,53 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Unsorted
 
     @property
+    def is_unique(self) -> bool:
+        """
+        Return boolean if values in the object are unique.
+
+        Returns
+        -------
+        bool
+        """
+        return self.nunique(dropna=False) == len(self)
+
+    @property
+    def is_monotonic(self) -> bool:
+        """
+        Return boolean if values in the object are
+        monotonic_increasing.
+
+        Returns
+        -------
+        bool
+        """
+        from pandas import Index
+
+        return Index(self).is_monotonic
+
+    @property
+    def is_monotonic_increasing(self) -> bool:
+        """
+        Alias for is_monotonic.
+        """
+        # mypy complains if we alias directly
+        return self.is_monotonic
+
+    @property
+    def is_monotonic_decreasing(self) -> bool:
+        """
+        Return boolean if values in the object are
+        monotonic_decreasing.
+
+        Returns
+        -------
+        bool
+        """
+        from pandas import Index
+
+        return Index(self).is_monotonic_decreasing
+
+    @property
     def _is_mixed_type(self):
         return False
 

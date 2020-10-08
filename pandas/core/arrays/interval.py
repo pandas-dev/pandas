@@ -12,7 +12,7 @@ from pandas._libs.interval import (
     intervals_to_interval_bounds,
 )
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, cache_readonly
 
 from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
@@ -144,7 +144,6 @@ for more.
     )
 )
 class IntervalArray(IntervalMixin, ExtensionArray):
-    ndim = 1
     can_hold_na = True
     _na_value = _fill_value = np.nan
 
@@ -522,7 +521,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Descriptive
 
-    @property
+    @cache_readonly
     def dtype(self):
         return IntervalDtype(self.left.dtype)
 
@@ -530,7 +529,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def nbytes(self) -> int:
         return self.left.nbytes + self.right.nbytes
 
-    @property
+    @cache_readonly
     def size(self) -> int:
         # Avoid materializing self.values
         return self.left.size

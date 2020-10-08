@@ -4,7 +4,7 @@ from pandas._libs import index as libindex, lib
 from pandas._libs.tslibs import Timedelta, to_offset
 from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import doc
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
@@ -256,7 +256,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"
 
-    @property
+    @cache_readonly
     def inferred_type(self) -> str:
         return "timedelta64"
 

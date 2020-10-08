@@ -17,6 +17,7 @@ from pandas._typing import Scalar
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
     astype_nansafe,
@@ -515,7 +516,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         return self._sparse_values
 
-    @property
+    @cache_readonly
     def dtype(self):
         return self._dtype
 

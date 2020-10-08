@@ -8,6 +8,7 @@ from pandas._libs import lib, missing as libmissing
 from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -68,7 +69,7 @@ class BooleanDtype(BaseMaskedDtype):
     def kind(self) -> str:
         return "b"
 
-    @property
+    @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         return np.dtype("bool")
 
@@ -269,7 +270,7 @@ class BooleanArray(OpsMixin, BaseMaskedArray):
         self._dtype = BooleanDtype()
         super().__init__(values, mask, copy=copy)
 
-    @property
+    @cache_readonly
     def dtype(self) -> BooleanDtype:
         return self._dtype
 

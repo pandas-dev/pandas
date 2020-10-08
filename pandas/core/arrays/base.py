@@ -16,7 +16,7 @@ from pandas._typing import ArrayLike
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
@@ -395,7 +395,7 @@ class ExtensionArray:
     # Required attributes
     # ------------------------------------------------------------------------
 
-    @property
+    @cache_readonly
     def dtype(self) -> ExtensionDtype:
         """
         An instance of 'ExtensionDtype'.
@@ -409,14 +409,14 @@ class ExtensionArray:
         """
         return (len(self),)
 
-    @property
+    @cache_readonly
     def size(self) -> int:
         """
         The number of elements in the array.
         """
         return np.prod(self.shape)
 
-    @property
+    @cache_readonly
     def ndim(self) -> int:
         """
         Extension Arrays are only allowed to be 1-dimensional.
