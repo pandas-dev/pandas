@@ -21,7 +21,7 @@ repos:
           - file
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.2.2
+    rev: 5.6.0
     hooks:
     -   id: isort
         exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$
