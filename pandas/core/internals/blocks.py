@@ -2070,7 +2070,7 @@ class IntBlock(NumericBlock):
         return is_integer(element) or (is_float(element) and element.is_integer())
 
 
-class DatetimeLikeBlockMixin:
+class DatetimeLikeBlockMixin(Block):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
     @property
@@ -2116,7 +2116,7 @@ class DatetimeLikeBlockMixin:
         return self.make_block(result)
 
 
-class DatetimeBlock(DatetimeLikeBlockMixin, Block):
+class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_datetime = True
 
