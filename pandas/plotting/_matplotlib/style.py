@@ -1,4 +1,5 @@
 # being a bit too dynamic
+from typing import Sequence, Union
 import warnings
 
 import matplotlib.cm as cm
@@ -59,17 +60,30 @@ def get_standard_colors(
     if isinstance(colors, str):
         conv = matplotlib.colors.ColorConverter()
 
-        def _maybe_valid_colors(colors):
-            try:
-                [conv.to_rgba(c) for c in colors]
+        def _is_cn_color(color: str) -> bool:
+            return bool(color in ["C" + str(x) for x in range(10)])
+
+        def _is_valid_color(colors: Union[str, Sequence[str]]) -> bool:
+            if _is_cn_color(colors):
                 return True
+            try:
+                conv.to_rgba(colors)
             except ValueError:
                 return False
+            else:
+                return True
+
+        def _is_color_cycle(colors: Union[str, Sequence[str]]) -> bool:
+            if _is_cn_color(colors):
+                return False
+            return all([_is_valid_color(c) for c in colors])
 
         # check whether the string can be convertible to single color
-        maybe_single_color = _maybe_valid_colors([colors])
+        maybe_single_color = _is_valid_color(colors)
+
         # check whether each character can be convertible to colors
-        maybe_color_cycle = _maybe_valid_colors(list(colors))
+        maybe_color_cycle = _is_color_cycle(colors)
+
         if maybe_single_color and maybe_color_cycle and len(colors) > 1:
             hex_color = [c["color"] for c in list(plt.rcParams["axes.prop_cycle"])]
             colors = [hex_color[int(colors[1])]]
