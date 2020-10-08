@@ -2222,6 +2222,9 @@ def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
     )
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(f, delim_whitespace=True, sep=delimiter)
+        
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
 
 
 @pytest.mark.parametrize("delimiter", [",", "\t"])
@@ -2250,7 +2253,3 @@ def test_dict_keys_as_names(all_parsers):
     result = parser.read_csv(StringIO(data), names=keys)
     expected = DataFrame({"a": [1], "b": [2]})
     tm.assert_frame_equal(result, expected)
-        parser.read_csv(f, delim_whitespace=True, sep=delimiter)
-
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
