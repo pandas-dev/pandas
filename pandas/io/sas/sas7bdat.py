@@ -132,7 +132,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self.convert_header_text = convert_header_text
 
         self.default_encoding = "latin-1"
-        self.compression = ""
+        self.compression = b""
         self.column_names_strings = []
         self.column_names = []
         self.column_formats = []
@@ -149,7 +149,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._current_row_in_file_index = 0
 
         path_or_buf = get_filepath_or_buffer(path_or_buf).filepath_or_buffer
-        if isinstance(self._path_or_buf, str):
+        if isinstance(path_or_buf, str):
             buf = open(path_or_buf, "rb")
             self.handle = buf
         else:
@@ -415,7 +415,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         if index is None:
             f1 = (compression == const.compressed_subheader_id) or (compression == 0)
             f2 = ptype == const.compressed_subheader_type
-            if (self.compression != "") and f1 and f2:
+            if (self.compression != b"") and f1 and f2:
                 index = const.SASIndex.data_subheader_index
             else:
                 self.close()
@@ -532,7 +532,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self.column_names_strings.append(cname)
 
         if len(self.column_names_strings) == 1:
-            compression_literal = ""
+            compression_literal = b""
             for cl in const.compression_literals:
                 if cl in cname_raw:
                     compression_literal = cl
@@ -545,7 +545,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
             buf = self._read_bytes(offset1, self._lcp)
             compression_literal = buf.rstrip(b"\x00")
-            if compression_literal == "":
+            if compression_literal == b"":
                 self._lcs = 0
                 offset1 = offset + 32
                 if self.U64:

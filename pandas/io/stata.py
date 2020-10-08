@@ -887,8 +887,7 @@ class StataParser:
                 (65530, np.int8),
             ]
         )
-        # Argument 1 to "list" has incompatible type "str"; expected "Iterable[int]"
-        self.TYPE_MAP = list(range(251)) + list("bhlfd")  # type:ignore[arg-type]
+        self.TYPE_MAP = list(range(251)) + list("bhlfd")
         self.TYPE_MAP_XML = dict(
             [
                 # Not really a Q, unclear how to handle byteswap
