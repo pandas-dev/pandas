@@ -719,9 +719,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         return result
 
 
-PeriodIndex._add_logical_methods_disabled()
-
-
 def period_range(
     start=None, end=None, periods=None, freq=None, name=None
 ) -> PeriodIndex:
