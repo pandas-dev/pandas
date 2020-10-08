@@ -1,5 +1,4 @@
 # being a bit too dynamic
-from typing import Sequence, Union
 import warnings
 
 import matplotlib.cm as cm
@@ -79,11 +78,12 @@ def get_standard_colors(
 
 def _is_cn_color(color: str) -> bool:
     """Check if color string is CN color, like 'C0', 'C1', etc."""
-    return bool(color in ["C" + str(x) for x in range(10)])
+    cn_colors = ["C" + str(x) for x in range(10)]
+    return bool(color in cn_colors)
 
 
-def _is_single_color(colors: Union[str, Sequence[str]]) -> bool:
-    """Check if ``colors`` is a single color.
+def _is_single_color(color: str) -> bool:
+    """Check if ``color`` is a single color.
 
     Examples of single colors:
         - 'r'
@@ -91,12 +91,23 @@ def _is_single_color(colors: Union[str, Sequence[str]]) -> bool:
         - 'red'
         - 'green'
         - 'C3'
+
+    Parameters
+    ----------
+    color : string
+        Color string.
+
+    Returns
+    -------
+    bool
+        True if ``color`` looks like a valid color.
+        False otherwise.
     """
     conv = matplotlib.colors.ColorConverter()
-    if _is_cn_color(colors):
+    if _is_cn_color(color):
         return True
     try:
-        conv.to_rgba(colors)
+        conv.to_rgba(color)
     except ValueError:
         return False
     else:
