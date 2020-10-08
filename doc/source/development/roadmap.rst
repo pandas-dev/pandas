@@ -162,6 +162,39 @@ We'd like to fund improvements and maintenance of these tools to
 * Build a GitHub bot to request ASV runs *before* a PR is merged. Currently, the
   benchmarks are only run nightly.
 
+Indexing and Views
+------------------
+
+pandas’ current behavior on whether indexing returns a view or copy is confusing
+and slow. Consider the following example:
+
+.. code-block:: python
+
+   >>> df = pd.DataFrame({"A”": [1, 2], "B": [3, 4]})
+   >>> df2 = df[["A"]]
+   >>> df2.iloc[:, 0] = 10
+
+What should happen to ``df``? Does the user's code intend to modify just ``df2``,
+or should ``df`` be modified as well?
+
+This item proposes to standardize copy vs. view behavior in pandas' indexing,
+and to provide users the APIs necessary to safely and efficiently express their
+desired operation.
+
+In particular, we propose three changes:
+
+1. Indexing always returns a view when possible. This means that indexing
+   columns of a dataframe always returns a view
+   (https://github.com/pandas-dev/pandas/pull/33597), and indexing rows may
+   return a view, depending on the type of the row indexer.
+2. We implement Error-on-Write (explained below)
+3. We provide APIs for explicitly marking a DataFrame as a “mutable view”
+   (mutating the dataframe would mutate its parents) and copying a dataframe
+   only if needed to avoid concerns with mutating other dataframes (i.e. it is
+   not a view on another dataframe).
+
+See :ref:`roadmap.indexing_views` for a detailed proposal.
+
 .. _roadmap.evolution:
 
 Roadmap evolution
@@ -206,3 +239,9 @@ We improved the pandas documentation
   pandas users coming from a variety of backgrounds (:issue:`26831`).
 
 .. _pydata-sphinx-theme: https://github.com/pandas-dev/pydata-sphinx-theme
+
+.. toctree::
+   :maxdepth: 1
+
+   roadmap-indexing-views.rst
+
