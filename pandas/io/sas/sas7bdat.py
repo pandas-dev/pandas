@@ -16,6 +16,7 @@ Reference for binary data compression:
 from collections import abc
 from datetime import datetime, timedelta
 import struct
+from typing import IO, Any
 
 import numpy as np
 
@@ -63,11 +64,21 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
 
 
 class _subheader_pointer:
-    pass
+    def __init__(self, offset, length, compression, ptype):
+        self.offset = offset
+        self.length = length
+        self.compression = compression
+        self.ptype = ptype
 
 
 class _column:
-    pass
+    def __init__(self, col_id, name, label, format, ctype, length):
+        self.col_id = col_id
+        self.name = name
+        self.label = label
+        self.format = format
+        self.ctype = ctype
+        self.length = length
 
 
 # SAS7BDAT represents a SAS data file in SAS7BDAT format.
@@ -137,10 +148,14 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        self._path_or_buf = get_filepath_or_buffer(path_or_buf).filepath_or_buffer
+        path_or_buf = get_filepath_or_buffer(path_or_buf).filepath_or_buffer
         if isinstance(self._path_or_buf, str):
-            self._path_or_buf = open(self._path_or_buf, "rb")
-            self.handle = self._path_or_buf
+            buf = open(path_or_buf, "rb")
+            self.handle = buf
+        else:
+            buf = path_or_buf
+
+        self._path_or_buf: IO[Any] = buf
 
         try:
             self._get_properties()
@@ -423,11 +438,9 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         subheader_type = self._read_int(total_offset, 1)
 
-        x = _subheader_pointer()
-        x.offset = subheader_offset
-        x.length = subheader_length
-        x.compression = subheader_compression
-        x.ptype = subheader_type
+        x = _subheader_pointer(
+            subheader_offset, subheader_length, subheader_compression, subheader_type
+        )
 
         return x
 
@@ -657,13 +670,14 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         column_format = format_names[format_start : format_start + format_len]
         current_column_number = len(self.columns)
 
-        col = _column()
-        col.col_id = current_column_number
-        col.name = self.column_names[current_column_number]
-        col.label = column_label
-        col.format = column_format
-        col.ctype = self._column_types[current_column_number]
-        col.length = self._column_data_lengths[current_column_number]
+        col = _column(
+            current_column_number,
+            self.column_names[current_column_number],
+            column_label,
+            column_format,
+            self._column_types[current_column_number],
+            self._column_data_lengths[current_column_number],
+        )
 
         self.column_formats.append(column_format)
         self.columns.append(col)
