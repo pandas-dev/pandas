@@ -1171,8 +1171,8 @@ class Block(PandasObject):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        # Only FloatBlocks will contain NaNs. timedelta subclasses IntBlock
-        if (self.is_bool or self.is_integer) and not self.is_timedelta:
+        if not self._can_hold_na:
+            # If there are no NAs, then interpolate is a no-op
             return self if inplace else self.copy()
 
         # a fill na type method
@@ -2424,15 +2424,6 @@ class BoolBlock(NumericBlock):
         if tipo is not None:
             return issubclass(tipo.type, np.bool_)
         return isinstance(element, (bool, np.bool_))
-
-    def replace(self, to_replace, value, inplace=False, regex=False, convert=True):
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        to_replace_values = np.atleast_1d(to_replace)
-        if not np.can_cast(to_replace_values, bool):
-            return self
-        return super().replace(
-            to_replace, value, inplace=inplace, regex=regex, convert=convert
-        )
 
 
 class ObjectBlock(Block):
