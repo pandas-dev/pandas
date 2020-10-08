@@ -9,7 +9,7 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY38
+from pandas.compat import PY38, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -559,6 +559,11 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
+    @pytest.mark.xfail(
+        is_platform_windows() and PY38,
+        reason="localhost connection rejected",
+        strict=False,
+    )
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
