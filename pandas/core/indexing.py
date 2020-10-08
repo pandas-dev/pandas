@@ -1535,8 +1535,7 @@ class _iLocIndexer(_LocationIndexer):
         info_axis = self.obj._info_axis_number
 
         # maybe partial set
-        # _is_mixed_type has the side effect of consolidating in-place
-        take_split_path = self.obj._is_mixed_type
+        take_split_path = len(self.obj._mgr.blocks) > 1
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
