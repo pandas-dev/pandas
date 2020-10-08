@@ -48,11 +48,19 @@ def set_engine(engine, ext):
     set_option(option_name, prev_engine)  # Roll back option change
 
 
-@td.skip_if_no("xlrd")
-@pytest.mark.parametrize("ext", [".xls", ".xlsx", ".xlsm"])
+@pytest.mark.parametrize(
+    "ext",
+    [
+        pytest.param(".xlsx", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
+        pytest.param(".xlsm", marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")]),
+        pytest.param(".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]),
+        pytest.param(
+            ".xlsx", marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")]
+        ),
+        pytest.param(".ods", marks=td.skip_if_no("odf")),
+    ],
+)
 class TestRoundTrip:
-    @td.skip_if_no("xlwt")
-    @td.skip_if_no("openpyxl")
     @pytest.mark.parametrize(
         "header,expected",
         [(None, DataFrame([np.nan] * 4)), (0, DataFrame({"Unnamed: 0": [np.nan] * 3}))],
@@ -70,8 +78,6 @@ class TestRoundTrip:
 
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no("xlwt")
-    @td.skip_if_no("openpyxl")
     @pytest.mark.parametrize(
         "header,expected",
         [(None, DataFrame([0] + [np.nan] * 4)), (0, DataFrame([np.nan] * 4))],
@@ -88,8 +94,6 @@ class TestRoundTrip:
 
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no("openpyxl")
-    @td.skip_if_no("xlwt")
     def test_set_column_names_in_parameter(self, ext):
         # GH 12870 : pass down column names associated with
         # keyword argument names
@@ -116,8 +120,6 @@ class TestRoundTrip:
             tm.assert_frame_equal(xlsdf_no_head, refdf)
             tm.assert_frame_equal(xlsdf_with_head, refdf)
 
-    @td.skip_if_no("xlwt")
-    @td.skip_if_no("openpyxl")
     def test_creating_and_reading_multiple_sheets(self, ext):
         # see gh-9450
         #
@@ -142,7 +144,6 @@ class TestRoundTrip:
             for s in sheets:
                 tm.assert_frame_equal(dfs[s], dfs_returned[s])
 
-    @td.skip_if_no("xlsxwriter")
     def test_read_excel_multiindex_empty_level(self, ext):
         # see gh-12453
         with tm.ensure_clean(ext) as path:
@@ -190,7 +191,6 @@ class TestRoundTrip:
             actual = pd.read_excel(path, header=[0, 1], index_col=0)
             tm.assert_frame_equal(actual, expected)
 
-    @td.skip_if_no("xlsxwriter")
     @pytest.mark.parametrize("c_idx_names", [True, False])
     @pytest.mark.parametrize("r_idx_names", [True, False])
     @pytest.mark.parametrize("c_idx_levels", [1, 3])
@@ -240,8 +240,6 @@ class TestRoundTrip:
             )
             tm.assert_frame_equal(df, act, check_names=check_names)
 
-    @td.skip_if_no("xlwt")
-    @td.skip_if_no("openpyxl")
     def test_read_excel_parse_dates(self, ext):
         # see gh-11544, gh-12051
         df = DataFrame(
@@ -296,14 +294,28 @@ class TestRoundTrip:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("xlrd")
 @pytest.mark.parametrize(
     "engine,ext",
     [
-        pytest.param("openpyxl", ".xlsx", marks=td.skip_if_no("openpyxl")),
-        pytest.param("openpyxl", ".xlsm", marks=td.skip_if_no("openpyxl")),
-        pytest.param("xlwt", ".xls", marks=td.skip_if_no("xlwt")),
-        pytest.param("xlsxwriter", ".xlsx", marks=td.skip_if_no("xlsxwriter")),
+        pytest.param(
+            "openpyxl",
+            ".xlsx",
+            marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
+        ),
+        pytest.param(
+            "openpyxl",
+            ".xlsm",
+            marks=[td.skip_if_no("openpyxl"), td.skip_if_no("xlrd")],
+        ),
+        pytest.param(
+            "xlwt", ".xls", marks=[td.skip_if_no("xlwt"), td.skip_if_no("xlrd")]
+        ),
+        pytest.param(
+            "xlsxwriter",
+            ".xlsx",
+            marks=[td.skip_if_no("xlsxwriter"), td.skip_if_no("xlrd")],
+        ),
+        pytest.param("odf", ".ods", marks=td.skip_if_no("odf")),
     ],
 )
 @pytest.mark.usefixtures("set_engine")
@@ -326,9 +338,7 @@ class TestExcelWriter:
         with pytest.raises(ValueError, match=msg):
             col_df.to_excel(path)
 
-    def test_excel_sheet_by_name_raise(self, path):
-        import xlrd
-
+    def test_excel_sheet_by_name_raise(self, path, engine):
         gt = DataFrame(np.random.randn(10, 2))
         gt.to_excel(path)
 
@@ -337,9 +347,16 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(gt, df)
 
-        msg = "No sheet named <'0'>"
-        with pytest.raises(xlrd.XLRDError, match=msg):
-            pd.read_excel(xl, sheet_name="0")
+        if engine == "odf":
+            msg = "sheet 0 not found"
+            with pytest.raises(ValueError, match=msg):
+                pd.read_excel(xl, "0")
+        else:
+            import xlrd
+
+            msg = "No sheet named <'0'>"
+            with pytest.raises(xlrd.XLRDError, match=msg):
+                pd.read_excel(xl, sheet_name="0")
 
     def test_excel_writer_context_manager(self, frame, path):
         with ExcelWriter(path) as writer:
@@ -836,9 +853,7 @@ class TestExcelWriter:
 
         with tm.ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
             df.to_excel(filename, sheet_name="TestSheet", encoding="utf8")
-            result = pd.read_excel(
-                filename, sheet_name="TestSheet", encoding="utf8", index_col=0
-            )
+            result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
     def test_to_excel_unicode_filename(self, ext, path):
@@ -1248,7 +1263,7 @@ class TestExcelWriter:
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_pathlib(writer, reader, path=f"foo.{ext}")
+        result = tm.round_trip_pathlib(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_path_local_path(self, engine, ext):
@@ -1256,7 +1271,7 @@ class TestExcelWriter:
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
-        result = tm.round_trip_pathlib(writer, reader, path=f"foo.{ext}")
+        result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
     def test_merged_cell_custom_objects(self, merge_cells, path):
@@ -1271,10 +1286,9 @@ class TestExcelWriter:
         expected.to_excel(path)
         result = pd.read_excel(path, header=[0, 1], index_col=0, convert_float=False)
         # need to convert PeriodIndexes to standard Indexes for assert equal
-        expected.columns.set_levels(
+        expected.columns = expected.columns.set_levels(
             [[str(i) for i in mi.levels[0]], [str(i) for i in mi.levels[1]]],
             level=[0, 1],
-            inplace=True,
         )
         expected.index = expected.index.astype(np.float64)
         tm.assert_frame_equal(expected, result)

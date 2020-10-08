@@ -2,15 +2,17 @@
 Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
+from __future__ import annotations
+
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, cast
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
 
 from pandas._libs import Timestamp, algos, hashtable as htable, iNaT, lib
-from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj
+from pandas._typing import AnyArrayLike, ArrayLike, DtypeObj, FrameOrSeriesUnion
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import (
@@ -58,7 +60,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import Series
+    from pandas import Categorical, DataFrame, Series
 
 _shared_docs: Dict[str, str] = {}
 
@@ -171,7 +173,7 @@ def _ensure_data(
         return values, dtype
 
     # we have failed, return object
-    values = np.asarray(values, dtype=np.object)
+    values = np.asarray(values, dtype=object)
     return ensure_object(values), np.dtype("object")
 
 
@@ -260,7 +262,7 @@ def _get_values_for_rank(values):
     return values
 
 
-def _get_data_algo(values):
+def get_data_algo(values):
     values = _get_values_for_rank(values)
 
     ndtype = _check_object_for_strings(values)
@@ -276,7 +278,6 @@ def _check_object_for_strings(values) -> str:
     Parameters
     ----------
     values : ndarray
-    ndtype : str
 
     Returns
     -------
@@ -427,7 +428,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
-        return comps.isin(values)  # type: ignore
+        return cast("Categorical", comps).isin(values)
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
@@ -438,7 +439,12 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     if len(comps) > 1_000_000 and not is_object_dtype(comps):
-        f = np.in1d
+        # If the the values include nan we need to check for nan explicitly
+        # since np.nan it not equal to np.nan
+        if np.isnan(values).any():
+            f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
+        else:
+            f = np.in1d
     elif is_integer_dtype(comps):
         try:
             values = values.astype("int64", copy=False)
@@ -460,8 +466,8 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     return f(comps, values)
 
 
-def _factorize_array(
-    values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None,
+def factorize_array(
+    values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
@@ -489,7 +495,7 @@ def _factorize_array(
     codes : ndarray
     uniques : ndarray
     """
-    hash_klass, values = _get_data_algo(values)
+    hash_klass, values = get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
@@ -525,9 +531,8 @@ def _factorize_array(
 def factorize(
     values,
     sort: bool = False,
-    na_sentinel: int = -1,
+    na_sentinel: Optional[int] = -1,
     size_hint: Optional[int] = None,
-    dropna: bool = True,
 ) -> Tuple[np.ndarray, Union[np.ndarray, ABCIndex]]:
     """
     Encode the object as an enumerated type or categorical variable.
@@ -540,8 +545,11 @@ def factorize(
     Parameters
     ----------
     {values}{sort}
-    na_sentinel : int, default -1
-        Value to mark "not found".
+    na_sentinel : int or None, default -1
+        Value to mark "not found". If None, will not drop the NaN
+        from the uniques of the values.
+
+        .. versionchanged:: 1.1.2
     {size_hint}\
 
     Returns
@@ -604,8 +612,8 @@ def factorize(
     >>> codes
     array([0, 0, 1]...)
     >>> uniques
-    [a, c]
-    Categories (3, object): [a, b, c]
+    ['a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
 
     Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
@@ -619,6 +627,22 @@ def factorize(
     array([0, 0, 1]...)
     >>> uniques
     Index(['a', 'c'], dtype='object')
+
+    If NaN is in the values, and we want to include NaN in the uniques of the
+    values, it can be achieved by setting ``na_sentinel=None``.
+
+    >>> values = np.array([1, 2, 1, np.nan])
+    >>> codes, uniques = pd.factorize(values)  # default: na_sentinel=-1
+    >>> codes
+    array([ 0,  1,  0, -1])
+    >>> uniques
+    array([1., 2.])
+
+    >>> codes, uniques = pd.factorize(values, na_sentinel=None)
+    >>> codes
+    array([0, 1, 0, 2])
+    >>> uniques
+    array([ 1.,  2., nan])
     """
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
@@ -632,6 +656,13 @@ def factorize(
     values = _ensure_arraylike(values)
     original = values
 
+    # GH35667, if na_sentinel=None, we will not dropna NaNs from the uniques
+    # of values, assign na_sentinel=-1 to replace code value for NaN.
+    dropna = True
+    if na_sentinel is None:
+        na_sentinel = -1
+        dropna = False
+
     if is_extension_array_dtype(values.dtype):
         values = extract_array(values)
         codes, uniques = values.factorize(na_sentinel=na_sentinel)
@@ -644,7 +675,7 @@ def factorize(
         else:
             na_value = None
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
         )
 
@@ -681,7 +712,7 @@ def value_counts(
     normalize: bool = False,
     bins=None,
     dropna: bool = True,
-) -> "Series":
+) -> Series:
     """
     Compute a histogram of the counts of non-null values.
 
@@ -740,7 +771,7 @@ def value_counts(
             counts = result._values
 
         else:
-            keys, counts = _value_counts_arraylike(values, dropna)
+            keys, counts = value_counts_arraylike(values, dropna)
 
             result = Series(counts, index=keys, name=name)
 
@@ -753,8 +784,8 @@ def value_counts(
     return result
 
 
-# Called once from SparseArray
-def _value_counts_arraylike(values, dropna: bool):
+# Called once from SparseArray, otherwise could be private
+def value_counts_arraylike(values, dropna: bool):
     """
     Parameters
     ----------
@@ -823,7 +854,7 @@ def duplicated(values, keep="first") -> np.ndarray:
     return f(values, keep=keep)
 
 
-def mode(values, dropna: bool = True) -> "Series":
+def mode(values, dropna: bool = True) -> Series:
     """
     Returns the mode(s) of an array.
 
@@ -991,11 +1022,10 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
     else:
         to_raise = (
-            ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any()
-            or (
-                (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
-            ).any()
-        )
+            (np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]
+        ).any() or (
+            (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
+        ).any()
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
@@ -1100,6 +1130,9 @@ class SelectN:
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
+    def compute(self, method: str) -> FrameOrSeriesUnion:
+        raise NotImplementedError
+
     def nlargest(self):
         return self.compute("nlargest")
 
@@ -1132,7 +1165,7 @@ class SelectNSeries(SelectN):
     nordered : Series
     """
 
-    def compute(self, method):
+    def compute(self, method: str) -> Series:
 
         n = self.n
         dtype = self.obj.dtype
@@ -1206,7 +1239,7 @@ class SelectNFrame(SelectN):
         columns = list(columns)
         self.columns = columns
 
-    def compute(self, method):
+    def compute(self, method: str) -> DataFrame:
 
         from pandas import Int64Index
 
@@ -1493,8 +1526,6 @@ def _get_take_nd_function(
 def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None):
     """
     Take elements from an array.
-
-    .. versionadded:: 0.23.0
 
     Parameters
     ----------
@@ -2056,7 +2087,7 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = _get_data_algo(values)
+        hash_klass, values = get_data_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))

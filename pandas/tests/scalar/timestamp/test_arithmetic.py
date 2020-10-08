@@ -3,13 +3,15 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsDatetime
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    Timedelta,
+    Timestamp,
+    offsets,
+    to_offset,
+)
 
-from pandas import Timedelta, Timestamp
 import pandas._testing as tm
-
-from pandas.tseries import offsets
-from pandas.tseries.frequencies import to_offset
 
 
 class TestTimestampArithmetic:
@@ -211,7 +213,7 @@ class TestTimestampArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - ts
 
-    @pytest.mark.parametrize("shape", [(6,), (2, 3,)])
+    @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray(self, shape):
         # GH#33296
         ts = Timestamp("2020-04-04 15:45")
@@ -235,7 +237,7 @@ class TestTimestampArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - ts
 
-    @pytest.mark.parametrize("shape", [(6,), (2, 3,)])
+    @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray_tzaware(self, shape):
         # GH#33296
         ts = Timestamp("2020-04-04 15:45", tz="US/Pacific")

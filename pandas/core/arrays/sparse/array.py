@@ -150,7 +150,7 @@ def _sparse_array_op(
             # to make template simple, cast here
             left_sp_values = left.sp_values.view(np.uint8)
             right_sp_values = right.sp_values.view(np.uint8)
-            result_dtype = np.bool
+            result_dtype = bool
         else:
             opname = f"sparse_{name}_{dtype}"
             left_sp_values = left.sp_values
@@ -183,7 +183,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
         name = name[2:-2]
 
     if name in ("eq", "ne", "lt", "gt", "le", "ge"):
-        dtype = np.bool
+        dtype = bool
 
     fill_value = lib.item_from_zerodim(fill_value)
 
@@ -234,7 +234,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-    kind : {'int', 'block'}, default 'int'
+    kind : {'integer', 'block'}, default 'integer'
         The type of storage for sparse locations.
 
         * 'block': Stores a `block` and `block_length` for each
@@ -452,7 +452,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         return cls._simple_new(arr, index, dtype)
 
-    def __array__(self, dtype=None, copy=True) -> np.ndarray:
+    def __array__(self, dtype=None) -> np.ndarray:
         fill_value = self.fill_value
 
         if self.sp_index.ngaps == 0:
@@ -735,7 +735,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         from pandas import Index, Series
 
-        keys, counts = algos._value_counts_arraylike(self.sp_values, dropna=dropna)
+        keys, counts = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps
         if fcounts > 0:
             if self._null_fill_value and dropna:
@@ -862,23 +862,25 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             else:
                 raise IndexError("cannot do a non-empty take from an empty axes.")
 
+        # sp_indexer may be -1 for two reasons
+        # 1.) we took for an index of -1 (new)
+        # 2.) we took a value that was self.fill_value (old)
         sp_indexer = self.sp_index.lookup_array(indices)
+        new_fill_indices = indices == -1
+        old_fill_indices = (sp_indexer == -1) & ~new_fill_indices
 
-        if self.sp_index.npoints == 0:
-            # Avoid taking from the empty self.sp_values
+        if self.sp_index.npoints == 0 and old_fill_indices.all():
+            # We've looked up all valid points on an all-sparse array.
             taken = np.full(
-                sp_indexer.shape,
-                fill_value=fill_value,
-                dtype=np.result_type(type(fill_value)),
+                sp_indexer.shape, fill_value=self.fill_value, dtype=self.dtype.subtype
             )
+
+        elif self.sp_index.npoints == 0:
+            # Avoid taking from the empty self.sp_values
+            _dtype = np.result_type(self.dtype.subtype, type(fill_value))
+            taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
         else:
             taken = self.sp_values.take(sp_indexer)
-
-            # sp_indexer may be -1 for two reasons
-            # 1.) we took for an index of -1 (new)
-            # 2.) we took a value that was self.fill_value (old)
-            new_fill_indices = indices == -1
-            old_fill_indices = (sp_indexer == -1) & ~new_fill_indices
 
             # Fill in two steps.
             # Old fill values
@@ -984,7 +986,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             # get an identical index as concating the values and then
             # creating a new index. We don't want to spend the time trying
             # to merge blocks across arrays in `to_concat`, so the resulting
-            # BlockIndex may have more blocs.
+            # BlockIndex may have more blocks.
             blengths = []
             blocs = []
 
@@ -1061,6 +1063,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
+        if is_dtype_equal(dtype, self._dtype):
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
@@ -1162,7 +1169,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Reductions
     # ------------------------------------------------------------------------
 
-    def _reduce(self, name, skipna=True, **kwargs):
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
         method = getattr(self, name, None)
 
         if method is None:
@@ -1425,7 +1432,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     # TODO: look into _wrap_result
                     if len(self) != len(other):
                         raise AssertionError(
-                            (f"length mismatch: {len(self)} vs. {len(other)}")
+                            f"length mismatch: {len(self)} vs. {len(other)}"
                         )
                     if not isinstance(other, SparseArray):
                         dtype = getattr(other, "dtype", None)
@@ -1508,7 +1515,7 @@ SparseArray._add_comparison_ops()
 SparseArray._add_unary_ops()
 
 
-def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy=False):
+def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None):
     """
     Convert ndarray to sparse format
 
@@ -1554,7 +1561,7 @@ def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy
     else:
         indices = mask.nonzero()[0].astype(np.int32)
 
-    index = _make_index(length, indices, kind)
+    index = make_sparse_index(length, indices, kind)
     sparsified_values = arr[mask]
     if dtype is not None:
         sparsified_values = astype_nansafe(sparsified_values, dtype=dtype)
@@ -1562,7 +1569,7 @@ def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None, copy
     return sparsified_values, index, fill_value
 
 
-def _make_index(length, indices, kind):
+def make_sparse_index(length, indices, kind):
 
     if kind == "block" or isinstance(kind, BlockIndex):
         locs, lens = splib.get_blocks(indices)

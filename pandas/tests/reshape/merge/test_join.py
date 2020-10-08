@@ -2,7 +2,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas._libs import join as libjoin
+from pandas._libs.join import inner_join, left_outer_join
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
@@ -48,7 +48,7 @@ class TestJoin:
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        ls, rs = libjoin.left_outer_join(left, right, max_group)
+        ls, rs = left_outer_join(left, right, max_group)
 
         exp_ls = left.argsort(kind="mergesort")
         exp_rs = right.argsort(kind="mergesort")
@@ -70,7 +70,7 @@ class TestJoin:
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        rs, ls = libjoin.left_outer_join(right, left, max_group)
+        rs, ls = left_outer_join(right, left, max_group)
 
         exp_ls = left.argsort(kind="mergesort")
         exp_rs = right.argsort(kind="mergesort")
@@ -116,7 +116,7 @@ class TestJoin:
         right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
         max_group = 5
 
-        ls, rs = libjoin.inner_join(left, right, max_group)
+        ls, rs = inner_join(left, right, max_group)
 
         exp_ls = left.argsort(kind="mergesort")
         exp_rs = right.argsort(kind="mergesort")
@@ -162,7 +162,7 @@ class TestJoin:
         _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="inner")
 
     def test_handle_overlap(self):
-        joined = merge(self.df, self.df2, on="key2", suffixes=[".foo", ".bar"])
+        joined = merge(self.df, self.df2, on="key2", suffixes=(".foo", ".bar"))
 
         assert "key1.foo" in joined
         assert "key1.bar" in joined
@@ -173,7 +173,7 @@ class TestJoin:
             self.df2,
             left_on="key2",
             right_on="key1",
-            suffixes=[".foo", ".bar"],
+            suffixes=(".foo", ".bar"),
         )
         assert "key1.foo" in joined
         assert "key2.bar" in joined

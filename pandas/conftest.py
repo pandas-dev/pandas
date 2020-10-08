@@ -44,6 +44,22 @@ from pandas.core.indexes.api import Index, MultiIndex
 # Configuration / Settings
 # ----------------------------------------------------------------
 # pytest
+def pytest_configure(config):
+    # Register marks to avoid warnings in pandas.test()
+    # sync with setup.cfg
+    config.addinivalue_line("markers", "single: mark a test as single cpu only")
+    config.addinivalue_line("markers", "slow: mark a test as slow")
+    config.addinivalue_line("markers", "network: mark a test as network")
+    config.addinivalue_line(
+        "markers", "db: tests requiring a database (mysql or postgres)"
+    )
+    config.addinivalue_line("markers", "high_memory: mark a test as a high-memory only")
+    config.addinivalue_line("markers", "clipboard: mark a pd.read_clipboard test")
+    config.addinivalue_line(
+        "markers", "arm_slow: mark a test as slow for arm64 architecture"
+    )
+
+
 def pytest_addoption(parser):
     parser.addoption("--skip-slow", action="store_true", help="skip slow tests")
     parser.addoption("--skip-network", action="store_true", help="skip network tests")
@@ -158,14 +174,6 @@ def axis(request):
 axis_frame = axis
 
 
-@pytest.fixture(params=[0, "index"], ids=lambda x: f"axis {repr(x)}")
-def axis_series(request):
-    """
-    Fixture for returning the axis numbers of a Series.
-    """
-    return request.param
-
-
 @pytest.fixture(params=[True, False, None])
 def observed(request):
     """
@@ -256,9 +264,7 @@ def nselect_method(request):
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
-@pytest.fixture(
-    params=[None, np.nan, pd.NaT, float("nan"), np.float("NaN"), pd.NA], ids=str
-)
+@pytest.fixture(params=[None, np.nan, pd.NaT, float("nan"), pd.NA], ids=str)
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas.
@@ -284,7 +290,9 @@ unique_nulls_fixture2 = unique_nulls_fixture
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
-@pytest.fixture(params=[pd.Index, pd.Series], ids=["index", "series"])
+@pytest.fixture(
+    params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
+)
 def index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
@@ -348,7 +356,7 @@ def multiindex_year_month_day_dataframe_random_data():
     tdf = tm.makeTimeDataFrame(100)
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
     # use Int64Index, to make sure things work
-    ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels], inplace=True)
+    ymd.index = ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels])
     ymd.index.set_names(["year", "month", "day"], inplace=True)
     return ymd
 
@@ -408,7 +416,7 @@ indices_dict = {
 
 
 @pytest.fixture(params=indices_dict.keys())
-def indices(request):
+def index(request):
     """
     Fixture for many "simple" kinds of indices.
 
@@ -423,7 +431,30 @@ def indices(request):
 
 
 # Needed to generate cartesian product of indices
-index_fixture2 = indices
+index_fixture2 = index
+
+
+@pytest.fixture(params=indices_dict.keys())
+def index_with_missing(request):
+    """
+    Fixture for indices with missing values
+    """
+    if request.param in ["int", "uint", "range", "empty", "repeats"]:
+        pytest.xfail("missing values not supported")
+    # GH 35538. Use deep copy to avoid illusive bug on np-dev
+    # Azure pipeline that writes into indices_dict despite copy
+    ind = indices_dict[request.param].copy(deep=True)
+    vals = ind.values
+    if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
+        # For setting missing values in the top level of MultiIndex
+        vals = ind.tolist()
+        vals[0] = tuple([None]) + vals[0][1:]
+        vals[-1] = tuple([None]) + vals[-1][1:]
+        return MultiIndex.from_tuples(vals)
+    else:
+        vals[0] = None
+        vals[-1] = None
+        return type(ind)(vals)
 
 
 # ----------------------------------------------------------------
@@ -478,11 +509,11 @@ _series = {
 
 
 @pytest.fixture
-def series_with_simple_index(indices):
+def series_with_simple_index(index):
     """
     Fixture for tests on series with changing types of indices.
     """
-    return _create_series(indices)
+    return _create_series(index)
 
 
 _narrow_dtypes = [
@@ -662,6 +693,43 @@ def all_arithmetic_operators(request):
         ops.rmod,
         operator.pow,
         ops.rpow,
+        operator.eq,
+        operator.ne,
+        operator.lt,
+        operator.le,
+        operator.gt,
+        operator.ge,
+        operator.and_,
+        ops.rand_,
+        operator.xor,
+        ops.rxor,
+        operator.or_,
+        ops.ror_,
+    ]
+)
+def all_binary_operators(request):
+    """
+    Fixture for operator and roperator arithmetic, comparison, and logical ops.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        operator.add,
+        ops.radd,
+        operator.sub,
+        ops.rsub,
+        operator.mul,
+        ops.rmul,
+        operator.truediv,
+        ops.rtruediv,
+        operator.floordiv,
+        ops.rfloordiv,
+        operator.mod,
+        ops.rmod,
+        operator.pow,
+        ops.rpow,
     ]
 )
 def all_arithmetic_functions(request):
@@ -813,7 +881,7 @@ def iris(datapath):
     """
     The iris dataset as a DataFrame.
     """
-    return pd.read_csv(datapath("data", "iris.csv"))
+    return pd.read_csv(datapath("io", "data", "csv", "iris.csv"))
 
 
 # ----------------------------------------------------------------
@@ -826,6 +894,10 @@ TIMEZONES = [
     "Asia/Tokyo",
     "dateutil/US/Pacific",
     "dateutil/Asia/Singapore",
+    "+01:15",
+    "-02:15",
+    "UTC+01:15",
+    "UTC-02:15",
     tzutc(),
     tzlocal(),
     FixedOffset(300),
@@ -947,6 +1019,17 @@ def float_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.FLOAT_EA_DTYPES)
+def float_ea_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * 'Float32'
+    * 'Float64'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.COMPLEX_DTYPES)
 def complex_dtype(request):
     """
@@ -1016,6 +1099,19 @@ def any_nullable_int_dtype(request):
     * 'UInt32'
     * 'Int32'
     * 'UInt64'
+    * 'Int64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.SIGNED_EA_INT_DTYPES)
+def any_signed_nullable_int_dtype(request):
+    """
+    Parameterized fixture for any signed nullable integer dtype.
+
+    * 'Int8'
+    * 'Int16'
+    * 'Int32'
     * 'Int64'
     """
     return request.param
@@ -1170,7 +1266,13 @@ def ip():
     pytest.importorskip("IPython", minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
 
-    return InteractiveShell()
+    # GH#35711 make sure sqlite history file handle is not leaked
+    from traitlets.config import Config  # isort:skip
+
+    c = Config()
+    c.HistoryManager.hist_file = ":memory:"
+
+    return InteractiveShell(config=c)
 
 
 @pytest.fixture(params=["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
@@ -1181,15 +1283,6 @@ def spmatrix(request):
     from scipy import sparse
 
     return getattr(sparse, request.param + "_matrix")
-
-
-@pytest.fixture(params=list(tm.cython_table))
-def cython_table_items(request):
-    """
-    Yields a tuple of a function and its corresponding name. Correspond to
-    the list of aggregator "Cython functions" used on selected table items.
-    """
-    return request.param
 
 
 @pytest.fixture(
@@ -1213,3 +1306,25 @@ def sort_by_key(request):
     Tests None (no key) and the identity key.
     """
     return request.param
+
+
+@pytest.fixture()
+def fsspectest():
+    pytest.importorskip("fsspec")
+    from fsspec import register_implementation
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    class TestMemoryFS(MemoryFileSystem):
+        protocol = "testmem"
+        test = [None]
+
+        def __init__(self, **kwargs):
+            self.test[0] = kwargs.pop("test", None)
+            super().__init__(**kwargs)
+
+    register_implementation("testmem", TestMemoryFS, clobber=True)
+    yield TestMemoryFS()
+    registry.pop("testmem", None)
+    TestMemoryFS.test[0] = None
+    TestMemoryFS.store.clear()

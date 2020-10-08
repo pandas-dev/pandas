@@ -4,11 +4,12 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Dict, FrozenSet, List, Optional, Union
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, Union, cast
 
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import AggFuncType, AggFuncTypeBase, IndexLabel, Label
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -22,7 +23,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_scalar,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
@@ -30,6 +30,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
@@ -136,7 +137,7 @@ class SelectionMixin:
     object sub-classes need to define: obj, exclusions
     """
 
-    _selection = None
+    _selection: Optional[IndexLabel] = None
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
 
@@ -279,7 +280,7 @@ class SelectionMixin:
             f"'{arg}' is not a valid function for '{type(self).__name__}' object"
         )
 
-    def _aggregate(self, arg, *args, **kwargs):
+    def _aggregate(self, arg: AggFuncType, *args, **kwargs):
         """
         provide an implementation for the aggregators
 
@@ -312,13 +313,13 @@ class SelectionMixin:
             if _axis != 0:  # pragma: no cover
                 raise ValueError("Can only pass dict with axis=0")
 
-            obj = self._selected_obj
+            selected_obj = self._selected_obj
 
             # if we have a dict of any non-scalars
             # eg. {'A' : ['mean']}, normalize all to
             # be list-likes
             if any(is_aggregator(x) for x in arg.values()):
-                new_arg = {}
+                new_arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]] = {}
                 for k, v in arg.items():
                     if not isinstance(v, (tuple, list, dict)):
                         new_arg[k] = [v]
@@ -337,9 +338,12 @@ class SelectionMixin:
                     # {'ra' : { 'A' : 'mean' }}
                     if isinstance(v, dict):
                         raise SpecificationError("nested renamer is not supported")
-                    elif isinstance(obj, ABCSeries):
+                    elif isinstance(selected_obj, ABCSeries):
                         raise SpecificationError("nested renamer is not supported")
-                    elif isinstance(obj, ABCDataFrame) and k not in obj.columns:
+                    elif (
+                        isinstance(selected_obj, ABCDataFrame)
+                        and k not in selected_obj.columns
+                    ):
                         raise KeyError(f"Column '{k}' does not exist!")
 
                 arg = new_arg
@@ -348,10 +352,12 @@ class SelectionMixin:
                 # deprecation of renaming keys
                 # GH 15931
                 keys = list(arg.keys())
-                if isinstance(obj, ABCDataFrame) and len(
-                    obj.columns.intersection(keys)
+                if isinstance(selected_obj, ABCDataFrame) and len(
+                    selected_obj.columns.intersection(keys)
                 ) != len(keys):
-                    cols = sorted(set(keys) - set(obj.columns.intersection(keys)))
+                    cols = sorted(
+                        set(keys) - set(selected_obj.columns.intersection(keys))
+                    )
                     raise SpecificationError(f"Column(s) {cols} do not exist")
 
             from pandas.core.reshape.concat import concat
@@ -371,7 +377,7 @@ class SelectionMixin:
                 """
                 aggregate a 2-dim with how
                 """
-                colg = self._gotitem(self._selection, ndim=2, subset=obj)
+                colg = self._gotitem(self._selection, ndim=2, subset=selected_obj)
                 return colg.aggregate(how)
 
             def _agg(arg, func):
@@ -386,7 +392,6 @@ class SelectionMixin:
 
             # set the final keys
             keys = list(arg.keys())
-            result = {}
 
             if self._selection is not None:
 
@@ -438,7 +443,13 @@ class SelectionMixin:
                 # we have a dict of DataFrames
                 # return a MI DataFrame
 
-                return concat([result[k] for k in keys], keys=keys, axis=1), True
+                keys_to_use = [k for k in keys if not result[k].empty]
+                # Have to check, if at least one DataFrame is not empty.
+                keys_to_use = keys_to_use if keys_to_use != [] else keys
+                return (
+                    concat([result[k] for k in keys_to_use], keys=keys_to_use, axis=1),
+                    True,
+                )
 
             elif isinstance(self, ABCSeries) and is_any_series():
 
@@ -465,9 +476,16 @@ class SelectionMixin:
             try:
                 result = DataFrame(result)
             except ValueError:
-
                 # we have a dict of scalars
-                result = Series(result, name=getattr(self, "name", None))
+
+                # GH 36212 use name only if self is a series
+                if self.ndim == 1:
+                    self = cast("Series", self)
+                    name = self.name
+                else:
+                    name = None
+
+                result = Series(result, name=name)
 
             return result, True
         elif is_list_like(arg):
@@ -476,9 +494,10 @@ class SelectionMixin:
         else:
             result = None
 
-        f = self._get_cython_func(arg)
-        if f and not args and not kwargs:
-            return getattr(self, f)(), None
+        if callable(arg):
+            f = self._get_cython_func(arg)
+            if f and not args and not kwargs:
+                return getattr(self, f)(), None
 
         # caller can react
         return result, True
@@ -490,17 +509,17 @@ class SelectionMixin:
             raise NotImplementedError("axis other than 0 is not supported")
 
         if self._selected_obj.ndim == 1:
-            obj = self._selected_obj
+            selected_obj = self._selected_obj
         else:
-            obj = self._obj_with_exclusions
+            selected_obj = self._obj_with_exclusions
 
         results = []
         keys = []
 
         # degenerate case
-        if obj.ndim == 1:
+        if selected_obj.ndim == 1:
             for a in arg:
-                colg = self._gotitem(obj.name, ndim=1, subset=obj)
+                colg = self._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
                 try:
                     new_res = colg.aggregate(a)
 
@@ -515,8 +534,8 @@ class SelectionMixin:
 
         # multiples
         else:
-            for index, col in enumerate(obj):
-                colg = self._gotitem(col, ndim=1, subset=obj.iloc[:, index])
+            for index, col in enumerate(selected_obj):
+                colg = self._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
                 try:
                     new_res = colg.aggregate(arg)
                 except (TypeError, DataError):
@@ -555,7 +574,7 @@ class SelectionMixin:
                 ) from err
             return result
 
-    def _get_cython_func(self, arg: str) -> Optional[str]:
+    def _get_cython_func(self, arg: Callable) -> Optional[str]:
         """
         if we define an internal function for this argument, return it
         """
@@ -569,22 +588,7 @@ class SelectionMixin:
         return self._builtin_table.get(arg, arg)
 
 
-class ShallowMixin:
-    _attributes: List[str] = []
-
-    def _shallow_copy(self, obj, **kwargs):
-        """
-        return a new object with the replacement attributes
-        """
-        if isinstance(obj, self._constructor):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return self._constructor(obj, **kwargs)
-
-
-class IndexOpsMixin:
+class IndexOpsMixin(OpsMixin):
     """
     Common ops mixin to support a unified interface / docs for Series / Index
     """
@@ -650,13 +654,6 @@ class IndexOpsMixin:
         ValueError
             If the data is not length-1.
         """
-        if not (
-            is_extension_array_dtype(self.dtype) or needs_i8_conversion(self.dtype)
-        ):
-            # numpy returns ints instead of datetime64/timedelta64 objects,
-            #  which we need to wrap in Timestamp/Timedelta/Period regardless.
-            return self._values.item()
-
         if len(self) == 1:
             return next(iter(self))
         raise ValueError("can only convert an array of size 1 to a Python scalar")
@@ -737,8 +734,8 @@ class IndexOpsMixin:
 
         >>> ser = pd.Series(pd.Categorical(['a', 'b', 'a']))
         >>> ser.array
-        [a, b, a]
-        Categories (2, object): [a, b]
+        ['a', 'b', 'a']
+        Categories (2, object): ['a', 'b']
         """
         raise AbstractMethodError(self)
 
@@ -1361,7 +1358,7 @@ class IndexOpsMixin:
 
         Parameters
         ----------
-        deep : bool
+        deep : bool, default False
             Introspect the data deeply, interrogate
             `object` dtypes for system-level memory consumption.
 
@@ -1400,7 +1397,7 @@ class IndexOpsMixin:
             """
         ),
     )
-    def factorize(self, sort=False, na_sentinel=-1):
+    def factorize(self, sort: bool = False, na_sentinel: Optional[int] = -1):
         return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs[
@@ -1475,8 +1472,8 @@ class IndexOpsMixin:
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
         ... )
         >>> ser
-        [apple, bread, bread, cheese, milk]
-        Categories (4, object): [apple < bread < cheese < milk]
+        ['apple', 'bread', 'bread', 'cheese', 'milk']
+        Categories (4, object): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
         1
@@ -1514,7 +1511,7 @@ class IndexOpsMixin:
     def duplicated(self, keep="first"):
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
-                return np.zeros(len(self), dtype=np.bool)
+                return np.zeros(len(self), dtype=bool)
             return duplicated(self, keep=keep)
         else:
             return self._constructor(

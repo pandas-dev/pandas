@@ -1,15 +1,25 @@
 """ miscellaneous sorting / groupby utilities """
-from typing import Callable, Optional
+from collections import defaultdict
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    DefaultDict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
 from pandas._libs import algos, hashtable, lib
 from pandas._libs.hashtable import unique_label_indices
+from pandas._typing import IndexKeyFunc
 
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_categorical_dtype,
     is_extension_array_dtype,
 )
 from pandas.core.dtypes.generic import ABCMultiIndex
@@ -18,7 +28,63 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
+if TYPE_CHECKING:
+    from pandas.core.indexes.base import Index
+
 _INT64_MAX = np.iinfo(np.int64).max
+
+
+def get_indexer_indexer(
+    target: "Index",
+    level: Union[str, int, List[str], List[int]],
+    ascending: bool,
+    kind: str,
+    na_position: str,
+    sort_remaining: bool,
+    key: IndexKeyFunc,
+) -> Optional[np.array]:
+    """
+    Helper method that return the indexer according to input parameters for
+    the sort_index method of DataFrame and Series.
+
+    Parameters
+    ----------
+    target : Index
+    level : int or level name or list of ints or list of level names
+    ascending : bool or list of bools, default True
+    kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+    na_position : {'first', 'last'}, default 'last'
+    sort_remaining : bool, default True
+    key : callable, optional
+
+    Returns
+    -------
+    Optional[ndarray]
+        The indexer for the new index.
+    """
+
+    target = ensure_key_mapped(target, key, levels=level)
+    target = target._sort_levels_monotonic()
+
+    if level is not None:
+        _, indexer = target.sortlevel(
+            level, ascending=ascending, sort_remaining=sort_remaining
+        )
+    elif isinstance(target, ABCMultiIndex):
+        indexer = lexsort_indexer(
+            target._get_codes_for_sorting(), orders=ascending, na_position=na_position
+        )
+    else:
+        # Check monotonic-ness before sort an index (GH 11080)
+        if (ascending and target.is_monotonic_increasing) or (
+            not ascending and target.is_monotonic_decreasing
+        ):
+            return None
+
+        indexer = nargsort(
+            target, kind=kind, ascending=ascending, na_position=na_position
+        )
+    return indexer
 
 
 def get_group_index(labels, shape, sort: bool, xnull: bool):
@@ -227,13 +293,7 @@ def lexsort_indexer(
     keys = [ensure_key_mapped(k, key) for k in keys]
 
     for k, order in zip(keys, orders):
-        # we are already a Categorical
-        if is_categorical_dtype(k):
-            cat = k
-
-        # create the Categorical
-        else:
-            cat = Categorical(k, ordered=True)
+        cat = Categorical(k, ordered=True)
 
         if na_position not in ["last", "first"]:
             raise ValueError(f"invalid na_position: {na_position}")
@@ -319,6 +379,33 @@ def nargsort(
     return indexer
 
 
+def nargminmax(values, method: str):
+    """
+    Implementation of np.argmin/argmax but for ExtensionArray and which
+    handles missing values.
+
+    Parameters
+    ----------
+    values : ExtensionArray
+    method : {"argmax", "argmin"}
+
+    Returns
+    -------
+    int
+    """
+    assert method in {"argmax", "argmin"}
+    func = np.argmax if method == "argmax" else np.argmin
+
+    mask = np.asarray(isna(values))
+    values = values._values_for_argsort()
+
+    idx = np.arange(len(values))
+    non_nans = values[~mask]
+    non_nan_idx = idx[~mask]
+
+    return non_nan_idx[func(non_nans)]
+
+
 def ensure_key_mapped_multiindex(index, key: Callable, level=None):
     """
     Returns a new MultiIndex in which key has been applied
@@ -385,7 +472,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     from pandas.core.indexes.api import Index
 
     if not key:
-        return values.copy()
+        return values
 
     if isinstance(values, ABCMultiIndex):
         return ensure_key_mapped_multiindex(values, key, level=levels)
@@ -413,36 +500,21 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
     return result
 
 
-class _KeyMapper:
-    """
-    Map compressed group id -> key tuple.
-    """
-
-    def __init__(self, comp_ids, ngroups: int, levels, labels):
-        self.levels = levels
-        self.labels = labels
-        self.comp_ids = comp_ids.astype(np.int64)
-
-        self.k = len(labels)
-        self.tables = [hashtable.Int64HashTable(ngroups) for _ in range(self.k)]
-
-        self._populate_tables()
-
-    def _populate_tables(self):
-        for labs, table in zip(self.labels, self.tables):
-            table.map(self.comp_ids, labs.astype(np.int64))
-
-    def get_key(self, comp_id):
-        return tuple(
-            level[table.get_item(comp_id)]
-            for table, level in zip(self.tables, self.levels)
-        )
-
-
-def get_flattened_iterator(comp_ids, ngroups, levels, labels):
-    # provide "flattened" iterator for multi-group setting
-    mapper = _KeyMapper(comp_ids, ngroups, levels, labels)
-    return [mapper.get_key(i) for i in range(ngroups)]
+def get_flattened_list(
+    comp_ids: np.ndarray,
+    ngroups: int,
+    levels: Iterable["Index"],
+    labels: Iterable[np.ndarray],
+) -> List[Tuple]:
+    """Map compressed group id -> key tuple."""
+    comp_ids = comp_ids.astype(np.int64, copy=False)
+    arrays: DefaultDict[int, List[int]] = defaultdict(list)
+    for labs, level in zip(labels, levels):
+        table = hashtable.Int64HashTable(ngroups)
+        table.map(comp_ids, labs.astype(np.int64, copy=False))
+        for i in range(ngroups):
+            arrays[i].append(level[table.get_item(i)])
+    return [tuple(array) for array in arrays.values()]
 
 
 def get_indexer_dict(label_list, keys):
@@ -504,7 +576,7 @@ def compress_group_index(group_index, sort: bool = True):
     space can be huge, so this function compresses it, by computing offsets
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
-    size_hint = min(len(group_index), hashtable._SIZE_HINT_LIMIT)
+    size_hint = min(len(group_index), hashtable.SIZE_HINT_LIMIT)
     table = hashtable.Int64HashTable(size_hint)
 
     group_index = ensure_int64(group_index)

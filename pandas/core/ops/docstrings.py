@@ -4,7 +4,7 @@ Templating for ops docstrings
 from typing import Dict, Optional
 
 
-def _make_flex_doc(op_name, typ):
+def _make_flex_doc(op_name, typ: str):
     """
     Make the appropriate substitutions for the given operation and class-typ
     into either _flex_doc_SERIES or _flex_doc_FRAME to return the docstring
@@ -22,16 +22,18 @@ def _make_flex_doc(op_name, typ):
     op_name = op_name.replace("__", "")
     op_desc = _op_descriptions[op_name]
 
+    op_desc_op = op_desc["op"]
+    assert op_desc_op is not None  # for mypy
     if op_name.startswith("r"):
-        equiv = "other " + op_desc["op"] + " " + typ
+        equiv = "other " + op_desc_op + " " + typ
     else:
-        equiv = typ + " " + op_desc["op"] + " other"
+        equiv = typ + " " + op_desc_op + " other"
 
     if typ == "series":
         base_doc = _flex_doc_SERIES
         if op_desc["reverse"]:
             base_doc += _see_also_reverse_SERIES.format(
-                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"],
+                reverse=op_desc["reverse"], see_also_desc=op_desc["see_also_desc"]
             )
         doc_no_examples = base_doc.format(
             desc=op_desc["desc"],
@@ -39,8 +41,9 @@ def _make_flex_doc(op_name, typ):
             equiv=equiv,
             series_returns=op_desc["series_returns"],
         )
-        if op_desc["series_examples"]:
-            doc = doc_no_examples + op_desc["series_examples"]
+        ser_example = op_desc["series_examples"]
+        if ser_example:
+            doc = doc_no_examples + ser_example
         else:
             doc = doc_no_examples
     elif typ == "dataframe":
@@ -611,7 +614,7 @@ Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
 operators.
 
-Equivalent to `==`, `=!`, `<=`, `<`, `>=`, `>` with support to choose axis
+Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
 (rows or columns) and level for comparison.
 
 Parameters

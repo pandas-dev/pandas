@@ -16,6 +16,9 @@ def test_doc_string():
     df.expanding(2).sum()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The `center` argument on `expanding` will be removed in the future"
+)
 def test_constructor(which):
     # GH 12669
 
@@ -26,12 +29,22 @@ def test_constructor(which):
     c(min_periods=1, center=True)
     c(min_periods=1, center=False)
 
+
+@pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
+@pytest.mark.filterwarnings(
+    "ignore:The `center` argument on `expanding` will be removed in the future"
+)
+def test_constructor_invalid(which, w):
     # not valid
-    for w in [2.0, "foo", np.array([2])]:
-        with pytest.raises(ValueError):
-            c(min_periods=w)
-        with pytest.raises(ValueError):
-            c(min_periods=1, center=w)
+
+    c = which.expanding
+    msg = "min_periods must be an integer"
+    with pytest.raises(ValueError, match=msg):
+        c(min_periods=w)
+
+    msg = "center must be a boolean"
+    with pytest.raises(ValueError, match=msg):
+        c(min_periods=1, center=w)
 
 
 @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
@@ -210,3 +223,16 @@ def test_iter_expanding_series(ser, expected, min_periods):
 
     for (expected, actual) in zip(expected, ser.expanding(min_periods)):
         tm.assert_series_equal(actual, expected)
+
+
+def test_center_deprecate_warning():
+    # GH 20647
+    df = pd.DataFrame()
+    with tm.assert_produces_warning(FutureWarning):
+        df.expanding(center=True)
+
+    with tm.assert_produces_warning(FutureWarning):
+        df.expanding(center=False)
+
+    with tm.assert_produces_warning(None):
+        df.expanding()

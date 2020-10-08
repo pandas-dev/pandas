@@ -332,11 +332,9 @@ def read_sql_query(
     ----------
     sql : str SQL query or SQLAlchemy Selectable (select or text object)
         SQL query to be executed.
-    con : SQLAlchemy connectable(engine/connection), database str URI,
-        or sqlite3 DBAPI2 connection
+    con : SQLAlchemy connectable, str, or sqlite3 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
-        If a DBAPI2 object, only sqlite3 is supported.
+        library. If a DBAPI2 object, only sqlite3 is supported.
     index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
@@ -438,12 +436,11 @@ def read_sql(
     ----------
     sql : str or SQLAlchemy Selectable (select or text object)
         SQL query to be executed or a table name.
-    con : SQLAlchemy connectable (engine/connection) or database str URI
-        or DBAPI2 connection (fallback mode).
-
+    con : SQLAlchemy connectable, str, or sqlite3 connection
         Using SQLAlchemy makes it possible to use any DB supported by that
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
-        for engine disposal and connection closure for the SQLAlchemy connectable. See
+        for engine disposal and connection closure for the SQLAlchemy connectable; str
+        connections are closed automatically. See
         `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_.
     index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
@@ -941,7 +938,7 @@ class SQLTable(PandasObject):
         return column_names_and_types
 
     def _create_table_setup(self):
-        from sqlalchemy import Table, Column, PrimaryKeyConstraint
+        from sqlalchemy import Column, PrimaryKeyConstraint, Table
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
@@ -1030,15 +1027,15 @@ class SQLTable(PandasObject):
         col_type = lib.infer_dtype(col, skipna=True)
 
         from sqlalchemy.types import (
-            BigInteger,
-            Integer,
-            Float,
-            Text,
-            Boolean,
-            DateTime,
-            Date,
-            Time,
             TIMESTAMP,
+            BigInteger,
+            Boolean,
+            Date,
+            DateTime,
+            Float,
+            Integer,
+            Text,
+            Time,
         )
 
         if col_type == "datetime64" or col_type == "datetime":
@@ -1083,7 +1080,7 @@ class SQLTable(PandasObject):
         return Text
 
     def _get_dtype(self, sqltype):
-        from sqlalchemy.types import Integer, Float, Boolean, DateTime, Date, TIMESTAMP
+        from sqlalchemy.types import TIMESTAMP, Boolean, Date, DateTime, Float, Integer
 
         if isinstance(sqltype, Float):
             return float
@@ -1378,7 +1375,7 @@ class SQLDatabase(PandasSQL):
             dtype = {col_name: dtype for col_name in frame}
 
         if dtype is not None:
-            from sqlalchemy.types import to_instance, TypeEngine
+            from sqlalchemy.types import TypeEngine, to_instance
 
             for col, my_type in dtype.items():
                 if not isinstance(to_instance(my_type), TypeEngine):
@@ -1395,7 +1392,20 @@ class SQLDatabase(PandasSQL):
             dtype=dtype,
         )
         table.create()
-        table.insert(chunksize, method=method)
+
+        from sqlalchemy import exc
+
+        try:
+            table.insert(chunksize, method=method)
+        except exc.SQLAlchemyError as err:
+            # GH34431
+            msg = "(1054, \"Unknown column 'inf' in 'field list'\")"
+            err_text = str(err.orig)
+            if re.search(msg, err_text):
+                raise ValueError("inf cannot be used with MySQL") from err
+            else:
+                raise err
+
         if not name.isdigit() and not name.islower():
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case

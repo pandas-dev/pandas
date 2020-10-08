@@ -67,7 +67,8 @@ class TestSeriesFillNA:
         x = Series([np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"])
         y = x.copy()
 
-        y.fillna(value=0, inplace=True)
+        return_value = y.fillna(value=0, inplace=True)
+        assert return_value is None
 
         expected = x.fillna(value=0)
         tm.assert_series_equal(y, expected)
@@ -124,7 +125,8 @@ class TestSeriesFillNA:
         data = ["a", np.nan, "b", np.nan, np.nan]
         ser = Series(Categorical(data, categories=["a", "b"]))
 
-        with pytest.raises(ValueError, match="fill value must be in categories"):
+        msg = "'fill_value=d' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
             ser.fillna("d")
 
         with pytest.raises(ValueError, match="fill value must be in categories"):

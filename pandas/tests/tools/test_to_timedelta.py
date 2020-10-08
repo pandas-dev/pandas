@@ -155,3 +155,27 @@ class TestTimedeltas:
         result = pd.to_timedelta(arr, unit="s")
         expected_asi8 = np.arange(999990000, int(1e9), 1000, dtype="int64")
         tm.assert_numpy_array_equal(result.asi8, expected_asi8)
+
+    def test_to_timedelta_coerce_strings_unit(self):
+        arr = np.array([1, 2, "error"], dtype=object)
+        result = pd.to_timedelta(arr, unit="ns", errors="coerce")
+        expected = pd.to_timedelta([1, 2, pd.NaT], unit="ns")
+        tm.assert_index_equal(result, expected)
+
+    def test_to_timedelta_ignore_strings_unit(self):
+        arr = np.array([1, 2, "error"], dtype=object)
+        result = pd.to_timedelta(arr, unit="ns", errors="ignore")
+        tm.assert_numpy_array_equal(result, arr)
+
+    def test_to_timedelta_nullable_int64_dtype(self):
+        # GH 35574
+        expected = Series([timedelta(days=1), timedelta(days=2)])
+        result = to_timedelta(Series([1, 2], dtype="Int64"), unit="days")
+
+        tm.assert_series_equal(result, expected)
+
+        # IntegerArray Series with nulls
+        expected = Series([timedelta(days=1), None])
+        result = to_timedelta(Series([1, None], dtype="Int64"), unit="days")
+
+        tm.assert_series_equal(result, expected)

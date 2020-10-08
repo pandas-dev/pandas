@@ -2,13 +2,13 @@ from textwrap import dedent
 from typing import Dict, Optional
 
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
+from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
-from pandas.core.window.rolling import _Rolling_and_Expanding
+from pandas.core.window.rolling import RollingAndExpandingMixin
 
 
-class Expanding(_Rolling_and_Expanding):
+class Expanding(RollingAndExpandingMixin):
     """
     Provide expanding transformations.
 
@@ -57,7 +57,7 @@ class Expanding(_Rolling_and_Expanding):
 
     _attributes = ["min_periods", "center", "axis"]
 
-    def __init__(self, obj, min_periods=1, center=False, axis=0, **kwargs):
+    def __init__(self, obj, min_periods=1, center=None, axis=0, **kwargs):
         super().__init__(obj=obj, min_periods=min_periods, center=center, axis=axis)
 
     @property
@@ -113,14 +113,13 @@ class Expanding(_Rolling_and_Expanding):
     """
     )
 
-    @Substitution(
+    @doc(
+        _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="",
         klass="Series/Dataframe",
         axis="",
     )
-    @Appender(_shared_docs["aggregate"])
     def aggregate(self, func, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
@@ -137,7 +136,7 @@ class Expanding(_Rolling_and_Expanding):
         self,
         func,
         raw: bool = False,
-        engine: str = "cython",
+        engine: Optional[str] = None,
         engine_kwargs: Optional[Dict[str, bool]] = None,
         args=None,
         kwargs=None,

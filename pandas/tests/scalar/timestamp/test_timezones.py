@@ -21,9 +21,12 @@ class TestTimestampTZOperations:
     # Timestamp.tz_localize
 
     def test_tz_localize_pushes_out_of_bounds(self):
-        msg = "^$"
         # GH#12677
         # tz_localize that pushes away from the boundary is OK
+        msg = (
+            f"Converting {Timestamp.min.strftime('%Y-%m-%d %H:%M:%S')} "
+            f"underflows past {Timestamp.min}"
+        )
         pac = Timestamp.min.tz_localize("US/Pacific")
         assert pac.value > Timestamp.min.value
         pac.tz_convert("Asia/Tokyo")  # tz_convert doesn't change value
@@ -31,6 +34,10 @@ class TestTimestampTZOperations:
             Timestamp.min.tz_localize("Asia/Tokyo")
 
         # tz_localize that pushes away from the boundary is OK
+        msg = (
+            f"Converting {Timestamp.max.strftime('%Y-%m-%d %H:%M:%S')} "
+            f"overflows past {Timestamp.max}"
+        )
         tokyo = Timestamp.max.tz_localize("Asia/Tokyo")
         assert tokyo.value < Timestamp.max.value
         tokyo.tz_convert("US/Pacific")  # tz_convert doesn't change value
@@ -334,7 +341,7 @@ class TestTimestampTZOperations:
     def test_timestamp_constructor_near_dst_boundary(self):
         # GH#11481 & GH#15777
         # Naive string timestamps were being localized incorrectly
-        # with tz_convert_single instead of tz_localize_to_utc
+        # with tz_convert_from_utc_single instead of tz_localize_to_utc
 
         for tz in ["Europe/Brussels", "Europe/Prague"]:
             result = Timestamp("2015-10-25 01:00", tz=tz)

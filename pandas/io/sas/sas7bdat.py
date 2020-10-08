@@ -137,13 +137,17 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        self._path_or_buf, _, _, _ = get_filepath_or_buffer(path_or_buf)
+        self._path_or_buf = get_filepath_or_buffer(path_or_buf).filepath_or_buffer
         if isinstance(self._path_or_buf, str):
             self._path_or_buf = open(self._path_or_buf, "rb")
             self.handle = self._path_or_buf
 
-        self._get_properties()
-        self._parse_metadata()
+        try:
+            self._get_properties()
+            self._parse_metadata()
+        except Exception:
+            self.close()
+            raise
 
     def column_data_lengths(self):
         """Return a numpy int64 array of the column data lengths"""
@@ -685,7 +689,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         nd = self._column_types.count(b"d")
         ns = self._column_types.count(b"s")
 
-        self._string_chunk = np.empty((ns, nrows), dtype=np.object)
+        self._string_chunk = np.empty((ns, nrows), dtype=object)
         self._byte_chunk = np.zeros((nd, 8 * nrows), dtype=np.uint8)
 
         self._current_row_in_chunk_index = 0

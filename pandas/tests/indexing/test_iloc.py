@@ -56,7 +56,7 @@ class TestiLoc2:
         assert ser.iloc._is_scalar_access((1,))
 
         df = ser.to_frame()
-        assert df.iloc._is_scalar_access((1, 0,))
+        assert df.iloc._is_scalar_access((1, 0))
 
     def test_iloc_exceeds_bounds(self):
 
@@ -367,6 +367,20 @@ class TestiLoc2:
         # reversed x 2
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
+        tm.assert_frame_equal(df, expected)
+
+    def test_iloc_setitem_frame_duplicate_columns_multiple_blocks(self):
+        # Same as the "assign back to self" check in test_iloc_setitem_dups
+        #  but on a DataFrame with multiple blocks
+        df = pd.DataFrame([[0, 1], [2, 3]], columns=["B", "B"])
+
+        df.iloc[:, 0] = df.iloc[:, 0].astype("f8")
+        assert len(df._mgr.blocks) == 2
+        expected = df.copy()
+
+        # assign back to self
+        df.iloc[[0, 1], [0, 1]] = df.iloc[[0, 1], [0, 1]]
+
         tm.assert_frame_equal(df, expected)
 
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
@@ -694,6 +708,7 @@ class TestiLoc2:
         result = s.iloc[np.array(0)]
         assert result == 1
 
+    @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/33457")
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = pd.Categorical(["A", "B", "C"])
@@ -704,6 +719,25 @@ class TestiLoc2:
 
         expected = pd.Categorical(["C", "B", "A"])
         tm.assert_categorical_equal(cat, expected)
+
+    def test_iloc_with_boolean_operation(self):
+        # GH 20627
+        result = DataFrame([[0, 1], [2, 3], [4, 5], [6, np.nan]])
+        result.iloc[result.index <= 2] *= 2
+        expected = DataFrame([[0, 2], [4, 6], [8, 10], [6, np.nan]])
+        tm.assert_frame_equal(result, expected)
+
+        result.iloc[result.index > 2] *= 2
+        expected = DataFrame([[0, 2], [4, 6], [8, 10], [12, np.nan]])
+        tm.assert_frame_equal(result, expected)
+
+        result.iloc[[True, True, False, False]] *= 2
+        expected = DataFrame([[0, 4], [8, 12], [8, 10], [12, np.nan]])
+        tm.assert_frame_equal(result, expected)
+
+        result.iloc[[False, False, True, True]] /= 2
+        expected = DataFrame([[0.0, 4.0], [8.0, 12.0], [4.0, 5.0], [6.0, np.nan]])
+        tm.assert_frame_equal(result, expected)
 
 
 class TestILocSetItemDuplicateColumns:

@@ -7,24 +7,23 @@ import pandas._testing as tm
 
 
 class TestPeriodIndexOps:
-    def test_resolution(self):
-        for freq, expected in zip(
-            ["A", "Q", "M", "D", "H", "T", "S", "L", "U"],
-            [
-                "day",
-                "day",
-                "day",
-                "day",
-                "hour",
-                "minute",
-                "second",
-                "millisecond",
-                "microsecond",
-            ],
-        ):
-
-            idx = pd.period_range(start="2013-04-01", periods=30, freq=freq)
-            assert idx.resolution == expected
+    @pytest.mark.parametrize(
+        "freq,expected",
+        [
+            ("A", "year"),
+            ("Q", "quarter"),
+            ("M", "month"),
+            ("D", "day"),
+            ("H", "hour"),
+            ("T", "minute"),
+            ("S", "second"),
+            ("L", "millisecond"),
+            ("U", "microsecond"),
+        ],
+    )
+    def test_resolution(self, freq, expected):
+        idx = pd.period_range(start="2013-04-01", periods=30, freq=freq)
+        assert idx.resolution == expected
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -175,9 +174,6 @@ class TestPeriodIndexOps:
 
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
-
-            exp = np.array([2, 1, 3, 4, 0])
-            tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             _check_freq(ordered, idx)
 
         pidx = PeriodIndex(["2011", "2013", "NaT", "2011"], name="pidx", freq="D")
@@ -334,3 +330,16 @@ class TestPeriodIndexOps:
         # warning for setter
         with pytest.raises(AttributeError, match="can't set attribute"):
             idx.freq = pd.offsets.Day()
+
+
+@pytest.mark.xfail(reason="Datetime-like sort_values currently unstable (GH 35922)")
+def test_order_stability_compat():
+    # GH 35584. The new implementation of sort_values for Index.sort_values
+    # is stable when sorting in descending order. Datetime-like sort_values
+    # currently aren't stable. xfail should be removed after
+    # the implementations' behavior is synchronized (xref GH 35922)
+    pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="A")
+    iidx = Index([2011, 2013, 2015, 2012, 2011], name="idx")
+    ordered1, indexer1 = pidx.sort_values(return_indexer=True, ascending=False)
+    ordered2, indexer2 = iidx.sort_values(return_indexer=True, ascending=False)
+    tm.assert_numpy_array_equal(indexer1, indexer2)
