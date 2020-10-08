@@ -316,7 +316,7 @@ class BaseReshapingTests(BaseExtensionTests):
                 alt = df.unstack(level=level).droplevel(0, axis=1)
                 self.assert_frame_equal(result, alt)
 
-            expected = ser.astype(object).unstack(level=level)
+            expected = ser.astype(object).unstack(level=level, fill_value=data.dtype.na_value)
             result = result.astype(object)
 
             self.assert_frame_equal(result, expected)
