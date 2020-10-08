@@ -13,6 +13,7 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
+    is_categorical_dtype,
     is_array_like,
     is_hashable,
     is_integer,
