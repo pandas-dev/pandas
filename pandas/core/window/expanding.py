@@ -128,7 +128,9 @@ class Expanding(RollingAndExpandingMixin):
     @Substitution(name="expanding")
     @Appender(_shared_docs["count"])
     def count(self, **kwargs):
-        return super().count(**kwargs)
+        # pandas\core\window\expanding.py:131: error: Too many arguments for
+        # "count"  [call-arg]
+        return super().count(**kwargs)  # type: ignore[call-arg]
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])

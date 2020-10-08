@@ -56,7 +56,9 @@ class WindowGroupByMixin(GotItemMixin):
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
-        super().__init__(obj, *args, **kwargs)
+        # pandas\core\window\common.py:59: error: Too many arguments for
+        # "__init__" of "object"  [call-arg]
+        super().__init__(obj, *args, **kwargs)  # type: ignore[call-arg]
 
     corr = _dispatch("corr", other=None, pairwise=None)
     cov = _dispatch("cov", other=None, pairwise=None)
@@ -81,7 +83,9 @@ class WindowGroupByMixin(GotItemMixin):
 
         # TODO: can we de-duplicate with _dispatch?
         def f(x, name=name, *args):
-            x = self._shallow_copy(x)
+            # pandas\core\window\common.py:84: error: "WindowGroupByMixin" has
+            # no attribute "_shallow_copy"  [attr-defined]
+            x = self._shallow_copy(x)  # type: ignore[attr-defined]
 
             if isinstance(name, str):
                 return getattr(x, name)(*args, **kwargs)

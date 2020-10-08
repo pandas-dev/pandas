@@ -2087,26 +2087,43 @@ class DatetimeLikeBlockMixin:
         """
         if is_object_dtype(dtype):
             # DTA/TDA constructor and astype can handle 2D
-            return self._holder(self.values).astype(object)
-        return self.values
+
+            # pandas\core\internals\blocks.py:2090: error:
+            # "DatetimeLikeBlockMixin" has no attribute "values"
+            # [attr-defined]
+            return self._holder(self.values).astype(  # type: ignore[attr-defined]
+                object
+            )
+        # pandas\core\internals\blocks.py:2091: error: "DatetimeLikeBlockMixin"
+        # has no attribute "values"  [attr-defined]
+        return self.values  # type: ignore[attr-defined]
 
     def internal_values(self):
         # Override to return DatetimeArray and TimedeltaArray
         return self.array_values()
 
     def array_values(self):
-        return self._holder._simple_new(self.values)
+        # pandas\core\internals\blocks.py:2098: error: "DatetimeLikeBlockMixin"
+        # has no attribute "values"  [attr-defined]
+        return self._holder._simple_new(self.values)  # type: ignore[attr-defined]
 
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
         # TODO(EA2D): this can be removed if we ever have 2D EA
-        return self.array_values().reshape(self.shape)[key]
+
+        # pandas\core\internals\blocks.py:2103: error: "DatetimeLikeBlockMixin"
+        # has no attribute "shape"  [attr-defined]
+        return self.array_values().reshape(self.shape)[  # type: ignore[attr-defined]
+            key
+        ]
 
     def shift(self, periods, axis=0, fill_value=None):
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
         values = self.array_values()
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
-        return self.make_block_same_class(new_values)
+        # pandas\core\internals\blocks.py:2109: error: "DatetimeLikeBlockMixin"
+        # has no attribute "make_block_same_class"  [attr-defined]
+        return self.make_block_same_class(new_values)  # type: ignore[attr-defined]
 
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
@@ -2510,7 +2527,10 @@ class ObjectBlock(Block):
         both_lists = to_rep_is_list and value_is_list
         either_list = to_rep_is_list or value_is_list
 
-        result_blocks = []
+        # pandas\core\internals\blocks.py:2513: error: Need type annotation for
+        # 'result_blocks' (hint: "result_blocks: List[<type>] = ...")
+        # [var-annotated]
+        result_blocks = []  # type: ignore[var-annotated]
         blocks = [self]
 
         if not either_list and is_re(to_replace):
@@ -2744,7 +2764,7 @@ def get_block_type(values, dtype=None):
         cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
         assert not is_datetime64tz_dtype(values.dtype)
-        cls = DatetimeBlock
+        cls = DatetimeBlock  # type: ignore[assignment]
     elif is_datetime64tz_dtype(values.dtype):
         cls = DatetimeTZBlock
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
@@ -2752,18 +2772,21 @@ def get_block_type(values, dtype=None):
     elif is_extension_array_dtype(values.dtype):
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
-        cls = FloatBlock
+        cls = FloatBlock  # type: ignore[assignment]
     elif issubclass(vtype, np.timedelta64):
         assert issubclass(vtype, np.integer)
-        cls = TimeDeltaBlock
+        cls = TimeDeltaBlock  # type: ignore[assignment]
     elif issubclass(vtype, np.complexfloating):
-        cls = ComplexBlock
+        cls = ComplexBlock  # type: ignore[assignment]
     elif issubclass(vtype, np.integer):
-        cls = IntBlock
+        cls = IntBlock  # type: ignore[assignment]
     elif dtype == np.bool_:
-        cls = BoolBlock
+        cls = BoolBlock  # type: ignore[assignment]
     else:
-        cls = ObjectBlock
+        # pandas\core\internals\blocks.py:2766: error: Incompatible types in
+        # assignment (expression has type "Type[ObjectBlock]", variable has
+        # type "Type[ExtensionBlock]")  [assignment]
+        cls = ObjectBlock  # type: ignore[assignment]
     return cls
 
 

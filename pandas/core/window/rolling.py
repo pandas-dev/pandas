@@ -1218,7 +1218,10 @@ class Window(BaseWindow):
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
-        window_func = get_weighted_roll_func(window_func)
+        # pandas\core\window\rolling.py:1221: error: Incompatible types in
+        # assignment (expression has type "Callable[..., Any]", variable has
+        # type "partial[Any]")  [assignment]
+        window_func = get_weighted_roll_func(window_func)  # type: ignore[assignment]
         kwargs.pop("name", None)
         return self._apply(
             window_func, center=self.center, is_weighted=True, name="var", **kwargs
@@ -1392,7 +1395,9 @@ class RollingAndExpandingMixin(BaseWindow):
     def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
         from pandas import Series
 
-        window_func = partial(
+        # pandas\core\window\rolling.py:1395: error: "partial" gets multiple
+        # values for keyword argument "func"  [misc]
+        window_func = partial(  # type: ignore[misc]
             self._get_cython_func_type("roll_generic"),
             args=args,
             kwargs=kwargs,
@@ -1730,9 +1735,15 @@ class RollingAndExpandingMixin(BaseWindow):
         else:
             # GH 16058: offset window
             if self.is_freq_type:
-                window = self.win_freq
+                # pandas\core\window\rolling.py:1733: error: Incompatible types
+                # in assignment (expression has type "None", variable has type
+                # "BaseIndexer")  [assignment]
+                window = self.win_freq  # type: ignore[assignment]
             else:
-                window = self._get_window(other)
+                # pandas\core\window\rolling.py:1735: error: Incompatible types
+                # in assignment (expression has type "int", variable has type
+                # "BaseIndexer")  [assignment]
+                window = self._get_window(other)  # type: ignore[assignment]
 
         def _get_cov(X, Y):
             # GH #12373 : rolling functions error on float32 data
@@ -1877,7 +1888,14 @@ class RollingAndExpandingMixin(BaseWindow):
         if isinstance(self.window, BaseIndexer):
             window = self.window
         else:
-            window = self._get_window(other) if not self.is_freq_type else self.win_freq
+            # pandas\core\window\rolling.py:1880: error: Incompatible types in
+            # assignment (expression has type "Optional[int]", variable has
+            # type "BaseIndexer")  [assignment]
+            window = (
+                self._get_window(other)  # type: ignore[assignment]
+                if not self.is_freq_type
+                else self.win_freq
+            )
 
         def _get_corr(a, b):
             a = a.rolling(
