@@ -73,20 +73,8 @@ def get_standard_colors(
             else:
                 return True
 
-        def _is_color_cycle(colors: Union[str, Sequence[str]]) -> bool:
-            if _is_cn_color(colors):
-                return False
-            return all([_is_single_color(c) for c in colors])
-
-        if _is_single_color(colors) and _is_color_cycle(colors) and len(colors) > 1:
-            hex_color = [c["color"] for c in list(plt.rcParams["axes.prop_cycle"])]
-            colors = [hex_color[int(colors[1])]]
-        elif _is_single_color(colors):
+        if _is_single_color(colors):
             colors = [colors]
-        else:
-            # ``colors`` is regarded as color cycle.
-            # mpl will raise error any of them is invalid
-            pass
 
     # Append more colors by cycling if there is not enough color.
     # Extra colors will be ignored by matplotlib if there are more colors
