@@ -88,11 +88,8 @@ class TestHDFStore:
                     raise ValueError("blah")
             except ValueError:
                 pass
-            try:
-                with HDFStore(path) as tbl:
+            with HDFStore(path) as tbl:
                     tbl["a"] = tm.makeDataFrame()
-            except ValueError:
-                print("Context error")
             with HDFStore(path) as tbl:
                 assert len(tbl) == 1
                 assert type(tbl["a"]) == DataFrame
