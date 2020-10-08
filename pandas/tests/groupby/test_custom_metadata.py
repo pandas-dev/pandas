@@ -19,20 +19,6 @@ class SubclassedDataFrame2(pd.DataFrame):
         return SubclassedDataFrame2
 
 
-@pytest.mark.xfail(
-    reason="Missing high-performance implementation of metadata support for groupby. "
-    "__finalize__ is not called for grouped dataframes"
-)
-def test_groupby_with_custom_metadata():
-    custom_df = SubclassedDataFrame2(
-        [[11, 12, 0], [21, 22, 0], [31, 32, 1]], columns=["a", "b", "g"]
-    )
-    custom_df.added_property = "hello_pandas"
-    grouped = custom_df.groupby("g")
-    for _, group_df in grouped:
-        assert group_df.added_property == "hello_pandas"
-
-
 def test_groupby_sum_with_custom_metadata():
     my_data_as_dictionary = {
         "mycategorical": [1, 1, 2],
