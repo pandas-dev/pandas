@@ -4323,7 +4323,7 @@ class DataFrame(NDFrame):
         Traceback (most recent call last):
         KeyError: ['C'] not found in axis
 
-        Using axis-style parameters
+        Using axis-style parameters:
 
         >>> df.rename(str.lower, axis='columns')
            a  b
