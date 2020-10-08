@@ -103,7 +103,6 @@ class Block(PandasObject):
     is_timedelta = False
     is_bool = False
     is_object = False
-    is_categorical = False
     is_extension = False
     _can_hold_na = False
     _can_consolidate = True
@@ -182,6 +181,10 @@ class Block(PandasObject):
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
         return self.values.base is not None
+
+    @property
+    def is_categorical(self) -> bool:
+        return self._holder is Categorical
 
     @property
     def is_datelike(self) -> bool:
@@ -1654,12 +1657,6 @@ class ExtensionBlock(Block):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def should_store(self, value: ArrayLike) -> bool:
-        """
-        Can we set the given array-like value inplace?
-        """
-        return isinstance(value, self._holder)
-
     def set(self, locs, values):
         assert locs.tolist() == [0]
         self.values = values
@@ -2050,9 +2047,6 @@ class ComplexBlock(FloatOrComplexBlock):
             element, (float, int, complex, np.float_, np.int_)
         ) and not isinstance(element, (bool, np.bool_))
 
-    def should_store(self, value: ArrayLike) -> bool:
-        return issubclass(value.dtype.type, np.complexfloating)
-
 
 class IntBlock(NumericBlock):
     __slots__ = ()
@@ -2218,7 +2212,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     fill_value = np.datetime64("NaT", "ns")
-    should_store = Block.should_store
     array_values = ExtensionBlock.array_values
 
     @property
@@ -2680,20 +2673,6 @@ class ObjectBlock(Block):
 
 class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
-    is_categorical = True
-    _can_hold_na = True
-
-    should_store = Block.should_store
-
-    def __init__(self, values, placement, ndim=None):
-        # coerce to categorical if we can
-        values = extract_array(values)
-        assert isinstance(values, Categorical), type(values)
-        super().__init__(values, placement=placement, ndim=ndim)
-
-    @property
-    def _holder(self):
-        return Categorical
 
     def replace(
         self,
