@@ -1305,7 +1305,12 @@ def interval_range(
         if isinstance(endpoint, Timestamp):
             range_func = date_range
         else:
-            range_func = timedelta_range
+            # pandas\core\indexes\interval.py:1308: error: Incompatible types
+            # in assignment (expression has type "Callable[[Any, Any, Any, Any,
+            # Any, Any], TimedeltaIndex]", variable has type "Callable[[Any,
+            # Any, Any, Any, Any, Any, Any, Any, KwArg(Any)], DatetimeIndex]")
+            # [assignment]
+            range_func = timedelta_range  # type: ignore[assignment]
 
         breaks = range_func(start=start, end=end, periods=periods, freq=freq)
 
