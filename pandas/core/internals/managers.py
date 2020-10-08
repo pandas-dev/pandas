@@ -656,12 +656,6 @@ class BlockManager(PandasObject):
         self._known_consolidated = True
 
     @property
-    def is_mixed_type(self) -> bool:
-        # Warning, consolidation needs to get checked upstairs
-        self._consolidate_inplace()
-        return len(self.blocks) > 1
-
-    @property
     def is_numeric_mixed_type(self) -> bool:
         return all(block.is_numeric for block in self.blocks)
 
@@ -1845,7 +1839,7 @@ def _consolidate(blocks):
     gkey = lambda x: x._consolidate_key
     grouper = itertools.groupby(sorted(blocks, key=gkey), gkey)
 
-    new_blocks = []
+    new_blocks: List[Block] = []
     for (_can_consolidate, dtype), group_blocks in grouper:
         merged_blocks = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
