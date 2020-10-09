@@ -8971,10 +8971,8 @@ NaN 12.3   33.0
         ostrich       bird     2    NaN
 
         By default, missing values are not considered, and the mode of wings
-        are both 0 and 2. Because the resulting DataFrame has two rows, 
+        are both 0 and 2. Because the resulting DataFrame has two rows,
         the second row of ``species`` and ``legs`` contains ``NaN``.
-
-
         >>> df.mode()
           species  legs  wings
         0    bird   2.0    0.0
