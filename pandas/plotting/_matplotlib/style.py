@@ -56,9 +56,9 @@ def get_standard_colors(
         else:
             raise ValueError("color_type must be either 'default' or 'random'")
 
-    if isinstance(colors, str):
-        if _is_single_color(colors):
-            colors = [colors]
+    if isinstance(colors, str) and _is_single_color(colors):
+        # GH #36972
+        colors = [colors]
 
     # Append more colors by cycling if there is not enough color.
     # Extra colors will be ignored by matplotlib if there are more colors
