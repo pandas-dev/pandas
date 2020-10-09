@@ -191,6 +191,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hasnans = property(
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
+    __hash__ = generic.NDFrame.__hash__
     _mgr: SingleBlockManager
     div: Callable[["Series", Any], "Series"]
     rdiv: Callable[["Series", Any], "Series"]
@@ -394,7 +395,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # types
     @property
-    def _can_hold_na(self):
+    def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
     _index = None
@@ -409,14 +410,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if not fastpath:
             labels = ensure_index(labels)
 
-        is_all_dates = labels.is_all_dates
-        if is_all_dates:
+        if labels._is_all_dates:
             if not isinstance(labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
                 try:
                     labels = DatetimeIndex(labels)
                     # need to set here because we changed the index
                     if fastpath:
                         self._mgr.set_axis(axis, labels)
+                    warnings.warn(
+                        "Automatically casting object-dtype Index of datetimes to "
+                        "DatetimeIndex is deprecated and will be removed in a "
+                        "future version.  Explicitly cast to DatetimeIndex instead.",
+                        FutureWarning,
+                        stacklevel=3,
+                    )
                 except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
@@ -1452,7 +1459,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -2046,7 +2053,9 @@ Name: Max Speed, dtype: float64
         4     True
         dtype: bool
         """
-        return super().duplicated(keep=keep)
+        res = base.IndexOpsMixin.duplicated(self, keep=keep)
+        result = self._constructor(res, index=self.index)
+        return result.__finalize__(self, method="duplicated")
 
     def idxmin(self, axis=0, skipna=True, *args, **kwargs):
         """
@@ -4769,7 +4778,7 @@ Keep all original rows and also all original values
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> "Series":
-        return super().isna()
+        return generic.NDFrame.isna(self)
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> "Series":
@@ -4898,10 +4907,7 @@ Keep all original rows and also all original values
 
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
-        # error: "PeriodIndex" has no attribute "to_timestamp"
-        new_index = self.index.to_timestamp(  # type: ignore[attr-defined]
-            freq=freq, how=how
-        )
+        new_index = self.index.to_timestamp(freq=freq, how=how)
         return self._constructor(new_values, index=new_index).__finalize__(
             self, method="to_timestamp"
         )
@@ -4957,6 +4963,32 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
     hist = pandas.plotting.hist_series
+
+    # ----------------------------------------------------------------------
+    # Template-Based Arithmetic/Comparison Methods
+
+    def _cmp_method(self, other, op):
+        res_name = ops.get_op_result_name(self, other)
+
+        if isinstance(other, Series) and not self._indexed_same(other):
+            raise ValueError("Can only compare identically-labeled Series objects")
+
+        lvalues = extract_array(self, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True)
+
+        res_values = ops.comparison_op(lvalues, rvalues, op)
+
+        return self._construct_result(res_values, name=res_name)
+
+    def _logical_method(self, other, op):
+        res_name = ops.get_op_result_name(self, other)
+        self, other = ops.align_method_SERIES(self, other, align_asobject=True)
+
+        lvalues = extract_array(self, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True)
+
+        res_values = ops.logical_op(lvalues, rvalues, op)
+        return self._construct_result(res_values, name=res_name)
 
 
 Series._add_numeric_operations()

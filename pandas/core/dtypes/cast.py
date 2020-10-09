@@ -73,7 +73,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -1156,9 +1156,9 @@ def convert_dtypes(
             target_int_dtype = "Int64"
 
             if is_integer_dtype(input_array.dtype):
-                from pandas.core.arrays.integer import STR_TO_DTYPE
+                from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 
-                inferred_dtype = STR_TO_DTYPE.get(
+                inferred_dtype = INT_STR_TO_DTYPE.get(
                     input_array.dtype.name, target_int_dtype
                 )
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
@@ -1559,6 +1559,11 @@ def construct_1d_arraylike_from_scalar(
             dtype = np.dtype("object")
             if not isna(value):
                 value = ensure_str(value)
+        elif dtype.kind in ["M", "m"] and is_valid_nat_for_dtype(value, dtype):
+            # GH36541: can't fill array directly with pd.NaT
+            # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
+            # ValueError: cannot convert float NaN to integer
+            value = np.datetime64("NaT")
 
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)

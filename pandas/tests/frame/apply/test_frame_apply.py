@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
 import warnings
@@ -1225,7 +1224,7 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result, expected)
 
         # dict input with scalars
-        func = OrderedDict([(name1, "mean"), (name2, "sum")])
+        func = dict([(name1, "mean"), (name2, "sum")])
         result = float_frame.agg(func, axis=axis)
         expected = Series(
             [
@@ -1237,7 +1236,7 @@ class TestDataFrameAggregate:
         tm.assert_series_equal(result, expected)
 
         # dict input with lists
-        func = OrderedDict([(name1, ["mean"]), (name2, ["sum"])])
+        func = dict([(name1, ["mean"]), (name2, ["sum"])])
         result = float_frame.agg(func, axis=axis)
         expected = DataFrame(
             {
@@ -1253,10 +1252,10 @@ class TestDataFrameAggregate:
         tm.assert_frame_equal(result, expected)
 
         # dict input with lists with multiple
-        func = OrderedDict([(name1, ["mean", "sum"]), (name2, ["sum", "max"])])
+        func = dict([(name1, ["mean", "sum"]), (name2, ["sum", "max"])])
         result = float_frame.agg(func, axis=axis)
         expected = DataFrame(
-            OrderedDict(
+            dict(
                 [
                     (
                         name1,
@@ -1463,6 +1462,34 @@ class TestDataFrameAggregate:
         msg = "can't multiply sequence by non-int of type 'str'"
         with pytest.raises(expected, match=msg):
             df.agg(func, axis=axis)
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.parametrize(
+        "args, kwargs",
+        [
+            ((1, 2, 3), {}),
+            ((8, 7, 15), {}),
+            ((1, 2), {}),
+            ((1,), {"b": 2}),
+            ((), {"a": 1, "b": 2}),
+            ((), {"a": 2, "b": 1}),
+            ((), {"a": 1, "b": 2, "c": 3}),
+        ],
+    )
+    def test_agg_args_kwargs(self, axis, args, kwargs):
+        def f(x, a, b, c=3):
+            return x.sum() + (a + b) / c
+
+        df = pd.DataFrame([[1, 2], [3, 4]])
+
+        if axis == 0:
+            expected = pd.Series([5.0, 7.0])
+        else:
+            expected = pd.Series([4.0, 8.0])
+
+        result = df.agg(f, axis, *args, **kwargs)
+
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("num_cols", [2, 3, 5])
     def test_frequency_is_original(self, num_cols):

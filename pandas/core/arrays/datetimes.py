@@ -6,6 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
+    BaseOffset,
     NaT,
     NaTType,
     Resolution,
@@ -283,7 +284,9 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
             type(self)._validate_frequency(self, freq)
 
     @classmethod
-    def _simple_new(cls, values, freq=None, dtype=DT64NS_DTYPE):
+    def _simple_new(
+        cls, values, freq: Optional[BaseOffset] = None, dtype=DT64NS_DTYPE
+    ) -> "DatetimeArray":
         assert isinstance(values, np.ndarray)
         if values.dtype != DT64NS_DTYPE:
             assert values.dtype == "i8"
@@ -296,7 +299,11 @@ class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps
         return result
 
     @classmethod
-    def _from_sequence(
+    def _from_sequence(cls, scalars, dtype=None, copy: bool = False):
+        return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_sequence_not_strict(
         cls,
         data,
         dtype=None,
@@ -2009,6 +2016,7 @@ def objects_to_datetime64ns(
     utc : bool, default False
         Whether to convert timezone-aware timestamps to UTC.
     errors : {'raise', 'ignore', 'coerce'}
+    require_iso8601 : bool, default False
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.

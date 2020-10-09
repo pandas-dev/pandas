@@ -26,7 +26,7 @@ from pandas import DataFrame
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from pandas.core.indexes.multi import MultiIndex  # noqa: F401
+    from pandas.core.indexes.multi import MultiIndex
 
 loads = json.loads
 
