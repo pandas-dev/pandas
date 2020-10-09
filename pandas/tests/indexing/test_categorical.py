@@ -650,24 +650,22 @@ class TestCategoricalIndex:
         expected = self.df.iloc[[2, 3, 4]]
         tm.assert_frame_equal(result, expected)
 
-    def test_reindexing_with_missing_values(self):
+    @pytest.mark.parametrize(
+        "codes", ([[0, 0, 1, 1], [0, 1, 0, 1]], [[0, 0, -1, 1], [0, 1, 0, 1]])
+    )
+    def test_reindexing_with_missing_values(self, codes):
         # GH 24206
 
         index = pd.MultiIndex(
-            [pd.CategoricalIndex(["A", "B"]), pd.CategoricalIndex(["a", "b"])],
-            [[0, 0, -1, 1], [0, 1, 0, 1]],
+            [pd.CategoricalIndex(["A", "B"]), pd.CategoricalIndex(["a", "b"])], codes
         )
         data = {"col": range(len(index))}
         df = DataFrame(data=data, index=index)
 
         expected = pd.DataFrame(
             {
-                "level_0": pd.Categorical.from_codes(
-                    [0, 0, 1, 1], categories=["A", "B"]
-                ),
-                "level_1": pd.Categorical.from_codes(
-                    [0, 1, 0, 1], categories=["a", "b"]
-                ),
+                "level_0": pd.Categorical.from_codes(codes[0], categories=["A", "B"]),
+                "level_1": pd.Categorical.from_codes(codes[1], categories=["a", "b"]),
                 "col": range(4),
             }
         )
