@@ -42,7 +42,7 @@ class TestDataFrameDiff:
     def test_diff_timedelta64_with_nat(self):
         # GH#32441
         arr = np.arange(6).reshape(3, 2).astype("timedelta64[ns]")
-        arr[:, 0] = "NaT"
+        arr[:, 0] = np.timedelta64("NaT", "ns")
 
         df = pd.DataFrame(arr)
         result = df.diff(1, axis=0)
