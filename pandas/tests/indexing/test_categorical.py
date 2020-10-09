@@ -660,8 +660,6 @@ class TestCategoricalIndex:
         data = {"col": range(len(index))}
         df = DataFrame(data=data, index=index)
 
-        res = df.reset_index()
-
         expected = pd.DataFrame(
             {
                 "level_0": pd.Categorical.from_codes(
@@ -674,6 +672,11 @@ class TestCategoricalIndex:
             }
         )
 
+        res = df.reset_index()
+        tm.assert_frame_equal(res, expected)
+
+        # roundtrip
+        res = expected.set_index(["level_0", "level_1"]).reset_index()
         tm.assert_frame_equal(res, expected)
 
     def test_loc_and_at_with_categorical_index(self):
