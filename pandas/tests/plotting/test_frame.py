@@ -2658,8 +2658,6 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
-        import matplotlib.pyplot as plt
-
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
         df = DataFrame(d)
         d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
@@ -2674,39 +2672,6 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = _check_plot_works(df.plot, yerr=df_err, loglog=True)
         self._check_has_errorbars(ax, xerr=0, yerr=2)
-
-        kinds = ["line", "bar", "barh"]
-        for kind in kinds:
-            ax = _check_plot_works(df.plot, yerr=df_err["x"], kind=kind)
-            self._check_has_errorbars(ax, xerr=0, yerr=2)
-
-            ax = _check_plot_works(df.plot, yerr=d_err, kind=kind)
-            self._check_has_errorbars(ax, xerr=0, yerr=2)
-
-            ax = _check_plot_works(df.plot, yerr=df_err, xerr=df_err, kind=kind)
-            self._check_has_errorbars(ax, xerr=2, yerr=2)
-
-            ax = _check_plot_works(
-                df.plot, yerr=df_err["x"], xerr=df_err["x"], kind=kind
-            )
-            self._check_has_errorbars(ax, xerr=2, yerr=2)
-
-            ax = _check_plot_works(df.plot, xerr=0.2, yerr=0.2, kind=kind)
-            self._check_has_errorbars(ax, xerr=2, yerr=2)
-
-            with tm.assert_produces_warning(UserWarning):
-                # _check_plot_works as this function creates
-                # subplots inside, which leads to warnings like this:
-                # UserWarning: To output multiple subplots,
-                # the figure containing the passed axes is being cleared
-                # Similar warnings were observed in GH #13188
-                _check_plot_works(
-                    df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind
-                )
-                fig = plt.gcf()
-                axes = fig.get_axes()
-                for ax in axes:
-                    self._check_has_errorbars(ax, xerr=1, yerr=1)
 
         ax = _check_plot_works(
             (df + 1).plot, yerr=df_err, xerr=df_err, kind="bar", log=True
@@ -2724,8 +2689,10 @@ class TestDataFramePlots(TestPlotBase):
         for yerr in ["yerr", "誤差"]:
             s_df = df.copy()
             s_df[yerr] = np.ones(12) * 0.2
+
             ax = _check_plot_works(s_df.plot, yerr=yerr)
             self._check_has_errorbars(ax, xerr=0, yerr=2)
+
             ax = _check_plot_works(s_df.plot, y="y", x="x", yerr=yerr)
             self._check_has_errorbars(ax, xerr=0, yerr=1)
 
@@ -2735,6 +2702,45 @@ class TestDataFramePlots(TestPlotBase):
         df_err = DataFrame({"x": ["zzz"] * 12, "y": ["zzz"] * 12})
         with pytest.raises((ValueError, TypeError)):
             df.plot(yerr=df_err)
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
+    def test_errorbar_plot_different_kinds(self, kind):
+        import matplotlib.pyplot as plt
+
+        d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
+        df = DataFrame(d)
+        d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
+        df_err = DataFrame(d_err)
+
+        ax = _check_plot_works(df.plot, yerr=df_err["x"], kind=kind)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
+
+        ax = _check_plot_works(df.plot, yerr=d_err, kind=kind)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
+
+        ax = _check_plot_works(df.plot, yerr=df_err, xerr=df_err, kind=kind)
+        self._check_has_errorbars(ax, xerr=2, yerr=2)
+
+        ax = _check_plot_works(df.plot, yerr=df_err["x"], xerr=df_err["x"], kind=kind)
+        self._check_has_errorbars(ax, xerr=2, yerr=2)
+
+        ax = _check_plot_works(df.plot, xerr=0.2, yerr=0.2, kind=kind)
+        self._check_has_errorbars(ax, xerr=2, yerr=2)
+
+        with tm.assert_produces_warning(UserWarning):
+            # _check_plot_works as this function creates
+            # subplots inside, which leads to warnings like this:
+            # UserWarning: To output multiple subplots,
+            # the figure containing the passed axes is being cleared
+            # Similar warnings were observed in GH #13188
+            _check_plot_works(
+                df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind
+            )
+            fig = plt.gcf()
+            axes = fig.get_axes()
+            for ax in axes:
+                self._check_has_errorbars(ax, xerr=1, yerr=1)
 
     @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
     @pytest.mark.slow
