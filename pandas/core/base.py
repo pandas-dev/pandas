@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Callable, Dict, FrozenSet, List, Optional, Union, cast
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, TypeVar, Union, cast
 
 import numpy as np
 
@@ -42,6 +42,8 @@ _indexops_doc_kwargs = dict(
     unique="IndexOpsMixin",
     duplicated="IndexOpsMixin",
 )
+
+_T = TypeVar("_T", bound="IndexOpsMixin")
 
 
 class PandasObject(DirNamesMixin):
@@ -643,7 +645,7 @@ class IndexOpsMixin(OpsMixin):
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
-    def transpose(self, *args, **kwargs):
+    def transpose(self: _T, *args, **kwargs) -> _T:
         """
         Return the transpose, which is by definition self.
 
@@ -892,16 +894,14 @@ class IndexOpsMixin(OpsMixin):
         if copy or na_value is not lib.no_default:
             result = result.copy()
             if na_value is not lib.no_default:
-                # pandas\core\base.py:849: error: "IndexOpsMixin" has no
-                # attribute "isna"  [attr-defined]
-                result[self.isna()] = na_value  # type: ignore[attr-defined]
+                result[self.isna()] = na_value
         return result
 
     @property
-    def empty(self):
+    def empty(self) -> bool:
         return not self.size
 
-    def max(self, axis=None, skipna=True, *args, **kwargs):
+    def max(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 
@@ -946,7 +946,7 @@ class IndexOpsMixin(OpsMixin):
         return nanops.nanmax(self._values, skipna=skipna)
 
     @doc(op="max", oppose="min", value="largest")
-    def argmax(self, axis=None, skipna=True, *args, **kwargs):
+    def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         """
         Return int position of the {value} value in the Series.
 
@@ -1001,7 +1001,7 @@ class IndexOpsMixin(OpsMixin):
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmax(self._values, skipna=skipna)
 
-    def min(self, axis=None, skipna=True, *args, **kwargs):
+    def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -1046,7 +1046,7 @@ class IndexOpsMixin(OpsMixin):
         return nanops.nanmin(self._values, skipna=skipna)
 
     @doc(argmax, op="min", oppose="max", value="smallest")
-    def argmin(self, axis=None, skipna=True, *args, **kwargs):
+    def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmin(self._values, skipna=skipna)
@@ -1100,6 +1100,9 @@ class IndexOpsMixin(OpsMixin):
         Return if I have any nans; enables various perf speedups.
         """
         return bool(isna(self).any())
+
+    def isna(self):
+        return isna(self._values)
 
     def _reduce(
         self,
@@ -1222,7 +1225,12 @@ class IndexOpsMixin(OpsMixin):
         return new_values
 
     def value_counts(
-        self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
+        self,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        bins=None,
+        dropna: bool = True,
     ):
         """
         Return a Series containing counts of unique values.
@@ -1572,10 +1580,6 @@ class IndexOpsMixin(OpsMixin):
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):
-        if isinstance(self, ABCIndexClass):
-            if self.is_unique:
-                return self._shallow_copy()
-
         duplicated = self.duplicated(keep=keep)
         # pandas\core\base.py:1507: error: Value of type "IndexOpsMixin" is not
         # indexable  [index]
@@ -1583,16 +1587,4 @@ class IndexOpsMixin(OpsMixin):
         return result
 
     def duplicated(self, keep="first"):
-        if isinstance(self, ABCIndexClass):
-            if self.is_unique:
-                return np.zeros(len(self), dtype=bool)
-            return duplicated(self, keep=keep)
-        else:
-            # pandas\core\base.py:1516: error: "IndexOpsMixin" has no attribute
-            # "_constructor"  [attr-defined]
-            return self._constructor(  # type: ignore[attr-defined]
-                duplicated(self, keep=keep),
-                # pandas\core\base.py:1517: error: "IndexOpsMixin" has no attribute
-                # "index"  [attr-defined]
-                index=self.index,  # type: ignore[attr-defined]
-            ).__finalize__(self, method="duplicated")
+        return duplicated(self._values, keep=keep)
