@@ -1,10 +1,11 @@
+from datetime import timedelta
 import numbers
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import Timedelta, iNaT, lib, missing as libmissing
 from pandas._typing import ArrayLike, DtypeObj
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
@@ -25,6 +26,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
+from pandas.core.arraylike import OpsMixin
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
@@ -264,7 +266,7 @@ def coerce_to_array(
     return values, mask
 
 
-class IntegerArray(BaseMaskedArray):
+class IntegerArray(OpsMixin, BaseMaskedArray):
     """
     Array of integer (optional missing) values.
 
@@ -492,60 +494,50 @@ class IntegerArray(BaseMaskedArray):
             data[self._mask] = data.min() - 1
         return data
 
-    @classmethod
-    def _create_comparison_method(cls, op):
-        op_name = op.__name__
+    def _cmp_method(self, other, op):
+        from pandas.core.arrays import BaseMaskedArray, BooleanArray
 
-        @unpack_zerodim_and_defer(op.__name__)
-        def cmp_method(self, other):
-            from pandas.core.arrays import BaseMaskedArray, BooleanArray
+        mask = None
 
-            mask = None
+        if isinstance(other, BaseMaskedArray):
+            other, mask = other._data, other._mask
 
-            if isinstance(other, BaseMaskedArray):
-                other, mask = other._data, other._mask
+        elif is_list_like(other):
+            other = np.asarray(other)
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
+            if len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
 
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match to compare")
+        if other is libmissing.NA:
+            # numpy does not handle pd.NA well as "other" scalar (it returns
+            # a scalar False instead of an array)
+            # This may be fixed by NA.__array_ufunc__. Revisit this check
+            # once that's implemented.
+            result = np.zeros(self._data.shape, dtype="bool")
+            mask = np.ones(self._data.shape, dtype="bool")
+        else:
+            with warnings.catch_warnings():
+                # numpy may show a FutureWarning:
+                #     elementwise comparison failed; returning scalar instead,
+                #     but in the future will perform elementwise comparison
+                # before returning NotImplemented. We fall back to the correct
+                # behavior today, so that should be fine to ignore.
+                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                with np.errstate(all="ignore"):
+                    method = getattr(self._data, f"__{op.__name__}__")
+                    result = method(other)
 
-            if other is libmissing.NA:
-                # numpy does not handle pd.NA well as "other" scalar (it returns
-                # a scalar False instead of an array)
-                # This may be fixed by NA.__array_ufunc__. Revisit this check
-                # once that's implemented.
-                result = np.zeros(self._data.shape, dtype="bool")
-                mask = np.ones(self._data.shape, dtype="bool")
-            else:
-                with warnings.catch_warnings():
-                    # numpy may show a FutureWarning:
-                    #     elementwise comparison failed; returning scalar instead,
-                    #     but in the future will perform elementwise comparison
-                    # before returning NotImplemented. We fall back to the correct
-                    # behavior today, so that should be fine to ignore.
-                    warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                    with np.errstate(all="ignore"):
-                        method = getattr(self._data, f"__{op_name}__")
-                        result = method(other)
+                if result is NotImplemented:
+                    result = invalid_comparison(self._data, other, op)
 
-                    if result is NotImplemented:
-                        result = invalid_comparison(self._data, other, op)
+        # nans propagate
+        if mask is None:
+            mask = self._mask.copy()
+        else:
+            mask = self._mask | mask
 
-            # nans propagate
-            if mask is None:
-                mask = self._mask.copy()
-            else:
-                mask = self._mask | mask
-
-            return BooleanArray(result, mask)
-
-        name = f"__{op.__name__}__"
-        return set_function_name(cmp_method, name, cls)
+        return BooleanArray(result, mask)
 
     def sum(self, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
@@ -581,6 +573,12 @@ class IntegerArray(BaseMaskedArray):
             result[mask] = np.nan
             return result
 
+        if result.dtype == "timedelta64[ns]":
+            from pandas.core.arrays import TimedeltaArray
+
+            result[mask] = iNaT
+            return TimedeltaArray._simple_new(result)
+
         return type(self)(result, mask, copy=False)
 
     @classmethod
@@ -608,6 +606,9 @@ class IntegerArray(BaseMaskedArray):
                     raise ValueError("Lengths must match")
                 if not (is_float_dtype(other) or is_integer_dtype(other)):
                     raise TypeError("can only perform ops with numeric values")
+
+            elif isinstance(other, (timedelta, np.timedelta64)):
+                other = Timedelta(other)
 
             else:
                 if not (is_float(other) or is_integer(other) or other is libmissing.NA):
@@ -659,7 +660,6 @@ class IntegerArray(BaseMaskedArray):
 
 
 IntegerArray._add_arithmetic_ops()
-IntegerArray._add_comparison_ops()
 
 
 _dtype_docstring = """
