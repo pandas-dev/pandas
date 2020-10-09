@@ -447,10 +447,12 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
 def maybe_casted_values(index, codes=None):
     """
     Convert an index, given directly or as a pair (level, code), to a 1D array.
+
     Parameters
     ----------
     index : Index
     codes : sequence of integers (optional)
+
     Returns
     -------
     ExtensionArray or ndarray
