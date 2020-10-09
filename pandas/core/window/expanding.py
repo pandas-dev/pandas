@@ -340,13 +340,3 @@ class ExpandingGroupby(WindowGroupByMixin, Expanding):
             window_indexer=ExpandingIndexer,
         )
         return window_indexer
-
-    def _get_cython_func_type(self, func: str) -> Callable:
-        """
-        Return the cython function type.
-
-        RollingGroupby needs to always use "variable" algorithms since processing
-        the data in group order may not be monotonic with the data which
-        "fixed" algorithms assume
-        """
-        return self._get_roll_func(f"{func}_variable")
