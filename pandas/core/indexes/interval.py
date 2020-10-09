@@ -1023,7 +1023,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if sort is None:
             taken = taken.sort_values()
 
-        return taken
+        return self._wrap_setop_result(other, taken)
 
     def _intersection_unique(self, other: "IntervalIndex") -> "IntervalIndex":
         """
@@ -1118,9 +1118,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def __ge__(self, other):
         return Index.__ge__(self, other)
-
-
-IntervalIndex._add_logical_methods_disabled()
 
 
 def _is_valid_endpoint(endpoint) -> bool:
