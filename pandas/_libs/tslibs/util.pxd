@@ -1,6 +1,7 @@
 
 from cpython.object cimport PyTypeObject
 
+
 cdef extern from *:
     """
     PyObject* char_to_string(const char* data) {
@@ -26,7 +27,8 @@ cdef extern from "Python.h":
     const char* PyUnicode_AsUTF8AndSize(object obj,
                                         Py_ssize_t* length) except NULL
 
-from numpy cimport int64_t, float64_t
+from numpy cimport float64_t, int64_t
+
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type

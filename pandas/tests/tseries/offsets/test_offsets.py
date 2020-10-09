@@ -4441,14 +4441,7 @@ def test_week_add_invalid():
 
 
 @pytest.mark.parametrize(
-    "attribute",
-    [
-        "hours",
-        "days",
-        "weeks",
-        "months",
-        "years",
-    ],
+    "attribute", ["hours", "days", "weeks", "months", "years"],
 )
 def test_dateoffset_immutable(attribute):
     offset = DateOffset(**{attribute: 0})
