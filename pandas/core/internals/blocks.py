@@ -2066,7 +2066,7 @@ class IntBlock(NumericBlock):
         return is_integer(element) or (is_float(element) and element.is_integer())
 
 
-class DatetimeLikeBlockMixin:
+class DatetimeLikeBlockMixin(Block):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
     @property
@@ -2098,6 +2098,32 @@ class DatetimeLikeBlockMixin:
         # TODO(EA2D): this can be removed if we ever have 2D EA
         return self.array_values().reshape(self.shape)[key]
 
+    def diff(self, n: int, axis: int = 0) -> List["Block"]:
+        """
+        1st discrete difference.
+
+        Parameters
+        ----------
+        n : int
+            Number of periods to diff.
+        axis : int, default 0
+            Axis to diff upon.
+
+        Returns
+        -------
+        A list with a new TimeDeltaBlock.
+
+        Notes
+        -----
+        The arguments here are mimicking shift so they are called correctly
+        by apply.
+        """
+        # TODO(EA2D): reshape not necessary with 2D EAs
+        values = self.array_values().reshape(self.shape)
+
+        new_values = values - values.shift(n, axis=axis)
+        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
+
     def shift(self, periods, axis=0, fill_value=None):
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
         values = self.array_values()
@@ -2105,7 +2131,7 @@ class DatetimeLikeBlockMixin:
         return self.make_block_same_class(new_values)
 
 
-class DatetimeBlock(DatetimeLikeBlockMixin, Block):
+class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_datetime = True
 
@@ -2211,6 +2237,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     internal_values = Block.internal_values
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
+    diff = DatetimeBlock.diff
     fill_value = np.datetime64("NaT", "ns")
     array_values = ExtensionBlock.array_values
 
@@ -2281,43 +2308,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # NB: this is different from np.asarray(self.values), since that
         #  return an object-dtype ndarray of Timestamps.
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
-
-    def diff(self, n: int, axis: int = 0) -> List["Block"]:
-        """
-        1st discrete difference.
-
-        Parameters
-        ----------
-        n : int
-            Number of periods to diff.
-        axis : int, default 0
-            Axis to diff upon.
-
-        Returns
-        -------
-        A list with a new TimeDeltaBlock.
-
-        Notes
-        -----
-        The arguments here are mimicking shift so they are called correctly
-        by apply.
-        """
-        if axis == 0:
-            # TODO(EA2D): special case not needed with 2D EAs
-            # Cannot currently calculate diff across multiple blocks since this
-            # function is invoked via apply
-            raise NotImplementedError
-
-        if n == 0:
-            # Fastpath avoids making a copy in `shift`
-            new_values = np.zeros(self.values.shape, dtype=np.int64)
-        else:
-            new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
-
-        # Reshape the new_values like how algos.diff does for timedelta data
-        new_values = new_values.reshape(1, len(new_values))
-        new_values = new_values.astype("timedelta64[ns]")
-        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
