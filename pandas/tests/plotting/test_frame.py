@@ -48,7 +48,6 @@ class TestDataFramePlots(TestPlotBase):
         for ax, exp in zip(axes, expected):
             self._check_visible(ax.get_xticklabels(), visible=exp)
 
-    @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_plot(self):
         from pandas.plotting._matplotlib.compat import mpl_ge_3_1_0
@@ -66,6 +65,7 @@ class TestDataFramePlots(TestPlotBase):
 
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(df.plot, subplots=True, use_index=False)
+        self._check_ticks_props(axes, xrot=0)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
@@ -78,7 +78,8 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 
-        _check_plot_works(df.plot, use_index=True)
+        ax = _check_plot_works(df.plot, use_index=True)
+        self._check_ticks_props(ax, xrot=0)
         _check_plot_works(df.plot, sort_columns=False)
         _check_plot_works(df.plot, yticks=[1, 5, 10])
         _check_plot_works(df.plot, xticks=[1, 5, 10])
@@ -110,7 +111,8 @@ class TestDataFramePlots(TestPlotBase):
 
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
-        _check_plot_works(df.plot, use_index=True)
+        ax = _check_plot_works(df.plot, use_index=True)
+        self._check_ticks_props(ax, xrot=0)
 
         # unicode
         index = MultiIndex.from_tuples(
@@ -304,12 +306,14 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(x_compat=True)
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+        self._check_ticks_props(ax, xrot=30)
 
         tm.close()
         pd.plotting.plot_params["xaxis.compat"] = True
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+        self._check_ticks_props(ax, xrot=30)
 
         tm.close()
         pd.plotting.plot_params["x_compat"] = False
@@ -325,12 +329,14 @@ class TestDataFramePlots(TestPlotBase):
             ax = df.plot()
             lines = ax.get_lines()
             assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+            self._check_ticks_props(ax, xrot=30)
 
         tm.close()
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
         assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+        self._check_ticks_props(ax, xrot=0)
 
     def test_period_compat(self):
         # GH 9012
@@ -486,7 +492,6 @@ class TestDataFramePlots(TestPlotBase):
         expected = [False, False, True, True]
         self._assert_xtickslabels_visibility(axes, expected)
 
-    @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_subplots_timeseries(self):
         idx = date_range(start="2014-07-01", freq="M", periods=10)
@@ -3443,7 +3448,7 @@ class TestDataFramePlots(TestPlotBase):
 
 def _generate_4_axes_via_gridspec():
     import matplotlib as mpl
-    import matplotlib.gridspec  # noqa
+    import matplotlib.gridspec
     import matplotlib.pyplot as plt
 
     gs = mpl.gridspec.GridSpec(2, 2)

@@ -23,11 +23,12 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
+from pandas.core.arraylike import OpsMixin
 
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 @register_extension_dtype
@@ -58,8 +59,9 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
+    # mypy: https://github.com/python/mypy/issues/4125
     @property
-    def type(self) -> Type[np.bool_]:
+    def type(self) -> Type:  # type: ignore[override]
         return np.bool_
 
     @property
@@ -98,7 +100,7 @@ class BooleanDtype(BaseMaskedDtype):
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -201,7 +203,7 @@ def coerce_to_array(
     return values, mask
 
 
-class BooleanArray(BaseMaskedArray):
+class BooleanArray(OpsMixin, BaseMaskedArray):
     """
     Array of boolean (True/False) data with missing values.
 
@@ -375,7 +377,10 @@ class BooleanArray(BaseMaskedArray):
 
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
-            return BooleanArray(values, mask, copy=False)
+            if not copy:
+                return self
+            else:
+                return BooleanArray(values, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -599,53 +604,44 @@ class BooleanArray(BaseMaskedArray):
         name = f"__{op.__name__}__"
         return set_function_name(logical_method, name, cls)
 
-    @classmethod
-    def _create_comparison_method(cls, op):
-        @ops.unpack_zerodim_and_defer(op.__name__)
-        def cmp_method(self, other):
-            from pandas.arrays import IntegerArray
+    def _cmp_method(self, other, op):
+        from pandas.arrays import FloatingArray, IntegerArray
 
-            if isinstance(other, IntegerArray):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
+        if isinstance(other, (IntegerArray, FloatingArray)):
+            return NotImplemented
 
-            mask = None
+        mask = None
 
-            if isinstance(other, BooleanArray):
-                other, mask = other._data, other._mask
+        if isinstance(other, BooleanArray):
+            other, mask = other._data, other._mask
 
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match to compare")
+        elif is_list_like(other):
+            other = np.asarray(other)
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
+            if len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
 
-            if other is libmissing.NA:
-                # numpy does not handle pd.NA well as "other" scalar (it returns
-                # a scalar False instead of an array)
-                result = np.zeros_like(self._data)
-                mask = np.ones_like(self._data)
+        if other is libmissing.NA:
+            # numpy does not handle pd.NA well as "other" scalar (it returns
+            # a scalar False instead of an array)
+            result = np.zeros_like(self._data)
+            mask = np.ones_like(self._data)
+        else:
+            # numpy will show a DeprecationWarning on invalid elementwise
+            # comparisons, this will raise in the future
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                with np.errstate(all="ignore"):
+                    result = op(self._data, other)
+
+            # nans propagate
+            if mask is None:
+                mask = self._mask.copy()
             else:
-                # numpy will show a DeprecationWarning on invalid elementwise
-                # comparisons, this will raise in the future
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                    with np.errstate(all="ignore"):
-                        result = op(self._data, other)
+                mask = self._mask | mask
 
-                # nans propagate
-                if mask is None:
-                    mask = self._mask.copy()
-                else:
-                    mask = self._mask | mask
-
-            return BooleanArray(result, mask, copy=False)
-
-        name = f"__{op.__name__}"
-        return set_function_name(cmp_method, name, cls)
+        return BooleanArray(result, mask, copy=False)
 
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
 
@@ -738,5 +734,4 @@ class BooleanArray(BaseMaskedArray):
 
 
 BooleanArray._add_logical_ops()
-BooleanArray._add_comparison_ops()
 BooleanArray._add_arithmetic_ops()

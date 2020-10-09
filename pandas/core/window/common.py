@@ -7,7 +7,7 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.base import GotItemMixin
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.shared_docs import _shared_docs
 
@@ -43,7 +43,7 @@ def _dispatch(name: str, *args, **kwargs):
     return outer
 
 
-class WindowGroupByMixin(GroupByMixin):
+class WindowGroupByMixin(GotItemMixin):
     """
     Provide the groupby facilities.
     """
@@ -58,7 +58,6 @@ class WindowGroupByMixin(GroupByMixin):
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
 
-    count = _dispatch("count")
     corr = _dispatch("corr", other=None, pairwise=None)
     cov = _dispatch("cov", other=None, pairwise=None)
 

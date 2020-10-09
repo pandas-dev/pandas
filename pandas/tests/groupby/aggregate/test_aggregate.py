@@ -564,7 +564,7 @@ class TestNamedAggregationSeries:
     def test_named_agg_nametuple(self, inp):
         # GH34422
         s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
-        msg = f"func is expected but recieved {type(inp).__name__}"
+        msg = f"func is expected but received {type(inp).__name__}"
         with pytest.raises(TypeError, match=msg):
             s.groupby(s.values).agg(a=inp)
 
@@ -1153,3 +1153,18 @@ def test_nonagg_agg():
     expected = g.agg("cumsum")
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_agg_no_suffix_index():
+    # GH36189
+    df = pd.DataFrame([[4, 9]] * 3, columns=["A", "B"])
+    result = df.agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    expected = pd.DataFrame(
+        {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # test Series case
+    result = df["A"].agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    expected = pd.Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"], name="A")
+    tm.assert_series_equal(result, expected)

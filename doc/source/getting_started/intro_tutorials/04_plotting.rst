@@ -40,8 +40,7 @@ in respectively Paris, Antwerp and London.
 
 .. ipython:: python
 
-    air_quality = pd.read_csv("data/air_quality_no2.csv",
-                              index_col=0, parse_dates=True)
+    air_quality = pd.read_csv("data/air_quality_no2.csv", index_col=0, parse_dates=True)
     air_quality.head()
 
 .. note::
@@ -112,9 +111,7 @@ I want to visually compare the :math:`N0_2` values measured in London versus Par
 .. ipython:: python
 
     @savefig 04_airqual_scatter.png
-    air_quality.plot.scatter(x="station_london",
-                             y="station_paris",
-                             alpha=0.5)
+    air_quality.plot.scatter(x="station_london", y="station_paris", alpha=0.5)
 
 .. raw:: html
 
@@ -127,8 +124,11 @@ standard Python to get an overview of the available plot methods:
 
 .. ipython:: python
 
-    [method_name for method_name in dir(air_quality.plot)
-        if not method_name.startswith("_")]
+    [
+        method_name
+        for method_name in dir(air_quality.plot)
+        if not method_name.startswith("_")
+    ]
 
 .. note::
     In many development environments as well as ipython and
@@ -167,7 +167,7 @@ I want each of the columns in a separate subplot.
     @savefig 04_airqual_area_subplot.png
     axs = air_quality.plot.area(figsize=(12, 4), subplots=True)
 
-Separate subplots for each of the data columns is supported by the ``subplots`` argument
+Separate subplots for each of the data columns are supported by the ``subplots`` argument
 of the ``plot`` functions. The builtin options available in each of the pandas plot
 functions that are worthwhile to have a look.
 
@@ -196,24 +196,25 @@ I want to further customize, extend or save the resulting plot.
 
 .. ipython:: python
 
-    fig, axs = plt.subplots(figsize=(12, 4));
-    air_quality.plot.area(ax=axs);
+    fig, axs = plt.subplots(figsize=(12, 4))
+    air_quality.plot.area(ax=axs)
     @savefig 04_airqual_customized.png
-    axs.set_ylabel("NO$_2$ concentration");
+    axs.set_ylabel("NO$_2$ concentration")
     fig.savefig("no2_concentrations.png")
 
 .. ipython:: python
    :suppress:
 
    import os
-   os.remove('no2_concentrations.png')
+
+   os.remove("no2_concentrations.png")
 
 .. raw:: html
 
         </li>
     </ul>
 
-Each of the plot objects created by pandas are a
+Each of the plot objects created by pandas is a
 `matplotlib <https://matplotlib.org/>`__ object. As Matplotlib provides
 plenty of options to customize plots, making the link between pandas and
 Matplotlib explicit enables all the power of matplotlib to the plot.
