@@ -140,11 +140,11 @@ class TestAstype:
     @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Int16"])
     @pytest.mark.parametrize("val", [np.nan, NA])
     def test_astype_cast_via_loc_nan_int(self, val, dtype):
-        # see GH#31861
+        # GH31861
         expected = DataFrame({"a": ["foo"], "b": integer_array([val], dtype=dtype)})
-        result = DataFrame({"a": ["foo"], "b": [val]})
-        result.loc[:, "b"] = result.loc[:, "b"].astype(dtype)
-        tm.assert_frame_equal(result, expected)
+        df = DataFrame({"a": ["foo"], "b": [val]})
+        df.loc[:, "b"] = df.loc[:, "b"].astype(dtype)
+        tm.assert_frame_equal(df, expected)
 
     def test_astype_str(self):
         # see GH#9757
