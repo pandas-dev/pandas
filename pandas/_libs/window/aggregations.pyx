@@ -90,62 +90,6 @@ cdef bint is_monotonic_start_end_bounds(
 #               Series: Prentice-Hall Series in Automatic Computation
 
 # ----------------------------------------------------------------------
-# Rolling count
-# this is only an impl for index not None, IOW, freq aware
-
-
-def roll_count(
-    ndarray[float64_t] values,
-    ndarray[int64_t] start,
-    ndarray[int64_t] end,
-    int64_t minp,
-):
-    cdef:
-        float64_t val, count_x = 0.0
-        int64_t s, e, nobs, N = len(values)
-        Py_ssize_t i, j
-        ndarray[float64_t] output
-
-    output = np.empty(N, dtype=float)
-
-    with nogil:
-
-        for i in range(0, N):
-            s = start[i]
-            e = end[i]
-
-            if i == 0:
-
-                # setup
-                count_x = 0.0
-                for j in range(s, e):
-                    val = values[j]
-                    if notnan(val):
-                        count_x += 1.0
-
-            else:
-
-                # calculate deletes
-                for j in range(start[i - 1], s):
-                    val = values[j]
-                    if notnan(val):
-                        count_x -= 1.0
-
-                # calculate adds
-                for j in range(end[i - 1], e):
-                    val = values[j]
-                    if notnan(val):
-                        count_x += 1.0
-
-            if count_x >= minp:
-                output[i] = count_x
-            else:
-                output[i] = NaN
-
-    return output
-
-
-# ----------------------------------------------------------------------
 # Rolling sum
 
 
@@ -193,8 +137,8 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
         sum_x[0] = t
 
 
-def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                      ndarray[int64_t] end, int64_t minp):
+def roll_sum(ndarray[float64_t] values, ndarray[int64_t] start,
+             ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t sum_x = 0, compensation_add = 0, compensation_remove = 0
         int64_t s, e
@@ -236,36 +180,6 @@ def roll_sum_variable(ndarray[float64_t] values, ndarray[int64_t] start,
 
     return output
 
-
-def roll_sum_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
-                   ndarray[int64_t] end, int64_t minp, int64_t win):
-    cdef:
-        float64_t val, prev_x, sum_x = 0, compensation_add = 0, compensation_remove = 0
-        int64_t range_endpoint
-        int64_t nobs = 0, i, N = len(values)
-        ndarray[float64_t] output
-
-    output = np.empty(N, dtype=float)
-
-    range_endpoint = int_max(minp, 1) - 1
-
-    with nogil:
-
-        for i in range(0, range_endpoint):
-            add_sum(values[i], &nobs, &sum_x, &compensation_add)
-            output[i] = NaN
-
-        for i in range(range_endpoint, N):
-            val = values[i]
-            add_sum(val, &nobs, &sum_x, &compensation_add)
-
-            if i > win - 1:
-                prev_x = values[i - win]
-                remove_sum(prev_x, &nobs, &sum_x, &compensation_remove)
-
-            output[i] = calc_sum(minp, nobs, sum_x)
-
-    return output
 
 # ----------------------------------------------------------------------
 # Rolling mean
@@ -324,36 +238,8 @@ cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
             neg_ct[0] = neg_ct[0] - 1
 
 
-def roll_mean_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
-                    ndarray[int64_t] end, int64_t minp, int64_t win):
-    cdef:
-        float64_t val, prev_x, sum_x = 0, compensation_add = 0, compensation_remove = 0
-        Py_ssize_t nobs = 0, i, neg_ct = 0, N = len(values)
-        ndarray[float64_t] output
-
-    output = np.empty(N, dtype=float)
-
-    with nogil:
-        for i in range(minp - 1):
-            val = values[i]
-            add_mean(val, &nobs, &sum_x, &neg_ct, &compensation_add)
-            output[i] = NaN
-
-        for i in range(minp - 1, N):
-            val = values[i]
-            add_mean(val, &nobs, &sum_x, &neg_ct, &compensation_add)
-
-            if i > win - 1:
-                prev_x = values[i - win]
-                remove_mean(prev_x, &nobs, &sum_x, &neg_ct, &compensation_remove)
-
-            output[i] = calc_mean(minp, nobs, neg_ct, sum_x)
-
-    return output
-
-
-def roll_mean_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                       ndarray[int64_t] end, int64_t minp):
+def roll_mean(ndarray[float64_t] values, ndarray[int64_t] start,
+              ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, compensation_add = 0, compensation_remove = 0, sum_x = 0
         int64_t s, e
@@ -414,7 +300,9 @@ cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
             result = 0
         else:
             result = ssqdm_x / (nobs - <float64_t>ddof)
-            if result < 0:
+            # Fix for numerical imprecision.
+            # Can be result < 0 once Kahan Summation is implemented
+            if result < 1e-15:
                 result = 0
     else:
         result = NaN
@@ -459,64 +347,8 @@ cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
             ssqdm_x[0] = 0
 
 
-def roll_var_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
-                   ndarray[int64_t] end, int64_t minp, int64_t win, int ddof=1):
-    """
-    Numerically stable implementation using Welford's method.
-    """
-    cdef:
-        float64_t mean_x = 0, ssqdm_x = 0, nobs = 0,
-        float64_t val, prev, delta, mean_x_old
-        int64_t s, e
-        Py_ssize_t i, j, N = len(values)
-        ndarray[float64_t] output
-
-    output = np.empty(N, dtype=float)
-
-    # Check for windows larger than array, addresses #7297
-    win = min(win, N)
-
-    with nogil:
-
-        # Over the first window, observations can only be added, never
-        # removed
-        for i in range(win):
-            add_var(values[i], &nobs, &mean_x, &ssqdm_x)
-            output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
-
-        # a part of Welford's method for the online variance-calculation
-        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-
-        # After the first window, observations can both be added and
-        # removed
-        for i in range(win, N):
-            val = values[i]
-            prev = values[i - win]
-
-            if notnan(val):
-                if prev == prev:
-
-                    # Adding one observation and removing another one
-                    delta = val - prev
-                    mean_x_old = mean_x
-
-                    mean_x += delta / nobs
-                    ssqdm_x += ((nobs - 1) * val
-                                + (nobs + 1) * prev
-                                - 2 * nobs * mean_x_old) * delta / nobs
-
-                else:
-                    add_var(val, &nobs, &mean_x, &ssqdm_x)
-            elif prev == prev:
-                remove_var(prev, &nobs, &mean_x, &ssqdm_x)
-
-            output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
-
-    return output
-
-
-def roll_var_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                      ndarray[int64_t] end, int64_t minp, int ddof=1):
+def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
+             ndarray[int64_t] end, int64_t minp, int ddof=1):
     """
     Numerically stable implementation using Welford's method.
     """
@@ -634,38 +466,8 @@ cdef inline void remove_skew(float64_t val, int64_t *nobs,
         xxx[0] = xxx[0] - val * val * val
 
 
-def roll_skew_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
-                    ndarray[int64_t] end, int64_t minp, int64_t win):
-    cdef:
-        float64_t val, prev
-        float64_t x = 0, xx = 0, xxx = 0
-        int64_t nobs = 0, i, j, N = len(values)
-        int64_t s, e
-        ndarray[float64_t] output
-
-    output = np.empty(N, dtype=float)
-
-    with nogil:
-        for i in range(minp - 1):
-            val = values[i]
-            add_skew(val, &nobs, &x, &xx, &xxx)
-            output[i] = NaN
-
-        for i in range(minp - 1, N):
-            val = values[i]
-            add_skew(val, &nobs, &x, &xx, &xxx)
-
-            if i > win - 1:
-                prev = values[i - win]
-                remove_skew(prev, &nobs, &x, &xx, &xxx)
-
-            output[i] = calc_skew(minp, nobs, x, xx, xxx)
-
-    return output
-
-
-def roll_skew_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                       ndarray[int64_t] end, int64_t minp):
+def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
+              ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0
@@ -789,37 +591,8 @@ cdef inline void remove_kurt(float64_t val, int64_t *nobs,
         xxxx[0] = xxxx[0] - val * val * val * val
 
 
-def roll_kurt_fixed(ndarray[float64_t] values, ndarray[int64_t] start,
-                    ndarray[int64_t] end, int64_t minp, int64_t win):
-    cdef:
-        float64_t val, prev
-        float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
-        int64_t nobs = 0, i, j, N = len(values)
-        int64_t s, e
-        ndarray[float64_t] output
-
-    output = np.empty(N, dtype=float)
-
-    with nogil:
-
-        for i in range(minp - 1):
-            add_kurt(values[i], &nobs, &x, &xx, &xxx, &xxxx)
-            output[i] = NaN
-
-        for i in range(minp - 1, N):
-            add_kurt(values[i], &nobs, &x, &xx, &xxx, &xxxx)
-
-            if i > win - 1:
-                prev = values[i - win]
-                remove_kurt(prev, &nobs, &x, &xx, &xxx, &xxxx)
-
-            output[i] = calc_kurt(minp, nobs, x, xx, xxx, xxxx)
-
-    return output
-
-
-def roll_kurt_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                       ndarray[int64_t] end, int64_t minp):
+def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
+              ndarray[int64_t] end, int64_t minp):
     cdef:
         float64_t val, prev
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
@@ -999,8 +772,8 @@ cdef inline numeric calc_mm(int64_t minp, Py_ssize_t nobs,
     return result
 
 
-def roll_max_fixed(float64_t[:] values, int64_t[:] start,
-                   int64_t[:] end, int64_t minp, int64_t win):
+def roll_max(ndarray[float64_t] values, ndarray[int64_t] start,
+             ndarray[int64_t] end, int64_t minp):
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1016,31 +789,11 @@ def roll_max_fixed(float64_t[:] values, int64_t[:] start,
             make the interval closed on the right, left,
             both or neither endpoints
     """
-    return _roll_min_max_fixed(values, minp, win, is_max=1)
+    return _roll_min_max(values, start, end, minp, is_max=1)
 
 
-def roll_max_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                      ndarray[int64_t] end, int64_t minp):
-    """
-    Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
-
-    Parameters
-    ----------
-    values : np.ndarray[np.float64]
-    window : int, size of rolling window
-    minp : if number of observations in window
-          is below this, output a NaN
-    index : ndarray, optional
-       index for window computation
-    closed : 'right', 'left', 'both', 'neither'
-            make the interval closed on the right, left,
-            both or neither endpoints
-    """
-    return _roll_min_max_variable(values, start, end, minp, is_max=1)
-
-
-def roll_min_fixed(float64_t[:] values, int64_t[:] start,
-                   int64_t[:] end, int64_t minp, int64_t win):
+def roll_min(ndarray[float64_t] values, ndarray[int64_t] start,
+             ndarray[int64_t] end, int64_t minp):
     """
     Moving min of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -1053,31 +806,14 @@ def roll_min_fixed(float64_t[:] values, int64_t[:] start,
     index : ndarray, optional
        index for window computation
     """
-    return _roll_min_max_fixed(values, minp, win, is_max=0)
+    return _roll_min_max(values, start, end, minp, is_max=0)
 
 
-def roll_min_variable(ndarray[float64_t] values, ndarray[int64_t] start,
-                      ndarray[int64_t] end, int64_t minp):
-    """
-    Moving min of 1d array of any numeric type along axis=0 ignoring NaNs.
-
-    Parameters
-    ----------
-    values : np.ndarray[np.float64]
-    window : int, size of rolling window
-    minp : if number of observations in window
-          is below this, output a NaN
-    index : ndarray, optional
-       index for window computation
-    """
-    return _roll_min_max_variable(values, start, end, minp, is_max=0)
-
-
-cdef _roll_min_max_variable(ndarray[numeric] values,
-                            ndarray[int64_t] starti,
-                            ndarray[int64_t] endi,
-                            int64_t minp,
-                            bint is_max):
+cdef _roll_min_max(ndarray[numeric] values,
+                   ndarray[int64_t] starti,
+                   ndarray[int64_t] endi,
+                   int64_t minp,
+                   bint is_max):
     cdef:
         numeric ai
         int64_t i, k, curr_win_size, start
@@ -1136,93 +872,6 @@ cdef _roll_min_max_variable(ndarray[numeric] values,
                 output[i] = calc_mm(minp, nobs, values[Q.front()])
             else:
                 output[i] = NaN
-
-    return output
-
-
-cdef _roll_min_max_fixed(numeric[:] values,
-                         int64_t minp,
-                         int64_t win,
-                         bint is_max):
-    cdef:
-        numeric ai
-        bint should_replace
-        int64_t i, removed, window_i,
-        Py_ssize_t nobs = 0, N = len(values)
-        int64_t* death
-        numeric* ring
-        numeric* minvalue
-        numeric* end
-        numeric* last
-        ndarray[float64_t, ndim=1] output
-
-    output = np.empty(N, dtype=float)
-    # setup the rings of death!
-    ring = <numeric *>malloc(win * sizeof(numeric))
-    death = <int64_t *>malloc(win * sizeof(int64_t))
-
-    end = ring + win
-    last = ring
-    minvalue = ring
-    ai = values[0]
-    minvalue[0] = init_mm(values[0], &nobs, is_max)
-    death[0] = win
-    nobs = 0
-
-    with nogil:
-
-        for i in range(N):
-            ai = init_mm(values[i], &nobs, is_max)
-
-            if i >= win:
-                remove_mm(values[i - win], &nobs)
-
-            if death[minvalue - ring] == i:
-                minvalue = minvalue + 1
-                if minvalue >= end:
-                    minvalue = ring
-
-            if is_max:
-                should_replace = ai >= minvalue[0]
-            else:
-                should_replace = ai <= minvalue[0]
-            if should_replace:
-
-                minvalue[0] = ai
-                death[minvalue - ring] = i + win
-                last = minvalue
-
-            else:
-
-                if is_max:
-                    should_replace = last[0] <= ai
-                else:
-                    should_replace = last[0] >= ai
-                while should_replace:
-                    if last == ring:
-                        last = end
-                    last -= 1
-                    if is_max:
-                        should_replace = last[0] <= ai
-                    else:
-                        should_replace = last[0] >= ai
-
-                last += 1
-                if last == end:
-                    last = ring
-                last[0] = ai
-                death[last - ring] = i + win
-
-            output[i] = calc_mm(minp, nobs, minvalue[0])
-
-        for i in range(minp - 1):
-            if numeric in cython.floating:
-                output[i] = NaN
-            else:
-                output[i] = 0
-
-        free(ring)
-        free(death)
 
     return output
 
@@ -1356,19 +1005,16 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
     return output
 
 
-def roll_generic_fixed(object obj,
-                       ndarray[int64_t] start, ndarray[int64_t] end,
-                       int64_t minp, int64_t win,
-                       int offset, object func, bint raw,
-                       object args, object kwargs):
+def roll_apply(object obj,
+               ndarray[int64_t] start, ndarray[int64_t] end,
+               int64_t minp,
+               object func, bint raw,
+               tuple args, dict kwargs):
     cdef:
-        ndarray[float64_t] output, counts, bufarr
+        ndarray[float64_t] output, counts
         ndarray[float64_t, cast=True] arr
-        float64_t *buf
-        float64_t *oldbuf
-        int64_t nobs = 0, i, j, s, e, N = len(start)
+        Py_ssize_t i, s, e, N = len(start), n = len(obj)
 
-    n = len(obj)
     if n == 0:
         return obj
 
@@ -1379,83 +1025,12 @@ def roll_generic_fixed(object obj,
         if not arr.flags.c_contiguous:
             arr = arr.copy('C')
 
-    counts = roll_sum_fixed(np.concatenate([np.isfinite(arr).astype(float),
-                                            np.array([0.] * offset)]),
-                            start, end, minp, win)[offset:]
+    counts = roll_sum(np.isfinite(arr).astype(float), start, end, minp)
 
     output = np.empty(N, dtype=float)
 
-    if not raw:
-        # series
-        for i in range(N):
-            if counts[i] >= minp:
-                sl = slice(int_max(i + offset - win + 1, 0),
-                           int_min(i + offset + 1, N))
-                output[i] = func(obj.iloc[sl], *args, **kwargs)
-            else:
-                output[i] = NaN
+    for i in range(N):
 
-    else:
-
-        # truncated windows at the beginning, through first full-length window
-        for i in range((int_min(win, N) - offset)):
-            if counts[i] >= minp:
-                output[i] = func(arr[0: (i + offset + 1)], *args, **kwargs)
-            else:
-                output[i] = NaN
-
-        # remaining full-length windows
-        for j, i in enumerate(range((win - offset), (N - offset)), 1):
-            if counts[i] >= minp:
-                output[i] = func(arr[j:j + win], *args, **kwargs)
-            else:
-                output[i] = NaN
-
-        # truncated windows at the end
-        for i in range(int_max(N - offset, 0), N):
-            if counts[i] >= minp:
-                output[i] = func(arr[int_max(i + offset - win + 1, 0): N],
-                                 *args,
-                                 **kwargs)
-            else:
-                output[i] = NaN
-
-    return output
-
-
-def roll_generic_variable(object obj,
-                          ndarray[int64_t] start, ndarray[int64_t] end,
-                          int64_t minp,
-                          int offset, object func, bint raw,
-                          object args, object kwargs):
-    cdef:
-        ndarray[float64_t] output, counts, bufarr
-        ndarray[float64_t, cast=True] arr
-        float64_t *buf
-        float64_t *oldbuf
-        int64_t nobs = 0, i, j, s, e, N = len(start)
-
-    n = len(obj)
-    if n == 0:
-        return obj
-
-    arr = np.asarray(obj)
-
-    # ndarray input
-    if raw:
-        if not arr.flags.c_contiguous:
-            arr = arr.copy('C')
-
-    counts = roll_sum_variable(np.concatenate([np.isfinite(arr).astype(float),
-                                               np.array([0.] * offset)]),
-                               start, end, minp)[offset:]
-
-    output = np.empty(N, dtype=float)
-
-    if offset != 0:
-        raise ValueError("unable to roll_generic with a non-zero offset")
-
-    for i in range(0, N):
         s = start[i]
         e = end[i]
 
