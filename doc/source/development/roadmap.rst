@@ -244,4 +244,3 @@ We improved the pandas documentation
    :maxdepth: 1
 
    roadmap-indexing-views.rst
-
