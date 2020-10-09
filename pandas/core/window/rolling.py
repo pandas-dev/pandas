@@ -409,7 +409,7 @@ class _Window(PandasObject, ShallowMixin, SelectionMixin):
         if self.on is not None and not self._on.equals(obj.index):
 
             name = self._on.name
-            final.append(Series(self._on, index=obj.index, name=name))
+            final.append(Series(self._on, index=self.obj.index, name=name))
 
             if self._selection is not None:
 
@@ -2259,7 +2259,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         """
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict] = None
-        index_array = self.obj.index.asi8
+        index_array = self._on.asi8
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
