@@ -261,7 +261,7 @@ instance methods on ``Series`` and ``DataFrame``. These methods actually predate
    :suppress:
 
    @savefig merging_append1.png
-   p.plot([df1, df2], result, labels=["df1', "df2"], vertical=True);
+   p.plot([df1, df2], result, labels=["df1", "df2"], vertical=True);
    plt.close("all");
 
 In the case of ``DataFrame``, the indexes must be disjoint but the columns do not
@@ -1360,7 +1360,10 @@ to join them together on their indexes.
 
    @savefig merging_join_multi_df.png
    p.plot(
-       [left, right, right2], result, labels=["left", "right", "right2"], vertical=False
+       [left, right, right2],
+       result,
+       labels=["left", "right", "right2"],
+       vertical=False,
    );
    plt.close("all");
 
