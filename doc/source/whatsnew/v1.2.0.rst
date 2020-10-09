@@ -289,6 +289,7 @@ Deprecations
 - Deprecated :meth:`Index.is_all_dates` (:issue:`27744`)
 - Deprecated automatic alignment on comparison operations between :class:`DataFrame` and :class:`Series`, do ``frame, ser = frame.align(ser, axis=1, copy=False)`` before e.g. ``frame == ser`` (:issue:`28759`)
 - :meth:`Rolling.count` with ``min_periods=None`` will default to the size of the window in a future version (:issue:`31302`)
+- Deprecated slice-indexing on timezone-aware :class:`DatetimeIndex` with naive ``datetime`` objects, to match scalar indexing behavior (:issue:`36148`)
 - :meth:`Index.ravel` returning a ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
 - Treating object-dtype columns containing boolean values as if they were bool-dtype for :meth:`DataFrame.any`, :meth:`DataFrame.all` is deprecated, will be removed in a future version.  Explicitly cast to bool-dtype instead (:issue:`36949`)
 
@@ -416,6 +417,7 @@ I/O
 - Bug in :meth:`read_csv` with ``engine='python'`` truncating data if multiple items present in first row and first element started with BOM (:issue:`36343`)
 - Removed ``private_key`` and ``verbose`` from :func:`read_gbq` as they are no longer supported in ``pandas-gbq`` (:issue:`34654`, :issue:`30200`)
 - Bumped minimum pytables version to 3.5.1 to avoid a ``ValueError`` in :meth:`read_hdf` (:issue:`24839`)
+- Bug in :func:`read_table` and :func:`read_csv` when ``delim_whitespace=True`` and ``sep=default`` (:issue:`36583`)
 - Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
 
 Plotting
