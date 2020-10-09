@@ -2727,8 +2727,8 @@ class TestDataFramePlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=2, yerr=2)
 
         with tm.assert_produces_warning(UserWarning):
-            # _check_plot_works as this function creates
-            # subplots inside, which leads to warnings like this:
+            # _check_plot_works creates subplots inside,
+            # which leads to warnings like this:
             # UserWarning: To output multiple subplots,
             # the figure containing the passed axes is being cleared
             # Similar warnings were observed in GH #13188
@@ -2808,8 +2808,8 @@ class TestDataFramePlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=2)
 
         with tm.assert_produces_warning(UserWarning):
-            # _check_plot_works as this function creates
-            # subplots inside, which leads to warnings like this:
+            # _check_plot_works creates subplots inside,
+            # which leads to warnings like this:
             # UserWarning: To output multiple subplots,
             # the figure containing the passed axes is being cleared
             # Similar warnings were observed in GH #13188
