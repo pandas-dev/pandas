@@ -4,7 +4,7 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Callable, Dict, FrozenSet, List, Optional, Union, cast
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, TypeVar, Union, cast
 
 import numpy as np
 
@@ -30,6 +30,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import algorithms, common as com
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
@@ -41,6 +42,8 @@ _indexops_doc_kwargs = dict(
     unique="IndexOpsMixin",
     duplicated="IndexOpsMixin",
 )
+
+_T = TypeVar("_T", bound="IndexOpsMixin")
 
 
 class PandasObject(DirNamesMixin):
@@ -587,7 +590,7 @@ class SelectionMixin:
         return self._builtin_table.get(arg, arg)
 
 
-class IndexOpsMixin:
+class IndexOpsMixin(OpsMixin):
     """
     Common ops mixin to support a unified interface / docs for Series / Index
     """
@@ -603,7 +606,7 @@ class IndexOpsMixin:
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
 
-    def transpose(self, *args, **kwargs):
+    def transpose(self: _T, *args, **kwargs) -> _T:
         """
         Return the transpose, which is by definition self.
 
@@ -850,10 +853,10 @@ class IndexOpsMixin:
         return result
 
     @property
-    def empty(self):
+    def empty(self) -> bool:
         return not self.size
 
-    def max(self, axis=None, skipna=True, *args, **kwargs):
+    def max(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 
@@ -898,7 +901,7 @@ class IndexOpsMixin:
         return nanops.nanmax(self._values, skipna=skipna)
 
     @doc(op="max", oppose="min", value="largest")
-    def argmax(self, axis=None, skipna=True, *args, **kwargs):
+    def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
         """
         Return int position of the {value} value in the Series.
 
@@ -953,7 +956,7 @@ class IndexOpsMixin:
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmax(self._values, skipna=skipna)
 
-    def min(self, axis=None, skipna=True, *args, **kwargs):
+    def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -998,7 +1001,7 @@ class IndexOpsMixin:
         return nanops.nanmin(self._values, skipna=skipna)
 
     @doc(argmax, op="min", oppose="max", value="smallest")
-    def argmin(self, axis=None, skipna=True, *args, **kwargs):
+    def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
         return nanops.nanargmin(self._values, skipna=skipna)
@@ -1052,6 +1055,9 @@ class IndexOpsMixin:
         Return if I have any nans; enables various perf speedups.
         """
         return bool(isna(self).any())
+
+    def isna(self):
+        return isna(self._values)
 
     def _reduce(
         self,
@@ -1160,7 +1166,12 @@ class IndexOpsMixin:
         return new_values
 
     def value_counts(
-        self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
+        self,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        bins=None,
+        dropna: bool = True,
     ):
         """
         Return a Series containing counts of unique values.
@@ -1499,20 +1510,9 @@ class IndexOpsMixin:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):
-        if isinstance(self, ABCIndexClass):
-            if self.is_unique:
-                return self._shallow_copy()
-
         duplicated = self.duplicated(keep=keep)
         result = self[np.logical_not(duplicated)]
         return result
 
     def duplicated(self, keep="first"):
-        if isinstance(self, ABCIndexClass):
-            if self.is_unique:
-                return np.zeros(len(self), dtype=bool)
-            return duplicated(self, keep=keep)
-        else:
-            return self._constructor(
-                duplicated(self, keep=keep), index=self.index
-            ).__finalize__(self, method="duplicated")
+        return duplicated(self._values, keep=keep)
