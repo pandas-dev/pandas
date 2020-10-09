@@ -1,9 +1,5 @@
 from copy import copy
 
-from cython import Py_ssize_t
-
-from libc.stdlib cimport free, malloc
-
 import numpy as np
 
 cimport numpy as cnp
@@ -11,14 +7,14 @@ from numpy cimport int64_t, ndarray
 
 cnp.import_array()
 
-from pandas._libs cimport util
+from pandas._libs.util cimport is_array
 
 from pandas._libs.lib import is_scalar, maybe_convert_objects
 
 
 cpdef check_result_array(object obj, Py_ssize_t cnt):
 
-    if (util.is_array(obj) or
+    if (is_array(obj) or
             (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
         raise ValueError('Must produce aggregated value')
@@ -33,7 +29,7 @@ cdef class _BaseGrouper:
         if (dummy.dtype != self.arr.dtype
                 and values.dtype != self.arr.dtype):
             raise ValueError('Dummy array must be same dtype')
-        if util.is_array(values) and not values.flags.contiguous:
+        if is_array(values) and not values.flags.contiguous:
             # e.g. Categorical has no `flags` attribute
             values = values.copy()
         index = dummy.index.values
@@ -106,7 +102,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         self.f = f
 
         values = series.values
-        if util.is_array(values) and not values.flags.c_contiguous:
+        if is_array(values) and not values.flags.c_contiguous:
             # e.g. Categorical has no `flags` attribute
             values = values.copy('C')
         self.arr = values
@@ -204,7 +200,7 @@ cdef class SeriesGrouper(_BaseGrouper):
         self.f = f
 
         values = series.values
-        if util.is_array(values) and not values.flags.c_contiguous:
+        if is_array(values) and not values.flags.c_contiguous:
             # e.g. Categorical has no `flags` attribute
             values = values.copy('C')
         self.arr = values
@@ -288,9 +284,9 @@ cpdef inline extract_result(object res, bint squeeze=True):
         res = res._values
         if squeeze and res.ndim == 1 and len(res) == 1:
             res = res[0]
-    if hasattr(res, 'values') and util.is_array(res.values):
+    if hasattr(res, 'values') and is_array(res.values):
         res = res.values
-    if util.is_array(res):
+    if is_array(res):
         if res.ndim == 0:
             res = res.item()
         elif squeeze and res.ndim == 1 and len(res) == 1:
@@ -304,7 +300,7 @@ cdef class Slider:
     """
     cdef:
         ndarray values, buf
-        Py_ssize_t stride, orig_len, orig_stride
+        Py_ssize_t stride, orig_len
         char *orig_data
 
     def __init__(self, ndarray values, ndarray buf):
@@ -320,7 +316,6 @@ cdef class Slider:
 
         self.orig_data = self.buf.data
         self.orig_len = self.buf.shape[0]
-        self.orig_stride = self.buf.strides[0]
 
         self.buf.data = self.values.data
         self.buf.strides[0] = self.stride
@@ -334,9 +329,8 @@ cdef class Slider:
 
     cdef reset(self):
 
-        self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
-        self.buf.strides[0] = self.orig_stride
+        self.buf.shape[0] = self.orig_len
 
 
 class InvalidApply(Exception):
@@ -346,7 +340,6 @@ class InvalidApply(Exception):
 def apply_frame_axis0(object frame, object f, object names,
                       const int64_t[:] starts, const int64_t[:] ends):
     cdef:
-        BlockSlider slider
         Py_ssize_t i, n = len(starts)
         list results
         object piece
@@ -357,16 +350,13 @@ def apply_frame_axis0(object frame, object f, object names,
 
     results = []
 
-    slider = BlockSlider(frame)
-
     mutated = False
-    item_cache = slider.dummy._item_cache
+    item_cache = frame._item_cache
     try:
         for i in range(n):
-            slider.move(starts[i], ends[i])
 
             item_cache.clear()  # ugh
-            chunk = slider.dummy
+            chunk = frame[starts[i]:ends[i]]
             object.__setattr__(chunk, 'name', names[i])
 
             try:
@@ -399,82 +389,6 @@ def apply_frame_axis0(object frame, object f, object names,
             if require_slow_apply:
                 break
     finally:
-        slider.reset()
+        pass
 
     return results, mutated
-
-
-cdef class BlockSlider:
-    """
-    Only capable of sliding on axis=0
-    """
-
-    cdef public:
-        object frame, dummy, index
-        int nblocks
-        Slider idx_slider
-        list blocks
-
-    cdef:
-        char **base_ptrs
-
-    def __init__(self, object frame):
-        cdef:
-            Py_ssize_t i
-            object b
-
-        self.frame = frame
-        self.dummy = frame[:0]
-        self.index = self.dummy.index
-
-        self.blocks = [b.values for b in self.dummy._mgr.blocks]
-
-        for x in self.blocks:
-            util.set_array_not_contiguous(x)
-
-        self.nblocks = len(self.blocks)
-        # See the comment in indexes/base.py about _index_data.
-        # We need this for EA-backed indexes that have a reference to a 1-d
-        # ndarray like datetime / timedelta / period.
-        self.idx_slider = Slider(
-            self.frame.index._index_data, self.dummy.index._index_data)
-
-        self.base_ptrs = <char**>malloc(sizeof(char*) * len(self.blocks))
-        for i, block in enumerate(self.blocks):
-            self.base_ptrs[i] = (<ndarray>block).data
-
-    def __dealloc__(self):
-        free(self.base_ptrs)
-
-    cdef move(self, int start, int end):
-        cdef:
-            ndarray arr
-            Py_ssize_t i
-
-        # move blocks
-        for i in range(self.nblocks):
-            arr = self.blocks[i]
-
-            # axis=1 is the frame's axis=0
-            arr.data = self.base_ptrs[i] + arr.strides[1] * start
-            arr.shape[1] = end - start
-
-        # move and set the index
-        self.idx_slider.move(start, end)
-
-        object.__setattr__(self.index, '_index_data', self.idx_slider.buf)
-        self.index._engine.clear_mapping()
-        self.index._cache.clear()  # e.g. inferred_freq must go
-
-    cdef reset(self):
-        cdef:
-            ndarray arr
-            Py_ssize_t i
-
-        # reset blocks
-        for i in range(self.nblocks):
-            arr = self.blocks[i]
-
-            # axis=1 is the frame's axis=0
-            arr.data = self.base_ptrs[i]
-            arr.shape[1] = 0
