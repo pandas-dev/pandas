@@ -1978,7 +1978,9 @@ Name: Max Speed, dtype: float64
         4     True
         dtype: bool
         """
-        return super().duplicated(keep=keep)
+        res = base.IndexOpsMixin.duplicated(self, keep=keep)
+        result = self._constructor(res, index=self.index)
+        return result.__finalize__(self, method="duplicated")
 
     def idxmin(self, axis=0, skipna=True, *args, **kwargs):
         """
@@ -4701,7 +4703,7 @@ Keep all original rows and also all original values
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> "Series":
-        return super().isna()
+        return generic.NDFrame.isna(self)
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> "Series":
