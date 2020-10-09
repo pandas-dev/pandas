@@ -3494,7 +3494,7 @@ class MultiIndex(Index):
         if self.is_monotonic and other.is_monotonic:
             try:
                 inner_tuples = self._inner_indexer(lvals, rvals)[0]
-                sort = False  # uniq_tuples is already sorted
+                sort = False  # inner_tuples is already sorted
             except TypeError:
                 pass
             else:
