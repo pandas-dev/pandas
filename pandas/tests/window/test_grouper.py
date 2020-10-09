@@ -458,6 +458,21 @@ class TestGrouperGrouping:
         ).set_index(["group", "index"])
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_rolling_no_sort(self):
+        # GH 36889
+        result = (
+            pd.DataFrame({"foo": [2, 1], "bar": [2, 1]})
+            .groupby("foo", sort=False)
+            .rolling(1)
+            .min()
+        )
+        expected = pd.DataFrame(
+            np.array([[2.0, 2.0], [1.0, 1.0]]),
+            columns=["foo", "bar"],
+            index=pd.MultiIndex.from_tuples([(2, 0), (1, 1)], names=["foo", None]),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_groupby_rolling_count_closed_on(self):
         # GH 35869
         df = pd.DataFrame(
