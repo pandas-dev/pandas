@@ -2706,8 +2706,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
     def test_errorbar_plot_different_kinds(self, kind):
-        import matplotlib.pyplot as plt
-
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
         df = DataFrame(d)
         d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
@@ -2734,13 +2732,10 @@ class TestDataFramePlots(TestPlotBase):
             # UserWarning: To output multiple subplots,
             # the figure containing the passed axes is being cleared
             # Similar warnings were observed in GH #13188
-            _check_plot_works(
+            axes = _check_plot_works(
                 df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind
             )
-            fig = plt.gcf()
-            axes = fig.get_axes()
-            for ax in axes:
-                self._check_has_errorbars(ax, xerr=1, yerr=1)
+            self._check_has_errorbars(axes, xerr=1, yerr=1)
 
     @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
     @pytest.mark.slow
@@ -2789,8 +2784,6 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
     def test_errorbar_timeseries(self, kind):
-        import matplotlib.pyplot as plt
-
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
         d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
 
@@ -2820,11 +2813,8 @@ class TestDataFramePlots(TestPlotBase):
             # UserWarning: To output multiple subplots,
             # the figure containing the passed axes is being cleared
             # Similar warnings were observed in GH #13188
-            _check_plot_works(tdf.plot, kind=kind, yerr=tdf_err, subplots=True)
-            fig = plt.gcf()
-            axes = fig.get_axes()
-            for ax in axes:
-                self._check_has_errorbars(ax, xerr=0, yerr=1)
+            axes = _check_plot_works(tdf.plot, kind=kind, yerr=tdf_err, subplots=True)
+            self._check_has_errorbars(axes, xerr=0, yerr=1)
 
     def test_errorbar_asymmetrical(self):
 
