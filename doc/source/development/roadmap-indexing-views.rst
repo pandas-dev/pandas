@@ -22,7 +22,7 @@ faster for a full workflow depends on whether downstream operations trigger a
 copy (possibly through block consolidation)).
 
 Finally, there are API / usability issues around views. It can be challenging to
-know the user’s intent in operation that modify a subset of a DataFrame (column
+know the user’s intent in operations that modify a subset of a DataFrame (column
 and/or row selection), like:
 
 .. code-block:: python
@@ -79,7 +79,8 @@ Taking the example from above, if the user wants to make use of the fact that
    # Case 1: user wants mutations of df2 to be reflected in df
    >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
    >>> df2 = df[["A"]].as_mutable_view() # name TBD
-   >>> df2.iloc[:, 0] = 10 >>> df.iloc[0, 0] # df was mutated 10
+   >>> df2.iloc[:, 0] = 10
+   >>> df.iloc[0, 0] # df was mutated 10
 
 For the user who wishes to not mutate the parent, we require that the user
 explicitly break the reference from ``df2`` to ``df`` by implementing “Error on Write”.
@@ -90,9 +91,10 @@ explicitly break the reference from ``df2`` to ``df`` by implementing “Error o
    >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
    >>> df2 = df[["A"]]
    >>> df2.iloc[0, 0] = 10
-   ValueError("error on write to subset of other dataframe")
+   MutableViewError("error on write to subset of other dataframe")
    >>> df2 = df2.copy_if_needed() # API is TBD. Could be a keyword argument to copy.
-   >>> df2.iloc[:, 0] = 10 >>> df.iloc[0, 0] # df was not mutated 1
+   >>> df2.iloc[:, 0] = 10
+   >>> df.iloc[0, 0] # df was not mutated 1
 
 Copy-on-Write vs. Error-on-Write
 --------------------------------
@@ -134,7 +136,7 @@ That is roughly equivalent to
 
 .. code-block:: python
 
-   >>> df2 = df['B'] > 4] # Copy under NumPy’s rules
+   >>> df2 = df[df['B'] > 4] # Copy under NumPy’s rules
    >>> df2['B'] = 10 # Update (the copy) df2, df not changed
    >>> del df2 # All references to df2 are lost, goes out of scope
 
@@ -174,7 +176,7 @@ libraries and user code to avoid unnecessary defensive copying.
 
 .. code-block:: python
 
-   def copy_if_needed(self):
+   def copy_if_needed(self):  # name TBD
        """
        Copy the data in a Series / DataFrame if it is a view on some other.
    
@@ -214,7 +216,7 @@ following was the behavior
 
    >>> df2 = df.rename(lambda x: x) # suppose df2 is a view on df
    >>> df2.iloc[0, 0] = 10
-   ValueError("This DataFrame is a view on another DataFrame. Set .as_mutable_view() or copy with ".copy_if_needed()"")
+   MutableViewError("This DataFrame is a view on another DataFrame. Set .as_mutable_view() or copy with ".copy_if_needed()"")
 
 Now we have to ask: does a reasonable consumer of the pandas API expect ``df2``
 to be a view? Such that mutating ``df2`` would mutate ``df``? I’d argue no,
