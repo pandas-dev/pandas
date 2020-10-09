@@ -76,12 +76,6 @@ def get_standard_colors(
     return colors
 
 
-def _is_cn_color(color: str) -> bool:
-    """Check if color string is CN color, like 'C0', 'C1', etc."""
-    cn_colors = ["C" + str(x) for x in range(10)]
-    return bool(color in cn_colors)
-
-
 def _is_single_color(color: str) -> bool:
     """Check if ``color`` is a single color.
 
@@ -104,8 +98,6 @@ def _is_single_color(color: str) -> bool:
         False otherwise.
     """
     conv = matplotlib.colors.ColorConverter()
-    if _is_cn_color(color):
-        return True
     try:
         conv.to_rgba(color)
     except ValueError:
