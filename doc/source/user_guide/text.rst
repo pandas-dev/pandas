@@ -261,7 +261,8 @@ i.e., from the end of the string to the beginning of the string:
 .. ipython:: python
 
    s3 = pd.Series(
-       ["A", "B", "C", "Aaba", "Baca", "", np.nan, "CABA", "dog", "cat"], dtype="string"
+       ["A", "B", "C", "Aaba", "Baca", "", np.nan, "CABA", "dog", "cat"],
+       dtype="string",
    )
    s3
    s3.str.replace("^.a|dog", "XX-XX ", case=False)
@@ -515,7 +516,10 @@ DataFrame with one column per group.
 
 .. ipython:: python
 
-   pd.Series(["a1", "b2", "c3"], dtype="string").str.extract(r"([ab])(\d)", expand=False)
+   pd.Series(
+       ["a1", "b2", "c3"],
+       dtype="string",
+   ).str.extract(r"([ab])(\d)", expand=False)
 
 Elements that do not match return a row filled with ``NaN``. Thus, a
 Series of messy strings can be "converted" into a like-indexed Series
@@ -536,7 +540,10 @@ and optional groups like
 
 .. ipython:: python
 
-   pd.Series(["a1", "b2", "3"], dtype="string").str.extract(r"([ab])?(\d)", expand=False)
+   pd.Series(
+       ["a1", "b2", "3"],
+       dtype="string",
+   ).str.extract(r"([ab])?(\d)", expand=False)
 
 can also be used. Note that any capture group names in the regular
 expression will be used for column names; otherwise capture group
@@ -655,19 +662,28 @@ You can check whether elements contain a pattern:
 .. ipython:: python
 
    pattern = r"[0-9][a-z]"
-   pd.Series(["1", "2", "3a", "3b", "03c", "4dx"], dtype="string").str.contains(pattern)
+   pd.Series(
+       ["1", "2", "3a", "3b", "03c", "4dx"],
+       dtype="string",
+   ).str.contains(pattern)
 
 Or whether elements match a pattern:
 
 .. ipython:: python
 
-   pd.Series(["1", "2", "3a", "3b", "03c", "4dx"], dtype="string").str.match(pattern)
+   pd.Series(
+       ["1", "2", "3a", "3b", "03c", "4dx"],
+       dtype="string",
+   ).str.match(pattern)
 
 .. versionadded:: 1.1.0
 
 .. ipython:: python
 
-   pd.Series(["1", "2", "3a", "3b", "03c", "4dx"], dtype="string").str.fullmatch(pattern)
+   pd.Series(
+       ["1", "2", "3a", "3b", "03c", "4dx"],
+       dtype="string",
+   ).str.fullmatch(pattern)
 
 .. note::
 

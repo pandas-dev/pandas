@@ -100,6 +100,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_float,
     is_float_dtype,
     is_hashable,
     is_integer,
@@ -117,7 +118,12 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import reconstruct_func, relabel_result, transform
+from pandas.core.aggregation import (
+    aggregate,
+    reconstruct_func,
+    relabel_result,
+    transform,
+)
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -630,7 +636,6 @@ class DataFrame(NDFrame):
         if self._mgr.any_extension_types:
             return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
-            # Note: consolidates inplace
             return not self._is_mixed_type
 
     @property
@@ -4323,7 +4328,7 @@ class DataFrame(NDFrame):
         Traceback (most recent call last):
         KeyError: ['C'] not found in axis
 
-        Using axis-style parameters
+        Using axis-style parameters:
 
         >>> df.rename(str.lower, axis='columns')
            a  b
@@ -4465,7 +4470,34 @@ class DataFrame(NDFrame):
         return res.__finalize__(self)
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> DataFrame:
+    def shift(
+        self, periods=1, freq=None, axis=0, fill_value=lib.no_default
+    ) -> DataFrame:
+        axis = self._get_axis_number(axis)
+
+        ncols = len(self.columns)
+        if axis == 1 and periods != 0 and fill_value is lib.no_default and ncols > 0:
+            # We will infer fill_value to match the closest column
+
+            if periods > 0:
+                result = self.iloc[:, :-periods]
+                for col in range(min(ncols, abs(periods))):
+                    # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
+                    # Define filler inside loop so we get a copy
+                    filler = self.iloc[:, 0].shift(len(self))
+                    result.insert(0, col, filler, allow_duplicates=True)
+            else:
+                result = self.iloc[:, -periods:]
+                for col in range(min(ncols, abs(periods))):
+                    # Define filler inside loop so we get a copy
+                    filler = self.iloc[:, -1].shift(len(self))
+                    result.insert(
+                        len(result.columns), col, filler, allow_duplicates=True
+                    )
+
+            result.columns = self.columns.copy()
+            return result
+
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
         )
@@ -7215,13 +7247,13 @@ NaN 12.3   33.0
         Difference with previous column
 
         >>> df.diff(axis=1)
-            a    b     c
-        0 NaN  0.0   0.0
-        1 NaN -1.0   3.0
-        2 NaN -1.0   7.0
-        3 NaN -1.0  13.0
-        4 NaN  0.0  20.0
-        5 NaN  2.0  28.0
+            a  b   c
+        0 NaN  0   0
+        1 NaN -1   3
+        2 NaN -1   7
+        3 NaN -1  13
+        4 NaN  0  20
+        5 NaN  2  28
 
         Difference with 3rd previous row
 
@@ -7255,12 +7287,15 @@ NaN 12.3   33.0
         ),
     )
     def diff(self, periods: int = 1, axis: Axis = 0) -> DataFrame:
+        if not isinstance(periods, int):
+            if not (is_float(periods) and periods.is_integer()):
+                raise ValueError("periods must be an integer")
+            periods = int(periods)
 
         bm_axis = self._get_block_manager_axis(axis)
-        self._consolidate_inplace()
 
         if bm_axis == 0 and periods != 0:
-            return self.T.diff(periods, axis=0).T
+            return self - self.shift(periods, axis=axis)  # type: ignore[operator]
 
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
@@ -7270,7 +7305,7 @@ NaN 12.3   33.0
 
     def _gotitem(
         self,
-        key: Union[str, List[str]],
+        key: Union[Label, List[Label]],
         ndim: int,
         subset: Optional[FrameOrSeriesUnion] = None,
     ) -> FrameOrSeriesUnion:
@@ -7376,7 +7411,7 @@ NaN 12.3   33.0
 
         result = None
         try:
-            result, how = self._aggregate(func, axis=axis, *args, **kwargs)
+            result, how = self._aggregate(func, axis, *args, **kwargs)
         except TypeError as err:
             exc = TypeError(
                 "DataFrame constructor called with "
@@ -7404,10 +7439,10 @@ NaN 12.3   33.0
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
-            result, how = self.T._aggregate(arg, *args, **kwargs)
+            result, how = aggregate(self.T, arg, *args, **kwargs)
             result = result.T if result is not None else result
             return result, how
-        return super()._aggregate(arg, *args, **kwargs)
+        return aggregate(self, arg, *args, **kwargs)
 
     agg = aggregate
 

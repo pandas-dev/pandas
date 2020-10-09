@@ -997,19 +997,10 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if self.is_(other):
             return True
 
-        # if we can coerce to an IntervalIndex then we can compare
         if not isinstance(other, IntervalIndex):
-            if not is_interval_dtype(other):
-                return False
-            other = Index(other)
-            if not isinstance(other, IntervalIndex):
-                return False
+            return False
 
-        return (
-            self.left.equals(other.left)
-            and self.right.equals(other.right)
-            and self.closed == other.closed
-        )
+        return self._data.equals(other._data)
 
     # --------------------------------------------------------------------
     # Set Operations
@@ -1032,7 +1023,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if sort is None:
             taken = taken.sort_values()
 
-        return taken
+        return self._wrap_setop_result(other, taken)
 
     def _intersection_unique(self, other: "IntervalIndex") -> "IntervalIndex":
         """
@@ -1127,9 +1118,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def __ge__(self, other):
         return Index.__ge__(self, other)
-
-
-IntervalIndex._add_logical_methods_disabled()
 
 
 def _is_valid_endpoint(endpoint) -> bool:
