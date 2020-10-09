@@ -497,7 +497,9 @@ def maybe_casted_values(index, codes=None):
             if mask.any():
                 values, _ = maybe_upcast_putmask(values, mask, np.nan)
 
-            if issubclass(values_type, DatetimeLikeArray):
+            if not issubclass(values_type, DatetimeLikeArray):
+                pass
+            else:
                 values = values_type(values, dtype=values_dtype)
 
     return values
