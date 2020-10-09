@@ -3046,7 +3046,7 @@ class TestStringMethods:
 
         tm.assert_series_equal(result, exp)
 
-        result = s.str.replace("|", " ")
+        result = s.str.replace("|", " ", regex=False)
         exp = Series(["A B C"])
 
         tm.assert_series_equal(result, exp)
