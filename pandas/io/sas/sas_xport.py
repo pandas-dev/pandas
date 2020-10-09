@@ -347,22 +347,48 @@ class XportReader(ReaderBase, abc.Iterator):
             field = field.ljust(140)
 
             fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", field)
-            field = dict(zip(_fieldkeys, fieldstruct))
-            del field["_"]
-            field["ntype"] = types[field["ntype"]]
-            fl = field["field_length"]
-            if field["ntype"] == "numeric" and ((fl < 2) or (fl > 8)):
+            # pandas\io\sas\sas_xport.py:350: error: Incompatible types in
+            # assignment (expression has type "Dict[str, Any]", variable has
+            # type "bytes")  [assignment]
+            field = dict(zip(_fieldkeys, fieldstruct))  # type: ignore[assignment]
+            # pandas\io\sas\sas_xport.py:351: error: "bytes" has no attribute
+            # "__delitem__"; maybe "__getitem__"?  [attr-defined]
+            del field["_"]  # type: ignore[attr-defined]
+            # pandas\io\sas\sas_xport.py:352: error: Unsupported target for
+            # indexed assignment ("bytes")  [index]
+
+            # pandas\io\sas\sas_xport.py:352: error: No overload variant of
+            # "__getitem__" of "bytes" matches argument type "str"
+            # [call-overload]
+            field["ntype"] = types[field["ntype"]]  # type: ignore[index,call-overload]
+            # pandas\io\sas\sas_xport.py:353: error: No overload variant of
+            # "__getitem__" of "bytes" matches argument type "str"
+            # [call-overload]
+            fl = field["field_length"]  # type: ignore[call-overload]
+            # pandas\io\sas\sas_xport.py:354: error: No overload variant of
+            # "__getitem__" of "bytes" matches argument type "str"
+            # [call-overload]
+            if field["ntype"] == "numeric" and (  # type: ignore[call-overload]
+                (fl < 2) or (fl > 8)
+            ):
                 self.close()
                 msg = f"Floating field width {fl} is not between 2 and 8."
                 raise TypeError(msg)
 
-            for k, v in field.items():
+            # pandas\io\sas\sas_xport.py:359: error: "bytes" has no attribute
+            # "items"  [attr-defined]
+            for k, v in field.items():  # type: ignore[attr-defined]
                 try:
-                    field[k] = v.strip()
+                    # pandas\io\sas\sas_xport.py:361: error: Unsupported target
+                    # for indexed assignment ("bytes")  [index]
+                    field[k] = v.strip()  # type: ignore[index]
                 except AttributeError:
                     pass
 
-            obs_length += field["field_length"]
+            # pandas\io\sas\sas_xport.py:365: error: No overload variant of
+            # "__getitem__" of "bytes" matches argument type "str"
+            # [call-overload]
+            obs_length += field["field_length"]  # type: ignore[call-overload]
             fields += [field]
 
         header = self._get_row()
@@ -375,11 +401,21 @@ class XportReader(ReaderBase, abc.Iterator):
         self.record_start = self.filepath_or_buffer.tell()
 
         self.nobs = self._record_count()
-        self.columns = [x["name"].decode() for x in self.fields]
+        # pandas\io\sas\sas_xport.py:378: error: No overload variant of
+        # "__getitem__" of "bytes" matches argument type "str"  [call-overload]
+        self.columns = [
+            x["name"].decode() for x in self.fields  # type: ignore[call-overload]
+        ]
 
         # Setup the dtype.
         dtypel = [
-            ("s" + str(i), "S" + str(field["field_length"]))
+            # pandas\io\sas\sas_xport.py:382: error: No overload variant of
+            # "__getitem__" of "bytes" matches argument type "str"
+            # [call-overload]
+            (
+                "s" + str(i),
+                "S" + str(field["field_length"]),  # type: ignore[call-overload]
+            )
             for i, field in enumerate(self.fields)
         ]
         dtype = np.dtype(dtypel)
@@ -412,7 +448,13 @@ class XportReader(ReaderBase, abc.Iterator):
         last_card = np.frombuffer(last_card, dtype=np.uint64)
 
         # 8 byte blank
-        ix = np.flatnonzero(last_card == 2314885530818453536)
+
+        # pandas\io\sas\sas_xport.py:415: error: Non-overlapping equality check
+        # (left operand type: "bytes", right operand type:
+        # "Literal[2314885530818453536]")  [comparison-overlap]
+        ix = np.flatnonzero(
+            last_card == 2314885530818453536  # type: ignore[comparison-overlap]
+        )
 
         if len(ix) == 0:
             tail_pad = 0
@@ -468,13 +510,24 @@ class XportReader(ReaderBase, abc.Iterator):
         df = pd.DataFrame(index=range(read_lines))
         for j, x in enumerate(self.columns):
             vec = data["s" + str(j)]
-            ntype = self.fields[j]["ntype"]
+            # pandas\io\sas\sas_xport.py:471: error: No overload variant of
+            # "__getitem__" of "bytes" matches argument type "str"
+            # [call-overload]
+            ntype = self.fields[j]["ntype"]  # type: ignore[call-overload]
             if ntype == "numeric":
-                vec = _handle_truncated_float_vec(vec, self.fields[j]["field_length"])
+                # pandas\io\sas\sas_xport.py:473: error: No overload variant of
+                # "__getitem__" of "bytes" matches argument type "str"
+                # [call-overload]
+                vec = _handle_truncated_float_vec(
+                    vec, self.fields[j]["field_length"]  # type: ignore[call-overload]
+                )
                 miss = self._missing_double(vec)
                 v = _parse_float_vec(vec)
                 v[miss] = np.nan
-            elif self.fields[j]["ntype"] == "char":
+            # pandas\io\sas\sas_xport.py:477: error: No overload variant of
+            # "__getitem__" of "bytes" matches argument type "str"
+            # [call-overload]
+            elif self.fields[j]["ntype"] == "char":  # type: ignore[call-overload]
                 v = [y.rstrip() for y in vec]
 
                 if self._encoding is not None:
@@ -483,7 +536,12 @@ class XportReader(ReaderBase, abc.Iterator):
             df[x] = v
 
         if self._index is None:
-            df.index = range(self._lines_read, self._lines_read + read_lines)
+            # pandas\io\sas\sas_xport.py:486: error: Incompatible types in
+            # assignment (expression has type "range", variable has type
+            # "Index")  [assignment]
+            df.index = range(  # type: ignore[assignment]
+                self._lines_read, self._lines_read + read_lines
+            )
         else:
             df = df.set_index(self._index)
 

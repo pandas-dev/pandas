@@ -1407,7 +1407,19 @@ class FloatArrayFormatter(GenericArrayFormatter):
         if float_format:
 
             def base_formatter(v):
-                return float_format(value=v) if notna(v) else self.na_rep
+                # pandas\io\formats\format.py:1410: error: "str" not callable
+                # [operator]
+
+                # pandas\io\formats\format.py:1410: error: Unexpected keyword
+                # argument "value" for "__call__" of "EngFormatter"  [call-arg]
+
+                # pandas\io\formats\format.py:1410: error: "None" not callable
+                # [misc]
+                return (
+                    float_format(value=v)  # type: ignore[operator,call-arg,misc]
+                    if notna(v)
+                    else self.na_rep
+                )
 
         else:
 
@@ -1847,7 +1859,9 @@ def _make_fixed_width(
 
     def just(x):
         if conf_max is not None:
-            if (conf_max > 3) & (adj.len(x) > max_len):
+            # pandas\io\formats\format.py:1850: error: Item "None" of
+            # "Optional[TextAdjustment]" has no attribute "len"  [union-attr]
+            if (conf_max > 3) & (adj.len(x) > max_len):  # type: ignore[union-attr]
                 x = x[: max_len - 3] + "..."
         return x
 

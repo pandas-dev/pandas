@@ -590,10 +590,17 @@ class ExcelFormatter:
 
             colnames = self.columns
             if has_aliases:
-                if len(self.header) != len(self.columns):
+                # pandas\io\formats\excel.py:593: error: Argument 1 to "len"
+                # has incompatible type "Union[Sequence[Optional[Hashable]],
+                # bool]"; expected "Sized"  [arg-type]
+                if len(self.header) != len(self.columns):  # type: ignore[arg-type]
+                    # pandas\io\formats\excel.py:595: error: Argument 1 to
+                    # "len" has incompatible type
+                    # "Union[Sequence[Optional[Hashable]], bool]"; expected
+                    # "Sized"  [arg-type]
+                    tmp = len(self.header)  # type: ignore[arg-type]
                     raise ValueError(
-                        f"Writing {len(self.columns)} cols but got {len(self.header)} "
-                        "aliases"
+                        f"Writing {len(self.columns)} cols but got {tmp} aliases"
                     )
                 else:
                     colnames = self.header
@@ -615,7 +622,10 @@ class ExcelFormatter:
                 ""
             ] * len(self.columns)
             if reduce(lambda x, y: x and y, map(lambda x: x != "", row)):
-                gen2 = (
+                # pandas\io\formats\excel.py:618: error: Incompatible types in
+                # assignment (expression has type "Generator[ExcelCell, None,
+                # None]", variable has type "Tuple[]")  [assignment]
+                gen2 = (  # type: ignore[assignment]
                     ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)
                 )
@@ -805,7 +815,12 @@ class ExcelFormatter:
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
-            writer = ExcelWriter(stringify_path(writer), engine=engine)
+            # pandas\io\formats\excel.py:808: error: Cannot instantiate
+            # abstract class 'ExcelWriter' with abstract attributes 'engine',
+            # 'save', 'supported_extensions' and 'write_cells'  [abstract]
+            writer = ExcelWriter(  # type: ignore[abstract]
+                stringify_path(writer), engine=engine
+            )
             need_save = True
 
         formatted_cells = self.get_formatted_cells()

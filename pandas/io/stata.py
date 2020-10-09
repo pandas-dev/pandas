@@ -367,8 +367,12 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["delta"] = time_delta._values.astype(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
-                d["year"] = date_index.year
-                d["month"] = date_index.month
+                # pandas\io\stata.py:370: error: "DatetimeIndex" has no
+                # attribute "year"  [attr-defined]
+                d["year"] = date_index.year  # type: ignore[attr-defined]
+                # pandas\io\stata.py:371: error: "DatetimeIndex" has no
+                # attribute "month"  [attr-defined]
+                d["month"] = date_index.month  # type: ignore[attr-defined]
             if days:
                 days_in_ns = dates.astype(np.int64) - to_datetime(
                     d["year"], format="%Y"
@@ -876,7 +880,9 @@ class StataParser:
                 (65530, np.int8),
             ]
         )
-        self.TYPE_MAP = list(range(251)) + list("bhlfd")
+        # pandas\io\stata.py:879: error: Argument 1 to "list" has incompatible
+        # type "str"; expected "Iterable[int]"  [arg-type]
+        self.TYPE_MAP = list(range(251)) + list("bhlfd")  # type: ignore[arg-type]
         self.TYPE_MAP_XML = dict(
             [
                 # Not really a Q, unclear how to handle byteswap
@@ -1389,7 +1395,11 @@ class StataReader(StataParser, abc.Iterator):
         dtypes = []  # Convert struct data types to numpy data type
         for i, typ in enumerate(self.typlist):
             if typ in self.NUMPY_TYPE_MAP:
-                dtypes.append(("s" + str(i), self.byteorder + self.NUMPY_TYPE_MAP[typ]))
+                # pandas\io\stata.py:1392: error: Invalid index type
+                # "Union[int, str]" for "Dict[str, str]"; expected type "str"
+                # [index]
+                tmp = self.NUMPY_TYPE_MAP[typ]  # type: ignore[index]
+                dtypes.append(("s" + str(i), self.byteorder + tmp))
             else:
                 dtypes.append(("s" + str(i), "S" + str(typ)))
         self._dtype = np.dtype(dtypes)
@@ -1699,7 +1709,10 @@ the string values returned are correct."""
             if fmt not in self.VALID_RANGE:
                 continue
 
-            nmin, nmax = self.VALID_RANGE[fmt]
+            # pandas\io\stata.py:1702: error: Invalid index type "Union[int,
+            # str]" for "Dict[str, Tuple[Any, Any]]"; expected type "str"
+            # [index]
+            nmin, nmax = self.VALID_RANGE[fmt]  # type: ignore[index]
             series = data[colname]
             missing = np.logical_or(series < nmin, series > nmax)
 

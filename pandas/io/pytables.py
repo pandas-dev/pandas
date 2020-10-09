@@ -565,7 +565,9 @@ class HDFStore:
     def root(self):
         """ return the root node """
         self._check_if_open()
-        return self._handle.root
+        # pandas\io\pytables.py:568: error: Item "None" of "Optional[Any]" has
+        # no attribute "root"  [union-attr]
+        return self._handle.root  # type: ignore[union-attr]
 
     @property
     def filename(self):
@@ -1395,13 +1397,24 @@ class HDFStore:
         self._check_if_open()
         return [
             g
-            for g in self._handle.walk_groups()
+            # pandas\io\pytables.py:1398: error: Item "None" of "Optional[Any]"
+            # has no attribute "walk_groups"  [union-attr]
+            for g in self._handle.walk_groups()  # type: ignore[union-attr]
             if (
-                not isinstance(g, _table_mod.link.Link)
+                # pandas\io\pytables.py:1400: error: Item "None" of
+                # "Optional[Any]" has no attribute "link"  [union-attr]
+                not isinstance(g, _table_mod.link.Link)  # type: ignore[union-attr]
                 and (
                     getattr(g._v_attrs, "pandas_type", None)
                     or getattr(g, "table", None)
-                    or (isinstance(g, _table_mod.table.Table) and g._v_name != "table")
+                    # pandas\io\pytables.py:1404: error: Item "None" of
+                    # "Optional[Any]" has no attribute "table"  [union-attr]
+                    or (
+                        isinstance(
+                            g, _table_mod.table.Table  # type: ignore[union-attr]
+                        )
+                        and g._v_name != "table"
+                    )
                 )
             )
         ]
@@ -1437,7 +1450,9 @@ class HDFStore:
         """
         _tables()
         self._check_if_open()
-        for g in self._handle.walk_groups(where):
+        # pandas\io\pytables.py:1440: error: Item "None" of "Optional[Any]" has
+        # no attribute "walk_groups"  [union-attr]
+        for g in self._handle.walk_groups(where):  # type: ignore[union-attr]
             if getattr(g._v_attrs, "pandas_type", None) is not None:
                 continue
 
@@ -1446,7 +1461,11 @@ class HDFStore:
             for child in g._v_children.values():
                 pandas_type = getattr(child._v_attrs, "pandas_type", None)
                 if pandas_type is None:
-                    if isinstance(child, _table_mod.group.Group):
+                    # pandas\io\pytables.py:1449: error: Item "None" of
+                    # "Optional[Any]" has no attribute "group"  [union-attr]
+                    if isinstance(
+                        child, _table_mod.group.Group  # type: ignore[union-attr]
+                    ):
                         groups.append(child._v_name)
                 else:
                     leaves.append(child._v_name)
@@ -1864,7 +1883,11 @@ class TableIterator:
         current = self.start
         while current < self.stop:
             stop = min(current + self.chunksize, self.stop)
-            value = self.func(None, None, self.coordinates[current:stop])
+            # pandas\io\pytables.py:1867: error: Value of type "None" is not
+            # indexable  [index]
+            value = self.func(
+                None, None, self.coordinates[current:stop]  # type: ignore[index]
+            )
             current = stop
             if value is None or not len(value):
                 continue
@@ -3433,7 +3456,12 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
-        self.levels = getattr(self.attrs, "levels", None) or []
+        # pandas\io\pytables.py:3436: error: Incompatible types in assignment
+        # (expression has type "Union[Any, List[Any]]", variable has type
+        # "int")  [assignment]
+        self.levels = (
+            getattr(self.attrs, "levels", None) or []  # type: ignore[assignment]
+        )
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
@@ -4563,7 +4591,9 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
         """ we are going to write this as a frame table """
         name = obj.name or "values"
         obj, self.levels = self.validate_multiindex(obj)
-        cols = list(self.levels)
+        # pandas\io\pytables.py:4566: error: No overload variant of "list"
+        # matches argument type "int"  [call-overload]
+        cols = list(self.levels)  # type: ignore[call-overload]
         cols.append(name)
         obj.columns = cols
         return super().write(obj=obj, **kwargs)
@@ -4589,7 +4619,10 @@ class GenericTable(AppendableFrameTable):
         """ retrieve our attributes """
         self.non_index_axes = []
         self.nan_rep = None
-        self.levels = []
+        # pandas\io\pytables.py:4592: error: Incompatible types in assignment
+        # (expression has type "List[<nothing>]", variable has type "int")
+        # [assignment]
+        self.levels = []  # type: ignore[assignment]
 
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
@@ -4626,7 +4659,10 @@ class GenericTable(AppendableFrameTable):
                 meta=meta,
                 metadata=md,
             )
-            _indexables.append(dc)
+            # pandas\io\pytables.py:4629: error: Argument 1 to "append" of
+            # "list" has incompatible type "GenericDataIndexableCol"; expected
+            # "GenericIndexCol"  [arg-type]
+            _indexables.append(dc)  # type: ignore[arg-type]
 
         return _indexables
 
@@ -4652,7 +4688,10 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         elif data_columns is True:
             data_columns = obj.columns.tolist()
         obj, self.levels = self.validate_multiindex(obj)
-        for n in self.levels:
+        # pandas\io\pytables.py:4655: error: "int" has no attribute "__iter__";
+        # maybe "__str__", "__int__", or "__invert__"? (not iterable)
+        # [attr-defined]
+        for n in self.levels:  # type: ignore[attr-defined]
             if n not in data_columns:
                 data_columns.insert(0, n)
         return super().write(obj=obj, data_columns=data_columns, **kwargs)
@@ -5170,7 +5209,9 @@ class Selection:
             start += nrows
         if self.stop is None:
             stop = nrows
-        elif stop < 0:
+        # pandas\io\pytables.py:5173: error: Unsupported operand types for >
+        # ("int" and "None")  [operator]
+        elif stop < 0:  # type: ignore[operator]
             stop += nrows
 
         if self.condition is not None:

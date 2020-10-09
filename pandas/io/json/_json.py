@@ -777,7 +777,10 @@ class JsonReader(abc.Iterator):
                 obj = self._get_object_parser(lines_json)
             else:
                 data = ensure_str(self.data)
-                data = data.split("\n")
+                # pandas\io\json\_json.py:780: error: Incompatible types in
+                # assignment (expression has type "List[str]", variable has
+                # type "str")  [assignment]
+                data = data.split("\n")  # type: ignore[assignment]
                 obj = self._get_object_parser(self._combine_lines(data))
         else:
             obj = self._get_object_parser(self.data)
@@ -872,7 +875,9 @@ class Parser:
         self.json = json
 
         if orient is None:
-            orient = self._default_orient
+            # pandas\io\json\_json.py:875: error: "Parser" has no attribute
+            # "_default_orient"  [attr-defined]
+            orient = self._default_orient  # type: ignore[attr-defined]
         self.orient = orient
 
         self.dtype = dtype
@@ -900,9 +905,16 @@ class Parser:
         """
         Checks that dict has only the appropriate keys for orient='split'.
         """
-        bad_keys = set(decoded.keys()).difference(set(self._split_keys))
+        # pandas\io\json\_json.py:903: error: "Parser" has no attribute
+        # "_split_keys"  [attr-defined]
+        bad_keys = set(decoded.keys()).difference(
+            set(self._split_keys)  # type: ignore[attr-defined]
+        )
         if bad_keys:
-            bad_keys = ", ".join(bad_keys)
+            # pandas\io\json\_json.py:905: error: Incompatible types in
+            # assignment (expression has type "str", variable has type
+            # "Set[Any]")  [assignment]
+            bad_keys = ", ".join(bad_keys)  # type: ignore[assignment]
             raise ValueError(f"JSON data had unexpected key(s): {bad_keys}")
 
     def parse(self):
@@ -910,10 +922,14 @@ class Parser:
         # try numpy
         numpy = self.numpy
         if numpy:
-            self._parse_numpy()
+            # pandas\io\json\_json.py:913: error: "Parser" has no attribute
+            # "_parse_numpy"  [attr-defined]
+            self._parse_numpy()  # type: ignore[attr-defined]
 
         else:
-            self._parse_no_numpy()
+            # pandas\io\json\_json.py:916: error: "Parser" has no attribute
+            # "_parse_no_numpy"  [attr-defined]
+            self._parse_no_numpy()  # type: ignore[attr-defined]
 
         if self.obj is None:
             return None
@@ -926,10 +942,14 @@ class Parser:
         """
         Try to convert axes.
         """
-        for axis_name in self.obj._AXIS_ORDERS:
+        # pandas\io\json\_json.py:929: error: Item "None" of "Optional[Any]"
+        # has no attribute "_AXIS_ORDERS"  [union-attr]
+        for axis_name in self.obj._AXIS_ORDERS:  # type: ignore[union-attr]
             new_axis, result = self._try_convert_data(
                 name=axis_name,
-                data=self.obj._get_axis(axis_name),
+                # pandas\io\json\_json.py:932: error: Item "None" of
+                # "Optional[Any]" has no attribute "_get_axis"  [union-attr]
+                data=self.obj._get_axis(axis_name),  # type: ignore[union-attr]
                 use_dtypes=False,
                 convert_dates=True,
             )
@@ -1083,7 +1103,12 @@ class SeriesParser(Parser):
             self.check_keys_split(decoded)
             self.obj = create_series_with_explicit_dtype(**decoded)
         elif self.orient in ["columns", "index"]:
-            self.obj = create_series_with_explicit_dtype(*data, dtype_if_empty=object)
+            # pandas\io\json\_json.py:1086: error:
+            # "create_series_with_explicit_dtype" gets multiple values for
+            # keyword argument "dtype_if_empty"  [misc]
+            self.obj = create_series_with_explicit_dtype(
+                *data, dtype_if_empty=object  # type: ignore[misc]
+            )
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
@@ -1177,7 +1202,9 @@ class FrameParser(Parser):
 
         needs_new_obj = False
         new_obj = dict()
-        for i, (col, c) in enumerate(self.obj.items()):
+        # pandas\io\json\_json.py:1180: error: Item "None" of "Optional[Any]"
+        # has no attribute "items"  [union-attr]
+        for i, (col, c) in enumerate(self.obj.items()):  # type: ignore[union-attr]
             if filt(col, c):
                 new_data, result = f(col, c)
                 if result:
@@ -1188,8 +1215,22 @@ class FrameParser(Parser):
         if needs_new_obj:
 
             # possibly handle dup columns
-            new_obj = DataFrame(new_obj, index=self.obj.index)
-            new_obj.columns = self.obj.columns
+
+            # pandas\io\json\_json.py:1191: error: Incompatible types in
+            # assignment (expression has type "DataFrame", variable has type
+            # "Dict[int, Any]")  [assignment]
+
+            # pandas\io\json\_json.py:1191: error: Item "None" of
+            # "Optional[Any]" has no attribute "index"  [union-attr]
+            new_obj = DataFrame(  # type: ignore[assignment]
+                new_obj, index=self.obj.index  # type: ignore[union-attr]
+            )
+            # pandas\io\json\_json.py:1192: error: "Dict[int, Any]" has no
+            # attribute "columns"  [attr-defined]
+
+            # pandas\io\json\_json.py:1192: error: Item "None" of
+            # "Optional[Any]" has no attribute "columns"  [union-attr]
+            new_obj.columns = self.obj.columns  # type: ignore[attr-defined,union-attr]
             self.obj = new_obj
 
     def _try_convert_types(self):

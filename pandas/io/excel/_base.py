@@ -741,7 +741,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         self.mode = mode
 
     def __fspath__(self):
-        return stringify_path(self.path)
+        # pandas\io\excel\_base.py:744: error: Argument 1 to "stringify_path"
+        # has incompatible type "Optional[Any]"; expected "Union[str, Path,
+        # IO[Any], IOBase]"  [arg-type]
+        return stringify_path(self.path)  # type: ignore[arg-type]
 
     def _get_sheet_name(self, sheet_name):
         if sheet_name is None:
@@ -792,7 +795,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         if ext.startswith("."):
             ext = ext[1:]
-        if not any(ext in extension for extension in cls.supported_extensions):
+        # pandas\io\excel\_base.py:795: error: "Callable[[ExcelWriter], Any]"
+        # has no attribute "__iter__" (not iterable)  [attr-defined]
+        if not any(
+            ext in extension
+            for extension in cls.supported_extensions  # type: ignore[attr-defined]
+        ):
             raise ValueError(f"Invalid extension for engine '{cls.engine}': '{ext}'")
         else:
             return True
