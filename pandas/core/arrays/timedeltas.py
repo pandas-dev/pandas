@@ -23,6 +23,7 @@ from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
+    is_categorical_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -940,6 +941,9 @@ def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
         data = data._data
     elif isinstance(data, IntegerArray):
         data = data.to_numpy("int64", na_value=tslibs.iNaT)
+    elif is_categorical_dtype(data.dtype):
+        data = data.categories.take(data.codes, fill_value=NaT)._values
+        copy = False
 
     # Convert whatever we have into timedelta64[ns] dtype
     if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):
