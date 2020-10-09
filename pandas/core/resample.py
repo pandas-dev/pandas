@@ -21,6 +21,7 @@ from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
+from pandas.core.aggregation import aggregate
 import pandas.core.algorithms as algos
 from pandas.core.base import DataError
 from pandas.core.generic import NDFrame, _shared_docs
@@ -291,7 +292,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = self._aggregate(func, *args, **kwargs)
+        result, how = aggregate(self, func, *args, **kwargs)
         if result is None:
             how = func
             grouper = None
