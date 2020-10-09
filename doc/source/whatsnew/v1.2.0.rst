@@ -310,6 +310,7 @@ Performance improvements
 - The internal index method :meth:`~Index._shallow_copy` now makes the new index and original index share cached attributes,
   avoiding creating these again, if created on either. This can speed up operations that depend on creating copies of existing indexes (:issue:`36840`)
 - Performance improvement in :meth:`RollingGroupby.count` (:issue:`35625`)
+- Small performance decrease to :meth:`Rolling.min` and :meth:`Rolling.max` for fixed windows (:issue:`36567`)
 
 .. ---------------------------------------------------------------------------
 
