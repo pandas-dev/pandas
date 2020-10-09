@@ -487,15 +487,17 @@ def maybe_casted_values(index, codes=None):
             values_type = type(values)
             values_dtype = values.dtype
 
-            from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+            from pandas.core.arrays.datetimelike import (
+                DatetimeLikeArrayMixin as DatetimeLikeArray,
+            )
 
-            if issubclass(values_type, DatetimeLikeArrayMixin):
+            if issubclass(values_type, DatetimeLikeArray):
                 values = values._data  # TODO: can we de-kludge yet?
 
             if mask.any():
                 values, _ = maybe_upcast_putmask(values, mask, np.nan)
 
-            if issubclass(values_type, DatetimeLikeArrayMixin):
+            if issubclass(values_type, DatetimeLikeArray):
                 values = values_type(values, dtype=values_dtype)
 
     return values
