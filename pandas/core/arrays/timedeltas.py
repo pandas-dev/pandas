@@ -23,6 +23,7 @@ from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
+    is_categorical_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -392,19 +393,6 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
 
         result = nanops.nanstd(self._data, axis=axis, skipna=skipna, ddof=ddof)
         return Timedelta(result)
-
-    def median(
-        self,
-        axis=None,
-        out=None,
-        overwrite_input: bool = False,
-        keepdims: bool = False,
-        skipna: bool = True,
-    ):
-        nv.validate_median(
-            (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
-        )
-        return nanops.nanmedian(self._data, axis=axis, skipna=skipna)
 
     # ----------------------------------------------------------------
     # Rendering Methods
@@ -953,6 +941,9 @@ def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
         data = data._data
     elif isinstance(data, IntegerArray):
         data = data.to_numpy("int64", na_value=tslibs.iNaT)
+    elif is_categorical_dtype(data.dtype):
+        data = data.categories.take(data.codes, fill_value=NaT)._values
+        copy = False
 
     # Convert whatever we have into timedelta64[ns] dtype
     if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):

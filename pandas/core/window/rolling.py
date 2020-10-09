@@ -47,6 +47,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core.aggregation import aggregate
 from pandas.core.base import DataError, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -398,7 +399,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
         if self.on is not None and not self._on.equals(obj.index):
             name = self._on.name
-            extra_col = Series(self._on, index=obj.index, name=name)
+            extra_col = Series(self._on, index=self.obj.index, name=name)
             if name in result.columns:
                 # TODO: sure we want to overwrite results?
                 result[name] = extra_col
@@ -618,7 +619,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         return self._apply_blockwise(homogeneous_func, name)
 
     def aggregate(self, func, *args, **kwargs):
-        result, how = self._aggregate(func, *args, **kwargs)
+        result, how = aggregate(self, func, *args, **kwargs)
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
@@ -1183,7 +1184,7 @@ class Window(BaseWindow):
         axis="",
     )
     def aggregate(self, func, *args, **kwargs):
-        result, how = self._aggregate(func, *args, **kwargs)
+        result, how = aggregate(self, func, *args, **kwargs)
         if result is None:
 
             # these must apply directly
@@ -2263,7 +2264,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         """
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict] = None
-        index_array = self.obj.index.asi8
+        index_array = self._on.asi8
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
