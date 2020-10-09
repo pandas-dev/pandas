@@ -573,7 +573,9 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
         month_start = period_break(dates_, "month")
 
         def _hour_finder(label_interval, force_year_start):
-            _hour = dates_.hour
+            # pandas\plotting\_matplotlib\converter.py:576: error:
+            # "PeriodIndex" has no attribute "hour"  [attr-defined]
+            _hour = dates_.hour  # type: ignore[attr-defined]
             _prev_hour = (dates_ - 1 * dates_.freq).hour
             hour_start = (_hour - _prev_hour) != 0
             info_maj[day_start] = True
@@ -587,7 +589,9 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
 
         def _minute_finder(label_interval):
             hour_start = period_break(dates_, "hour")
-            _minute = dates_.minute
+            # pandas\plotting\_matplotlib\converter.py:590: error:
+            # "PeriodIndex" has no attribute "minute"  [attr-defined]
+            _minute = dates_.minute  # type: ignore[attr-defined]
             _prev_minute = (dates_ - 1 * dates_.freq).minute
             minute_start = (_minute - _prev_minute) != 0
             info_maj[hour_start] = True
@@ -600,7 +604,9 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
 
         def _second_finder(label_interval):
             minute_start = period_break(dates_, "minute")
-            _second = dates_.second
+            # pandas\plotting\_matplotlib\converter.py:603: error:
+            # "PeriodIndex" has no attribute "second"  [attr-defined]
+            _second = dates_.second  # type: ignore[attr-defined]
             _prev_second = (dates_ - 1 * dates_.freq).second
             second_start = (_second - _prev_second) != 0
             info["maj"][minute_start] = True
@@ -1019,7 +1025,10 @@ class TimeSeries_DateFormatter(Formatter):
             format = np.compress(info["min"] & np.logical_not(info["maj"]), info)
         else:
             format = np.compress(info["maj"], info)
-        self.formatdict = {x: f for (x, _, _, f) in format}
+        # pandas\plotting\_matplotlib\converter.py:1022: error: Incompatible
+        # types in assignment (expression has type "Dict[Any, Any]", variable
+        # has type "None")  [assignment]
+        self.formatdict = {x: f for (x, _, _, f) in format}  # type: ignore[assignment]
         return self.formatdict
 
     def set_locs(self, locs):

@@ -277,7 +277,9 @@ class MPLPlot:
         self._make_legend()
         self._adorn_subplots()
 
-        for ax in self.axes:
+        # pandas\plotting\_matplotlib\core.py:280: error: "None" has no
+        # attribute "__iter__" (not iterable)  [attr-defined]
+        for ax in self.axes:  # type: ignore[attr-defined]
             self._post_plot_logic_common(ax, self.data)
             self._post_plot_logic(ax, self.data)
 
@@ -367,7 +369,9 @@ class MPLPlot:
         """
         if self.subplots:
             if self.layout is not None and not is_list_like(self.ax):
-                return self.axes.reshape(*self.layout)
+                # pandas\plotting\_matplotlib\core.py:370: error: "None" has no
+                # attribute "reshape"  [attr-defined]
+                return self.axes.reshape(*self.layout)  # type: ignore[attr-defined]
             else:
                 return self.axes
         else:
@@ -377,9 +381,16 @@ class MPLPlot:
             )
             if sec_true or all_sec:
                 # if all data is plotted on secondary, return right axes
-                return self._get_ax_layer(self.axes[0], primary=False)
+
+                # pandas\plotting\_matplotlib\core.py:380: error: Value of type
+                # "None" is not indexable  [index]
+                return self._get_ax_layer(
+                    self.axes[0], primary=False  # type: ignore[index]
+                )
             else:
-                return self.axes[0]
+                # pandas\plotting\_matplotlib\core.py:382: error: Value of type
+                # "None" is not indexable  [index]
+                return self.axes[0]  # type: ignore[index]
 
     def _compute_plot_data(self):
         data = self.data
@@ -466,7 +477,9 @@ class MPLPlot:
 
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
-        if len(self.axes) > 0:
+        # pandas\plotting\_matplotlib\core.py:469: error: Argument 1 to "len"
+        # has incompatible type "None"; expected "Sized"  [arg-type]
+        if len(self.axes) > 0:  # type: ignore[arg-type]
             all_axes = self._get_subplots()
             nrows, ncols = self._get_axes_layout()
             handle_shared_axes(
@@ -479,7 +492,9 @@ class MPLPlot:
                 sharey=self.sharey,
             )
 
-        for ax in self.axes:
+        # pandas\plotting\_matplotlib\core.py:482: error: "None" has no
+        # attribute "__iter__" (not iterable)  [attr-defined]
+        for ax in self.axes:  # type: ignore[attr-defined]
             if self.yticks is not None:
                 ax.set_yticks(self.yticks)
 
@@ -511,7 +526,12 @@ class MPLPlot:
                             f"number of columns = {self.nseries}"
                         )
 
-                    for (ax, title) in zip(self.axes, self.title):
+                    # pandas\plotting\_matplotlib\core.py:514: error: No
+                    # overload variant of "zip" matches argument types "None",
+                    # "Any"  [call-overload]
+                    for (ax, title) in zip(
+                        self.axes, self.title  # type: ignore[call-overload]
+                    ):
                         ax.set_title(title)
                 else:
                     self.fig.suptitle(self.title)
@@ -522,7 +542,9 @@ class MPLPlot:
                         "unless `subplots=True` is passed"
                     )
                     raise ValueError(msg)
-                self.axes[0].set_title(self.title)
+                # pandas\plotting\_matplotlib\core.py:525: error: Value of type
+                # "None" is not indexable  [index]
+                self.axes[0].set_title(self.title)  # type: ignore[index]
 
     def _apply_axis_properties(self, axis: "Axis", rot=None, fontsize=None):
         """
@@ -560,7 +582,11 @@ class MPLPlot:
             self.legend_labels.append(label)
 
     def _make_legend(self):
-        ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
+        # pandas\plotting\_matplotlib\core.py:563: error: Value of type "None"
+        # is not indexable  [index]
+        ax, leg, handle = self._get_ax_legend_handle(
+            self.axes[0]  # type: ignore[index]
+        )
 
         handles = []
         labels = []
@@ -575,8 +601,20 @@ class MPLPlot:
 
             if self.legend:
                 if self.legend == "reverse":
-                    self.legend_handles = reversed(self.legend_handles)
-                    self.legend_labels = reversed(self.legend_labels)
+                    # pandas\plotting\_matplotlib\core.py:578: error:
+                    # Incompatible types in assignment (expression has type
+                    # "Iterator[Any]", variable has type "List[Any]")
+                    # [assignment]
+                    self.legend_handles = reversed(  # type: ignore[assignment]
+                        self.legend_handles
+                    )
+                    # pandas\plotting\_matplotlib\core.py:579: error:
+                    # Incompatible types in assignment (expression has type
+                    # "Iterator[Optional[Hashable]]", variable has type
+                    # "List[Optional[Hashable]]")  [assignment]
+                    self.legend_labels = reversed(  # type: ignore[assignment]
+                        self.legend_labels
+                    )
 
                 handles += self.legend_handles
                 labels += self.legend_labels
@@ -588,7 +626,9 @@ class MPLPlot:
                 ax.legend(handles, labels, loc="best", title=title)
 
         elif self.subplots and self.legend:
-            for ax in self.axes:
+            # pandas\plotting\_matplotlib\core.py:591: error: "None" has no
+            # attribute "__iter__" (not iterable)  [attr-defined]
+            for ax in self.axes:  # type: ignore[attr-defined]
                 if ax.get_visible():
                     ax.legend(loc="best")
 
@@ -700,11 +740,17 @@ class MPLPlot:
     def _get_ax(self, i):
         # get the twinx ax if appropriate
         if self.subplots:
-            ax = self.axes[i]
+            # pandas\plotting\_matplotlib\core.py:703: error: Value of type
+            # "None" is not indexable  [index]
+            ax = self.axes[i]  # type: ignore[index]
             ax = self._maybe_right_yaxis(ax, i)
-            self.axes[i] = ax
+            # pandas\plotting\_matplotlib\core.py:705: error: Unsupported
+            # target for indexed assignment ("None")  [index]
+            self.axes[i] = ax  # type: ignore[index]
         else:
-            ax = self.axes[0]
+            # pandas\plotting\_matplotlib\core.py:707: error: Value of type
+            # "None" is not indexable  [index]
+            ax = self.axes[0]  # type: ignore[index]
             ax = self._maybe_right_yaxis(ax, i)
 
         ax.get_yaxis().set_visible(True)
@@ -875,7 +921,11 @@ class MPLPlot:
         from matplotlib.axes import Subplot
 
         return [
-            ax for ax in self.axes[0].get_figure().get_axes() if isinstance(ax, Subplot)
+            # pandas\plotting\_matplotlib\core.py:878: error: Value of type
+            # "None" is not indexable  [index]
+            ax
+            for ax in self.axes[0].get_figure().get_axes()  # type: ignore[index]
+            if isinstance(ax, Subplot)
         ]
 
     def _get_axes_layout(self) -> Tuple[int, int]:
@@ -982,7 +1032,9 @@ class ScatterPlot(PlanePlot):
 
     def _make_plot(self):
         x, y, c, data = self.x, self.y, self.c, self.data
-        ax = self.axes[0]
+        # pandas\plotting\_matplotlib\core.py:985: error: Value of type "None"
+        # is not indexable  [index]
+        ax = self.axes[0]  # type: ignore[index]
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
@@ -1047,7 +1099,9 @@ class HexBinPlot(PlanePlot):
 
     def _make_plot(self):
         x, y, data, C = self.x, self.y, self.data, self.C
-        ax = self.axes[0]
+        # pandas\plotting\_matplotlib\core.py:1050: error: Value of type "None"
+        # is not indexable  [index]
+        ax = self.axes[0]  # type: ignore[index]
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
         cmap = self.plt.cm.get_cmap(cmap)
@@ -1097,7 +1151,11 @@ class LinePlot(MPLPlot):
             it = self._iter_data(data=data, keep_index=True)
         else:
             x = self._get_xticks(convert_period=True)
-            plotf = self._plot
+            # pandas\plotting\_matplotlib\core.py:1100: error: Incompatible
+            # types in assignment (expression has type "Callable[[Any, Any,
+            # Any, Any, Any, Any, KwArg(Any)], Any]", variable has type
+            # "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")  [assignment]
+            plotf = self._plot  # type: ignore[assignment]
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
@@ -1543,7 +1601,10 @@ class PiePlot(MPLPlot):
             if labels is not None:
                 blabels = [blank_labeler(l, value) for l, value in zip(labels, y)]
             else:
-                blabels = None
+                # pandas\plotting\_matplotlib\core.py:1546: error: Incompatible
+                # types in assignment (expression has type "None", variable has
+                # type "List[Any]")  [assignment]
+                blabels = None  # type: ignore[assignment]
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:
