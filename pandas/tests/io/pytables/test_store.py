@@ -4216,9 +4216,9 @@ class TestHDFStore:
                         import tempfile
 
                         fd, new_f = tempfile.mkstemp()
-                        tstore = store.copy(
-                            new_f, keys=keys, propindexes=propindexes, **kwargs
-                        )
+                    tstore = store.copy(
+                        new_f, keys=keys, propindexes=propindexes, **kwargs
+                    )
 
                     # check keys
                     if keys is None:
