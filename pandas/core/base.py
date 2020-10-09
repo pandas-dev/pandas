@@ -4,30 +4,28 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Callable, Dict, FrozenSet, List, Optional, TypeVar, Union, cast
+from typing import Any, Callable, Dict, FrozenSet, Optional, TypeVar, Union
 
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import AggFuncType, AggFuncTypeBase, IndexLabel, Label
+from pandas._typing import IndexLabel
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
-from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dict_like,
     is_extension_array_dtype,
-    is_list_like,
     is_object_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms, common as com
+from pandas.core import algorithms
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import duplicated, unique1d, value_counts
 from pandas.core.arraylike import OpsMixin
@@ -281,300 +279,6 @@ class SelectionMixin:
         raise AttributeError(
             f"'{arg}' is not a valid function for '{type(self).__name__}' object"
         )
-
-    def _aggregate(self, arg: AggFuncType, *args, **kwargs):
-        """
-        provide an implementation for the aggregators
-
-        Parameters
-        ----------
-        arg : string, dict, function
-        *args : args to pass on to the function
-        **kwargs : kwargs to pass on to the function
-
-        Returns
-        -------
-        tuple of result, how
-
-        Notes
-        -----
-        how can be a string describe the required post-processing, or
-        None if not required
-        """
-        is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
-
-        _axis = kwargs.pop("_axis", None)
-        if _axis is None:
-            _axis = getattr(self, "axis", 0)
-
-        if isinstance(arg, str):
-            return self._try_aggregate_string_function(arg, *args, **kwargs), None
-
-        if isinstance(arg, dict):
-            # aggregate based on the passed dict
-            if _axis != 0:  # pragma: no cover
-                raise ValueError("Can only pass dict with axis=0")
-
-            selected_obj = self._selected_obj
-
-            # if we have a dict of any non-scalars
-            # eg. {'A' : ['mean']}, normalize all to
-            # be list-likes
-            if any(is_aggregator(x) for x in arg.values()):
-                new_arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]] = {}
-                for k, v in arg.items():
-                    if not isinstance(v, (tuple, list, dict)):
-                        new_arg[k] = [v]
-                    else:
-                        new_arg[k] = v
-
-                    # the keys must be in the columns
-                    # for ndim=2, or renamers for ndim=1
-
-                    # ok for now, but deprecated
-                    # {'A': { 'ra': 'mean' }}
-                    # {'A': { 'ra': ['mean'] }}
-                    # {'ra': ['mean']}
-
-                    # not ok
-                    # {'ra' : { 'A' : 'mean' }}
-                    if isinstance(v, dict):
-                        raise SpecificationError("nested renamer is not supported")
-                    elif isinstance(selected_obj, ABCSeries):
-                        raise SpecificationError("nested renamer is not supported")
-                    elif (
-                        isinstance(selected_obj, ABCDataFrame)
-                        and k not in selected_obj.columns
-                    ):
-                        raise KeyError(f"Column '{k}' does not exist!")
-
-                arg = new_arg
-
-            else:
-                # deprecation of renaming keys
-                # GH 15931
-                keys = list(arg.keys())
-                if isinstance(selected_obj, ABCDataFrame) and len(
-                    selected_obj.columns.intersection(keys)
-                ) != len(keys):
-                    cols = sorted(
-                        set(keys) - set(selected_obj.columns.intersection(keys))
-                    )
-                    raise SpecificationError(f"Column(s) {cols} do not exist")
-
-            from pandas.core.reshape.concat import concat
-
-            def _agg_1dim(name, how, subset=None):
-                """
-                aggregate a 1-dim with how
-                """
-                colg = self._gotitem(name, ndim=1, subset=subset)
-                if colg.ndim != 1:
-                    raise SpecificationError(
-                        "nested dictionary is ambiguous in aggregation"
-                    )
-                return colg.aggregate(how)
-
-            def _agg_2dim(how):
-                """
-                aggregate a 2-dim with how
-                """
-                colg = self._gotitem(self._selection, ndim=2, subset=selected_obj)
-                return colg.aggregate(how)
-
-            def _agg(arg, func):
-                """
-                run the aggregations over the arg with func
-                return a dict
-                """
-                result = {}
-                for fname, agg_how in arg.items():
-                    result[fname] = func(fname, agg_how)
-                return result
-
-            # set the final keys
-            keys = list(arg.keys())
-
-            if self._selection is not None:
-
-                sl = set(self._selection_list)
-
-                # we are a Series like object,
-                # but may have multiple aggregations
-                if len(sl) == 1:
-
-                    result = _agg(
-                        arg, lambda fname, agg_how: _agg_1dim(self._selection, agg_how)
-                    )
-
-                # we are selecting the same set as we are aggregating
-                elif not len(sl - set(keys)):
-
-                    result = _agg(arg, _agg_1dim)
-
-                # we are a DataFrame, with possibly multiple aggregations
-                else:
-
-                    result = _agg(arg, _agg_2dim)
-
-            # no selection
-            else:
-
-                try:
-                    result = _agg(arg, _agg_1dim)
-                except SpecificationError:
-
-                    # we are aggregating expecting all 1d-returns
-                    # but we have 2d
-                    result = _agg(arg, _agg_2dim)
-
-            # combine results
-
-            def is_any_series() -> bool:
-                # return a boolean if we have *any* nested series
-                return any(isinstance(r, ABCSeries) for r in result.values())
-
-            def is_any_frame() -> bool:
-                # return a boolean if we have *any* nested series
-                return any(isinstance(r, ABCDataFrame) for r in result.values())
-
-            if isinstance(result, list):
-                return concat(result, keys=keys, axis=1, sort=True), True
-
-            elif is_any_frame():
-                # we have a dict of DataFrames
-                # return a MI DataFrame
-
-                keys_to_use = [k for k in keys if not result[k].empty]
-                # Have to check, if at least one DataFrame is not empty.
-                keys_to_use = keys_to_use if keys_to_use != [] else keys
-                return (
-                    concat([result[k] for k in keys_to_use], keys=keys_to_use, axis=1),
-                    True,
-                )
-
-            elif isinstance(self, ABCSeries) and is_any_series():
-
-                # we have a dict of Series
-                # return a MI Series
-                try:
-                    result = concat(result)
-                except TypeError as err:
-                    # we want to give a nice error here if
-                    # we have non-same sized objects, so
-                    # we don't automatically broadcast
-
-                    raise ValueError(
-                        "cannot perform both aggregation "
-                        "and transformation operations "
-                        "simultaneously"
-                    ) from err
-
-                return result, True
-
-            # fall thru
-            from pandas import DataFrame, Series
-
-            try:
-                result = DataFrame(result)
-            except ValueError:
-                # we have a dict of scalars
-
-                # GH 36212 use name only if self is a series
-                if self.ndim == 1:
-                    self = cast("Series", self)
-                    name = self.name
-                else:
-                    name = None
-
-                result = Series(result, name=name)
-
-            return result, True
-        elif is_list_like(arg):
-            # we require a list, but not an 'str'
-            return self._aggregate_multiple_funcs(arg, _axis=_axis), None
-        else:
-            result = None
-
-        if callable(arg):
-            f = self._get_cython_func(arg)
-            if f and not args and not kwargs:
-                return getattr(self, f)(), None
-
-        # caller can react
-        return result, True
-
-    def _aggregate_multiple_funcs(self, arg, _axis):
-        from pandas.core.reshape.concat import concat
-
-        if _axis != 0:
-            raise NotImplementedError("axis other than 0 is not supported")
-
-        if self._selected_obj.ndim == 1:
-            selected_obj = self._selected_obj
-        else:
-            selected_obj = self._obj_with_exclusions
-
-        results = []
-        keys = []
-
-        # degenerate case
-        if selected_obj.ndim == 1:
-            for a in arg:
-                colg = self._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                try:
-                    new_res = colg.aggregate(a)
-
-                except TypeError:
-                    pass
-                else:
-                    results.append(new_res)
-
-                    # make sure we find a good name
-                    name = com.get_callable_name(a) or a
-                    keys.append(name)
-
-        # multiples
-        else:
-            for index, col in enumerate(selected_obj):
-                colg = self._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                try:
-                    new_res = colg.aggregate(arg)
-                except (TypeError, DataError):
-                    pass
-                except ValueError as err:
-                    # cannot aggregate
-                    if "Must produce aggregated value" in str(err):
-                        # raised directly in _aggregate_named
-                        pass
-                    elif "no results" in str(err):
-                        # raised directly in _aggregate_multiple_funcs
-                        pass
-                    else:
-                        raise
-                else:
-                    results.append(new_res)
-                    keys.append(col)
-
-        # if we are empty
-        if not len(results):
-            raise ValueError("no results")
-
-        try:
-            return concat(results, keys=keys, axis=1, sort=False)
-        except TypeError as err:
-
-            # we are concatting non-NDFrame objects,
-            # e.g. a list of scalars
-
-            from pandas import Series
-
-            result = Series(results, index=keys, name=self.name)
-            if is_nested_object(result):
-                raise ValueError(
-                    "cannot combine transform and aggregation operations"
-                ) from err
-            return result
 
     def _get_cython_func(self, arg: Callable) -> Optional[str]:
         """
