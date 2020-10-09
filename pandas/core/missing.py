@@ -717,8 +717,8 @@ def _interp_limit(invalid, fw_limit, bw_limit):
             # just use forwards
             return f_idx
         else:
-            b_idx = list(inner(invalid[::-1], bw_limit))
-            b_idx = set(N - 1 - np.asarray(b_idx))
+            b_idx_inv = list(inner(invalid[::-1], bw_limit))
+            b_idx = set(N - 1 - np.asarray(b_idx_inv))
             if fw_limit == 0:
                 return b_idx
 
