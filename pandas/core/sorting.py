@@ -23,7 +23,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_extension_array_dtype,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex, ABCIndex
+from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
