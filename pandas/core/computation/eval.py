@@ -242,7 +242,8 @@ def eval(
 
     Returns
     -------
-    ndarray, numeric scalar, DataFrame, Series
+    ndarray, numeric scalar, DataFrame, Series, or None
+        The completion value of evaluating the given code or None if ``inplace=True``.
 
     Raises
     ------

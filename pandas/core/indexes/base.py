@@ -1319,8 +1319,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        Index
-            The same type as the caller or None if inplace is True.
+        Index or None
+            The same type as the caller or None if ``inplace=True``.
 
         See Also
         --------
@@ -1395,8 +1395,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        Index
-            The same type as the caller or None if inplace is True.
+        Index or None
+            The same type as the caller or None if ``inplace=True``.
 
         See Also
         --------
