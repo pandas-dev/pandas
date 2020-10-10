@@ -2,6 +2,7 @@
 Routines for casting.
 """
 
+from contextlib import suppress
 from datetime import date, datetime, timedelta
 from typing import (
     TYPE_CHECKING,
@@ -191,12 +192,10 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
         # TODO(DatetimeArray): merge with previous elif
         from pandas.core.arrays import PeriodArray
 
-        try:
-            return PeriodArray(result, freq=dtype.freq)
-        except TypeError:
+        with suppress(TypeError):
             # e.g. TypeError: int() argument must be a string, a
             #  bytes-like object or a number, not 'Period
-            pass
+            return PeriodArray(result, freq=dtype.freq)
 
     return result
 
