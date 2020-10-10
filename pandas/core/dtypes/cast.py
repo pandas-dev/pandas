@@ -498,7 +498,7 @@ def maybe_casted_values(index, codes=None):
             if issubclass(values_type, DatetimeLikeArrayMixin):
                 values = values_type(
                     values, dtype=values_dtype
-                )  # type: ignore[call-arg]
+                )
 
     return values
 
