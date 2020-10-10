@@ -943,7 +943,7 @@ class Block(PandasObject):
             values = values.T
 
         # length checking
-        check_setitem_lengths(indexer, value, values)
+        check_setitem_lengths(indexer, value[0], values)
         exact_match = (
             len(arr_value.shape)
             and arr_value.shape[0] == values.shape[0]
