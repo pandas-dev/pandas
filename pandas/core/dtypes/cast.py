@@ -3,7 +3,7 @@ Routines for casting.
 """
 
 from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Set, Tuple, Type, Union
 
 import numpy as np
 
@@ -18,7 +18,7 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
 )
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import ArrayLike, Dtype, DtypeObj
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -118,7 +118,7 @@ def is_nested_object(obj) -> bool:
     return False
 
 
-def maybe_downcast_to_dtype(result, dtype):
+def maybe_downcast_to_dtype(result, dtype: Dtype):
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
@@ -186,7 +186,7 @@ def maybe_downcast_to_dtype(result, dtype):
     return result
 
 
-def maybe_downcast_numeric(result, dtype, do_round: bool = False):
+def maybe_downcast_numeric(result, dtype: Dtype, do_round: bool = False):
     """
     Subset of maybe_downcast_to_dtype restricted to numeric dtypes.
 
@@ -329,7 +329,9 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     return dtype
 
 
-def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
+def maybe_cast_to_extension_array(
+    cls: Type["ExtensionArray"], obj, dtype: Dtype = None
+):
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.
 
@@ -362,7 +364,9 @@ def maybe_cast_to_extension_array(cls: Type["ExtensionArray"], obj, dtype=None):
     return result
 
 
-def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
+def maybe_upcast_putmask(
+    result: np.ndarray, mask: np.ndarray, other: Scalar
+) -> Tuple[np.ndarray, bool]:
     """
     A safe version of putmask that potentially upcasts the result.
 
@@ -660,7 +664,7 @@ def maybe_promote(dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-def _ensure_dtype_type(value, dtype):
+def _ensure_dtype_type(value, dtype: DtypeObj):
     """
     Ensure that the given value is an instance of the given dtype.
 
@@ -787,7 +791,9 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
 
 
 # TODO: try to make the Any in the return annotation more specific
-def infer_dtype_from_array(arr, pandas_dtype: bool = False) -> Tuple[DtypeObj, Any]:
+def infer_dtype_from_array(
+    arr, pandas_dtype: bool = False
+) -> Tuple[DtypeObj, AnyArrayLike]:
     """
     Infer the dtype from an array.
 
@@ -875,7 +881,12 @@ def maybe_infer_dtype_type(element):
     return tipo
 
 
-def maybe_upcast(values, fill_value=np.nan, dtype=None, copy: bool = False):
+def maybe_upcast(
+    values: ArrayLike,
+    fill_value: Scalar = np.nan,
+    dtype: Dtype = None,
+    copy: bool = False,
+) -> Tuple[ArrayLike, Scalar]:
     """
     Provide explicit type promotion and coercion.
 
@@ -887,6 +898,13 @@ def maybe_upcast(values, fill_value=np.nan, dtype=None, copy: bool = False):
     dtype : if None, then use the dtype of the values, else coerce to this type
     copy : bool, default True
         If True always make a copy even if no upcast is required.
+
+    Returns
+    -------
+    values: ndarray or ExtensionArray
+        the original array, possibly upcast
+    fill_value:
+        the fill value, possibly upcast
     """
     if not is_scalar(fill_value) and not is_object_dtype(values.dtype):
         # We allow arbitrary fill values for object dtype
@@ -907,7 +925,7 @@ def maybe_upcast(values, fill_value=np.nan, dtype=None, copy: bool = False):
     return values, fill_value
 
 
-def invalidate_string_dtypes(dtype_set):
+def invalidate_string_dtypes(dtype_set: Set):
     """
     Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
@@ -929,7 +947,7 @@ def coerce_indexer_dtype(indexer, categories):
     return ensure_int64(indexer)
 
 
-def coerce_to_dtypes(result, dtypes):
+def coerce_to_dtypes(result: Sequence[Scalar], dtypes: Sequence[Dtype]) -> List[Scalar]:
     """
     given a dtypes and a result set, coerce the result elements to the
     dtypes
@@ -959,7 +977,9 @@ def coerce_to_dtypes(result, dtypes):
     return [conv(r, dtype) for r, dtype in zip(result, dtypes)]
 
 
-def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
+def astype_nansafe(
+    arr, dtype: DtypeObj, copy: bool = True, skipna: bool = False
+) -> ArrayLike:
     """
     Cast the elements of an array to a given dtype a nan-safe manner.
 
@@ -1063,7 +1083,9 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
     return arr.view(dtype)
 
 
-def maybe_convert_objects(values: np.ndarray, convert_numeric: bool = True):
+def maybe_convert_objects(
+    values: np.ndarray, convert_numeric: bool = True
+) -> Union[np.ndarray, ABCDatetimeIndex]:
     """
     If we have an object dtype array, try to coerce dates and/or numbers.
 
@@ -1184,7 +1206,7 @@ def soft_convert_objects(
 
 
 def convert_dtypes(
-    input_array,
+    input_array: AnyArrayLike,
     convert_string: bool = True,
     convert_integer: bool = True,
     convert_boolean: bool = True,
@@ -1250,7 +1272,7 @@ def convert_dtypes(
     return inferred_dtype
 
 
-def maybe_castable(arr) -> bool:
+def maybe_castable(arr: np.ndarray) -> bool:
     # return False to force a non-fastpath
 
     # check datetime64[ns]/timedelta64[ns] are valid
