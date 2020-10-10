@@ -922,7 +922,9 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         dtype = pandas_dtype(dtype)
 
     if issubclass(dtype.type, str):
-        return lib.ensure_string_array(arr.ravel(), skipna=skipna).reshape(arr.shape)
+        return lib.ensure_string_array(
+            arr.ravel(), skipna=skipna, convert_na_value=False
+        ).reshape(arr.shape)
 
     elif is_datetime64_dtype(arr):
         if is_object_dtype(dtype):
