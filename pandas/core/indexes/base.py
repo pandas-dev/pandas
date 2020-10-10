@@ -5406,29 +5406,17 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    @classmethod
-    def _add_numeric_methods_binary(cls):
+    def _arith_method(self, other, op):
         """
-        Add in numeric methods.
+        Wrapper used to dispatch arithmetic operations.
         """
-        setattr(cls, "__add__", _make_arithmetic_op(operator.add, cls))
-        setattr(cls, "__radd__", _make_arithmetic_op(ops.radd, cls))
-        setattr(cls, "__sub__", _make_arithmetic_op(operator.sub, cls))
-        setattr(cls, "__rsub__", _make_arithmetic_op(ops.rsub, cls))
-        setattr(cls, "__rpow__", _make_arithmetic_op(ops.rpow, cls))
-        setattr(cls, "__pow__", _make_arithmetic_op(operator.pow, cls))
 
-        setattr(cls, "__truediv__", _make_arithmetic_op(operator.truediv, cls))
-        setattr(cls, "__rtruediv__", _make_arithmetic_op(ops.rtruediv, cls))
+        from pandas import Series
 
-        setattr(cls, "__mod__", _make_arithmetic_op(operator.mod, cls))
-        setattr(cls, "__rmod__", _make_arithmetic_op(ops.rmod, cls))
-        setattr(cls, "__floordiv__", _make_arithmetic_op(operator.floordiv, cls))
-        setattr(cls, "__rfloordiv__", _make_arithmetic_op(ops.rfloordiv, cls))
-        setattr(cls, "__divmod__", _make_arithmetic_op(divmod, cls))
-        setattr(cls, "__rdivmod__", _make_arithmetic_op(ops.rdivmod, cls))
-        setattr(cls, "__mul__", _make_arithmetic_op(operator.mul, cls))
-        setattr(cls, "__rmul__", _make_arithmetic_op(ops.rmul, cls))
+        result = op(Series(self), other)
+        if isinstance(result, tuple):
+            return (Index(result[0]), Index(result[1]))
+        return Index(result)
 
     @classmethod
     def _add_numeric_methods_unary(cls):
@@ -5453,7 +5441,6 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _add_numeric_methods(cls):
         cls._add_numeric_methods_unary()
-        cls._add_numeric_methods_binary()
 
     def any(self, *args, **kwargs):
         """
