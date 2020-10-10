@@ -404,7 +404,7 @@ cdef class BlockSlider:
     """
     cdef:
         object frame, dummy, index, block
-        list blocks
+        list blk_values
         ndarray values
         Slider idx_slider
         char **base_ptrs
@@ -416,12 +416,12 @@ cdef class BlockSlider:
         self.dummy = frame[:0]
         self.index = self.dummy.index
 
-        self.blocks = [block.values for block in self.dummy._mgr.blocks]
+        self.blk_values = [block.values for block in self.dummy._mgr.blocks]
 
-        for values in self.blocks:
+        for values in self.blk_values:
             set_array_not_contiguous(values)
 
-        self.nblocks = len(self.blocks)
+        self.nblocks = len(self.blk_values)
         # See the comment in indexes/base.py about _index_data.
         # We need this for EA-backed indexes that have a reference to a 1-d
         # ndarray like datetime / timedelta / period.
@@ -429,17 +429,19 @@ cdef class BlockSlider:
             self.frame.index._index_data, self.dummy.index._index_data)
 
         self.base_ptrs = <char**>malloc(sizeof(char*) * self.nblocks)
-        for i, block in enumerate(self.blocks):
+        for i, block in enumerate(self.blk_values):
             self.base_ptrs[i] = (<ndarray>block).data
 
     def __dealloc__(self):
         free(self.base_ptrs)
 
     cdef move(self, int start, int end):
-        cdef ndarray arr
+        cdef:
+            ndarray arr
+            Py_ssize_t i
         # move blocks
         for i in range(self.nblocks):
-            arr = self.blocks[i]
+            arr = self.blk_values[i]
 
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i] + arr.strides[1] * start
@@ -453,9 +455,11 @@ cdef class BlockSlider:
         self.index._cache.clear()  # e.g. inferred_freq must go
 
     cdef reset(self):
-        cdef ndarray arr
+        cdef:
+            ndarray arr
+            Py_ssize_t i
         for i in range(self.nblocks):
-            arr = self.blocks[i]
+            arr = self.blk_values[i]
 
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i]
