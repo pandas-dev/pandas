@@ -1764,7 +1764,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Iteration
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         raise TypeError(
             f"{repr(type(self).__name__)} objects are mutable, "
             f"thus they cannot be hashed"
@@ -2253,7 +2253,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -2690,6 +2690,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
         An `sqlalchemy.engine.Connection` can also be passed to to `con`:
+
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
         ...     df1.to_sql('users', con=connection, if_exists='append')
@@ -2777,7 +2778,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -3286,7 +3287,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -3406,7 +3407,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if cacher is not None:
             ref = cacher[1]()
 
-            # we are trying to reference a dead referant, hence
+            # we are trying to reference a dead referent, hence
             # a copy
             if ref is None:
                 del self._cacher
@@ -3420,7 +3421,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     ref._item_cache.pop(cacher[0], None)
 
         if verify_is_copy:
-            self._check_setitem_copy(stacklevel=5, t="referant")
+            self._check_setitem_copy(stacklevel=5, t="referent")
 
         if clear:
             self._clear_item_cache()
@@ -3781,10 +3782,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if self._is_view and self._is_cached:
             ref = self._get_cacher()
             if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t="referant", force=True)
+                self._check_setitem_copy(stacklevel=4, t="referent", force=True)
             return True
         elif self._is_copy:
-            self._check_setitem_copy(stacklevel=4, t="referant")
+            self._check_setitem_copy(stacklevel=4, t="referent")
         return False
 
     def _check_setitem_copy(self, stacklevel=4, t="setting", force=False):
@@ -3837,7 +3838,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if isinstance(self._is_copy, str):
             t = self._is_copy
 
-        elif t == "referant":
+        elif t == "referent":
             t = (
                 "\n"
                 "A value is trying to be set on a copy of a slice from a "
@@ -3970,7 +3971,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
             Maximum distance between original and new labels for inexact
-            matches. The values of the index at the matching locations most
+            matches. The values of the index at the matching locations must
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
 
             Tolerance may be a scalar value, which applies the same tolerance
@@ -5471,8 +5472,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @property
     def _is_mixed_type(self) -> bool_t:
-        f = lambda: self._mgr.is_mixed_type
-        return self._protect_consolidate(f)
+        if len(self._mgr.blocks) == 1:
+            return False
+
+        if self._mgr.any_extension_types:
+            # Even if they have the same dtype, we cant consolidate them,
+            #  so we pretend this is "mixed'"
+            return True
+
+        return self.dtypes.nunique() > 1
 
     def _check_inplace_setting(self, value) -> bool_t:
         """ check whether we allow in-place setting with this type of value """
@@ -6252,8 +6260,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if value is None:
-
-            if self._is_mixed_type and axis == 1:
+            if len(self._mgr.blocks) > 1 and axis == 1:
                 if inplace:
                     raise NotImplementedError()
                 result = self.T.fillna(method=method, limit=limit).T
@@ -8748,6 +8755,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if is_datetime64tz_dtype(left.index.dtype):
             if left.index.tz != right.index.tz:
                 if join_index is not None:
+                    # GH#33671 ensure we don't change the index on
+                    #  our original Series (NB: by default deep=False)
+                    left = left.copy()
+                    right = right.copy()
                     left.index = join_index
                     right.index = join_index
 
@@ -8835,6 +8846,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if is_datetime64tz_dtype(left.index.dtype):
                 if left.index.tz != right.index.tz:
                     if join_index is not None:
+                        # GH#33671 ensure we don't change the index on
+                        #  our original Series (NB: by default deep=False)
+                        left = left.copy()
+                        right = right.copy()
                         left.index = join_index
                         right.index = join_index
 
@@ -9187,7 +9202,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             extend the index when shifting and preserve the original data.
             If `freq` is specified as "infer" then it will be inferred from
             the freq or inferred_freq attributes of the index. If neither of
-            those attributes exist, a ValueError is thrown
+            those attributes exist, a ValueError is thrown.
         axis : {{0 or 'index', 1 or 'columns', None}}, default None
             Shift direction.
         fill_value : object, optional
@@ -9236,11 +9251,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         >>> df.shift(periods=1, axis="columns")
                     Col1  Col2  Col3
-        2020-01-01   NaN  10.0  13.0
-        2020-01-02   NaN  20.0  23.0
-        2020-01-03   NaN  15.0  18.0
-        2020-01-04   NaN  30.0  33.0
-        2020-01-05   NaN  45.0  48.0
+        2020-01-01   NaN    10    13
+        2020-01-02   NaN    20    23
+        2020-01-03   NaN    15    18
+        2020-01-04   NaN    30    33
+        2020-01-05   NaN    45    48
 
         >>> df.shift(periods=3, fill_value=0)
                     Col1  Col2  Col3
@@ -9520,7 +9535,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         # if we have a date index, convert to dates, otherwise
         # treat like a slice
-        if ax.is_all_dates:
+        if ax._is_all_dates:
+            if is_object_dtype(ax.dtype):
+                warnings.warn(
+                    "Treating object-dtype Index of date objects as DatetimeIndex "
+                    "is deprecated, will be removed in a future version.",
+                    FutureWarning,
+                )
             from pandas.core.tools.datetimes import to_datetime
 
             before = to_datetime(before)

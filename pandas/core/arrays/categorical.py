@@ -28,6 +28,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_hashable,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
@@ -47,10 +48,11 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.base import ExtensionArray, NoNewAttributesMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array, sanitize_array
-from pandas.core.indexers import check_array_indexer, deprecate_ndim_indexing
+from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.missing import interpolate_2d
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 from pandas.io.formats import console
 
@@ -61,8 +63,9 @@ def _cat_compare_op(op):
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
-        if is_list_like(other) and len(other) != len(self):
-            # TODO: Could this fail if the categories are listlike objects?
+        hashable = is_hashable(other)
+        if is_list_like(other) and len(other) != len(self) and not hashable:
+            # in hashable case we may have a tuple that is itself a category
             raise ValueError("Lengths must match.")
 
         if not self.ordered:
@@ -90,7 +93,7 @@ def _cat_compare_op(op):
                 ret[mask] = fill_value
             return ret
 
-        if is_scalar(other):
+        if hashable:
             if other in self.categories:
                 i = self._unbox_scalar(other)
                 ret = op(self._codes, i)
@@ -176,7 +179,7 @@ def contains(cat, key, container):
         return any(loc_ in container for loc_ in loc)
 
 
-class Categorical(NDArrayBackedExtensionArray, PandasObject):
+class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
@@ -287,6 +290,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = PandasObject._deprecations | frozenset(["tolist"])
     _typ = "categorical"
+    _can_hold_na = True
 
     def __init__(
         self, values, categories=None, ordered=None, dtype=None, fastpath=False
@@ -1267,10 +1271,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             setattr(self, k, v)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self._codes.nbytes + self.dtype.categories.values.nbytes
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of my values
 
@@ -1643,7 +1647,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
             # TODO: dispatch when self.categories is EA-dtype
             values = np.asarray(self).reshape(-1, len(self))
-            values = interpolate_2d(values, method, 0, None, value).astype(
+            values = interpolate_2d(values, method, 0, None).astype(
                 self.categories.dtype
             )[0]
             codes = _get_codes_for_values(values, self.categories)
@@ -1883,7 +1887,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             new_codes = self._validate_listlike(value)
             value = Categorical.from_codes(new_codes, dtype=self.dtype)
 
-        rvalue = value if is_list_like(value) else [value]
+        # wrap scalars and hashable-listlikes in list
+        rvalue = value if not is_hashable(value) else [value]
 
         from pandas import Index
 
@@ -1923,8 +1928,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
 
         # else: array of True/False in Series or Categorical
 
-        key = check_array_indexer(self, key)
-        return key
+        return super()._validate_setitem_key(key)
 
     def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
         """
@@ -2144,10 +2148,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
             return np.array_equal(self._codes, other_codes)
         return False
 
-    @property
-    def _can_hold_na(self):
-        return True
-
     @classmethod
     def _concat_same_type(self, to_concat):
         from pandas.core.dtypes.concat import union_categoricals
@@ -2305,6 +2305,25 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject):
                     cat.rename_categories(categories, inplace=True)
         if not inplace:
             return cat
+
+    # ------------------------------------------------------------------------
+    # String methods interface
+    def _str_map(self, f, na_value=np.nan, dtype=np.dtype(object)):
+        # Optimization to apply the callable `f` to the categories once
+        # and rebuild the result by `take`ing from the result with the codes.
+        # Returns the same type as the object-dtype implementation though.
+        from pandas.core.arrays import PandasArray
+
+        categories = self.categories
+        codes = self.codes
+        result = PandasArray(categories.to_numpy())._str_map(f, na_value, dtype)
+        return take_1d(result, codes, fill_value=na_value)
+
+    def _str_get_dummies(self, sep="|"):
+        # sep may not be in categories. Just bail on this.
+        from pandas.core.arrays import PandasArray
+
+        return PandasArray(self.astype(str))._str_get_dummies(sep)
 
 
 # The Series.cat accessor

@@ -54,6 +54,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.aggregation import (
+    aggregate,
+    aggregate_multiple_funcs,
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
@@ -83,7 +85,7 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
-    from pandas.core.internals import Block  # noqa:F401
+    from pandas.core.internals import Block
 
 
 NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
@@ -946,7 +948,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
 
-        result, how = self._aggregate(func, *args, **kwargs)
+        result, how = aggregate(self, func, *args, **kwargs)
         if how is None:
             return result
 
@@ -966,7 +968,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = self._aggregate_multiple_funcs([func], _axis=self.axis)
+                    result = aggregate_multiple_funcs(self, [func], _axis=self.axis)
 
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040
@@ -1430,7 +1432,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         except AssertionError:
             raise
         except Exception:
-            # GH#29631 For user-defined function, we cant predict what may be
+            # GH#29631 For user-defined function, we can't predict what may be
             #  raised; see test_transform.test_transform_fastpath_raises
             return path, res
 

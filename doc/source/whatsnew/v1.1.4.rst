@@ -1,0 +1,44 @@
+.. _whatsnew_114:
+
+What's new in 1.1.4 (??)
+------------------------
+
+These are the changes in pandas 1.1.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_114.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression where attempting to mutate a :class:`DateOffset` object would no longer raise an ``AttributeError`` (:issue:`36940`)
+- Fixed regression where :meth:`DataFrame.agg` would fail with :exc:`TypeError` when passed positional arguments to be passed on to the aggregation function (:issue:`36948`).
+- Fixed regression in :class:`RollingGroupby` with ``sort=False`` not being respected (:issue:`36889`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_114.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_114.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_114.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.3..v1.1.4|HEAD
