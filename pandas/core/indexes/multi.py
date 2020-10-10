@@ -3616,8 +3616,8 @@ class MultiIndex(Index):
             raise NotImplementedError(msg)
         elif not is_object_dtype(dtype):
             raise TypeError(
-                f"Setting {type(self)} dtype to anything other "
-                "than object is not supported"
+                "Setting a MultiIndex dtype to anything other than object "
+                "is not supported"
             )
         elif copy is True:
             return self._shallow_copy()
