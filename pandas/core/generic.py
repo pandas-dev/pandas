@@ -6916,7 +6916,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        fillna : Fill missing values using different methods.
+        fillna : Fill missing values using a set value or existing values.
         scipy.interpolate.Akima1DInterpolator : Piecewise cubic polynomials
             (Akima interpolator).
         scipy.interpolate.BPoly.from_derivatives : Piecewise polynomial in the
