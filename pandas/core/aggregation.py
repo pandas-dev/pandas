@@ -608,17 +608,15 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
 
         from pandas.core.reshape.concat import concat
 
-        results = {}
         if selected_obj.ndim == 1:
-            # fname only used for output
+            # key only used for output
             colg = obj._gotitem(obj._selection, ndim=1)
-            for fname, agg_how in arg.items():
-                results[fname] = colg.aggregate(agg_how)
+            results = {key: colg.agg(how) for key, how in arg.items()}
         else:
-            # fname used for column selection and output
-            for fname, agg_how in arg.items():
-                colg = obj._gotitem(fname, ndim=1)
-                results[fname] = colg.aggregate(agg_how)
+            # key used for column selection and output
+            results = {
+                key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+            }
 
         # set the final keys
         keys = list(arg.keys())
