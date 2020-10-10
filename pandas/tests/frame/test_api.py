@@ -605,7 +605,7 @@ class TestDataFrameMisc:
         #  raise NotImplementedError
         df = DataFrame()
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # _AXIS_NUMBERS, _AXIS_NAMES lookups
             inspect.getmembers(df)
 
