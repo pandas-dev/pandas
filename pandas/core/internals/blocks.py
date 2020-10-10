@@ -2377,7 +2377,11 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def _maybe_coerce_values(self, values):
         if values.dtype != TD64NS_DTYPE:
-            # e.g. non-nano or int64
+            # non-nano we will convert to nano
+            if values.dtype.kind != "m":
+                # caller is responsible for ensuring timedelta64 dtype
+                raise TypeError(values.dtype)  # pragma: no cover
+
             values = TimedeltaArray._from_sequence(values)._data
         if isinstance(values, TimedeltaArray):
             values = values._data
