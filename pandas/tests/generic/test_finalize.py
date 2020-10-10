@@ -85,10 +85,7 @@ _all_methods = [
         marks=pytest.mark.xfail(reason="Implement binary finalize"),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("transpose")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("__getitem__", "A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("__getitem__", "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("__getitem__", ["A"])),
     (pd.DataFrame, frame_data, operator.methodcaller("__getitem__", np.array([True]))),
     (pd.DataFrame, ({("A", "a"): [1]},), operator.methodcaller("__getitem__", ["A"])),
@@ -308,10 +305,7 @@ _all_methods = [
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("swapaxes", 0, 1)),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("droplevel", "A")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("pop", "A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("pop", "A")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("squeeze")),
         marks=not_implemented_mark,
@@ -336,10 +330,7 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("take", [0, 0])),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("xs", "a")),
     (pd.Series, (1, mi), operator.methodcaller("xs", "a")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("get", "A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("get", "A")),
     (
         pd.DataFrame,
         frame_data,
