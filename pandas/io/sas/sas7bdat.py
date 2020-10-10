@@ -16,7 +16,7 @@ Reference for binary data compression:
 from collections import abc
 from datetime import datetime, timedelta
 import struct
-from typing import IO, Any
+from typing import IO, Any, Union
 
 import numpy as np
 
@@ -63,16 +63,36 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
             raise ValueError("unit must be 'd' or 's'")
 
 
-class _subheader_pointer:
-    def __init__(self, offset, length, compression, ptype):
+class _SubheaderPointer:
+    offset: int
+    length: int
+    compression: int
+    ptype: int
+
+    def __init__(self, offset: int, length: int, compression: int, ptype: int):
         self.offset = offset
         self.length = length
         self.compression = compression
         self.ptype = ptype
 
 
-class _column:
-    def __init__(self, col_id, name, label, format, ctype, length):
+class _Column:
+    col_id: int
+    name: Union[str, bytes]
+    label: Union[str, bytes]
+    format: Union[str, bytes]  # TODO: i think allowing bytes is from py2 days
+    ctype: bytes
+    length: int
+
+    def __init__(
+        self,
+        col_id: int,
+        name: Union[str, bytes],
+        label: Union[str, bytes],
+        format: Union[str, bytes],
+        ctype: bytes,
+        length: int,
+    ):
         self.col_id = col_id
         self.name = name
         self.label = label
@@ -110,6 +130,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         If False, header text, including column names, are left as raw
         bytes.
     """
+
+    _path_or_buf: IO[Any]
 
     def __init__(
         self,
@@ -334,7 +356,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         return struct.unpack(self.byte_order + fd, buf)[0]
 
     # Read a single signed integer of the given width (1, 2, 4 or 8).
-    def _read_int(self, offset, width):
+    def _read_int(self, offset: int, width: int) -> int:
         if width not in (1, 2, 4, 8):
             self.close()
             raise ValueError("invalid int width")
@@ -343,7 +365,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         iv = struct.unpack(self.byte_order + it, buf)[0]
         return iv
 
-    def _read_bytes(self, offset, length):
+    def _read_bytes(self, offset: int, length: int):
         if self._cached_page is None:
             self._path_or_buf.seek(offset)
             buf = self._path_or_buf.read(length)
@@ -422,7 +444,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                 raise ValueError("Unknown subheader signature")
         return index
 
-    def _process_subheader_pointers(self, offset, subheader_pointer_index):
+    def _process_subheader_pointers(self, offset: int, subheader_pointer_index: int):
 
         subheader_pointer_length = self._subheader_pointer_length
         total_offset = offset + subheader_pointer_length * subheader_pointer_index
@@ -438,7 +460,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
         subheader_type = self._read_int(total_offset, 1)
 
-        x = _subheader_pointer(
+        x = _SubheaderPointer(
             subheader_offset, subheader_length, subheader_compression, subheader_type
         )
 
@@ -670,7 +692,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         column_format = format_names[format_start : format_start + format_len]
         current_column_number = len(self.columns)
 
-        col = _column(
+        col = _Column(
             current_column_number,
             self.column_names[current_column_number],
             column_label,
