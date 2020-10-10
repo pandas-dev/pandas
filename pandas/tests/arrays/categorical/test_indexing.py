@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
 from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
@@ -243,41 +242,6 @@ class TestCategoricalIndexing:
         )
         with pytest.raises(ValueError, match="without identical categories"):
             ser.where([True, False, True], other)
-
-    def test_loc_new_category_series_raises(self):
-        ser = pd.Series(Categorical(["a", "b", "c"]))
-        msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
-            ser.loc[3] = "d"
-
-    def test_unused_category_retention(self):
-        # Init case
-        exp_cats = Index(["a", "b", "c", "d"])
-        cat1 = Series(Categorical(["a", "b", "c"], categories=exp_cats))
-        tm.assert_index_equal(cat1.cat.categories, exp_cats)
-
-        # Modify case
-        cat1.loc[0] = "b"
-        tm.assert_index_equal(cat1.cat.categories, exp_cats)
-
-    def test_loc_new_category_row_raises(self):
-        data = {
-            "int": [0, 1, 2],
-            "cat": pd.Categorical(["a", "b", "c"], categories=["a", "b", "c"]),
-        }
-        df = pd.DataFrame.from_dict(data)
-        msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
-            df.loc[3] = [3, "d"]
-
-    def test_loc_new_row_category_dtype_retention(self):
-        data = {
-            "int": [0, 1, 2],
-            "cat": pd.Categorical(["a", "b", "c"], categories=["a", "b", "c"]),
-        }
-        df = pd.DataFrame.from_dict(data)
-        df.loc[3] = [3, "c"]
-        assert is_categorical_dtype(df["cat"])
 
 
 @pytest.mark.parametrize("index", [True, False])
