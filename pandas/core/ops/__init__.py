@@ -142,29 +142,6 @@ def _maybe_match_name(a, b):
 
 
 # -----------------------------------------------------------------------------
-
-
-def _get_op_name(op, special: bool) -> str:
-    """
-    Find the name to attach to this method according to conventions
-    for special and non-special methods.
-
-    Parameters
-    ----------
-    op : binary operator
-    special : bool
-
-    Returns
-    -------
-    op_name : str
-    """
-    opname = op.__name__.strip("_")
-    if special:
-        opname = f"__{opname}__"
-    return opname
-
-
-# -----------------------------------------------------------------------------
 # Masking NA values and fallbacks for operations numpy does not support
 
 
@@ -234,7 +211,7 @@ def align_method_SERIES(left: "Series", right, align_asobject: bool = False):
 
 
 def flex_method_SERIES(op):
-    name = _get_op_name(op, False)
+    name = op.__name__.strip("_")
     doc = _make_flex_doc(name, "series")
 
     @Appender(doc)
@@ -467,7 +444,7 @@ def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int
 
 
 def flex_arith_method_FRAME(op):
-    op_name = _get_op_name(op, False)
+    op_name = op.__name__.strip("_")
     default_axis = "columns"
 
     na_op = get_array_op(op)
@@ -511,7 +488,7 @@ def flex_arith_method_FRAME(op):
 
 
 def flex_comp_method_FRAME(op):
-    op_name = _get_op_name(op, False)
+    op_name = op.__name__.strip("_")
     default_axis = "columns"  # because we are "flex"
 
     doc = _flex_comp_doc_FRAME.format(
