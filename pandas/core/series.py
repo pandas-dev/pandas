@@ -1789,12 +1789,17 @@ Name: Max Speed, dtype: float64
         """
         if level is None:
             return notna(self.array).sum()
+        elif not isinstance(self.index, MultiIndex):
+            raise ValueError("Series.count level is only valid with a MultiIndex")
+
+        index = self.index
+        assert isinstance(index, MultiIndex)  # for mypy
 
         if isinstance(level, str):
-            level = self.index._get_level_number(level)
+            level = index._get_level_number(level)
 
-        lev = self.index.levels[level]
-        level_codes = np.array(self.index.codes[level], subok=False, copy=True)
+        lev = index.levels[level]
+        level_codes = np.array(index.codes[level], subok=False, copy=True)
 
         mask = level_codes == -1
         if mask.any():
