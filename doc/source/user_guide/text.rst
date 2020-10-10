@@ -269,31 +269,14 @@ i.e., from the end of the string to the beginning of the string:
 
 Some caution must be taken when dealing with regular expressions! The current behavior
 is to treat single character patterns as literal strings, even when ``regex`` is set
-to ``True``. (This behavior is deprecated and will be removed in a future version so
-that the ``regex`` keyword is always respected.) For example, the following code will
-cause trouble because of the regular expression meaning of ``$``:
+to ``True``. This behavior is deprecated and will be removed in a future version so
+that the ``regex`` keyword is always respected.
 
-.. ipython:: python
+.. versionchanged:: 1.2.0
 
-   # Consider the following badly formatted financial data
-   dollars = pd.Series(["12", "-$10", "$10,000"], dtype="string")
-
-   # Here $ is treated as a literal character
-   dollars.str.replace("$", "", regex=True)
-
-   # But here it is not
-   dollars.str.replace("-$", "-", regex=True)
-
-   # We need to escape the special character (for >1 len patterns)
-   dollars.str.replace(r"-\$", "-", regex=True)
-
-   # Or set regex equal to False
-   dollars.str.replace("-$", "-", regex=False)
-
-If you do want literal replacement of a string (equivalent to
-:meth:`str.replace`), you can set the optional ``regex`` parameter to
-``False``, rather than escaping each character. In this case both ``pat``
-and ``repl`` must be strings:
+If you want literal replacement of a string (equivalent to :meth:`str.replace`), you
+can set the optional ``regex`` parameter to ``False``, rather than escaping each
+character. In this case both ``pat`` and ``repl`` must be strings:
 
 .. ipython:: python
 
