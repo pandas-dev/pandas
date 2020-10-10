@@ -23,7 +23,6 @@ from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
-    Period,
     Timedelta,
     Timestamp,
     conversion,
@@ -63,6 +62,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
+    is_period_dtype,
     is_scalar,
     is_sparse,
     is_string_dtype,
@@ -188,7 +188,7 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
         else:
             result = result.astype(dtype)
 
-    elif dtype.type is Period:
+    elif is_period_dtype(dtype):
         # TODO(DatetimeArray): merge with previous elif
         from pandas.core.arrays import PeriodArray
 
