@@ -337,7 +337,7 @@ ValueError: columns overlap but no suffix specified:
 # DataFrame class
 
 
-class DataFrame(OpsMixin, NDFrame):
+class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
@@ -421,7 +421,6 @@ class DataFrame(OpsMixin, NDFrame):
     _constructor_sliced: Type[Series] = Series
     _deprecations: FrozenSet[str] = NDFrame._deprecations | frozenset([])
     _accessors: Set[str] = {"sparse"}
-    __hash__ = NDFrame.__hash__
 
     @property
     def _constructor_expanddim(self):
