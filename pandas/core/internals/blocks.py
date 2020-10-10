@@ -124,13 +124,27 @@ class Block(PandasObject):
     def __init__(self, values, placement, ndim=None):
         self.ndim = self._check_ndim(values, ndim)
         self.mgr_locs = placement
-        self.values = values
+        self.values = self._maybe_coerce_values(values)
 
         if self._validate_ndim and self.ndim and len(self.mgr_locs) != len(self.values):
             raise ValueError(
                 f"Wrong number of items passed {len(self.values)}, "
                 f"placement implies {len(self.mgr_locs)}"
             )
+
+    def _maybe_coerce_values(self, values):
+        """
+        Ensure we have correctly-typed values.
+
+        Parameters
+        ----------
+        values : np.ndarray, ExtensionArray, Index
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        return values
 
     def _check_ndim(self, values, ndim):
         """
@@ -1614,7 +1628,6 @@ class ExtensionBlock(Block):
         This will call continue to call __init__ for the other base
         classes mixed in with this Mixin.
         """
-        values = self._maybe_coerce_values(values)
 
         # Placement must be converted to BlockPlacement so that we can check
         # its length
@@ -1745,6 +1758,14 @@ class ExtensionBlock(Block):
         `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
+        if not self._can_hold_element(value):
+            # This is only relevant for DatetimeTZBlock, which has a
+            #  non-trivial `_can_hold_element`.
+            # https://github.com/pandas-dev/pandas/issues/24020
+            # Need a dedicated setitem until GH#24020 (type promotion in setitem
+            #  for extension arrays) is designed and implemented.
+            return self.astype(object).setitem(indexer, value)
+
         if isinstance(indexer, tuple):
             # TODO(EA2D): not needed with 2D EAs
             # we are always 1-D
@@ -2109,10 +2130,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
     is_datetime = True
 
-    def __init__(self, values, placement, ndim=None):
-        values = self._maybe_coerce_values(values)
-        super().__init__(values, placement=placement, ndim=ndim)
-
     @property
     def _can_hold_na(self):
         return True
@@ -2166,7 +2183,13 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
-            if self.is_datetimetz:
+            if isinstance(element, list) and len(element) == 0:
+                # Following DatetimeArray._validate_setitem_value
+                #  convention, we treat this as object-dtype
+                #  (even though tipo is float64)
+                return True
+
+            elif self.is_datetimetz:
                 # require exact match, since non-nano does not exist
                 return is_dtype_equal(tipo, self.dtype) or is_valid_nat_for_dtype(
                     element, self.dtype
@@ -2330,21 +2353,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def setitem(self, indexer, value):
-        # https://github.com/pandas-dev/pandas/issues/24020
-        # Need a dedicated setitem until #24020 (type promotion in setitem
-        # for extension arrays) is designed and implemented.
-        if self._can_hold_element(value) or (
-            isinstance(indexer, np.ndarray) and indexer.size == 0
-        ):
-            return super().setitem(indexer, value)
-
-        obj_vals = self.values.astype(object)
-        newb = make_block(
-            obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
-        )
-        return newb.setitem(indexer, value)
-
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
 
@@ -2366,14 +2374,18 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     is_numeric = False
     fill_value = np.timedelta64("NaT", "ns")
 
-    def __init__(self, values, placement, ndim=None):
+    def _maybe_coerce_values(self, values):
         if values.dtype != TD64NS_DTYPE:
-            # e.g. non-nano or int64
+            # non-nano we will convert to nano
+            if values.dtype.kind != "m":
+                # caller is responsible for ensuring timedelta64 dtype
+                raise TypeError(values.dtype)  # pragma: no cover
+
             values = TimedeltaArray._from_sequence(values)._data
         if isinstance(values, TimedeltaArray):
             values = values._data
         assert isinstance(values, np.ndarray), type(values)
-        super().__init__(values, placement=placement, ndim=ndim)
+        return values
 
     @property
     def _holder(self):
@@ -2426,11 +2438,10 @@ class ObjectBlock(Block):
     is_object = True
     _can_hold_na = True
 
-    def __init__(self, values, placement=None, ndim=2):
+    def _maybe_coerce_values(self, values):
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
-
-        super().__init__(values, ndim=ndim, placement=placement)
+        return values
 
     @property
     def is_bool(self):

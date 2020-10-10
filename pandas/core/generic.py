@@ -51,7 +51,6 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     ValueKeyFunc,
 )
-from pandas.compat import set_function_name
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, InvalidIndexError
@@ -112,6 +111,7 @@ from pandas.io.formats.printing import pprint_thing
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
 
+    from pandas.core.frame import DataFrame
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
     from pandas.core.window.indexers import BaseIndexer
@@ -130,7 +130,7 @@ _shared_doc_kwargs = dict(
 )
 
 
-def _single_replace(self, to_replace, method, inplace, limit):
+def _single_replace(self: "Series", to_replace, method, inplace, limit):
     """
     Replaces values in a Series using the fill method specified when no
     replacement value is given in the replace method
@@ -541,6 +541,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         from pandas.core.computation.parsing import clean_column_name
 
         if isinstance(self, ABCSeries):
+            self = cast("Series", self)
             return {clean_column_name(self.name): self}
 
         return {
@@ -1995,9 +1996,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         if config.get_option("display.html.table_schema"):
             data = self.head(config.get_option("display.max_rows"))
-            payload = json.loads(
-                data.to_json(orient="table"), object_pairs_hook=collections.OrderedDict
-            )
+
+            as_json = data.to_json(orient="table")
+            as_json = cast(str, as_json)
+            payload = json.loads(as_json, object_pairs_hook=collections.OrderedDict)
             return payload
 
     # ----------------------------------------------------------------------
@@ -3113,6 +3115,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
 
+        self = cast("DataFrame", self)
         formatter = DataFrameFormatter(
             self,
             columns=columns,
@@ -3830,7 +3833,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # the copy weakref
         if self._is_copy is not None and not isinstance(self._is_copy, str):
             r = self._is_copy()
-            if not gc.get_referents(r) or r.shape == self.shape:
+            if not gc.get_referents(r) or (r is not None and r.shape == self.shape):
                 self._is_copy = None
                 return
 
@@ -6684,6 +6687,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     return self.apply(
                         _single_replace, args=(to_replace, method, inplace, limit)
                     )
+                self = cast("Series", self)
                 return _single_replace(self, to_replace, method, inplace, limit)
 
             if not is_dict_like(to_replace):
@@ -7265,10 +7269,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         nulls = self.isna() if is_series else self[subset].isna().any(1)
         if nulls.all():
             if is_series:
+                self = cast("Series", self)
                 return self._constructor(np.nan, index=where, name=self.name)
             elif is_list:
+                self = cast("DataFrame", self)
                 return self._constructor(np.nan, index=where, columns=self.columns)
             else:
+                self = cast("DataFrame", self)
                 return self._constructor_sliced(
                     np.nan, index=self.columns, name=where[0]
                 )
@@ -10399,6 +10406,287 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwargs)
         return grouped.aggregate(applyf)
 
+    def _logical_func(
+        self, name: str, func, axis=0, bool_only=None, skipna=True, level=None, **kwargs
+    ):
+        nv.validate_logical_func(tuple(), kwargs, fname=name)
+        if level is not None:
+            if bool_only is not None:
+                raise NotImplementedError(
+                    "Option bool_only is not implemented with option level."
+                )
+            return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
+
+        if self.ndim > 1 and axis is None:
+            # Reduce along one dimension then the other, to simplify DataFrame._reduce
+            res = self._logical_func(
+                name, func, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
+            )
+            return res._logical_func(name, func, skipna=skipna, **kwargs)
+
+        return self._reduce(
+            func,
+            name=name,
+            axis=axis,
+            skipna=skipna,
+            numeric_only=bool_only,
+            filter_type="bool",
+        )
+
+    def any(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
+        return self._logical_func(
+            "any", nanops.nanany, axis, bool_only, skipna, level, **kwargs
+        )
+
+    def all(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
+        return self._logical_func(
+            "all", nanops.nanall, axis, bool_only, skipna, level, **kwargs
+        )
+
+    def _accum_func(self, name: str, func, axis=None, skipna=True, *args, **kwargs):
+        skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
+        if axis is None:
+            axis = self._stat_axis_number
+        else:
+            axis = self._get_axis_number(axis)
+
+        if axis == 1:
+            return self.T._accum_func(
+                name, func, axis=0, skipna=skipna, *args, **kwargs
+            ).T
+
+        def block_accum_func(blk_values):
+            values = blk_values.T if hasattr(blk_values, "T") else blk_values
+
+            result = nanops.na_accum_func(values, func, skipna=skipna)
+
+            result = result.T if hasattr(result, "T") else result
+            return result
+
+        result = self._mgr.apply(block_accum_func)
+
+        return self._constructor(result).__finalize__(self, method=name)
+
+    def cummax(self, axis=None, skipna=True, *args, **kwargs):
+        return self._accum_func(
+            "cummax", np.maximum.accumulate, axis, skipna, *args, **kwargs
+        )
+
+    def cummin(self, axis=None, skipna=True, *args, **kwargs):
+        return self._accum_func(
+            "cummin", np.minimum.accumulate, axis, skipna, *args, **kwargs
+        )
+
+    def cumsum(self, axis=None, skipna=True, *args, **kwargs):
+        return self._accum_func("cumsum", np.cumsum, axis, skipna, *args, **kwargs)
+
+    def cumprod(self, axis=None, skipna=True, *args, **kwargs):
+        return self._accum_func("cumprod", np.cumprod, axis, skipna, *args, **kwargs)
+
+    def _stat_function_ddof(
+        self,
+        name: str,
+        func,
+        axis=None,
+        skipna=None,
+        level=None,
+        ddof=1,
+        numeric_only=None,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func(tuple(), kwargs, fname=name)
+        if skipna is None:
+            skipna = True
+        if axis is None:
+            axis = self._stat_axis_number
+        if level is not None:
+            return self._agg_by_level(
+                name, axis=axis, level=level, skipna=skipna, ddof=ddof
+            )
+        return self._reduce(
+            func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
+        )
+
+    def sem(
+        self, axis=None, skipna=None, level=None, ddof=1, numeric_only=None, **kwargs
+    ):
+        return self._stat_function_ddof(
+            "sem", nanops.nansem, axis, skipna, level, ddof, numeric_only, **kwargs
+        )
+
+    def var(
+        self, axis=None, skipna=None, level=None, ddof=1, numeric_only=None, **kwargs
+    ):
+        return self._stat_function_ddof(
+            "var", nanops.nanvar, axis, skipna, level, ddof, numeric_only, **kwargs
+        )
+
+    def std(
+        self, axis=None, skipna=None, level=None, ddof=1, numeric_only=None, **kwargs
+    ):
+        return self._stat_function_ddof(
+            "std", nanops.nanstd, axis, skipna, level, ddof, numeric_only, **kwargs
+        )
+
+    def _stat_function(
+        self,
+        name: str,
+        func,
+        axis=None,
+        skipna=None,
+        level=None,
+        numeric_only=None,
+        **kwargs,
+    ):
+        if name == "median":
+            nv.validate_median(tuple(), kwargs)
+        else:
+            nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if skipna is None:
+            skipna = True
+        if axis is None:
+            axis = self._stat_axis_number
+        if level is not None:
+            return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
+        return self._reduce(
+            func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
+        )
+
+    def min(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        return self._stat_function(
+            "min", nanops.nanmin, axis, skipna, level, numeric_only, **kwargs
+        )
+
+    def max(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        return self._stat_function(
+            "max", nanops.nanmax, axis, skipna, level, numeric_only, **kwargs
+        )
+
+    def mean(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        return self._stat_function(
+            "mean", nanops.nanmean, axis, skipna, level, numeric_only, **kwargs
+        )
+
+    def median(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        return self._stat_function(
+            "median", nanops.nanmedian, axis, skipna, level, numeric_only, **kwargs
+        )
+
+    def skew(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        return self._stat_function(
+            "skew", nanops.nanskew, axis, skipna, level, numeric_only, **kwargs
+        )
+
+    def kurt(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        return self._stat_function(
+            "kurt", nanops.nankurt, axis, skipna, level, numeric_only, **kwargs
+        )
+
+    kurtosis = kurt
+
+    def _min_count_stat_function(
+        self,
+        name: str,
+        func,
+        axis=None,
+        skipna=None,
+        level=None,
+        numeric_only=None,
+        min_count=0,
+        **kwargs,
+    ):
+        if name == "sum":
+            nv.validate_sum(tuple(), kwargs)
+        elif name == "prod":
+            nv.validate_prod(tuple(), kwargs)
+        else:
+            nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if skipna is None:
+            skipna = True
+        if axis is None:
+            axis = self._stat_axis_number
+        if level is not None:
+            return self._agg_by_level(
+                name, axis=axis, level=level, skipna=skipna, min_count=min_count
+            )
+        return self._reduce(
+            func,
+            name=name,
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            min_count=min_count,
+        )
+
+    def sum(
+        self,
+        axis=None,
+        skipna=None,
+        level=None,
+        numeric_only=None,
+        min_count=0,
+        **kwargs,
+    ):
+        return self._min_count_stat_function(
+            "sum", nanops.nansum, axis, skipna, level, numeric_only, min_count, **kwargs
+        )
+
+    def prod(
+        self,
+        axis=None,
+        skipna=None,
+        level=None,
+        numeric_only=None,
+        min_count=0,
+        **kwargs,
+    ):
+        return self._min_count_stat_function(
+            "prod",
+            nanops.nanprod,
+            axis,
+            skipna,
+            level,
+            numeric_only,
+            min_count,
+            **kwargs,
+        )
+
+    product = prod
+
+    def mad(self, axis=None, skipna=None, level=None):
+        """
+        {desc}
+
+        Parameters
+        ----------
+        axis : {axis_descr}
+            Axis for the function to be applied on.
+        skipna : bool, default None
+            Exclude NA/null values when computing the result.
+        level : int or level name, default None
+            If the axis is a MultiIndex (hierarchical), count along a
+            particular level, collapsing into a {name1}.
+
+        Returns
+        -------
+        {name1} or {name2} (if level specified)\
+        {see_also}\
+        {examples}
+        """
+        if skipna is None:
+            skipna = True
+        if axis is None:
+            axis = self._stat_axis_number
+        if level is not None:
+            return self._agg_by_level("mad", axis=axis, level=level, skipna=skipna)
+
+        data = self._get_numeric_data()
+        if axis == 0:
+            demeaned = data - data.mean(axis=0)
+        else:
+            demeaned = data.sub(data.mean(axis=1), axis=0)
+        return np.abs(demeaned).mean(axis=axis, skipna=skipna)
+
     @classmethod
     def _add_numeric_operations(cls):
         """
@@ -10406,30 +10694,35 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         axis_descr, name1, name2 = _doc_parms(cls)
 
-        cls.any = _make_logical_function(
-            cls,
-            "any",
+        @doc(
+            _bool_doc,
+            desc=_any_desc,
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
-            desc=_any_desc,
-            func=nanops.nanany,
             see_also=_any_see_also,
             examples=_any_examples,
             empty_value=False,
         )
-        cls.all = _make_logical_function(
-            cls,
-            "all",
+        def any(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
+            return NDFrame.any(self, axis, bool_only, skipna, level, **kwargs)
+
+        cls.any = any
+
+        @doc(
+            _bool_doc,
+            desc=_all_desc,
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
-            desc=_all_desc,
-            func=nanops.nanall,
             see_also=_all_see_also,
             examples=_all_examples,
             empty_value=True,
         )
+        def all(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
+            return NDFrame.all(self, axis, bool_only, skipna, level, **kwargs)
+
+        cls.all = all
 
         @doc(
             desc="Return the mean absolute deviation of the values "
@@ -10440,209 +10733,284 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
+        @Appender(NDFrame.mad.__doc__)
         def mad(self, axis=None, skipna=None, level=None):
-            """
-            {desc}
-
-            Parameters
-            ----------
-            axis : {axis_descr}
-                Axis for the function to be applied on.
-            skipna : bool, default None
-                Exclude NA/null values when computing the result.
-            level : int or level name, default None
-                If the axis is a MultiIndex (hierarchical), count along a
-                particular level, collapsing into a {name1}.
-
-            Returns
-            -------
-            {name1} or {name2} (if level specified)\
-            {see_also}\
-            {examples}
-            """
-            if skipna is None:
-                skipna = True
-            if axis is None:
-                axis = self._stat_axis_number
-            if level is not None:
-                return self._agg_by_level("mad", axis=axis, level=level, skipna=skipna)
-
-            data = self._get_numeric_data()
-            if axis == 0:
-                demeaned = data - data.mean(axis=0)
-            else:
-                demeaned = data.sub(data.mean(axis=1), axis=0)
-            return np.abs(demeaned).mean(axis=axis, skipna=skipna)
+            return NDFrame.mad(self, axis, skipna, level)
 
         cls.mad = mad
 
-        cls.sem = _make_stat_function_ddof(
-            cls,
-            "sem",
-            name1=name1,
-            name2=name2,
-            axis_descr=axis_descr,
+        @doc(
+            _num_ddof_doc,
             desc="Return unbiased standard error of the mean over requested "
             "axis.\n\nNormalized by N-1 by default. This can be changed "
             "using the ddof argument",
-            func=nanops.nansem,
-        )
-        cls.var = _make_stat_function_ddof(
-            cls,
-            "var",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+        )
+        def sem(
+            self,
+            axis=None,
+            skipna=None,
+            level=None,
+            ddof=1,
+            numeric_only=None,
+            **kwargs,
+        ):
+            return NDFrame.sem(self, axis, skipna, level, ddof, numeric_only, **kwargs)
+
+        cls.sem = sem
+
+        @doc(
+            _num_ddof_doc,
             desc="Return unbiased variance over requested axis.\n\nNormalized by "
             "N-1 by default. This can be changed using the ddof argument",
-            func=nanops.nanvar,
-        )
-        cls.std = _make_stat_function_ddof(
-            cls,
-            "std",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+        )
+        def var(
+            self,
+            axis=None,
+            skipna=None,
+            level=None,
+            ddof=1,
+            numeric_only=None,
+            **kwargs,
+        ):
+            return NDFrame.var(self, axis, skipna, level, ddof, numeric_only, **kwargs)
+
+        cls.var = var
+
+        @doc(
+            _num_ddof_doc,
             desc="Return sample standard deviation over requested axis."
             "\n\nNormalized by N-1 by default. This can be changed using the "
             "ddof argument",
-            func=nanops.nanstd,
-        )
-
-        cls.cummin = _make_cum_function(
-            cls,
-            "cummin",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+        )
+        def std(
+            self,
+            axis=None,
+            skipna=None,
+            level=None,
+            ddof=1,
+            numeric_only=None,
+            **kwargs,
+        ):
+            return NDFrame.std(self, axis, skipna, level, ddof, numeric_only, **kwargs)
+
+        cls.std = std
+
+        @doc(
+            _cnum_doc,
             desc="minimum",
-            accum_func=np.minimum.accumulate,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
             accum_func_name="min",
             examples=_cummin_examples,
         )
-        cls.cumsum = _make_cum_function(
-            cls,
-            "cumsum",
-            name1=name1,
-            name2=name2,
-            axis_descr=axis_descr,
-            desc="sum",
-            accum_func=np.cumsum,
-            accum_func_name="sum",
-            examples=_cumsum_examples,
-        )
-        cls.cumprod = _make_cum_function(
-            cls,
-            "cumprod",
-            name1=name1,
-            name2=name2,
-            axis_descr=axis_descr,
-            desc="product",
-            accum_func=np.cumprod,
-            accum_func_name="prod",
-            examples=_cumprod_examples,
-        )
-        cls.cummax = _make_cum_function(
-            cls,
-            "cummax",
-            name1=name1,
-            name2=name2,
-            axis_descr=axis_descr,
+        def cummin(self, axis=None, skipna=True, *args, **kwargs):
+            return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
+
+        cls.cummin = cummin
+
+        @doc(
+            _cnum_doc,
             desc="maximum",
-            accum_func=np.maximum.accumulate,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
             accum_func_name="max",
             examples=_cummax_examples,
         )
+        def cummax(self, axis=None, skipna=True, *args, **kwargs):
+            return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
-        cls.sum = _make_min_count_stat_function(
-            cls,
-            "sum",
+        cls.cummax = cummax
+
+        @doc(
+            _cnum_doc,
+            desc="sum",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+            accum_func_name="sum",
+            examples=_cumsum_examples,
+        )
+        def cumsum(self, axis=None, skipna=True, *args, **kwargs):
+            return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
+
+        cls.cumsum = cumsum
+
+        @doc(
+            _cnum_doc,
+            desc="product",
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            accum_func_name="prod",
+            examples=_cumprod_examples,
+        )
+        def cumprod(self, axis=None, skipna=True, *args, **kwargs):
+            return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
+
+        cls.cumprod = cumprod
+
+        @doc(
+            _num_doc,
             desc="Return the sum of the values for the requested axis.\n\n"
             "This is equivalent to the method ``numpy.sum``.",
-            func=nanops.nansum,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            min_count=_min_count_stub,
             see_also=_stat_func_see_also,
             examples=_sum_examples,
         )
-        cls.mean = _make_stat_function(
-            cls,
-            "mean",
+        def sum(
+            self,
+            axis=None,
+            skipna=None,
+            level=None,
+            numeric_only=None,
+            min_count=0,
+            **kwargs,
+        ):
+            return NDFrame.sum(
+                self, axis, skipna, level, numeric_only, min_count, **kwargs
+            )
+
+        cls.sum = sum
+
+        @doc(
+            _num_doc,
+            desc="Return the product of the values for the requested axis.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+            min_count=_min_count_stub,
+            see_also=_stat_func_see_also,
+            examples=_prod_examples,
+        )
+        def prod(
+            self,
+            axis=None,
+            skipna=None,
+            level=None,
+            numeric_only=None,
+            min_count=0,
+            **kwargs,
+        ):
+            return NDFrame.prod(
+                self, axis, skipna, level, numeric_only, min_count, **kwargs
+            )
+
+        cls.prod = prod
+        cls.product = prod
+
+        @doc(
+            _num_doc,
             desc="Return the mean of the values for the requested axis.",
-            func=nanops.nanmean,
-        )
-        cls.skew = _make_stat_function(
-            cls,
-            "skew",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+            min_count="",
+            see_also="",
+            examples="",
+        )
+        def mean(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+            return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
+
+        cls.mean = mean
+
+        @doc(
+            _num_doc,
             desc="Return unbiased skew over requested axis.\n\nNormalized by N-1.",
-            func=nanops.nanskew,
-        )
-        cls.kurt = _make_stat_function(
-            cls,
-            "kurt",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+            min_count="",
+            see_also="",
+            examples="",
+        )
+        def skew(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+            return NDFrame.skew(self, axis, skipna, level, numeric_only, **kwargs)
+
+        cls.skew = skew
+
+        @doc(
+            _num_doc,
             desc="Return unbiased kurtosis over requested axis.\n\n"
             "Kurtosis obtained using Fisher's definition of\n"
             "kurtosis (kurtosis of normal == 0.0). Normalized "
             "by N-1.",
-            func=nanops.nankurt,
-        )
-        cls.kurtosis = cls.kurt
-        cls.prod = _make_min_count_stat_function(
-            cls,
-            "prod",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
-            desc="Return the product of the values for the requested axis.",
-            func=nanops.nanprod,
-            examples=_prod_examples,
+            min_count="",
+            see_also="",
+            examples="",
         )
-        cls.product = cls.prod
-        cls.median = _make_stat_function(
-            cls,
-            "median",
-            name1=name1,
-            name2=name2,
-            axis_descr=axis_descr,
+        def kurt(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+            return NDFrame.kurt(self, axis, skipna, level, numeric_only, **kwargs)
+
+        cls.kurt = kurt
+        cls.kurtosis = kurt
+
+        @doc(
+            _num_doc,
             desc="Return the median of the values for the requested axis.",
-            func=nanops.nanmedian,
-        )
-        cls.max = _make_stat_function(
-            cls,
-            "max",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+            min_count="",
+            see_also="",
+            examples="",
+        )
+        def median(
+            self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs
+        ):
+            return NDFrame.median(self, axis, skipna, level, numeric_only, **kwargs)
+
+        cls.median = median
+
+        @doc(
+            _num_doc,
             desc="Return the maximum of the values for the requested axis.\n\n"
             "If you want the *index* of the maximum, use ``idxmax``. This is"
             "the equivalent of the ``numpy.ndarray`` method ``argmax``.",
-            func=nanops.nanmax,
-            see_also=_stat_func_see_also,
-            examples=_max_examples,
-        )
-        cls.min = _make_stat_function(
-            cls,
-            "min",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+            min_count="",
+            see_also=_stat_func_see_also,
+            examples=_max_examples,
+        )
+        def max(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+            return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
+
+        cls.max = max
+
+        @doc(
+            _num_doc,
             desc="Return the minimum of the values for the requested axis.\n\n"
             "If you want the *index* of the minimum, use ``idxmin``. This is"
             "the equivalent of the ``numpy.ndarray`` method ``argmin``.",
-            func=nanops.nanmin,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            min_count="",
             see_also=_stat_func_see_also,
             examples=_min_examples,
         )
+        def min(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+            return NDFrame.min(self, axis, skipna, level, numeric_only, **kwargs)
+
+        cls.min = min
 
     @doc(Rolling)
     def rolling(
@@ -11422,218 +11790,3 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 """
-
-
-def _make_min_count_stat_function(
-    cls,
-    name: str,
-    name1: str,
-    name2: str,
-    axis_descr: str,
-    desc: str,
-    func: Callable,
-    see_also: str = "",
-    examples: str = "",
-) -> Callable:
-    @doc(
-        _num_doc,
-        desc=desc,
-        name1=name1,
-        name2=name2,
-        axis_descr=axis_descr,
-        min_count=_min_count_stub,
-        see_also=see_also,
-        examples=examples,
-    )
-    def stat_func(
-        self,
-        axis=None,
-        skipna=None,
-        level=None,
-        numeric_only=None,
-        min_count=0,
-        **kwargs,
-    ):
-        if name == "sum":
-            nv.validate_sum(tuple(), kwargs)
-        elif name == "prod":
-            nv.validate_prod(tuple(), kwargs)
-        else:
-            nv.validate_stat_func(tuple(), kwargs, fname=name)
-        if skipna is None:
-            skipna = True
-        if axis is None:
-            axis = self._stat_axis_number
-        if level is not None:
-            return self._agg_by_level(
-                name, axis=axis, level=level, skipna=skipna, min_count=min_count
-            )
-        return self._reduce(
-            func,
-            name=name,
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
-            min_count=min_count,
-        )
-
-    return set_function_name(stat_func, name, cls)
-
-
-def _make_stat_function(
-    cls,
-    name: str,
-    name1: str,
-    name2: str,
-    axis_descr: str,
-    desc: str,
-    func: Callable,
-    see_also: str = "",
-    examples: str = "",
-) -> Callable:
-    @doc(
-        _num_doc,
-        desc=desc,
-        name1=name1,
-        name2=name2,
-        axis_descr=axis_descr,
-        min_count="",
-        see_also=see_also,
-        examples=examples,
-    )
-    def stat_func(
-        self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs
-    ):
-        if name == "median":
-            nv.validate_median(tuple(), kwargs)
-        else:
-            nv.validate_stat_func(tuple(), kwargs, fname=name)
-        if skipna is None:
-            skipna = True
-        if axis is None:
-            axis = self._stat_axis_number
-        if level is not None:
-            return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
-        return self._reduce(
-            func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
-        )
-
-    return set_function_name(stat_func, name, cls)
-
-
-def _make_stat_function_ddof(
-    cls, name: str, name1: str, name2: str, axis_descr: str, desc: str, func: Callable
-) -> Callable:
-    @doc(_num_ddof_doc, desc=desc, name1=name1, name2=name2, axis_descr=axis_descr)
-    def stat_func(
-        self, axis=None, skipna=None, level=None, ddof=1, numeric_only=None, **kwargs
-    ):
-        nv.validate_stat_ddof_func(tuple(), kwargs, fname=name)
-        if skipna is None:
-            skipna = True
-        if axis is None:
-            axis = self._stat_axis_number
-        if level is not None:
-            return self._agg_by_level(
-                name, axis=axis, level=level, skipna=skipna, ddof=ddof
-            )
-        return self._reduce(
-            func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
-        )
-
-    return set_function_name(stat_func, name, cls)
-
-
-def _make_cum_function(
-    cls,
-    name: str,
-    name1: str,
-    name2: str,
-    axis_descr: str,
-    desc: str,
-    accum_func: Callable,
-    accum_func_name: str,
-    examples: str,
-) -> Callable:
-    @doc(
-        _cnum_doc,
-        desc=desc,
-        name1=name1,
-        name2=name2,
-        axis_descr=axis_descr,
-        accum_func_name=accum_func_name,
-        examples=examples,
-    )
-    def cum_func(self, axis=None, skipna=True, *args, **kwargs):
-        skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
-        if axis is None:
-            axis = self._stat_axis_number
-        else:
-            axis = self._get_axis_number(axis)
-
-        if axis == 1:
-            return cum_func(self.T, axis=0, skipna=skipna, *args, **kwargs).T
-
-        def block_accum_func(blk_values):
-            values = blk_values.T if hasattr(blk_values, "T") else blk_values
-
-            result = nanops.na_accum_func(values, accum_func, skipna=skipna)
-
-            result = result.T if hasattr(result, "T") else result
-            return result
-
-        result = self._mgr.apply(block_accum_func)
-
-        return self._constructor(result).__finalize__(self, method=name)
-
-    return set_function_name(cum_func, name, cls)
-
-
-def _make_logical_function(
-    cls,
-    name: str,
-    name1: str,
-    name2: str,
-    axis_descr: str,
-    desc: str,
-    func: Callable,
-    see_also: str,
-    examples: str,
-    empty_value: bool,
-) -> Callable:
-    @doc(
-        _bool_doc,
-        desc=desc,
-        name1=name1,
-        name2=name2,
-        axis_descr=axis_descr,
-        see_also=see_also,
-        examples=examples,
-        empty_value=empty_value,
-    )
-    def logical_func(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
-        nv.validate_logical_func(tuple(), kwargs, fname=name)
-        if level is not None:
-            if bool_only is not None:
-                raise NotImplementedError(
-                    "Option bool_only is not implemented with option level."
-                )
-            return self._agg_by_level(name, axis=axis, level=level, skipna=skipna)
-
-        if self.ndim > 1 and axis is None:
-            # Reduce along one dimension then the other, to simplify DataFrame._reduce
-            res = logical_func(
-                self, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
-            )
-            return logical_func(res, skipna=skipna, **kwargs)
-
-        return self._reduce(
-            func,
-            name=name,
-            axis=axis,
-            skipna=skipna,
-            numeric_only=bool_only,
-            filter_type="bool",
-        )
-
-    return set_function_name(logical_func, name, cls)

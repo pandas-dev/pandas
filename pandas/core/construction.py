@@ -510,7 +510,7 @@ def sanitize_array(
 
     elif subarr.ndim > 1:
         if isinstance(data, np.ndarray):
-            raise Exception("Data must be 1-dimensional")
+            raise ValueError("Data must be 1-dimensional")
         else:
             subarr = com.asarray_tuplesafe(data, dtype=dtype)
 
