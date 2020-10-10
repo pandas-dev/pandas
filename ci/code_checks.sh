@@ -73,13 +73,6 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8 --format="$FLAKE8_FORMAT" pandas/_libs --append-config=flake8/cython-template.cfg
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    echo "flake8-rst --version"
-    flake8-rst --version
-
-    MSG='Linting code-blocks in .rst documentation' ; echo $MSG
-    flake8-rst doc/source --filename=*.rst --format="$FLAKE8_FORMAT"
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
     # it doesn't make a difference, but we want to be internally consistent.
     # Note: this grep pattern is (intended to be) equivalent to the python
