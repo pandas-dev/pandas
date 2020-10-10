@@ -46,6 +46,7 @@ def _get_method_wrappers(cls):
     from pandas.core.ops import (
         arith_method_FRAME,
         comp_method_FRAME,
+        flex_arith_method_FRAME,
         flex_comp_method_FRAME,
         flex_method_SERIES,
     )
@@ -58,7 +59,7 @@ def _get_method_wrappers(cls):
         comp_special = None
         bool_special = None
     elif issubclass(cls, ABCDataFrame):
-        arith_flex = arith_method_FRAME
+        arith_flex = flex_arith_method_FRAME
         comp_flex = flex_comp_method_FRAME
         arith_special = arith_method_FRAME
         comp_special = comp_method_FRAME

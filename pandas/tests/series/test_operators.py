@@ -276,23 +276,10 @@ class TestSeriesLogicalOps:
 
         expected = DataFrame(False, index=range(9), columns=["A"] + list(range(9)))
 
-        result = d.__and__(s, axis="columns")
-        tm.assert_frame_equal(result, expected)
-
-        result = d.__and__(s, axis=1)
-        tm.assert_frame_equal(result, expected)
-
         result = s & d
         tm.assert_frame_equal(result, expected)
 
         result = d & s
-        tm.assert_frame_equal(result, expected)
-
-        expected = (s & s).to_frame("A")
-        result = d.__and__(s, axis="index")
-        tm.assert_frame_equal(result, expected)
-
-        result = d.__and__(s, axis=0)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
