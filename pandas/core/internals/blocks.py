@@ -932,7 +932,7 @@ class Block(PandasObject):
         # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
-            #  can be parsed to EADtypes
+            # can be parsed to EADtypes
             is_ea_value = True
             arr_value = value
         else:
@@ -943,7 +943,7 @@ class Block(PandasObject):
             values = values.T
 
         # length checking
-        check_setitem_lengths(indexer, value[0], values)
+        check_setitem_lengths(indexer, value, values)
         exact_match = (
             len(arr_value.shape)
             and arr_value.shape[0] == values.shape[0]
