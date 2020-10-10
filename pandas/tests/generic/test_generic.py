@@ -906,4 +906,4 @@ class TestNDFrame:
         increment[-1] = None
         index = pd.Timestamp("2012-01-01 09:00") + increment
         df = pd.Series(range(len(index)), index=index).to_frame()
-        assert len(df["2012-01-01":"2012-01-05"]) == 1000
+        assert len(df["2012-01-01":"2012-01-05"]) == 4
