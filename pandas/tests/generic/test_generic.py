@@ -897,3 +897,12 @@ class TestNDFrame:
         assert s.flags is s.flags
         s2 = s.copy()
         assert s2.flags is not s.flags
+
+    def test_slice_incomplete_datetimes(self):
+        # GH36953 and GH35509
+        increment = pd.Series(pd.to_timedelta([30.0, 30.1, 29.9, 30.0], unit='s')).cumsum()
+        increment[-1] = None
+        index = pd.Timestamp("2012-01-01 09:00") + increment
+        df = pd.Series(range(len(index)), index=index).to_frame()
+        assert len(df["2012-01-01":"2012-01-05"]) == 1000
+
