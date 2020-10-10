@@ -608,69 +608,20 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
 
         from pandas.core.reshape.concat import concat
 
-        def _agg_1dim(name, how, subset=None):
-            """
-            aggregate a 1-dim with how
-            """
-            colg = obj._gotitem(name, ndim=1, subset=subset)
-            if colg.ndim != 1:
-                raise SpecificationError(
-                    "nested dictionary is ambiguous in aggregation"
-                )
-            return colg.aggregate(how)
-
-        def _agg_2dim(how):
-            """
-            aggregate a 2-dim with how
-            """
-            colg = obj._gotitem(obj._selection, ndim=2, subset=selected_obj)
-            return colg.aggregate(how)
-
-        def _agg(arg, func):
-            """
-            run the aggregations over the arg with func
-            return a dict
-            """
-            result = {}
+        result = {}
+        if selected_obj.ndim == 1:
+            # fname only used for output
+            colg = obj._gotitem(obj._selection, ndim=1)
             for fname, agg_how in arg.items():
-                result[fname] = func(fname, agg_how)
-            return result
+                result[fname] = colg.aggregate(agg_how)
+        else:
+            # fname used for column selection and output
+            for fname, agg_how in arg.items():
+                colg = obj._gotitem(fname, ndim=1)
+                result[fname] = colg.aggregate(agg_how)
 
         # set the final keys
         keys = list(arg.keys())
-
-        if obj._selection is not None:
-
-            sl = set(obj._selection_list)
-
-            # we are a Series like object,
-            # but may have multiple aggregations
-            if len(sl) == 1:
-
-                result = _agg(
-                    arg, lambda fname, agg_how: _agg_1dim(obj._selection, agg_how)
-                )
-
-            # we are selecting the same set as we are aggregating
-            elif not len(sl - set(keys)):
-
-                result = _agg(arg, _agg_1dim)
-
-            # we are a DataFrame, with possibly multiple aggregations
-            else:
-
-                result = _agg(arg, _agg_2dim)
-
-        # no selection
-        else:
-
-            try:
-                result = _agg(arg, _agg_1dim)
-            except SpecificationError:
-
-                # we are aggregating expecting all 1d-returns
-                # but we have 2d
-                result = _agg(arg, _agg_2dim)
 
         # combine results
 
