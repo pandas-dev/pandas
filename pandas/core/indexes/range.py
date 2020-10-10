@@ -9,7 +9,6 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
 from pandas._typing import Label
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, cache_readonly, doc
 
@@ -804,91 +803,83 @@ class RangeIndex(Int64Index):
     # --------------------------------------------------------------------
     # Reductions
 
-    def all(self) -> bool:
+    def all(self, *args, **kwargs) -> bool:
         return 0 not in self._range
 
-    def any(self) -> bool:
+    def any(self, *args, **kwargs) -> bool:
         return any(self._range)
 
     # --------------------------------------------------------------------
 
-    @classmethod
-    def _add_numeric_methods_binary(cls):
-        """ add in numeric methods, specialized to RangeIndex """
+    def _arith_method(self, other, op):
+        """
+        Parameters
+        ----------
+        other : Any
+        op : callable that accepts 2 params
+            perform the binary op
+        """
 
-        def _make_evaluate_binop(op, step=False):
-            """
-            Parameters
-            ----------
-            op : callable that accepts 2 params
-                perform the binary op
-            step : callable, optional, default to False
-                op to apply to the step parm if not None
-                if False, use the existing step
-            """
+        if isinstance(other, ABCTimedeltaIndex):
+            # Defer to TimedeltaIndex implementation
+            return NotImplemented
+        elif isinstance(other, (timedelta, np.timedelta64)):
+            # GH#19333 is_integer evaluated True on timedelta64,
+            # so we need to catch these explicitly
+            return op(self._int64index, other)
+        elif is_timedelta64_dtype(other):
+            # Must be an np.ndarray; GH#22390
+            return op(self._int64index, other)
 
-            @unpack_zerodim_and_defer(op.__name__)
-            def _evaluate_numeric_binop(self, other):
-                if isinstance(other, ABCTimedeltaIndex):
-                    # Defer to TimedeltaIndex implementation
-                    return NotImplemented
-                elif isinstance(other, (timedelta, np.timedelta64)):
-                    # GH#19333 is_integer evaluated True on timedelta64,
-                    # so we need to catch these explicitly
-                    return op(self._int64index, other)
-                elif is_timedelta64_dtype(other):
-                    # Must be an np.ndarray; GH#22390
-                    return op(self._int64index, other)
+        if op in [
+            operator.pow,
+            ops.rpow,
+            operator.mod,
+            ops.rmod,
+            ops.rfloordiv,
+            divmod,
+            ops.rdivmod,
+        ]:
+            return op(self._int64index, other)
 
-                other = extract_array(other, extract_numpy=True)
-                attrs = self._get_attributes_dict()
+        step = False
+        if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
+            step = op
 
-                left, right = self, other
+        other = extract_array(other, extract_numpy=True)
+        attrs = self._get_attributes_dict()
 
-                try:
-                    # apply if we have an override
-                    if step:
-                        with np.errstate(all="ignore"):
-                            rstep = step(left.step, right)
+        left, right = self, other
 
-                        # we don't have a representable op
-                        # so return a base index
-                        if not is_integer(rstep) or not rstep:
-                            raise ValueError
+        try:
+            # apply if we have an override
+            if step:
+                with np.errstate(all="ignore"):
+                    rstep = step(left.step, right)
 
-                    else:
-                        rstep = left.step
+                # we don't have a representable op
+                # so return a base index
+                if not is_integer(rstep) or not rstep:
+                    raise ValueError
 
-                    with np.errstate(all="ignore"):
-                        rstart = op(left.start, right)
-                        rstop = op(left.stop, right)
+            else:
+                rstep = left.step
 
-                    result = type(self)(rstart, rstop, rstep, **attrs)
+            with np.errstate(all="ignore"):
+                rstart = op(left.start, right)
+                rstop = op(left.stop, right)
 
-                    # for compat with numpy / Int64Index
-                    # even if we can represent as a RangeIndex, return
-                    # as a Float64Index if we have float-like descriptors
-                    if not all(is_integer(x) for x in [rstart, rstop, rstep]):
-                        result = result.astype("float64")
+            result = type(self)(rstart, rstop, rstep, **attrs)
 
-                    return result
+            # for compat with numpy / Int64Index
+            # even if we can represent as a RangeIndex, return
+            # as a Float64Index if we have float-like descriptors
+            if not all(is_integer(x) for x in [rstart, rstop, rstep]):
+                result = result.astype("float64")
 
-                except (ValueError, TypeError, ZeroDivisionError):
-                    # Defer to Int64Index implementation
-                    return op(self._int64index, other)
-                    # TODO: Do attrs get handled reliably?
+            return result
 
-            name = f"__{op.__name__}__"
-            return compat.set_function_name(_evaluate_numeric_binop, name, cls)
-
-        cls.__add__ = _make_evaluate_binop(operator.add)
-        cls.__radd__ = _make_evaluate_binop(ops.radd)
-        cls.__sub__ = _make_evaluate_binop(operator.sub)
-        cls.__rsub__ = _make_evaluate_binop(ops.rsub)
-        cls.__mul__ = _make_evaluate_binop(operator.mul, step=operator.mul)
-        cls.__rmul__ = _make_evaluate_binop(ops.rmul, step=ops.rmul)
-        cls.__truediv__ = _make_evaluate_binop(operator.truediv, step=operator.truediv)
-        cls.__rtruediv__ = _make_evaluate_binop(ops.rtruediv, step=ops.rtruediv)
-
-
-RangeIndex._add_numeric_methods()
+        except (ValueError, TypeError, ZeroDivisionError):
+            # Defer to Int64Index implementation
+            return op(self._int64index, other)
+            # TODO: Do attrs get handled reliably?
