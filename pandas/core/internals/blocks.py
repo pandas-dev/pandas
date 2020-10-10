@@ -717,7 +717,7 @@ class Block(PandasObject):
         inplace: bool = False,
         regex: bool = False,
         convert: bool = True,
-    ):
+    ) -> List["Block"]:
         """
         replace the to_replace value with value, possible to create new
         blocks here this is just a call to putmask. regex is not used here.
@@ -808,9 +808,11 @@ class Block(PandasObject):
             )
         return blocks
 
-    def _replace_single(self, *args, **kwargs):
+    def _replace_single(
+        self, to_replace, value, inplace=False, regex=False, convert=True, mask=None
+    ) -> List["Block"]:
         """ no-op on a non-ObjectBlock """
-        return self if kwargs["inplace"] else self.copy()
+        return [self] if inplace else [self.copy()]
 
     def _replace_list(
         self,
@@ -852,16 +854,13 @@ class Block(PandasObject):
                     to_replace=src,
                     value=dest,
                     inplace=inplace,
-                    convert=convert,
                     regex=regex,
                 )
-                if m.any() or convert:
-                    if isinstance(result, list):
-                        new_rb.extend(result)
-                    else:
-                        new_rb.append(result)
-                else:
-                    new_rb.append(blk)
+                if convert and blk.is_object:
+                    result = extend_blocks(
+                        [b.convert(numeric=False, copy=True) for b in result]
+                    )
+                new_rb.extend(result)
             rb = new_rb
         return rb
 
@@ -1559,9 +1558,8 @@ class Block(PandasObject):
         value,
         inplace: bool = True,
         regex: bool = False,
-        convert: bool = False,
         mask=None,
-    ):
+    ) -> List["Block"]:
         """
         Replace value corresponding to the given boolean array with another
         value.
@@ -1576,14 +1574,12 @@ class Block(PandasObject):
             Perform inplace modification.
         regex : bool, default False
             If true, perform regular expression substitution.
-        convert : bool, default True
-            If true, try to coerce any object types to better types.
         mask : array-like of bool, optional
             True indicate corresponding element is ignored.
 
         Returns
         -------
-        A new block if there is anything to replace or the original block.
+        List[Block]
         """
         if mask.any():
             if not regex:
@@ -1595,10 +1591,10 @@ class Block(PandasObject):
                     value,
                     inplace=inplace,
                     regex=regex,
-                    convert=convert,
+                    convert=False,
                     mask=mask,
                 )
-        return self
+        return [self]
 
 
 class ExtensionBlock(Block):
@@ -2085,7 +2081,7 @@ class IntBlock(NumericBlock):
         return is_integer(element) or (is_float(element) and element.is_integer())
 
 
-class DatetimeLikeBlockMixin:
+class DatetimeLikeBlockMixin(Block):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
     @property
@@ -2117,14 +2113,47 @@ class DatetimeLikeBlockMixin:
         # TODO(EA2D): this can be removed if we ever have 2D EA
         return self.array_values().reshape(self.shape)[key]
 
+    def diff(self, n: int, axis: int = 0) -> List["Block"]:
+        """
+        1st discrete difference.
+
+        Parameters
+        ----------
+        n : int
+            Number of periods to diff.
+        axis : int, default 0
+            Axis to diff upon.
+
+        Returns
+        -------
+        A list with a new TimeDeltaBlock.
+
+        Notes
+        -----
+        The arguments here are mimicking shift so they are called correctly
+        by apply.
+        """
+        # TODO(EA2D): reshape not necessary with 2D EAs
+        values = self.array_values().reshape(self.shape)
+
+        new_values = values - values.shift(n, axis=axis)
+        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
+
     def shift(self, periods, axis=0, fill_value=None):
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
         values = self.array_values()
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
         return self.make_block_same_class(new_values)
 
+    def to_native_types(self, na_rep="NaT", **kwargs):
+        """ convert to our native types format """
+        arr = self.array_values()
 
-class DatetimeBlock(DatetimeLikeBlockMixin, Block):
+        result = arr._format_native_types(na_rep=na_rep, **kwargs)
+        return self.make_block(result)
+
+
+class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_datetime = True
 
@@ -2204,15 +2233,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         return is_valid_nat_for_dtype(element, self.dtype)
 
-    def to_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        """ convert to our native types format """
-        dta = self.array_values()
-
-        result = dta._format_native_types(
-            na_rep=na_rep, date_format=date_format, **kwargs
-        )
-        return self.make_block(result)
-
     def set(self, locs, values):
         """
         See Block.set.__doc__
@@ -2232,6 +2252,7 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     internal_values = Block.internal_values
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
+    diff = DatetimeBlock.diff
     fill_value = np.datetime64("NaT", "ns")
     array_values = ExtensionBlock.array_values
 
@@ -2302,43 +2323,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         # NB: this is different from np.asarray(self.values), since that
         #  return an object-dtype ndarray of Timestamps.
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
-
-    def diff(self, n: int, axis: int = 0) -> List["Block"]:
-        """
-        1st discrete difference.
-
-        Parameters
-        ----------
-        n : int
-            Number of periods to diff.
-        axis : int, default 0
-            Axis to diff upon.
-
-        Returns
-        -------
-        A list with a new TimeDeltaBlock.
-
-        Notes
-        -----
-        The arguments here are mimicking shift so they are called correctly
-        by apply.
-        """
-        if axis == 0:
-            # TODO(EA2D): special case not needed with 2D EAs
-            # Cannot currently calculate diff across multiple blocks since this
-            # function is invoked via apply
-            raise NotImplementedError
-
-        if n == 0:
-            # Fastpath avoids making a copy in `shift`
-            new_values = np.zeros(self.values.shape, dtype=np.int64)
-        else:
-            new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
-
-        # Reshape the new_values like how algos.diff does for timedelta data
-        new_values = new_values.reshape(1, len(new_values))
-        new_values = new_values.astype("timedelta64[ns]")
-        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
 
     def fillna(self, value, limit=None, inplace=False, downcast=None):
         # We support filling a DatetimeTZ with a `value` whose timezone
@@ -2411,12 +2395,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
                 "`pd.Timedelta(seconds=n)` instead."
             )
         return super().fillna(value, **kwargs)
-
-    def to_native_types(self, na_rep="NaT", **kwargs):
-        """ convert to our native types format """
-        tda = self.array_values()
-        res = tda._format_native_types(na_rep, **kwargs)
-        return self.make_block(res)
 
 
 class BoolBlock(NumericBlock):
@@ -2497,14 +2475,16 @@ class ObjectBlock(Block):
     def _can_hold_element(self, element: Any) -> bool:
         return True
 
-    def replace(self, to_replace, value, inplace=False, regex=False, convert=True):
+    def replace(
+        self, to_replace, value, inplace=False, regex=False, convert=True
+    ) -> List["Block"]:
         to_rep_is_list = is_list_like(to_replace)
         value_is_list = is_list_like(value)
         both_lists = to_rep_is_list and value_is_list
         either_list = to_rep_is_list or value_is_list
 
-        result_blocks = []
-        blocks = [self]
+        result_blocks: List["Block"] = []
+        blocks: List["Block"] = [self]
 
         if not either_list and is_re(to_replace):
             return self._replace_single(
@@ -2521,7 +2501,7 @@ class ObjectBlock(Block):
                     result = b._replace_single(
                         to_rep, v, inplace=inplace, regex=regex, convert=convert
                     )
-                    result_blocks = extend_blocks(result, result_blocks)
+                    result_blocks.extend(result)
                 blocks = result_blocks
             return result_blocks
 
@@ -2532,7 +2512,7 @@ class ObjectBlock(Block):
                     result = b._replace_single(
                         to_rep, value, inplace=inplace, regex=regex, convert=convert
                     )
-                    result_blocks = extend_blocks(result, result_blocks)
+                    result_blocks.extend(result)
                 blocks = result_blocks
             return result_blocks
 
@@ -2542,7 +2522,7 @@ class ObjectBlock(Block):
 
     def _replace_single(
         self, to_replace, value, inplace=False, regex=False, convert=True, mask=None
-    ):
+    ) -> List["Block"]:
         """
         Replace elements by the given value.
 
@@ -2563,7 +2543,7 @@ class ObjectBlock(Block):
 
         Returns
         -------
-        a new block, the result after replacing
+        List[Block]
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
@@ -2637,48 +2617,6 @@ class ObjectBlock(Block):
             nbs = [block]
         return nbs
 
-    def _replace_coerce(
-        self, to_replace, value, inplace=True, regex=False, convert=False, mask=None
-    ):
-        """
-        Replace value corresponding to the given boolean array with another
-        value.
-
-        Parameters
-        ----------
-        to_replace : object or pattern
-            Scalar to replace or regular expression to match.
-        value : object
-            Replacement object.
-        inplace : bool, default False
-            Perform inplace modification.
-        regex : bool, default False
-            If true, perform regular expression substitution.
-        convert : bool, default True
-            If true, try to coerce any object types to better types.
-        mask : array-like of bool, optional
-            True indicate corresponding element is ignored.
-
-        Returns
-        -------
-        A new block if there is anything to replace or the original block.
-        """
-        if mask.any():
-            nbs = super()._replace_coerce(
-                to_replace=to_replace,
-                value=value,
-                inplace=inplace,
-                regex=regex,
-                convert=convert,
-                mask=mask,
-            )
-            if convert:
-                nbs = extend_blocks([b.convert(numeric=False, copy=True) for b in nbs])
-            return nbs
-        if convert:
-            return self.convert(numeric=False, copy=True)
-        return [self]
-
 
 class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
@@ -2690,12 +2628,12 @@ class CategoricalBlock(ExtensionBlock):
         inplace: bool = False,
         regex: bool = False,
         convert: bool = True,
-    ):
+    ) -> List["Block"]:
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = self if inplace else self.copy()
 
         result.values.replace(to_replace, value, inplace=True)
-        return result
+        return [result]
 
 
 # -----------------------------------------------------------------
