@@ -488,11 +488,15 @@ def maybe_casted_values(index, codes=None):
             values_type = type(values)
             values_dtype = values.dtype
 
-            if needs_i8_conversion(values.dtype) and isinstance(values, ExtensionArray):
+            from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+
+            if isinstance(values, DatetimeLikeArrayMixin):
                 values = values._data  # TODO: can we de-kludge yet?
 
             if mask.any():
                 values, _ = maybe_upcast_putmask(values, mask, np.nan)
+
+            from pandas.core.arrays import ExtensionArray
 
             if needs_i8_conversion(values.dtype) and isinstance(values, ExtensionArray):
                 values = values_type(values, dtype=values_dtype)
