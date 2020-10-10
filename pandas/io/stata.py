@@ -16,7 +16,18 @@ import os
 from pathlib import Path
 import struct
 import sys
-from typing import Any, AnyStr, BinaryIO, Dict, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    AnyStr,
+    BinaryIO,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -110,7 +121,7 @@ filepath_or_buffer : str, path object or file-like object
     If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
     By file-like object, we refer to objects with a ``read()`` method,
-    such as a file handler (e.g. via builtin ``open`` function)
+    such as a file handle (e.g. via builtin ``open`` function)
     or ``StringIO``.
 {_statafile_processing_params1}
 {_statafile_processing_params2}
@@ -164,8 +175,6 @@ Parameters
 path_or_buf : path (string), buffer or path object
     string, path object (pathlib.Path or py._path.local.LocalPath) or object
     implementing a binary read() functions.
-
-    .. versionadded:: 0.23.0 support for pathlib, py.path.
 {_statafile_processing_params1}
 {_statafile_processing_params2}
 {_chunksize_params}
@@ -501,7 +510,7 @@ One or more series with value labels are not fully labeled. Reading this
 dataset with an iterator results in categorical variable with different
 categories. This occurs since it is not possible to know all possible values
 until the entire dataset has been read. To avoid this warning, you can either
-read dataset without an interator, or manually convert categorical data by
+read dataset without an iterator, or manually convert categorical data by
 ``convert_categoricals`` to False and then accessing the variable labels
 through the value_labels method of the reader.
 """
@@ -1079,7 +1088,7 @@ class StataReader(StataParser, abc.Iterator):
         """ close the handle if its open """
         try:
             self.path_or_buf.close()
-        except IOError:
+        except OSError:
             pass
 
     def _set_encoding(self) -> None:
@@ -1391,6 +1400,7 @@ class StataReader(StataParser, abc.Iterator):
         dtypes = []  # Convert struct data types to numpy data type
         for i, typ in enumerate(self.typlist):
             if typ in self.NUMPY_TYPE_MAP:
+                typ = cast(str, typ)  # only strs in NUMPY_TYPE_MAP
                 dtypes.append(("s" + str(i), self.byteorder + self.NUMPY_TYPE_MAP[typ]))
             else:
                 dtypes.append(("s" + str(i), "S" + str(typ)))
@@ -1701,6 +1711,7 @@ the string values returned are correct."""
             if fmt not in self.VALID_RANGE:
                 continue
 
+            fmt = cast(str, fmt)  # only strs in VALID_RANGE
             nmin, nmax = self.VALID_RANGE[fmt]
             series = data[colname]
             missing = np.logical_or(series < nmin, series > nmax)
@@ -2122,9 +2133,6 @@ class StataWriter(StataParser):
         object implementing a binary write() functions. If using a buffer
         then the buffer will not be automatically closed after the file
         is written.
-
-        .. versionadded:: 0.23.0 support for pathlib, py.path.
-
     data : DataFrame
         Input to save
     convert_dates : dict
@@ -2999,8 +3007,6 @@ class StataStrLWriter:
 class StataWriter117(StataWriter):
     """
     A class for writing Stata binary dta files in Stata 13 format (117)
-
-    .. versionadded:: 0.23.0
 
     Parameters
     ----------

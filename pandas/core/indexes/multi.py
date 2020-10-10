@@ -1,3 +1,4 @@
+from functools import wraps
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
@@ -46,7 +47,12 @@ from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
+from pandas.core.indexes.base import (
+    Index,
+    _index_shared_docs,
+    ensure_index,
+    get_unanimous_names,
+)
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
@@ -64,7 +70,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import Series  # noqa:F401
+    from pandas import Series
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -150,6 +156,25 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
 
         # Multiple keys
         return np.bitwise_or.reduce(codes, axis=1)
+
+
+def names_compat(meth):
+    """
+    A decorator to allow either `name` or `names` keyword but not both.
+
+    This makes it easier to share code with base class.
+    """
+
+    @wraps(meth)
+    def new_meth(self_or_cls, *args, **kwargs):
+        if "name" in kwargs and "names" in kwargs:
+            raise TypeError("Can only provide one of `names` and `name`")
+        elif "name" in kwargs:
+            kwargs["names"] = kwargs.pop("name")
+
+        return meth(self_or_cls, *args, **kwargs)
+
+    return new_meth
 
 
 class MultiIndex(Index):
@@ -258,7 +283,6 @@ class MultiIndex(Index):
         copy=False,
         name=None,
         verify_integrity: bool = True,
-        _set_identity: bool = True,
     ):
 
         # compat with Index
@@ -292,10 +316,7 @@ class MultiIndex(Index):
             new_codes = result._verify_integrity()
             result._codes = new_codes
 
-        if _set_identity:
-            result._reset_identity()
-
-        return result
+        return result._reset_identity()
 
     def _validate_codes(self, level: List, code: List):
         """
@@ -449,6 +470,7 @@ class MultiIndex(Index):
         )
 
     @classmethod
+    @names_compat
     def from_tuples(
         cls,
         tuples,
@@ -765,7 +787,8 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new index (of same type and class...etc)
+        new index (of same type and class...etc) or None
+            The same type as the caller or None if ``inplace=True``.
 
         Examples
         --------
@@ -944,7 +967,8 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new index (of same type and class...etc)
+        new index (of same type and class...etc) or None
+            The same type as the caller or None if ``inplace=True``.
 
         Examples
         --------
@@ -1050,7 +1074,6 @@ class MultiIndex(Index):
         codes=None,
         sortorder=None,
         names=lib.no_default,
-        _set_identity: bool = True,
     ):
         if names is not lib.no_default and name is not lib.no_default:
             raise TypeError("Can only provide one of `names` and `name`")
@@ -1070,7 +1093,6 @@ class MultiIndex(Index):
             sortorder=sortorder,
             names=names,
             verify_integrity=False,
-            _set_identity=_set_identity,
         )
         result._cache = self._cache.copy()
         result._cache.pop("levels", None)  # GH32669
@@ -1098,7 +1120,6 @@ class MultiIndex(Index):
         codes=None,
         deep=False,
         name=None,
-        _set_identity=False,
     ):
         """
         Make a copy of this object. Names, dtype, levels and codes can be
@@ -1111,7 +1132,11 @@ class MultiIndex(Index):
 
             .. deprecated:: 1.2.0
         levels : sequence, optional
+
+            .. deprecated:: 1.2.0
         codes : sequence, optional
+
+            .. deprecated:: 1.2.0
         deep : bool, default False
         name : Label
             Kept for compatibility with 1-dimensional Index. Should not be used.
@@ -1127,6 +1152,21 @@ class MultiIndex(Index):
         This could be potentially expensive on large MultiIndex objects.
         """
         names = self._validate_names(name=name, names=names, deep=deep)
+        if levels is not None:
+            warnings.warn(
+                "parameter levels is deprecated and will be removed in a future "
+                "version. Use the set_levels method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        if codes is not None:
+            warnings.warn(
+                "parameter codes is deprecated and will be removed in a future "
+                "version. Use the set_codes method instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if deep:
             from copy import deepcopy
 
@@ -1140,7 +1180,6 @@ class MultiIndex(Index):
             codes=codes,
             names=names,
             sortorder=self.sortorder,
-            _set_identity=_set_identity,
         )
 
         if dtype:
@@ -1337,7 +1376,7 @@ class MultiIndex(Index):
             if sparsify in [False, lib.no_default]:
                 sentinel = sparsify
             # little bit of a kludge job for #1217
-            result_levels = _sparsify(
+            result_levels = sparsify_labels(
                 result_levels, start=int(names), sentinel=sentinel
             )
 
@@ -1554,7 +1593,7 @@ class MultiIndex(Index):
             raise ValueError(f"invalid how option: {how}")
 
         new_codes = [level_codes[~indexer] for level_codes in self.codes]
-        return self.copy(codes=new_codes, deep=True)
+        return self.set_codes(codes=new_codes)
 
     def _get_level_values(self, level, unique=False):
         """
@@ -1712,7 +1751,7 @@ class MultiIndex(Index):
         return Index(self._values, tupleize_cols=False)
 
     @property
-    def is_all_dates(self) -> bool:
+    def _is_all_dates(self) -> bool:
         return False
 
     def is_lexsorted(self) -> bool:
@@ -2512,10 +2551,6 @@ class MultiIndex(Index):
 
         return ensure_platform_int(indexer)
 
-    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
-        return super().get_indexer_non_unique(target)
-
     def get_slice_bound(
         self, label: Union[Hashable, Sequence[Hashable]], side: str, kind: str
     ) -> int:
@@ -3154,6 +3189,8 @@ class MultiIndex(Index):
 
         return indexer._values
 
+    # --------------------------------------------------------------------
+
     def _reorder_indexer(
         self,
         seq: Tuple[Union[Scalar, Iterable, AnyArrayLike], ...],
@@ -3396,7 +3433,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other):
-            return self
+            return self.rename(result_names)
 
         # TODO: Index.union returns other when `len(self)` is 0.
 
@@ -3438,7 +3475,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
-            return self
+            return self.rename(result_names)
 
         if not is_object_dtype(other.dtype):
             # The intersection is empty
@@ -3509,7 +3546,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0:
-            return self
+            return self.rename(result_names)
 
         if self.equals(other):
             return MultiIndex(
@@ -3557,7 +3594,8 @@ class MultiIndex(Index):
                 except TypeError as err:
                     raise TypeError(msg) from err
         else:
-            result_names = self.names if self.names == other.names else None
+            result_names = get_unanimous_names(self, other)
+
         return other, result_names
 
     # --------------------------------------------------------------------
@@ -3570,12 +3608,21 @@ class MultiIndex(Index):
             raise NotImplementedError(msg)
         elif not is_object_dtype(dtype):
             raise TypeError(
-                f"Setting {type(self)} dtype to anything other "
-                "than object is not supported"
+                "Setting a MultiIndex dtype to anything other than object "
+                "is not supported"
             )
         elif copy is True:
             return self._shallow_copy()
         return self
+
+    def _validate_insert_value(self, item):
+        if not isinstance(item, tuple):
+            # Pad the key with empty strings if lower levels of the key
+            # aren't specified:
+            item = (item,) + ("",) * (self.nlevels - 1)
+        elif len(item) != self.nlevels:
+            raise ValueError("Item must have length equal to number of levels.")
+        return item
 
     def insert(self, loc: int, item):
         """
@@ -3591,12 +3638,7 @@ class MultiIndex(Index):
         -------
         new_index : Index
         """
-        # Pad the key with empty strings if lower levels of the key
-        # aren't specified:
-        if not isinstance(item, tuple):
-            item = (item,) + ("",) * (self.nlevels - 1)
-        elif len(item) != self.nlevels:
-            raise ValueError("Item must have length equal to number of levels.")
+        item = self._validate_insert_value(item)
 
         new_levels = []
         new_codes = []
@@ -3632,10 +3674,6 @@ class MultiIndex(Index):
             names=self.names,
             verify_integrity=False,
         )
-
-    def _wrap_joined_index(self, joined, other):
-        names = self.names if self.names == other.names else None
-        return MultiIndex.from_tuples(joined, names=names)
 
     @doc(Index.isin)
     def isin(self, values, level=None):
@@ -3687,10 +3725,9 @@ class MultiIndex(Index):
 
 MultiIndex._add_numeric_methods_disabled()
 MultiIndex._add_numeric_methods_add_sub_disabled()
-MultiIndex._add_logical_methods_disabled()
 
 
-def _sparsify(label_list, start: int = 0, sentinel=""):
+def sparsify_labels(label_list, start: int = 0, sentinel=""):
     pivoted = list(zip(*label_list))
     k = len(label_list)
 

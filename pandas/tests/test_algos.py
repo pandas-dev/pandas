@@ -256,7 +256,7 @@ class TestFactorize:
         # GH35650 Verify whether read-only datetime64 array can be factorized
         data = np.array([np.datetime64("2020-01-01T00:00:00.000")])
         data.setflags(write=writable)
-        expected_codes = np.array([0], dtype=np.int64)
+        expected_codes = np.array([0], dtype=np.intp)
         expected_uniques = np.array(
             ["2020-01-01T00:00:00.000000000"], dtype="datetime64[ns]"
         )
@@ -801,7 +801,6 @@ class TestIsin:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_large(self):
-
         s = pd.date_range("20000101", periods=2000000, freq="s").values
         result = algos.isin(s, s[0:2])
         expected = np.zeros(len(s), dtype=bool)
@@ -840,6 +839,23 @@ class TestIsin:
         expected = np.array([True])
         result = algos.isin(comps, values)
         tm.assert_numpy_array_equal(expected, result)
+
+    def test_same_nan_is_in_large(self):
+        # https://github.com/pandas-dev/pandas/issues/22205
+        s = np.tile(1.0, 1_000_001)
+        s[0] = np.nan
+        result = algos.isin(s, [np.nan, 1])
+        expected = np.ones(len(s), dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_same_nan_is_in_large_series(self):
+        # https://github.com/pandas-dev/pandas/issues/22205
+        s = np.tile(1.0, 1_000_001)
+        series = pd.Series(s)
+        s[0] = np.nan
+        result = series.isin([np.nan, 1])
+        expected = pd.Series(np.ones(len(s), dtype=bool))
+        tm.assert_series_equal(result, expected)
 
     def test_same_object_is_in(self):
         # GH 22160
@@ -1529,7 +1545,7 @@ class TestHashTable:
         xs.setflags(write=writable)
         m = ht.Float64HashTable()
         m.map_locations(xs)
-        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.int64))
+        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.intp))
 
     def test_add_signed_zeros(self):
         # GH 21866 inconsistent hash-function for float64
@@ -1562,7 +1578,7 @@ class TestHashTable:
         xs.setflags(write=writable)
         m = ht.UInt64HashTable()
         m.map_locations(xs)
-        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.int64))
+        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.intp))
 
     def test_get_unique(self):
         s = Series([1, 2, 2 ** 63, 2 ** 63], dtype=np.uint64)

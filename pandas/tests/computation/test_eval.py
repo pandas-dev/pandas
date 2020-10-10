@@ -19,19 +19,19 @@ from pandas import DataFrame, Series, compat, date_range
 import pandas._testing as tm
 from pandas.core.computation import pytables
 from pandas.core.computation.check import NUMEXPR_VERSION
-from pandas.core.computation.engines import NumExprClobberingError, _engines
+from pandas.core.computation.engines import ENGINES, NumExprClobberingError
 import pandas.core.computation.expr as expr
 from pandas.core.computation.expr import (
     BaseExprVisitor,
     PandasExprVisitor,
     PythonExprVisitor,
 )
-from pandas.core.computation.expressions import _USE_NUMEXPR, NUMEXPR_INSTALLED
+from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
 from pandas.core.computation.ops import (
-    _arith_ops_syms,
+    ARITH_OPS_SYMS,
+    SPECIAL_CASE_ARITH_OPS_SYMS,
     _binary_math_ops,
     _binary_ops_dict,
-    _special_case_arith_ops_syms,
     _unary_math_ops,
 )
 
@@ -41,19 +41,19 @@ from pandas.core.computation.ops import (
         pytest.param(
             engine,
             marks=pytest.mark.skipif(
-                engine == "numexpr" and not _USE_NUMEXPR,
-                reason=f"numexpr enabled->{_USE_NUMEXPR}, "
+                engine == "numexpr" and not USE_NUMEXPR,
+                reason=f"numexpr enabled->{USE_NUMEXPR}, "
                 f"installed->{NUMEXPR_INSTALLED}",
             ),
         )
-        for engine in _engines
+        for engine in ENGINES
     )
-)  # noqa
+)
 def engine(request):
     return request.param
 
 
-@pytest.fixture(params=expr._parsers)
+@pytest.fixture(params=expr.PARSERS)
 def parser(request):
     return request.param
 
@@ -77,7 +77,7 @@ def unary_fns_for_ne():
 
 
 def engine_has_neg_frac(engine):
-    return _engines[engine].has_neg_frac
+    return ENGINES[engine].has_neg_frac
 
 
 def _eval_single_bin(lhs, cmp1, rhs, engine):
@@ -114,7 +114,7 @@ def _is_py3_complex_incompat(result, expected):
     return isinstance(expected, (complex, np.complexfloating)) and np.isnan(result)
 
 
-_good_arith_ops = set(_arith_ops_syms).difference(_special_case_arith_ops_syms)
+_good_arith_ops = set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_SYMS)
 
 
 @td.skip_if_no_ne
@@ -158,17 +158,17 @@ class TestEvalNumexprPandas:
         self.rhses = self.pandas_rhses + self.scalar_rhses
 
     def setup_ops(self):
-        self.cmp_ops = expr._cmp_ops_syms
+        self.cmp_ops = expr.CMP_OPS_SYMS
         self.cmp2_ops = self.cmp_ops[::-1]
-        self.bin_ops = expr._bool_ops_syms
-        self.special_case_ops = _special_case_arith_ops_syms
+        self.bin_ops = expr.BOOL_OPS_SYMS
+        self.special_case_ops = SPECIAL_CASE_ARITH_OPS_SYMS
         self.arith_ops = _good_arith_ops
         self.unary_ops = "-", "~", "not "
 
     def setup_method(self, method):
         self.setup_ops()
         self.setup_data()
-        self.current_engines = (engine for engine in _engines if engine != self.engine)
+        self.current_engines = (engine for engine in ENGINES if engine != self.engine)
 
     def teardown_method(self, method):
         del self.lhses, self.rhses, self.scalar_rhses, self.scalar_lhses
@@ -774,10 +774,10 @@ class TestEvalNumexprPython(TestEvalNumexprPandas):
         cls.parser = "python"
 
     def setup_ops(self):
-        self.cmp_ops = [op for op in expr._cmp_ops_syms if op not in ("in", "not in")]
+        self.cmp_ops = [op for op in expr.CMP_OPS_SYMS if op not in ("in", "not in")]
         self.cmp2_ops = self.cmp_ops[::-1]
-        self.bin_ops = [op for op in expr._bool_ops_syms if op not in ("and", "or")]
-        self.special_case_ops = _special_case_arith_ops_syms
+        self.bin_ops = [op for op in expr.BOOL_OPS_SYMS if op not in ("and", "or")]
+        self.special_case_ops = SPECIAL_CASE_ARITH_OPS_SYMS
         self.arith_ops = _good_arith_ops
         self.unary_ops = "+", "-", "~"
 
@@ -1054,15 +1054,15 @@ class TestAlignment:
                     m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
                 )
                 index = getattr(locals().get(obj_name), index_name)
-                s = Series(np.random.randn(n), index[:n])
+                ser = Series(np.random.randn(n), index[:n])
 
                 if r2 == "dt" or c2 == "dt":
                     if engine == "numexpr":
-                        expected2 = df2.add(s)
+                        expected2 = df2.add(ser)
                     else:
-                        expected2 = df2 + s
+                        expected2 = df2 + ser
                 else:
-                    expected2 = df2 + s
+                    expected2 = df2 + ser
 
                 if r1 == "dt" or c1 == "dt":
                     if engine == "numexpr":
@@ -1072,11 +1072,11 @@ class TestAlignment:
                 else:
                     expected = expected2 + df
 
-                if should_warn(df2.index, s.index, df.index):
+                if should_warn(df2.index, ser.index, df.index):
                     with tm.assert_produces_warning(RuntimeWarning):
-                        res = pd.eval("df2 + s + df", engine=engine, parser=parser)
+                        res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
                 else:
-                    res = pd.eval("df2 + s + df", engine=engine, parser=parser)
+                    res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
                 assert res.shape == expected.shape
                 tm.assert_frame_equal(res, expected)
 
@@ -1135,7 +1135,7 @@ class TestOperationsNumExprPandas:
     def setup_class(cls):
         cls.engine = "numexpr"
         cls.parser = "pandas"
-        cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
+        cls.arith_ops = expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
 
     @classmethod
     def teardown_class(cls):
@@ -1177,7 +1177,7 @@ class TestOperationsNumExprPandas:
                 assert y == expec
 
     def test_simple_bool_ops(self):
-        for op, lhs, rhs in product(expr._bool_ops_syms, (True, False), (True, False)):
+        for op, lhs, rhs in product(expr.BOOL_OPS_SYMS, (True, False), (True, False)):
             ex = f"{lhs} {op} {rhs}"
             res = self.eval(ex)
             exp = eval(ex)
@@ -1185,7 +1185,7 @@ class TestOperationsNumExprPandas:
 
     def test_bool_ops_with_constants(self):
         for op, lhs, rhs in product(
-            expr._bool_ops_syms, ("True", "False"), ("True", "False")
+            expr.BOOL_OPS_SYMS, ("True", "False"), ("True", "False")
         ):
             ex = f"{lhs} {op} {rhs}"
             res = self.eval(ex)
@@ -1637,7 +1637,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         cls.parser = "python"
         cls.arith_ops = [
             op
-            for op in expr._arith_ops_syms + expr._cmp_ops_syms
+            for op in expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
             if op not in ("in", "not in")
         ]
 
@@ -1697,7 +1697,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     def test_bool_ops_with_constants(self):
         for op, lhs, rhs in product(
-            expr._bool_ops_syms, ("True", "False"), ("True", "False")
+            expr.BOOL_OPS_SYMS, ("True", "False"), ("True", "False")
         ):
             ex = f"{lhs} {op} {rhs}"
             if op in ("and", "or"):
@@ -1710,7 +1710,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
                 assert res == exp
 
     def test_simple_bool_ops(self):
-        for op, lhs, rhs in product(expr._bool_ops_syms, (True, False), (True, False)):
+        for op, lhs, rhs in product(expr.BOOL_OPS_SYMS, (True, False), (True, False)):
             ex = f"lhs {op} rhs"
             if op in ("and", "or"):
                 msg = "'BoolOp' nodes are not implemented"
@@ -1729,7 +1729,7 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
         cls.engine = cls.parser = "python"
         cls.arith_ops = [
             op
-            for op in expr._arith_ops_syms + expr._cmp_ops_syms
+            for op in expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
             if op not in ("in", "not in")
         ]
 
@@ -1740,7 +1740,7 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
         super().setup_class()
         cls.engine = "python"
         cls.parser = "pandas"
-        cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
+        cls.arith_ops = expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
 
 
 @td.skip_if_no_ne
@@ -1885,7 +1885,7 @@ class TestScope:
         )
 
     def test_no_new_locals(self, engine, parser):
-        x = 1  # noqa
+        x = 1
         lcls = locals().copy()
         pd.eval("x + 1", local_dict=lcls, engine=engine, parser=parser)
         lcls2 = locals().copy()
@@ -1921,7 +1921,7 @@ _parsers: Dict[str, Type[BaseExprVisitor]] = {
 }
 
 
-@pytest.mark.parametrize("engine", _engines)
+@pytest.mark.parametrize("engine", ENGINES)
 @pytest.mark.parametrize("parser", _parsers)
 def test_disallowed_nodes(engine, parser):
     VisitorClass = _parsers[parser]
@@ -1995,8 +1995,8 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
     mid = gen[lhs]()  # noqa
-    lhs = gen[lhs]()  # noqa
-    rhs = gen[rhs]()  # noqa
+    lhs = gen[lhs]()
+    rhs = gen[rhs]()
 
     ex1 = f"lhs {cmp} mid {cmp} rhs"
     ex2 = f"lhs {cmp} mid and mid {cmp} rhs"
@@ -2020,7 +2020,7 @@ def test_equals_various(other):
     df = DataFrame({"A": ["a", "b", "c"]})
     result = df.eval(f"A == {other}")
     expected = Series([False, False, False], name="A")
-    if _USE_NUMEXPR:
+    if USE_NUMEXPR:
         # https://github.com/pandas-dev/pandas/issues/10239
         # lose name with numexpr engine. Remove when that's fixed.
         expected.name = None

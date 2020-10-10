@@ -381,6 +381,16 @@ def test_apply_frame_to_series(df):
     tm.assert_numpy_array_equal(result.values, expected.values)
 
 
+def test_apply_frame_not_as_index_column_name(df):
+    # GH 35964 - path within _wrap_applied_output not hit by a test
+    grouped = df.groupby(["A", "B"], as_index=False)
+    result = grouped.apply(len)
+    expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
+    # TODO: Use assert_frame_equal when column name is not np.nan (GH 36306)
+    tm.assert_index_equal(result.index, expected.index)
+    tm.assert_numpy_array_equal(result.values, expected.values)
+
+
 def test_apply_frame_concat_series():
     def trans(group):
         return group.groupby("B")["C"].sum().sort_values()[:2]
@@ -667,6 +677,23 @@ def test_apply_aggregating_timedelta_and_datetime():
             "date": [np.datetime64("2017-02-01 00:00:00")] * 3,
         }
     ).set_index("clientid")
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_groupby_datetimeindex():
+    # GH 26182
+    # groupby apply failed on dataframe with DatetimeIndex
+
+    data = [["A", 10], ["B", 20], ["B", 30], ["C", 40], ["C", 50]]
+    df = pd.DataFrame(
+        data, columns=["Name", "Value"], index=pd.date_range("2020-09-01", "2020-09-05")
+    )
+
+    result = df.groupby("Name").sum()
+
+    expected = pd.DataFrame({"Name": ["A", "B", "C"], "Value": [10, 50, 90]})
+    expected.set_index("Name", inplace=True)
 
     tm.assert_frame_equal(result, expected)
 

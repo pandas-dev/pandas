@@ -73,13 +73,6 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     flake8 --format="$FLAKE8_FORMAT" pandas/_libs --append-config=flake8/cython-template.cfg
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    echo "flake8-rst --version"
-    flake8-rst --version
-
-    MSG='Linting code-blocks in .rst documentation' ; echo $MSG
-    flake8-rst doc/source --filename=*.rst --format="$FLAKE8_FORMAT"
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
     # it doesn't make a difference, but we want to be internally consistent.
     # Note: this grep pattern is (intended to be) equivalent to the python
@@ -116,11 +109,19 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for use of private module attribute access' ; echo $MSG
+    MSG='Check for import of private attributes across modules' ; echo $MSG
     if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
     else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
+    fi
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for use of private functions across modules' ; echo $MSG
+    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
+    else
+        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -327,7 +328,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Doctests strings.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/strings.py
+    pytest -q --doctest-modules pandas/core/strings/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Directories

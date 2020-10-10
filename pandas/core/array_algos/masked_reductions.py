@@ -8,7 +8,7 @@ from typing import Callable
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import np_version_under1p17
 
 from pandas.core.nanops import check_below_min_count
 
@@ -46,7 +46,7 @@ def _sumprod(
         if check_below_min_count(values.shape, mask, min_count):
             return libmissing.NA
 
-        if _np_version_under1p17:
+        if np_version_under1p17:
             return func(values[~mask])
         else:
             return func(values, where=~mask)

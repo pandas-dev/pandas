@@ -44,7 +44,7 @@ import pandas._testing as tm
 )
 def test_get_dtype_kinds(index_or_series, to_concat, expected):
     to_concat_klass = [index_or_series(c) for c in to_concat]
-    result = _concat.get_dtype_kinds(to_concat_klass)
+    result = _concat._get_dtype_kinds(to_concat_klass)
     assert result == set(expected)
 
 
@@ -76,7 +76,7 @@ def test_get_dtype_kinds(index_or_series, to_concat, expected):
     ],
 )
 def test_get_dtype_kinds_period(to_concat, expected):
-    result = _concat.get_dtype_kinds(to_concat)
+    result = _concat._get_dtype_kinds(to_concat)
     assert result == set(expected)
 
 

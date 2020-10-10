@@ -648,7 +648,7 @@ class TestDataFrameFormatting:
         assert isinstance(result, str)
 
     def test_to_string_utf8_columns(self):
-        n = "\u05d0".encode("utf-8")
+        n = "\u05d0".encode()
 
         with option_context("display.max_rows", 1):
             df = DataFrame([1, 2], columns=[n])
@@ -2845,6 +2845,13 @@ class TestSeriesFormatting:
         res = df.to_string(header=["r1", "r2"])
         exp = "    r1 r2\na b      \n0 1  2  3"
         assert res == exp
+
+    def test_to_string_empty_col(self):
+        # GH 13653
+        s = pd.Series(["", "Hello", "World", "", "", "Mooooo", "", ""])
+        res = s.to_string(index=False)
+        exp = "      \n Hello\n World\n      \n      \nMooooo\n      \n      "
+        assert re.match(exp, res)
 
 
 class TestGenericArrayFormatter:

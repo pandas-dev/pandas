@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.compat.numpy import _is_numpy_dev
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
@@ -456,7 +455,7 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             getattr(index, method)(case)
 
-    def test_intersection_base(self, index, request):
+    def test_intersection_base(self, index):
         if isinstance(index, CategoricalIndex):
             return
 
@@ -473,15 +472,6 @@ class Base:
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
-            # https://github.com/pandas-dev/pandas/issues/35481
-            if (
-                _is_numpy_dev
-                and isinstance(case, Series)
-                and isinstance(index, UInt64Index)
-            ):
-                mark = pytest.mark.xfail(reason="gh-35481")
-                request.node.add_marker(mark)
-
             result = first.intersection(case)
             assert tm.equalContents(result, second)
 
@@ -507,7 +497,11 @@ class Base:
         for case in cases:
             if not isinstance(index, CategoricalIndex):
                 result = first.union(case)
-                assert tm.equalContents(result, everything)
+                assert tm.equalContents(result, everything), (
+                    result,
+                    everything,
+                    type(case),
+                )
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -619,8 +613,6 @@ class Base:
     def test_equals_op(self):
         # GH9947, GH10637
         index_a = self.create_index()
-        if isinstance(index_a, PeriodIndex):
-            pytest.skip("Skip check for PeriodIndex")
 
         n = len(index_a)
         index_b = index_a[0:-1]
@@ -846,16 +838,17 @@ class Base:
     def test_putmask_with_wrong_mask(self):
         # GH18368
         index = self.create_index()
+        fill = index[0]
 
         msg = "putmask: mask and data must be the same size"
         with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) + 1, np.bool_), 1)
+            index.putmask(np.ones(len(index) + 1, np.bool_), fill)
 
         with pytest.raises(ValueError, match=msg):
-            index.putmask(np.ones(len(index) - 1, np.bool_), 1)
+            index.putmask(np.ones(len(index) - 1, np.bool_), fill)
 
         with pytest.raises(ValueError, match=msg):
-            index.putmask("foo", 1)
+            index.putmask("foo", fill)
 
     @pytest.mark.parametrize("copy", [True, False])
     @pytest.mark.parametrize("name", [None, "foo"])
@@ -905,6 +898,7 @@ class Base:
         index_na_dup = index_na.insert(0, np.nan)
         assert index_na_dup.is_unique is False
 
+    @pytest.mark.arm_slow
     def test_engine_reference_cycle(self):
         # GH27585
         index = self.create_index()
@@ -939,28 +933,22 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             {} in idx._engine
 
-    def test_copy_copies_cache(self):
-        # GH32898
+    def test_copy_shares_cache(self):
+        # GH32898, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
         copy = idx.copy()
 
-        # check that the copied cache is a copy of the original
-        assert idx._cache == copy._cache
-        assert idx._cache is not copy._cache
-        # cache values should reference the same object
-        for key, val in idx._cache.items():
-            assert copy._cache[key] is val, key
+        assert copy._cache is idx._cache
 
-    def test_shallow_copy_copies_cache(self):
-        # GH32669
+    def test_shallow_copy_shares_cache(self):
+        # GH32669, GH36840
         idx = self.create_index()
         idx.get_loc(idx[0])  # populates the _cache.
         shallow_copy = idx._shallow_copy()
 
-        # check that the shallow_copied cache is a copy of the original
-        assert idx._cache == shallow_copy._cache
-        assert idx._cache is not shallow_copy._cache
-        # cache values should reference the same object
-        for key, val in idx._cache.items():
-            assert shallow_copy._cache[key] is val, key
+        assert shallow_copy._cache is idx._cache
+
+        shallow_copy = idx._shallow_copy(idx._data)
+        assert shallow_copy._cache is not idx._cache
+        assert shallow_copy._cache == {}

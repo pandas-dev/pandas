@@ -8,7 +8,7 @@ from pandas.core.groupby.groupby import get_groupby
 
 
 class TestGrouperGrouping:
-    def setup_method(self, method):
+    def setup_method(self):
         self.series = Series(np.arange(10))
         self.frame = DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
@@ -45,9 +45,9 @@ class TestGrouperGrouping:
 
         # GH 13174
         g = self.frame.groupby("A")
-        r = g.rolling(2)
+        r = g.rolling(2, min_periods=0)
         g_mutated = get_groupby(self.frame, by="A", mutated=True)
-        expected = g_mutated.B.apply(lambda x: x.rolling(2).count())
+        expected = g_mutated.B.apply(lambda x: x.rolling(2, min_periods=0).count())
 
         result = r.B.count()
         tm.assert_series_equal(result, expected)
@@ -55,19 +55,37 @@ class TestGrouperGrouping:
         result = r.B.count()
         tm.assert_series_equal(result, expected)
 
-    def test_rolling(self):
+    @pytest.mark.parametrize(
+        "f",
+        [
+            "sum",
+            "mean",
+            "min",
+            "max",
+            pytest.param(
+                "count",
+                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
+            ),
+            "kurt",
+            "skew",
+        ],
+    )
+    def test_rolling(self, f):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
 
-        for f in ["sum", "mean", "min", "max", "count", "kurt", "skew"]:
-            result = getattr(r, f)()
-            expected = g.apply(lambda x: getattr(x.rolling(4), f)())
-            tm.assert_frame_equal(result, expected)
+        result = getattr(r, f)()
+        expected = g.apply(lambda x: getattr(x.rolling(4), f)())
+        tm.assert_frame_equal(result, expected)
 
-        for f in ["std", "var"]:
-            result = getattr(r, f)(ddof=1)
-            expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
-            tm.assert_frame_equal(result, expected)
+    @pytest.mark.parametrize("f", ["std", "var"])
+    def test_rolling_ddof(self, f):
+        g = self.frame.groupby("A")
+        r = g.rolling(window=4)
+
+        result = getattr(r, f)(ddof=1)
+        expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
@@ -81,26 +99,26 @@ class TestGrouperGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_rolling_corr_cov(self):
+    @pytest.mark.parametrize("f", ["corr", "cov"])
+    def test_rolling_corr_cov(self, f):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
 
-        for f in ["corr", "cov"]:
-            result = getattr(r, f)(self.frame)
+        result = getattr(r, f)(self.frame)
 
-            def func(x):
-                return getattr(x.rolling(4), f)(self.frame)
+        def func(x):
+            return getattr(x.rolling(4), f)(self.frame)
 
-            expected = g.apply(func)
-            tm.assert_frame_equal(result, expected)
+        expected = g.apply(func)
+        tm.assert_frame_equal(result, expected)
 
-            result = getattr(r.B, f)(pairwise=True)
+        result = getattr(r.B, f)(pairwise=True)
 
-            def func(x):
-                return getattr(x.B.rolling(4), f)(pairwise=True)
+        def func(x):
+            return getattr(x.B.rolling(4), f)(pairwise=True)
 
-            expected = g.apply(func)
-            tm.assert_series_equal(result, expected)
+        expected = g.apply(func)
+        tm.assert_series_equal(result, expected)
 
     def test_rolling_apply(self, raw):
         g = self.frame.groupby("A")
@@ -134,20 +152,25 @@ class TestGrouperGrouping:
         result = g.rolling(window=2).sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_expanding(self):
+    @pytest.mark.parametrize(
+        "f", ["sum", "mean", "min", "max", "count", "kurt", "skew"]
+    )
+    def test_expanding(self, f):
         g = self.frame.groupby("A")
         r = g.expanding()
 
-        for f in ["sum", "mean", "min", "max", "count", "kurt", "skew"]:
+        result = getattr(r, f)()
+        expected = g.apply(lambda x: getattr(x.expanding(), f)())
+        tm.assert_frame_equal(result, expected)
 
-            result = getattr(r, f)()
-            expected = g.apply(lambda x: getattr(x.expanding(), f)())
-            tm.assert_frame_equal(result, expected)
+    @pytest.mark.parametrize("f", ["std", "var"])
+    def test_expanding_ddof(self, f):
+        g = self.frame.groupby("A")
+        r = g.expanding()
 
-        for f in ["std", "var"]:
-            result = getattr(r, f)(ddof=0)
-            expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
-            tm.assert_frame_equal(result, expected)
+        result = getattr(r, f)(ddof=0)
+        expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "interpolation", ["linear", "lower", "higher", "midpoint", "nearest"]
@@ -161,26 +184,26 @@ class TestGrouperGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_expanding_corr_cov(self):
+    @pytest.mark.parametrize("f", ["corr", "cov"])
+    def test_expanding_corr_cov(self, f):
         g = self.frame.groupby("A")
         r = g.expanding()
 
-        for f in ["corr", "cov"]:
-            result = getattr(r, f)(self.frame)
+        result = getattr(r, f)(self.frame)
 
-            def func(x):
-                return getattr(x.expanding(), f)(self.frame)
+        def func(x):
+            return getattr(x.expanding(), f)(self.frame)
 
-            expected = g.apply(func)
-            tm.assert_frame_equal(result, expected)
+        expected = g.apply(func)
+        tm.assert_frame_equal(result, expected)
 
-            result = getattr(r.B, f)(pairwise=True)
+        result = getattr(r.B, f)(pairwise=True)
 
-            def func(x):
-                return getattr(x.B.expanding(), f)(pairwise=True)
+        def func(x):
+            return getattr(x.B.expanding(), f)(pairwise=True)
 
-            expected = g.apply(func)
-            tm.assert_series_equal(result, expected)
+        expected = g.apply(func)
+        tm.assert_series_equal(result, expected)
 
     def test_expanding_apply(self, raw):
         g = self.frame.groupby("A")
@@ -272,6 +295,33 @@ class TestGrouperGrouping:
             ),
             columns=["b"],
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("min_periods", [5, 4, 3])
+    def test_groupby_rolling_center_min_periods(self, min_periods):
+        # GH 36040
+        df = pd.DataFrame({"group": ["A"] * 10 + ["B"] * 10, "data": range(20)})
+
+        window_size = 5
+        result = (
+            df.groupby("group")
+            .rolling(window_size, center=True, min_periods=min_periods)
+            .mean()
+        )
+        result = result.reset_index()[["group", "data"]]
+
+        grp_A_mean = [1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.5, 8.0]
+        grp_B_mean = [x + 10.0 for x in grp_A_mean]
+
+        num_nans = max(0, min_periods - 3)  # For window_size of 5
+        nans = [np.nan] * num_nans
+        grp_A_expected = nans + grp_A_mean[num_nans : 10 - num_nans] + nans
+        grp_B_expected = nans + grp_B_mean[num_nans : 10 - num_nans] + nans
+
+        expected = pd.DataFrame(
+            {"group": ["A"] * 10 + ["B"] * 10, "data": grp_A_expected + grp_B_expected}
+        )
+
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_subselect_rolling(self):
@@ -370,5 +420,114 @@ class TestGrouperGrouping:
                 names=["group", "date"],
             ),
             name="column1",
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("func", ["max", "min"])
+    def test_groupby_rolling_index_changed(self, func):
+        # GH: #36018 nlevels of MultiIndex changed
+        ds = Series(
+            [1, 2, 2],
+            index=pd.MultiIndex.from_tuples(
+                [("a", "x"), ("a", "y"), ("c", "z")], names=["1", "2"]
+            ),
+            name="a",
+        )
+
+        result = getattr(ds.groupby(ds).rolling(2), func)()
+        expected = Series(
+            [np.nan, np.nan, 2.0],
+            index=pd.MultiIndex.from_tuples(
+                [(1, "a", "x"), (2, "a", "y"), (2, "c", "z")], names=["a", "1", "2"]
+            ),
+            name="a",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_groupby_rolling_empty_frame(self):
+        # GH 36197
+        expected = pd.DataFrame({"s1": []})
+        result = expected.groupby("s1").rolling(window=1).sum()
+        expected.index = pd.MultiIndex.from_tuples([], names=["s1", None])
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.DataFrame({"s1": [], "s2": []})
+        result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
+        expected.index = pd.MultiIndex.from_tuples([], names=["s1", "s2", None])
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_rolling_string_index(self):
+        # GH: 36727
+        df = pd.DataFrame(
+            [
+                ["A", "group_1", pd.Timestamp(2019, 1, 1, 9)],
+                ["B", "group_1", pd.Timestamp(2019, 1, 2, 9)],
+                ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9)],
+                ["H", "group_1", pd.Timestamp(2019, 1, 6, 9)],
+                ["E", "group_2", pd.Timestamp(2019, 1, 20, 9)],
+            ],
+            columns=["index", "group", "eventTime"],
+        ).set_index("index")
+
+        groups = df.groupby("group")
+        df["count_to_date"] = groups.cumcount()
+        rolling_groups = groups.rolling("10d", on="eventTime")
+        result = rolling_groups.apply(lambda df: df.shape[0])
+        expected = pd.DataFrame(
+            [
+                ["A", "group_1", pd.Timestamp(2019, 1, 1, 9), 1.0],
+                ["B", "group_1", pd.Timestamp(2019, 1, 2, 9), 2.0],
+                ["H", "group_1", pd.Timestamp(2019, 1, 6, 9), 3.0],
+                ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9), 1.0],
+                ["E", "group_2", pd.Timestamp(2019, 1, 20, 9), 1.0],
+            ],
+            columns=["index", "group", "eventTime", "count_to_date"],
+        ).set_index(["group", "index"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_rolling_no_sort(self):
+        # GH 36889
+        result = (
+            pd.DataFrame({"foo": [2, 1], "bar": [2, 1]})
+            .groupby("foo", sort=False)
+            .rolling(1)
+            .min()
+        )
+        expected = pd.DataFrame(
+            np.array([[2.0, 2.0], [1.0, 1.0]]),
+            columns=["foo", "bar"],
+            index=pd.MultiIndex.from_tuples([(2, 0), (1, 1)], names=["foo", None]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_rolling_count_closed_on(self):
+        # GH 35869
+        df = pd.DataFrame(
+            {
+                "column1": range(6),
+                "column2": range(6),
+                "group": 3 * ["A", "B"],
+                "date": pd.date_range(end="20190101", periods=6),
+            }
+        )
+        result = (
+            df.groupby("group")
+            .rolling("3d", on="date", closed="left")["column1"]
+            .count()
+        )
+        expected = pd.Series(
+            [np.nan, 1.0, 1.0, np.nan, 1.0, 1.0],
+            name="column1",
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ("A", pd.Timestamp("2018-12-27")),
+                    ("A", pd.Timestamp("2018-12-29")),
+                    ("A", pd.Timestamp("2018-12-31")),
+                    ("B", pd.Timestamp("2018-12-28")),
+                    ("B", pd.Timestamp("2018-12-30")),
+                    ("B", pd.Timestamp("2019-01-01")),
+                ],
+                names=["group", "date"],
+            ),
         )
         tm.assert_series_equal(result, expected)
