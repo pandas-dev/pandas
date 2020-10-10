@@ -81,4 +81,5 @@ class TestDataFrameTimeSeriesMethods:
             {"col1": ["a", "c"], "col2": [1, 3]},
             index=pd.to_datetime(["2020-08-01", "2020-08-05"]),
         )
-        tm.assert_frame_equal(df["2020-08"], expected)
+        tm.assert_frame_equal(df.loc["2020-08"], expected)
+

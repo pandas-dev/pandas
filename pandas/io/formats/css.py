@@ -86,9 +86,7 @@ class CSSResolver:
     SIDES = ("top", "right", "bottom", "left")
 
     def __call__(
-        self,
-        declarations_str: str,
-        inherited: Optional[Dict[str, str]] = None,
+        self, declarations_str: str, inherited: Optional[Dict[str, str]] = None,
     ) -> Dict[str, str]:
         """
         The given declarations to atomic properties.
@@ -136,9 +134,7 @@ class CSSResolver:
         return self._update_other_units(props)
 
     def _update_initial(
-        self,
-        props: Dict[str, str],
-        inherited: Dict[str, str],
+        self, props: Dict[str, str], inherited: Dict[str, str],
     ) -> Dict[str, str]:
         # 1. resolve inherited, initial
         for prop, val in inherited.items():
@@ -158,9 +154,7 @@ class CSSResolver:
         return new_props
 
     def _update_font_size(
-        self,
-        props: Dict[str, str],
-        inherited: Dict[str, str],
+        self, props: Dict[str, str], inherited: Dict[str, str],
     ) -> Dict[str, str]:
         # 2. resolve relative font size
         if props.get("font-size"):
@@ -188,18 +182,14 @@ class CSSResolver:
             prop = f"border-{side}-width"
             if prop in props:
                 props[prop] = self.size_to_pt(
-                    props[prop],
-                    em_pt=font_size,
-                    conversions=self.BORDER_WIDTH_RATIOS,
+                    props[prop], em_pt=font_size, conversions=self.BORDER_WIDTH_RATIOS,
                 )
 
             for prop in [f"margin-{side}", f"padding-{side}"]:
                 if prop in props:
                     # TODO: support %
                     props[prop] = self.size_to_pt(
-                        props[prop],
-                        em_pt=font_size,
-                        conversions=self.MARGIN_RATIOS,
+                        props[prop], em_pt=font_size, conversions=self.MARGIN_RATIOS,
                     )
         return props
 
