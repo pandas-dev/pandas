@@ -24,7 +24,6 @@ from pandas._libs.tslibs.timestamps import (
     round_nsint64,
 )
 from pandas._typing import DatetimeLikeScalar, DtypeObj
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError, NullFrequencyError, PerformanceWarning
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -51,8 +50,8 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import nanops, ops
 from pandas.core.algorithms import checked_add_with_arr, unique1d, value_counts
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.base import ExtensionOpsMixin
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer, check_setitem_lengths
@@ -71,46 +70,6 @@ class InvalidComparison(Exception):
     """
 
     pass
-
-
-def _datetimelike_array_cmp(cls, op):
-    """
-    Wrap comparison operations to convert Timestamp/Timedelta/Period-like to
-    boxed scalars/arrays.
-    """
-    opname = f"__{op.__name__}__"
-    nat_result = opname == "__ne__"
-
-    @unpack_zerodim_and_defer(opname)
-    def wrapper(self, other):
-        if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
-            # TODO: handle 2D-like listlikes
-            return op(self.ravel(), other.ravel()).reshape(self.shape)
-
-        try:
-            other = self._validate_comparison_value(other, opname)
-        except InvalidComparison:
-            return invalid_comparison(self, other, op)
-
-        dtype = getattr(other, "dtype", None)
-        if is_object_dtype(dtype):
-            # We have to use comp_method_OBJECT_ARRAY instead of numpy
-            #  comparison otherwise it would fail to raise when
-            #  comparing tz-aware and tz-naive
-            with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self.astype(object), other)
-            return result
-
-        other_i8 = self._unbox(other)
-        result = op(self.asi8, other_i8)
-
-        o_mask = isna(other)
-        if self._hasnans | np.any(o_mask):
-            result[self._isnan | o_mask] = nat_result
-
-        return result
-
-    return set_function_name(wrapper, opname, cls)
 
 
 class AttributesMixin:
@@ -426,9 +385,7 @@ default 'raise'
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
 
-class DatetimeLikeArrayMixin(
-    ExtensionOpsMixin, AttributesMixin, NDArrayBackedExtensionArray
-):
+class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -765,9 +722,7 @@ class DatetimeLikeArrayMixin(
 
         return self._unbox(fill_value)
 
-    def _validate_scalar(
-        self, value, msg: Optional[str] = None, cast_str: bool = False
-    ):
+    def _validate_scalar(self, value, msg: Optional[str] = None):
         """
         Validate that the input value can be cast to our scalar_type.
 
@@ -778,14 +733,12 @@ class DatetimeLikeArrayMixin(
             Message to raise in TypeError on invalid input.
             If not provided, `value` is cast to a str and used
             as the message.
-        cast_str : bool, default False
-            Whether to try to parse string input to scalar_type.
 
         Returns
         -------
         self._scalar_type or NaT
         """
-        if cast_str and isinstance(value, str):
+        if isinstance(value, str):
             # NB: Careful about tzawareness
             try:
                 value = self._scalar_from_string(value)
@@ -807,9 +760,7 @@ class DatetimeLikeArrayMixin(
 
         return value
 
-    def _validate_listlike(
-        self, value, opname: str, cast_str: bool = False, allow_object: bool = False
-    ):
+    def _validate_listlike(self, value, opname: str, allow_object: bool = False):
         if isinstance(value, type(self)):
             return value
 
@@ -818,7 +769,7 @@ class DatetimeLikeArrayMixin(
         value = array(value)
         value = extract_array(value, extract_numpy=True)
 
-        if cast_str and is_dtype_equal(value.dtype, "string"):
+        if is_dtype_equal(value.dtype, "string"):
             # We got a StringArray
             try:
                 # TODO: Could use from_sequence_of_strings if implemented
@@ -848,9 +799,9 @@ class DatetimeLikeArrayMixin(
     def _validate_searchsorted_value(self, value):
         msg = "searchsorted requires compatible dtype or scalar"
         if not is_list_like(value):
-            value = self._validate_scalar(value, msg, cast_str=True)
+            value = self._validate_scalar(value, msg)
         else:
-            value = self._validate_listlike(value, "searchsorted", cast_str=True)
+            value = self._validate_listlike(value, "searchsorted")
 
         rv = self._unbox(value)
         return self._rebox_native(rv)
@@ -861,15 +812,15 @@ class DatetimeLikeArrayMixin(
             f"or array of those. Got '{type(value).__name__}' instead."
         )
         if is_list_like(value):
-            value = self._validate_listlike(value, "setitem", cast_str=True)
+            value = self._validate_listlike(value, "setitem")
         else:
-            value = self._validate_scalar(value, msg, cast_str=True)
+            value = self._validate_scalar(value, msg)
 
         return self._unbox(value, setitem=True)
 
     def _validate_insert_value(self, value):
         msg = f"cannot insert {type(self).__name__} with incompatible label"
-        value = self._validate_scalar(value, msg, cast_str=False)
+        value = self._validate_scalar(value, msg)
 
         self._check_compatible_with(value, setitem=True)
         # TODO: if we dont have compat, should we raise or astype(object)?
@@ -1099,7 +1050,35 @@ class DatetimeLikeArrayMixin(
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
-    _create_comparison_method = classmethod(_datetimelike_array_cmp)
+
+    def _cmp_method(self, other, op):
+        if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
+            # TODO: handle 2D-like listlikes
+            return op(self.ravel(), other.ravel()).reshape(self.shape)
+
+        try:
+            other = self._validate_comparison_value(other, f"__{op.__name__}__")
+        except InvalidComparison:
+            return invalid_comparison(self, other, op)
+
+        dtype = getattr(other, "dtype", None)
+        if is_object_dtype(dtype):
+            # We have to use comp_method_OBJECT_ARRAY instead of numpy
+            #  comparison otherwise it would fail to raise when
+            #  comparing tz-aware and tz-naive
+            with np.errstate(all="ignore"):
+                result = ops.comp_method_OBJECT_ARRAY(op, self.astype(object), other)
+            return result
+
+        other_i8 = self._unbox(other)
+        result = op(self.asi8, other_i8)
+
+        o_mask = isna(other)
+        if self._hasnans | np.any(o_mask):
+            nat_result = op is operator.ne
+            result[self._isnan | o_mask] = nat_result
+
+        return result
 
     # pow is invalid for all three subclasses; TimedeltaArray will override
     #  the multiplication and division ops
@@ -1192,7 +1171,7 @@ class DatetimeLikeArrayMixin(
             self_i8, other_i8, arr_mask=self._isnan, b_mask=other._isnan
         )
         if self._hasnans or other._hasnans:
-            mask = (self._isnan) | (other._isnan)
+            mask = self._isnan | other._isnan
             new_values[mask] = iNaT
 
         return type(self)(new_values, dtype=self.dtype)
@@ -1565,8 +1544,28 @@ class DatetimeLikeArrayMixin(
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
 
+    def median(self, axis: Optional[int] = None, skipna: bool = True, *args, **kwargs):
+        nv.validate_median(args, kwargs)
 
-DatetimeLikeArrayMixin._add_comparison_ops()
+        if axis is not None and abs(axis) >= self.ndim:
+            raise ValueError("abs(axis) must be less than ndim")
+
+        if self.size == 0:
+            if self.ndim == 1 or axis is None:
+                return NaT
+            shape = list(self.shape)
+            del shape[axis]
+            shape = [1 if x == 0 else x for x in shape]
+            result = np.empty(shape, dtype="i8")
+            result.fill(iNaT)
+            return self._from_backing_data(result)
+
+        mask = self.isna()
+        result = nanops.nanmedian(self.asi8, axis=axis, skipna=skipna, mask=mask)
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result.astype("i8"))
+
 
 # -------------------------------------------------------------------
 # Shared Constructor Helpers
