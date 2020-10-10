@@ -83,7 +83,7 @@ class FixedWindowIndexer(BaseIndexer):
         else:
             offset = 0
 
-        end = np.arange(1 + offset, num_values + 1 + offset).astype("int64")
+        end = np.arange(1 + offset, num_values + 1 + offset, dtype="int64")
         start = end - self.window_size
 
         end = np.clip(end, 0, num_values)
