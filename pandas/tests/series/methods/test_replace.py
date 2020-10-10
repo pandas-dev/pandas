@@ -454,7 +454,7 @@ class TestSeriesReplace:
     def test_str_replace_regex_default_raises_warning(self, pattern):
         # https://github.com/pandas-dev/pandas/pull/24809
         s = pd.Series(["a", "b", "c"])
-        msg = r"The default value of regex will change from True to False.*"
+        msg = r"The default value of regex will change from True to False"
         if len(pattern) == 1:
             msg += r".*single character regular expressions.*not.*literal strings"
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
