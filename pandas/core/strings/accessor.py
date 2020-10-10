@@ -327,7 +327,7 @@ class StringMethods(NoNewAttributesMixin):
                 cons = self._orig._constructor
                 result = cons(result, name=name, index=index)
             result = result.__finalize__(self._orig, method="str")
-            if name is not None:
+            if name is not None and result.ndim == 1:
                 # __finalize__ might copy over the original name, but we may
                 # want the new name (e.g. str.extract).
                 result.name = name
