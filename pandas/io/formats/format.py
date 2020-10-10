@@ -1407,6 +1407,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         if float_format:
 
             def base_formatter(v):
+                assert float_format is not None  # for mypy
                 return float_format(value=v) if notna(v) else self.na_rep
 
         else:
