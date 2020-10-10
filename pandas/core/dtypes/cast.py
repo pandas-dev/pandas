@@ -53,6 +53,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
+    is_datetime_or_timedelta_any_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -175,9 +176,9 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
         return converted
 
     # a datetimelike
-    # GH12821, iNaT is casted to float
-    if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
-        if hasattr(dtype, "tz"):
+    # GH12821, iNaT is cast to float
+    if is_datetime_or_timedelta_any_dtype(dtype) and result.dtype.kind in ["i", "f"]:
+        if not is_datetime_or_timedelta_dtype(dtype):
             # not a numpy dtype
             if dtype.tz:
                 # convert to datetime and change timezone
