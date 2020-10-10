@@ -2207,7 +2207,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 Describing the data, where data component is like ``orient='records'``.
 
-                Note that ``orient='table'`` contains a 'pandas_version' field under 
+                Note that ``orient='table'`` contains a 'pandas_version' field under
                 'schema'. This denotes the version of `pandas` where the schema was last
                 revised.
 
