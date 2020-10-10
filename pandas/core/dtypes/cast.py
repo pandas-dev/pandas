@@ -55,7 +55,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     is_unsigned_integer_dtype,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -496,10 +495,8 @@ def maybe_casted_values(index, codes=None):
             if mask.any():
                 values, _ = maybe_upcast_putmask(values, mask, np.nan)
 
-            from pandas.core.arrays import ExtensionArray
-
-            if needs_i8_conversion(values.dtype) and isinstance(values, ExtensionArray):
-                values = values_type(values, dtype=values_dtype)
+            if issubclass(values_type, DatetimeLikeArrayMixin):
+                values = values_type(values, dtype=values_dtype)  # type: ignore
 
     return values
 
