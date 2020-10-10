@@ -2207,6 +2207,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 Describing the data, where data component is like ``orient='records'``.
 
+                Note that ``orient='table'`` contains a 'pandas_version' field under 
+                'schema'. This denotes the version of `pandas` where the schema was last
+                revised.
+
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
             'iso' = ISO8601. The default depends on the `orient`. For
