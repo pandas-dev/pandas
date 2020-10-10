@@ -337,16 +337,16 @@ class XportReader(ReaderBase, abc.Iterator):
         obs_length = 0
         while len(fielddata) >= fieldnamelength:
             # pull data for one field
-            field, fielddata = (
+            fieldbytes, fielddata = (
                 fielddata[:fieldnamelength],
                 fielddata[fieldnamelength:],
             )
 
             # rest at end gets ignored, so if field is short, pad out
             # to match struct pattern below
-            field = field.ljust(140)
+            fieldbytes = fieldbytes.ljust(140)
 
-            fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", field)
+            fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", fieldbytes)
             field = dict(zip(_fieldkeys, fieldstruct))
             del field["_"]
             field["ntype"] = types[field["ntype"]]
@@ -408,8 +408,8 @@ class XportReader(ReaderBase, abc.Iterator):
             return total_records_length // self.record_length
 
         self.filepath_or_buffer.seek(-80, 2)
-        last_card = self.filepath_or_buffer.read(80)
-        last_card = np.frombuffer(last_card, dtype=np.uint64)
+        last_card_bytes = self.filepath_or_buffer.read(80)
+        last_card = np.frombuffer(last_card_bytes, dtype=np.uint64)
 
         # 8 byte blank
         ix = np.flatnonzero(last_card == 2314885530818453536)
@@ -483,7 +483,7 @@ class XportReader(ReaderBase, abc.Iterator):
             df[x] = v
 
         if self._index is None:
-            df.index = range(self._lines_read, self._lines_read + read_lines)
+            df.index = pd.Index(range(self._lines_read, self._lines_read + read_lines))
         else:
             df = df.set_index(self._index)
 
