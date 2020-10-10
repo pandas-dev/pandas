@@ -9088,7 +9088,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         3    3.0
         4    4.0
         dtype: float64
-
         >>> s.mask(s > 0)
         0    0.0
         1    NaN
@@ -9103,6 +9102,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         2    2
         3    3
         4    4
+        dtype: int64
+        >>> s.mask(s > 1, 10)
+        0     0
+        1     1
+        2    10
+        3    10
+        4    10
         dtype: int64
 
         >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
