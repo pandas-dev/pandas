@@ -1366,7 +1366,9 @@ class RollingAndExpandingMixin(BaseWindow):
     def _generate_cython_apply_func(self, args, kwargs, raw, func):
         from pandas import Series
 
-        window_func = partial(
+        # pandas\core\window\rolling.py:1369: error: "partial" gets multiple
+        # values for keyword argument "func"  [misc]
+        window_func = partial(  # type: ignore[misc]
             self._get_roll_func("roll_apply"),
             args=args,
             kwargs=kwargs,
