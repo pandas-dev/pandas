@@ -118,7 +118,12 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import reconstruct_func, relabel_result, transform
+from pandas.core.aggregation import (
+    aggregate,
+    reconstruct_func,
+    relabel_result,
+    transform,
+)
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
@@ -631,7 +636,6 @@ class DataFrame(NDFrame):
         if self._mgr.any_extension_types:
             return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
-            # Note: consolidates inplace
             return not self._is_mixed_type
 
     @property
@@ -4324,7 +4328,7 @@ class DataFrame(NDFrame):
         Traceback (most recent call last):
         KeyError: ['C'] not found in axis
 
-        Using axis-style parameters
+        Using axis-style parameters:
 
         >>> df.rename(str.lower, axis='columns')
            a  b
@@ -7407,7 +7411,7 @@ NaN 12.3   33.0
 
         result = None
         try:
-            result, how = self._aggregate(func, axis=axis, *args, **kwargs)
+            result, how = self._aggregate(func, axis, *args, **kwargs)
         except TypeError as err:
             exc = TypeError(
                 "DataFrame constructor called with "
@@ -7435,10 +7439,10 @@ NaN 12.3   33.0
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
-            result, how = self.T._aggregate(arg, *args, **kwargs)
+            result, how = aggregate(self.T, arg, *args, **kwargs)
             result = result.T if result is not None else result
             return result, how
-        return super()._aggregate(arg, *args, **kwargs)
+        return aggregate(self, arg, *args, **kwargs)
 
     agg = aggregate
 
@@ -8621,7 +8625,7 @@ NaN 12.3   33.0
                 "will include datetime64 and datetime64tz columns in a "
                 "future version.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=5,
             )
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
@@ -9307,8 +9311,8 @@ ops.add_flex_arithmetic_methods(DataFrame)
 ops.add_special_arithmetic_methods(DataFrame)
 
 
-def _from_nested_dict(data):
-    new_data = collections.defaultdict(dict)
+def _from_nested_dict(data) -> collections.defaultdict:
+    new_data: collections.defaultdict = collections.defaultdict(dict)
     for index, s in data.items():
         for col, v in s.items():
             new_data[col][index] = v

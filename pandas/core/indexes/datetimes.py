@@ -604,6 +604,28 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # _parsed_string_to_bounds allows it.
             raise KeyError
 
+    def _deprecate_mismatched_indexing(self, key):
+        # GH#36148
+        # we get here with isinstance(key, self._data._recognized_scalars)
+        try:
+            self._data._assert_tzawareness_compat(key)
+        except TypeError:
+            if self.tz is None:
+                msg = (
+                    "Indexing a timezone-naive DatetimeIndex with a "
+                    "timezone-aware datetime is deprecated and will "
+                    "raise KeyError in a future version.  "
+                    "Use a timezone-naive object instead."
+                )
+            else:
+                msg = (
+                    "Indexing a timezone-aware DatetimeIndex with a "
+                    "timezone-naive datetime is deprecated and will "
+                    "raise KeyError in a future version.  "
+                    "Use a timezone-aware object instead."
+                )
+            warnings.warn(msg, FutureWarning, stacklevel=5)
+
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -621,6 +643,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
+            self._deprecate_mismatched_indexing(key)
             key = self._maybe_cast_for_get_loc(key)
 
         elif isinstance(key, str):
@@ -702,6 +725,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
+        elif isinstance(label, (self._data._recognized_scalars, date)):
+            self._deprecate_mismatched_indexing(label)
         return self._maybe_cast_for_get_loc(label)
 
     def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
@@ -869,9 +894,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = join_op(lop(start_micros, time_micros), rop(time_micros, end_micros))
 
         return mask.nonzero()[0]
-
-
-DatetimeIndex._add_logical_methods_disabled()
 
 
 def date_range(
