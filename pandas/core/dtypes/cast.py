@@ -3,7 +3,18 @@ Routines for casting.
 """
 
 from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Set, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Sized,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 
@@ -1287,7 +1298,9 @@ def maybe_castable(arr: np.ndarray) -> bool:
     return arr.dtype.name not in POSSIBLY_CAST_DTYPES
 
 
-def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
+def maybe_infer_to_datetimelike(
+    value: Union[ArrayLike, Scalar], convert_dates: bool = False
+):
     """
     we might have a array (or single object) that is datetime like,
     and no dtype is passed don't change the value unless we find a
@@ -1396,7 +1409,7 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
     return value
 
 
-def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
+def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
     """
     try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
@@ -1589,7 +1602,9 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     return np.find_common_type(types, [])
 
 
-def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.ndarray:
+def cast_scalar_to_array(
+    shape: Tuple, value: Scalar, dtype: Optional[DtypeObj] = None
+) -> np.ndarray:
     """
     Create np.ndarray of specified shape and dtype, filled with values.
 
@@ -1617,7 +1632,7 @@ def cast_scalar_to_array(shape, value, dtype: Optional[DtypeObj] = None) -> np.n
 
 
 def construct_1d_arraylike_from_scalar(
-    value, length: int, dtype: DtypeObj
+    value: Scalar, length: int, dtype: DtypeObj
 ) -> ArrayLike:
     """
     create a np.ndarray / pandas type of specified shape and dtype
@@ -1661,7 +1676,7 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def construct_1d_object_array_from_listlike(values) -> np.ndarray:
+def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
     """
     Transform any list-like object in a 1-dimensional numpy array of object
     dtype.
@@ -1687,7 +1702,7 @@ def construct_1d_object_array_from_listlike(values) -> np.ndarray:
 
 
 def construct_1d_ndarray_preserving_na(
-    values, dtype: Optional[DtypeObj] = None, copy: bool = False
+    values: Sequence, dtype: Optional[DtypeObj] = None, copy: bool = False
 ) -> np.ndarray:
     """
     Construct a new ndarray, coercing `values` to `dtype`, preserving NA.
@@ -1721,7 +1736,7 @@ def construct_1d_ndarray_preserving_na(
     return subarr
 
 
-def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
+def maybe_cast_to_integer_array(arr, dtype: Union[str, np.dtype], copy: bool = False):
     """
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
@@ -1791,7 +1806,7 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
         raise ValueError("Trying to coerce float values to integers")
 
 
-def convert_scalar_for_putitemlike(scalar, dtype: np.dtype):
+def convert_scalar_for_putitemlike(scalar: Scalar, dtype: np.dtype) -> Scalar:
     """
     Convert datetimelike scalar if we are setting into a datetime64
     or timedelta64 ndarray.
@@ -1822,7 +1837,7 @@ def convert_scalar_for_putitemlike(scalar, dtype: np.dtype):
     return scalar
 
 
-def validate_numeric_casting(dtype: np.dtype, value):
+def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     """
     Check that we can losslessly insert the given value into an array
     with the given dtype.
