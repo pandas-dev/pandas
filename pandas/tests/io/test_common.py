@@ -245,11 +245,6 @@ bar2,12,13,14,15
             ),
         ],
     )
-    @pytest.mark.filterwarnings(
-        "ignore:This method will be removed in future versions.  "
-        r"Use 'tree.iter\(\)' or 'list\(tree.iter\(\)\)' instead."
-        ":PendingDeprecationWarning"
-    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)

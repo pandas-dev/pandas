@@ -5404,9 +5404,7 @@ class Index(IndexOpsMixin, PandasObject):
             with np.errstate(all="ignore"):
                 result = ops.comparison_op(self._values, np.asarray(other), op)
 
-        if is_bool_dtype(result):
-            return result
-        return ops.invalid_comparison(self, other, op)
+        return result
 
     @classmethod
     def _add_numeric_methods_binary(cls):
