@@ -501,9 +501,7 @@ class Block(PandasObject):
 
         # no need to downcast our float
         # unless indicated
-        if downcast is None and (
-            self.is_float or self.is_timedelta or self.is_datetime
-        ):
+        if downcast is None and (self.is_float or self.is_datelike):
             return blocks
 
         return extend_blocks([b.downcast(downcast) for b in blocks])
@@ -638,7 +636,7 @@ class Block(PandasObject):
         if isinstance(values, np.ndarray):
             values = values.reshape(self.shape)
 
-        newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
+        newb = self.make_block(values)
 
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
@@ -2481,7 +2479,7 @@ class ObjectBlock(Block):
             blocks = self.split_and_operate(None, f, False)
         else:
             values = f(None, self.values.ravel(), None)
-            blocks = [make_block(values, ndim=self.ndim, placement=self.mgr_locs)]
+            blocks = [self.make_block(values)]
 
         return blocks
 
