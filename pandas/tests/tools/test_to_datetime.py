@@ -349,7 +349,9 @@ class TestTimeConversionFormats:
     def test_to_datetime_parse_timezone_malformed(self, offset):
         fmt = "%Y-%m-%d %H:%M:%S %z"
         date = "2010-01-01 12:00:00 " + offset
-        with pytest.raises(ValueError):
+
+        msg = "does not match format|unconverted data remains"
+        with pytest.raises(ValueError, match=msg):
             pd.to_datetime([date], format=fmt)
 
     def test_to_datetime_parse_timezone_keeps_name(self):
@@ -784,17 +786,19 @@ class TestToDatetime:
     @pytest.mark.parametrize("cache", [True, False])
     def test_datetime_bool(self, cache):
         # GH13176
-        with pytest.raises(TypeError):
+        msg = r"dtype bool cannot be converted to datetime64\[ns\]"
+        with pytest.raises(TypeError, match=msg):
             to_datetime(False)
         assert to_datetime(False, errors="coerce", cache=cache) is NaT
         assert to_datetime(False, errors="ignore", cache=cache) is False
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             to_datetime(True)
         assert to_datetime(True, errors="coerce", cache=cache) is NaT
         assert to_datetime(True, errors="ignore", cache=cache) is True
-        with pytest.raises(TypeError):
+        msg = f"{type(cache)} is not convertible to datetime"
+        with pytest.raises(TypeError, match=msg):
             to_datetime([False, datetime.today()], cache=cache)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             to_datetime(["20130101", True], cache=cache)
         tm.assert_index_equal(
             to_datetime([0, False, NaT, 0.0], errors="coerce", cache=cache),
@@ -805,10 +809,10 @@ class TestToDatetime:
 
     def test_datetime_invalid_datatype(self):
         # GH13176
-
-        with pytest.raises(TypeError):
+        msg = "is not convertible to datetime"
+        with pytest.raises(TypeError, match=msg):
             pd.to_datetime(bool)
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             pd.to_datetime(pd.to_datetime)
 
     @pytest.mark.parametrize("value", ["a", "00:01:99"])
@@ -826,7 +830,12 @@ class TestToDatetime:
         )
         assert res is pd.NaT
 
-        with pytest.raises(ValueError):
+        msg = (
+            "is a bad directive in format|"
+            "second must be in 0..59: 00:01:99|"
+            "Given date string not likely a datetime"
+        )
+        with pytest.raises(ValueError, match=msg):
             pd.to_datetime(
                 value, errors="raise", format=format, infer_datetime_format=infer
             )
@@ -847,12 +856,14 @@ class TestToDatetime:
         assert res is pd.NaT
 
         if format is not None:
-            with pytest.raises(ValueError):
+            msg = "is a bad directive in format|Out of bounds nanosecond timestamp"
+            with pytest.raises(ValueError, match=msg):
                 pd.to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
                 )
         else:
-            with pytest.raises(OutOfBoundsDatetime):
+            msg = "Out of bounds nanosecond timestamp"
+            with pytest.raises(OutOfBoundsDatetime, match=msg):
                 pd.to_datetime(
                     value, errors="raise", format=format, infer_datetime_format=infer
                 )
@@ -872,7 +883,12 @@ class TestToDatetime:
         )
         tm.assert_index_equal(res, pd.DatetimeIndex([pd.NaT] * len(values)))
 
-        with pytest.raises(ValueError):
+        msg = (
+            "is a bad directive in format|"
+            "Given date string not likely a datetime|"
+            "second must be in 0..59: 00:01:99"
+        )
+        with pytest.raises(ValueError, match=msg):
             pd.to_datetime(
                 values, errors="raise", format=format, infer_datetime_format=infer
             )
@@ -1070,7 +1086,8 @@ class TestToDatetime:
     @pytest.mark.parametrize("dt_str", ["00010101", "13000101", "30000101", "99990101"])
     def test_to_datetime_with_format_out_of_bounds(self, dt_str):
         # GH 9107
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(dt_str, format="%Y%m%d")
 
     def test_to_datetime_utc(self):
@@ -1096,8 +1113,8 @@ class TestToDatetimeUnit:
     def test_unit(self, cache):
         # GH 11758
         # test proper behavior with errors
-
-        with pytest.raises(ValueError):
+        msg = "cannot specify both format and unit"
+        with pytest.raises(ValueError, match=msg):
             to_datetime([1], unit="D", format="%Y%m%d", cache=cache)
 
         values = [11111111, 1, 1.0, iNaT, NaT, np.nan, "NaT", ""]
@@ -1123,7 +1140,8 @@ class TestToDatetimeUnit:
         )
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(tslib.OutOfBoundsDatetime):
+        msg = "cannot convert input 11111111 with the unit 'D'"
+        with pytest.raises(tslib.OutOfBoundsDatetime, match=msg):
             to_datetime(values, unit="D", errors="raise", cache=cache)
 
         values = [1420043460000, iNaT, NaT, np.nan, "NaT"]
@@ -1136,7 +1154,8 @@ class TestToDatetimeUnit:
         expected = DatetimeIndex(["NaT", "NaT", "NaT", "NaT", "NaT"])
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(tslib.OutOfBoundsDatetime):
+        msg = "cannot convert input 1420043460000 with the unit 's'"
+        with pytest.raises(tslib.OutOfBoundsDatetime, match=msg):
             to_datetime(values, errors="raise", unit="s", cache=cache)
 
         # if we have a string, then we raise a ValueError
@@ -1204,7 +1223,8 @@ class TestToDatetimeUnit:
         result = pd.to_datetime(arr, errors="coerce", cache=cache)
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(ValueError):
+        msg = "mixed datetimes and integers in passed array"
+        with pytest.raises(ValueError, match=msg):
             pd.to_datetime(arr, errors="raise", cache=cache)
 
         expected = DatetimeIndex(["NaT", "NaT", "2013-01-01"])
@@ -1212,7 +1232,7 @@ class TestToDatetimeUnit:
         result = pd.to_datetime(arr, errors="coerce", cache=cache)
         tm.assert_index_equal(result, expected)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             pd.to_datetime(arr, errors="raise", cache=cache)
 
     @pytest.mark.parametrize("cache", [True, False])
@@ -1392,7 +1412,8 @@ class TestToDatetimeUnit:
 
         # float
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
-        with pytest.raises(ValueError):
+        msg = "cannot assemble the datetimes: unconverted data remains: 1"
+        with pytest.raises(ValueError, match=msg):
             to_datetime(df, cache=cache)
 
     def test_dataframe_utc_true(self):
@@ -1500,7 +1521,8 @@ class TestToDatetimeMisc:
         # in an in-bounds datetime
         arr = np.array(["2262-04-11 23:47:16.854775808"], dtype=object)
 
-        with pytest.raises(OutOfBoundsDatetime):
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arr)
 
     @pytest.mark.parametrize("cache", [True, False])
@@ -1638,7 +1660,8 @@ class TestToDatetimeMisc:
         # gh-17637
         # we are overflowing Timedelta range here
 
-        with pytest.raises(OverflowError):
+        msg = "Python int too large to convert to C long"
+        with pytest.raises(OverflowError, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 
     @pytest.mark.parametrize("cache", [True, False])
@@ -2265,23 +2288,26 @@ class TestOrigin:
         assert result.to_julian_date() == 2456658
 
         # out-of-bounds
-        with pytest.raises(ValueError):
+        msg = "1 is Out of Bounds for origin='julian'"
+        with pytest.raises(ValueError, match=msg):
             pd.to_datetime(1, origin="julian", unit="D")
 
     def test_invalid_unit(self, units, julian_dates):
 
         # checking for invalid combination of origin='julian' and unit != D
         if units != "D":
-            with pytest.raises(ValueError):
+            msg = "unit must be 'D' for origin='julian'"
+            with pytest.raises(ValueError, match=msg):
                 pd.to_datetime(julian_dates, unit=units, origin="julian")
 
     def test_invalid_origin(self):
 
         # need to have a numeric specified
-        with pytest.raises(ValueError):
+        msg = "it must be numeric with a unit specified"
+        with pytest.raises(ValueError, match=msg):
             pd.to_datetime("2005-01-01", origin="1960-01-01")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             pd.to_datetime("2005-01-01", origin="1960-01-01", unit="D")
 
     def test_epoch(self, units, epochs, epoch_1960, units_from_epochs):
@@ -2304,12 +2330,13 @@ class TestOrigin:
     )
     def test_invalid_origins(self, origin, exc, units, units_from_epochs):
 
-        with pytest.raises(exc):
+        msg = f"origin {origin} (is Out of Bounds|cannot be converted to a Timestamp)"
+        with pytest.raises(exc, match=msg):
             pd.to_datetime(units_from_epochs, unit=units, origin=origin)
 
     def test_invalid_origins_tzinfo(self):
         # GH16842
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="must be tz-naive"):
             pd.to_datetime(1, unit="D", origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
 
     @pytest.mark.parametrize("format", [None, "%Y-%m-%d %H:%M:%S"])
