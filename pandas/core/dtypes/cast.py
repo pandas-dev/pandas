@@ -80,11 +80,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core.indexes.datetimes import DatetimeIndex
-
 if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import ExtensionArray
+    from pandas.core.indexes.datetimes import DatetimeIndex
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
@@ -1087,7 +1086,7 @@ def astype_nansafe(
 
 def maybe_convert_objects(
     values: np.ndarray, convert_numeric: bool = True
-) -> Union[np.ndarray, DatetimeIndex]:
+) -> Union[np.ndarray, "DatetimeIndex"]:
     """
     If we have an object dtype array, try to coerce dates and/or numbers.
 
