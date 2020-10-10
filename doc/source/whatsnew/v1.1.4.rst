@@ -17,6 +17,7 @@ Fixed regressions
 - Fixed regression where attempting to mutate a :class:`DateOffset` object would no longer raise an ``AttributeError`` (:issue:`36940`)
 - Fixed regression where :meth:`DataFrame.agg` would fail with :exc:`TypeError` when passed positional arguments to be passed on to the aggregation function (:issue:`36948`).
 - Fixed regression in :class:`RollingGroupby` with ``sort=False`` not being respected (:issue:`36889`)
+- Fixed regression in :meth:`Series.astype` converting ``None`` to ``"nan"`` when casting to string (:issue:`36904`)
 
 .. ---------------------------------------------------------------------------
 
