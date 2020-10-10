@@ -2159,7 +2159,7 @@ class TestTimedeltaArraylikeMulDivOps:
         tdi = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, xbox)
 
-        result = ser.__rdiv__(tdi)
+        result = ser.__rtruediv__(tdi)
         if box is pd.DataFrame:
             # TODO: Should we skip this case sooner or test something else?
             assert result is NotImplemented
