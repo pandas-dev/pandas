@@ -300,7 +300,7 @@ cdef class Slider:
     """
     cdef:
         ndarray values, buf
-        Py_ssize_t stride, orig_len
+        Py_ssize_t stride
         char *orig_data
 
     def __init__(self, ndarray values, ndarray buf):
@@ -315,7 +315,6 @@ cdef class Slider:
         self.stride = values.strides[0]
 
         self.orig_data = self.buf.data
-        self.orig_len = self.buf.shape[0]
 
         self.buf.data = self.values.data
         self.buf.strides[0] = self.stride
@@ -329,7 +328,7 @@ cdef class Slider:
 
     cdef reset(self):
         self.buf.data = self.orig_data
-        self.buf.shape[0] = self.orig_len
+        self.buf.shape[0] = 0
 
 
 class InvalidApply(Exception):
