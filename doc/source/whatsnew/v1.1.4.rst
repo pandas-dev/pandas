@@ -14,7 +14,10 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :func:`read_csv` raising a ``ValueError`` when ``names`` was of type ``dict_keys`` (:issue:`36928`)
 - Fixed regression where attempting to mutate a :class:`DateOffset` object would no longer raise an ``AttributeError`` (:issue:`36940`)
+- Fixed regression where :meth:`DataFrame.agg` would fail with :exc:`TypeError` when passed positional arguments to be passed on to the aggregation function (:issue:`36948`).
+- Fixed regression in :class:`RollingGroupby` with ``sort=False`` not being respected (:issue:`36889`)
 
 .. ---------------------------------------------------------------------------
 
