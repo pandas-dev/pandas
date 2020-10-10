@@ -445,7 +445,9 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.sum()` returned wrong values when dtypes where mixed between float and integer and axis was equal to one (:issue:`20649`, :issue:`35596`)
 - Bug in :meth:`Rolling.count` returned ``np.nan`` with :class:`pandas.api.indexers.FixedForwardWindowIndexer` as window, ``min_periods=0`` and only missing values in window (:issue:`35579`)
 - Bug where :class:`pandas.core.window.Rolling` produces incorrect window sizes when using a ``PeriodIndex`` (:issue:`34225`)
+- Bug in :meth:`DataFrameGroupBy.ffill` and :meth:`DataFrameGroupBy.bfill` where a ``NaN`` group would return filled values instead of ``NaN`` when ``dropna=True`` (:issue:`34725`)
 - Bug in :meth:`RollingGroupby.count` where a ``ValueError`` was raised when specifying the ``closed`` parameter (:issue:`35869`)
+- Bug in :meth:`DataFrame.groupby.rolling` returning wrong values with partial centered window (:issue:`36040`).
 
 Reshaping
 ^^^^^^^^^
@@ -476,7 +478,7 @@ Other
 
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
-- Fixed metadata propagation in the :class:`Series.dt` accessor (:issue:`28283`)
+- Fixed metadata propagation in the :class:`Series.dt` and :class:`Series.str` accessors (:issue:`28283`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError``, from a bare ``Exception`` previously (:issue:`35744`)
 

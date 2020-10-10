@@ -113,7 +113,7 @@ def _field_accessor(name, field, docstring=None):
     return property(f)
 
 
-class DatetimeArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps, dtl.DatelikeOps):
+class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
