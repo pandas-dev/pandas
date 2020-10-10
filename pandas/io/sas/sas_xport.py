@@ -337,40 +337,21 @@ class XportReader(ReaderBase, abc.Iterator):
         obs_length = 0
         while len(fielddata) >= fieldnamelength:
             # pull data for one field
-            field, fielddata = (
+            fieldbytes, fielddata = (
                 fielddata[:fieldnamelength],
                 fielddata[fieldnamelength:],
             )
 
             # rest at end gets ignored, so if field is short, pad out
             # to match struct pattern below
-            field = field.ljust(140)
+            fieldbytes = fieldbytes.ljust(140)
 
-            fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", field)
-            # pandas\io\sas\sas_xport.py:350: error: Incompatible types in
-            # assignment (expression has type "Dict[str, Any]", variable has
-            # type "bytes")  [assignment]
-            field = dict(zip(_fieldkeys, fieldstruct))  # type: ignore[assignment]
-            # pandas\io\sas\sas_xport.py:351: error: "bytes" has no attribute
-            # "__delitem__"; maybe "__getitem__"?  [attr-defined]
-            del field["_"]  # type: ignore[attr-defined]
-            # pandas\io\sas\sas_xport.py:352: error: Unsupported target for
-            # indexed assignment ("bytes")  [index]
-
-            # pandas\io\sas\sas_xport.py:352: error: No overload variant of
-            # "__getitem__" of "bytes" matches argument type "str"
-            # [call-overload]
-            field["ntype"] = types[field["ntype"]]  # type: ignore[index,call-overload]
-            # pandas\io\sas\sas_xport.py:353: error: No overload variant of
-            # "__getitem__" of "bytes" matches argument type "str"
-            # [call-overload]
-            fl = field["field_length"]  # type: ignore[call-overload]
-            # pandas\io\sas\sas_xport.py:354: error: No overload variant of
-            # "__getitem__" of "bytes" matches argument type "str"
-            # [call-overload]
-            if field["ntype"] == "numeric" and (  # type: ignore[call-overload]
-                (fl < 2) or (fl > 8)
-            ):
+            fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", fieldbytes)
+            field = dict(zip(_fieldkeys, fieldstruct))
+            del field["_"]
+            field["ntype"] = types[field["ntype"]]
+            fl = field["field_length"]
+            if field["ntype"] == "numeric" and ((fl < 2) or (fl > 8)):
                 self.close()
                 msg = f"Floating field width {fl} is not between 2 and 8."
                 raise TypeError(msg)
@@ -444,8 +425,8 @@ class XportReader(ReaderBase, abc.Iterator):
             return total_records_length // self.record_length
 
         self.filepath_or_buffer.seek(-80, 2)
-        last_card = self.filepath_or_buffer.read(80)
-        last_card = np.frombuffer(last_card, dtype=np.uint64)
+        last_card_bytes = self.filepath_or_buffer.read(80)
+        last_card = np.frombuffer(last_card_bytes, dtype=np.uint64)
 
         # 8 byte blank
 
@@ -536,12 +517,7 @@ class XportReader(ReaderBase, abc.Iterator):
             df[x] = v
 
         if self._index is None:
-            # pandas\io\sas\sas_xport.py:486: error: Incompatible types in
-            # assignment (expression has type "range", variable has type
-            # "Index")  [assignment]
-            df.index = range(  # type: ignore[assignment]
-                self._lines_read, self._lines_read + read_lines
-            )
+            df.index = pd.Index(range(self._lines_read, self._lines_read + read_lines))
         else:
             df = df.set_index(self._index)
 

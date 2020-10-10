@@ -14,6 +14,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 
@@ -102,7 +103,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import RangeIndex, Series
+    from pandas import MultiIndex, RangeIndex, Series
 
 
 __all__ = ["Index"]
@@ -1578,6 +1579,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "levels: at least one level must be left."
             )
         # The two checks above guarantee that here self is a MultiIndex
+        self = cast("MultiIndex", self)
 
         # pandas\core\indexes\base.py:1606: error: "Index" has no attribute
         # "levels"; maybe "nlevels"?  [attr-defined]
@@ -3742,6 +3744,8 @@ class Index(IndexOpsMixin, PandasObject):
             left, right = right, left
             how = {"right": "left", "left": "right"}.get(how, how)
 
+        assert isinstance(left, MultiIndex)
+
         level = left._get_level_number(level)
         # pandas\core\indexes\base.py:3757: error: "Index" has no attribute
         # "levels"; maybe "nlevels"?  [attr-defined]
@@ -4807,11 +4811,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if self._index_as_unique:
             return self.get_indexer(target, **kwargs)
-        # pandas\core\indexes\base.py:4801: error: Too many arguments for
-        # "get_indexer_non_unique" of "Index"  [call-arg]
-        indexer, _ = self.get_indexer_non_unique(
-            target, **kwargs  # type: ignore[call-arg]
-        )
+        indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
     @property
@@ -5431,75 +5431,19 @@ class Index(IndexOpsMixin, PandasObject):
             with np.errstate(all="ignore"):
                 result = ops.comparison_op(self._values, np.asarray(other), op)
 
-        if is_bool_dtype(result):
-            return result
-        return ops.invalid_comparison(self, other, op)
+        return result
 
-    @classmethod
-    def _add_numeric_methods_binary(cls):
+    def _arith_method(self, other, op):
         """
-        Add in numeric methods.
+        Wrapper used to dispatch arithmetic operations.
         """
-        # pandas\core\indexes\base.py:5409: error: Unsupported left operand
-        # type for + ("Type[Index]")  [operator]
-        cls.__add__ = _make_arithmetic_op(operator.add, cls)  # type: ignore[operator]
-        # pandas\core\indexes\base.py:5410: error: "Type[Index]" has no
-        # attribute "__radd__"  [attr-defined]
-        cls.__radd__ = _make_arithmetic_op(ops.radd, cls)  # type: ignore[attr-defined]
-        # pandas\core\indexes\base.py:5411: error: Unsupported left operand
-        # type for - ("Type[Index]")  [operator]
-        cls.__sub__ = _make_arithmetic_op(operator.sub, cls)  # type: ignore[operator]
-        # pandas\core\indexes\base.py:5412: error: "Type[Index]" has no
-        # attribute "__rsub__"  [attr-defined]
-        cls.__rsub__ = _make_arithmetic_op(ops.rsub, cls)  # type: ignore[attr-defined]
-        # pandas\core\indexes\base.py:5413: error: "Type[Index]" has no
-        # attribute "__rpow__"  [attr-defined]
-        cls.__rpow__ = _make_arithmetic_op(ops.rpow, cls)  # type: ignore[attr-defined]
-        # pandas\core\indexes\base.py:5414: error: Unsupported left operand
-        # type for ** ("Type[Index]")  [operator]
-        cls.__pow__ = _make_arithmetic_op(operator.pow, cls)  # type: ignore[operator]
 
-        # pandas\core\indexes\base.py:5416: error: Unsupported left operand
-        # type for / ("Type[Index]")  [operator]
-        cls.__truediv__ = _make_arithmetic_op(  # type: ignore[operator]
-            operator.truediv, cls
-        )
-        # pandas\core\indexes\base.py:5417: error: "Type[Index]" has no
-        # attribute "__rtruediv__"  [attr-defined]
-        cls.__rtruediv__ = _make_arithmetic_op(  # type: ignore[attr-defined]
-            ops.rtruediv, cls
-        )
+        from pandas import Series
 
-        # pandas\core\indexes\base.py:5419: error: Unsupported left operand
-        # type for % ("Type[Index]")  [operator]
-        cls.__mod__ = _make_arithmetic_op(operator.mod, cls)  # type: ignore[operator]
-        # pandas\core\indexes\base.py:5420: error: "Type[Index]" has no
-        # attribute "__rmod__"  [attr-defined]
-        cls.__rmod__ = _make_arithmetic_op(ops.rmod, cls)  # type: ignore[attr-defined]
-        # pandas\core\indexes\base.py:5421: error: Unsupported left operand
-        # type for // ("Type[Index]")  [operator]
-        cls.__floordiv__ = _make_arithmetic_op(  # type: ignore[operator]
-            operator.floordiv, cls
-        )
-        # pandas\core\indexes\base.py:5422: error: "Type[Index]" has no
-        # attribute "__rfloordiv__"  [attr-defined]
-        cls.__rfloordiv__ = _make_arithmetic_op(  # type: ignore[attr-defined]
-            ops.rfloordiv, cls
-        )
-        # pandas\core\indexes\base.py:5423: error: Unsupported left operand
-        # type for divmod ("Type[Index]")  [operator]
-        cls.__divmod__ = _make_arithmetic_op(divmod, cls)  # type: ignore[operator]
-        # pandas\core\indexes\base.py:5424: error: "Type[Index]" has no
-        # attribute "__rdivmod__"  [attr-defined]
-        cls.__rdivmod__ = _make_arithmetic_op(  # type: ignore[attr-defined]
-            ops.rdivmod, cls
-        )
-        # pandas\core\indexes\base.py:5425: error: Unsupported left operand
-        # type for * ("Type[Index]")  [operator]
-        cls.__mul__ = _make_arithmetic_op(operator.mul, cls)  # type: ignore[operator]
-        # pandas\core\indexes\base.py:5426: error: "Type[Index]" has no
-        # attribute "__rmul__"  [attr-defined]
-        cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)  # type: ignore[attr-defined]
+        result = op(Series(self), other)
+        if isinstance(result, tuple):
+            return (Index(result[0]), Index(result[1]))
+        return Index(result)
 
     @classmethod
     def _add_numeric_methods_unary(cls):
@@ -5516,31 +5460,14 @@ class Index(IndexOpsMixin, PandasObject):
             _evaluate_numeric_unary.__name__ = opstr
             return _evaluate_numeric_unary
 
-        # pandas\core\indexes\base.py:5443: error: Unsupported operand type for
-        # unary - ("Type[Index]")  [operator]
-        cls.__neg__ = _make_evaluate_unary(  # type: ignore[operator]
-            operator.neg, "__neg__"
-        )
-        # pandas\core\indexes\base.py:5444: error: Unsupported operand type for
-        # unary + ("Type[Index]")  [operator]
-        cls.__pos__ = _make_evaluate_unary(  # type: ignore[operator]
-            operator.pos, "__pos__"
-        )
-        # pandas\core\indexes\base.py:5445: error: "Type[Index]" has no
-        # attribute "__abs__"  [attr-defined]
-        cls.__abs__ = _make_evaluate_unary(  # type: ignore[attr-defined]
-            np.abs, "__abs__"
-        )
-        # pandas\core\indexes\base.py:5446: error: "Type[Index]" has no
-        # attribute "__inv__"  [attr-defined]
-        cls.__inv__ = _make_evaluate_unary(  # type: ignore[attr-defined]
-            lambda x: -x, "__inv__"
-        )
+        setattr(cls, "__neg__", _make_evaluate_unary(operator.neg, "__neg__"))
+        setattr(cls, "__pos__", _make_evaluate_unary(operator.pos, "__pos__"))
+        setattr(cls, "__abs__", _make_evaluate_unary(np.abs, "__abs__"))
+        setattr(cls, "__inv__", _make_evaluate_unary(lambda x: -x, "__inv__"))
 
     @classmethod
     def _add_numeric_methods(cls):
         cls._add_numeric_methods_unary()
-        cls._add_numeric_methods_binary()
 
     def any(self, *args, **kwargs):
         """

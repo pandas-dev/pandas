@@ -4767,8 +4767,13 @@ def _set_tz(
         assert values.tz is None or values.tz == tz
 
     if tz is not None:
-        name = getattr(values, "name", None)
-        values = values.ravel()
+        if isinstance(values, DatetimeIndex):
+            name = values.name
+            values = values.asi8
+        else:
+            name = None
+            values = values.ravel()
+
         tz = _ensure_decoded(tz)
         values = DatetimeIndex(values, name=name)
         values = values.tz_localize("UTC").tz_convert(tz)

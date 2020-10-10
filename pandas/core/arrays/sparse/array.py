@@ -40,6 +40,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
@@ -195,7 +196,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     )
 
 
-class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
+class SparseArray(OpsMixin, PandasObject, ExtensionArray, ExtensionOpsMixin):
     """
     An ExtensionArray for storing sparse data.
 
@@ -762,8 +763,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # --------
 
     def __getitem__(self, key):
-        # avoid mypy issues when importing at the top-level
-        from pandas.core.indexing import check_bool_indexer
 
         if isinstance(key, tuple):
             if len(key) > 1:
@@ -796,10 +795,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             key = check_array_indexer(self, key)
 
             if com.is_bool_indexer(key):
-                # pandas\core\arrays\sparse\array.py:799: error: Argument 1 to
-                # "check_bool_indexer" has incompatible type "SparseArray";
-                # expected "Index"  [arg-type]
-                key = check_bool_indexer(self, key)  # type: ignore
 
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
@@ -1394,17 +1389,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _create_unary_method(cls, op) -> Callable[["SparseArray"], "SparseArray"]:
-        def sparse_unary_method(self) -> "SparseArray":
-            fill_value = op(np.array(self.fill_value)).item()
-            values = op(self.sp_values)
-            dtype = SparseDtype(values.dtype, fill_value)
-            return cls._simple_new(values, self.sp_index, dtype)
-
-        name = f"__{op.__name__}__"
-        return compat.set_function_name(sparse_unary_method, name, cls)
-
-    @classmethod
     def _create_arithmetic_method(cls, op):
         op_name = op.__name__
 
@@ -1447,76 +1431,48 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         name = f"__{op.__name__}__"
         return compat.set_function_name(sparse_arithmetic_method, name, cls)
 
-    @classmethod
-    def _create_comparison_method(cls, op):
-        op_name = op.__name__
-        if op_name in {"and_", "or_"}:
-            op_name = op_name[:-1]
+    def _cmp_method(self, other, op) -> "SparseArray":
+        if not is_scalar(other) and not isinstance(other, type(self)):
+            # convert list-like to ndarray
+            other = np.asarray(other)
 
-        @unpack_zerodim_and_defer(op_name)
-        def cmp_method(self, other):
+        if isinstance(other, np.ndarray):
+            # TODO: make this more flexible than just ndarray...
+            if len(self) != len(other):
+                raise AssertionError(f"length mismatch: {len(self)} vs. {len(other)}")
+            other = SparseArray(other, fill_value=self.fill_value)
 
-            if not is_scalar(other) and not isinstance(other, type(self)):
-                # convert list-like to ndarray
-                other = np.asarray(other)
+        if isinstance(other, SparseArray):
+            op_name = op.__name__.strip("_")
+            return _sparse_array_op(self, other, op, op_name)
+        else:
+            with np.errstate(all="ignore"):
+                fill_value = op(self.fill_value, other)
+                result = op(self.sp_values, other)
 
-            if isinstance(other, np.ndarray):
-                # TODO: make this more flexible than just ndarray...
-                if len(self) != len(other):
-                    raise AssertionError(
-                        f"length mismatch: {len(self)} vs. {len(other)}"
-                    )
-                other = SparseArray(other, fill_value=self.fill_value)
+            return type(self)(
+                result,
+                sparse_index=self.sp_index,
+                fill_value=fill_value,
+                dtype=np.bool_,
+            )
 
-            if isinstance(other, SparseArray):
-                return _sparse_array_op(self, other, op, op_name)
-            else:
-                with np.errstate(all="ignore"):
-                    fill_value = op(self.fill_value, other)
-                    result = op(self.sp_values, other)
+    _logical_method = _cmp_method
 
-                return type(self)(
-                    result,
-                    sparse_index=self.sp_index,
-                    fill_value=fill_value,
-                    dtype=np.bool_,
-                )
+    def _unary_method(self, op) -> "SparseArray":
+        fill_value = op(np.array(self.fill_value)).item()
+        values = op(self.sp_values)
+        dtype = SparseDtype(values.dtype, fill_value)
+        return type(self)._simple_new(values, self.sp_index, dtype)
 
-        name = f"__{op.__name__}__"
-        return compat.set_function_name(cmp_method, name, cls)
+    def __pos__(self) -> "SparseArray":
+        return self._unary_method(operator.pos)
 
-    @classmethod
-    def _add_unary_ops(cls):
-        # pandas\core\arrays\sparse\array.py:1487: error: Unsupported operand
-        # type for unary + ("Type[SparseArray]")  [operator]
-        cls.__pos__ = cls._create_unary_method(operator.pos)  # type: ignore[operator]
-        # pandas\core\arrays\sparse\array.py:1488: error: Unsupported operand
-        # type for unary - ("Type[SparseArray]")  [operator]
-        cls.__neg__ = cls._create_unary_method(operator.neg)  # type: ignore[operator]
-        # pandas\core\arrays\sparse\array.py:1489: error: Unsupported operand
-        # type for ~ ("Type[SparseArray]")  [operator]
-        cls.__invert__ = cls._create_unary_method(  # type: ignore[operator]
-            operator.invert
-        )
+    def __neg__(self) -> "SparseArray":
+        return self._unary_method(operator.neg)
 
-    @classmethod
-    def _add_comparison_ops(cls):
-        # pandas\core\arrays\sparse\array.py:1493: error: Unsupported left
-        # operand type for & ("Type[SparseArray]")  [operator]
-        cls.__and__ = cls._create_comparison_method(  # type: ignore[operator]
-            operator.and_
-        )
-        # pandas\core\arrays\sparse\array.py:1494: error: Unsupported left
-        # operand type for | ("Type[SparseArray]")  [operator]
-        cls.__or__ = cls._create_comparison_method(  # type: ignore[operator]
-            operator.or_
-        )
-        # pandas\core\arrays\sparse\array.py:1495: error: Unsupported left
-        # operand type for ^ ("Type[SparseArray]")  [operator]
-        cls.__xor__ = cls._create_arithmetic_method(  # type: ignore[operator]
-            operator.xor
-        )
-        super()._add_comparison_ops()
+    def __invert__(self) -> "SparseArray":
+        return self._unary_method(operator.invert)
 
     # ----------
     # Formatting
@@ -1534,8 +1490,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
 
 SparseArray._add_arithmetic_ops()
-SparseArray._add_comparison_ops()
-SparseArray._add_unary_ops()
 
 
 def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None):

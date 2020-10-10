@@ -8633,7 +8633,7 @@ NaN 12.3   33.0
                 "will include datetime64 and datetime64tz columns in a "
                 "future version.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=5,
             )
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
@@ -9319,10 +9319,8 @@ ops.add_flex_arithmetic_methods(DataFrame)
 ops.add_special_arithmetic_methods(DataFrame)
 
 
-def _from_nested_dict(data):
-    # pandas\core\frame.py:9280: error: Need type annotation for 'new_data'
-    # [var-annotated]
-    new_data = collections.defaultdict(dict)  # type: ignore[var-annotated]
+def _from_nested_dict(data) -> collections.defaultdict:
+    new_data: collections.defaultdict = collections.defaultdict(dict)
     for index, s in data.items():
         for col, v in s.items():
             new_data[col][index] = v

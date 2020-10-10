@@ -1789,20 +1789,17 @@ Name: Max Speed, dtype: float64
         """
         if level is None:
             return notna(self.array).sum()
+        elif not isinstance(self.index, MultiIndex):
+            raise ValueError("Series.count level is only valid with a MultiIndex")
+
+        index = self.index
+        assert isinstance(index, MultiIndex)  # for mypy
 
         if isinstance(level, str):
-            level = self.index._get_level_number(level)
+            level = index._get_level_number(level)
 
-        # pandas\core\series.py:1796: error: "Index" has no attribute "levels";
-        # maybe "nlevels"?  [attr-defined]
-        lev = self.index.levels[level]  # type: ignore[attr-defined]
-        # pandas\core\series.py:1797: error: "Index" has no attribute "codes"
-        # [attr-defined]
-        level_codes = np.array(
-            self.index.codes[level],  # type: ignore[attr-defined]
-            subok=False,
-            copy=True,
-        )
+        lev = index.levels[level]
+        level_codes = np.array(index.codes[level], subok=False, copy=True)
 
         mask = level_codes == -1
         if mask.any():
@@ -4997,6 +4994,24 @@ Keep all original rows and also all original values
 
         res_values = ops.logical_op(lvalues, rvalues, op)
         return self._construct_result(res_values, name=res_name)
+
+    def _arith_method(self, other, op):
+        res_name = ops.get_op_result_name(self, other)
+        self, other = ops.align_method_SERIES(self, other)
+
+        lvalues = extract_array(self, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True)
+        result = ops.arithmetic_op(lvalues, rvalues, op)
+
+        return self._construct_result(result, name=res_name)
+
+    def __div__(self, other):
+        # Alias for backward compat
+        return self.__truediv__(other)
+
+    def __rdiv__(self, other):
+        # Alias for backward compat
+        return self.__rtruediv__(other)
 
 
 Series._add_numeric_operations()
