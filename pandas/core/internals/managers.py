@@ -2,6 +2,7 @@ from collections import defaultdict
 import itertools
 from typing import (
     Any,
+    Callable,
     DefaultDict,
     Dict,
     List,
@@ -324,18 +325,44 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self: T, func) -> T:
+    def reduce(
+        self: T, func: Callable, ignore_failures: bool = False
+    ) -> Tuple[T, np.ndarray]:
+        """
+        Apply reduction function blockwise, returning a single-row BlockManager.
+
+        Parameters
+        ----------
+        func : reduction function
+        ignore_failures : bool, default False
+            Whether to drop blocks where func raises TypeError.
+
+        Returns
+        -------
+        BlockManager
+        np.ndarray
+            Indexer of mgr_locs that are retained.
+        """
         # If 2D, we assume that we're operating column-wise
         assert self.ndim == 2
 
         res_blocks: List[Block] = []
         for blk in self.blocks:
-            nbs = blk.reduce(func)
+            nbs = blk.reduce(func, ignore_failures)
             res_blocks.extend(nbs)
 
-        index = Index([0])  # placeholder
-        new_mgr = BlockManager.from_blocks(res_blocks, [self.items, index])
-        return new_mgr
+        index = Index([None])  # placeholder
+        if ignore_failures:
+            if res_blocks:
+                indexer = np.concatenate([blk.mgr_locs.as_array for blk in res_blocks])
+                new_mgr = self._combine(res_blocks, copy=False, index=index)
+            else:
+                indexer = []
+                new_mgr = type(self).from_blocks([], [Index([]), index])
+        else:
+            indexer = np.arange(self.shape[0])
+            new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
+        return new_mgr, indexer
 
     def operate_blockwise(self, other: "BlockManager", array_op) -> "BlockManager":
         """
@@ -656,12 +683,6 @@ class BlockManager(PandasObject):
         self._known_consolidated = True
 
     @property
-    def is_mixed_type(self) -> bool:
-        # Warning, consolidation needs to get checked upstairs
-        self._consolidate_inplace()
-        return len(self.blocks) > 1
-
-    @property
     def is_numeric_mixed_type(self) -> bool:
         return all(block.is_numeric for block in self.blocks)
 
@@ -704,7 +725,9 @@ class BlockManager(PandasObject):
         """
         return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
-    def _combine(self: T, blocks: List[Block], copy: bool = True) -> T:
+    def _combine(
+        self: T, blocks: List[Block], copy: bool = True, index: Optional[Index] = None
+    ) -> T:
         """ return a new manager with the blocks """
         if len(blocks) == 0:
             return self.make_empty()
@@ -720,6 +743,8 @@ class BlockManager(PandasObject):
             new_blocks.append(b)
 
         axes = list(self.axes)
+        if index is not None:
+            axes[-1] = index
         axes[0] = self.items.take(indexer)
 
         return type(self).from_blocks(new_blocks, axes)
@@ -1845,7 +1870,7 @@ def _consolidate(blocks):
     gkey = lambda x: x._consolidate_key
     grouper = itertools.groupby(sorted(blocks, key=gkey), gkey)
 
-    new_blocks = []
+    new_blocks: List[Block] = []
     for (_can_consolidate, dtype), group_blocks in grouper:
         merged_blocks = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
