@@ -310,6 +310,7 @@ Performance improvements
 - The internal index method :meth:`~Index._shallow_copy` now makes the new index and original index share cached attributes,
   avoiding creating these again, if created on either. This can speed up operations that depend on creating copies of existing indexes (:issue:`36840`)
 - Performance improvement in :meth:`RollingGroupby.count` (:issue:`35625`)
+- Small performance decrease to :meth:`Rolling.min` and :meth:`Rolling.max` for fixed windows (:issue:`36567`)
 
 .. ---------------------------------------------------------------------------
 
@@ -442,6 +443,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.sum()` returned wrong values when dtypes where mixed between float and integer and axis was equal to one (:issue:`20649`, :issue:`35596`)
 - Bug in :meth:`Rolling.count` returned ``np.nan`` with :class:`pandas.api.indexers.FixedForwardWindowIndexer` as window, ``min_periods=0`` and only missing values in window (:issue:`35579`)
 - Bug where :class:`pandas.core.window.Rolling` produces incorrect window sizes when using a ``PeriodIndex`` (:issue:`34225`)
+- Bug in :meth:`RollingGroupby.count` where a ``ValueError`` was raised when specifying the ``closed`` parameter (:issue:`35869`)
 
 Reshaping
 ^^^^^^^^^

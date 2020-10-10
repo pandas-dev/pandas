@@ -14,6 +14,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 
@@ -102,7 +103,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas import RangeIndex, Series
+    from pandas import MultiIndex, RangeIndex, Series
 
 
 __all__ = ["Index"]
@@ -652,7 +653,7 @@ class Index(IndexOpsMixin, PandasObject):
         Create an Index with values cast to dtypes.
 
         The class of a new Index is determined by dtype. When conversion is
-        impossible, a ValueError exception is raised.
+        impossible, a TypeError exception is raised.
 
         Parameters
         ----------
@@ -1575,6 +1576,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "levels: at least one level must be left."
             )
         # The two checks above guarantee that here self is a MultiIndex
+        self = cast("MultiIndex", self)
 
         new_levels = list(self.levels)
         new_codes = list(self.codes)
@@ -3735,6 +3737,8 @@ class Index(IndexOpsMixin, PandasObject):
             left, right = right, left
             how = {"right": "left", "left": "right"}.get(how, how)
 
+        assert isinstance(left, MultiIndex)
+
         level = left._get_level_number(level)
         old_level = left.levels[level]
 
@@ -4780,7 +4784,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if self._index_as_unique:
             return self.get_indexer(target, **kwargs)
-        indexer, _ = self.get_indexer_non_unique(target, **kwargs)
+        indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
     @property
@@ -5431,10 +5435,10 @@ class Index(IndexOpsMixin, PandasObject):
             _evaluate_numeric_unary.__name__ = opstr
             return _evaluate_numeric_unary
 
-        cls.__neg__ = _make_evaluate_unary(operator.neg, "__neg__")
-        cls.__pos__ = _make_evaluate_unary(operator.pos, "__pos__")
-        cls.__abs__ = _make_evaluate_unary(np.abs, "__abs__")
-        cls.__inv__ = _make_evaluate_unary(lambda x: -x, "__inv__")
+        setattr(cls, "__neg__", _make_evaluate_unary(operator.neg, "__neg__"))
+        setattr(cls, "__pos__", _make_evaluate_unary(operator.pos, "__pos__"))
+        setattr(cls, "__abs__", _make_evaluate_unary(np.abs, "__abs__"))
+        setattr(cls, "__inv__", _make_evaluate_unary(lambda x: -x, "__inv__"))
 
     @classmethod
     def _add_numeric_methods(cls):
