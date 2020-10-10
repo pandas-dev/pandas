@@ -19,7 +19,6 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
-from pandas.core.construction import extract_array
 from pandas.core.ops.array_ops import (  # noqa:F401
     arithmetic_op,
     comp_method_OBJECT_ARRAY,
@@ -27,7 +26,7 @@ from pandas.core.ops.array_ops import (  # noqa:F401
     get_array_op,
     logical_op,
 )
-from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.common import unpack_zerodim_and_defer  # noqa:F401
 from pandas.core.ops.docstrings import (
     _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
@@ -298,29 +297,6 @@ def align_method_SERIES(left: "Series", right, align_asobject: bool = False):
             left, right = left.align(right, copy=False)
 
     return left, right
-
-
-def arith_method_SERIES(cls, op, special):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    assert special  # non-special uses flex_method_SERIES
-    op_name = _get_op_name(op, special)
-
-    @unpack_zerodim_and_defer(op_name)
-    def wrapper(left, right):
-        res_name = get_op_result_name(left, right)
-        left, right = align_method_SERIES(left, right)
-
-        lvalues = extract_array(left, extract_numpy=True)
-        rvalues = extract_array(right, extract_numpy=True)
-        result = arithmetic_op(lvalues, rvalues, op)
-
-        return left._construct_result(result, name=res_name)
-
-    wrapper.__name__ = op_name
-    return wrapper
 
 
 def flex_method_SERIES(cls, op, special):
