@@ -278,6 +278,9 @@ def deprecate_nonkeyword_arguments(
             allow_args = allowed_args
         else:
             spec = inspect.getfullargspec(func)
+
+            # We must have some defaults if we are deprecating default-less
+            assert spec.defaults is not None  # for mypy
             allow_args = spec.args[: -len(spec.defaults)]
 
         @wraps(func)
