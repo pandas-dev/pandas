@@ -80,6 +80,8 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.core.indexes.datetimes import DatetimeIndex
+
 if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import ExtensionArray
@@ -186,7 +188,7 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
     return result
 
 
-def maybe_downcast_numeric(result, dtype: Dtype, do_round: bool = False):
+def maybe_downcast_numeric(result, dtype: DtypeObj, do_round: bool = False):
     """
     Subset of maybe_downcast_to_dtype restricted to numeric dtypes.
 
@@ -330,8 +332,8 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
 
 
 def maybe_cast_to_extension_array(
-    cls: Type["ExtensionArray"], obj, dtype: Dtype = None
-):
+    cls: Type["ExtensionArray"], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
+) -> ArrayLike:
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.
 
@@ -793,7 +795,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
 # TODO: try to make the Any in the return annotation more specific
 def infer_dtype_from_array(
     arr, pandas_dtype: bool = False
-) -> Tuple[DtypeObj, AnyArrayLike]:
+) -> Tuple[DtypeObj, ArrayLike]:
     """
     Infer the dtype from an array.
 
@@ -1085,7 +1087,7 @@ def astype_nansafe(
 
 def maybe_convert_objects(
     values: np.ndarray, convert_numeric: bool = True
-) -> Union[np.ndarray, ABCDatetimeIndex]:
+) -> Union[np.ndarray, DatetimeIndex]:
     """
     If we have an object dtype array, try to coerce dates and/or numbers.
 
