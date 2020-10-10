@@ -2085,7 +2085,7 @@ class IntBlock(NumericBlock):
         return is_integer(element) or (is_float(element) and element.is_integer())
 
 
-class DatetimeLikeBlockMixin:
+class DatetimeLikeBlockMixin(Block):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
     @property
@@ -2123,8 +2123,15 @@ class DatetimeLikeBlockMixin:
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
         return self.make_block_same_class(new_values)
 
+    def to_native_types(self, na_rep="NaT", **kwargs):
+        """ convert to our native types format """
+        arr = self.array_values()
 
-class DatetimeBlock(DatetimeLikeBlockMixin, Block):
+        result = arr._format_native_types(na_rep=na_rep, **kwargs)
+        return self.make_block(result)
+
+
+class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_datetime = True
 
@@ -2203,15 +2210,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             return element.tzinfo is None
 
         return is_valid_nat_for_dtype(element, self.dtype)
-
-    def to_native_types(self, na_rep="NaT", date_format=None, **kwargs):
-        """ convert to our native types format """
-        dta = self.array_values()
-
-        result = dta._format_native_types(
-            na_rep=na_rep, date_format=date_format, **kwargs
-        )
-        return self.make_block(result)
 
     def set(self, locs, values):
         """
@@ -2411,12 +2409,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
                 "`pd.Timedelta(seconds=n)` instead."
             )
         return super().fillna(value, **kwargs)
-
-    def to_native_types(self, na_rep="NaT", **kwargs):
-        """ convert to our native types format """
-        tda = self.array_values()
-        res = tda._format_native_types(na_rep, **kwargs)
-        return self.make_block(res)
 
 
 class BoolBlock(NumericBlock):
