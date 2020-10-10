@@ -299,6 +299,7 @@ class TestGrouperGrouping:
 
     @pytest.mark.parametrize("min_periods", [5, 4, 3])
     def test_groupby_rolling_center_min_periods(self, min_periods):
+        # GH 36040
         df = pd.DataFrame({"group": ["A"] * 10 + ["B"] * 10, "data": range(20)})
 
         window_size = 5
