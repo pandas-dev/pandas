@@ -608,17 +608,17 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
 
         from pandas.core.reshape.concat import concat
 
-        result = {}
+        results = {}
         if selected_obj.ndim == 1:
             # fname only used for output
             colg = obj._gotitem(obj._selection, ndim=1)
             for fname, agg_how in arg.items():
-                result[fname] = colg.aggregate(agg_how)
+                results[fname] = colg.aggregate(agg_how)
         else:
             # fname used for column selection and output
             for fname, agg_how in arg.items():
                 colg = obj._gotitem(fname, ndim=1)
-                result[fname] = colg.aggregate(agg_how)
+                results[fname] = colg.aggregate(agg_how)
 
         # set the final keys
         keys = list(arg.keys())
@@ -627,24 +627,24 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
 
         def is_any_series() -> bool:
             # return a boolean if we have *any* nested series
-            return any(isinstance(r, ABCSeries) for r in result.values())
+            return any(isinstance(r, ABCSeries) for r in results.values())
 
         def is_any_frame() -> bool:
             # return a boolean if we have *any* nested series
-            return any(isinstance(r, ABCDataFrame) for r in result.values())
+            return any(isinstance(r, ABCDataFrame) for r in results.values())
 
-        if isinstance(result, list):
-            return concat(result, keys=keys, axis=1, sort=True), True
+        if isinstance(results, list):
+            return concat(results, keys=keys, axis=1, sort=True), True
 
         elif is_any_frame():
             # we have a dict of DataFrames
             # return a MI DataFrame
 
-            keys_to_use = [k for k in keys if not result[k].empty]
+            keys_to_use = [k for k in keys if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
             keys_to_use = keys_to_use if keys_to_use != [] else keys
             return (
-                concat([result[k] for k in keys_to_use], keys=keys_to_use, axis=1),
+                concat([results[k] for k in keys_to_use], keys=keys_to_use, axis=1),
                 True,
             )
 
@@ -653,7 +653,7 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
             # we have a dict of Series
             # return a MI Series
             try:
-                result = concat(result)
+                result = concat(results)
             except TypeError as err:
                 # we want to give a nice error here if
                 # we have non-same sized objects, so
@@ -671,7 +671,7 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
         from pandas import DataFrame, Series
 
         try:
-            result = DataFrame(result)
+            result = DataFrame(results)
         except ValueError:
             # we have a dict of scalars
 
@@ -682,7 +682,7 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
             else:
                 name = None
 
-            result = Series(result, name=name)
+            result = Series(results, name=name)
 
         return result, True
     elif is_list_like(arg):
