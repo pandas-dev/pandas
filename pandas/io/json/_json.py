@@ -904,11 +904,7 @@ class Parser:
         """
         Checks that dict has only the appropriate keys for orient='split'.
         """
-        # pandas\io\json\_json.py:903: error: "Parser" has no attribute
-        # "_split_keys"  [attr-defined]
-        bad_keys = set(decoded.keys()).difference(
-            set(self._split_keys)  # type: ignore[attr-defined]
-        )
+        bad_keys = set(decoded.keys()).difference(set(self._split_keys))
         if bad_keys:
             bad_keys_joined = ", ".join(bad_keys)
             raise ValueError(f"JSON data had unexpected key(s): {bad_keys_joined}")
@@ -918,14 +914,10 @@ class Parser:
         # try numpy
         numpy = self.numpy
         if numpy:
-            # pandas\io\json\_json.py:913: error: "Parser" has no attribute
-            # "_parse_numpy"  [attr-defined]
-            self._parse_numpy()  # type: ignore[attr-defined]
+            self._parse_numpy()
 
         else:
-            # pandas\io\json\_json.py:916: error: "Parser" has no attribute
-            # "_parse_no_numpy"  [attr-defined]
-            self._parse_no_numpy()  # type: ignore[attr-defined]
+            self._parse_no_numpy()
 
         if self.obj is None:
             return None

@@ -1025,10 +1025,7 @@ class TimeSeries_DateFormatter(Formatter):
             format = np.compress(info["min"] & np.logical_not(info["maj"]), info)
         else:
             format = np.compress(info["maj"], info)
-        # pandas\plotting\_matplotlib\converter.py:1022: error: Incompatible
-        # types in assignment (expression has type "Dict[Any, Any]", variable
-        # has type "None")  [assignment]
-        self.formatdict = {x: f for (x, _, _, f) in format}  # type: ignore[assignment]
+        self.formatdict = {x: f for (x, _, _, f) in format}
         return self.formatdict
 
     def set_locs(self, locs):
