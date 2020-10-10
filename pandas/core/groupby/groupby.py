@@ -1371,7 +1371,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Returns
         -------
-        bool
+        Series or DataFrame
+            DataFrame or Series of boolean values, where a value is True if any element
+            is True within its respective group, False otherwise.
         """
         return self._bool_agg("any", skipna)
 
@@ -1388,7 +1390,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Returns
         -------
-        bool
+        Series or DataFrame
+            DataFrame or Series of boolean values, where a value is True if all elements
+            are True within its respective group, False otherwise.
         """
         return self._bool_agg("all", skipna)
 
@@ -1862,6 +1866,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result_is_index=True,
             direction=direction,
             limit=limit,
+            dropna=self.dropna,
         )
 
     @Substitution(name="groupby")

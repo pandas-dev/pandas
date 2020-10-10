@@ -1,4 +1,5 @@
 """ define the IntervalIndex """
+from functools import wraps
 from operator import le, lt
 import textwrap
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, cast
@@ -112,43 +113,41 @@ def _new_IntervalIndex(cls, d):
     return cls.from_arrays(**d)
 
 
-class SetopCheck:
+def setop_check(method):
     """
     This is called to decorate the set operations of IntervalIndex
     to perform the type check in advance.
     """
+    op_name = method.__name__
 
-    def __init__(self, op_name):
-        self.op_name = op_name
+    @wraps(method)
+    def wrapped(self, other, sort=False):
+        self._assert_can_do_setop(other)
+        other = ensure_index(other)
 
-    def __call__(self, setop):
-        def func(intvidx_self, other, sort=False):
-            intvidx_self._assert_can_do_setop(other)
-            other = ensure_index(other)
+        if not isinstance(other, IntervalIndex):
+            result = getattr(self.astype(object), op_name)(other)
+            if op_name in ("difference",):
+                result = result.astype(self.dtype)
+            return result
+        elif self.closed != other.closed:
+            raise ValueError(
+                "can only do set operations between two IntervalIndex "
+                "objects that are closed on the same side"
+            )
 
-            if not isinstance(other, IntervalIndex):
-                result = getattr(intvidx_self.astype(object), self.op_name)(other)
-                if self.op_name in ("difference",):
-                    result = result.astype(intvidx_self.dtype)
-                return result
-            elif intvidx_self.closed != other.closed:
-                raise ValueError(
-                    "can only do set operations between two IntervalIndex "
-                    "objects that are closed on the same side"
-                )
+        # GH 19016: ensure set op will not return a prohibited dtype
+        subtypes = [self.dtype.subtype, other.dtype.subtype]
+        common_subtype = find_common_type(subtypes)
+        if is_object_dtype(common_subtype):
+            raise TypeError(
+                f"can only do {op_name} between two IntervalIndex "
+                "objects that have compatible dtypes"
+            )
 
-            # GH 19016: ensure set op will not return a prohibited dtype
-            subtypes = [intvidx_self.dtype.subtype, other.dtype.subtype]
-            common_subtype = find_common_type(subtypes)
-            if is_object_dtype(common_subtype):
-                raise TypeError(
-                    f"can only do {self.op_name} between two IntervalIndex "
-                    "objects that have compatible dtypes"
-                )
+        return method(self, other, sort)
 
-            return setop(intvidx_self, other, sort)
-
-        return func
+    return wrapped
 
 
 @Appender(
@@ -1006,7 +1005,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # Set Operations
 
     @Appender(Index.intersection.__doc__)
-    @SetopCheck(op_name="intersection")
+    @setop_check
     def intersection(
         self, other: "IntervalIndex", sort: bool = False
     ) -> "IntervalIndex":
@@ -1023,7 +1022,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         if sort is None:
             taken = taken.sort_values()
 
-        return taken
+        return self._wrap_setop_result(other, taken)
 
     def _intersection_unique(self, other: "IntervalIndex") -> "IntervalIndex":
         """
@@ -1075,7 +1074,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return self[mask]
 
     def _setop(op_name: str, sort=None):
-        @SetopCheck(op_name=op_name)
         def func(self, other, sort=sort):
             result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)
             result_name = get_op_result_name(self, other)
@@ -1088,7 +1086,8 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
             return type(self).from_tuples(result, closed=self.closed, name=result_name)
 
-        return func
+        func.__name__ = op_name
+        return setop_check(func)
 
     union = _setop("union")
     difference = _setop("difference")
@@ -1118,9 +1117,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def __ge__(self, other):
         return Index.__ge__(self, other)
-
-
-IntervalIndex._add_logical_methods_disabled()
 
 
 def _is_valid_endpoint(endpoint) -> bool:
