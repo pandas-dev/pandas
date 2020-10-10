@@ -3,7 +3,7 @@ import functools
 from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import IO, Any, Callable, List, Optional, Type
+from typing import IO, Any, Callable, List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -111,6 +111,8 @@ def to_json(
 
 
 class Writer:
+    _default_orient: str
+
     def __init__(
         self,
         obj,
@@ -126,8 +128,7 @@ class Writer:
         self.obj = obj
 
         if orient is None:
-            # error: "Writer" has no attribute "_default_orient"
-            orient = self._default_orient  # type: ignore[attr-defined]
+            orient = self._default_orient
 
         self.orient = orient
         self.date_format = date_format
@@ -777,11 +778,8 @@ class JsonReader(abc.Iterator):
                 obj = self._get_object_parser(lines_json)
             else:
                 data = ensure_str(self.data)
-                # pandas\io\json\_json.py:780: error: Incompatible types in
-                # assignment (expression has type "List[str]", variable has
-                # type "str")  [assignment]
-                data = data.split("\n")  # type: ignore[assignment]
-                obj = self._get_object_parser(self._combine_lines(data))
+                data_lines = data.split("\n")
+                obj = self._get_object_parser(self._combine_lines(data_lines))
         else:
             obj = self._get_object_parser(self.data)
         self.close()
@@ -851,6 +849,8 @@ class JsonReader(abc.Iterator):
 
 
 class Parser:
+    _split_keys: Tuple[str, ...]
+    _default_orient: str
 
     _STAMP_UNITS = ("s", "ms", "us", "ns")
     _MIN_STAMPS = {
@@ -875,9 +875,8 @@ class Parser:
         self.json = json
 
         if orient is None:
-            # pandas\io\json\_json.py:875: error: "Parser" has no attribute
-            # "_default_orient"  [attr-defined]
-            orient = self._default_orient  # type: ignore[attr-defined]
+            orient = self._default_orient
+
         self.orient = orient
 
         self.dtype = dtype
@@ -911,11 +910,8 @@ class Parser:
             set(self._split_keys)  # type: ignore[attr-defined]
         )
         if bad_keys:
-            # pandas\io\json\_json.py:905: error: Incompatible types in
-            # assignment (expression has type "str", variable has type
-            # "Set[Any]")  [assignment]
-            bad_keys = ", ".join(bad_keys)  # type: ignore[assignment]
-            raise ValueError(f"JSON data had unexpected key(s): {bad_keys}")
+            bad_keys_joined = ", ".join(bad_keys)
+            raise ValueError(f"JSON data had unexpected key(s): {bad_keys_joined}")
 
     def parse(self):
 
@@ -938,18 +934,22 @@ class Parser:
         self._try_convert_types()
         return self.obj
 
+    def _parse_numpy(self):
+        raise AbstractMethodError(self)
+
+    def _parse_no_numpy(self):
+        raise AbstractMethodError(self)
+
     def _convert_axes(self):
         """
         Try to convert axes.
         """
-        # pandas\io\json\_json.py:929: error: Item "None" of "Optional[Any]"
-        # has no attribute "_AXIS_ORDERS"  [union-attr]
-        for axis_name in self.obj._AXIS_ORDERS:  # type: ignore[union-attr]
+        obj = self.obj
+        assert obj is not None  # for mypy
+        for axis_name in obj._AXIS_ORDERS:
             new_axis, result = self._try_convert_data(
                 name=axis_name,
-                # pandas\io\json\_json.py:932: error: Item "None" of
-                # "Optional[Any]" has no attribute "_get_axis"  [union-attr]
-                data=self.obj._get_axis(axis_name),  # type: ignore[union-attr]
+                data=obj._get_axis(axis_name),
                 use_dtypes=False,
                 convert_dates=True,
             )
@@ -1103,12 +1103,11 @@ class SeriesParser(Parser):
             self.check_keys_split(decoded)
             self.obj = create_series_with_explicit_dtype(**decoded)
         elif self.orient in ["columns", "index"]:
-            # pandas\io\json\_json.py:1086: error:
-            # "create_series_with_explicit_dtype" gets multiple values for
-            # keyword argument "dtype_if_empty"  [misc]
+            # error: "create_series_with_explicit_dtype"
+            #  gets multiple values for keyword argument "dtype_if_empty
             self.obj = create_series_with_explicit_dtype(
-                *data, dtype_if_empty=object  # type: ignore[misc]
-            )
+                *data, dtype_if_empty=object
+            )  # type:ignore[misc]
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
@@ -1200,11 +1199,12 @@ class FrameParser(Parser):
         if filt is None:
             filt = lambda col, c: True
 
+        obj = self.obj
+        assert obj is not None  # for mypy
+
         needs_new_obj = False
         new_obj = dict()
-        # pandas\io\json\_json.py:1180: error: Item "None" of "Optional[Any]"
-        # has no attribute "items"  [union-attr]
-        for i, (col, c) in enumerate(self.obj.items()):  # type: ignore[union-attr]
+        for i, (col, c) in enumerate(obj.items()):
             if filt(col, c):
                 new_data, result = f(col, c)
                 if result:
@@ -1215,23 +1215,9 @@ class FrameParser(Parser):
         if needs_new_obj:
 
             # possibly handle dup columns
-
-            # pandas\io\json\_json.py:1191: error: Incompatible types in
-            # assignment (expression has type "DataFrame", variable has type
-            # "Dict[int, Any]")  [assignment]
-
-            # pandas\io\json\_json.py:1191: error: Item "None" of
-            # "Optional[Any]" has no attribute "index"  [union-attr]
-            new_obj = DataFrame(  # type: ignore[assignment]
-                new_obj, index=self.obj.index  # type: ignore[union-attr]
-            )
-            # pandas\io\json\_json.py:1192: error: "Dict[int, Any]" has no
-            # attribute "columns"  [attr-defined]
-
-            # pandas\io\json\_json.py:1192: error: Item "None" of
-            # "Optional[Any]" has no attribute "columns"  [union-attr]
-            new_obj.columns = self.obj.columns  # type: ignore[attr-defined,union-attr]
-            self.obj = new_obj
+            new_frame = DataFrame(new_obj, index=obj.index)
+            new_frame.columns = obj.columns
+            self.obj = new_frame
 
     def _try_convert_types(self):
         if self.obj is None:

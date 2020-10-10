@@ -278,10 +278,10 @@ def deprecate_nonkeyword_arguments(
             allow_args = allowed_args
         else:
             spec = inspect.getfullargspec(func)
-            # pandas\util\_decorators.py:281: error: Argument 1 to "len" has
-            # incompatible type "Optional[Tuple[Any, ...]]"; expected "Sized"
-            # [arg-type]
-            allow_args = spec.args[: -len(spec.defaults)]  # type: ignore[arg-type]
+
+            # We must have some defaults if we are deprecating default-less
+            assert spec.defaults is not None  # for mypy
+            allow_args = spec.args[: -len(spec.defaults)]
 
         @wraps(func)
         def wrapper(*args, **kwargs):
