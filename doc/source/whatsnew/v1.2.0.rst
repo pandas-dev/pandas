@@ -446,6 +446,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.count` returned ``np.nan`` with :class:`pandas.api.indexers.FixedForwardWindowIndexer` as window, ``min_periods=0`` and only missing values in window (:issue:`35579`)
 - Bug where :class:`pandas.core.window.Rolling` produces incorrect window sizes when using a ``PeriodIndex`` (:issue:`34225`)
 - Bug in :meth:`RollingGroupby.count` where a ``ValueError`` was raised when specifying the ``closed`` parameter (:issue:`35869`)
+- Bug in :meth:`DataFrame.groupby.rolling` returning wrong values with partial centered window (:issue:`36040`).
 
 Reshaping
 ^^^^^^^^^
