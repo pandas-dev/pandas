@@ -113,8 +113,8 @@ class TestSeriesConstructors:
         with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
             assert not Series().index._is_all_dates
 
-        # exception raised is of type Exception
-        with pytest.raises(Exception, match="Data must be 1-dimensional"):
+        # exception raised is of type ValueError GH35744
+        with pytest.raises(ValueError, match="Data must be 1-dimensional"):
             Series(np.random.randn(3, 3), index=np.arange(3))
 
         mixed.name = "Series"
