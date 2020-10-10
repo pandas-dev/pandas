@@ -78,30 +78,16 @@ class FixedWindowIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
-        start_s = np.zeros(self.window_size, dtype="int64")
-        start_e = (
-            np.arange(self.window_size, num_values, dtype="int64")
-            - self.window_size
-            + 1
-        )
-        start = np.concatenate([start_s, start_e])[:num_values]
+        if center:
+            offset = (self.window_size - 1) // 2
+        else:
+            offset = 0
 
-        end_s = np.arange(self.window_size, dtype="int64") + 1
-        end_e = start_e + self.window_size
-        end = np.concatenate([end_s, end_e])[:num_values]
+        end = np.arange(1 + offset, num_values + 1 + offset).astype("int64")
+        start = end - self.window_size
 
-        if center and self.window_size > 2:
-            offset = min((self.window_size - 1) // 2, num_values - 1)
-            start_s_buffer = np.roll(start, -offset)[: num_values - offset]
-            end_s_buffer = np.roll(end, -offset)[: num_values - offset]
-
-            start_e_buffer = np.arange(
-                start[-1] + 1, start[-1] + 1 + offset, dtype="int64"
-            )
-            end_e_buffer = np.array([end[-1]] * offset, dtype="int64")
-
-            start = np.concatenate([start_s_buffer, start_e_buffer])
-            end = np.concatenate([end_s_buffer, end_e_buffer])
+        end = np.clip(end, 0, num_values)
+        start = np.clip(start, 0, num_values)
 
         return start, end
 
