@@ -652,7 +652,7 @@ class Index(IndexOpsMixin, PandasObject):
         Create an Index with values cast to dtypes.
 
         The class of a new Index is determined by dtype. When conversion is
-        impossible, a ValueError exception is raised.
+        impossible, a TypeError exception is raised.
 
         Parameters
         ----------
