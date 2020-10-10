@@ -1067,6 +1067,10 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
     return _is_dtype_type(arr_or_dtype, classes(np.datetime64, np.timedelta64))
 
 
+def is_datetime_or_timedelta_any_dtype(arr_or_dtype):
+    return is_datetime64_any_dtype(arr_or_dtype) or is_timedelta64_dtype(arr_or_dtype)
+
+
 # This exists to silence numpy deprecation warnings, see GH#29553
 def is_numeric_v_string_like(a, b):
     """
