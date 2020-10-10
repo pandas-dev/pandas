@@ -501,9 +501,7 @@ class Block(PandasObject):
 
         # no need to downcast our float
         # unless indicated
-        if downcast is None and (
-            self.is_float or self.is_timedelta or self.is_datetime
-        ):
+        if downcast is None and (self.is_float or self.is_datelike):
             return blocks
 
         return extend_blocks([b.downcast(downcast) for b in blocks])
@@ -638,7 +636,7 @@ class Block(PandasObject):
         if isinstance(values, np.ndarray):
             values = values.reshape(self.shape)
 
-        newb = make_block(values, placement=self.mgr_locs, ndim=self.ndim)
+        newb = self.make_block(values)
 
         if newb.is_numeric and self.is_numeric:
             if newb.shape != self.shape:
@@ -1758,6 +1756,14 @@ class ExtensionBlock(Block):
         `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
+        if not self._can_hold_element(value):
+            # This is only relevant for DatetimeTZBlock, which has a
+            #  non-trivial `_can_hold_element`.
+            # https://github.com/pandas-dev/pandas/issues/24020
+            # Need a dedicated setitem until GH#24020 (type promotion in setitem
+            #  for extension arrays) is designed and implemented.
+            return self.astype(object).setitem(indexer, value)
+
         if isinstance(indexer, tuple):
             # TODO(EA2D): not needed with 2D EAs
             # we are always 1-D
@@ -2175,7 +2181,13 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     def _can_hold_element(self, element: Any) -> bool:
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
-            if self.is_datetimetz:
+            if isinstance(element, list) and len(element) == 0:
+                # Following DatetimeArray._validate_setitem_value
+                #  convention, we treat this as object-dtype
+                #  (even though tipo is float64)
+                return True
+
+            elif self.is_datetimetz:
                 # require exact match, since non-nano does not exist
                 return is_dtype_equal(tipo, self.dtype) or is_valid_nat_for_dtype(
                     element, self.dtype
@@ -2339,21 +2351,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
             value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def setitem(self, indexer, value):
-        # https://github.com/pandas-dev/pandas/issues/24020
-        # Need a dedicated setitem until #24020 (type promotion in setitem
-        # for extension arrays) is designed and implemented.
-        if self._can_hold_element(value) or (
-            isinstance(indexer, np.ndarray) and indexer.size == 0
-        ):
-            return super().setitem(indexer, value)
-
-        obj_vals = self.values.astype(object)
-        newb = make_block(
-            obj_vals, placement=self.mgr_locs, klass=ObjectBlock, ndim=self.ndim
-        )
-        return newb.setitem(indexer, value)
-
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
 
@@ -2377,7 +2374,11 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     def _maybe_coerce_values(self, values):
         if values.dtype != TD64NS_DTYPE:
-            # e.g. non-nano or int64
+            # non-nano we will convert to nano
+            if values.dtype.kind != "m":
+                # caller is responsible for ensuring timedelta64 dtype
+                raise TypeError(values.dtype)  # pragma: no cover
+
             values = TimedeltaArray._from_sequence(values)._data
         if isinstance(values, TimedeltaArray):
             values = values._data
@@ -2481,7 +2482,7 @@ class ObjectBlock(Block):
             blocks = self.split_and_operate(None, f, False)
         else:
             values = f(None, self.values.ravel(), None)
-            blocks = [make_block(values, ndim=self.ndim, placement=self.mgr_locs)]
+            blocks = [self.make_block(values)]
 
         return blocks
 
