@@ -23,7 +23,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_extension_array_dtype,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCMultiIndex
+from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.algorithms as algorithms
@@ -519,7 +519,7 @@ def get_flattened_list(
 
 
 def get_indexer_dict(
-    label_list: List[np.ndarray], keys: List[ABCIndex]
+    label_list: List[np.ndarray], keys: List["Index"]
 ) -> Dict[Union[str, Tuple], np.ndarray]:
     """
     Returns
