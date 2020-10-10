@@ -10726,7 +10726,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             desc="Return the mean absolute deviation of the values "
-            "for the requested axis.",
+            "over the requested axis.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
@@ -10862,7 +10862,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the sum of the values for the requested axis.\n\n"
+            desc="Return the sum of the values over the requested axis.\n\n"
             "This is equivalent to the method ``numpy.sum``.",
             name1=name1,
             name2=name2,
@@ -10888,7 +10888,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the product of the values for the requested axis.",
+            desc="Return the product of the values over the requested axis.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
@@ -10914,7 +10914,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the mean of the values for the requested axis.",
+            desc="Return the mean of the values over the requested axis.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
@@ -10963,7 +10963,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the median of the values for the requested axis.",
+            desc="Return the median of the values over the requested axis.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
@@ -10980,7 +10980,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the maximum of the values for the requested axis.\n\n"
+            desc="Return the maximum of the values over the requested axis.\n\n"
             "If you want the *index* of the maximum, use ``idxmax``. This is"
             "the equivalent of the ``numpy.ndarray`` method ``argmax``.",
             name1=name1,
@@ -10997,7 +10997,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the minimum of the values for the requested axis.\n\n"
+            desc="Return the minimum of the values over the requested axis.\n\n"
             "If you want the *index* of the minimum, use ``idxmin``. This is"
             "the equivalent of the ``numpy.ndarray`` method ``argmin``.",
             name1=name1,
