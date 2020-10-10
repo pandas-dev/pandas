@@ -280,6 +280,8 @@ character. In this case both ``pat`` and ``repl`` must be strings:
 
 .. ipython:: python
 
+    dollars = pd.Series(["12", "-$10", "$10,000"], dtype="string")
+
     # These lines are equivalent
     dollars.str.replace(r"-\$", "-", regex=True)
     dollars.str.replace("-$", "-", regex=False)
