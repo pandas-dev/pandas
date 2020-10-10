@@ -267,10 +267,12 @@ i.e., from the end of the string to the beginning of the string:
    s3
    s3.str.replace("^.a|dog", "XX-XX ", case=False, regex=True)
 
-Some caution must be taken when dealing with regular expressions! The current behavior
-is to treat single character patterns as literal strings, even when ``regex`` is set
-to ``True``. This behavior is deprecated and will be removed in a future version so
-that the ``regex`` keyword is always respected.
+.. warning::
+
+    Some caution must be taken when dealing with regular expressions! The current behavior
+    is to treat single character patterns as literal strings, even when ``regex`` is set
+    to ``True``. This behavior is deprecated and will be removed in a future version so
+    that the ``regex`` keyword is always respected.
 
 .. versionchanged:: 1.2.0
 
