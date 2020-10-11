@@ -261,6 +261,10 @@ cdef class _Timestamp(ABCTimestamp):
             if other.dtype.kind == "M":
                 if self.tz is None:
                     return PyObject_RichCompare(self.asm8, other, op)
+                elif op == Py_NE:
+                    return np.ones(other.shape, dtype=np.bool_)
+                elif op == Py_EQ:
+                    return np.zeros(other.shape, dtype=np.bool_)
                 raise TypeError(
                     "Cannot compare tz-naive and tz-aware timestamps"
                 )
@@ -291,7 +295,12 @@ cdef class _Timestamp(ABCTimestamp):
         else:
             return NotImplemented
 
-        self._assert_tzawareness_compat(ots)
+        if not self._can_compare(ots):
+            if op == Py_NE or op == Py_EQ:
+                return NotImplemented
+            raise TypeError(
+                "Cannot compare tz-naive and tz-aware timestamps"
+            )
         return cmp_scalar(self.value, ots.value, op)
 
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,
@@ -299,16 +308,15 @@ cdef class _Timestamp(ABCTimestamp):
         cdef:
             datetime dtval = self.to_pydatetime()
 
-        self._assert_tzawareness_compat(other)
+        if not self._can_compare(other):
+            return NotImplemented
+
         return PyObject_RichCompareBool(dtval, other, op)
 
-    cdef _assert_tzawareness_compat(_Timestamp self, datetime other):
-        if self.tzinfo is None:
-            if other.tzinfo is not None:
-                raise TypeError('Cannot compare tz-naive and tz-aware '
-                                'timestamps')
-        elif other.tzinfo is None:
-            raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
+    cdef bint _can_compare(self, datetime other):
+        if self.tzinfo is not None:
+            return other.tzinfo is not None
+        return other.tzinfo is None
 
     def __add__(self, other):
         cdef:

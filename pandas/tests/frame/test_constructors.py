@@ -1637,8 +1637,8 @@ class TestDataFrameConstructors:
         "name_in1,name_in2,name_in3,name_out",
         [
             ("idx", "idx", "idx", "idx"),
-            ("idx", "idx", None, "idx"),
-            ("idx", None, None, "idx"),
+            ("idx", "idx", None, None),
+            ("idx", None, None, None),
             ("idx1", "idx2", None, None),
             ("idx1", "idx1", "idx2", None),
             ("idx1", "idx2", "idx3", None),
