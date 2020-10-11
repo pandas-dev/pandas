@@ -606,7 +606,7 @@ class TestDataFrameMisc:
         df = DataFrame()
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # _AXIS_NAMES deprecated
+            # _AXIS_NUMBERS, _AXIS_NAMES lookups
             inspect.getmembers(df)
 
         with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
