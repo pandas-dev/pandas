@@ -872,7 +872,7 @@ def _dispatch(name: str, *args, **kwargs):
 
 class BaseWindowGroupby(GotItemMixin, BaseWindow):
     """
-    Provide the groupby windowing facilies.
+    Provide the groupby windowing facilities.
     """
 
     def __init__(self, obj, *args, **kwargs):
