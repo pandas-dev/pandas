@@ -321,7 +321,7 @@ cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
         return
 
     nobs[0] = nobs[0] + 1
-    # a part of Welford's method for the online variance-calculation
+    # Welford's method for the online variance-calculation using Kahan summation
     # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
     y = val - compensation[0]
     t = y - mean_x[0]
@@ -341,7 +341,7 @@ cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
     if notnan(val):
         nobs[0] = nobs[0] - 1
         if nobs[0]:
-            # a part of Welford's method for the online variance-calculation
+            # Welford's method for the online variance-calculation using Kahan summation
             # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
             y = val - compensation[0]
             t = y - mean_x[0]
