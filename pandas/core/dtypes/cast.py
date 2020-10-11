@@ -462,7 +462,7 @@ def maybe_upcast_putmask(
 
 
 def maybe_casted_values(
-    index: "Index", codes: Optional[Sequence[int]] = None
+    index: "Index", codes: Optional[np.ndarray] = None
 ) -> ArrayLike:
     """
     Convert an index, given directly or as a pair (level, code), to a 1D array.
@@ -487,7 +487,7 @@ def maybe_casted_values(
 
     # if we have the codes, extract the values with a mask
     if codes is not None:
-        mask = codes == -1
+        mask: np.ndarray = codes == -1
 
         # we can have situations where the whole mask is -1,
         # meaning there is nothing found in codes, so make all nan's
