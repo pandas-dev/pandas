@@ -1590,6 +1590,8 @@ class RollingAndExpandingMixin(BaseWindow):
     *args, **kwargs
         For NumPy compatibility. No additional arguments are used.
 
+    Returns
+    -------
     Series or DataFrame
         Returned object type is determined by the caller of the %(name)s
         calculation.
