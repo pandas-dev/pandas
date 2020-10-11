@@ -348,7 +348,7 @@ def align_method_FRAME(
     return left, right
 
 
-def _should_reindex_frame_op(
+def should_reindex_frame_op(
     left: "DataFrame", right, op, axis, default_axis, fill_value, level
 ) -> bool:
     """
@@ -374,7 +374,7 @@ def _should_reindex_frame_op(
     return False
 
 
-def _frame_arith_method_with_reindex(
+def frame_arith_method_with_reindex(
     left: "DataFrame", right: "DataFrame", op
 ) -> "DataFrame":
     """
@@ -453,10 +453,10 @@ def flex_arith_method_FRAME(op):
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
 
-        if _should_reindex_frame_op(
+        if should_reindex_frame_op(
             self, other, op, axis, default_axis, fill_value, level
         ):
-            return _frame_arith_method_with_reindex(self, other, op)
+            return frame_arith_method_with_reindex(self, other, op)
 
         if isinstance(other, ABCSeries) and fill_value is not None:
             # TODO: We could allow this in cases where we end up going
