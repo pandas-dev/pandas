@@ -78,17 +78,17 @@ class FixedWindowIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
-        start_s = np.zeros(self.window_size, dtype="int64")
-        start_e = (
-            np.arange(self.window_size, num_values, dtype="int64")
-            - self.window_size
-            + 1
-        )
-        start = np.concatenate([start_s, start_e])[:num_values]
+        if center:
+            offset = (self.window_size - 1) // 2
+        else:
+            offset = 0
 
-        end_s = np.arange(self.window_size, dtype="int64") + 1
-        end_e = start_e + self.window_size
-        end = np.concatenate([end_s, end_e])[:num_values]
+        end = np.arange(1 + offset, num_values + 1 + offset, dtype="int64")
+        start = end - self.window_size
+
+        end = np.clip(end, 0, num_values)
+        start = np.clip(start, 0, num_values)
+
         return start, end
 
 
@@ -327,10 +327,4 @@ class GroupbyRollingIndexer(BaseIndexer):
             end_arrays.append(window_indicies.take(ensure_platform_int(end)))
         start = np.concatenate(start_arrays)
         end = np.concatenate(end_arrays)
-        # GH 35552: Need to adjust start and end based on the nans appended to values
-        # when center=True
-        if num_values > len(start):
-            offset = num_values - len(start)
-            start = np.concatenate([start, np.array([end[-1]] * offset)])
-            end = np.concatenate([end, np.array([end[-1]] * offset)])
         return start, end
