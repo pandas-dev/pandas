@@ -255,44 +255,37 @@ i.e., from the end of the string to the beginning of the string:
 
    s2.str.rsplit("_", expand=True, n=1)
 
-``replace`` by default replaces `regular expressions
+``replace`` optionally uses `regular expressions
 <https://docs.python.org/3/library/re.html>`__:
 
 .. ipython:: python
 
    s3 = pd.Series(
-       ["A", "B", "C", "Aaba", "Baca", "", np.nan, "CABA", "dog", "cat"], dtype="string"
+       ["A", "B", "C", "Aaba", "Baca", "", np.nan, "CABA", "dog", "cat"],
+       dtype="string",
    )
    s3
-   s3.str.replace("^.a|dog", "XX-XX ", case=False)
+   s3.str.replace("^.a|dog", "XX-XX ", case=False, regex=True)
 
-Some caution must be taken to keep regular expressions in mind! For example, the
-following code will cause trouble because of the regular expression meaning of
-``$``:
+.. warning::
 
-.. ipython:: python
+    Some caution must be taken when dealing with regular expressions! The current behavior
+    is to treat single character patterns as literal strings, even when ``regex`` is set
+    to ``True``. This behavior is deprecated and will be removed in a future version so
+    that the ``regex`` keyword is always respected.
 
-   # Consider the following badly formatted financial data
-   dollars = pd.Series(["12", "-$10", "$10,000"], dtype="string")
+.. versionchanged:: 1.2.0
 
-   # This does what you'd naively expect:
-   dollars.str.replace("$", "")
-
-   # But this doesn't:
-   dollars.str.replace("-$", "-")
-
-   # We need to escape the special character (for >1 len patterns)
-   dollars.str.replace(r"-\$", "-")
-
-If you do want literal replacement of a string (equivalent to
-:meth:`str.replace`), you can set the optional ``regex`` parameter to
-``False``, rather than escaping each character. In this case both ``pat``
-and ``repl`` must be strings:
+If you want literal replacement of a string (equivalent to :meth:`str.replace`), you
+can set the optional ``regex`` parameter to ``False``, rather than escaping each
+character. In this case both ``pat`` and ``repl`` must be strings:
 
 .. ipython:: python
+
+    dollars = pd.Series(["12", "-$10", "$10,000"], dtype="string")
 
     # These lines are equivalent
-    dollars.str.replace(r"-\$", "-")
+    dollars.str.replace(r"-\$", "-", regex=True)
     dollars.str.replace("-$", "-", regex=False)
 
 The ``replace`` method can also take a callable as replacement. It is called
@@ -309,7 +302,10 @@ positional argument (a regex object) and return a string.
        return m.group(0)[::-1]
 
 
-   pd.Series(["foo 123", "bar baz", np.nan], dtype="string").str.replace(pat, repl)
+   pd.Series(
+       ["foo 123", "bar baz", np.nan],
+       dtype="string"
+   ).str.replace(pat, repl, regex=True)
 
    # Using regex groups
    pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
@@ -319,7 +315,9 @@ positional argument (a regex object) and return a string.
        return m.group("two").swapcase()
 
 
-   pd.Series(["Foo Bar Baz", np.nan], dtype="string").str.replace(pat, repl)
+   pd.Series(["Foo Bar Baz", np.nan], dtype="string").str.replace(
+       pat, repl, regex=True
+   )
 
 The ``replace`` method also accepts a compiled regular expression object
 from :func:`re.compile` as a pattern. All flags should be included in the
@@ -330,7 +328,7 @@ compiled regular expression object.
    import re
 
    regex_pat = re.compile(r"^.a|dog", flags=re.IGNORECASE)
-   s3.str.replace(regex_pat, "XX-XX ")
+   s3.str.replace(regex_pat, "XX-XX ", regex=True)
 
 Including a ``flags`` argument when calling ``replace`` with a compiled
 regular expression object will raise a ``ValueError``.
@@ -515,7 +513,10 @@ DataFrame with one column per group.
 
 .. ipython:: python
 
-   pd.Series(["a1", "b2", "c3"], dtype="string").str.extract(r"([ab])(\d)", expand=False)
+   pd.Series(
+       ["a1", "b2", "c3"],
+       dtype="string",
+   ).str.extract(r"([ab])(\d)", expand=False)
 
 Elements that do not match return a row filled with ``NaN``. Thus, a
 Series of messy strings can be "converted" into a like-indexed Series
@@ -536,7 +537,10 @@ and optional groups like
 
 .. ipython:: python
 
-   pd.Series(["a1", "b2", "3"], dtype="string").str.extract(r"([ab])?(\d)", expand=False)
+   pd.Series(
+       ["a1", "b2", "3"],
+       dtype="string",
+   ).str.extract(r"([ab])?(\d)", expand=False)
 
 can also be used. Note that any capture group names in the regular
 expression will be used for column names; otherwise capture group
@@ -655,19 +659,28 @@ You can check whether elements contain a pattern:
 .. ipython:: python
 
    pattern = r"[0-9][a-z]"
-   pd.Series(["1", "2", "3a", "3b", "03c", "4dx"], dtype="string").str.contains(pattern)
+   pd.Series(
+       ["1", "2", "3a", "3b", "03c", "4dx"],
+       dtype="string",
+   ).str.contains(pattern)
 
 Or whether elements match a pattern:
 
 .. ipython:: python
 
-   pd.Series(["1", "2", "3a", "3b", "03c", "4dx"], dtype="string").str.match(pattern)
+   pd.Series(
+       ["1", "2", "3a", "3b", "03c", "4dx"],
+       dtype="string",
+   ).str.match(pattern)
 
 .. versionadded:: 1.1.0
 
 .. ipython:: python
 
-   pd.Series(["1", "2", "3a", "3b", "03c", "4dx"], dtype="string").str.fullmatch(pattern)
+   pd.Series(
+       ["1", "2", "3a", "3b", "03c", "4dx"],
+       dtype="string",
+   ).str.fullmatch(pattern)
 
 .. note::
 

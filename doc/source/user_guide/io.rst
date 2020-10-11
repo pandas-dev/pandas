@@ -894,7 +894,7 @@ take full advantage of the flexibility of the date parsing API:
    )
    df
 
-Pandas will try to call the ``date_parser`` function in three different ways. If
+pandas will try to call the ``date_parser`` function in three different ways. If
 an exception is raised, the next one is tried:
 
 1. ``date_parser`` is first called with one or more arrays as arguments,
@@ -926,7 +926,7 @@ Note that performance-wise, you should try these methods of parsing dates in ord
 Parsing a CSV with mixed timezones
 ++++++++++++++++++++++++++++++++++
 
-Pandas cannot natively represent a column or index with mixed timezones. If your CSV
+pandas cannot natively represent a column or index with mixed timezones. If your CSV
 file contains columns with a mixture of timezones, the default result will be
 an object-dtype column with strings, even with ``parse_dates``.
 
@@ -986,7 +986,12 @@ Note that ``infer_datetime_format`` is sensitive to ``dayfirst``.  With
 .. ipython:: python
 
    # Try to infer the format for the index column
-   df = pd.read_csv("foo.csv", index_col=0, parse_dates=True, infer_datetime_format=True)
+   df = pd.read_csv(
+       "foo.csv",
+       index_col=0,
+       parse_dates=True,
+       infer_datetime_format=True,
+   )
    df
 
 .. ipython:: python
@@ -1046,9 +1051,19 @@ writing to a file). For example:
 
    val = "0.3066101993807095471566981359501369297504425048828125"
    data = "a,b,c\n1,2,{0}".format(val)
-   abs(pd.read_csv(StringIO(data), engine="c", float_precision=None)["c"][0] - float(val))
    abs(
-       pd.read_csv(StringIO(data), engine="c", float_precision="high")["c"][0] - float(val)
+       pd.read_csv(
+           StringIO(data),
+           engine="c",
+           float_precision=None,
+       )["c"][0] - float(val)
+   )
+   abs(
+       pd.read_csv(
+           StringIO(data),
+           engine="c",
+           float_precision="high",
+       )["c"][0] - float(val)
    )
    abs(
        pd.read_csv(StringIO(data), engine="c", float_precision="round_trip")["c"][0]
@@ -1602,7 +1617,7 @@ python engine is selected explicitly using ``engine='python'``.
 Reading/writing remote files
 ''''''''''''''''''''''''''''
 
-You can pass in a URL to read or write remote files to many of Pandas' IO
+You can pass in a URL to read or write remote files to many of pandas' IO
 functions - the following example shows reading a CSV file:
 
 .. code-block:: python
@@ -2265,7 +2280,7 @@ The full list of types supported are described in the Table Schema
 spec. This table shows the mapping from pandas types:
 
 =============== =================
-Pandas type     Table Schema type
+pandas type     Table Schema type
 =============== =================
 int64           integer
 float64         number
@@ -2517,7 +2532,12 @@ columns to strings.
 .. code-block:: python
 
    url_mcc = "https://en.wikipedia.org/wiki/Mobile_country_code"
-   dfs = pd.read_html(url_mcc, match="Telekom Albania", header=0, converters={"MNC": str})
+   dfs = pd.read_html(
+       url_mcc,
+       match="Telekom Albania",
+       header=0,
+       converters={"MNC": str},
+   )
 
 Use some combination of the above:
 
@@ -2661,7 +2681,7 @@ that contain URLs.
 
    url_df = pd.DataFrame(
        {
-           "name": ["Python", "Pandas"],
+           "name": ["Python", "pandas"],
            "url": ["https://www.python.org/", "https://pandas.pydata.org"],
        }
    )
@@ -3143,7 +3163,7 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 Writing Excel files to memory
 +++++++++++++++++++++++++++++
 
-Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
+pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
 ``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
 
 .. code-block:: python
@@ -3177,7 +3197,7 @@ Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 Excel writer engines
 ''''''''''''''''''''
 
-Pandas chooses an Excel writer via two methods:
+pandas chooses an Excel writer via two methods:
 
 1. the ``engine`` keyword argument
 2. the filename extension (via the default specified in config options)
@@ -3310,10 +3330,10 @@ applications (CTRL-V on many operating systems). Here we illustrate writing a
 
 .. code-block:: python
 
-    >>> df = pd.DataFrame({'A': [1, 2, 3],
-    ...                    'B': [4, 5, 6],
-    ...                    'C': ['p', 'q', 'r']},
-    ...                   index=['x', 'y', 'z'])
+    >>> df = pd.DataFrame(
+    ...     {"A": [1, 2, 3], "B": [4, 5, 6], "C": ["p", "q", "r"]}, index=["x", "y", "z"]
+    ... )
+
     >>> df
       A B C
     x 1 4 p
@@ -3474,7 +3494,7 @@ for some advanced strategies
 
 .. warning::
 
-   Pandas uses PyTables for reading and writing HDF5 files, which allows
+   pandas uses PyTables for reading and writing HDF5 files, which allows
    serializing object-dtype data with pickle. Loading pickled data received from
    untrusted sources can be unsafe.
 
@@ -3570,7 +3590,12 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
 
 .. ipython:: python
 
-   df_with_missing = pd.DataFrame({"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]})
+   df_with_missing = pd.DataFrame(
+       {
+           "col1": [0, np.nan, 2],
+           "col2": [1, np.nan, np.nan],
+       }
+   )
    df_with_missing
 
    df_with_missing.to_hdf("file.h5", "df_with_missing", format="table", mode="w")
@@ -3607,8 +3632,8 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    .. code-block:: python
 
-       >>> pd.DataFrame(np.random.randn(10, 2)).to_hdf('test_fixed.h5', 'df')
-       >>> pd.read_hdf('test_fixed.h5', 'df', where='index>5')
+       >>> pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", "df")
+       >>> pd.read_hdf("test_fixed.h5", "df", where="index>5")
        TypeError: cannot pass a where specification when reading a fixed format.
                   this store must be selected in its entirety
 
@@ -3944,7 +3969,8 @@ specified in the format: ``<float>(<unit>)``, where float may be signed (and fra
        {
            "A": pd.Timestamp("20130101"),
            "B": [
-               pd.Timestamp("20130101") + timedelta(days=i, seconds=10) for i in range(10)
+               pd.Timestamp("20130101") + timedelta(days=i, seconds=10)
+               for i in range(10)
            ],
        }
    )
@@ -4241,7 +4267,11 @@ results.
    store.select("df2_mt")
 
    # as a multiple
-   store.select_as_multiple(["df1_mt", "df2_mt"], where=["A>0", "B>0"], selector="df1_mt")
+   store.select_as_multiple(
+       ["df1_mt", "df2_mt"],
+       where=["A>0", "B>0"],
+       selector="df1_mt",
+   )
 
 
 Delete from a table
@@ -4734,7 +4764,7 @@ Several caveats.
 
 * Duplicate column names and non-string columns names are not supported.
 * The ``pyarrow`` engine always writes the index to the output, but ``fastparquet`` only writes non-default
-  indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
+  indexes. This extra column can cause problems for non-pandas consumers that are not expecting it. You can
   force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
 * In the ``pyarrow`` engine, categorical dtypes for non-string types can be serialized to parquet, but will de-serialize as their primitive dtype.
@@ -4797,8 +4827,16 @@ Read only certain columns of a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet("example_fp.parquet", engine="fastparquet", columns=["a", "b"])
-   result = pd.read_parquet("example_pa.parquet", engine="pyarrow", columns=["a", "b"])
+   result = pd.read_parquet(
+       "example_fp.parquet",
+       engine="fastparquet",
+       columns=["a", "b"],
+   )
+   result = pd.read_parquet(
+       "example_pa.parquet",
+       engine="pyarrow",
+       columns=["a", "b"],
+   )
    result.dtypes
 
 
@@ -4894,7 +4932,7 @@ ORC
 .. versionadded:: 1.0.0
 
 Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
-for data frames. It is designed to make reading data frames efficient. Pandas provides *only* a reader for the
+for data frames. It is designed to make reading data frames efficient. pandas provides *only* a reader for the
 ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
 
 .. _io.sql:
@@ -5176,7 +5214,11 @@ to pass to :func:`pandas.to_datetime`:
 .. code-block:: python
 
    pd.read_sql_table("data", engine, parse_dates={"Date": "%Y-%m-%d"})
-   pd.read_sql_table("data", engine, parse_dates={"Date": {"format": "%Y-%m-%d %H:%M:%S"}})
+   pd.read_sql_table(
+       "data",
+       engine,
+       parse_dates={"Date": {"format": "%Y-%m-%d %H:%M:%S"}},
+   )
 
 
 You can check if a table exists using :func:`~pandas.io.sql.has_table`
@@ -5593,7 +5635,11 @@ avoid converting categorical columns into ``pd.Categorical``:
 
 .. code-block:: python
 
-    df = pd.read_spss("spss_data.sav", usecols=["foo", "bar"], convert_categoricals=False)
+    df = pd.read_spss(
+        "spss_data.sav",
+        usecols=["foo", "bar"],
+        convert_categoricals=False,
+    )
 
 More information about the SAV and ZSAV file formats is available here_.
 
