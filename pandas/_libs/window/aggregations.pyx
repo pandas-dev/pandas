@@ -322,11 +322,11 @@ cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
     # Welford's method for the online variance-calculation
     # using Kahan summation
     # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    prev_mean = mean_x[0] - compensation[0]
     y = val - compensation[0]
     t = y - mean_x[0]
     compensation[0] = t + mean_x[0] - y
     delta = t
-    prev_mean = mean_x[0]
     mean_x[0] = mean_x[0] + delta / nobs[0]
     ssqdm_x[0] = ssqdm_x[0] + (val - prev_mean) * (val - mean_x[0])
 
@@ -336,18 +336,17 @@ cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
     """ remove a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
-
     if notnan(val):
         nobs[0] = nobs[0] - 1
         if nobs[0]:
             # Welford's method for the online variance-calculation
             # using Kahan summation
             # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+            prev_mean = mean_x[0] - compensation[0]
             y = val - compensation[0]
             t = y - mean_x[0]
             compensation[0] = t + mean_x[0] - y
             delta = t
-            prev_mean = mean_x[0]
             mean_x[0] = mean_x[0] - delta / nobs[0]
             ssqdm_x[0] = ssqdm_x[0] - (val - prev_mean) * (val - mean_x[0])
         else:
@@ -393,7 +392,8 @@ def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
 
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_remove)
+                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x,
+                               &compensation_remove)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
@@ -403,7 +403,8 @@ def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
 
             if not is_monotonic_bounds:
                 for j in range(s, e):
-                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_remove)
+                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x,
+                               &compensation_remove)
 
     return output
 

@@ -871,15 +871,17 @@ def test_rolling_period_index(index, window, func, values):
 
 
 @pytest.mark.parametrize(
-    ("func", "values"),
+    ("func", "third_value", "values"),
     [
-        ("var", [5e33, 0, 0.5, 0.5, 2, 0]),
-        ("std", [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0]),
+        ("var", 1, [5e33, 0, 0.5, 0.5, 2, 0]),
+        ("std", 1, [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0]),
+        ("var", 2, [5e33, 0.5, 0, 0.5, 2, 0]),
+        ("std", 2, [7.071068e16, 0.7071068, 0,  0.7071068, 1.414214, 0]),
     ],
 )
-def test_rolling_var_numerical_issues(func, values):
+def test_rolling_var_numerical_issues(func, third_value, values):
     # GH: 37051
-    ds = pd.Series([99999999999999999, 1, 1, 2, 3, 1, 1])
+    ds = pd.Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
     result = getattr(ds.rolling(2), func)()
     expected = pd.Series([np.nan] + values)
     tm.assert_series_equal(result, expected)
