@@ -20,7 +20,6 @@ import os
 from pathlib import Path
 import pickle
 import shutil
-import sys
 from warnings import catch_warnings, simplefilter
 import zipfile
 
@@ -181,7 +180,7 @@ def python_unpickler(path):
         pytest.param(
             functools.partial(pd.to_pickle, protocol=5),
             id="pandas_proto_5",
-            marks=pytest.mark.skipif(not PY38, reason="pickle protocol 5 not supported"),
+            marks=pytest.mark.skipif(not PY38, reason="protocol 5 not supported"),
         ),
     ],
 )
