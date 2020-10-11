@@ -699,3 +699,45 @@ class TestTimeSeriesArithmetic:
         result = series - offset
         expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "names",
+    [
+        ("foo", None, None),
+        ("Egon", "Venkman", None),
+        ("NCC1701D", "NCC1701D", "NCC1701D"),
+    ],
+)
+@pytest.mark.parametrize("box", [list, tuple, np.array, pd.Index, pd.Series, pd.array])
+@pytest.mark.parametrize("flex", [True, False])
+def test_series_ops_name_retention(flex, box, names, all_binary_operators):
+    # GH#33930 consistent name renteiton
+    op = all_binary_operators
+
+    if op is ops.rfloordiv and box in [list, tuple]:
+        pytest.xfail("op fails because of inconsistent ndarray-wrapping GH#28759")
+
+    left = pd.Series(range(10), name=names[0])
+    right = pd.Series(range(10), name=names[1])
+
+    right = box(right)
+    if flex:
+        name = op.__name__.strip("_")
+        if name in ["and", "rand", "xor", "rxor", "or", "ror"]:
+            # Series doesn't have these as flex methods
+            return
+        result = getattr(left, name)(right)
+    else:
+        result = op(left, right)
+
+    if box is pd.Index and op.__name__.strip("_") in ["rxor", "ror", "rand"]:
+        # Index treats these as set operators, so does not defer
+        assert isinstance(result, pd.Index)
+        return
+
+    assert isinstance(result, Series)
+    if box in [pd.Index, pd.Series]:
+        assert result.name == names[2]
+    else:
+        assert result.name == names[0]

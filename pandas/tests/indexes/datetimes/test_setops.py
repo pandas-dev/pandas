@@ -473,7 +473,7 @@ class TestBusinessDatetimeIndex:
         values = [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-02-01")]
         idx = pd.DatetimeIndex(values, name="a")
         res = idx.intersection(values)
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx.rename(None))
 
     def test_month_range_union_tz_pytz(self, sort):
         from pytz import timezone

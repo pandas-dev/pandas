@@ -25,8 +25,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import nanops, ops
-from pandas.core.array_algos import masked_reductions
+from pandas.core import ops
+from pandas.core.arraylike import OpsMixin
 from pandas.core.ops import invalid_comparison
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
@@ -34,7 +34,7 @@ from pandas.core.tools.numeric import to_numeric
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 class FloatingDtype(BaseMaskedDtype):
@@ -82,7 +82,7 @@ class FloatingDtype(BaseMaskedDtype):
         """
         Construct FloatingArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
@@ -202,7 +202,7 @@ def coerce_to_array(
     return values, mask
 
 
-class FloatingArray(BaseMaskedArray):
+class FloatingArray(OpsMixin, BaseMaskedArray):
     """
     Array of floating (optional missing) values.
 
@@ -399,86 +399,64 @@ class FloatingArray(BaseMaskedArray):
     def _values_for_argsort(self) -> np.ndarray:
         return self._data
 
-    @classmethod
-    def _create_comparison_method(cls, op):
-        op_name = op.__name__
+    def _cmp_method(self, other, op):
+        from pandas.arrays import BooleanArray, IntegerArray
 
-        @unpack_zerodim_and_defer(op.__name__)
-        def cmp_method(self, other):
-            from pandas.arrays import BooleanArray, IntegerArray
+        mask = None
 
-            mask = None
+        if isinstance(other, (BooleanArray, IntegerArray, FloatingArray)):
+            other, mask = other._data, other._mask
 
-            if isinstance(other, (BooleanArray, IntegerArray, FloatingArray)):
-                other, mask = other._data, other._mask
+        elif is_list_like(other):
+            other = np.asarray(other)
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
 
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
+        if other is libmissing.NA:
+            # numpy does not handle pd.NA well as "other" scalar (it returns
+            # a scalar False instead of an array)
+            # This may be fixed by NA.__array_ufunc__. Revisit this check
+            # once that's implemented.
+            result = np.zeros(self._data.shape, dtype="bool")
+            mask = np.ones(self._data.shape, dtype="bool")
+        else:
+            with warnings.catch_warnings():
+                # numpy may show a FutureWarning:
+                #     elementwise comparison failed; returning scalar instead,
+                #     but in the future will perform elementwise comparison
+                # before returning NotImplemented. We fall back to the correct
+                # behavior today, so that should be fine to ignore.
+                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                with np.errstate(all="ignore"):
+                    method = getattr(self._data, f"__{op.__name__}__")
+                    result = method(other)
 
-            if other is libmissing.NA:
-                # numpy does not handle pd.NA well as "other" scalar (it returns
-                # a scalar False instead of an array)
-                # This may be fixed by NA.__array_ufunc__. Revisit this check
-                # once that's implemented.
-                result = np.zeros(self._data.shape, dtype="bool")
-                mask = np.ones(self._data.shape, dtype="bool")
-            else:
-                with warnings.catch_warnings():
-                    # numpy may show a FutureWarning:
-                    #     elementwise comparison failed; returning scalar instead,
-                    #     but in the future will perform elementwise comparison
-                    # before returning NotImplemented. We fall back to the correct
-                    # behavior today, so that should be fine to ignore.
-                    warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                    with np.errstate(all="ignore"):
-                        method = getattr(self._data, f"__{op_name}__")
-                        result = method(other)
+                if result is NotImplemented:
+                    result = invalid_comparison(self._data, other, op)
 
-                    if result is NotImplemented:
-                        result = invalid_comparison(self._data, other, op)
+        # nans propagate
+        if mask is None:
+            mask = self._mask.copy()
+        else:
+            mask = self._mask | mask
 
-            # nans propagate
-            if mask is None:
-                mask = self._mask.copy()
-            else:
-                mask = self._mask | mask
-
-            return BooleanArray(result, mask)
-
-        name = f"__{op.__name__}__"
-        return set_function_name(cmp_method, name, cls)
-
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
-        data = self._data
-        mask = self._mask
-
-        if name in {"sum", "prod", "min", "max"}:
-            op = getattr(masked_reductions, name)
-            return op(data, mask, skipna=skipna, **kwargs)
-
-        # coerce to a nan-aware float if needed
-        # (we explicitly use NaN within reductions)
-        if self._hasna:
-            data = self.to_numpy("float64", na_value=np.nan)
-
-        op = getattr(nanops, "nan" + name)
-        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
-
-        if np.isnan(result):
-            return libmissing.NA
-
-        return result
+        return BooleanArray(result, mask)
 
     def sum(self, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
-        result = masked_reductions.sum(
-            values=self._data, mask=self._mask, skipna=skipna, min_count=min_count
-        )
-        return result
+        return super()._reduce("sum", skipna=skipna, min_count=min_count)
+
+    def prod(self, skipna=True, min_count=0, **kwargs):
+        nv.validate_prod((), kwargs)
+        return super()._reduce("prod", skipna=skipna, min_count=min_count)
+
+    def min(self, skipna=True, **kwargs):
+        nv.validate_min((), kwargs)
+        return super()._reduce("min", skipna=skipna)
+
+    def max(self, skipna=True, **kwargs):
+        nv.validate_max((), kwargs)
+        return super()._reduce("max", skipna=skipna)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
@@ -578,7 +556,6 @@ class FloatingArray(BaseMaskedArray):
 
 
 FloatingArray._add_arithmetic_ops()
-FloatingArray._add_comparison_ops()
 
 
 _dtype_docstring = """

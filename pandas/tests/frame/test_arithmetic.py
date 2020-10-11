@@ -795,13 +795,17 @@ def test_frame_with_zero_len_series_corner_cases():
     expected = pd.DataFrame(df.values * np.nan, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
-    result = df == ser
+    with tm.assert_produces_warning(FutureWarning):
+        # Automatic alignment for comparisons deprecated
+        result = df == ser
     expected = pd.DataFrame(False, index=df.index, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
     # non-float case should not raise on comparison
     df2 = pd.DataFrame(df.values.view("M8[ns]"), columns=df.columns)
-    result = df2 == ser
+    with tm.assert_produces_warning(FutureWarning):
+        # Automatic alignment for comparisons deprecated
+        result = df2 == ser
     expected = pd.DataFrame(False, index=df.index, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
@@ -1480,6 +1484,13 @@ class TestFrameArithmeticUnsorted:
         df = pd.DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
         b = df["B"]
         with tm.assert_produces_warning(None):
+            getattr(df, all_arithmetic_operators)(b)
+
+    def test_dunder_methods_binary(self, all_arithmetic_operators):
+        # GH#??? frame.__foo__ should only accept one argument
+        df = pd.DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
+        b = df["B"]
+        with pytest.raises(TypeError, match="takes 2 positional arguments"):
             getattr(df, all_arithmetic_operators)(b, 0)
 
 
