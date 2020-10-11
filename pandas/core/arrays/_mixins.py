@@ -8,7 +8,9 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
 from pandas.core.algorithms import take, unique
@@ -114,6 +116,13 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return self._from_backing_data(new_data)
 
     # ------------------------------------------------------------------------
+
+    def equals(self, other) -> bool:
+        if type(self) is not type(other):
+            return False
+        if not is_dtype_equal(self.dtype, other.dtype):
+            return False
+        return bool(array_equivalent(self._ndarray, other._ndarray))
 
     def _values_for_argsort(self):
         return self._ndarray

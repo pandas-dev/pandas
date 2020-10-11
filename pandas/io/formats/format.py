@@ -1407,6 +1407,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         if float_format:
 
             def base_formatter(v):
+                assert float_format is not None  # for mypy
                 return float_format(value=v) if notna(v) else self.na_rep
 
         else:
@@ -1677,7 +1678,8 @@ def is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
-    values = values.ravel()
+    if not isinstance(values, Index):
+        values = values.ravel()
 
     values = DatetimeIndex(values)
     if values.tz is not None:

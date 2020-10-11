@@ -61,6 +61,7 @@ class TestTimedeltaArrayConstructor:
 
 
 class TestTimedeltaArray:
+    # TODO: de-duplicate with test_npsum below
     def test_np_sum(self):
         # GH#25282
         vals = np.arange(5, dtype=np.int64).view("m8[h]").astype("m8[ns]")
@@ -75,35 +76,6 @@ class TestTimedeltaArray:
         msg = "dtype .*object.* cannot be converted to timedelta64"
         with pytest.raises(ValueError, match=msg):
             TimedeltaArray._from_sequence([], dtype=object)
-
-    def test_abs(self):
-        vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
-        arr = TimedeltaArray(vals)
-
-        evals = np.array([3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
-        expected = TimedeltaArray(evals)
-
-        result = abs(arr)
-        tm.assert_timedelta_array_equal(result, expected)
-
-    def test_neg(self):
-        vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
-        arr = TimedeltaArray(vals)
-
-        evals = np.array([3600 * 10 ** 9, "NaT", -7200 * 10 ** 9], dtype="m8[ns]")
-        expected = TimedeltaArray(evals)
-
-        result = -arr
-        tm.assert_timedelta_array_equal(result, expected)
-
-    def test_neg_freq(self):
-        tdi = pd.timedelta_range("2 Days", periods=4, freq="H")
-        arr = TimedeltaArray(tdi, freq=tdi.freq)
-
-        expected = TimedeltaArray(-tdi._data, freq=-tdi.freq)
-
-        result = -arr
-        tm.assert_timedelta_array_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
@@ -169,6 +141,37 @@ class TestTimedeltaArray:
         )
         with pytest.raises(TypeError, match=msg):
             arr.searchsorted(other)
+
+
+class TestUnaryOps:
+    def test_abs(self):
+        vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
+        arr = TimedeltaArray(vals)
+
+        evals = np.array([3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
+        expected = TimedeltaArray(evals)
+
+        result = abs(arr)
+        tm.assert_timedelta_array_equal(result, expected)
+
+    def test_neg(self):
+        vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
+        arr = TimedeltaArray(vals)
+
+        evals = np.array([3600 * 10 ** 9, "NaT", -7200 * 10 ** 9], dtype="m8[ns]")
+        expected = TimedeltaArray(evals)
+
+        result = -arr
+        tm.assert_timedelta_array_equal(result, expected)
+
+    def test_neg_freq(self):
+        tdi = pd.timedelta_range("2 Days", periods=4, freq="H")
+        arr = TimedeltaArray(tdi, freq=tdi.freq)
+
+        expected = TimedeltaArray(-tdi._data, freq=-tdi.freq)
+
+        result = -arr
+        tm.assert_timedelta_array_equal(result, expected)
 
 
 class TestReductions:
