@@ -3,7 +3,7 @@ import datetime
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Any, Mapping, Union
+from typing import Any, Mapping, Tuple, Union
 
 from pandas._config import config
 
@@ -674,7 +674,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def supported_extensions(self):
+    def supported_extensions(self) -> Tuple[str, ...]:
         """Extensions that writer engine supports."""
         pass
 
@@ -785,7 +785,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return val, fmt
 
     @classmethod
-    def check_extension(cls, ext):
+    def check_extension(cls, ext: str):
         """
         checks that path's extension against the Writer's supported
         extensions.  If it isn't supported, raises UnsupportedFiletypeError.
