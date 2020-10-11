@@ -1,12 +1,12 @@
+from datetime import timedelta
 import numbers
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import Timedelta, iNaT, lib, missing as libmissing
 from pandas._typing import ArrayLike, DtypeObj
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
@@ -25,15 +25,13 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.array_algos import masked_reductions
 from pandas.core.ops import invalid_comparison
-from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 class _IntegerDtype(BaseMaskedDtype):
@@ -45,10 +43,6 @@ class _IntegerDtype(BaseMaskedDtype):
 
     The attributes name & type are set when these subclasses are created.
     """
-
-    name: str
-    base = None
-    type: Type
 
     def __repr__(self) -> str:
         sign = "U" if self.is_unsigned_integer else ""
@@ -65,20 +59,6 @@ class _IntegerDtype(BaseMaskedDtype):
     @property
     def _is_numeric(self) -> bool:
         return True
-
-    @cache_readonly
-    def numpy_dtype(self) -> np.dtype:
-        """ Return an instance of our numpy dtype """
-        return np.dtype(self.type)
-
-    @cache_readonly
-    def kind(self) -> str:
-        return self.numpy_dtype.kind
-
-    @cache_readonly
-    def itemsize(self) -> int:
-        """ Return the number of bytes in this dtype """
-        return self.numpy_dtype.itemsize
 
     @classmethod
     def construct_array_type(cls) -> Type["IntegerArray"]:
@@ -106,7 +86,11 @@ class _IntegerDtype(BaseMaskedDtype):
             [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
         )
         if np.issubdtype(np_dtype, np.integer):
-            return _dtypes[str(np_dtype)]
+            return INT_STR_TO_DTYPE[str(np_dtype)]
+        elif np.issubdtype(np_dtype, np.floating):
+            from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
+
+            return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
 
     def __from_arrow__(
@@ -115,7 +99,7 @@ class _IntegerDtype(BaseMaskedDtype):
         """
         Construct IntegerArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
@@ -138,7 +122,7 @@ class _IntegerDtype(BaseMaskedDtype):
         return IntegerArray._concat_same_type(results)
 
 
-def integer_array(values, dtype=None, copy: bool = False,) -> "IntegerArray":
+def integer_array(values, dtype=None, copy: bool = False) -> "IntegerArray":
     """
     Infer and return an integer array of the values.
 
@@ -182,7 +166,7 @@ def safe_cast(values, dtype, copy: bool):
 
 
 def coerce_to_array(
-    values, dtype, mask=None, copy: bool = False,
+    values, dtype, mask=None, copy: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask
@@ -214,7 +198,7 @@ def coerce_to_array(
 
         if not issubclass(type(dtype), _IntegerDtype):
             try:
-                dtype = _dtypes[str(np.dtype(dtype))]
+                dtype = INT_STR_TO_DTYPE[str(np.dtype(dtype))]
             except KeyError as err:
                 raise ValueError(f"invalid dtype specified {dtype}") from err
 
@@ -354,7 +338,7 @@ class IntegerArray(BaseMaskedArray):
 
     @cache_readonly
     def dtype(self) -> _IntegerDtype:
-        return _dtypes[str(self._data.dtype)]
+        return INT_STR_TO_DTYPE[str(self._data.dtype)]
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype.kind in ["i", "u"]):
@@ -363,6 +347,15 @@ class IntegerArray(BaseMaskedArray):
                 "the 'pd.array' function instead"
             )
         super().__init__(values, mask, copy=copy)
+
+    def __neg__(self):
+        return type(self)(-self._data, self._mask)
+
+    def __pos__(self):
+        return self
+
+    def __abs__(self):
+        return type(self)(np.abs(self._data), self._mask)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
@@ -418,7 +411,7 @@ class IntegerArray(BaseMaskedArray):
 
         result = getattr(ufunc, method)(*inputs2, **kwargs)
         if isinstance(result, tuple):
-            tuple(reconstruct(x) for x in result)
+            return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
 
@@ -498,67 +491,133 @@ class IntegerArray(BaseMaskedArray):
             data[self._mask] = data.min() - 1
         return data
 
-    @classmethod
-    def _create_comparison_method(cls, op):
+    def _cmp_method(self, other, op):
+        from pandas.core.arrays import BaseMaskedArray, BooleanArray
+
+        mask = None
+
+        if isinstance(other, BaseMaskedArray):
+            other, mask = other._data, other._mask
+
+        elif is_list_like(other):
+            other = np.asarray(other)
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
+            if len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
+
+        if other is libmissing.NA:
+            # numpy does not handle pd.NA well as "other" scalar (it returns
+            # a scalar False instead of an array)
+            # This may be fixed by NA.__array_ufunc__. Revisit this check
+            # once that's implemented.
+            result = np.zeros(self._data.shape, dtype="bool")
+            mask = np.ones(self._data.shape, dtype="bool")
+        else:
+            with warnings.catch_warnings():
+                # numpy may show a FutureWarning:
+                #     elementwise comparison failed; returning scalar instead,
+                #     but in the future will perform elementwise comparison
+                # before returning NotImplemented. We fall back to the correct
+                # behavior today, so that should be fine to ignore.
+                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                with np.errstate(all="ignore"):
+                    method = getattr(self._data, f"__{op.__name__}__")
+                    result = method(other)
+
+                if result is NotImplemented:
+                    result = invalid_comparison(self._data, other, op)
+
+        # nans propagate
+        if mask is None:
+            mask = self._mask.copy()
+        else:
+            mask = self._mask | mask
+
+        return BooleanArray(result, mask)
+
+    def _arith_method(self, other, op):
         op_name = op.__name__
+        omask = None
 
-        @unpack_zerodim_and_defer(op.__name__)
-        def cmp_method(self, other):
-            from pandas.arrays import BooleanArray
+        if getattr(other, "ndim", 0) > 1:
+            raise NotImplementedError("can only perform ops with 1-d structures")
 
-            mask = None
+        if isinstance(other, IntegerArray):
+            other, omask = other._data, other._mask
 
-            if isinstance(other, (BooleanArray, IntegerArray)):
-                other, mask = other._data, other._mask
+        elif is_list_like(other):
+            other = np.asarray(other)
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
+            if len(self) != len(other):
+                raise ValueError("Lengths must match")
+            if not (is_float_dtype(other) or is_integer_dtype(other)):
+                raise TypeError("can only perform ops with numeric values")
 
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match to compare")
+        elif isinstance(other, (timedelta, np.timedelta64)):
+            other = Timedelta(other)
 
+        else:
+            if not (is_float(other) or is_integer(other) or other is libmissing.NA):
+                raise TypeError("can only perform ops with numeric values")
+
+        if omask is None:
+            mask = self._mask.copy()
             if other is libmissing.NA:
-                # numpy does not handle pd.NA well as "other" scalar (it returns
-                # a scalar False instead of an array)
-                # This may be fixed by NA.__array_ufunc__. Revisit this check
-                # once that's implemented.
-                result = np.zeros(self._data.shape, dtype="bool")
-                mask = np.ones(self._data.shape, dtype="bool")
-            else:
-                with warnings.catch_warnings():
-                    # numpy may show a FutureWarning:
-                    #     elementwise comparison failed; returning scalar instead,
-                    #     but in the future will perform elementwise comparison
-                    # before returning NotImplemented. We fall back to the correct
-                    # behavior today, so that should be fine to ignore.
-                    warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                    with np.errstate(all="ignore"):
-                        method = getattr(self._data, f"__{op_name}__")
-                        result = method(other)
+                mask |= True
+        else:
+            mask = self._mask | omask
 
-                    if result is NotImplemented:
-                        result = invalid_comparison(self._data, other, op)
+        if op_name == "pow":
+            # 1 ** x is 1.
+            mask = np.where((self._data == 1) & ~self._mask, False, mask)
+            # x ** 0 is 1.
+            if omask is not None:
+                mask = np.where((other == 0) & ~omask, False, mask)
+            elif other is not libmissing.NA:
+                mask = np.where(other == 0, False, mask)
 
-            # nans propagate
-            if mask is None:
-                mask = self._mask.copy()
-            else:
-                mask = self._mask | mask
+        elif op_name == "rpow":
+            # 1 ** x is 1.
+            if omask is not None:
+                mask = np.where((other == 1) & ~omask, False, mask)
+            elif other is not libmissing.NA:
+                mask = np.where(other == 1, False, mask)
+            # x ** 0 is 1.
+            mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
-            return BooleanArray(result, mask)
+        if other is libmissing.NA:
+            result = np.ones_like(self._data)
+        else:
+            with np.errstate(all="ignore"):
+                result = op(self._data, other)
 
-        name = f"__{op.__name__}__"
-        return set_function_name(cmp_method, name, cls)
+        # divmod returns a tuple
+        if op_name == "divmod":
+            div, mod = result
+            return (
+                self._maybe_mask_result(div, mask, other, "floordiv"),
+                self._maybe_mask_result(mod, mask, other, "mod"),
+            )
+
+        return self._maybe_mask_result(result, mask, other, op_name)
 
     def sum(self, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
-        result = masked_reductions.sum(
-            values=self._data, mask=self._mask, skipna=skipna, min_count=min_count
-        )
-        return result
+        return super()._reduce("sum", skipna=skipna, min_count=min_count)
+
+    def prod(self, skipna=True, min_count=0, **kwargs):
+        nv.validate_prod((), kwargs)
+        return super()._reduce("prod", skipna=skipna, min_count=min_count)
+
+    def min(self, skipna=True, **kwargs):
+        nv.validate_min((), kwargs)
+        return super()._reduce("min", skipna=skipna)
+
+    def max(self, skipna=True, **kwargs):
+        nv.validate_max((), kwargs)
+        return super()._reduce("max", skipna=skipna)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
@@ -578,85 +637,13 @@ class IntegerArray(BaseMaskedArray):
             result[mask] = np.nan
             return result
 
+        if result.dtype == "timedelta64[ns]":
+            from pandas.core.arrays import TimedeltaArray
+
+            result[mask] = iNaT
+            return TimedeltaArray._simple_new(result)
+
         return type(self)(result, mask, copy=False)
-
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        op_name = op.__name__
-
-        @unpack_zerodim_and_defer(op.__name__)
-        def integer_arithmetic_method(self, other):
-
-            omask = None
-
-            if getattr(other, "ndim", 0) > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
-
-            if isinstance(other, IntegerArray):
-                other, omask = other._data, other._mask
-
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match")
-                if not (is_float_dtype(other) or is_integer_dtype(other)):
-                    raise TypeError("can only perform ops with numeric values")
-
-            else:
-                if not (is_float(other) or is_integer(other) or other is libmissing.NA):
-                    raise TypeError("can only perform ops with numeric values")
-
-            if omask is None:
-                mask = self._mask.copy()
-                if other is libmissing.NA:
-                    mask |= True
-            else:
-                mask = self._mask | omask
-
-            if op_name == "pow":
-                # 1 ** x is 1.
-                mask = np.where((self._data == 1) & ~self._mask, False, mask)
-                # x ** 0 is 1.
-                if omask is not None:
-                    mask = np.where((other == 0) & ~omask, False, mask)
-                elif other is not libmissing.NA:
-                    mask = np.where(other == 0, False, mask)
-
-            elif op_name == "rpow":
-                # 1 ** x is 1.
-                if omask is not None:
-                    mask = np.where((other == 1) & ~omask, False, mask)
-                elif other is not libmissing.NA:
-                    mask = np.where(other == 1, False, mask)
-                # x ** 0 is 1.
-                mask = np.where((self._data == 0) & ~self._mask, False, mask)
-
-            if other is libmissing.NA:
-                result = np.ones_like(self._data)
-            else:
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
-
-            # divmod returns a tuple
-            if op_name == "divmod":
-                div, mod = result
-                return (
-                    self._maybe_mask_result(div, mask, other, "floordiv"),
-                    self._maybe_mask_result(mod, mask, other, "mod"),
-                )
-
-            return self._maybe_mask_result(result, mask, other, op_name)
-
-        name = f"__{op.__name__}__"
-        return set_function_name(integer_arithmetic_method, name, cls)
-
-
-IntegerArray._add_arithmetic_ops()
-IntegerArray._add_comparison_ops()
 
 
 _dtype_docstring = """
@@ -735,7 +722,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-_dtypes: Dict[str, _IntegerDtype] = {
+INT_STR_TO_DTYPE: Dict[str, _IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),

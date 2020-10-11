@@ -7,7 +7,7 @@ An interface for extending pandas with custom arrays.
    without warning.
 """
 import operator
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 
@@ -20,14 +20,19 @@ from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
-from pandas.core.dtypes.common import is_array_like, is_list_like, pandas_dtype
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_dtype_equal,
+    is_list_like,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.algorithms import _factorize_array, unique
-from pandas.core.missing import backfill_1d, pad_1d
+from pandas.core.algorithms import factorize_array, unique
+from pandas.core.missing import get_fill_func
 from pandas.core.sorting import nargminmax, nargsort
 
 _extension_array_shared_docs: Dict[str, str] = dict()
@@ -40,8 +45,6 @@ class ExtensionArray:
     pandas will recognize instances of this class as proper arrays
     with a custom type and will not attempt to coerce them to objects. They
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
-
-    .. versionadded:: 0.23.0
 
     Attributes
     ----------
@@ -454,6 +457,11 @@ class ExtensionArray:
         from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
+        if is_dtype_equal(dtype, self.dtype):
+            if not copy:
+                return self
+            elif copy:
+                return self.copy()
         if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -608,7 +616,7 @@ class ExtensionArray:
 
         if mask.any():
             if method is not None:
-                func = pad_1d if method == "pad" else backfill_1d
+                func = get_fill_func(method)
                 new_values = func(self.astype(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values, dtype=self.dtype)
             else:
@@ -742,7 +750,7 @@ class ExtensionArray:
         arr = self.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
 
-    def equals(self, other: "ExtensionArray") -> bool:
+    def equals(self, other: object) -> bool:
         """
         Return if another array is equivalent to this array.
 
@@ -762,7 +770,8 @@ class ExtensionArray:
         """
         if not type(self) == type(other):
             return False
-        elif not self.dtype == other.dtype:
+        other = cast(ExtensionArray, other)
+        if not is_dtype_equal(self.dtype, other.dtype):
             return False
         elif not len(self) == len(other):
             return False
@@ -839,7 +848,7 @@ class ExtensionArray:
         #    Complete control over factorization.
         arr, na_value = self._values_for_factorize()
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             arr, na_sentinel=na_sentinel, na_value=na_value
         )
 
@@ -1162,41 +1171,53 @@ class ExtensionOpsMixin:
     """
 
     @classmethod
+    def _create_arithmetic_method(cls, op):
+        raise AbstractMethodError(cls)
+
+    @classmethod
     def _add_arithmetic_ops(cls):
-        cls.__add__ = cls._create_arithmetic_method(operator.add)
-        cls.__radd__ = cls._create_arithmetic_method(ops.radd)
-        cls.__sub__ = cls._create_arithmetic_method(operator.sub)
-        cls.__rsub__ = cls._create_arithmetic_method(ops.rsub)
-        cls.__mul__ = cls._create_arithmetic_method(operator.mul)
-        cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
-        cls.__pow__ = cls._create_arithmetic_method(operator.pow)
-        cls.__rpow__ = cls._create_arithmetic_method(ops.rpow)
-        cls.__mod__ = cls._create_arithmetic_method(operator.mod)
-        cls.__rmod__ = cls._create_arithmetic_method(ops.rmod)
-        cls.__floordiv__ = cls._create_arithmetic_method(operator.floordiv)
-        cls.__rfloordiv__ = cls._create_arithmetic_method(ops.rfloordiv)
-        cls.__truediv__ = cls._create_arithmetic_method(operator.truediv)
-        cls.__rtruediv__ = cls._create_arithmetic_method(ops.rtruediv)
-        cls.__divmod__ = cls._create_arithmetic_method(divmod)
-        cls.__rdivmod__ = cls._create_arithmetic_method(ops.rdivmod)
+        setattr(cls, "__add__", cls._create_arithmetic_method(operator.add))
+        setattr(cls, "__radd__", cls._create_arithmetic_method(ops.radd))
+        setattr(cls, "__sub__", cls._create_arithmetic_method(operator.sub))
+        setattr(cls, "__rsub__", cls._create_arithmetic_method(ops.rsub))
+        setattr(cls, "__mul__", cls._create_arithmetic_method(operator.mul))
+        setattr(cls, "__rmul__", cls._create_arithmetic_method(ops.rmul))
+        setattr(cls, "__pow__", cls._create_arithmetic_method(operator.pow))
+        setattr(cls, "__rpow__", cls._create_arithmetic_method(ops.rpow))
+        setattr(cls, "__mod__", cls._create_arithmetic_method(operator.mod))
+        setattr(cls, "__rmod__", cls._create_arithmetic_method(ops.rmod))
+        setattr(cls, "__floordiv__", cls._create_arithmetic_method(operator.floordiv))
+        setattr(cls, "__rfloordiv__", cls._create_arithmetic_method(ops.rfloordiv))
+        setattr(cls, "__truediv__", cls._create_arithmetic_method(operator.truediv))
+        setattr(cls, "__rtruediv__", cls._create_arithmetic_method(ops.rtruediv))
+        setattr(cls, "__divmod__", cls._create_arithmetic_method(divmod))
+        setattr(cls, "__rdivmod__", cls._create_arithmetic_method(ops.rdivmod))
+
+    @classmethod
+    def _create_comparison_method(cls, op):
+        raise AbstractMethodError(cls)
 
     @classmethod
     def _add_comparison_ops(cls):
-        cls.__eq__ = cls._create_comparison_method(operator.eq)
-        cls.__ne__ = cls._create_comparison_method(operator.ne)
-        cls.__lt__ = cls._create_comparison_method(operator.lt)
-        cls.__gt__ = cls._create_comparison_method(operator.gt)
-        cls.__le__ = cls._create_comparison_method(operator.le)
-        cls.__ge__ = cls._create_comparison_method(operator.ge)
+        setattr(cls, "__eq__", cls._create_comparison_method(operator.eq))
+        setattr(cls, "__ne__", cls._create_comparison_method(operator.ne))
+        setattr(cls, "__lt__", cls._create_comparison_method(operator.lt))
+        setattr(cls, "__gt__", cls._create_comparison_method(operator.gt))
+        setattr(cls, "__le__", cls._create_comparison_method(operator.le))
+        setattr(cls, "__ge__", cls._create_comparison_method(operator.ge))
+
+    @classmethod
+    def _create_logical_method(cls, op):
+        raise AbstractMethodError(cls)
 
     @classmethod
     def _add_logical_ops(cls):
-        cls.__and__ = cls._create_logical_method(operator.and_)
-        cls.__rand__ = cls._create_logical_method(ops.rand_)
-        cls.__or__ = cls._create_logical_method(operator.or_)
-        cls.__ror__ = cls._create_logical_method(ops.ror_)
-        cls.__xor__ = cls._create_logical_method(operator.xor)
-        cls.__rxor__ = cls._create_logical_method(ops.rxor)
+        setattr(cls, "__and__", cls._create_logical_method(operator.and_))
+        setattr(cls, "__rand__", cls._create_logical_method(ops.rand_))
+        setattr(cls, "__or__", cls._create_logical_method(operator.or_))
+        setattr(cls, "__ror__", cls._create_logical_method(ops.ror_))
+        setattr(cls, "__xor__", cls._create_logical_method(operator.xor))
+        setattr(cls, "__rxor__", cls._create_logical_method(ops.rxor))
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):

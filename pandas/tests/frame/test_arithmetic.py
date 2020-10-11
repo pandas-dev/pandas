@@ -11,7 +11,7 @@ import pandas as pd
 from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 import pandas.core.common as com
-from pandas.core.computation.expressions import _MIN_ELEMENTS, _NUMEXPR_INSTALLED
+from pandas.core.computation.expressions import _MIN_ELEMENTS, NUMEXPR_INSTALLED
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
 # -------------------------------------------------------------------
@@ -53,6 +53,11 @@ class TestFrameComparisons:
                 msgs = [
                     r"Invalid comparison between dtype=datetime64\[ns\] and ndarray",
                     "invalid type promotion",
+                    (
+                        # npdev 1.20.0
+                        r"The DTypes <class 'numpy.dtype\[.*\]'> and "
+                        r"<class 'numpy.dtype\[.*\]'> do not have a common DType."
+                    ),
                 ]
                 msg = "|".join(msgs)
                 with pytest.raises(TypeError, match=msg):
@@ -375,7 +380,7 @@ class TestFrameFlexArithmetic:
         result2 = df.floordiv(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
-    @pytest.mark.skipif(not _NUMEXPR_INSTALLED, reason="numexpr not installed")
+    @pytest.mark.skipif(not NUMEXPR_INSTALLED, reason="numexpr not installed")
     @pytest.mark.parametrize("opname", ["floordiv", "pow"])
     def test_floordiv_axis0_numexpr_path(self, opname):
         # case that goes through numexpr and has to fall back to masked_arith_op
@@ -790,13 +795,17 @@ def test_frame_with_zero_len_series_corner_cases():
     expected = pd.DataFrame(df.values * np.nan, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
-    result = df == ser
+    with tm.assert_produces_warning(FutureWarning):
+        # Automatic alignment for comparisons deprecated
+        result = df == ser
     expected = pd.DataFrame(False, index=df.index, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
     # non-float case should not raise on comparison
     df2 = pd.DataFrame(df.values.view("M8[ns]"), columns=df.columns)
-    result = df2 == ser
+    with tm.assert_produces_warning(FutureWarning):
+        # Automatic alignment for comparisons deprecated
+        result = df2 == ser
     expected = pd.DataFrame(False, index=df.index, columns=df.columns)
     tm.assert_frame_equal(result, expected)
 
@@ -1417,7 +1426,7 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
-        align = pd.core.ops._align_method_FRAME
+        align = pd.core.ops.align_method_FRAME
         for val in [
             [1, 2, 3],
             (1, 2, 3),
@@ -1475,6 +1484,13 @@ class TestFrameArithmeticUnsorted:
         df = pd.DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
         b = df["B"]
         with tm.assert_produces_warning(None):
+            getattr(df, all_arithmetic_operators)(b)
+
+    def test_dunder_methods_binary(self, all_arithmetic_operators):
+        # GH#??? frame.__foo__ should only accept one argument
+        df = pd.DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
+        b = df["B"]
+        with pytest.raises(TypeError, match="takes 2 positional arguments"):
             getattr(df, all_arithmetic_operators)(b, 0)
 
 

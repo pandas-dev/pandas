@@ -3,13 +3,13 @@ import functools
 from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import Any, Callable, Optional, Type
+from typing import IO, Any, Callable, List, Optional, Tuple, Type
 
 import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
-from pandas._typing import JSONSerializable, StorageOptions
+from pandas._typing import CompressionOptions, JSONSerializable, StorageOptions
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import deprecate_kwarg, deprecate_nonkeyword_arguments
 
@@ -19,10 +19,10 @@ from pandas import DataFrame, MultiIndex, Series, isna, to_datetime
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import get_filepath_or_buffer, get_handle, infer_compression
+from pandas.io.common import get_compression_method, get_filepath_or_buffer, get_handle
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
-from pandas.io.parsers import _validate_integer
+from pandas.io.parsers import validate_integer
 
 loads = json.loads
 dumps = json.dumps
@@ -41,7 +41,7 @@ def to_json(
     date_unit: str = "ms",
     default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
     lines: bool = False,
-    compression: Optional[str] = "infer",
+    compression: CompressionOptions = "infer",
     index: bool = True,
     indent: int = 0,
     storage_options: StorageOptions = None,
@@ -53,12 +53,15 @@ def to_json(
         )
 
     if path_or_buf is not None:
-        path_or_buf, _, _, should_close = get_filepath_or_buffer(
+        ioargs = get_filepath_or_buffer(
             path_or_buf,
             compression=compression,
             mode="wt",
             storage_options=storage_options,
         )
+        path_or_buf = ioargs.filepath_or_buffer
+        should_close = ioargs.should_close
+        compression = ioargs.compression
 
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
@@ -97,6 +100,8 @@ def to_json(
             fh.write(s)
         finally:
             fh.close()
+        for handle in handles:
+            handle.close()
     elif path_or_buf is None:
         return s
     else:
@@ -106,6 +111,8 @@ def to_json(
 
 
 class Writer:
+    _default_orient: str
+
     def __init__(
         self,
         obj,
@@ -121,8 +128,7 @@ class Writer:
         self.obj = obj
 
         if orient is None:
-            # error: "Writer" has no attribute "_default_orient"
-            orient = self._default_orient  # type: ignore[attr-defined]
+            orient = self._default_orient
 
         self.orient = orient
         self.date_format = date_format
@@ -369,7 +375,7 @@ def read_json(
     encoding=None,
     lines: bool = False,
     chunksize: Optional[int] = None,
-    compression="infer",
+    compression: CompressionOptions = "infer",
     nrows: Optional[int] = None,
     storage_options: StorageOptions = None,
 ):
@@ -388,7 +394,7 @@ def read_json(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     orient : str
         Indication of expected JSON string format.
@@ -422,9 +428,6 @@ def read_json(
             ``'columns'``.
           - The DataFrame columns must be unique for orients ``'index'``,
             ``'columns'``, and ``'records'``.
-
-        .. versionadded:: 0.23.0
-           'table' as an allowed value for the ``orient`` argument
 
     typ : {'frame', 'series'}, default 'frame'
         The type of object to recover.
@@ -523,7 +526,7 @@ def read_json(
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -607,8 +610,7 @@ def read_json(
     if encoding is None:
         encoding = "utf-8"
 
-    compression = infer_compression(path_or_buf, compression)
-    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
+    ioargs = get_filepath_or_buffer(
         path_or_buf,
         encoding=encoding,
         compression=compression,
@@ -616,7 +618,7 @@ def read_json(
     )
 
     json_reader = JsonReader(
-        filepath_or_buffer,
+        ioargs.filepath_or_buffer,
         orient=orient,
         typ=typ,
         dtype=dtype,
@@ -626,10 +628,10 @@ def read_json(
         numpy=numpy,
         precise_float=precise_float,
         date_unit=date_unit,
-        encoding=encoding,
+        encoding=ioargs.encoding,
         lines=lines,
         chunksize=chunksize,
-        compression=compression,
+        compression=ioargs.compression,
         nrows=nrows,
     )
 
@@ -637,8 +639,9 @@ def read_json(
         return json_reader
 
     result = json_reader.read()
-    if should_close:
-        filepath_or_buffer.close()
+    if ioargs.should_close:
+        assert not isinstance(ioargs.filepath_or_buffer, str)
+        ioargs.filepath_or_buffer.close()
 
     return result
 
@@ -667,9 +670,12 @@ class JsonReader(abc.Iterator):
         encoding,
         lines: bool,
         chunksize: Optional[int],
-        compression,
+        compression: CompressionOptions,
         nrows: Optional[int],
     ):
+
+        compression_method, compression = get_compression_method(compression)
+        compression = dict(compression, method=compression_method)
 
         self.orient = orient
         self.typ = typ
@@ -687,13 +693,14 @@ class JsonReader(abc.Iterator):
         self.nrows_seen = 0
         self.should_close = False
         self.nrows = nrows
+        self.file_handles: List[IO] = []
 
         if self.chunksize is not None:
-            self.chunksize = _validate_integer("chunksize", self.chunksize, 1)
+            self.chunksize = validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
                 raise ValueError("chunksize can only be passed if lines=True")
         if self.nrows is not None:
-            self.nrows = _validate_integer("nrows", self.nrows, 0)
+            self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
 
@@ -735,8 +742,8 @@ class JsonReader(abc.Iterator):
             except (TypeError, ValueError):
                 pass
 
-        if exists or self.compression is not None:
-            data, _ = get_handle(
+        if exists or self.compression["method"] is not None:
+            data, self.file_handles = get_handle(
                 filepath_or_buffer,
                 "r",
                 encoding=self.encoding,
@@ -754,8 +761,9 @@ class JsonReader(abc.Iterator):
         """
         Combines a list of JSON objects into one JSON object.
         """
-        lines = filter(None, map(lambda x: x.strip(), lines))
-        return "[" + ",".join(lines) + "]"
+        return (
+            f'[{",".join((line for line in (line.strip() for line in lines) if line))}]'
+        )
 
     def read(self):
         """
@@ -770,8 +778,8 @@ class JsonReader(abc.Iterator):
                 obj = self._get_object_parser(lines_json)
             else:
                 data = ensure_str(self.data)
-                data = data.split("\n")
-                obj = self._get_object_parser(self._combine_lines(data))
+                data_lines = data.split("\n")
+                obj = self._get_object_parser(self._combine_lines(data_lines))
         else:
             obj = self._get_object_parser(self.data)
         self.close()
@@ -814,8 +822,10 @@ class JsonReader(abc.Iterator):
         if self.should_close:
             try:
                 self.open_stream.close()
-            except (IOError, AttributeError):
+            except (OSError, AttributeError):
                 pass
+        for file_handle in self.file_handles:
+            file_handle.close()
 
     def __next__(self):
         if self.nrows:
@@ -839,6 +849,8 @@ class JsonReader(abc.Iterator):
 
 
 class Parser:
+    _split_keys: Tuple[str, ...]
+    _default_orient: str
 
     _STAMP_UNITS = ("s", "ms", "us", "ns")
     _MIN_STAMPS = {
@@ -864,6 +876,7 @@ class Parser:
 
         if orient is None:
             orient = self._default_orient
+
         self.orient = orient
 
         self.dtype = dtype
@@ -893,8 +906,8 @@ class Parser:
         """
         bad_keys = set(decoded.keys()).difference(set(self._split_keys))
         if bad_keys:
-            bad_keys = ", ".join(bad_keys)
-            raise ValueError(f"JSON data had unexpected key(s): {bad_keys}")
+            bad_keys_joined = ", ".join(bad_keys)
+            raise ValueError(f"JSON data had unexpected key(s): {bad_keys_joined}")
 
     def parse(self):
 
@@ -913,14 +926,22 @@ class Parser:
         self._try_convert_types()
         return self.obj
 
+    def _parse_numpy(self):
+        raise AbstractMethodError(self)
+
+    def _parse_no_numpy(self):
+        raise AbstractMethodError(self)
+
     def _convert_axes(self):
         """
         Try to convert axes.
         """
-        for axis_name in self.obj._AXIS_ORDERS:
+        obj = self.obj
+        assert obj is not None  # for mypy
+        for axis_name in obj._AXIS_ORDERS:
             new_axis, result = self._try_convert_data(
                 name=axis_name,
-                data=self.obj._get_axis(axis_name),
+                data=obj._get_axis(axis_name),
                 use_dtypes=False,
                 convert_dates=True,
             )
@@ -1074,7 +1095,11 @@ class SeriesParser(Parser):
             self.check_keys_split(decoded)
             self.obj = create_series_with_explicit_dtype(**decoded)
         elif self.orient in ["columns", "index"]:
-            self.obj = create_series_with_explicit_dtype(*data, dtype_if_empty=object)
+            # error: "create_series_with_explicit_dtype"
+            #  gets multiple values for keyword argument "dtype_if_empty
+            self.obj = create_series_with_explicit_dtype(
+                *data, dtype_if_empty=object
+            )  # type:ignore[misc]
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
@@ -1166,9 +1191,12 @@ class FrameParser(Parser):
         if filt is None:
             filt = lambda col, c: True
 
+        obj = self.obj
+        assert obj is not None  # for mypy
+
         needs_new_obj = False
         new_obj = dict()
-        for i, (col, c) in enumerate(self.obj.items()):
+        for i, (col, c) in enumerate(obj.items()):
             if filt(col, c):
                 new_data, result = f(col, c)
                 if result:
@@ -1179,9 +1207,9 @@ class FrameParser(Parser):
         if needs_new_obj:
 
             # possibly handle dup columns
-            new_obj = DataFrame(new_obj, index=self.obj.index)
-            new_obj.columns = self.obj.columns
-            self.obj = new_obj
+            new_frame = DataFrame(new_obj, index=obj.index)
+            new_frame.columns = obj.columns
+            self.obj = new_frame
 
     def _try_convert_types(self):
         if self.obj is None:

@@ -10,8 +10,8 @@ from pandas.core.dtypes.common import is_list_like
 import pandas.core.common as com
 
 
-def _get_standard_colors(
-    num_colors=None, colormap=None, color_type="default", color=None
+def get_standard_colors(
+    num_colors: int, colormap=None, color_type: str = "default", color=None
 ):
     import matplotlib.pyplot as plt
 
@@ -56,29 +56,9 @@ def _get_standard_colors(
         else:
             raise ValueError("color_type must be either 'default' or 'random'")
 
-    if isinstance(colors, str):
-        conv = matplotlib.colors.ColorConverter()
-
-        def _maybe_valid_colors(colors):
-            try:
-                [conv.to_rgba(c) for c in colors]
-                return True
-            except ValueError:
-                return False
-
-        # check whether the string can be convertible to single color
-        maybe_single_color = _maybe_valid_colors([colors])
-        # check whether each character can be convertible to colors
-        maybe_color_cycle = _maybe_valid_colors(list(colors))
-        if maybe_single_color and maybe_color_cycle and len(colors) > 1:
-            hex_color = [c["color"] for c in list(plt.rcParams["axes.prop_cycle"])]
-            colors = [hex_color[int(colors[1])]]
-        elif maybe_single_color:
-            colors = [colors]
-        else:
-            # ``colors`` is regarded as color cycle.
-            # mpl will raise error any of them is invalid
-            pass
+    if isinstance(colors, str) and _is_single_color(colors):
+        # GH #36972
+        colors = [colors]
 
     # Append more colors by cycling if there is not enough color.
     # Extra colors will be ignored by matplotlib if there are more colors
@@ -94,3 +74,33 @@ def _get_standard_colors(
         colors += colors[:mod]
 
     return colors
+
+
+def _is_single_color(color: str) -> bool:
+    """Check if ``color`` is a single color.
+
+    Examples of single colors:
+        - 'r'
+        - 'g'
+        - 'red'
+        - 'green'
+        - 'C3'
+
+    Parameters
+    ----------
+    color : string
+        Color string.
+
+    Returns
+    -------
+    bool
+        True if ``color`` looks like a valid color.
+        False otherwise.
+    """
+    conv = matplotlib.colors.ColorConverter()
+    try:
+        conv.to_rgba(color)
+    except ValueError:
+        return False
+    else:
+        return True

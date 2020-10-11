@@ -48,10 +48,14 @@ We have a ``DataFrame`` to which we want to apply a function row-wise.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': np.random.randn(1000),
-                      'b': np.random.randn(1000),
-                      'N': np.random.randint(100, 1000, (1000)),
-                      'x': 'x'})
+   df = pd.DataFrame(
+       {
+           "a": np.random.randn(1000),
+           "b": np.random.randn(1000),
+           "N": np.random.randint(100, 1000, (1000)),
+           "x": "x",
+       }
+   )
    df
 
 Here's the function in pure Python:
@@ -60,6 +64,7 @@ Here's the function in pure Python:
 
    def f(x):
        return x * (x - 1)
+
 
    def integrate_f(a, b, N):
        s = 0
@@ -72,7 +77,7 @@ We achieve our result by using ``apply`` (row-wise):
 
 .. code-block:: ipython
 
-   In [7]: %timeit df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)
+   In [7]: %timeit df.apply(lambda x: integrate_f(x["a"], x["b"], x["N"]), axis=1)
    10 loops, best of 3: 174 ms per loop
 
 But clearly this isn't fast enough for us. Let's take a look and see where the
@@ -81,7 +86,7 @@ four calls) using the `prun ipython magic function <https://ipython.readthedocs.
 
 .. ipython:: python
 
-   %prun -l 4 df.apply(lambda x: integrate_f(x['a'], x['b'], x['N']), axis=1)  # noqa E999
+   %prun -l 4 df.apply(lambda x: integrate_f(x["a"], x["b"], x["N"]), axis=1)  # noqa E999
 
 By far the majority of time is spend inside either ``integrate_f`` or ``f``,
 hence we'll concentrate our efforts cythonizing these two functions.
@@ -123,7 +128,7 @@ is here to distinguish between function versions):
 
 .. code-block:: ipython
 
-   In [4]: %timeit df.apply(lambda x: integrate_f_plain(x['a'], x['b'], x['N']), axis=1)
+   In [4]: %timeit df.apply(lambda x: integrate_f_plain(x["a"], x["b"], x["N"]), axis=1)
    10 loops, best of 3: 85.5 ms per loop
 
 Already this has shaved a third off, not too bad for a simple copy and paste.
@@ -152,7 +157,7 @@ We get another huge improvement simply by providing type information:
 
 .. code-block:: ipython
 
-   In [4]: %timeit df.apply(lambda x: integrate_f_typed(x['a'], x['b'], x['N']), axis=1)
+   In [4]: %timeit df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
    10 loops, best of 3: 20.3 ms per loop
 
 Now, we're talking! It's now over ten times faster than the original python
@@ -161,7 +166,7 @@ look at what's eating up time:
 
 .. ipython:: python
 
-   %prun -l 4 df.apply(lambda x: integrate_f_typed(x['a'], x['b'], x['N']), axis=1)
+   %prun -l 4 df.apply(lambda x: integrate_f_typed(x["a"], x["b"], x["N"]), axis=1)
 
 .. _enhancingperf.ndarray:
 
@@ -220,15 +225,13 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
    .. code-block:: python
 
-        apply_integrate_f(df['a'], df['b'], df['N'])
+        apply_integrate_f(df["a"], df["b"], df["N"])
 
    But rather, use :meth:`Series.to_numpy` to get the underlying ``ndarray``:
 
    .. code-block:: python
 
-        apply_integrate_f(df['a'].to_numpy(),
-                          df['b'].to_numpy(),
-                          df['N'].to_numpy())
+        apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
 
 .. note::
 
@@ -237,18 +240,14 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
 .. code-block:: ipython
 
-   In [4]: %timeit apply_integrate_f(df['a'].to_numpy(),
-                                     df['b'].to_numpy(),
-                                     df['N'].to_numpy())
+   In [4]: %timeit apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
    1000 loops, best of 3: 1.25 ms per loop
 
 We've gotten another big improvement. Let's check again where the time is spent:
 
 .. ipython:: python
 
-   %%prun -l 4 apply_integrate_f(df['a'].to_numpy(),
-                                 df['b'].to_numpy(),
-                                 df['N'].to_numpy())
+   %%prun -l 4 apply_integrate_f(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
 
 As one might expect, the majority of the time is now spent in ``apply_integrate_f``,
 so if we wanted to make anymore efficiencies we must continue to concentrate our
@@ -293,9 +292,7 @@ advanced Cython techniques:
 
 .. code-block:: ipython
 
-   In [4]: %timeit apply_integrate_f_wrap(df['a'].to_numpy(),
-                                          df['b'].to_numpy(),
-                                          df['N'].to_numpy())
+   In [4]: %timeit apply_integrate_f_wrap(df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy())
    1000 loops, best of 3: 987 us per loop
 
 Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
@@ -350,7 +347,7 @@ take the plain Python code from above and annotate with the ``@jit`` decorator.
    @numba.jit
    def apply_integrate_f_numba(col_a, col_b, col_N):
        n = len(col_N)
-       result = np.empty(n, dtype='float64')
+       result = np.empty(n, dtype="float64")
        assert len(col_a) == len(col_b) == n
        for i in range(n):
            result[i] = integrate_f_numba(col_a[i], col_b[i], col_N[i])
@@ -358,10 +355,10 @@ take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 
    def compute_numba(df):
-       result = apply_integrate_f_numba(df['a'].to_numpy(),
-                                        df['b'].to_numpy(),
-                                        df['N'].to_numpy())
-       return pd.Series(result, index=df.index, name='result')
+       result = apply_integrate_f_numba(
+           df["a"].to_numpy(), df["b"].to_numpy(), df["N"].to_numpy()
+       )
+       return pd.Series(result, index=df.index, name="result")
 
 Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a
 nicer interface by passing/returning pandas objects.
@@ -372,6 +369,13 @@ nicer interface by passing/returning pandas objects.
    1000 loops, best of 3: 798 us per loop
 
 In this example, using Numba was faster than Cython.
+
+Numba as an argument
+~~~~~~~~~~~~~~~~~~~~
+
+Additionally, we can leverage the power of `Numba <https://numba.pydata.org/>`__
+by calling it as an argument in :meth:`~Rolling.apply`. See :ref:`Computation tools
+<stats.rolling_apply>` for an extensive example.
 
 Vectorize
 ~~~~~~~~~
@@ -396,15 +400,15 @@ Consider the following toy example of doubling each observation:
 .. code-block:: ipython
 
    # Custom function without numba
-   In [5]: %timeit df['col1_doubled'] = df['a'].apply(double_every_value_nonumba)  # noqa E501
+   In [5]: %timeit df["col1_doubled"] = df["a"].apply(double_every_value_nonumba)  # noqa E501
    1000 loops, best of 3: 797 us per loop
 
    # Standard implementation (faster than a custom function)
-   In [6]: %timeit df['col1_doubled'] = df['a'] * 2
+   In [6]: %timeit df["col1_doubled"] = df["a"] * 2
    1000 loops, best of 3: 233 us per loop
 
    # Custom function with numba
-   In [7]: %timeit df['col1_doubled'] = double_every_value_withnumba(df['a'].to_numpy())
+   In [7]: %timeit df["col1_doubled"] = double_every_value_withnumba(df["a"].to_numpy())
    1000 loops, best of 3: 145 us per loop
 
 Caveats
@@ -480,10 +484,10 @@ These operations are supported by :func:`pandas.eval`:
 * ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
 * Attribute access, e.g., ``df.a``
 * Subscript expressions, e.g., ``df[0]``
-* Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
-* Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
-  `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
-  `arcsinh`, `arctanh`, `abs`, `arctan2` and `log10`.
+* Simple variable evaluation, e.g., ``pd.eval("df")`` (this is not very useful)
+* Math functions: ``sin``, ``cos``, ``exp``, ``log``, ``expm1``, ``log1p``,
+  ``sqrt``, ``sinh``, ``cosh``, ``tanh``, ``arcsin``, ``arccos``, ``arctan``, ``arccosh``,
+  ``arcsinh``, ``arctanh``, ``abs``, ``arctan2`` and ``log10``.
 
 This Python syntax is **not** allowed:
 
@@ -530,7 +534,7 @@ Now let's compare adding them together using plain ol' Python versus
 
 .. ipython:: python
 
-   %timeit pd.eval('df1 + df2 + df3 + df4')
+   %timeit pd.eval("df1 + df2 + df3 + df4")
 
 
 Now let's do the same thing but with comparisons:
@@ -541,7 +545,7 @@ Now let's do the same thing but with comparisons:
 
 .. ipython:: python
 
-   %timeit pd.eval('(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)')
+   %timeit pd.eval("(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)")
 
 
 :func:`~pandas.eval` also works with unaligned pandas objects:
@@ -553,7 +557,7 @@ Now let's do the same thing but with comparisons:
 
 .. ipython:: python
 
-   %timeit pd.eval('df1 + df2 + df3 + df4 + s')
+   %timeit pd.eval("df1 + df2 + df3 + df4 + s")
 
 .. note::
 
@@ -580,19 +584,19 @@ evaluate an expression in the "context" of a :class:`~pandas.DataFrame`.
    :suppress:
 
    try:
-      del a
+       del a
    except NameError:
-      pass
+       pass
 
    try:
-      del b
+       del b
    except NameError:
-      pass
+       pass
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(5, 2), columns=['a', 'b'])
-   df.eval('a + b')
+   df = pd.DataFrame(np.random.randn(5, 2), columns=["a", "b"])
+   df.eval("a + b")
 
 Any expression that is a valid :func:`pandas.eval` expression is also a valid
 :meth:`DataFrame.eval` expression, with the added benefit that you don't have to
@@ -610,9 +614,9 @@ on the original ``DataFrame`` or return a copy with the new column.
 .. ipython:: python
 
    df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df.eval('c = a + b', inplace=True)
-   df.eval('d = a + b + c', inplace=True)
-   df.eval('a = 1', inplace=True)
+   df.eval("c = a + b", inplace=True)
+   df.eval("d = a + b + c", inplace=True)
+   df.eval("a = 1", inplace=True)
    df
 
 When ``inplace`` is set to ``False``, the default, a copy of the ``DataFrame`` with the
@@ -621,7 +625,7 @@ new or modified columns is returned and the original frame is unchanged.
 .. ipython:: python
 
    df
-   df.eval('e = a - c', inplace=False)
+   df.eval("e = a - c", inplace=False)
    df
 
 As a convenience, multiple assignments can be performed by using a
@@ -629,19 +633,22 @@ multi-line string.
 
 .. ipython:: python
 
-   df.eval("""
+   df.eval(
+       """
    c = a + b
    d = a + b + c
-   a = 1""", inplace=False)
+   a = 1""",
+       inplace=False,
+   )
 
 The equivalent in standard Python would be
 
 .. ipython:: python
 
    df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df['c'] = df['a'] + df['b']
-   df['d'] = df['a'] + df['b'] + df['c']
-   df['a'] = 1
+   df["c"] = df["a"] + df["b"]
+   df["d"] = df["a"] + df["b"] + df["c"]
+   df["a"] = 1
    df
 
 The ``query`` method has a ``inplace`` keyword which determines
@@ -650,8 +657,8 @@ whether the query modifies the original frame.
 .. ipython:: python
 
    df = pd.DataFrame(dict(a=range(5), b=range(5, 10)))
-   df.query('a > 2')
-   df.query('a > 2', inplace=True)
+   df.query("a > 2")
+   df.query("a > 2", inplace=True)
    df
 
 Local variables
@@ -662,10 +669,10 @@ expression by placing the ``@`` character in front of the name. For example,
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(5, 2), columns=list('ab'))
+   df = pd.DataFrame(np.random.randn(5, 2), columns=list("ab"))
    newcol = np.random.randn(len(df))
-   df.eval('b + @newcol')
-   df.query('b < @newcol')
+   df.eval("b + @newcol")
+   df.query("b < @newcol")
 
 If you don't prefix the local variable with ``@``, pandas will raise an
 exception telling you the variable is undefined.
@@ -678,25 +685,25 @@ name in an expression.
 .. ipython:: python
 
    a = np.random.randn()
-   df.query('@a < a')
-   df.loc[a < df['a']]  # same as the previous expression
+   df.query("@a < a")
+   df.loc[a < df["a"]]  # same as the previous expression
 
 With :func:`pandas.eval` you cannot use the ``@`` prefix *at all*, because it
-isn't defined in that context. ``pandas`` will let you know this if you try to
+isn't defined in that context. pandas will let you know this if you try to
 use ``@`` in a top-level call to :func:`pandas.eval`. For example,
 
 .. ipython:: python
    :okexcept:
 
    a, b = 1, 2
-   pd.eval('@a + b')
+   pd.eval("@a + b")
 
 In this case, you should simply refer to the variables like you would in
 standard Python.
 
 .. ipython:: python
 
-   pd.eval('a + b')
+   pd.eval("a + b")
 
 
 :func:`pandas.eval` parsers
@@ -716,10 +723,10 @@ semantics.
 
 .. ipython:: python
 
-   expr = '(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)'
-   x = pd.eval(expr, parser='python')
-   expr_no_parens = 'df1 > 0 & df2 > 0 & df3 > 0 & df4 > 0'
-   y = pd.eval(expr_no_parens, parser='pandas')
+   expr = "(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)"
+   x = pd.eval(expr, parser="python")
+   expr_no_parens = "df1 > 0 & df2 > 0 & df3 > 0 & df4 > 0"
+   y = pd.eval(expr_no_parens, parser="pandas")
    np.all(x == y)
 
 
@@ -728,10 +735,10 @@ well:
 
 .. ipython:: python
 
-   expr = '(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)'
-   x = pd.eval(expr, parser='python')
-   expr_with_ands = 'df1 > 0 and df2 > 0 and df3 > 0 and df4 > 0'
-   y = pd.eval(expr_with_ands, parser='pandas')
+   expr = "(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)"
+   x = pd.eval(expr, parser="python")
+   expr_with_ands = "df1 > 0 and df2 > 0 and df3 > 0 and df4 > 0"
+   y = pd.eval(expr_with_ands, parser="pandas")
    np.all(x == y)
 
 
@@ -761,7 +768,7 @@ is a bit slower (not by much) than evaluating the same expression in Python
 
 .. ipython:: python
 
-   %timeit pd.eval('df1 + df2 + df3 + df4', engine='python')
+   %timeit pd.eval("df1 + df2 + df3 + df4", engine="python")
 
 
 :func:`pandas.eval` performance
@@ -805,10 +812,11 @@ you have an expression--for example
 
 .. ipython:: python
 
-   df = pd.DataFrame({'strings': np.repeat(list('cba'), 3),
-                      'nums': np.repeat(range(3), 3)})
+   df = pd.DataFrame(
+       {"strings": np.repeat(list("cba"), 3), "nums": np.repeat(range(3), 3)}
+   )
    df
-   df.query('strings == "a" and nums == 1')
+   df.query("strings == 'a' and nums == 1")
 
 the numeric part of the comparison (``nums == 1``) will be evaluated by
 ``numexpr``.

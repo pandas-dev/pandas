@@ -9,7 +9,7 @@ from pandas.errors import AbstractMethodError
 
 from pandas import DataFrame, get_option
 
-from pandas.io.common import _expand_user, get_filepath_or_buffer, is_fsspec_url
+from pandas.io.common import get_filepath_or_buffer, is_fsspec_url, stringify_path
 
 
 def get_engine(engine: str) -> "BaseImpl":
@@ -113,7 +113,7 @@ class PyArrowImpl(BaseImpl):
                 raise ValueError(
                     "storage_options passed with file object or non-fsspec file path"
                 )
-            path = _expand_user(path)
+            path = stringify_path(path)
         if partition_cols is not None:
             # writes to multiple files under the given path
             self.api.parquet.write_to_dataset(
@@ -128,7 +128,7 @@ class PyArrowImpl(BaseImpl):
             self.api.parquet.write_table(table, path, compression=compression, **kwargs)
 
     def read(
-        self, path, columns=None, storage_options: StorageOptions = None, **kwargs,
+        self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
         if is_fsspec_url(path) and "filesystem" not in kwargs:
             import_optional_dependency("fsspec")
@@ -143,10 +143,12 @@ class PyArrowImpl(BaseImpl):
                 )
             fs = kwargs.pop("filesystem", None)
             should_close = False
-            path = _expand_user(path)
+            path = stringify_path(path)
 
         if not fs:
-            path, _, _, should_close = get_filepath_or_buffer(path)
+            ioargs = get_filepath_or_buffer(path)
+            path = ioargs.filepath_or_buffer
+            should_close = ioargs.should_close
 
         kwargs["use_pandas_metadata"] = True
         result = self.api.parquet.read_table(
@@ -205,7 +207,7 @@ class FastParquetImpl(BaseImpl):
                 raise ValueError(
                     "storage_options passed with file object or non-fsspec file path"
                 )
-            path, _, _, _ = get_filepath_or_buffer(path)
+            path = get_filepath_or_buffer(path).filepath_or_buffer
 
         with catch_warnings(record=True):
             self.api.write(
@@ -218,7 +220,7 @@ class FastParquetImpl(BaseImpl):
             )
 
     def read(
-        self, path, columns=None, storage_options: StorageOptions = None, **kwargs,
+        self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
@@ -228,7 +230,7 @@ class FastParquetImpl(BaseImpl):
             ).open()
             parquet_file = self.api.ParquetFile(path, open_with=open_with)
         else:
-            path, _, _, _ = get_filepath_or_buffer(path)
+            path = get_filepath_or_buffer(path).filepath_or_buffer
             parquet_file = self.api.ParquetFile(path)
 
         return parquet_file.to_pandas(columns=columns, **kwargs)
@@ -253,7 +255,7 @@ def to_parquet(
     path : str or file-like object
         If a string, it will be used as Root Directory path
         when writing a partitioned dataset. By file-like object,
-        we refer to objects with a write() method, such as a file handler
+        we refer to objects with a write() method, such as a file handle
         (e.g. via builtin open function) or io.BytesIO. The engine
         fastparquet does not accept file-like objects.
 
@@ -319,7 +321,7 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     ----------
     path : str, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.parquet``.
         A file URL can also be a path to a directory that contains multiple
@@ -331,7 +333,7 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option

@@ -1,21 +1,19 @@
 name: pandas-dev
 channels:
-  - defaults
   - conda-forge
 dependencies:
   - python=3.7.*
 
   # tools
-  - cython>=0.29.16
+  - cython>=0.29.21
   - pytest>=5.0.1
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
-  - pytest-cov  # this is only needed in the coverage build
+  - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
 
   # pandas dependencies
   - beautifulsoup4
   - botocore>=1.11
-  - cython>=0.29.16
   - dask
   - fastparquet>=0.3.2
   - fsspec>=0.7.4
@@ -23,18 +21,21 @@ dependencies:
   - geopandas
   - html5lib
   - matplotlib
-  - moto
+  - moto>=1.3.14
+  - flask
   - nomkl
   - numexpr
   - numpy=1.16.*
   - odfpy
   - openpyxl
   - pandas-gbq
+  - google-cloud-bigquery>=1.27.2 # GH 36436
   - psycopg2
   - pyarrow>=0.15.0
-  - pymysql
+  - pymysql<0.10.0 # temporary pin, GH 36465
   - pytables
   - python-snappy
+  - python-dateutil
   - pytz
   - s3fs>=0.4.0
   - scikit-learn
@@ -50,5 +51,4 @@ dependencies:
     - brotlipy
     - coverage
     - pandas-datareader
-    - python-dateutil
     - pyxlsb

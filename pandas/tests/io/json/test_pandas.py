@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import datetime
 from datetime import timedelta
 from io import StringIO
@@ -9,7 +8,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.compat import IS64, PY38, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -154,7 +153,7 @@ class TestPandasContainer:
         expected = int_frame
         if (
             numpy
-            and (is_platform_32bit() or is_platform_windows())
+            and (not IS64 or is_platform_windows())
             and not dtype
             and orient != "split"
         ):
@@ -361,9 +360,7 @@ class TestPandasContainer:
         result = read_json(df.to_json(), dtype=dtype)
         assert np.isnan(result.iloc[0, 2])
 
-    @pytest.mark.skipif(
-        is_platform_32bit(), reason="not compliant on 32-bit, xref #15865"
-    )
+    @pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
     @pytest.mark.parametrize(
         "value,precision,expected_val",
         [
@@ -472,7 +469,7 @@ class TestPandasContainer:
         index = pd.DatetimeIndex(list(index), freq=None)
 
         df_mixed = DataFrame(
-            OrderedDict(
+            dict(
                 float_1=[
                     -0.92077639,
                     0.77434435,
@@ -747,11 +744,7 @@ class TestPandasContainer:
 
     def test_path(self, float_frame, int_frame, datetime_frame):
         with tm.ensure_clean("test.json") as path:
-            for df in [
-                float_frame,
-                int_frame,
-                datetime_frame,
-            ]:
+            for df in [float_frame, int_frame, datetime_frame]:
                 df.to_json(path)
                 read_json(path)
 
@@ -994,7 +987,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         ],
     )
     def test_url(self, field, dtype):
-        url = "https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5"  # noqa
+        url = "https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5"
         result = read_json(url, convert_dates=True)
         assert result[field].dtype == dtype
 
@@ -1213,10 +1206,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_not_us_locale
-    def test_read_s3_jsonl(self, s3_resource):
+    def test_read_s3_jsonl(self, s3_resource, s3so):
         # GH17200
 
-        result = read_json("s3n://pandas-test/items.jsonl", lines=True)
+        result = read_json(
+            "s3n://pandas-test/items.jsonl", lines=True, storage_options=s3so
+        )
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
@@ -1296,19 +1291,19 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH9180
         df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         result = df.to_json(orient="records", lines=True)
-        expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
+        expected = '{"a":1,"b":2}\n{"a":1,"b":2}\n'
         assert result == expected
 
         df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=["a", "b"])
         result = df.to_json(orient="records", lines=True)
-        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
+        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}\n'
         assert result == expected
         tm.assert_frame_equal(pd.read_json(result, lines=True), df)
 
         # GH15096: escaped characters in columns and data
         df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]], columns=["a\\", "b"])
         result = df.to_json(orient="records", lines=True)
-        expected = '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}'
+        expected = '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n'
         assert result == expected
         tm.assert_frame_equal(pd.read_json(result, lines=True), df)
 
@@ -1700,13 +1695,18 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = series.to_json(orient="index")
         assert result == expected
 
-    def test_to_s3(self, s3_resource):
+    @pytest.mark.xfail(
+        is_platform_windows() and PY38,
+        reason="localhost connection rejected",
+        strict=False,
+    )
+    def test_to_s3(self, s3_resource, s3so):
         import time
 
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
-        df.to_json(f"s3://{mock_bucket_name}/{target_file}")
+        df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
         timeout = 5
         while True:
             if target_file in (

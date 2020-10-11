@@ -6,8 +6,14 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
-from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_bool_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+    is_string_dtype,
+    pandas_dtype,
+)
 
 from pandas import compat
 from pandas.core import ops
@@ -18,7 +24,7 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 @register_extension_dtype
@@ -79,7 +85,7 @@ class StringDtype(ExtensionDtype):
         """
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -177,11 +183,10 @@ class StringArray(PandasArray):
 
     def __init__(self, values, copy=False):
         values = extract_array(values)
-        skip_validation = isinstance(values, type(self))
 
         super().__init__(values, copy=copy)
         self._dtype = StringDtype()
-        if not skip_validation:
+        if not isinstance(values, type(self)):
             self._validate()
 
     def _validate(self):
@@ -199,26 +204,28 @@ class StringArray(PandasArray):
         if dtype:
             assert dtype == "string"
 
-        result = np.asarray(scalars, dtype="object")
-        if copy and result is scalars:
-            result = result.copy()
+        from pandas.core.arrays.masked import BaseMaskedArray
 
-        # Standardize all missing-like values to NA
-        # TODO: it would be nice to do this in _validate / lib.is_string_array
-        # We are already doing a scan over the values there.
-        na_values = isna(result)
-        has_nans = na_values.any()
-        if has_nans and result is scalars:
-            # force a copy now, if we haven't already
-            result = result.copy()
-
-        # convert to str, then to object to avoid dtype like '<U3', then insert na_value
-        result = np.asarray(result, dtype=str)
-        result = np.asarray(result, dtype="object")
-        if has_nans:
+        if isinstance(scalars, BaseMaskedArray):
+            # avoid costly conversion to object dtype
+            na_values = scalars._mask
+            result = scalars._data
+            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
             result[na_values] = StringDtype.na_value
 
-        return cls(result)
+        else:
+            # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+            result = lib.ensure_string_array(
+                scalars, na_value=StringDtype.na_value, copy=copy
+            )
+
+        # Manually creating new array avoids the validation step in the __init__, so is
+        # faster. Refactor need for validation?
+        new_string_array = object.__new__(cls)
+        new_string_array._dtype = StringDtype()
+        new_string_array._ndarray = result
+
+        return new_string_array
 
     @classmethod
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
@@ -301,49 +308,52 @@ class StringArray(PandasArray):
 
         return value_counts(self._ndarray, dropna=dropna).astype("Int64")
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes
         if deep:
             return result + lib.memory_usage_of_objects(self._ndarray)
         return result
+
+    def _cmp_method(self, other, op):
+        from pandas.arrays import BooleanArray
+
+        if isinstance(other, StringArray):
+            other = other._ndarray
+
+        mask = isna(self) | isna(other)
+        valid = ~mask
+
+        if not lib.is_scalar(other):
+            if len(other) != len(self):
+                # prevent improper broadcasting when other is 2D
+                raise ValueError(
+                    f"Lengths of operands do not match: {len(self)} != {len(other)}"
+                )
+
+            other = np.asarray(other)
+            other = other[valid]
+
+        if op.__name__ in ops.ARITHMETIC_BINOPS:
+            result = np.empty_like(self._ndarray, dtype="object")
+            result[mask] = StringDtype.na_value
+            result[valid] = op(self._ndarray[valid], other)
+            return StringArray(result)
+        else:
+            # logical
+            result = np.zeros(len(self._ndarray), dtype="bool")
+            result[valid] = op(self._ndarray[valid], other)
+            return BooleanArray(result, mask)
 
     # Override parent because we have different return types.
     @classmethod
     def _create_arithmetic_method(cls, op):
         # Note: this handles both arithmetic and comparison methods.
 
+        assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
+
         @ops.unpack_zerodim_and_defer(op.__name__)
         def method(self, other):
-            from pandas.arrays import BooleanArray
-
-            assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
-
-            if isinstance(other, cls):
-                other = other._ndarray
-
-            mask = isna(self) | isna(other)
-            valid = ~mask
-
-            if not lib.is_scalar(other):
-                if len(other) != len(self):
-                    # prevent improper broadcasting when other is 2D
-                    raise ValueError(
-                        f"Lengths of operands do not match: {len(self)} != {len(other)}"
-                    )
-
-                other = np.asarray(other)
-                other = other[valid]
-
-            if op.__name__ in ops.ARITHMETIC_BINOPS:
-                result = np.empty_like(self._ndarray, dtype="object")
-                result[mask] = StringDtype.na_value
-                result[valid] = op(self._ndarray[valid], other)
-                return StringArray(result)
-            else:
-                # logical
-                result = np.zeros(len(self._ndarray), dtype="bool")
-                result[valid] = op(self._ndarray[valid], other)
-                return BooleanArray(result, mask)
+            return self._cmp_method(other, op)
 
         return compat.set_function_name(method, f"__{op.__name__}__", cls)
 
@@ -355,8 +365,58 @@ class StringArray(PandasArray):
         cls.__mul__ = cls._create_arithmetic_method(operator.mul)
         cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
 
-    _create_comparison_method = _create_arithmetic_method
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = StringDtype.na_value
+
+    def _str_map(self, f, na_value=None, dtype=None):
+        from pandas.arrays import BooleanArray, IntegerArray, StringArray
+        from pandas.core.arrays.string_ import StringDtype
+
+        if dtype is None:
+            dtype = StringDtype()
+        if na_value is None:
+            na_value = self.dtype.na_value
+
+        mask = isna(self)
+        arr = np.asarray(self)
+
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            constructor: Union[Type[IntegerArray], Type[BooleanArray]]
+            if is_integer_dtype(dtype):
+                constructor = IntegerArray
+            else:
+                constructor = BooleanArray
+
+            na_value_is_na = isna(na_value)
+            if na_value_is_na:
+                na_value = 1
+            result = lib.map_infer_mask(
+                arr,
+                f,
+                mask.view("uint8"),
+                convert=False,
+                na_value=na_value,
+                dtype=np.dtype(dtype),
+            )
+
+            if not na_value_is_na:
+                mask[:] = False
+
+            return constructor(result, mask)
+
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+            # i.e. StringDtype
+            result = lib.map_infer_mask(
+                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+            )
+            return StringArray(result)
+        else:
+            # This is when the result type is object. We reach this when
+            # -> We know the result type is truly object (e.g. .encode returns bytes
+            #    or .findall returns a list).
+            # -> We don't know the result type. E.g. `.get` can return anything.
+            return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
 
 StringArray._add_arithmetic_ops()
-StringArray._add_comparison_ops()
