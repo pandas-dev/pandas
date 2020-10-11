@@ -26,7 +26,7 @@ import zipfile
 
 import pytest
 
-from pandas.compat import get_lzma_file, import_lzma, is_platform_little_endian
+from pandas.compat import get_lzma_file, import_lzma, is_platform_little_endian, PY38
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -168,24 +168,23 @@ def python_unpickler(path):
         return pickle.load(fh)
 
 
-named_pickle_writers = {
-    "python": python_pickler,
-    "pandas_proto_default": pd.to_pickle,
-    "pandas_proto_highest": functools.partial(
-        pd.to_pickle, protocol=pickle.HIGHEST_PROTOCOL
-    ),
-    "pandas_proto_4": functools.partial(pd.to_pickle, protocol=4),
-}
-if sys.version_info >= (3, 8):
-    named_pickle_writers.update(
-        {
-            "pandas_proto_5": functools.partial(pd.to_pickle, protocol=5),
-        }
-    )
-pickle_writer_ids, pickle_writers = zip(*named_pickle_writers.items())
-
-
-@pytest.mark.parametrize("pickle_writer", pickle_writers, ids=pickle_writer_ids)
+@pytest.mark.parametrize(
+    "pickle_writer",
+    [
+        pytest.param(python_pickler, id="python"),
+        pytest.param(pd.to_pickle, id="pandas_proto_default"),
+        pytest.param(
+            functools.partial(pd.to_pickle, protocol=pickle.HIGHEST_PROTOCOL),
+            id="pandas_proto_highest",
+        ),
+        pytest.param(functools.partial(pd.to_pickle, protocol=4), id="pandas_proto_4"),
+        pytest.param(
+            functools.partial(pd.to_pickle, protocol=5),
+            id="pandas_proto_5",
+            marks=pytest.mark.skipif(not PY38, reason="pickle protocol 5 not supported"),
+        ),
+    ],
+)
 def test_round_trip_current(current_pickle_data, pickle_writer):
     data = current_pickle_data
     for typ, dv in data.items():
