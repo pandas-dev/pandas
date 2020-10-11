@@ -368,6 +368,7 @@ def test_attr_wrapper(ts):
     # get attribute
     result = grouped.dtype
     expected = grouped.agg(lambda x: x.dtype)
+    tm.assert_series_equal(result, expected)
 
     # make sure raises error
     msg = "'SeriesGroupBy' object has no attribute 'foo'"
@@ -1510,7 +1511,7 @@ def test_groupby_reindex_inside_function():
     ind = date_range(start="2012/1/1", freq="5min", periods=periods)
     df = DataFrame({"high": np.arange(periods), "low": np.arange(periods)}, index=ind)
 
-    def agg_before(hour, func, fix=False):
+    def agg_before(func, fix=False):
         """
         Run an aggregate func on the subset of data.
         """
@@ -1525,13 +1526,9 @@ def test_groupby_reindex_inside_function():
 
         return _func
 
-    def afunc(data):
-        d = data.select(lambda x: x.hour < 11).dropna()
-        return np.max(d)
-
     grouped = df.groupby(lambda x: datetime(x.year, x.month, x.day))
-    closure_bad = grouped.agg({"high": agg_before(11, np.max)})
-    closure_good = grouped.agg({"high": agg_before(11, np.max, True)})
+    closure_bad = grouped.agg({"high": agg_before(np.max)})
+    closure_good = grouped.agg({"high": agg_before(np.max, True)})
 
     tm.assert_frame_equal(closure_bad, closure_good)
 
