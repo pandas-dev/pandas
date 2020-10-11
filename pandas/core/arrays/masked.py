@@ -19,7 +19,8 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops
 from pandas.core.algorithms import factorize_array, take
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
@@ -66,7 +67,7 @@ class BaseMaskedDtype(ExtensionDtype):
         raise NotImplementedError
 
 
-class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
+class BaseMaskedArray(OpsMixin, ExtensionArray):
     """
     Base class for masked arrays (which use _data and _mask to store the data).
 
