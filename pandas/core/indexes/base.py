@@ -2757,8 +2757,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
-        taken = other.take(indexer).unique()
-        res_name = get_op_result_name(self, other)
+        result = other.take(indexer).unique()
 
         if sort is None:
             result = algos.safe_sort(result.values)
