@@ -9,24 +9,24 @@ repos:
     -   id: flake8
         additional_dependencies: [flake8-comprehensions>=3.1.0]
     -   id: flake8
-        name: flake8-pyx
-        files: \.(pyx|pxd)$
-        types:
-          - file
+        name: flake8 (cython)
+        types: [cython]
         args: [--append-config=flake8/cython.cfg]
     -   id: flake8
-        name: flake8-pxd
+        name: flake8 (cython template)
         files: \.pxi\.in$
         types:
           - file
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.6.0
+    rev: 5.6.3
     hooks:
     -   id: isort
-        exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$
-        files: '.pxd$|.py$'
-        types: [file]
+        name: isort (python)
+        types: [python]
+    -   id: isort
+        name: isort (cython)
+        types: [cython]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.7.2
     hooks:
