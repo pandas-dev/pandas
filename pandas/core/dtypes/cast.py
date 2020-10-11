@@ -1289,6 +1289,8 @@ def convert_dtypes(
 def maybe_castable(arr: np.ndarray) -> bool:
     # return False to force a non-fastpath
 
+    assert isinstance(arr, np.ndarray)  # GH 37024
+
     # check datetime64[ns]/timedelta64[ns] are valid
     # otherwise try to coerce
     kind = arr.dtype.kind
