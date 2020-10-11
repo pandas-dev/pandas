@@ -12,6 +12,7 @@ from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
+    Period,
     Timedelta,
     Timestamp,
     iNaT,
@@ -40,7 +41,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
     is_datetime64tz_dtype,
-    is_datetime_or_timedelta_any_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
@@ -50,7 +50,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
-    is_period_dtype,
     is_scalar,
     is_sparse,
     is_string_dtype,
@@ -132,7 +131,7 @@ def maybe_downcast_to_dtype(result, dtype):
     elif isinstance(result, ABCDataFrame):
         # occurs in pivot_table doctest
         return result
-    elif is_period_dtype(dtype):
+    elif dtype.type is Period:
         from pandas.core.arrays import PeriodArray
 
         with suppress(TypeError):
@@ -169,7 +168,7 @@ def maybe_downcast_to_dtype(result, dtype):
 
     # a datetimelike
     # GH12821, iNaT is cast to float
-    if is_datetime_or_timedelta_any_dtype(dtype) and result.dtype.kind in ["i", "f"]:
+    if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
 
         if is_datetime_or_timedelta_dtype(dtype):
             result = result.astype(dtype)
