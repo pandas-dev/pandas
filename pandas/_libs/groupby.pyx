@@ -1,26 +1,50 @@
 import cython
 from cython import Py_ssize_t
-from cython cimport floating
 
-from libc.stdlib cimport malloc, free
+from cython cimport floating
+from libc.stdlib cimport free, malloc
 
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport (ndarray,
-                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float32_t, float64_t, complex64_t, complex128_t)
+from numpy cimport (
+    complex64_t,
+    complex128_t,
+    float32_t,
+    float64_t,
+    int8_t,
+    int16_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+    uint16_t,
+    uint32_t,
+    uint64_t,
+)
 from numpy.math cimport NAN
+
 cnp.import_array()
 
-from pandas._libs.util cimport numeric, get_nat
+from pandas._libs.algos cimport (
+    TIEBREAK_AVERAGE,
+    TIEBREAK_DENSE,
+    TIEBREAK_FIRST,
+    TIEBREAK_MAX,
+    TIEBREAK_MIN,
+    TiebreakEnumType,
+    swap,
+)
+from pandas._libs.util cimport get_nat, numeric
 
-from pandas._libs.algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE,
-                                 TIEBREAK_MIN, TIEBREAK_MAX, TIEBREAK_FIRST,
-                                 TIEBREAK_DENSE)
-from pandas._libs.algos import (take_2d_axis1_float64_float64,
-                                groupsort_indexer, tiebreakers)
+from pandas._libs.algos import (
+    groupsort_indexer,
+    take_2d_axis1_float64_float64,
+    tiebreakers,
+)
 
 from pandas._libs.missing cimport checknull
+
 
 cdef int64_t NPY_NAT = get_nat()
 _int64_max = np.iinfo(np.int64).max
@@ -205,7 +229,7 @@ def group_cumprod_float64(float64_t[:, :] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cumsum(numeric[:, :] out,
-                 numeric[:, :] values,
+                 ndarray[numeric, ndim=2] values,
                  const int64_t[:] labels,
                  int ngroups,
                  is_datetimelike,
@@ -320,7 +344,7 @@ def group_shift_indexer(int64_t[:] out, const int64_t[:] labels,
 @cython.boundscheck(False)
 def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
                          ndarray[uint8_t] mask, object direction,
-                         int64_t limit):
+                         int64_t limit, bint dropna):
     """
     Indexes how to fill values forwards or backwards within a group.
 
@@ -334,6 +358,7 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
     direction : {'ffill', 'bfill'}
         Direction for fill to be applied (forwards or backwards, respectively)
     limit : Consecutive values to fill before stopping, or -1 for no limit
+    dropna : Flag to indicate if NaN groups should return all NaN values
 
     Notes
     -----
@@ -357,7 +382,9 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
     with nogil:
         for i in range(N):
             idx = sorted_labels[i]
-            if mask[idx] == 1:  # is missing
+            if dropna and labels[idx] == -1:  # nan-group gets nan-values
+                curr_fill_idx = -1
+            elif mask[idx] == 1:  # is missing
                 # Stop filling once we've hit the limit
                 if filled_vals >= limit and limit != -1:
                     curr_fill_idx = -1
@@ -448,7 +475,7 @@ ctypedef fused complexfloating_t:
 @cython.boundscheck(False)
 def _group_add(complexfloating_t[:, :] out,
                int64_t[:] counts,
-               complexfloating_t[:, :] values,
+               ndarray[complexfloating_t, ndim=2] values,
                const int64_t[:] labels,
                Py_ssize_t min_count=0):
     """
@@ -459,8 +486,9 @@ def _group_add(complexfloating_t[:, :] out,
         complexfloating_t val, count
         complexfloating_t[:, :] sumx
         int64_t[:, :] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
 
-    if len(values) != len(labels):
+    if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -506,7 +534,7 @@ group_add_complex128 = _group_add['double complex']
 @cython.boundscheck(False)
 def _group_prod(floating[:, :] out,
                 int64_t[:] counts,
-                floating[:, :] values,
+                ndarray[floating, ndim=2] values,
                 const int64_t[:] labels,
                 Py_ssize_t min_count=0):
     """
@@ -517,8 +545,9 @@ def _group_prod(floating[:, :] out,
         floating val, count
         floating[:, :] prodx
         int64_t[:, :] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
 
-    if not len(values) == len(labels):
+    if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -558,7 +587,7 @@ group_prod_float64 = _group_prod['double']
 @cython.cdivision(True)
 def _group_var(floating[:, :] out,
                int64_t[:] counts,
-               floating[:, :] values,
+               ndarray[floating, ndim=2] values,
                const int64_t[:] labels,
                Py_ssize_t min_count=-1,
                int64_t ddof=1):
@@ -567,10 +596,11 @@ def _group_var(floating[:, :] out,
         floating val, ct, oldmean
         floating[:, :] mean
         int64_t[:, :] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    if not len(values) == len(labels):
+    if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -615,7 +645,7 @@ group_var_float64 = _group_var['double']
 @cython.boundscheck(False)
 def _group_mean(floating[:, :] out,
                 int64_t[:] counts,
-                floating[:, :] values,
+                ndarray[floating, ndim=2] values,
                 const int64_t[:] labels,
                 Py_ssize_t min_count=-1):
     cdef:
@@ -623,10 +653,11 @@ def _group_mean(floating[:, :] out,
         floating val, count
         floating[:, :] sumx
         int64_t[:, :] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
 
     assert min_count == -1, "'min_count' only used in add and prod"
 
-    if not len(values) == len(labels):
+    if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -665,7 +696,7 @@ group_mean_float64 = _group_mean['double']
 @cython.boundscheck(False)
 def _group_ohlc(floating[:, :] out,
                 int64_t[:] counts,
-                floating[:, :] values,
+                ndarray[floating, ndim=2] values,
                 const int64_t[:] labels,
                 Py_ssize_t min_count=-1):
     """
@@ -716,7 +747,7 @@ group_ohlc_float64 = _group_ohlc['double']
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_quantile(ndarray[float64_t] out,
-                   numeric[:] values,
+                   ndarray[numeric, ndim=1] values,
                    ndarray[int64_t] labels,
                    ndarray[uint8_t] mask,
                    float64_t q,
@@ -1048,7 +1079,7 @@ def group_nth(rank_t[:, :] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_rank(float64_t[:, :] out,
-               rank_t[:, :] values,
+               ndarray[rank_t, ndim=2] values,
                const int64_t[:] labels,
                int ngroups,
                bint is_datetimelike, object ties_method="average",
@@ -1400,7 +1431,7 @@ def group_min(groupby_t[:, :] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cummin(groupby_t[:, :] out,
-                 groupby_t[:, :] values,
+                 ndarray[groupby_t, ndim=2] values,
                  const int64_t[:] labels,
                  int ngroups,
                  bint is_datetimelike):
@@ -1460,7 +1491,7 @@ def group_cummin(groupby_t[:, :] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cummax(groupby_t[:, :] out,
-                 groupby_t[:, :] values,
+                 ndarray[groupby_t, ndim=2] values,
                  const int64_t[:] labels,
                  int ngroups,
                  bint is_datetimelike):

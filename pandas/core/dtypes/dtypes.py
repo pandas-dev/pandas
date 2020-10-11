@@ -29,13 +29,10 @@ from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 from pandas.core.dtypes.inference import is_bool, is_list_like
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
-    from pandas.core.arrays import (  # noqa: F401
-        IntervalArray,
-        PeriodArray,
-        DatetimeArray,
-    )
-    from pandas import Categorical  # noqa: F401
+    import pyarrow
+
+    from pandas import Categorical
+    from pandas.core.arrays import DatetimeArray, IntervalArray, PeriodArray
 
 str_type = str
 
@@ -374,12 +371,30 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # but same order is not necessary.  There is no distinction between
             # ordered=False and ordered=None: CDT(., False) and CDT(., None)
             # will be equal if they have the same categories.
-            if (
-                self.categories.dtype == other.categories.dtype
-                and self.categories.equals(other.categories)
-            ):
+            left = self.categories
+            right = other.categories
+
+            # GH#36280 the ordering of checks here is for performance
+            if not left.dtype == right.dtype:
+                return False
+
+            if len(left) != len(right):
+                return False
+
+            if self.categories.equals(other.categories):
                 # Check and see if they happen to be identical categories
                 return True
+
+            if left.dtype != object:
+                # Faster than calculating hash
+                indexer = left.get_indexer(right)
+                # Because left and right have the same length and are unique,
+                #  `indexer` not having any -1s implies that there is a
+                #  bijection between `left` and `right`.
+                return (indexer != -1).all()
+
+            # With object-dtype we need a comparison that identifies
+            #  e.g. int(2) as distinct from float(2)
             return hash(self) == hash(other)
 
     def __repr__(self) -> str_type:
@@ -391,12 +406,13 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @staticmethod
     def _hash_categories(categories, ordered: Ordered = True) -> int:
+        from pandas.core.dtypes.common import DT64NS_DTYPE, is_datetime64tz_dtype
+
         from pandas.core.util.hashing import (
+            combine_hash_arrays,
             hash_array,
-            _combine_hash_arrays,
             hash_tuples,
         )
-        from pandas.core.dtypes.common import is_datetime64tz_dtype, DT64NS_DTYPE
 
         if len(categories) and isinstance(categories[0], tuple):
             # assumes if any individual category is a tuple, then all our. ATM
@@ -425,7 +441,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             )
         else:
             cat_array = [cat_array]
-        hashed = _combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
+        hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
         return np.bitwise_xor.reduce(hashed)
 
     @classmethod
@@ -437,7 +453,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         -------
         type
         """
-        from pandas import Categorical  # noqa: F811
+        from pandas import Categorical
 
         return Categorical
 
@@ -633,7 +649,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def __init__(self, unit: Union[str_type, "DatetimeTZDtype"] = "ns", tz=None):
         if isinstance(unit, DatetimeTZDtype):
-            unit, tz = unit.unit, unit.tz  # type: ignore
+            # error: "str" has no attribute "tz"
+            unit, tz = unit.unit, unit.tz  # type: ignore[attr-defined]
 
         if unit != "ns":
             if isinstance(unit, str) and tz is None:
@@ -685,7 +702,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import DatetimeArray  # noqa: F811
+        from pandas.core.arrays import DatetimeArray
 
         return DatetimeArray
 
@@ -938,7 +955,8 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         """
         Construct PeriodArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
+
         from pandas.core.arrays import PeriodArray
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
@@ -1135,7 +1153,8 @@ class IntervalDtype(PandasExtensionDtype):
         """
         Construct IntervalArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
+
         from pandas.core.arrays import IntervalArray
 
         if isinstance(array, pyarrow.Array):

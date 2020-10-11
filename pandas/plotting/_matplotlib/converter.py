@@ -1,7 +1,8 @@
 import contextlib
 import datetime as pydt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 import functools
+from typing import Any, Dict, List, Optional, Tuple
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
@@ -16,7 +17,6 @@ from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.offsets import BaseOffset
 
 from pandas.core.dtypes.common import (
-    is_datetime64_ns_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -144,7 +144,7 @@ class TimeConverter(units.ConversionInterface):
         return value
 
     @staticmethod
-    def axisinfo(unit, axis):
+    def axisinfo(unit, axis) -> Optional[units.AxisInfo]:
         if unit != "time":
             return None
 
@@ -153,7 +153,7 @@ class TimeConverter(units.ConversionInterface):
         return units.AxisInfo(majloc=majloc, majfmt=majfmt, label="time")
 
     @staticmethod
-    def default_units(x, axis):
+    def default_units(x, axis) -> str:
         return "time"
 
 
@@ -246,19 +246,6 @@ def get_datevalue(date, freq):
     raise ValueError(f"Unrecognizable date '{date}'")
 
 
-def _dt_to_float_ordinal(dt):
-    """
-    Convert :mod:`datetime` to the Gregorian date as UTC float days,
-    preserving hours, minutes, seconds and microseconds.  Return value
-    is a :func:`float`.
-    """
-    if isinstance(dt, (np.ndarray, Index, Series)) and is_datetime64_ns_dtype(dt):
-        base = dates.epoch2num(dt.asi8 / 1.0e9)
-    else:
-        base = dates.date2num(dt)
-    return base
-
-
 # Datetime Conversion
 class DatetimeConverter(dates.DateConverter):
     @staticmethod
@@ -274,15 +261,11 @@ class DatetimeConverter(dates.DateConverter):
     def _convert_1d(values, unit, axis):
         def try_parse(values):
             try:
-                return _dt_to_float_ordinal(tools.to_datetime(values))
+                return dates.date2num(tools.to_datetime(values))
             except Exception:
                 return values
 
-        if isinstance(values, (datetime, pydt.date)):
-            return _dt_to_float_ordinal(values)
-        elif isinstance(values, np.datetime64):
-            return _dt_to_float_ordinal(Timestamp(values))
-        elif isinstance(values, pydt.time):
+        if isinstance(values, (datetime, pydt.date, np.datetime64, pydt.time)):
             return dates.date2num(values)
         elif is_integer(values) or is_float(values):
             return values
@@ -303,17 +286,15 @@ class DatetimeConverter(dates.DateConverter):
 
             try:
                 values = tools.to_datetime(values)
-                if isinstance(values, Index):
-                    values = _dt_to_float_ordinal(values)
-                else:
-                    values = [_dt_to_float_ordinal(x) for x in values]
             except Exception:
-                values = _dt_to_float_ordinal(values)
+                pass
+
+            values = dates.date2num(values)
 
         return values
 
     @staticmethod
-    def axisinfo(unit, axis):
+    def axisinfo(unit: Optional[tzinfo], axis) -> units.AxisInfo:
         """
         Return the :class:`~matplotlib.units.AxisInfo` for *unit*.
 
@@ -411,8 +392,8 @@ class MilliSecondLocator(dates.DateLocator):
         interval = self._get_interval()
         freq = f"{interval}L"
         tz = self.tz.tzname(None)
-        st = _from_ordinal(dates.date2num(dmin))  # strip tz
-        ed = _from_ordinal(dates.date2num(dmax))
+        st = dmin.replace(tzinfo=None)
+        ed = dmin.replace(tzinfo=None)
         all_dates = date_range(start=st, end=ed, freq=freq, tz=tz).astype(object)
 
         try:
@@ -441,7 +422,7 @@ class MilliSecondLocator(dates.DateLocator):
         return self.nonsingular(vmin, vmax)
 
 
-def _from_ordinal(x, tz=None):
+def _from_ordinal(x, tz: Optional[tzinfo] = None) -> datetime:
     ix = int(x)
     dt = datetime.fromordinal(ix)
     remainder = float(x) - ix
@@ -470,7 +451,7 @@ def _from_ordinal(x, tz=None):
 # -------------------------------------------------------------------------
 
 
-def _get_default_annual_spacing(nyears):
+def _get_default_annual_spacing(nyears) -> Tuple[int, int]:
     """
     Returns a default spacing between consecutive ticks for annual data.
     """
@@ -492,7 +473,7 @@ def _get_default_annual_spacing(nyears):
     return (min_spacing, maj_spacing)
 
 
-def period_break(dates, period):
+def period_break(dates: PeriodIndex, period: str) -> np.ndarray:
     """
     Returns the indices where the given period changes.
 
@@ -508,7 +489,7 @@ def period_break(dates, period):
     return np.nonzero(current - previous)[0]
 
 
-def has_level_label(label_flags, vmin):
+def has_level_label(label_flags: np.ndarray, vmin: float) -> bool:
     """
     Returns true if the ``label_flags`` indicate there is at least one label
     for this level.
@@ -1003,19 +984,25 @@ class TimeSeries_DateFormatter(Formatter):
     ----------
     freq : {int, string}
         Valid frequency specifier.
-    minor_locator : {False, True}
+    minor_locator : bool, default False
         Whether the current formatter should apply to minor ticks (True) or
         major ticks (False).
-    dynamic_mode : {True, False}
+    dynamic_mode : bool, default True
         Whether the formatter works in dynamic mode or not.
     """
 
-    def __init__(self, freq, minor_locator=False, dynamic_mode=True, plot_obj=None):
+    def __init__(
+        self,
+        freq,
+        minor_locator: bool = False,
+        dynamic_mode: bool = True,
+        plot_obj=None,
+    ):
         freq = to_offset(freq)
         self.format = None
         self.freq = freq
-        self.locs = []
-        self.formatdict = None
+        self.locs: List[Any] = []  # unused, for matplotlib compat
+        self.formatdict: Optional[Dict[Any, Any]] = None
         self.isminor = minor_locator
         self.isdynamic = dynamic_mode
         self.offset = 0

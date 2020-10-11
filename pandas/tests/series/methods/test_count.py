@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import Categorical, MultiIndex, Series
@@ -6,6 +7,13 @@ import pandas._testing as tm
 
 
 class TestSeriesCount:
+    def test_count_level_without_multiindex(self):
+        ser = pd.Series(range(3))
+
+        msg = "Series.count level is only valid with a MultiIndex"
+        with pytest.raises(ValueError, match=msg):
+            ser.count(level=1)
+
     def test_count(self, datetime_series):
         assert datetime_series.count() == len(datetime_series)
 

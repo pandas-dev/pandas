@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
+from pandas import DataFrame, Index, IndexSlice, MultiIndex, Series, concat, date_range
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -218,6 +218,27 @@ def test_xs_level_series_slice_not_implemented(
     msg = r"\(2000, slice\(3, 4, None\)\)"
     with pytest.raises(TypeError, match=msg):
         s[2000, 3:4]
+
+
+def test_xs_IndexSlice_argument_not_implemented():
+    # GH 35301
+
+    index = MultiIndex(
+        levels=[[("foo", "bar", 0), ("foo", "baz", 0), ("foo", "qux", 0)], [0, 1]],
+        codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+    )
+
+    series = Series(np.random.randn(6), index=index)
+    frame = DataFrame(np.random.randn(6, 4), index=index)
+
+    msg = (
+        "Expected label or tuple of labels, got "
+        r"\(\('foo', 'qux', 0\), slice\(None, None, None\)\)"
+    )
+    with pytest.raises(TypeError, match=msg):
+        frame.xs(IndexSlice[("foo", "qux", 0), :])
+    with pytest.raises(TypeError, match=msg):
+        series.xs(IndexSlice[("foo", "qux", 0), :])
 
 
 def test_series_getitem_multiindex_xs():

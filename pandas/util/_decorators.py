@@ -278,6 +278,9 @@ def deprecate_nonkeyword_arguments(
             allow_args = allowed_args
         else:
             spec = inspect.getfullargspec(func)
+
+            # We must have some defaults if we are deprecating default-less
+            assert spec.defaults is not None  # for mypy
             allow_args = spec.args[: -len(spec.defaults)]
 
         @wraps(func)
@@ -323,7 +326,8 @@ def rewrite_axis_style_signature(
         sig = inspect.Signature(params)
 
         # https://github.com/python/typing/issues/598
-        func.__signature__ = sig  # type: ignore
+        # error: "F" has no attribute "__signature__"
+        func.__signature__ = sig  # type: ignore[attr-defined]
         return cast(F, wrapper)
 
     return decorate
@@ -357,8 +361,12 @@ def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
 
         for docstring in docstrings:
             if hasattr(docstring, "_docstring_components"):
+                # error: Item "str" of "Union[str, Callable[..., Any]]" has no
+                # attribute "_docstring_components"  [union-attr]
+                # error: Item "function" of "Union[str, Callable[..., Any]]"
+                # has no attribute "_docstring_components"  [union-attr]
                 docstring_components.extend(
-                    docstring._docstring_components  # type: ignore
+                    docstring._docstring_components  # type: ignore[union-attr]
                 )
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
@@ -373,7 +381,10 @@ def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
             ]
         )
 
-        decorated._docstring_components = docstring_components  # type: ignore
+        # error: "F" has no attribute "_docstring_components"
+        decorated._docstring_components = (  # type: ignore[attr-defined]
+            docstring_components
+        )
         return decorated
 
     return decorator

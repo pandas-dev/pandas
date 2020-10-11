@@ -33,8 +33,8 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-min_numpy_ver = "1.15.4"
-min_cython_ver = "0.29.16"  # note: sync with pyproject.toml
+min_numpy_ver = "1.16.5"
+min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
 
 try:
     import Cython
@@ -51,8 +51,8 @@ except ImportError:
 # The import of Extension must be after the import of Cython, otherwise
 # we do not get the appropriately patched class.
 # See https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html # noqa
-from distutils.extension import Extension  # noqa: E402 isort:skip
-from distutils.command.build import build  # noqa: E402 isort:skip
+from distutils.extension import Extension  # isort:skip
+from distutils.command.build import build  # isort:skip
 
 if _CYTHON_INSTALLED:
     from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
@@ -99,7 +99,7 @@ class build_ext(_build_ext):
                 # if .pxi.in is not updated, no need to output .pxi
                 continue
 
-            with open(pxifile, "r") as f:
+            with open(pxifile) as f:
                 tmpl = f.read()
             pyxcontent = tempita.sub(tmpl)
 
@@ -197,9 +197,9 @@ CLASSIFIERS = [
     "Intended Audience :: Science/Research",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Cython",
     "Topic :: Scientific/Engineering",
 ]
@@ -387,8 +387,7 @@ class CythonCommand(build_ext):
 
 
 class DummyBuildSrc(Command):
-    """ numpy's build_src command interferes with Cython's build_ext.
-    """
+    """numpy's build_src command interferes with Cython's build_ext."""
 
     user_options = []
 
@@ -456,6 +455,9 @@ if is_platform_mac():
 
     if sys.version_info[:2] == (3, 8):  # GH 33239
         extra_compile_args.append("-Wno-error=deprecated-declarations")
+
+    # https://github.com/pandas-dev/pandas/issues/35559
+    extra_compile_args.append("-Wno-error=unreachable-code")
 
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
@@ -742,7 +744,7 @@ def setup_package():
     setuptools_kwargs = {
         "install_requires": [
             "python-dateutil >= 2.7.3",
-            "pytz >= 2017.2",
+            "pytz >= 2017.3",
             f"numpy >= {min_numpy_ver}",
         ],
         "setup_requires": [f"numpy >= {min_numpy_ver}"],
@@ -766,11 +768,11 @@ def setup_package():
         long_description=LONG_DESCRIPTION,
         classifiers=CLASSIFIERS,
         platforms="any",
-        python_requires=">=3.6.1",
+        python_requires=">=3.7.1",
         extras_require={
             "test": [
                 # sync with setup.cfg minversion & install.rst
-                "pytest>=4.0.2",
+                "pytest>=5.0.1",
                 "pytest-xdist",
                 "hypothesis>=3.58",
             ]

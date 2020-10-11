@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas._libs import Interval, Period, algos
 from pandas._libs.tslibs import conversion
-from pandas._typing import ArrayLike, DtypeObj
+from pandas._typing import ArrayLike, DtypeObj, Optional
 
 from pandas.core.dtypes.base import registry
 from pandas.core.dtypes.dtypes import (
@@ -43,7 +43,7 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_sequence,
 )
 
-_POSSIBLY_CAST_DTYPES = {
+POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name
     for t in [
         "O",
@@ -83,7 +83,12 @@ def ensure_float(arr):
     float_arr : The original array cast to the float dtype if
                 possible. Otherwise, the original array is returned.
     """
-    if issubclass(arr.dtype.type, (np.integer, np.bool_)):
+    if is_extension_array_dtype(arr.dtype):
+        if is_float_dtype(arr.dtype):
+            arr = arr.to_numpy(dtype=arr.dtype.numpy_dtype, na_value=np.nan)
+        else:
+            arr = arr.to_numpy(dtype="float64", na_value=np.nan)
+    elif issubclass(arr.dtype.type, (np.integer, np.bool_)):
         arr = arr.astype(float)
     return arr
 
@@ -108,7 +113,7 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     return value
 
 
-def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
+def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
     """
     Ensure that an dtype array of some integer dtype
     has an int64 dtype if possible.
@@ -136,11 +141,13 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.array:
     """
     # TODO: GH27506 potential bug with ExtensionArrays
     try:
-        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore
+        # error: Unexpected keyword argument "casting" for "astype"
+        return arr.astype("int64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         pass
     try:
-        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore
+        # error: Unexpected keyword argument "casting" for "astype"
+        return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         if is_extension_array_dtype(arr.dtype):
             return arr.to_numpy(dtype="float64", na_value=np.nan)
@@ -633,8 +640,8 @@ def is_dtype_equal(source, target) -> bool:
     False
     """
     try:
-        source = _get_dtype(source)
-        target = _get_dtype(target)
+        source = get_dtype(source)
+        target = get_dtype(target)
         return source == target
     except (TypeError, AttributeError):
 
@@ -982,10 +989,10 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     if arr_or_dtype is None:
         return False
     try:
-        tipo = _get_dtype(arr_or_dtype)
+        tipo = get_dtype(arr_or_dtype)
     except TypeError:
         if is_datetime64tz_dtype(arr_or_dtype):
-            tipo = _get_dtype(arr_or_dtype.dtype)
+            tipo = get_dtype(arr_or_dtype.dtype)
         else:
             return False
     return tipo == DT64NS_DTYPE or getattr(tipo, "base", None) == DT64NS_DTYPE
@@ -1213,6 +1220,10 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
     """
     if arr_or_dtype is None:
         return False
+    if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
+        # fastpath
+        dtype = arr_or_dtype
+        return dtype.kind in ["m", "M"] or dtype.type is Period
     return (
         is_datetime_or_timedelta_dtype(arr_or_dtype)
         or is_datetime64tz_dtype(arr_or_dtype)
@@ -1370,7 +1381,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     if arr_or_dtype is None:
         return False
     try:
-        dtype = _get_dtype(arr_or_dtype)
+        dtype = get_dtype(arr_or_dtype)
     except TypeError:
         return False
 
@@ -1386,8 +1397,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # guess this
         return arr_or_dtype.is_object and arr_or_dtype.inferred_type == "boolean"
     elif is_extension_array_dtype(arr_or_dtype):
-        dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)
-        return dtype._is_boolean
+        return getattr(arr_or_dtype, "dtype", arr_or_dtype)._is_boolean
 
     return issubclass(dtype.type, np.bool_)
 
@@ -1556,13 +1566,13 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
     if arr_or_dtype is None:
         return False
     try:
-        dtype = _get_dtype(arr_or_dtype)
+        dtype = get_dtype(arr_or_dtype)
     except (TypeError, ValueError, UnicodeEncodeError):
         return False
     return condition(dtype)
 
 
-def _get_dtype(arr_or_dtype) -> DtypeObj:
+def get_dtype(arr_or_dtype) -> DtypeObj:
     """
     Get the dtype instance associated with an array
     or dtype object.
@@ -1693,7 +1703,7 @@ def infer_dtype_from_object(dtype):
         try:
             return infer_dtype_from_object(getattr(np, dtype))
         except (AttributeError, TypeError):
-            # Handles cases like _get_dtype(int) i.e.,
+            # Handles cases like get_dtype(int) i.e.,
             # Python objects that are valid dtypes
             # (unlike user-defined types, in general)
             #
@@ -1728,6 +1738,32 @@ def _validate_date_like_dtype(dtype) -> None:
             f"{repr(dtype.name)} is too specific of a frequency, "
             f"try passing {repr(dtype.type.__name__)}"
         )
+
+
+def validate_all_hashable(*args, error_name: Optional[str] = None) -> None:
+    """
+    Return None if all args are hashable, else raise a TypeError.
+
+    Parameters
+    ----------
+    *args
+        Arguments to validate.
+    error_name : str, optional
+        The name to use if error
+
+    Raises
+    ------
+    TypeError : If an argument is not hashable
+
+    Returns
+    -------
+    None
+    """
+    if not all(is_hashable(arg) for arg in args):
+        if error_name:
+            raise TypeError(f"{error_name} must be a hashable type")
+        else:
+            raise TypeError("All elements must be hashable")
 
 
 def pandas_dtype(dtype) -> DtypeObj:
