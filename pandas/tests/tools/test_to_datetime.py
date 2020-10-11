@@ -832,7 +832,7 @@ class TestToDatetime:
 
         msg = (
             "is a bad directive in format|"
-            "second must be in 0..59: 00:01:99|"
+            "second must be in 0..59|"
             "Given date string not likely a datetime"
         )
         with pytest.raises(ValueError, match=msg):
@@ -886,7 +886,7 @@ class TestToDatetime:
         msg = (
             "is a bad directive in format|"
             "Given date string not likely a datetime|"
-            "second must be in 0..59: 00:01:99"
+            "second must be in 0..59"
         )
         with pytest.raises(ValueError, match=msg):
             pd.to_datetime(
@@ -1660,7 +1660,11 @@ class TestToDatetimeMisc:
         # gh-17637
         # we are overflowing Timedelta range here
 
-        msg = "Python int too large to convert to C long"
+        msg = (
+            "(Python int too large to convert to C long)|"
+            "(long too big to convert)|"
+            "(int too big to convert)"
+        )
         with pytest.raises(OverflowError, match=msg):
             date_range(start="1/1/1700", freq="B", periods=100000)
 
