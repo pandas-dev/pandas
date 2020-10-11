@@ -876,7 +876,7 @@ def test_rolling_period_index(index, window, func, values):
         ("var", 1, [5e33, 0, 0.5, 0.5, 2, 0]),
         ("std", 1, [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0]),
         ("var", 2, [5e33, 0.5, 0, 0.5, 2, 0]),
-        ("std", 2, [7.071068e16, 0.7071068, 0,  0.7071068, 1.414214, 0]),
+        ("std", 2, [7.071068e16, 0.7071068, 0, 0.7071068, 1.414214, 0]),
     ],
 )
 def test_rolling_var_numerical_issues(func, third_value, values):
