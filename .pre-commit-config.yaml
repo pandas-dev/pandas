@@ -9,24 +9,23 @@ repos:
     -   id: flake8
         additional_dependencies: [flake8-comprehensions>=3.1.0]
     -   id: flake8
-        name: flake8-pyx
-        files: \.(pyx|pxd)$
-        types:
-          - file
+        name: flake8 (cython)
+        types: [cython]
         args: [--append-config=flake8/cython.cfg]
     -   id: flake8
-        name: flake8-pxd
+        name: flake8 (cython template)
         files: \.pxi\.in$
         types:
           - file
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.6.0
+    rev: 5.6.3
     hooks:
     -   id: isort
-        exclude: ^pandas/__init__\.py$|^pandas/core/api\.py$
-        files: '.pxd$|.py$'
-        types: [file]
+        name: isort (python)
+    -   id: isort
+        name: isort (cython)
+        types: [cython]
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.7.2
     hooks:
@@ -41,10 +40,19 @@ repos:
     -   id: pip_to_conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
-        language: system
+        language: python
         entry: python -m scripts.generate_pip_deps_from_conda
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
+        additional_dependencies: [pyyaml]
+    -   id: flake8-rst
+        name: flake8-rst
+        description: Run flake8 on code snippets in docstrings or RST files
+        language: python
+        entry: flake8-rst
+        types: [rst]
+        args: [--filename=*.rst]
+        additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
