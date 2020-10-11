@@ -28,7 +28,7 @@ class TestCategoricalSeries:
         df = pd.DataFrame(
             {
                 "int": [0, 1, 2],
-                "cat": Categorical(["a", "b", "c"], categories=["a", "b", "c"]),
+                "cat": Categorical(["a", "b", "c"], categories=["a", "b", "c"])
             }
         )
         msg = "Cannot setitem on a Categorical with a new category"
@@ -39,7 +39,7 @@ class TestCategoricalSeries:
         df = pd.DataFrame(
             {
                 "int": [0, 1, 2],
-                "cat": pd.Categorical(["a", "b", "c"], categories=["a", "b", "c"]),
+                "cat": pd.Categorical(["a", "b", "c"], categories=["a", "b", "c"])
             }
         )
         df.loc[3] = [3, "c"]
@@ -47,7 +47,7 @@ class TestCategoricalSeries:
         expected = pd.DataFrame(
             {
                 "int": [0, 1, 2, 3],
-                "cat": pd.Categorical(["a", "b", "c", "c"], categories=["a", "b", "c"]),
+                "cat": pd.Categorical(["a", "b", "c", "c"], categories=["a", "b", "c"])
             }
         )
         
