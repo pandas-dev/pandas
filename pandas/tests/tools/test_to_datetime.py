@@ -832,7 +832,7 @@ class TestToDatetime:
 
         msg = (
             "is a bad directive in format|"
-            "second must be in 0..59: 00:01:99|"
+            "second must be in 0..59|"
             "Given date string not likely a datetime"
         )
         with pytest.raises(ValueError, match=msg):
@@ -886,7 +886,7 @@ class TestToDatetime:
         msg = (
             "is a bad directive in format|"
             "Given date string not likely a datetime|"
-            "second must be in 0..59: 00:01:99"
+            "second must be in 0..59"
         )
         with pytest.raises(ValueError, match=msg):
             pd.to_datetime(
