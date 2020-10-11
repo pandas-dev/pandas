@@ -12,7 +12,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.series import Series
 
 
 def _put_str(s: Union[str, Dtype], space: int) -> str:
@@ -288,7 +288,11 @@ class DataFrameInfo(BaseInfo):
         len_column = len(pprint_thing(column_head))
         space = max(max_col, len_column) + col_space
 
-        max_id = len(pprint_thing(col_count))
+        # GH #36765
+        # add one space in max_id because there is a one-space padding
+        # in front of the number
+        # this allows maintain two spaces gap between columns
+        max_id = len(pprint_thing(col_count)) + 1
         len_id = len(pprint_thing(id_head))
         space_num = max(max_id, len_id) + col_space
 

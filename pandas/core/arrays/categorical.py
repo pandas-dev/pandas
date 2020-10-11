@@ -28,6 +28,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_hashable,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
@@ -62,8 +63,9 @@ def _cat_compare_op(op):
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
-        if is_list_like(other) and len(other) != len(self):
-            # TODO: Could this fail if the categories are listlike objects?
+        hashable = is_hashable(other)
+        if is_list_like(other) and len(other) != len(self) and not hashable:
+            # in hashable case we may have a tuple that is itself a category
             raise ValueError("Lengths must match.")
 
         if not self.ordered:
@@ -91,7 +93,7 @@ def _cat_compare_op(op):
                 ret[mask] = fill_value
             return ret
 
-        if is_scalar(other):
+        if hashable:
             if other in self.categories:
                 i = self._unbox_scalar(other)
                 ret = op(self._codes, i)
@@ -288,6 +290,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # tolist is not actually deprecated, just suppressed in the __dir__
     _deprecations = PandasObject._deprecations | frozenset(["tolist"])
     _typ = "categorical"
+    _can_hold_na = True
 
     def __init__(
         self, values, categories=None, ordered=None, dtype=None, fastpath=False
@@ -720,8 +723,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        Categorical
-            Ordered Categorical.
+        Categorical or None
+            Ordered Categorical or None if ``inplace=True``.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         return self.set_ordered(True, inplace=inplace)
@@ -738,8 +741,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        Categorical
-            Unordered Categorical.
+        Categorical or None
+            Unordered Categorical or None if ``inplace=True``.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         return self.set_ordered(False, inplace=inplace)
@@ -845,8 +848,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Returns
         -------
         cat : Categorical or None
-           With ``inplace=False``, the new categorical is returned.
-           With ``inplace=True``, there is no return value.
+            Categorical with removed categories or None if ``inplace=True``.
 
         Raises
         ------
@@ -914,7 +916,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical with reordered categories or None if inplace.
+        cat : Categorical or None
+            Categorical with removed categories or None if ``inplace=True``.
 
         Raises
         ------
@@ -954,7 +957,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical with new categories added or None if inplace.
+        cat : Categorical or None
+            Categorical with new categories added or None if ``inplace=True``.
 
         Raises
         ------
@@ -1004,7 +1008,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical with removed categories or None if inplace.
+        cat : Categorical or None
+            Categorical with removed categories or None if ``inplace=True``.
 
         Raises
         ------
@@ -1051,7 +1056,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        cat : Categorical with unused categories dropped or None if inplace.
+        cat : Categorical or None
+            Categorical with unused categories dropped or None if ``inplace=True``.
 
         See Also
         --------
@@ -1268,10 +1274,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             setattr(self, k, v)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return self._codes.nbytes + self.dtype.categories.values.nbytes
 
-    def memory_usage(self, deep=False):
+    def memory_usage(self, deep: bool = False) -> int:
         """
         Memory usage of my values
 
@@ -1884,7 +1890,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             new_codes = self._validate_listlike(value)
             value = Categorical.from_codes(new_codes, dtype=self.dtype)
 
-        rvalue = value if is_list_like(value) else [value]
+        # wrap scalars and hashable-listlikes in list
+        rvalue = value if not is_hashable(value) else [value]
 
         from pandas import Index
 
@@ -2143,10 +2150,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             other_codes = self._validate_listlike(other)
             return np.array_equal(self._codes, other_codes)
         return False
-
-    @property
-    def _can_hold_na(self):
-        return True
 
     @classmethod
     def _concat_same_type(self, to_concat):

@@ -513,7 +513,11 @@ The ordering of the categorical is determined by the ``categories`` of that colu
 
    dfs = pd.DataFrame(
        {
-           "A": pd.Categorical(list("bbeebbaa"), categories=["e", "a", "b"], ordered=True),
+           "A": pd.Categorical(
+               list("bbeebbaa"),
+               categories=["e", "a", "b"],
+               ordered=True,
+           ),
            "B": [1, 2, 1, 2, 2, 1, 2, 1],
        }
    )
@@ -618,6 +622,19 @@ even if some categories are not present in the data:
     s = pd.Series(pd.Categorical(["a", "b", "c", "c"], categories=["c", "a", "b", "d"]))
     s.value_counts()
 
+``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories.
+
+.. ipython:: python
+
+    columns = pd.Categorical(
+        ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
+    )
+    df = pd.DataFrame(
+        data=[[1, 2, 3], [4, 5, 6]],
+        columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]),
+    )
+    df.sum(axis=1, level=1)
+
 Groupby will also show "unused" categories:
 
 .. ipython:: python
@@ -629,7 +646,13 @@ Groupby will also show "unused" categories:
     df.groupby("cats").mean()
 
     cats2 = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
-    df2 = pd.DataFrame({"cats": cats2, "B": ["c", "d", "c", "d"], "values": [1, 2, 3, 4]})
+    df2 = pd.DataFrame(
+        {
+            "cats": cats2,
+            "B": ["c", "d", "c", "d"],
+            "values": [1, 2, 3, 4],
+        }
+    )
     df2.groupby(["cats", "B"]).mean()
 
 
@@ -998,7 +1021,7 @@ The following differences to R's factor functions can be observed:
 * In contrast to R's ``factor`` function, using categorical data as the sole input to create a
   new categorical series will *not* remove unused categories but create a new categorical series
   which is equal to the passed in one!
-* R allows for missing values to be included in its ``levels`` (pandas' ``categories``). Pandas
+* R allows for missing values to be included in its ``levels`` (pandas' ``categories``). pandas
   does not allow ``NaN`` categories, but missing values can still be in the ``values``.
 
 
@@ -1094,7 +1117,7 @@ are not numeric data (even in the case that ``.categories`` is numeric).
 dtype in apply
 ~~~~~~~~~~~~~~
 
-Pandas currently does not preserve the dtype in apply functions: If you apply along rows you get
+pandas currently does not preserve the dtype in apply functions: If you apply along rows you get
 a ``Series`` of ``object`` ``dtype`` (same as getting a row -> getting one element will return a
 basic type) and applying along columns will also convert to object. ``NaN`` values are unaffected.
 You can use ``fillna`` to handle missing values before applying a function.
@@ -1102,7 +1125,11 @@ You can use ``fillna`` to handle missing values before applying a function.
 .. ipython:: python
 
     df = pd.DataFrame(
-        {"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"], "cats": pd.Categorical([1, 2, 3, 2])}
+        {
+            "a": [1, 2, 3, 4],
+            "b": ["a", "b", "c", "d"],
+            "cats": pd.Categorical([1, 2, 3, 2]),
+        }
     )
     df.apply(lambda row: type(row["cats"]), axis=1)
     df.apply(lambda col: col.dtype, axis=0)

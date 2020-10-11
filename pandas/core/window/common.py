@@ -58,14 +58,12 @@ class WindowGroupByMixin(GotItemMixin):
         self._groupby.grouper.mutated = True
         super().__init__(obj, *args, **kwargs)
 
-    count = _dispatch("count")
     corr = _dispatch("corr", other=None, pairwise=None)
     cov = _dispatch("cov", other=None, pairwise=None)
 
     def _apply(
         self,
         func: Callable,
-        center: bool,
         require_min_periods: int = 0,
         floor: int = 1,
         is_weighted: bool = False,
