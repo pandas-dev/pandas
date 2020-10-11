@@ -14,7 +14,6 @@ import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex, SparseIndex
 from pandas._libs.tslibs import NaT
 from pandas._typing import Scalar
-import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 
@@ -41,7 +40,7 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -50,7 +49,6 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import interpolate_2d
 from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
-from pandas.core.ops.common import unpack_zerodim_and_defer
 
 import pandas.io.formats.printing as printing
 
@@ -196,7 +194,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     )
 
 
-class SparseArray(OpsMixin, PandasObject, ExtensionArray, ExtensionOpsMixin):
+class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
     An ExtensionArray for storing sparse data.
 
@@ -1375,48 +1373,39 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray, ExtensionOpsMixin):
     # Ops
     # ------------------------------------------------------------------------
 
-    @classmethod
-    def _create_arithmetic_method(cls, op):
+    def _arith_method(self, other, op):
         op_name = op.__name__
 
-        @unpack_zerodim_and_defer(op_name)
-        def sparse_arithmetic_method(self, other):
+        if isinstance(other, SparseArray):
+            return _sparse_array_op(self, other, op, op_name)
 
-            if isinstance(other, SparseArray):
-                return _sparse_array_op(self, other, op, op_name)
+        elif is_scalar(other):
+            with np.errstate(all="ignore"):
+                fill = op(_get_fill(self), np.asarray(other))
+                result = op(self.sp_values, other)
 
-            elif is_scalar(other):
-                with np.errstate(all="ignore"):
-                    fill = op(_get_fill(self), np.asarray(other))
-                    result = op(self.sp_values, other)
+            if op_name == "divmod":
+                left, right = result
+                lfill, rfill = fill
+                return (
+                    _wrap_result(op_name, left, self.sp_index, lfill),
+                    _wrap_result(op_name, right, self.sp_index, rfill),
+                )
 
-                if op_name == "divmod":
-                    left, right = result
-                    lfill, rfill = fill
-                    return (
-                        _wrap_result(op_name, left, self.sp_index, lfill),
-                        _wrap_result(op_name, right, self.sp_index, rfill),
+            return _wrap_result(op_name, result, self.sp_index, fill)
+
+        else:
+            other = np.asarray(other)
+            with np.errstate(all="ignore"):
+                # TODO: look into _wrap_result
+                if len(self) != len(other):
+                    raise AssertionError(
+                        f"length mismatch: {len(self)} vs. {len(other)}"
                     )
-
-                return _wrap_result(op_name, result, self.sp_index, fill)
-
-            else:
-                other = np.asarray(other)
-                with np.errstate(all="ignore"):
-                    # TODO: look into _wrap_result
-                    if len(self) != len(other):
-                        raise AssertionError(
-                            f"length mismatch: {len(self)} vs. {len(other)}"
-                        )
-                    if not isinstance(other, SparseArray):
-                        dtype = getattr(other, "dtype", None)
-                        other = SparseArray(
-                            other, fill_value=self.fill_value, dtype=dtype
-                        )
-                    return _sparse_array_op(self, other, op, op_name)
-
-        name = f"__{op.__name__}__"
-        return compat.set_function_name(sparse_arithmetic_method, name, cls)
+                if not isinstance(other, SparseArray):
+                    dtype = getattr(other, "dtype", None)
+                    other = SparseArray(other, fill_value=self.fill_value, dtype=dtype)
+                return _sparse_array_op(self, other, op, op_name)
 
     def _cmp_method(self, other, op) -> "SparseArray":
         if not is_scalar(other) and not isinstance(other, type(self)):
@@ -1474,9 +1463,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray, ExtensionOpsMixin):
         # Defer to the formatter from the GenericArrayFormatter calling us.
         # This will infer the correct formatter from the dtype of the values.
         return None
-
-
-SparseArray._add_arithmetic_ops()
 
 
 def make_sparse(arr: np.ndarray, kind="block", fill_value=None, dtype=None):
