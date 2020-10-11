@@ -1,5 +1,6 @@
 from operator import le, lt
 import textwrap
+from typing import TYPE_CHECKING, Optional, Tuple, Union, cast
 
 import numpy as np
 
@@ -11,6 +12,7 @@ from pandas._libs.interval import (
     IntervalMixin,
     intervals_to_interval_bounds,
 )
+from pandas._typing import ArrayLike, Dtype
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
@@ -18,6 +20,7 @@ from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_any_dtype,
+    is_dtype_equal,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -45,6 +48,10 @@ import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
+
+if TYPE_CHECKING:
+    from pandas import Index
+    from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
 _interval_shared_docs = {}
 
@@ -1346,9 +1353,14 @@ def maybe_convert_platform_interval(values):
     return maybe_convert_platform(values)
 
 
-def _maybe_cast_inputs(left, right, copy, dtype):
-    left = ensure_index(left, copy=copy)
-    right = ensure_index(right, copy=copy)
+def _maybe_cast_inputs(
+    left_orig: Union["Index", ArrayLike],
+    right_orig: Union["Index", ArrayLike],
+    copy: bool,
+    dtype: Optional[Dtype],
+) -> Tuple["Index", "Index"]:
+    left = ensure_index(left_orig, copy=copy)
+    right = ensure_index(right_orig, copy=copy)
 
     if dtype is not None:
         # GH#19262: dtype must be an IntervalDtype to override inferred
@@ -1356,7 +1368,8 @@ def _maybe_cast_inputs(left, right, copy, dtype):
         if not is_interval_dtype(dtype):
             msg = f"dtype must be an IntervalDtype, got {dtype}"
             raise TypeError(msg)
-        elif dtype.subtype is not None:
+        dtype = cast(IntervalDtype, dtype)
+        if dtype.subtype is not None:
             left = left.astype(dtype.subtype)
             right = right.astype(dtype.subtype)
 
@@ -1382,18 +1395,23 @@ def _maybe_cast_inputs(left, right, copy, dtype):
     elif isinstance(left, ABCPeriodIndex):
         msg = "Period dtypes are not supported, use a PeriodIndex instead"
         raise ValueError(msg)
-    elif isinstance(left, ABCDatetimeIndex) and str(left.tz) != str(right.tz):
-        # TODO: use tz_compare?
+    elif isinstance(left, ABCDatetimeIndex) and not is_dtype_equal(
+        left.dtype, right.dtype
+    ):
+        left_arr = cast("DatetimeArray", left._data)
+        right_arr = cast("DatetimeArray", right._data)
         msg = (
             "left and right must have the same time zone, got "
-            f"'{left.tz}' and '{right.tz}'"
+            f"'{left_arr.tz}' and '{right_arr.tz}'"
         )
         raise ValueError(msg)
 
     return left, right
 
 
-def _get_combined_data(left, right):
+def _get_combined_data(
+    left: Union["Index", ArrayLike], right: Union["Index", ArrayLike]
+) -> Union[np.ndarray, "DatetimeArray", "TimedeltaArray"]:
     # For dt64/td64 we want DatetimeArray/TimedeltaArray instead of ndarray
     from pandas.core.ops.array_ops import maybe_upcast_datetimelike_array
 
@@ -1409,11 +1427,14 @@ def _get_combined_data(left, right):
         right = right.copy()
 
     if isinstance(left, np.ndarray):
+        assert isinstance(right, np.ndarray)  # for mypy
         combined = np.concatenate(
             [left.reshape(-1, 1), right.reshape(-1, 1)],
             axis=1,
         )
     else:
+        left = cast(Union["DatetimeArray", "TimedeltaArray"], left)
+        right = cast(Union["DatetimeArray", "TimedeltaArray"], right)
         combined = type(left)._concat_same_type(
             [left.reshape(-1, 1), right.reshape(-1, 1)],
             axis=1,
