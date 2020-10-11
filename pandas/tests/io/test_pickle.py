@@ -25,7 +25,7 @@ import zipfile
 
 import pytest
 
-from pandas.compat import get_lzma_file, import_lzma, is_platform_little_endian, PY38
+from pandas.compat import PY38, get_lzma_file, import_lzma, is_platform_little_endian
 import pandas.util._test_decorators as td
 
 import pandas as pd
