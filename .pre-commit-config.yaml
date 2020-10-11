@@ -23,7 +23,6 @@ repos:
     hooks:
     -   id: isort
         name: isort (python)
-        types: [python]
     -   id: isort
         name: isort (cython)
         types: [cython]
