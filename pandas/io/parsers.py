@@ -796,7 +796,7 @@ class TextFileReader(abc.Iterator):
             dialect = kwds["dialect"]
             if dialect in csv.list_dialects():
                 dialect = csv.get_dialect(dialect)
-            kwds = _merge_with_dialect_properties(kwds, dialect)
+            kwds = _merge_with_dialect_properties(dialect, kwds)
 
         if kwds.get("header", "infer") == "infer":
             kwds["header"] = 0 if kwds.get("names") is None else None
@@ -3738,18 +3738,18 @@ def _check_defaults_read(
 
 
 def _merge_with_dialect_properties(
-    kwds: Dict[str, Any],
     dialect: csv.Dialect,
+    defaults: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
-    Merge kwargs in TextFileReader with dialect parameters.
+    Merge default kwargs in TextFileReader with dialect parameters.
 
     Parameters
     ----------
-    kwds : dict
-        Keyword arguments passed to TextFileReader.
     dialect : csv.Dialect
         Concrete csv dialect. See csv.Dialect documentation for more details.
+    defaults : dict
+        Keyword arguments passed to TextFileReader.
 
     Returns
     -------
@@ -3761,6 +3761,8 @@ def _merge_with_dialect_properties(
     ValueError
         If incorrect dialect is provided.
     """
+    kwds = defaults.copy()
+
     # Any valid dialect should have these attributes.
     # If any are missing, we will raise automatically.
     mandatory_dialect_attrs = (
