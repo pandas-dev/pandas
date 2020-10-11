@@ -1621,7 +1621,7 @@ class RollingAndExpandingMixin(BaseWindow):
     0         NaN
     1    0.707107
     2    0.707107
-    3    0.707107
+    3    0.745356
     dtype: float64
     """
     )
