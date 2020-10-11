@@ -1311,7 +1311,7 @@ class GenericArrayFormatter:
             float_format = get_option("display.float_format")
             if float_format is None:
                 precision = get_option("display.precision")
-                float_format = lambda x: f"{x: .{precision:d}g}"
+                float_format = lambda x: f"{x: .{precision:d}f}"
         else:
             float_format = self.float_format
 
@@ -1371,6 +1371,8 @@ class GenericArrayFormatter:
                 else:
                     tpl = " {v}"
                 fmt_values.append(tpl.format(v=_format(v)))
+
+        fmt_values = _trim_zeros_float(str_floats=fmt_values, decimal=".")
 
         return fmt_values
 
