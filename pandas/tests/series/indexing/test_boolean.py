@@ -139,3 +139,8 @@ def test_getitem_boolean_dt64_copies():
 
     res = ser[key]
     assert res._values._data.base is None
+
+    # compare with numeric case for reference
+    ser2 = Series(range(4))
+    res2 = ser2[key]
+    assert res2._values.base is None
