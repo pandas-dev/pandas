@@ -481,7 +481,9 @@ def _should_reindex_frame_op(
         # TODO: any other cases we should handle here?
         cols = left.columns.intersection(right.columns)
 
-        if len(cols) and not (cols.equals(left.columns) and cols.equals(right.columns)):
+        if len(cols) and not (
+            cols.equals(left.columns.unique()) and cols.equals(right.columns.unique())
+        ):
             # TODO: is there a shortcut available when len(cols) == 0?
             return True
 
