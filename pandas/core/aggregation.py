@@ -608,92 +608,41 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
 
         from pandas.core.reshape.concat import concat
 
-        def _agg_1dim(name, how, subset=None):
-            """
-            aggregate a 1-dim with how
-            """
-            colg = obj._gotitem(name, ndim=1, subset=subset)
-            if colg.ndim != 1:
-                raise SpecificationError(
-                    "nested dictionary is ambiguous in aggregation"
-                )
-            return colg.aggregate(how)
-
-        def _agg_2dim(how):
-            """
-            aggregate a 2-dim with how
-            """
-            colg = obj._gotitem(obj._selection, ndim=2, subset=selected_obj)
-            return colg.aggregate(how)
-
-        def _agg(arg, func):
-            """
-            run the aggregations over the arg with func
-            return a dict
-            """
-            result = {}
-            for fname, agg_how in arg.items():
-                result[fname] = func(fname, agg_how)
-            return result
+        if selected_obj.ndim == 1:
+            # key only used for output
+            colg = obj._gotitem(obj._selection, ndim=1)
+            results = {key: colg.agg(how) for key, how in arg.items()}
+        else:
+            # key used for column selection and output
+            results = {
+                key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+            }
 
         # set the final keys
         keys = list(arg.keys())
-
-        if obj._selection is not None:
-
-            sl = set(obj._selection_list)
-
-            # we are a Series like object,
-            # but may have multiple aggregations
-            if len(sl) == 1:
-
-                result = _agg(
-                    arg, lambda fname, agg_how: _agg_1dim(obj._selection, agg_how)
-                )
-
-            # we are selecting the same set as we are aggregating
-            elif not len(sl - set(keys)):
-
-                result = _agg(arg, _agg_1dim)
-
-            # we are a DataFrame, with possibly multiple aggregations
-            else:
-
-                result = _agg(arg, _agg_2dim)
-
-        # no selection
-        else:
-
-            try:
-                result = _agg(arg, _agg_1dim)
-            except SpecificationError:
-
-                # we are aggregating expecting all 1d-returns
-                # but we have 2d
-                result = _agg(arg, _agg_2dim)
 
         # combine results
 
         def is_any_series() -> bool:
             # return a boolean if we have *any* nested series
-            return any(isinstance(r, ABCSeries) for r in result.values())
+            return any(isinstance(r, ABCSeries) for r in results.values())
 
         def is_any_frame() -> bool:
             # return a boolean if we have *any* nested series
-            return any(isinstance(r, ABCDataFrame) for r in result.values())
+            return any(isinstance(r, ABCDataFrame) for r in results.values())
 
-        if isinstance(result, list):
-            return concat(result, keys=keys, axis=1, sort=True), True
+        if isinstance(results, list):
+            return concat(results, keys=keys, axis=1, sort=True), True
 
         elif is_any_frame():
             # we have a dict of DataFrames
             # return a MI DataFrame
 
-            keys_to_use = [k for k in keys if not result[k].empty]
+            keys_to_use = [k for k in keys if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
             keys_to_use = keys_to_use if keys_to_use != [] else keys
             return (
-                concat([result[k] for k in keys_to_use], keys=keys_to_use, axis=1),
+                concat([results[k] for k in keys_to_use], keys=keys_to_use, axis=1),
                 True,
             )
 
@@ -702,7 +651,7 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
             # we have a dict of Series
             # return a MI Series
             try:
-                result = concat(result)
+                result = concat(results)
             except TypeError as err:
                 # we want to give a nice error here if
                 # we have non-same sized objects, so
@@ -720,7 +669,7 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
         from pandas import DataFrame, Series
 
         try:
-            result = DataFrame(result)
+            result = DataFrame(results)
         except ValueError:
             # we have a dict of scalars
 
@@ -731,7 +680,7 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
             else:
                 name = None
 
-            result = Series(result, name=name)
+            result = Series(results, name=name)
 
         return result, True
     elif is_list_like(arg):
