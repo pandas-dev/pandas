@@ -146,6 +146,25 @@ class TestAstype:
         df.loc[:, "b"] = df.loc[:, "b"].astype(dtype)
         tm.assert_frame_equal(df, expected)
 
+        expected2 = DataFrame(
+            {"a": ["foo", "foo"], "b": integer_array([val, 1.0], dtype=dtype)}
+        )
+        df2 = DataFrame({"a": ["foo", "foo"], "b": [val, 1.0]})
+        df2.loc[:, "b"] = df2.loc[:, "b"].astype(dtype)
+        tm.assert_frame_equal(df2, expected2)
+
+        expected3 = DataFrame(
+            {"a": ["foo", "foo"], "b": integer_array([val, val], dtype=dtype)}
+        )
+        df3 = DataFrame({"a": ["foo", "foo"], "b": [val, val]})
+        df3.loc[:, "b"] = df3.loc[:, "b"].astype(dtype)
+        tm.assert_frame_equal(df3, expected3)
+
+        expected4 = DataFrame({"b": integer_array([val], dtype=dtype)})
+        df4 = DataFrame({"b": [val]})
+        df4.loc[:, "b"] = df4.loc[:, "b"].astype(dtype)
+        tm.assert_frame_equal(df4, expected4)
+
     def test_astype_str(self):
         # see GH#9757
         a = Series(date_range("2010-01-04", periods=5))
