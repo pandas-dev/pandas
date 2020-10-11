@@ -604,7 +604,7 @@ def read_csv(
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
-    kwds_defaults = _check_defaults_read(
+    kwds_defaults = _refine_defaults_read(
         dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": ","}
     )
     kwds.update(kwds_defaults)
@@ -682,7 +682,7 @@ def read_table(
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
-    kwds_defaults = _check_defaults_read(
+    kwds_defaults = _refine_defaults_read(
         dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": "\t"}
     )
     kwds.update(kwds_defaults)
@@ -3648,7 +3648,7 @@ class FixedWidthFieldParser(PythonParser):
         )
 
 
-def _check_defaults_read(
+def _refine_defaults_read(
     dialect: Union[str, csv.Dialect],
     delimiter: Union[str, object],
     delim_whitespace: bool,
@@ -3656,7 +3656,7 @@ def _check_defaults_read(
     sep: Union[str, object],
     defaults: Dict[str, Any],
 ):
-    """Check default values of input parameters of read_csv, read_table.
+    """Validate/refine default values of input parameters of read_csv, read_table.
 
     Parameters
     ----------
@@ -3708,7 +3708,7 @@ def _check_defaults_read(
     # the comparison to dialect values by checking if default values
     # for BOTH "delimiter" and "sep" were provided.
     if dialect is not None:
-        kwds["sep_override"] = (delimiter is None) and (
+        kwds["sep_override"] = delimiter is None and (
             sep is lib.no_default or sep == delim_default
         )
 
