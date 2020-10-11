@@ -493,7 +493,10 @@ def maybe_casted_values(index, codes=None):
                 values = values._data  # TODO: can we de-kludge yet?
 
             if mask.any():
-                values, _ = maybe_upcast_putmask(values, mask, np.nan)
+                if isinstance(values, np.ndarray):
+                    values, _ = maybe_upcast_putmask(values, mask, np.nan)
+                else:
+                    values[mask] = np.nan
 
             if issubclass(values_type, DatetimeLikeArrayMixin):
                 values = values_type(values, dtype=values_dtype)

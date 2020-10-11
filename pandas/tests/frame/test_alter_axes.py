@@ -12,10 +12,12 @@ from pandas.core.dtypes.common import (
 
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
     IntervalIndex,
+    MultiIndex,
     Series,
     Timestamp,
     cut,
@@ -171,21 +173,6 @@ class TestDataFrameAlterAxes:
         tm.assert_series_equal(float_frame["C"], df["baz"], check_names=False)
         tm.assert_series_equal(float_frame["hi"], df["foo2"], check_names=False)
 
-    def test_set_index_preserve_categorical_dtype(self):
-        # GH13743, GH13854
-        df = DataFrame(
-            {
-                "A": [1, 2, 1, 1, 2],
-                "B": [10, 16, 22, 28, 34],
-                "C1": Categorical(list("abaab"), categories=list("bac"), ordered=False),
-                "C2": Categorical(list("abaab"), categories=list("bac"), ordered=True),
-            }
-        )
-        for cols in ["C1", "C2", ["A", "C1"], ["A", "C2"], ["C1", "C2"]]:
-            result = df.set_index(cols).reset_index()
-            result = result.reindex(columns=df.columns)
-            tm.assert_frame_equal(result, df)
-
     def test_rename_signature(self):
         sig = inspect.signature(DataFrame.rename)
         parameters = set(sig.parameters)
@@ -266,3 +253,47 @@ class TestIntervalIndex:
         df = df.set_index("B")
 
         df = df.reset_index()
+
+
+class TestCategoricalIndex:
+    def test_set_index_preserve_categorical_dtype(self):
+        # GH13743, GH13854
+        df = DataFrame(
+            {
+                "A": [1, 2, 1, 1, 2],
+                "B": [10, 16, 22, 28, 34],
+                "C1": Categorical(list("abaab"), categories=list("bac"), ordered=False),
+                "C2": Categorical(list("abaab"), categories=list("bac"), ordered=True),
+            }
+        )
+        for cols in ["C1", "C2", ["A", "C1"], ["A", "C2"], ["C1", "C2"]]:
+            result = df.set_index(cols).reset_index()
+            result = result.reindex(columns=df.columns)
+            tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize(
+        "codes", ([[0, 0, 1, 1], [0, 1, 0, 1]], [[0, 0, -1, 1], [0, 1, 0, 1]])
+    )
+    def test_reindexing_with_missing_values(self, codes):
+        # GH 24206
+
+        index = MultiIndex(
+            [CategoricalIndex(["A", "B"]), CategoricalIndex(["a", "b"])], codes
+        )
+        data = {"col": range(len(index))}
+        df = DataFrame(data=data, index=index)
+
+        expected = DataFrame(
+            {
+                "level_0": Categorical.from_codes(codes[0], categories=["A", "B"]),
+                "level_1": Categorical.from_codes(codes[1], categories=["a", "b"]),
+                "col": range(4),
+            }
+        )
+
+        res = df.reset_index()
+        tm.assert_frame_equal(res, expected)
+
+        # roundtrip
+        res = expected.set_index(["level_0", "level_1"]).reset_index()
+        tm.assert_frame_equal(res, expected)
