@@ -68,7 +68,6 @@ class ExtensionArray:
     searchsorted
     shift
     take
-    transpose
     unique
     view
     _concat_same_type
