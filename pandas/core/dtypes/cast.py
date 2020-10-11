@@ -94,6 +94,7 @@ from pandas.core.dtypes.missing import (
 if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import ExtensionArray
+    from pandas.core.indexes.base import Index
     from pandas.core.indexes.datetimes import DatetimeIndex
 
 _int8_max = np.iinfo(np.int8).max
@@ -460,7 +461,9 @@ def maybe_upcast_putmask(
     return result, False
 
 
-def maybe_casted_values(index, codes=None):
+def maybe_casted_values(
+    index: "Index", codes: Optional[Sequence[int]] = None
+) -> ArrayLike:
     """
     Convert an index, given directly or as a pair (level, code), to a 1D array.
 
