@@ -12,6 +12,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 """
 import bz2
 import datetime
+import functools
 import glob
 import gzip
 import io
@@ -19,6 +20,7 @@ import os
 from pathlib import Path
 import pickle
 import shutil
+import sys
 from warnings import catch_warnings, simplefilter
 import zipfile
 
@@ -155,28 +157,44 @@ def test_pickles(current_pickle_data, legacy_pickle):
         compare(current_pickle_data, legacy_pickle, version)
 
 
-def test_round_trip_current(current_pickle_data):
-    def python_pickler(obj, path):
-        with open(path, "wb") as fh:
-            pickle.dump(obj, fh, protocol=-1)
+def python_pickler(obj, path):
+    with open(path, "wb") as fh:
+        pickle.dump(obj, fh, protocol=-1)
 
-    def python_unpickler(path):
-        with open(path, "rb") as fh:
-            fh.seek(0)
-            return pickle.load(fh)
 
+def python_unpickler(path):
+    with open(path, "rb") as fh:
+        fh.seek(0)
+        return pickle.load(fh)
+
+
+named_pickle_writers = {
+    "python": python_pickler,
+    "pandas_proto_default": pd.to_pickle,
+    "pandas_proto_highest": functools.partial(
+        pd.to_pickle, protocol=pickle.HIGHEST_PROTOCOL
+    ),
+    "pandas_proto_4": functools.partial(pd.to_pickle, protocol=4),
+}
+if sys.version_info >= (3, 8):
+    named_pickle_writers.update(
+        {
+            "pandas_proto_5": functools.partial(pd.to_pickle, protocol=5),
+        }
+    )
+pickle_writer_ids, pickle_writers = zip(*named_pickle_writers.items())
+
+
+@pytest.mark.parametrize("pickle_writer", pickle_writers, ids=pickle_writer_ids)
+def test_round_trip_current(current_pickle_data, pickle_writer):
     data = current_pickle_data
     for typ, dv in data.items():
         for dt, expected in dv.items():
 
             for writer in [pd.to_pickle, python_pickler]:
-                if writer is None:
-                    continue
-
                 with tm.ensure_clean() as path:
-
                     # test writing with each pickler
-                    writer(expected, path)
+                    pickle_writer(expected, path)
 
                     # test reading with each unpickler
                     result = pd.read_pickle(path)
