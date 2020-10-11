@@ -68,6 +68,7 @@ class ExtensionArray:
     searchsorted
     shift
     take
+    transpose
     unique
     view
     _concat_same_type
@@ -1081,7 +1082,7 @@ class ExtensionArray:
     # Reshaping
     # ------------------------------------------------------------------------
 
-    def transpose(self, *axes):
+    def transpose(self, *axes) -> "ExtensionArray":
         """
         Return a transposed view on this array.
 
@@ -1091,7 +1092,7 @@ class ExtensionArray:
         return self[:]
 
     @property
-    def T(self):
+    def T(self) -> "ExtensionArray":
         return self.transpose()
 
     def ravel(self, order="C") -> "ExtensionArray":
