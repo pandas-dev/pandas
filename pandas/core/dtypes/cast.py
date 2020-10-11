@@ -131,13 +131,6 @@ def maybe_downcast_to_dtype(result, dtype):
     elif isinstance(result, ABCDataFrame):
         # occurs in pivot_table doctest
         return result
-    elif dtype.type is Period:
-        from pandas.core.arrays import PeriodArray
-
-        with suppress(TypeError):
-            # e.g. TypeError: int() argument must be a string, a
-            #  bytes-like object or a number, not 'Period
-            return PeriodArray(result, freq=dtype.freq)
 
     if isinstance(dtype, str):
         if dtype == "infer":
@@ -161,6 +154,14 @@ def maybe_downcast_to_dtype(result, dtype):
                 dtype = "object"
 
         dtype = np.dtype(dtype)
+
+    elif dtype.type is Period:
+        from pandas.core.arrays import PeriodArray
+
+        with suppress(TypeError):
+            # e.g. TypeError: int() argument must be a string, a
+            #  bytes-like object or a number, not 'Period
+            return PeriodArray(result, freq=dtype.freq)
 
     converted = maybe_downcast_numeric(result, dtype, do_round)
     if converted is not result:
