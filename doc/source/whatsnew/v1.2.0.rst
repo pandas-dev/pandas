@@ -191,6 +191,7 @@ Other enhancements
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
 - Added methods :meth:`IntegerArray.prod`, :meth:`IntegerArray.min`, and :meth:`IntegerArray.max` (:issue:`33790`)
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
+- :meth:`to_parquet` now supports :class:`MultiIndex` for columns in parquet format (:issue:`34777`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -484,7 +485,6 @@ Other
 - Fixed metadata propagation in the :class:`Series.dt` and :class:`Series.str` accessors (:issue:`28283`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError``, from a bare ``Exception`` previously (:issue:`35744`)
-
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_120.contributors:
