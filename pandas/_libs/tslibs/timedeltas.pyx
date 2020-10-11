@@ -1134,6 +1134,9 @@ class Timedelta(_Timedelta):
     Notes
     -----
     The ``.value`` attribute is always in ns.
+
+    If the precision is higher than nanoseconds, the precision of the duration is
+    truncated to nanoseconds.
     """
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):

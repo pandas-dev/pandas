@@ -58,6 +58,12 @@ def to_timedelta(arg, unit=None, errors="raise"):
     timedelta64 or numpy.array of timedelta64
         Output type returned if parsing succeeded.
 
+    Notes
+    -----
+
+    If the precision is higher than nanoseconds, the precision of the duration is
+    truncated to nanoseconds.
+
     See Also
     --------
     DataFrame.astype : Cast argument to a specified dtype.
