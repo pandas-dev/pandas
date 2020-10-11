@@ -63,4 +63,3 @@ class TestDataFrameTimeSeriesMethods:
             {0: [1, None], "new": [1e9, None]}, dtype="datetime64[ns]"
         )
         tm.assert_frame_equal(result, expected)
-
