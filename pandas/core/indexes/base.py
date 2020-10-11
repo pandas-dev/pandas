@@ -27,7 +27,6 @@ from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -119,21 +118,6 @@ _index_doc_kwargs = dict(
 )
 _index_shared_docs = dict()
 str_t = str
-
-
-def _make_arithmetic_op(op, cls):
-    opname = f"__{op.__name__}__"
-
-    @ops.unpack_zerodim_and_defer(opname)
-    def index_arithmetic_method(self, other):
-        from pandas import Series
-
-        result = op(Series(self), other)
-        if isinstance(result, tuple):
-            return (Index(result[0]), Index(result[1]))
-        return Index(result)
-
-    return set_function_name(index_arithmetic_method, opname, cls)
 
 
 _o_dtype = np.dtype(object)
