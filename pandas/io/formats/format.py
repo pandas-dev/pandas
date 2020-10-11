@@ -1311,7 +1311,7 @@ class GenericArrayFormatter:
             float_format = get_option("display.float_format")
             if float_format is None:
                 precision = get_option("display.precision")
-                float_format = lambda x: f"{x: .{precision:d}f}"
+                float_format = lambda x: f"{x: .{precision:d}g}"
         else:
             float_format = self.float_format
 
@@ -1372,8 +1372,6 @@ class GenericArrayFormatter:
                     tpl = " {v}"
                 fmt_values.append(tpl.format(v=_format(v)))
 
-        fmt_values = _trim_zeros_float(str_floats=fmt_values, decimal=".")
-
         return fmt_values
 
 
@@ -1409,6 +1407,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         if float_format:
 
             def base_formatter(v):
+                assert float_format is not None  # for mypy
                 return float_format(value=v) if notna(v) else self.na_rep
 
         else:
@@ -1475,7 +1474,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             if self.fixed_width:
                 if is_complex:
-                    result = values
+                    result = _trim_zeros_complex(values, self.decimal)
                 else:
                     result = _trim_zeros_float(values, self.decimal)
                 return np.asarray(result, dtype="object")
@@ -1679,7 +1678,8 @@ def is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
-    values = values.ravel()
+    if not isinstance(values, Index):
+        values = values.ravel()
 
     values = DatetimeIndex(values)
     if values.tz is not None:
@@ -1857,6 +1857,31 @@ def _make_fixed_width(
     return result
 
 
+def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[str]:
+    """
+    Separates the real and imaginary parts from the complex number, and
+    executes the _trim_zeros_float method on each of those.
+    """
+    trimmed = [
+        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal))
+        for x in str_complexes
+    ]
+
+    # pad strings to the length of the longest trimmed string for alignment
+    lengths = [len(s) for s in trimmed]
+    max_length = max(lengths)
+    padded = [
+        s[: -((k - 1) // 2 + 1)]  # real part
+        + (max_length - k) // 2 * "0"
+        + s[-((k - 1) // 2 + 1) : -((k - 1) // 2)]  # + / -
+        + s[-((k - 1) // 2) : -1]  # imaginary part
+        + (max_length - k) // 2 * "0"
+        + s[-1]
+        for s, k in zip(trimmed, lengths)
+    ]
+    return padded
+
+
 def _trim_zeros_float(
     str_floats: Union[np.ndarray, List[str]], decimal: str = "."
 ) -> List[str]:
@@ -1864,9 +1889,10 @@ def _trim_zeros_float(
     Trims zeros, leaving just one before the decimal points if need be.
     """
     trimmed = str_floats
+    number_regex = re.compile(fr"\s*[\+-]?[0-9]+(\{decimal}[0-9]*)?")
 
     def _is_number(x):
-        return re.match(r"\s*-?[0-9]+(\.[0-9]*)?", x) is not None
+        return re.match(number_regex, x) is not None
 
     def _cond(values):
         finite = [x for x in values if _is_number(x)]
