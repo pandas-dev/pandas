@@ -47,6 +47,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core.aggregation import aggregate
 from pandas.core.base import DataError, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -73,22 +74,21 @@ if TYPE_CHECKING:
     from pandas.core.internals import Block  # noqa:F401
 
 
-def calculate_center_offset(window) -> int:
+def calculate_center_offset(window: np.ndarray) -> int:
     """
-    Calculate an offset necessary to have the window label to be centered.
+    Calculate an offset necessary to have the window label to be centered
+    for weighted windows.
 
     Parameters
     ----------
-    window: ndarray or int
-        window weights or window
+    window: ndarray
+        window weights
 
     Returns
     -------
     int
     """
-    if not is_integer(window):
-        window = len(window)
-    return int((window - 1) / 2.0)
+    return (len(window) - 1) // 2
 
 
 def calculate_min_periods(
@@ -398,7 +398,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
         if self.on is not None and not self._on.equals(obj.index):
             name = self._on.name
-            extra_col = Series(self._on, index=obj.index, name=name)
+            extra_col = Series(self._on, index=self.obj.index, name=name)
             if name in result.columns:
                 # TODO: sure we want to overwrite results?
                 result[name] = extra_col
@@ -416,9 +416,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 # insert at the end
                 result[name] = extra_col
 
-    def _center_window(self, result: np.ndarray, window) -> np.ndarray:
+    def _center_window(self, result: np.ndarray, window: np.ndarray) -> np.ndarray:
         """
-        Center the result in the window.
+        Center the result in the window for weighted rolling aggregations.
         """
         if self.axis > result.ndim - 1:
             raise ValueError("Requested axis is larger then no. of argument dimensions")
@@ -449,16 +449,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 f"we do not support this function in window_aggregations.{func_name}"
             )
         return window_func
-
-    def _get_cython_func_type(self, func: str) -> Callable:
-        """
-        Return a variable or fixed cython function type.
-
-        Variable algorithms do not use window while fixed do.
-        """
-        if self.is_freq_type or isinstance(self.window, BaseIndexer):
-            return self._get_roll_func(f"{func}_variable")
-        return partial(self._get_roll_func(f"{func}_fixed"), win=self._get_window())
 
     def _get_window_indexer(self, window: int) -> BaseIndexer:
         """
@@ -525,7 +515,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def _apply(
         self,
         func: Callable,
-        center: bool,
         require_min_periods: int = 0,
         floor: int = 1,
         is_weighted: bool = False,
@@ -541,7 +530,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         Parameters
         ----------
         func : callable function to apply
-        center : bool
         require_min_periods : int
         floor : int
         is_weighted : bool
@@ -567,13 +555,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             if values.size == 0:
                 return values.copy()
 
-            offset = calculate_center_offset(window) if center else 0
-            additional_nans = np.array([np.nan] * offset)
-
             if not is_weighted:
 
                 def calc(x):
-                    x = np.concatenate((x, additional_nans))
                     if not isinstance(self.window, BaseIndexer):
                         min_periods = calculate_min_periods(
                             window, self.min_periods, len(x), require_min_periods, floor
@@ -597,6 +581,8 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             else:
 
                 def calc(x):
+                    offset = calculate_center_offset(window) if self.center else 0
+                    additional_nans = np.array([np.nan] * offset)
                     x = np.concatenate((x, additional_nans))
                     return func(x, window, self.min_periods)
 
@@ -610,7 +596,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             if use_numba_cache:
                 NUMBA_FUNC_CACHE[(kwargs["original_func"], "rolling_apply")] = func
 
-            if center:
+            if self.center and is_weighted:
                 result = self._center_window(result, window)
 
             return result
@@ -618,7 +604,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         return self._apply_blockwise(homogeneous_func, name)
 
     def aggregate(self, func, *args, **kwargs):
-        result, how = self._aggregate(func, *args, **kwargs)
+        result, how = aggregate(self, func, *args, **kwargs)
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
@@ -1183,7 +1169,7 @@ class Window(BaseWindow):
         axis="",
     )
     def aggregate(self, func, *args, **kwargs):
-        result, how = self._aggregate(func, *args, **kwargs)
+        result, how = aggregate(self, func, *args, **kwargs)
         if result is None:
 
             # these must apply directly
@@ -1199,9 +1185,7 @@ class Window(BaseWindow):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_sum")
         window_func = get_weighted_roll_func(window_func)
-        return self._apply(
-            window_func, center=self.center, is_weighted=True, name="sum", **kwargs
-        )
+        return self._apply(window_func, is_weighted=True, name="sum", **kwargs)
 
     @Substitution(name="window")
     @Appender(_shared_docs["mean"])
@@ -1209,9 +1193,7 @@ class Window(BaseWindow):
         nv.validate_window_func("mean", args, kwargs)
         window_func = self._get_roll_func("roll_weighted_mean")
         window_func = get_weighted_roll_func(window_func)
-        return self._apply(
-            window_func, center=self.center, is_weighted=True, name="mean", **kwargs
-        )
+        return self._apply(window_func, is_weighted=True, name="mean", **kwargs)
 
     @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
     @Appender(_shared_docs["var"])
@@ -1220,9 +1202,7 @@ class Window(BaseWindow):
         window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
         window_func = get_weighted_roll_func(window_func)
         kwargs.pop("name", None)
-        return self._apply(
-            window_func, center=self.center, is_weighted=True, name="var", **kwargs
-        )
+        return self._apply(window_func, is_weighted=True, name="var", **kwargs)
 
     @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
     @Appender(_shared_docs["std"])
@@ -1274,8 +1254,8 @@ class RollingAndExpandingMixin(BaseWindow):
     )
 
     def count(self):
-        window_func = self._get_cython_func_type("roll_sum")
-        return self._apply(window_func, center=self.center, name="count")
+        window_func = self._get_roll_func("roll_sum")
+        return self._apply(window_func, name="count")
 
     _shared_docs["apply"] = dedent(
         r"""
@@ -1361,25 +1341,16 @@ class RollingAndExpandingMixin(BaseWindow):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             apply_func = generate_numba_apply_func(args, kwargs, func, engine_kwargs)
-            center = self.center
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
-            # Cython apply functions handle center, so don't need to use
-            # _apply's center handling
-            window = self._get_window()
-            offset = calculate_center_offset(window) if self.center else 0
-            apply_func = self._generate_cython_apply_func(
-                args, kwargs, raw, offset, func
-            )
-            center = False
+            apply_func = self._generate_cython_apply_func(args, kwargs, raw, func)
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
         # name=func & raw=raw for WindowGroupByMixin._apply
         return self._apply(
             apply_func,
-            center=center,
             floor=0,
             name=func,
             use_numba_cache=maybe_use_numba(engine),
@@ -1389,15 +1360,14 @@ class RollingAndExpandingMixin(BaseWindow):
             kwargs=kwargs,
         )
 
-    def _generate_cython_apply_func(self, args, kwargs, raw, offset, func):
+    def _generate_cython_apply_func(self, args, kwargs, raw, func):
         from pandas import Series
 
         window_func = partial(
-            self._get_cython_func_type("roll_generic"),
+            self._get_roll_func("roll_apply"),
             args=args,
             kwargs=kwargs,
             raw=raw,
-            offset=offset,
             func=func,
         )
 
@@ -1410,11 +1380,9 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
-        window_func = self._get_cython_func_type("roll_sum")
+        window_func = self._get_roll_func("roll_sum")
         kwargs.pop("floor", None)
-        return self._apply(
-            window_func, center=self.center, floor=0, name="sum", **kwargs
-        )
+        return self._apply(window_func, floor=0, name="sum", **kwargs)
 
     _shared_docs["max"] = dedent(
         """
@@ -1429,8 +1397,8 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def max(self, *args, **kwargs):
         nv.validate_window_func("max", args, kwargs)
-        window_func = self._get_cython_func_type("roll_max")
-        return self._apply(window_func, center=self.center, name="max", **kwargs)
+        window_func = self._get_roll_func("roll_max")
+        return self._apply(window_func, name="max", **kwargs)
 
     _shared_docs["min"] = dedent(
         """
@@ -1471,13 +1439,13 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def min(self, *args, **kwargs):
         nv.validate_window_func("min", args, kwargs)
-        window_func = self._get_cython_func_type("roll_min")
-        return self._apply(window_func, center=self.center, name="min", **kwargs)
+        window_func = self._get_roll_func("roll_min")
+        return self._apply(window_func, name="min", **kwargs)
 
     def mean(self, *args, **kwargs):
         nv.validate_window_func("mean", args, kwargs)
-        window_func = self._get_cython_func_type("roll_mean")
-        return self._apply(window_func, center=self.center, name="mean", **kwargs)
+        window_func = self._get_roll_func("roll_mean")
+        return self._apply(window_func, name="mean", **kwargs)
 
     _shared_docs["median"] = dedent(
         """
@@ -1520,12 +1488,12 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = self._get_roll_func("roll_median_c")
         # GH 32865. Move max window size calculation to
         # the median function implementation
-        return self._apply(window_func, center=self.center, name="median", **kwargs)
+        return self._apply(window_func, name="median", **kwargs)
 
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
         kwargs.pop("require_min_periods", None)
-        window_func = self._get_cython_func_type("roll_var")
+        window_func = self._get_roll_func("roll_var")
 
         def zsqrt_func(values, begin, end, min_periods):
             return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
@@ -1533,7 +1501,6 @@ class RollingAndExpandingMixin(BaseWindow):
         # ddof passed again for compat with groupby.rolling
         return self._apply(
             zsqrt_func,
-            center=self.center,
             require_min_periods=1,
             name="std",
             ddof=ddof,
@@ -1543,11 +1510,10 @@ class RollingAndExpandingMixin(BaseWindow):
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         kwargs.pop("require_min_periods", None)
-        window_func = partial(self._get_cython_func_type("roll_var"), ddof=ddof)
+        window_func = partial(self._get_roll_func("roll_var"), ddof=ddof)
         # ddof passed again for compat with groupby.rolling
         return self._apply(
             window_func,
-            center=self.center,
             require_min_periods=1,
             name="var",
             ddof=ddof,
@@ -1566,11 +1532,10 @@ class RollingAndExpandingMixin(BaseWindow):
     """
 
     def skew(self, **kwargs):
-        window_func = self._get_cython_func_type("roll_skew")
+        window_func = self._get_roll_func("roll_skew")
         kwargs.pop("require_min_periods", None)
         return self._apply(
             window_func,
-            center=self.center,
             require_min_periods=3,
             name="skew",
             **kwargs,
@@ -1609,11 +1574,10 @@ class RollingAndExpandingMixin(BaseWindow):
     )
 
     def kurt(self, **kwargs):
-        window_func = self._get_cython_func_type("roll_kurt")
+        window_func = self._get_roll_func("roll_kurt")
         kwargs.pop("require_min_periods", None)
         return self._apply(
             window_func,
-            center=self.center,
             require_min_periods=4,
             name="kurt",
             **kwargs,
@@ -1675,9 +1639,9 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def quantile(self, quantile, interpolation="linear", **kwargs):
         if quantile == 1.0:
-            window_func = self._get_cython_func_type("roll_max")
+            window_func = self._get_roll_func("roll_max")
         elif quantile == 0.0:
-            window_func = self._get_cython_func_type("roll_min")
+            window_func = self._get_roll_func("roll_min")
         else:
             window_func = partial(
                 self._get_roll_func("roll_quantile"),
@@ -1689,7 +1653,7 @@ class RollingAndExpandingMixin(BaseWindow):
         # Pass through for groupby.rolling
         kwargs["quantile"] = quantile
         kwargs["interpolation"] = interpolation
-        return self._apply(window_func, center=self.center, name="quantile", **kwargs)
+        return self._apply(window_func, name="quantile", **kwargs)
 
     _shared_docs[
         "cov"
@@ -2178,7 +2142,6 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
     def _apply(
         self,
         func: Callable,
-        center: bool,
         require_min_periods: int = 0,
         floor: int = 1,
         is_weighted: bool = False,
@@ -2189,7 +2152,6 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         result = Rolling._apply(
             self,
             func,
-            center,
             require_min_periods,
             floor,
             is_weighted,
@@ -2238,16 +2200,6 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             obj = obj.take(groupby_order)
         return super()._create_data(obj)
 
-    def _get_cython_func_type(self, func: str) -> Callable:
-        """
-        Return the cython function type.
-
-        RollingGroupby needs to always use "variable" algorithms since processing
-        the data in group order may not be monotonic with the data which
-        "fixed" algorithms assume
-        """
-        return self._get_roll_func(f"{func}_variable")
-
     def _get_window_indexer(self, window: int) -> GroupbyRollingIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -2263,7 +2215,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         """
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict] = None
-        index_array = self.obj.index.asi8
+        index_array = self._on.asi8
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
