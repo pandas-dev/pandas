@@ -939,7 +939,7 @@ def maybe_upcast(
     return values, fill_value
 
 
-def invalidate_string_dtypes(dtype_set: Set):
+def invalidate_string_dtypes(dtype_set: Set[DtypeObj]):
     """
     Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
