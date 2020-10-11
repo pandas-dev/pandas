@@ -6838,8 +6838,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         **kwargs,
     ) -> Optional[FrameOrSeries]:
         """
-        Fill in intermediate, missing values based on surrounding data using a
-        given interpolation technique (see ``method`` below).
+        Fill NaN values using an interpolation method.
 
         Please note that only ``method='linear'`` is supported for
         DataFrame/Series with a MultiIndex.
