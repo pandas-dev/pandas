@@ -405,7 +405,8 @@ MultiIndex
 
 - Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
 - Bug in :meth:`DataFrame.reset_index` with ``NaT`` values in index raises ``ValueError`` with message ``"cannot convert float NaN to integer"`` (:issue:`36541`)
--
+- Bug in :meth:`MultiIndex.intersection` returned duplicates when at least one of the indexes had duplicates (:issue:`36915`)
+
 
 I/O
 ^^^
@@ -485,6 +486,7 @@ Other
 - Fixed metadata propagation in the :class:`Series.dt` and :class:`Series.str` accessors (:issue:`28283`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError``, from a bare ``Exception`` previously (:issue:`35744`)
+- Bug in :meth:`Index.intersection` returned duplicates when at least one of the indexes had duplicates (:issue:`31326`)
 
 .. ---------------------------------------------------------------------------
 
