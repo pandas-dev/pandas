@@ -319,7 +319,8 @@ cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
         return
 
     nobs[0] = nobs[0] + 1
-    # Welford's method for the online variance-calculation using Kahan summation
+    # Welford's method for the online variance-calculation
+    # using Kahan summation
     # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
     y = val - compensation[0]
     t = y - mean_x[0]
@@ -339,7 +340,8 @@ cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
     if notnan(val):
         nobs[0] = nobs[0] - 1
         if nobs[0]:
-            # Welford's method for the online variance-calculation using Kahan summation
+            # Welford's method for the online variance-calculation
+            # using Kahan summation
             # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
             y = val - compensation[0]
             t = y - mean_x[0]
@@ -359,7 +361,8 @@ def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
     Numerically stable implementation using Welford's method.
     """
     cdef:
-        float64_t mean_x = 0, ssqdm_x = 0, nobs = 0, compensation_add = 0, compensation_remove = 0,
+        float64_t mean_x = 0, ssqdm_x = 0, nobs = 0, compensation_add = 0,
+        float64_t compensation_remove = 0,
         float64_t val, prev, delta, mean_x_old
         int64_t s, e
         Py_ssize_t i, j, N = len(values)
