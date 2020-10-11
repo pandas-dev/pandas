@@ -25,24 +25,30 @@ class TestCategoricalSeries:
         tm.assert_series_equal(ser, expected)
 
     def test_loc_new_category_row_raises(self):
-        df = pd.DataFrame({
-            "int": [0, 1, 2],
-            "cat": Categorical(["a", "b", "c"], categories=["a", "b", "c"]),
-        })
+        df = pd.DataFrame(
+            {
+                "int": [0, 1, 2],
+                "cat": Categorical(["a", "b", "c"], categories=["a", "b", "c"]),
+            }
+        )
         msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             df.loc[3] = [3, "d"]
 
     def test_loc_new_row_category_dtype_retention(self):
-        df = pd.DataFrame({
-            "int": [0, 1, 2],
-            "cat": pd.Categorical(["a", "b", "c"], categories=["a", "b", "c"]),
-        })
+        df = pd.DataFrame(
+            {
+                "int": [0, 1, 2],
+                "cat": pd.Categorical(["a", "b", "c"], categories=["a", "b", "c"]),
+            }
+        )
         df.loc[3] = [3, "c"]
 
-        expected = pd.DataFrame({
-            "int": [0, 1, 2, 3],
-            "cat": pd.Categorical(["a", "b", "c", "c"], categories=["a", "b", "c"]),
-        })
+        expected = pd.DataFrame(
+            {
+                "int": [0, 1, 2, 3],
+                "cat": pd.Categorical(["a", "b", "c", "c"], categories=["a", "b", "c"]),
+            }
+        )
         
         tm.assert_frame_equal(df, expected)
