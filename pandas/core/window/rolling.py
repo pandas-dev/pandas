@@ -51,11 +51,10 @@ from pandas.core.aggregation import aggregate
 from pandas.core.base import DataError, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.groupby.base import ShallowMixin
+from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import (
-    WindowGroupByMixin,
     _doc_template,
     _shared_docs,
     flex_binary_moment,
@@ -853,6 +852,114 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     dtype: float64
     """
     )
+
+
+def _dispatch(name: str, *args, **kwargs):
+    """
+    Dispatch to groupby apply.
+    """
+
+    def outer(self, *args, **kwargs):
+        def f(x):
+            x = self._shallow_copy(x, groupby=self._groupby)
+            return getattr(x, name)(*args, **kwargs)
+
+        return self._groupby.apply(f)
+
+    outer.__name__ = name
+    return outer
+
+
+class BaseWindowGroupby(GotItemMixin, BaseWindow):
+    """
+    Provide the groupby windowing facilies.
+    """
+
+    def __init__(self, obj, *args, **kwargs):
+        kwargs.pop("parent", None)
+        groupby = kwargs.pop("groupby", None)
+        if groupby is None:
+            groupby, obj = obj, obj._selected_obj
+        self._groupby = groupby
+        self._groupby.mutated = True
+        self._groupby.grouper.mutated = True
+        super().__init__(obj, *args, **kwargs)
+
+    corr = _dispatch("corr", other=None, pairwise=None)
+    cov = _dispatch("cov", other=None, pairwise=None)
+
+    def _apply(
+        self,
+        func: Callable,
+        require_min_periods: int = 0,
+        floor: int = 1,
+        is_weighted: bool = False,
+        name: Optional[str] = None,
+        use_numba_cache: bool = False,
+        **kwargs,
+    ):
+        result = super()._apply(
+            func,
+            require_min_periods,
+            floor,
+            is_weighted,
+            name,
+            use_numba_cache,
+            **kwargs,
+        )
+        # Compose MultiIndex result from grouping levels then rolling level
+        # Aggregate the MultiIndex data as tuples then the level names
+        grouped_object_index = self.obj.index
+        grouped_index_name = [*grouped_object_index.names]
+        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
+        result_index_names = groupby_keys + grouped_index_name
+
+        result_index_data = []
+        for key, values in self._groupby.grouper.indices.items():
+            for value in values:
+                data = [
+                    *com.maybe_make_list(key),
+                    *com.maybe_make_list(grouped_object_index[value]),
+                ]
+                result_index_data.append(tuple(data))
+
+        result_index = MultiIndex.from_tuples(
+            result_index_data, names=result_index_names
+        )
+        result.index = result_index
+        return result
+
+    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+        """
+        Split data into blocks & return conformed data.
+        """
+        # Ensure the object we're rolling over is monotonically sorted relative
+        # to the groups
+        # GH 36197
+        if not obj.empty:
+            groupby_order = np.concatenate(
+                list(self._groupby.grouper.indices.values())
+            ).astype(np.int64)
+            obj = obj.take(groupby_order)
+        return super()._create_data(obj)
+
+    def _gotitem(self, key, ndim, subset=None):
+        # we are setting the index on the actual object
+        # here so our index is carried through to the selected obj
+        # when we do the splitting for the groupby
+        if self.on is not None:
+            self.obj = self.obj.set_index(self._on)
+            self.on = None
+        return super()._gotitem(key, ndim, subset=subset)
+
+    def _validate_monotonic(self):
+        """
+        Validate that on is monotonic;
+        we don't care for groupby.rolling
+        because we have already validated at a higher
+        level.
+        """
+        pass
 
 
 class Window(BaseWindow):
@@ -2134,71 +2241,10 @@ class Rolling(RollingAndExpandingMixin):
 Rolling.__doc__ = Window.__doc__
 
 
-class RollingGroupby(WindowGroupByMixin, Rolling):
+class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
     """
-
-    def _apply(
-        self,
-        func: Callable,
-        require_min_periods: int = 0,
-        floor: int = 1,
-        is_weighted: bool = False,
-        name: Optional[str] = None,
-        use_numba_cache: bool = False,
-        **kwargs,
-    ):
-        result = Rolling._apply(
-            self,
-            func,
-            require_min_periods,
-            floor,
-            is_weighted,
-            name,
-            use_numba_cache,
-            **kwargs,
-        )
-        # Cannot use _wrap_outputs because we calculate the result all at once
-        # Compose MultiIndex result from grouping levels then rolling level
-        # Aggregate the MultiIndex data as tuples then the level names
-        grouped_object_index = self.obj.index
-        grouped_index_name = [*grouped_object_index.names]
-        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
-        result_index_names = groupby_keys + grouped_index_name
-
-        result_index_data = []
-        for key, values in self._groupby.grouper.indices.items():
-            for value in values:
-                data = [
-                    *com.maybe_make_list(key),
-                    *com.maybe_make_list(grouped_object_index[value]),
-                ]
-                result_index_data.append(tuple(data))
-
-        result_index = MultiIndex.from_tuples(
-            result_index_data, names=result_index_names
-        )
-        result.index = result_index
-        return result
-
-    @property
-    def _constructor(self):
-        return Rolling
-
-    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
-        """
-        Split data into blocks & return conformed data.
-        """
-        # Ensure the object we're rolling over is monotonically sorted relative
-        # to the groups
-        # GH 36197
-        if not obj.empty:
-            groupby_order = np.concatenate(
-                list(self._groupby.grouper.indices.values())
-            ).astype(np.int64)
-            obj = obj.take(groupby_order)
-        return super()._create_data(obj)
 
     def _get_window_indexer(self, window: int) -> GroupbyIndexer:
         """
@@ -2235,21 +2281,3 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             indexer_kwargs=indexer_kwargs,
         )
         return window_indexer
-
-    def _gotitem(self, key, ndim, subset=None):
-        # we are setting the index on the actual object
-        # here so our index is carried thru to the selected obj
-        # when we do the splitting for the groupby
-        if self.on is not None:
-            self.obj = self.obj.set_index(self._on)
-            self.on = None
-        return super()._gotitem(key, ndim, subset=subset)
-
-    def _validate_monotonic(self):
-        """
-        Validate that on is monotonic;
-        we don't care for groupby.rolling
-        because we have already validated at a higher
-        level.
-        """
-        pass
