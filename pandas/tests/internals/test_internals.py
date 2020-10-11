@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import date, datetime
 import itertools
 import operator
@@ -165,7 +164,7 @@ def create_mgr(descr, item_shape=None):
 
     offset = 0
     mgr_items = []
-    block_placements = OrderedDict()
+    block_placements = {}
     for d in descr.split(";"):
         d = d.strip()
         if not len(d):
@@ -272,13 +271,6 @@ class TestBlockManager:
         mgr = create_mgr("a,b,c: f8-1; d,e,f: f8-2")
         assert mgr.nblocks == 2
         assert len(mgr) == 6
-
-    def test_is_mixed_dtype(self):
-        assert not create_mgr("a,b:f8").is_mixed_type
-        assert not create_mgr("a:f8-1; b:f8-2").is_mixed_type
-
-        assert create_mgr("a,b:f8; c,d: f4").is_mixed_type
-        assert create_mgr("a,b:f8; c,d: object").is_mixed_type
 
     def test_duplicate_ref_loc_failure(self):
         tmp_mgr = create_mgr("a:bool; a: f8")

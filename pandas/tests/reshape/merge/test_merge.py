@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import date, datetime, timedelta
 import random
 import re
@@ -1931,7 +1930,7 @@ def test_merge_index_types(index):
     result = left.merge(right, on=["index_col"])
 
     expected = DataFrame(
-        OrderedDict([("left_data", [1, 2]), ("right_data", [1.0, 2.0])]), index=index
+        dict([("left_data", [1, 2]), ("right_data", [1.0, 2.0])]), index=index
     )
     tm.assert_frame_equal(result, expected)
 

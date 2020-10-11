@@ -19,7 +19,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa: F401
+    from pandas import DataFrame, Series
 
 
 @Appender(_shared_docs["melt"] % dict(caller="pd.melt(df, ", other="DataFrame.melt"))
@@ -444,7 +444,7 @@ def wide_to_long(
     8      3      3     2.1     2.9
 
     >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age',
-    ...                     sep='_', suffix='\w+')
+    ...                     sep='_', suffix=r'\w+')
     >>> l
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht
@@ -483,7 +483,7 @@ def wide_to_long(
             var_name=j,
         )
         newdf[j] = Categorical(newdf[j])
-        newdf[j] = newdf[j].str.replace(re.escape(stub + sep), "")
+        newdf[j] = newdf[j].str.replace(re.escape(stub + sep), "", regex=True)
 
         # GH17627 Cast numerics suffixes to int/float
         newdf[j] = to_numeric(newdf[j], errors="ignore")

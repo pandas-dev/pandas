@@ -14,9 +14,10 @@ from pandas.core.dtypes.missing import isna
 from pandas import compat
 from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.base import ExtensionOpsMixin
-from pandas.core.construction import extract_array
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -115,7 +116,11 @@ class PandasDtype(ExtensionDtype):
 
 
 class PandasArray(
-    NDArrayBackedExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin
+    OpsMixin,
+    NDArrayBackedExtensionArray,
+    ExtensionOpsMixin,
+    NDArrayOperatorsMixin,
+    ObjectStringArrayMixin,
 ):
     """
     A pandas ExtensionArray for NumPy data.
@@ -215,6 +220,16 @@ class PandasArray(
             if not isinstance(x, self._HANDLED_TYPES + (PandasArray,)):
                 return NotImplemented
 
+        if ufunc not in [np.logical_or, np.bitwise_or, np.bitwise_xor]:
+            # For binary ops, use our custom dunder methods
+            # We haven't implemented logical dunder funcs, so exclude these
+            #  to avoid RecursionError
+            result = ops.maybe_dispatch_ufunc_to_dunder_op(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
+
         # Defer to the implementation of the ufunc on unwrapped values.
         inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)
         if out:
@@ -244,19 +259,6 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
-    def _validate_getitem_key(self, key):
-        if isinstance(key, type(self)):
-            key = key._ndarray
-
-        return super()._validate_getitem_key(key)
-
-    def _validate_setitem_value(self, value):
-        value = extract_array(value, extract_numpy=True)
-
-        if not lib.is_scalar(value):
-            value = np.asarray(value, dtype=self._ndarray.dtype)
-        return value
-
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
@@ -271,14 +273,6 @@ class PandasArray(
 
     # ------------------------------------------------------------------------
     # Reductions
-
-    def _reduce(self, name, skipna=True, **kwargs):
-        meth = getattr(self, name, None)
-        if meth:
-            return meth(skipna=skipna, **kwargs)
-        else:
-            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
-            raise TypeError(msg)
 
     def any(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
@@ -378,26 +372,49 @@ class PandasArray(
     def __invert__(self):
         return type(self)(~self._ndarray)
 
+    def _cmp_method(self, other, op):
+        if isinstance(other, PandasArray):
+            other = other._ndarray
+
+        pd_op = ops.get_array_op(op)
+        result = pd_op(self._ndarray, other)
+
+        if op is divmod or op is ops.rdivmod:
+            a, b = result
+            if isinstance(a, np.ndarray):
+                # for e.g. op vs TimedeltaArray, we may already
+                #  have an ExtensionArray, in which case we do not wrap
+                return self._wrap_ndarray_result(a), self._wrap_ndarray_result(b)
+            return a, b
+
+        if isinstance(result, np.ndarray):
+            # for e.g. multiplication vs TimedeltaArray, we may already
+            #  have an ExtensionArray, in which case we do not wrap
+            return self._wrap_ndarray_result(result)
+        return result
+
     @classmethod
     def _create_arithmetic_method(cls, op):
         @ops.unpack_zerodim_and_defer(op.__name__)
         def arithmetic_method(self, other):
-            if isinstance(other, cls):
-                other = other._ndarray
-
-            with np.errstate(all="ignore"):
-                result = op(self._ndarray, other)
-
-            if op is divmod:
-                a, b = result
-                return cls(a), cls(b)
-
-            return cls(result)
+            return self._cmp_method(other, op)
 
         return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
 
     _create_comparison_method = _create_arithmetic_method
 
+    def _wrap_ndarray_result(self, result: np.ndarray):
+        # If we have timedelta64[ns] result, return a TimedeltaArray instead
+        #  of a PandasArray
+        if result.dtype == "timedelta64[ns]":
+            from pandas.core.arrays import TimedeltaArray
+
+            return TimedeltaArray._simple_new(result)
+        return type(self)(result)
+
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = np.nan
+
 
 PandasArray._add_arithmetic_ops()
-PandasArray._add_comparison_ops()

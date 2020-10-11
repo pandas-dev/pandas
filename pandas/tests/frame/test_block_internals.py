@@ -78,7 +78,7 @@ class TestDataFrameBlockInternals:
     def test_values_consolidate(self, float_frame):
         float_frame["E"] = 7.0
         assert not float_frame._mgr.is_consolidated()
-        _ = float_frame.values  # noqa
+        _ = float_frame.values
         assert float_frame._mgr.is_consolidated()
 
     def test_modify_values(self, float_frame):

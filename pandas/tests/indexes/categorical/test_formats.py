@@ -18,7 +18,7 @@ class TestCategoricalIndexRepr:
         expected = """CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
                   'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb',
                   'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],
-                 categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""  # noqa
+                 categories=['a', 'bb', 'ccc'], ordered=False, dtype='category')"""
 
         assert repr(idx) == expected
 
@@ -49,7 +49,7 @@ class TestCategoricalIndexRepr:
         expected = """CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ',
                   'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
-                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
+                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""
 
         assert repr(idx) == expected
 
@@ -84,7 +84,7 @@ class TestCategoricalIndexRepr:
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',
                   'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい',
                   'ううう', 'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう'],
-                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""  # noqa
+                 categories=['あ', 'いい', 'ううう'], ordered=False, dtype='category')"""
 
             assert repr(idx) == expected
 

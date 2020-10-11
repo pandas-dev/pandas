@@ -29,14 +29,10 @@ from pandas.core.dtypes.generic import ABCCategoricalIndex, ABCIndexClass
 from pandas.core.dtypes.inference import is_bool, is_list_like
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
-    from pandas import Categorical  # noqa: F401
-    from pandas.core.arrays import (  # noqa: F401
-        DatetimeArray,
-        IntervalArray,
-        PeriodArray,
-    )
+    from pandas import Categorical
+    from pandas.core.arrays import DatetimeArray, IntervalArray, PeriodArray
 
 str_type = str
 
@@ -457,7 +453,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         -------
         type
         """
-        from pandas import Categorical  # noqa: F811
+        from pandas import Categorical
 
         return Categorical
 
@@ -706,7 +702,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import DatetimeArray  # noqa: F811
+        from pandas.core.arrays import DatetimeArray
 
         return DatetimeArray
 
@@ -959,7 +955,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         """
         Construct PeriodArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         from pandas.core.arrays import PeriodArray
         from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
@@ -1157,7 +1153,7 @@ class IntervalDtype(PandasExtensionDtype):
         """
         Construct IntervalArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         from pandas.core.arrays import IntervalArray
 

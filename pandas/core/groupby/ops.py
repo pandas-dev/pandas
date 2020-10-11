@@ -7,7 +7,7 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import List, Optional, Sequence, Tuple, Type
+from typing import Dict, Generic, Hashable, List, Optional, Sequence, Tuple, Type
 
 import numpy as np
 
@@ -20,6 +20,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
+    ensure_float,
     ensure_float64,
     ensure_int64,
     ensure_int_or_float,
@@ -87,6 +88,7 @@ class BaseGrouper:
         group_keys: bool = True,
         mutated: bool = False,
         indexer: Optional[np.ndarray] = None,
+        dropna: bool = True,
     ):
         assert isinstance(axis, Index), axis
 
@@ -97,6 +99,7 @@ class BaseGrouper:
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
+        self.dropna = dropna
 
     @property
     def groupings(self) -> List["grouper.Grouping"]:
@@ -246,7 +249,7 @@ class BaseGrouper:
         return Series(out, index=self.result_index, dtype="int64")
 
     @cache_readonly
-    def groups(self):
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         """ dict {group name -> group labels} """
         if len(self.groupings) == 1:
             return self.groupings[0].groups
@@ -489,7 +492,7 @@ class BaseGrouper:
             else:
                 values = ensure_int_or_float(values)
         elif is_numeric and not is_complex_dtype(values):
-            values = ensure_float64(values)
+            values = ensure_float64(ensure_float(values))
         else:
             values = values.astype(object)
 
@@ -863,7 +866,7 @@ def _is_indexed_like(obj, axes, axis: int) -> bool:
 # Splitting / application
 
 
-class DataSplitter:
+class DataSplitter(Generic[FrameOrSeries]):
     def __init__(self, data: FrameOrSeries, labels, ngroups: int, axis: int = 0):
         self.data = data
         self.labels = ensure_int64(labels)

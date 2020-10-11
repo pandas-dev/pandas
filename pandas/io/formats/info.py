@@ -12,7 +12,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.series import Series
 
 
 def _put_str(s: Union[str, Dtype], space: int) -> str:
@@ -111,7 +111,6 @@ class BaseInfo(metaclass=ABCMeta):
         mem_usage : int
             Object's total memory usage in bytes.
         """
-        pass
 
     @abstractmethod
     def _get_ids_and_dtypes(self) -> Tuple["Index", "Series"]:
@@ -125,7 +124,6 @@ class BaseInfo(metaclass=ABCMeta):
         dtypes : Series
             Dtype of each of the DataFrame's columns.
         """
-        pass
 
     @abstractmethod
     def _verbose_repr(
@@ -145,7 +143,6 @@ class BaseInfo(metaclass=ABCMeta):
         show_counts : bool
             If True, count of non-NA cells for each column will be appended to `lines`.
         """
-        pass
 
     @abstractmethod
     def _non_verbose_repr(self, lines: List[str], ids: "Index") -> None:
@@ -159,7 +156,6 @@ class BaseInfo(metaclass=ABCMeta):
         ids : Index
             The DataFrame's column names.
         """
-        pass
 
     def info(self) -> None:
         """
@@ -292,11 +288,14 @@ class DataFrameInfo(BaseInfo):
         len_column = len(pprint_thing(column_head))
         space = max(max_col, len_column) + col_space
 
-        max_id = len(pprint_thing(col_count))
+        # GH #36765
+        # add one space in max_id because there is a one-space padding
+        # in front of the number
+        # this allows maintain two spaces gap between columns
+        max_id = len(pprint_thing(col_count)) + 1
         len_id = len(pprint_thing(id_head))
         space_num = max(max_id, len_id) + col_space
 
-        header = _put_str(id_head, space_num) + _put_str(column_head, space)
         if show_counts:
             counts = self.data.count()
             if col_count != len(counts):  # pragma: no cover
@@ -319,17 +318,26 @@ class DataFrameInfo(BaseInfo):
         len_dtype = len(dtype_header)
         max_dtypes = max(len(pprint_thing(k)) for k in dtypes)
         space_dtype = max(len_dtype, max_dtypes)
-        header += _put_str(count_header, space_count) + _put_str(
-            dtype_header, space_dtype
-        )
 
-        lines.append(header)
-        lines.append(
-            _put_str("-" * len_id, space_num)
-            + _put_str("-" * len_column, space)
-            + _put_str("-" * len_count, space_count)
-            + _put_str("-" * len_dtype, space_dtype)
+        header = "".join(
+            [
+                _put_str(id_head, space_num),
+                _put_str(column_head, space),
+                _put_str(count_header, space_count),
+                _put_str(dtype_header, space_dtype),
+            ]
         )
+        lines.append(header)
+
+        top_separator = "".join(
+            [
+                _put_str("-" * len_id, space_num),
+                _put_str("-" * len_column, space),
+                _put_str("-" * len_count, space_count),
+                _put_str("-" * len_dtype, space_dtype),
+            ]
+        )
+        lines.append(top_separator)
 
         for i, col in enumerate(ids):
             dtype = dtypes[i]

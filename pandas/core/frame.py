@@ -83,11 +83,11 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_cast_to_datetime,
+    maybe_casted_values,
     maybe_convert_platform,
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
     maybe_upcast,
-    maybe_upcast_putmask,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -100,6 +100,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_float,
     is_float_dtype,
     is_hashable,
     is_integer,
@@ -113,21 +114,23 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, na_value_for_dtype, notna
+from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import algorithms, common as com, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import reconstruct_func, relabel_result, transform
+from pandas.core.aggregation import (
+    aggregate,
+    reconstruct_func,
+    relabel_result,
+    transform,
+)
 from pandas.core.arrays import Categorical, ExtensionArray
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin as DatetimeLikeArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
-from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
-from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -630,7 +633,6 @@ class DataFrame(NDFrame):
         if self._mgr.any_extension_types:
             return len({block.dtype for block in self._mgr.blocks}) == 1
         else:
-            # Note: consolidates inplace
             return not self._is_mixed_type
 
     @property
@@ -638,10 +640,10 @@ class DataFrame(NDFrame):
         """
         Can we transpose this DataFrame without creating any new array objects.
         """
-        if self._data.any_extension_types:
+        if self._mgr.any_extension_types:
             # TODO(EA2D) special case would be unnecessary with 2D EAs
             return False
-        return len(self._data.blocks) == 1
+        return len(self._mgr.blocks) == 1
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -1216,7 +1218,14 @@ class DataFrame(NDFrame):
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
-        return self.T.dot(np.transpose(other)).T
+        try:
+            return self.T.dot(np.transpose(other)).T
+        except ValueError as err:
+            if "shape mismatch" not in str(err):
+                raise
+            # GH#21581 give exception message for original shapes
+            msg = f"shapes {np.shape(other)} and {self.shape} not aligned"
+            raise ValueError(msg) from err
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
@@ -2298,7 +2307,7 @@ class DataFrame(NDFrame):
         path : str or file-like object
             If a string, it will be used as Root Directory path
             when writing a partitioned dataset. By file-like object,
-            we refer to objects with a write() method, such as a file handler
+            we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function) or io.BytesIO. The engine
             fastparquet does not accept file-like objects.
 
@@ -2337,7 +2346,7 @@ class DataFrame(NDFrame):
             be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
             will be raised if providing this argument with a local path or
             a file-like buffer. See the fsspec and backend storage implementation
-            docs for the set of allowed keys and values
+            docs for the set of allowed keys and values.
 
             .. versionadded:: 1.2.0
 
@@ -2872,7 +2881,7 @@ class DataFrame(NDFrame):
         Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
         """
-        return self._data.iget_values(i)
+        return self._mgr.iget_values(i)
 
     def _iter_column_arrays(self) -> Iterator[ArrayLike]:
         """
@@ -3244,8 +3253,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
-            DataFrame resulting from the provided query expression.
+        DataFrame or None
+            DataFrame resulting from the provided query expression or
+            None if ``inplace=True``.
 
         See Also
         --------
@@ -3392,8 +3402,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        ndarray, scalar, or pandas object
-            The result of the evaluation.
+        ndarray, scalar, pandas object, or None
+            The result of the evaluation or None if ``inplace=True``.
 
         See Also
         --------
@@ -4110,8 +4120,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
-            DataFrame without the removed index or column labels.
+        DataFrame or None
+            DataFrame without the removed index or column labels or
+            None if ``inplace=True``.
 
         Raises
         ------
@@ -4265,8 +4276,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
-            DataFrame with the renamed axis labels.
+        DataFrame or None
+            DataFrame with the renamed axis labels or None if ``inplace=True``.
 
         Raises
         ------
@@ -4316,7 +4327,7 @@ class DataFrame(NDFrame):
         Traceback (most recent call last):
         KeyError: ['C'] not found in axis
 
-        Using axis-style parameters
+        Using axis-style parameters:
 
         >>> df.rename(str.lower, axis='columns')
            a  b
@@ -4458,7 +4469,34 @@ class DataFrame(NDFrame):
         return res.__finalize__(self)
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> DataFrame:
+    def shift(
+        self, periods=1, freq=None, axis=0, fill_value=lib.no_default
+    ) -> DataFrame:
+        axis = self._get_axis_number(axis)
+
+        ncols = len(self.columns)
+        if axis == 1 and periods != 0 and fill_value is lib.no_default and ncols > 0:
+            # We will infer fill_value to match the closest column
+
+            if periods > 0:
+                result = self.iloc[:, :-periods]
+                for col in range(min(ncols, abs(periods))):
+                    # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
+                    # Define filler inside loop so we get a copy
+                    filler = self.iloc[:, 0].shift(len(self))
+                    result.insert(0, col, filler, allow_duplicates=True)
+            else:
+                result = self.iloc[:, -periods:]
+                for col in range(min(ncols, abs(periods))):
+                    # Define filler inside loop so we get a copy
+                    filler = self.iloc[:, -1].shift(len(self))
+                    result.insert(
+                        len(result.columns), col, filler, allow_duplicates=True
+                    )
+
+            result.columns = self.columns.copy()
+            return result
+
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
         )
@@ -4494,8 +4532,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
-            Changed row labels.
+        DataFrame or None
+            Changed row labels or None if ``inplace=True``.
 
         See Also
         --------
@@ -4808,46 +4846,6 @@ class DataFrame(NDFrame):
         else:
             new_obj = self.copy()
 
-        def _maybe_casted_values(index, labels=None):
-            values = index._values
-            if not isinstance(index, (PeriodIndex, DatetimeIndex)):
-                if values.dtype == np.object_:
-                    values = lib.maybe_convert_objects(values)
-
-            # if we have the labels, extract the values with a mask
-            if labels is not None:
-                mask = labels == -1
-
-                # we can have situations where the whole mask is -1,
-                # meaning there is nothing found in labels, so make all nan's
-                if mask.size > 0 and mask.all():
-                    dtype = index.dtype
-                    fill_value = na_value_for_dtype(dtype)
-                    values = construct_1d_arraylike_from_scalar(
-                        fill_value, len(mask), dtype
-                    )
-                else:
-                    values = values.take(labels)
-
-                    # TODO(https://github.com/pandas-dev/pandas/issues/24206)
-                    # Push this into maybe_upcast_putmask?
-                    # We can't pass EAs there right now. Looks a bit
-                    # complicated.
-                    # So we unbox the ndarray_values, op, re-box.
-                    values_type = type(values)
-                    values_dtype = values.dtype
-
-                    if issubclass(values_type, DatetimeLikeArray):
-                        values = values._data  # TODO: can we de-kludge yet?
-
-                    if mask.any():
-                        values, _ = maybe_upcast_putmask(values, mask, np.nan)
-
-                    if issubclass(values_type, DatetimeLikeArray):
-                        values = values_type(values, dtype=values_dtype)
-
-            return values
-
         new_index = ibase.default_index(len(new_obj))
         if level is not None:
             if not isinstance(level, (tuple, list)):
@@ -4890,7 +4888,7 @@ class DataFrame(NDFrame):
                     name_lst += [col_fill] * missing
                     name = tuple(name_lst)
                 # to ndarray and maybe infer different dtype
-                level_values = _maybe_casted_values(lev, lab)
+                level_values = maybe_casted_values(lev, lab)
                 new_obj.insert(0, name, level_values)
 
         new_obj.index = new_index
@@ -4904,7 +4902,7 @@ class DataFrame(NDFrame):
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> DataFrame:
-        result = self._constructor(self._data.isna(func=isna))
+        result = self._constructor(self._mgr.isna(func=isna))
         return result.__finalize__(self, method="isna")
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
@@ -4957,8 +4955,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
-            DataFrame with NA entries dropped from it.
+        DataFrame or None
+            DataFrame with NA entries dropped from it or None if ``inplace=True``.
 
         See Also
         --------
@@ -5093,7 +5091,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
+        DataFrame or None
             DataFrame with duplicates removed or None if ``inplace=True``.
 
         See Also
@@ -5133,7 +5131,7 @@ class DataFrame(NDFrame):
         0  Yum Yum   cup     4.0
         2  Indomie   cup     3.5
 
-        To remove duplicates and keep last occurences, use ``keep``.
+        To remove duplicates and keep last occurrences, use ``keep``.
 
         >>> df.drop_duplicates(subset=['brand', 'style'], keep='last')
             brand style  rating
@@ -5416,8 +5414,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame
-            The original DataFrame sorted by the labels.
+        DataFrame or None
+            The original DataFrame sorted by the labels or None if ``inplace=True``.
 
         See Also
         --------
@@ -5891,13 +5889,22 @@ DataFrame
     The resulting index will be a MultiIndex with 'self' and 'other'
     stacked alternately at the inner level.
 
+Raises
+------
+ValueError
+    When the two DataFrames don't have identical labels or shape.
+
 See Also
 --------
 Series.compare : Compare with another Series and show differences.
+DataFrame.equals : Test whether two objects contain the same elements.
 
 Notes
 -----
 Matching NaNs will not appear as a difference.
+
+Can only compare identically-labeled
+(i.e. same shape, identical row and column labels) DataFrames
 
 Examples
 --------
@@ -7199,13 +7206,13 @@ NaN 12.3   33.0
         Difference with previous column
 
         >>> df.diff(axis=1)
-            a    b     c
-        0 NaN  0.0   0.0
-        1 NaN -1.0   3.0
-        2 NaN -1.0   7.0
-        3 NaN -1.0  13.0
-        4 NaN  0.0  20.0
-        5 NaN  2.0  28.0
+            a  b   c
+        0 NaN  0   0
+        1 NaN -1   3
+        2 NaN -1   7
+        3 NaN -1  13
+        4 NaN  0  20
+        5 NaN  2  28
 
         Difference with 3rd previous row
 
@@ -7239,12 +7246,15 @@ NaN 12.3   33.0
         ),
     )
     def diff(self, periods: int = 1, axis: Axis = 0) -> DataFrame:
+        if not isinstance(periods, int):
+            if not (is_float(periods) and periods.is_integer()):
+                raise ValueError("periods must be an integer")
+            periods = int(periods)
 
         bm_axis = self._get_block_manager_axis(axis)
-        self._consolidate_inplace()
 
         if bm_axis == 0 and periods != 0:
-            return self.T.diff(periods, axis=0).T
+            return self - self.shift(periods, axis=axis)  # type: ignore[operator]
 
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
@@ -7254,7 +7264,7 @@ NaN 12.3   33.0
 
     def _gotitem(
         self,
-        key: Union[str, List[str]],
+        key: Union[Label, List[Label]],
         ndim: int,
         subset: Optional[FrameOrSeriesUnion] = None,
     ) -> FrameOrSeriesUnion:
@@ -7360,7 +7370,7 @@ NaN 12.3   33.0
 
         result = None
         try:
-            result, how = self._aggregate(func, axis=axis, *args, **kwargs)
+            result, how = self._aggregate(func, axis, *args, **kwargs)
         except TypeError as err:
             exc = TypeError(
                 "DataFrame constructor called with "
@@ -7388,10 +7398,10 @@ NaN 12.3   33.0
         if axis == 1:
             # NDFrame.aggregate returns a tuple, and we need to transpose
             # only result
-            result, how = self.T._aggregate(arg, *args, **kwargs)
+            result, how = aggregate(self.T, arg, *args, **kwargs)
             result = result.T if result is not None else result
             return result, how
-        return super()._aggregate(arg, *args, **kwargs)
+        return aggregate(self, arg, *args, **kwargs)
 
     agg = aggregate
 
@@ -8559,6 +8569,7 @@ NaN 12.3   33.0
     ):
 
         assert filter_type is None or filter_type == "bool", filter_type
+        out_dtype = "bool" if filter_type == "bool" else None
 
         dtype_is_dt = np.array(
             [
@@ -8573,15 +8584,15 @@ NaN 12.3   33.0
                 "will include datetime64 and datetime64tz columns in a "
                 "future version.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=5,
             )
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        # TODO: Make other agg func handle axis=None properly
+        any_object = self.dtypes.apply(is_object_dtype).any()
+        # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
         labels = self._get_agg_axis(axis)
-        constructor = self._constructor
         assert axis in [0, 1]
 
         def func(values):
@@ -8590,21 +8601,32 @@ NaN 12.3   33.0
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
+        def blk_func(values):
+            if isinstance(values, ExtensionArray):
+                return values._reduce(name, skipna=skipna, **kwds)
+            else:
+                return op(values, axis=1, skipna=skipna, **kwds)
+
         def _get_data() -> DataFrame:
             if filter_type is None:
                 data = self._get_numeric_data()
-            elif filter_type == "bool":
+            else:
                 # GH#25101, GH#24434
+                assert filter_type == "bool"
                 data = self._get_bool_data()
-            else:  # pragma: no cover
-                msg = (
-                    f"Generating numeric_only data with filter_type {filter_type} "
-                    "not supported."
-                )
-                raise NotImplementedError(msg)
             return data
 
-        if numeric_only is not None:
+        if numeric_only is not None or (
+            numeric_only is None
+            and axis == 0
+            and not any_object
+            and not self._mgr.any_extension_types
+        ):
+            # For numeric_only non-None and axis non-None, we know
+            #  which blocks to use and no try/except is needed.
+            #  For numeric_only=None only the case with axis==0 and no object
+            #  dtypes are unambiguous can be handled with BlockManager.reduce
+            # Case with EAs see GH#35881
             df = self
             if numeric_only is True:
                 df = _get_data()
@@ -8612,22 +8634,18 @@ NaN 12.3   33.0
                 df = df.T
                 axis = 0
 
-            out_dtype = "bool" if filter_type == "bool" else None
-
-            def blk_func(values):
-                if isinstance(values, ExtensionArray):
-                    return values._reduce(name, skipna=skipna, **kwds)
-                else:
-                    return op(values, axis=1, skipna=skipna, **kwds)
+            ignore_failures = numeric_only is None
 
             # After possibly _get_data and transposing, we are now in the
             #  simple case where we can use BlockManager.reduce
-            res = df._mgr.reduce(blk_func)
-            out = df._constructor(res).iloc[0].rename(None)
+            res, indexer = df._mgr.reduce(blk_func, ignore_failures=ignore_failures)
+            out = df._constructor(res).iloc[0]
             if out_dtype is not None:
                 out = out.astype(out_dtype)
             if axis == 0 and is_object_dtype(out.dtype):
-                out[:] = coerce_to_dtypes(out.values, df.dtypes)
+                # GH#35865 careful to cast explicitly to object
+                nvs = coerce_to_dtypes(out.values, df.dtypes.iloc[np.sort(indexer)])
+                out[:] = np.array(nvs, dtype=object)
             return out
 
         assert numeric_only is None
@@ -8635,11 +8653,10 @@ NaN 12.3   33.0
         if not self._is_homogeneous_type or self._mgr.any_extension_types:
             # try to avoid self.values call
 
-            if filter_type is None and axis == 0 and len(self) > 0:
+            if filter_type is None and axis == 0:
                 # operate column-wise
 
                 # numeric_only must be None here, as other cases caught above
-                # require len(self) > 0 bc frame_apply messes up empty prod/sum
 
                 # this can end up with a non-reduction
                 # but not always. if the types are mixed
@@ -8675,19 +8692,17 @@ NaN 12.3   33.0
             with np.errstate(all="ignore"):
                 result = func(values)
 
-        if is_object_dtype(result.dtype):
+        if filter_type == "bool" and notna(result).all():
+            result = result.astype(np.bool_)
+        elif filter_type is None and is_object_dtype(result.dtype):
             try:
-                if filter_type is None:
-                    result = result.astype(np.float64)
-                elif filter_type == "bool" and notna(result).all():
-                    result = result.astype(np.bool_)
+                result = result.astype(np.float64)
             except (ValueError, TypeError):
                 # try to coerce to the original dtypes item by item if we can
                 if axis == 0:
                     result = coerce_to_dtypes(result, data.dtypes)
 
-        if constructor is not None:
-            result = self._constructor_sliced(result, index=labels)
+        result = self._constructor_sliced(result, index=labels)
         return result
 
     def nunique(self, axis=0, dropna=True) -> Series:
@@ -8935,8 +8950,8 @@ NaN 12.3   33.0
         ostrich       bird     2    NaN
 
         By default, missing values are not considered, and the mode of wings
-        are both 0 and 2. The second row of species and legs contains ``NaN``,
-        because they have only one mode, but the DataFrame has two rows.
+        are both 0 and 2. Because the resulting DataFrame has two rows,
+        the second row of ``species`` and ``legs`` contains ``NaN``.
 
         >>> df.mode()
           species  legs  wings
@@ -9270,8 +9285,8 @@ ops.add_flex_arithmetic_methods(DataFrame)
 ops.add_special_arithmetic_methods(DataFrame)
 
 
-def _from_nested_dict(data):
-    new_data = collections.defaultdict(dict)
+def _from_nested_dict(data) -> collections.defaultdict:
+    new_data: collections.defaultdict = collections.defaultdict(dict)
     for index, s in data.items():
         for col, v in s.items():
             new_data[col][index] = v
