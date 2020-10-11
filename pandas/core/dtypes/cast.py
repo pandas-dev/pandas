@@ -132,6 +132,13 @@ def maybe_downcast_to_dtype(result, dtype):
     elif isinstance(result, ABCDataFrame):
         # occurs in pivot_table doctest
         return result
+    elif is_period_dtype(dtype):
+        from pandas.core.arrays import PeriodArray
+
+        with suppress(TypeError):
+            # e.g. TypeError: int() argument must be a string, a
+            #  bytes-like object or a number, not 'Period
+            return PeriodArray(result, freq=dtype.freq)
 
     if isinstance(dtype, str):
         if dtype == "infer":
@@ -163,7 +170,10 @@ def maybe_downcast_to_dtype(result, dtype):
     # a datetimelike
     # GH12821, iNaT is cast to float
     if is_datetime_or_timedelta_any_dtype(dtype) and result.dtype.kind in ["i", "f"]:
-        if not is_datetime_or_timedelta_dtype(dtype):
+
+        if is_datetime_or_timedelta_dtype(dtype):
+            result = result.astype(dtype)
+        else:
             # not a numpy dtype
             if dtype.tz:
                 # convert to datetime and change timezone
@@ -171,17 +181,6 @@ def maybe_downcast_to_dtype(result, dtype):
 
                 result = to_datetime(result).tz_localize("utc")
                 result = result.tz_convert(dtype.tz)
-        else:
-            result = result.astype(dtype)
-
-    elif is_period_dtype(dtype):
-        # TODO(DatetimeArray): merge with previous elif
-        from pandas.core.arrays import PeriodArray
-
-        with suppress(TypeError):
-            # e.g. TypeError: int() argument must be a string, a
-            #  bytes-like object or a number, not 'Period
-            return PeriodArray(result, freq=dtype.freq)
 
     return result
 
