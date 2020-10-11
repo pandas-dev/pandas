@@ -6,7 +6,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, Series
+from pandas import DataFrame, Index, Series, to_datetime
 import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
@@ -163,17 +163,34 @@ class TestDataFramePlots(TestPlotBase):
             _check_plot_works(self.hist_df.hist)
 
         # make sure layout is handled
-        df = DataFrame(randn(100, 3))
+        df = DataFrame(randn(100, 2))
+        df[2] = to_datetime(
+            np.random.randint(
+                self.start_date_to_int64,
+                self.end_date_to_int64,
+                size=100,
+                dtype=np.int64,
+            )
+        )
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(df.hist, grid=False)
         self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
         assert not axes[1, 1].get_visible()
 
+        _check_plot_works(df[[2]].hist)
         df = DataFrame(randn(100, 1))
         _check_plot_works(df.hist)
 
         # make sure layout is handled
-        df = DataFrame(randn(100, 6))
+        df = DataFrame(randn(100, 5))
+        df[5] = to_datetime(
+            np.random.randint(
+                self.start_date_to_int64,
+                self.end_date_to_int64,
+                size=100,
+                dtype=np.int64,
+            )
+        )
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(df.hist, layout=(4, 2))
         self._check_axes_shape(axes, axes_num=6, layout=(4, 2))
@@ -225,18 +242,42 @@ class TestDataFramePlots(TestPlotBase):
             ser.hist(foo="bar")
 
     @pytest.mark.slow
-    def test_hist_non_numerical_raises(self):
-        # gh-10444
-        df = DataFrame(np.random.rand(10, 2))
+    def test_hist_non_numerical_or_datetime_raises(self):
+        # gh-10444, GH32590
+        df = DataFrame(
+            {
+                "a": np.random.rand(10),
+                "b": np.random.randint(0, 10, 10),
+                "c": to_datetime(
+                    np.random.randint(
+                        1582800000000000000, 1583500000000000000, 10, dtype=np.int64
+                    )
+                ),
+                "d": to_datetime(
+                    np.random.randint(
+                        1582800000000000000, 1583500000000000000, 10, dtype=np.int64
+                    ),
+                    utc=True,
+                ),
+            }
+        )
         df_o = df.astype(object)
 
-        msg = "hist method requires numerical columns, nothing to plot."
+        msg = "hist method requires numerical or datetime columns, nothing to plot."
         with pytest.raises(ValueError, match=msg):
             df_o.hist()
 
     @pytest.mark.slow
     def test_hist_layout(self):
-        df = DataFrame(randn(100, 3))
+        df = DataFrame(randn(100, 2))
+        df[2] = to_datetime(
+            np.random.randint(
+                self.start_date_to_int64,
+                self.end_date_to_int64,
+                size=100,
+                dtype=np.int64,
+            )
+        )
 
         layout_to_expected_size = (
             {"layout": None, "expected_size": (2, 2)},  # default is 2x2
@@ -268,7 +309,15 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     # GH 9351
     def test_tight_layout(self):
-        df = DataFrame(randn(100, 3))
+        df = DataFrame(np.random.randn(100, 2))
+        df[2] = to_datetime(
+            np.random.randint(
+                self.start_date_to_int64,
+                self.end_date_to_int64,
+                size=100,
+                dtype=np.int64,
+            )
+        )
         _check_plot_works(df.hist)
         self.plt.tight_layout()
 
@@ -355,7 +404,15 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        df = DataFrame(randn(500, 2), columns=["A", "B"])
+        df = DataFrame(randn(500, 1), columns=["A"])
+        df["B"] = to_datetime(
+            np.random.randint(
+                self.start_date_to_int64,
+                self.end_date_to_int64,
+                size=500,
+                dtype=np.int64,
+            )
+        )
         df["C"] = np.random.randint(0, 4, 500)
         df["D"] = ["X"] * 500
 
