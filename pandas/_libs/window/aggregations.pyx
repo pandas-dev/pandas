@@ -311,10 +311,10 @@ cdef inline float64_t calc_var(int64_t minp, int ddof, float64_t nobs,
 
 
 cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
-                         float64_t *ssqdm_x, float64_t *m_x) nogil:
+                         float64_t *ssqdm_x, float64_t *compensation) nogil:
     """ add a value from the var calc """
     cdef:
-        float64_t delta, prev_mean
+        float64_t delta, prev_mean, y, t
 
     # `isnan` instead of equality as fix for GH-21813, msvc 2017 bug
     if isnan(val):
@@ -323,35 +323,36 @@ cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
     nobs[0] = nobs[0] + 1
     # a part of Welford's method for the online variance-calculation
     # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    delta = val - mean_x[0]
+    y = val - compensation[0]
+    t = y - mean_x[0]
+    compensation[0] = t + mean_x[0] - y
+    delta = t
     prev_mean = mean_x[0]
     mean_x[0] = mean_x[0] + delta / nobs[0]
-    m_x[0] = m_x[0] + (val - prev_mean) * (val - mean_x[0])
-    ssqdm_x[0] = m_x[0]
-    # ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
+    ssqdm_x[0] = ssqdm_x[0] + (val - prev_mean) * (val - mean_x[0])
 
 
 cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
-                            float64_t *ssqdm_x, float64_t *m_x) nogil:
+                            float64_t *ssqdm_x, float64_t *compensation) nogil:
     """ remove a value from the var calc """
     cdef:
-        float64_t delta, prev_mean
+        float64_t delta, prev_mean, y, t
 
     if notnan(val):
         nobs[0] = nobs[0] - 1
         if nobs[0]:
             # a part of Welford's method for the online variance-calculation
             # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-            delta = val - mean_x[0]
+            y = val - compensation[0]
+            t = y - mean_x[0]
+            compensation[0] = t + mean_x[0] - y
+            delta = t
             prev_mean = mean_x[0]
             mean_x[0] = mean_x[0] - delta / nobs[0]
-            m_x[0] = m_x[0] - (val - prev_mean) * (val - mean_x[0])
-            # ssqdm_x[0] = ssqdm_x[0] - ((nobs[0] + 1) * delta ** 2) / nobs[0]
-            ssqdm_x[0] = m_x[0]
+            ssqdm_x[0] = ssqdm_x[0] - (val - prev_mean) * (val - mean_x[0])
         else:
             mean_x[0] = 0
             ssqdm_x[0] = 0
-            m_x[0] = 0
 
 
 def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
@@ -360,7 +361,7 @@ def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
     Numerically stable implementation using Welford's method.
     """
     cdef:
-        float64_t mean_x = 0, ssqdm_x = 0, nobs = 0, m_x = 0,
+        float64_t mean_x = 0, ssqdm_x = 0, nobs = 0, compensation_add = 0, compensation_remove = 0,
         float64_t val, prev, delta, mean_x_old
         int64_t s, e
         Py_ssize_t i, j, N = len(values)
@@ -382,26 +383,26 @@ def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_bounds:
 
                 for j in range(s, e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &m_x)
+                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add)
 
             else:
 
                 # After the first window, observations can both be added
                 # and removed
 
-                # calculate adds
-                for j in range(end[i - 1], e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &m_x)
-
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x, &m_x)
+                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_remove)
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add)
 
             output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
 
             if not is_monotonic_bounds:
                 for j in range(s, e):
-                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x, &m_x)
+                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_remove)
 
     return output
 
