@@ -387,11 +387,6 @@ class Index(IndexOpsMixin, PandasObject):
                     )
             # other iterable of some kind
             subarr = com.asarray_tuplesafe(data, dtype=object)
-
-            if isinstance(name, list) and len(name) == 1:
-                # GH 36655: if name == [List[str]] we want List[str]
-                name = name[0]
-
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     """
