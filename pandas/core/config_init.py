@@ -85,8 +85,9 @@ with cf.config_prefix("compute"):
 
 pc_precision_doc = """
 : int
-    Floating point output precision (number of significant digits). This is
-    only a suggestion
+    Floating point output precision in terms of number of places after the
+    decimal, for regular formatting as well as scientific notation. Similar
+    to ``precision`` in :meth:`numpy.set_printoptions`.
 """
 
 pc_colspace_doc = """
@@ -249,7 +250,7 @@ pc_chop_threshold_doc = """
 
 pc_max_seq_items = """
 : int or None
-    when pretty-printing a long sequence, no more then `max_seq_items`
+    When pretty-printing a long sequence, no more then `max_seq_items`
     will be printed. If items are omitted, they will be denoted by the
     addition of "..." to the resulting string.
 
