@@ -1901,10 +1901,7 @@ def _trim_zeros_float(
         return len(numbers) > 0 and all(x.endswith("0") for x in numbers)
 
     while should_trim(trimmed):
-        trimmed = [
-            x[:-1] if is_number_with_decimal(x) and x.endswith("0") else x
-            for x in trimmed
-        ]
+        trimmed = [x[:-1] if is_number_with_decimal(x) else x for x in trimmed]
 
     # leave one 0 after the decimal points if need be.
     result = [
