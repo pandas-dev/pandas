@@ -413,7 +413,9 @@ def _validate_names(names):
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
-        if not is_list_like(names, allow_sets=False):
+        if not (
+            is_list_like(names, allow_sets=False) or isinstance(names, abc.KeysView)
+        ):
             raise ValueError("Names should be an ordered collection.")
 
 
