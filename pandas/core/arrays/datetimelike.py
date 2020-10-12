@@ -65,7 +65,7 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
-from pandas.core.indexers import check_array_indexer, check_setitem_lengths
+from pandas.core.indexers import check_setitem_lengths
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
@@ -284,23 +284,6 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         result._freq = self._get_getitem_freq(key)
         return result
 
-    def _validate_getitem_key(self, key):
-        if com.is_bool_indexer(key):
-            # first convert to boolean, because check_array_indexer doesn't
-            # allow object dtype
-            if is_object_dtype(key):
-                key = np.asarray(key, dtype=bool)
-
-            key = check_array_indexer(self, key)
-            key = lib.maybe_booleans_to_slice(key.view(np.uint8))
-        elif isinstance(key, list) and len(key) == 1 and isinstance(key[0], slice):
-            # see https://github.com/pandas-dev/pandas/issues/31299, need to allow
-            # this for now (would otherwise raise in check_array_indexer)
-            pass
-        else:
-            key = super()._validate_getitem_key(key)
-        return key
-
     def _get_getitem_freq(self, key):
         """
         Find the `freq` attribute to assign to the result of a __getitem__ lookup.
@@ -322,6 +305,10 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
                 # GH#21282 indexing with Ellipsis is similar to a full slice,
                 #  should preserve `freq` attribute
                 freq = self.freq
+            elif com.is_bool_indexer(key):
+                new_key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+                if isinstance(new_key, slice):
+                    return self._get_getitem_freq(new_key)
         return freq
 
     def __setitem__(
