@@ -2654,7 +2654,7 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> dtypes = ['int64', 'float64', 'complex128', 'object', 'bool']
-        >>> data = dict([(t, np.ones(shape=5000).astype(t))
+        >>> data = dict([(t, np.ones(shape=5000, dtype=int).astype(t))
         ...              for t in dtypes])
         >>> df = pd.DataFrame(data)
         >>> df.head()
@@ -2788,7 +2788,7 @@ class DataFrame(NDFrame):
         >>> df2_transposed
                       0     1
         name      Alice   Bob
-        score       9.5     8
+        score       9.5   8.0
         employed  False  True
         kids          0     0
 
