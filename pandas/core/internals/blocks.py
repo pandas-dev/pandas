@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import inspect
 import re
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -92,6 +92,8 @@ class Block(PandasObject):
 
     Index-ignorant; let the container take care of that
     """
+
+    values: Union[np.ndarray, ExtensionArray]
 
     __slots__ = ["_mgr_locs", "values", "ndim"]
     is_numeric = False
@@ -194,7 +196,9 @@ class Block(PandasObject):
     @property
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
-        return self.values.base is not None
+        values = self.values
+        values = cast(np.ndarray, values)
+        return values.base is not None
 
     @property
     def is_categorical(self) -> bool:
@@ -1465,6 +1469,7 @@ class Block(PandasObject):
         result_blocks: List["Block"] = []
         for m in [mask, ~mask]:
             if m.any():
+                result = cast(np.ndarray, result)  # EABlock overrides where
                 taken = result.take(m.nonzero()[0], axis=axis)
                 r = maybe_downcast_numeric(taken, self.dtype)
                 nb = self.make_block(r.T, placement=self.mgr_locs[m])
@@ -1618,6 +1623,8 @@ class ExtensionBlock(Block):
     _can_consolidate = False
     _validate_ndim = False
     is_extension = True
+
+    values: ExtensionArray
 
     def __init__(self, values, placement, ndim=None):
         """
@@ -2197,9 +2204,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
             if copy:
                 # this should be the only copy
                 values = values.copy()
-            if getattr(values, "tz", None) is None:
-                values = DatetimeArray(values).tz_localize("UTC")
-            values = values.tz_convert(dtype.tz)
+            values = DatetimeArray._simple_new(values.view("i8"), dtype=dtype)
             return self.make_block(values)
 
         # delegate
@@ -2242,6 +2247,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
 
 class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
+
+    values: DatetimeArray
 
     __slots__ = ()
     is_datetimetz = True
@@ -2669,6 +2676,8 @@ def get_block_type(values, dtype=None):
     """
     dtype = dtype or values.dtype
     vtype = dtype.type
+
+    cls: Type[Block]
 
     if is_sparse(dtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
