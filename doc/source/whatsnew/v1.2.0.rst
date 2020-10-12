@@ -244,7 +244,7 @@ But not others, like :class:`Int64Dtype`.
 
 *New Behavior*
 
-In pandas 1.1.0, ``DataFrame.__setitem__`` consistently sets on a new array rather than
+In pandas 1.2.0, ``DataFrame.__setitem__`` consistently sets on a new array rather than
 mutating the existing array inplace.
 
 .. ipython:: python
