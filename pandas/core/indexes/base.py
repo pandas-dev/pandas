@@ -3756,9 +3756,7 @@ class Index(IndexOpsMixin, PandasObject):
                 left_indexer = None
                 join_index = left
             else:  # sort the leaves
-                left_indexer = _get_leaf_sorter(
-                    left.codes[: level + 1]
-                )
+                left_indexer = _get_leaf_sorter(left.codes[: level + 1])
                 join_index = left[left_indexer]
 
         else:
@@ -3766,9 +3764,7 @@ class Index(IndexOpsMixin, PandasObject):
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
 
             new_lev_codes = algos.take_nd(
-                rev_indexer,
-                left.codes[level],
-                allow_fill=False
+                rev_indexer, left.codes[level], allow_fill=False
             )
 
             new_codes = list(left.codes)
