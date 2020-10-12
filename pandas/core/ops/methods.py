@@ -49,62 +49,6 @@ def _get_method_wrappers(cls):
     return arith_flex, comp_flex
 
 
-def add_special_arithmetic_methods(cls):
-    """
-    Adds the full suite of special arithmetic methods (``__add__``,
-    ``__sub__``, etc.) to the class.
-
-    Parameters
-    ----------
-    cls : class
-        special methods will be defined and pinned to this class
-    """
-    new_methods = {}
-
-    def _wrap_inplace_method(method):
-        """
-        return an inplace wrapper for this method
-        """
-
-        def f(self, other):
-            result = method(self, other)
-            # Delete cacher
-            self._reset_cacher()
-            # this makes sure that we are aligned like the input
-            # we are updating inplace so we want to ignore is_copy
-            self._update_inplace(
-                result.reindex_like(self, copy=False), verify_is_copy=False
-            )
-
-            return self
-
-        name = method.__name__.strip("__")
-        f.__name__ = f"__i{name}__"
-        return f
-
-    # wrap methods that we get from OpsMixin
-    new_methods.update(
-        dict(
-            __iadd__=_wrap_inplace_method(cls.__add__),
-            __isub__=_wrap_inplace_method(cls.__sub__),
-            __imul__=_wrap_inplace_method(cls.__mul__),
-            __itruediv__=_wrap_inplace_method(cls.__truediv__),
-            __ifloordiv__=_wrap_inplace_method(cls.__floordiv__),
-            __imod__=_wrap_inplace_method(cls.__mod__),
-            __ipow__=_wrap_inplace_method(cls.__pow__),
-        )
-    )
-    new_methods.update(
-        dict(
-            __iand__=_wrap_inplace_method(cls.__and__),
-            __ior__=_wrap_inplace_method(cls.__or__),
-            __ixor__=_wrap_inplace_method(cls.__xor__),
-        )
-    )
-
-    _add_methods(cls, new_methods=new_methods)
-
-
 def add_flex_arithmetic_methods(cls):
     """
     Adds the full suite of flex arithmetic methods (``pow``, ``mul``, ``add``)
