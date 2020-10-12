@@ -240,7 +240,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def _dir_additions(self):
         return self.obj._dir_additions()
 
-    def _get_window(self, other=None) -> int:
+    def _get_window(
+        self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None
+    ) -> int:
         """
         Return window length.
 
@@ -447,7 +449,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         require_min_periods : int
         floor : int
         name : str,
-            compatibility with groupby.rolling
         use_numba_cache : bool
             whether to cache a numba compiled function. Only available for numba
             enabled methods (so far only apply)
@@ -796,7 +797,7 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
         name: Optional[str] = None,
         use_numba_cache: bool = False,
         **kwargs,
-    ):
+    ) -> FrameOrSeries:
         result = super()._apply(
             func,
             require_min_periods,
@@ -1267,7 +1268,7 @@ class Window(BaseWindow):
 
     @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
     @Appender(_shared_docs["var"])
-    def var(self, ddof=1, *args, **kwargs):
+    def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(self._get_roll_func("roll_weighted_var"), ddof=ddof)
         kwargs.pop("name", None)
@@ -1275,7 +1276,7 @@ class Window(BaseWindow):
 
     @Substitution(name="window", versionadded="\n.. versionadded:: 1.0.0\n")
     @Appender(_shared_docs["std"])
-    def std(self, ddof=1, *args, **kwargs):
+    def std(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
         return zsqrt(self.var(ddof=ddof, name="std", **kwargs))
 
@@ -1390,7 +1391,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def apply(
         self,
-        func,
+        func: Callable,
         raw: bool = False,
         engine: Optional[str] = None,
         engine_kwargs: Optional[Dict] = None,
@@ -1425,7 +1426,9 @@ class RollingAndExpandingMixin(BaseWindow):
             kwargs=kwargs,
         )
 
-    def _generate_cython_apply_func(self, args, kwargs, raw, func):
+    def _generate_cython_apply_func(
+        self, args: Tuple, kwargs: Dict, raw: bool, function: Callable
+    ) -> Callable:
         from pandas import Series
 
         window_func = partial(
@@ -1433,7 +1436,7 @@ class RollingAndExpandingMixin(BaseWindow):
             args=args,
             kwargs=kwargs,
             raw=raw,
-            func=func,
+            function=function,
         )
 
         def apply_func(values, begin, end, min_periods, raw=raw):
@@ -1554,7 +1557,7 @@ class RollingAndExpandingMixin(BaseWindow):
         # the median function implementation
         return self._apply(window_func, name="median", **kwargs)
 
-    def std(self, ddof=1, *args, **kwargs):
+    def std(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
         window_func = self._get_roll_func("roll_var")
 
@@ -1568,7 +1571,7 @@ class RollingAndExpandingMixin(BaseWindow):
             **kwargs,
         )
 
-    def var(self, ddof=1, *args, **kwargs):
+    def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(self._get_roll_func("roll_var"), ddof=ddof)
         return self._apply(
@@ -1630,7 +1633,7 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def sem(self, ddof=1, *args, **kwargs):
+    def sem(self, ddof: int = 1, *args, **kwargs):
         return self.std(*args, **kwargs) / (self.count() - ddof).pow(0.5)
 
     _shared_docs["sem"] = dedent(
@@ -1746,7 +1749,7 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
-    def quantile(self, quantile, interpolation="linear", **kwargs):
+    def quantile(self, quantile: float, interpolation: str = "linear", **kwargs):
         if quantile == 1.0:
             window_func = self._get_roll_func("roll_max")
         elif quantile == 0.0:
