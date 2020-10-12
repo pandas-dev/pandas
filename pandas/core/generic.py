@@ -5451,27 +5451,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         self._protect_consolidate(f)
 
-    def _consolidate(self, inplace: bool_t = False):
+    def _consolidate(self):
         """
         Compute NDFrame with "consolidated" internals (data of each dtype
         grouped together in a single ndarray).
-
-        Parameters
-        ----------
-        inplace : bool, default False
-            If False return new object, otherwise modify existing object.
 
         Returns
         -------
         consolidated : same type as caller
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        if inplace:
-            self._consolidate_inplace()
-        else:
-            f = lambda: self._mgr.consolidate()
-            cons_data = self._protect_consolidate(f)
-            return self._constructor(cons_data).__finalize__(self)
+        f = lambda: self._mgr.consolidate()
+        cons_data = self._protect_consolidate(f)
+        return self._constructor(cons_data).__finalize__(self)
 
     @property
     def _is_mixed_type(self) -> bool_t:
