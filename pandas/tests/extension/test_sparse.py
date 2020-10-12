@@ -155,6 +155,10 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         self._check_unsupported(data)
         super().test_merge(data, na_value)
 
+    @pytest.mark.xfail(reason="SparseArray does not support setitem")
+    def test_transpose(self, data):
+        super().test_transpose(data)
+
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
     def test_get(self, data):
