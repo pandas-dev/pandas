@@ -7,16 +7,13 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.ops.roperator import (
     radd,
-    rand_,
     rdivmod,
     rfloordiv,
     rmod,
     rmul,
-    ror_,
     rpow,
     rsub,
     rtruediv,
-    rxor,
 )
 
 
@@ -33,19 +30,10 @@ def _get_method_wrappers(cls):
     -------
     arith_flex : function or None
     comp_flex : function or None
-    arith_special : function
-    comp_special : function
-    bool_special : function
-
-    Notes
-    -----
-    None is only returned for SparseArray
     """
     # TODO: make these non-runtime imports once the relevant functions
     #  are no longer in __init__
     from pandas.core.ops import (
-        arith_method_FRAME,
-        comp_method_FRAME,
         flex_arith_method_FRAME,
         flex_comp_method_FRAME,
         flex_method_SERIES,
@@ -55,16 +43,10 @@ def _get_method_wrappers(cls):
         # Just Series
         arith_flex = flex_method_SERIES
         comp_flex = flex_method_SERIES
-        arith_special = None
-        comp_special = None
-        bool_special = None
     elif issubclass(cls, ABCDataFrame):
         arith_flex = flex_arith_method_FRAME
         comp_flex = flex_comp_method_FRAME
-        arith_special = arith_method_FRAME
-        comp_special = comp_method_FRAME
-        bool_special = arith_method_FRAME
-    return arith_flex, comp_flex, arith_special, comp_special, bool_special
+    return arith_flex, comp_flex
 
 
 def add_special_arithmetic_methods(cls):
@@ -77,12 +59,7 @@ def add_special_arithmetic_methods(cls):
     cls : class
         special methods will be defined and pinned to this class
     """
-    _, _, arith_method, comp_method, bool_method = _get_method_wrappers(cls)
-    new_methods = _create_methods(
-        cls, arith_method, comp_method, bool_method, special=True
-    )
-    # inplace operators (I feel like these should get passed an `inplace=True`
-    # or just be removed
+    new_methods = {}
 
     def _wrap_inplace_method(method):
         """
@@ -105,45 +82,25 @@ def add_special_arithmetic_methods(cls):
         f.__name__ = f"__i{name}__"
         return f
 
-    if bool_method is None:
-        # Series gets bool_method, arith_method via OpsMixin
-        new_methods.update(
-            dict(
-                __iadd__=_wrap_inplace_method(cls.__add__),
-                __isub__=_wrap_inplace_method(cls.__sub__),
-                __imul__=_wrap_inplace_method(cls.__mul__),
-                __itruediv__=_wrap_inplace_method(cls.__truediv__),
-                __ifloordiv__=_wrap_inplace_method(cls.__floordiv__),
-                __imod__=_wrap_inplace_method(cls.__mod__),
-                __ipow__=_wrap_inplace_method(cls.__pow__),
-            )
+    # wrap methods that we get from OpsMixin
+    new_methods.update(
+        dict(
+            __iadd__=_wrap_inplace_method(cls.__add__),
+            __isub__=_wrap_inplace_method(cls.__sub__),
+            __imul__=_wrap_inplace_method(cls.__mul__),
+            __itruediv__=_wrap_inplace_method(cls.__truediv__),
+            __ifloordiv__=_wrap_inplace_method(cls.__floordiv__),
+            __imod__=_wrap_inplace_method(cls.__mod__),
+            __ipow__=_wrap_inplace_method(cls.__pow__),
         )
-        new_methods.update(
-            dict(
-                __iand__=_wrap_inplace_method(cls.__and__),
-                __ior__=_wrap_inplace_method(cls.__or__),
-                __ixor__=_wrap_inplace_method(cls.__xor__),
-            )
+    )
+    new_methods.update(
+        dict(
+            __iand__=_wrap_inplace_method(cls.__and__),
+            __ior__=_wrap_inplace_method(cls.__or__),
+            __ixor__=_wrap_inplace_method(cls.__xor__),
         )
-    else:
-        new_methods.update(
-            dict(
-                __iadd__=_wrap_inplace_method(new_methods["__add__"]),
-                __isub__=_wrap_inplace_method(new_methods["__sub__"]),
-                __imul__=_wrap_inplace_method(new_methods["__mul__"]),
-                __itruediv__=_wrap_inplace_method(new_methods["__truediv__"]),
-                __ifloordiv__=_wrap_inplace_method(new_methods["__floordiv__"]),
-                __imod__=_wrap_inplace_method(new_methods["__mod__"]),
-                __ipow__=_wrap_inplace_method(new_methods["__pow__"]),
-            )
-        )
-        new_methods.update(
-            dict(
-                __iand__=_wrap_inplace_method(new_methods["__and__"]),
-                __ior__=_wrap_inplace_method(new_methods["__or__"]),
-                __ixor__=_wrap_inplace_method(new_methods["__xor__"]),
-            )
-        )
+    )
 
     _add_methods(cls, new_methods=new_methods)
 
@@ -158,10 +115,8 @@ def add_flex_arithmetic_methods(cls):
     cls : class
         flex methods will be defined and pinned to this class
     """
-    flex_arith_method, flex_comp_method, _, _, _ = _get_method_wrappers(cls)
-    new_methods = _create_methods(
-        cls, flex_arith_method, flex_comp_method, bool_method=None, special=False
-    )
+    flex_arith_method, flex_comp_method = _get_method_wrappers(cls)
+    new_methods = _create_methods(cls, flex_arith_method, flex_comp_method)
     new_methods.update(
         dict(
             multiply=new_methods["mul"],
@@ -175,72 +130,52 @@ def add_flex_arithmetic_methods(cls):
     _add_methods(cls, new_methods=new_methods)
 
 
-def _create_methods(cls, arith_method, comp_method, bool_method, special):
-    # creates actual methods based upon arithmetic, comp and bool method
+def _create_methods(cls, arith_method, comp_method):
+    # creates actual flex methods based upon arithmetic, and comp method
     # constructors.
 
     have_divmod = issubclass(cls, ABCSeries)
     # divmod is available for Series
 
     new_methods = {}
-    if arith_method is not None:
-        new_methods.update(
-            dict(
-                add=arith_method(cls, operator.add, special),
-                radd=arith_method(cls, radd, special),
-                sub=arith_method(cls, operator.sub, special),
-                mul=arith_method(cls, operator.mul, special),
-                truediv=arith_method(cls, operator.truediv, special),
-                floordiv=arith_method(cls, operator.floordiv, special),
-                mod=arith_method(cls, operator.mod, special),
-                pow=arith_method(cls, operator.pow, special),
-                # not entirely sure why this is necessary, but previously was included
-                # so it's here to maintain compatibility
-                rmul=arith_method(cls, rmul, special),
-                rsub=arith_method(cls, rsub, special),
-                rtruediv=arith_method(cls, rtruediv, special),
-                rfloordiv=arith_method(cls, rfloordiv, special),
-                rpow=arith_method(cls, rpow, special),
-                rmod=arith_method(cls, rmod, special),
-            )
-        )
-        new_methods["div"] = new_methods["truediv"]
-        new_methods["rdiv"] = new_methods["rtruediv"]
-        if have_divmod:
-            # divmod doesn't have an op that is supported by numexpr
-            new_methods["divmod"] = arith_method(cls, divmod, special)
-            new_methods["rdivmod"] = arith_method(cls, rdivmod, special)
 
-    if comp_method is not None:
-        # Series already has this pinned
-        new_methods.update(
-            dict(
-                eq=comp_method(cls, operator.eq, special),
-                ne=comp_method(cls, operator.ne, special),
-                lt=comp_method(cls, operator.lt, special),
-                gt=comp_method(cls, operator.gt, special),
-                le=comp_method(cls, operator.le, special),
-                ge=comp_method(cls, operator.ge, special),
-            )
+    new_methods.update(
+        dict(
+            add=arith_method(operator.add),
+            radd=arith_method(radd),
+            sub=arith_method(operator.sub),
+            mul=arith_method(operator.mul),
+            truediv=arith_method(operator.truediv),
+            floordiv=arith_method(operator.floordiv),
+            mod=arith_method(operator.mod),
+            pow=arith_method(operator.pow),
+            rmul=arith_method(rmul),
+            rsub=arith_method(rsub),
+            rtruediv=arith_method(rtruediv),
+            rfloordiv=arith_method(rfloordiv),
+            rpow=arith_method(rpow),
+            rmod=arith_method(rmod),
         )
+    )
+    new_methods["div"] = new_methods["truediv"]
+    new_methods["rdiv"] = new_methods["rtruediv"]
+    if have_divmod:
+        # divmod doesn't have an op that is supported by numexpr
+        new_methods["divmod"] = arith_method(divmod)
+        new_methods["rdivmod"] = arith_method(rdivmod)
 
-    if bool_method is not None:
-        new_methods.update(
-            dict(
-                and_=bool_method(cls, operator.and_, special),
-                or_=bool_method(cls, operator.or_, special),
-                xor=bool_method(cls, operator.xor, special),
-                rand_=bool_method(cls, rand_, special),
-                ror_=bool_method(cls, ror_, special),
-                rxor=bool_method(cls, rxor, special),
-            )
+    new_methods.update(
+        dict(
+            eq=comp_method(operator.eq),
+            ne=comp_method(operator.ne),
+            lt=comp_method(operator.lt),
+            gt=comp_method(operator.gt),
+            le=comp_method(operator.le),
+            ge=comp_method(operator.ge),
         )
+    )
 
-    if special:
-        dunderize = lambda x: f"__{x.strip('_')}__"
-    else:
-        dunderize = lambda x: x
-    new_methods = {dunderize(k): v for k, v in new_methods.items()}
+    new_methods = {k.strip("_"): v for k, v in new_methods.items()}
     return new_methods
 
 
