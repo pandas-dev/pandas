@@ -688,6 +688,13 @@ class TestSeriesConstructors:
         expected = Series([1, 2, 3.5]).astype(float_dtype)
         tm.assert_series_equal(s, expected)
 
+    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_dtype):
+        # GH 22585
+
+        msg = "cannot convert float NaN to integer"
+        with pytest.raises(ValueError, match=msg):
+            pd.Series([1, 2, np.nan], dtype=any_int_dtype)
+
     def test_constructor_dtype_no_cast(self):
         # see gh-1572
         s = Series([1, 2, 3])
