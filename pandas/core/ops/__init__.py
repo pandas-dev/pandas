@@ -33,10 +33,7 @@ from pandas.core.ops.docstrings import (
 )
 from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
 from pandas.core.ops.mask_ops import kleene_and, kleene_or, kleene_xor  # noqa: F401
-from pandas.core.ops.methods import (  # noqa:F401
-    add_flex_arithmetic_methods,
-    add_special_arithmetic_methods,
-)
+from pandas.core.ops.methods import add_flex_arithmetic_methods  # noqa:F401
 from pandas.core.ops.roperator import (  # noqa:F401
     radd,
     rand_,
