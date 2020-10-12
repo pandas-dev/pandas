@@ -2207,10 +2207,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
                 Describing the data, where data component is like ``orient='records'``.
 
-                Note that ``orient='table'`` contains a 'pandas_version' field under
-                'schema'. This stores the version of `pandas` used in the latest
-                revision of the schema.
-
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
             'iso' = ISO8601. The default depends on the `orient`. For
@@ -2277,6 +2273,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         indent the output but does insert newlines. Currently, ``indent=0``
         and the default ``indent=None`` are equivalent in pandas, though this
         may change in a future release.
+
+        ``orient='table'`` contains a 'pandas_version' field under 'schema'.
+        This stores the version of `pandas` used in the latest revision of the
+        schema.
 
         Examples
         --------
