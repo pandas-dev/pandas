@@ -236,3 +236,14 @@ def test_center_deprecate_warning():
 
     with tm.assert_produces_warning(None):
         df.expanding()
+
+
+@pytest.mark.parametrize("constructor", ["DataFrame", "Series"])
+def test_expanding_sem(constructor):
+    # GH: 26476
+    obj = getattr(pd, constructor)([0, 1, 2])
+    result = obj.expanding().sem()
+    if isinstance(result, DataFrame):
+        result = pd.Series(result[0].values)
+    expected = pd.Series([np.nan] + [0.707107] * 2)
+    tm.assert_series_equal(result, expected)

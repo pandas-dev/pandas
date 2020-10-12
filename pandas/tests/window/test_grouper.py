@@ -531,3 +531,21 @@ class TestGrouperGrouping:
             ),
         )
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("func", "kwargs"),
+        [("rolling", {"window": 2, "min_periods": 1}), ("expanding", {})],
+    )
+    def test_groupby_rolling_sem(self, func, kwargs):
+        # GH: 26476
+        df = pd.DataFrame(
+            [["a", 1], ["a", 2], ["b", 1], ["b", 2], ["b", 3]], columns=["a", "b"]
+        )
+        result = getattr(df.groupby("a"), func)(**kwargs).sem()
+        expected = pd.DataFrame(
+            {"a": [np.nan] * 5, "b": [np.nan, 0.70711, np.nan, 0.70711, 0.70711]},
+            index=pd.MultiIndex.from_tuples(
+                [("a", 0), ("a", 1), ("b", 2), ("b", 3), ("b", 4)], names=["a", None]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
