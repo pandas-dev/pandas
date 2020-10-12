@@ -3,7 +3,7 @@ Concat routines.
 """
 
 from collections import abc
-from typing import TYPE_CHECKING, Iterable, List, Mapping, Union, cast, overload
+from typing import TYPE_CHECKING, Iterable, List, Mapping, Union, overload
 
 import numpy as np
 
@@ -30,7 +30,7 @@ import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import DataFrame
     from pandas.core.generic import NDFrame
 
 # ---------------------------------------------------------------------
@@ -463,7 +463,6 @@ class _Concatenator:
             if self.bm_axis == 0:
                 name = com.consensus_name_attr(self.objs)
                 cons = self.objs[0]._constructor
-                cons = cast("Series", cons)
 
                 arrs = [ser._values for ser in self.objs]
 

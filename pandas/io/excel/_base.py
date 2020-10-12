@@ -3,7 +3,7 @@ import datetime
 from io import BufferedIOBase, BytesIO, RawIOBase
 import os
 from textwrap import fill
-from typing import Any, Mapping, Tuple, Union
+from typing import Any, Mapping, Union
 
 from pandas._config import config
 
@@ -672,8 +672,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     curr_sheet = None
     path = None
 
-    supported_extensions: Tuple[str, ...]
-    # Exensions that writer engine supports; must be implemented by subclass
+    @property
+    @abc.abstractmethod
+    def supported_extensions(self):
+        """Extensions that writer engine supports."""
+        pass
 
     @property
     @abc.abstractmethod
@@ -789,8 +792,12 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         if ext.startswith("."):
             ext = ext[1:]
-        exts = cls.supported_extensions
-        if not any(ext in extension for extension in exts):
+        # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__"
+        #  (not iterable)  [attr-defined]
+        if not any(
+            ext in extension
+            for extension in cls.supported_extensions  # type: ignore[attr-defined]
+        ):
             raise ValueError(f"Invalid extension for engine '{cls.engine}': '{ext}'")
         else:
             return True
