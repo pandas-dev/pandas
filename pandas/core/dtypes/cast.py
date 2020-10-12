@@ -342,8 +342,10 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     return dtype
 
 
+# TODO: annotate obj, return type
+# both ArrayLike but not necessarily the same => need a Union (xref GH36100)
 def maybe_cast_to_extension_array(
-    cls: Type["ExtensionArray"], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
+    cls: Type["ExtensionArray"], obj, dtype: Optional[ExtensionDtype] = None
 ) -> ArrayLike:
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.
