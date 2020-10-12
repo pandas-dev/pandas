@@ -2686,7 +2686,7 @@ def get_block_type(values, dtype=None):
         cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
         assert not is_datetime64tz_dtype(values.dtype)
-        cls = DatetimeBlock  # type: ignore[assignment]
+        cls = DatetimeBlock
     elif is_datetime64tz_dtype(values.dtype):
         cls = DatetimeTZBlock
     elif is_interval_dtype(dtype) or is_period_dtype(dtype):
@@ -2694,21 +2694,18 @@ def get_block_type(values, dtype=None):
     elif is_extension_array_dtype(values.dtype):
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
-        cls = FloatBlock  # type: ignore[assignment]
+        cls = FloatBlock
     elif issubclass(vtype, np.timedelta64):
         assert issubclass(vtype, np.integer)
-        cls = TimeDeltaBlock  # type: ignore[assignment]
+        cls = TimeDeltaBlock
     elif issubclass(vtype, np.complexfloating):
-        cls = ComplexBlock  # type: ignore[assignment]
+        cls = ComplexBlock
     elif issubclass(vtype, np.integer):
-        cls = IntBlock  # type: ignore[assignment]
+        cls = IntBlock
     elif dtype == np.bool_:
-        cls = BoolBlock  # type: ignore[assignment]
+        cls = BoolBlock
     else:
-        # pandas\core\internals\blocks.py:2766: error: Incompatible types in
-        # assignment (expression has type "Type[ObjectBlock]", variable has
-        # type "Type[ExtensionBlock]")  [assignment]
-        cls = ObjectBlock  # type: ignore[assignment]
+        cls = ObjectBlock
     return cls
 
 

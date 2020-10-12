@@ -23,9 +23,7 @@ def _iter_block_pairs(
 
     for n, blk in enumerate(left.blocks):
         locs = blk.mgr_locs
-        # pandas\core\internals\ops.py:26: error: Cannot determine type of
-        # 'values'  [has-type]
-        blk_vals = blk.values  # type: ignore[has-type]
+        blk_vals = blk.values
 
         left_ea = not isinstance(blk_vals, np.ndarray)
 
@@ -97,12 +95,8 @@ def _get_same_shape_values(
     """
     Slice lblk.values to align with rblk.  Squeeze if we have EAs.
     """
-    # pandas\core\internals\ops.py:98: error: Cannot determine type of 'values'
-    # [has-type]
-    lvals = lblk.values  # type: ignore[has-type]
-    # pandas\core\internals\ops.py:99: error: Cannot determine type of 'values'
-    # [has-type]
-    rvals = rblk.values  # type: ignore[has-type]
+    lvals = lblk.values
+    rvals = rblk.values
 
     # Require that the indexing into lvals be slice-like
     assert rblk.mgr_locs.is_slice_like, rblk.mgr_locs

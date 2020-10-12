@@ -11133,34 +11133,38 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self
 
     def __iadd__(self, other):
-        return self._inplace_method(other, type(self).__add__)
+        return self._inplace_method(other, type(self).__add__)  # type: ignore[operator]
 
     def __isub__(self, other):
-        return self._inplace_method(other, type(self).__sub__)
+        return self._inplace_method(other, type(self).__sub__)  # type: ignore[operator]
 
     def __imul__(self, other):
-        return self._inplace_method(other, type(self).__mul__)
+        return self._inplace_method(other, type(self).__mul__)  # type: ignore[operator]
 
     def __itruediv__(self, other):
-        return self._inplace_method(other, type(self).__truediv__)
+        return self._inplace_method(
+            other, type(self).__truediv__  # type: ignore[operator]
+        )
 
     def __ifloordiv__(self, other):
-        return self._inplace_method(other, type(self).__floordiv__)
+        return self._inplace_method(
+            other, type(self).__floordiv__  # type: ignore[operator]
+        )
 
     def __imod__(self, other):
-        return self._inplace_method(other, type(self).__mod__)
+        return self._inplace_method(other, type(self).__mod__)  # type: ignore[operator]
 
     def __ipow__(self, other):
-        return self._inplace_method(other, type(self).__pow__)
+        return self._inplace_method(other, type(self).__pow__)  # type: ignore[operator]
 
     def __iand__(self, other):
-        return self._inplace_method(other, type(self).__and__)
+        return self._inplace_method(other, type(self).__and__)  # type: ignore[operator]
 
     def __ior__(self, other):
-        return self._inplace_method(other, type(self).__or__)
+        return self._inplace_method(other, type(self).__or__)  # type: ignore[operator]
 
     def __ixor__(self, other):
-        return self._inplace_method(other, type(self).__xor__)
+        return self._inplace_method(other, type(self).__xor__)  # type: ignore[operator]
 
     # ----------------------------------------------------------------------
     # Misc methods
