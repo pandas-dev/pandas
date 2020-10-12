@@ -650,7 +650,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Returns
         -------
         renamed : %(klass)s or None
-            An object of type %(klass)s if inplace=False, None otherwise.
+            An object of type %(klass)s or None if ``inplace=True``.
 
         See Also
         --------
@@ -1097,7 +1097,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Returns
         -------
         Series, DataFrame, or None
-            The same type as the caller or None if `inplace` is True.
+            The same type as the caller or None if ``inplace=True``.
 
         See Also
         --------
@@ -4333,7 +4333,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Returns
         -------
         DataFrame or None
-            DataFrame with sorted values if inplace=False, None otherwise.
+            DataFrame with sorted values or None if ``inplace=True``.
 
         See Also
         --------
@@ -6474,8 +6474,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
-            Object after replacement.
+        {klass} or None
+            Object after replacement or None if ``inplace=True``.
 
         Raises
         ------
@@ -6910,9 +6910,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        Series or DataFrame
+        Series or DataFrame or None
             Returns the same object type as the caller, interpolated at
-            some or all ``NaN`` values.
+            some or all ``NaN`` values or None if ``inplace=True``.
 
         See Also
         --------
@@ -7511,9 +7511,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        Series or DataFrame
+        Series or DataFrame or None
             Same type as calling object with the values outside the
-            clip boundaries replaced.
+            clip boundaries replaced or None if ``inplace=True``.
 
         See Also
         --------
@@ -9067,7 +9067,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         Returns
         -------
-        Same type as caller
+        Same type as caller or None if ``inplace=True``.
 
         See Also
         --------

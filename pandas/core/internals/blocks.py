@@ -365,12 +365,18 @@ class Block(PandasObject):
 
         return self._split_op_result(result)
 
-    def reduce(self, func) -> List["Block"]:
+    def reduce(self, func, ignore_failures: bool = False) -> List["Block"]:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
         assert self.ndim == 2
 
-        result = func(self.values)
+        try:
+            result = func(self.values)
+        except (TypeError, NotImplementedError):
+            if ignore_failures:
+                return []
+            raise
+
         if np.ndim(result) == 0:
             # TODO(EA2D): special case not needed with 2D EAs
             res_values = np.array([[result]])
@@ -2084,13 +2090,7 @@ class IntBlock(NumericBlock):
 class DatetimeLikeBlockMixin(Block):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
-    @property
-    def _holder(self):
-        return DatetimeArray
-
-    @property
-    def fill_value(self):
-        return np.datetime64("NaT", "ns")
+    _can_hold_na = True
 
     def get_values(self, dtype=None):
         """
@@ -2173,10 +2173,8 @@ class DatetimeLikeBlockMixin(Block):
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_datetime = True
-
-    @property
-    def _can_hold_na(self):
-        return True
+    _holder = DatetimeArray
+    fill_value = np.datetime64("NaT", "ns")
 
     def _maybe_coerce_values(self, values):
         """
@@ -2267,15 +2265,16 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     is_extension = True
 
     internal_values = Block.internal_values
+
+    _holder = DatetimeBlock._holder
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     diff = DatetimeBlock.diff
-    fill_value = np.datetime64("NaT", "ns")
-    array_values = ExtensionBlock.array_values
+    fillna = DatetimeBlock.fillna  # i.e. Block.fillna
+    fill_value = DatetimeBlock.fill_value
+    _can_hold_na = DatetimeBlock._can_hold_na
 
-    @property
-    def _holder(self):
-        return DatetimeArray
+    array_values = ExtensionBlock.array_values
 
     def _maybe_coerce_values(self, values):
         """
@@ -2341,17 +2340,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         #  return an object-dtype ndarray of Timestamps.
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None):
-        # We support filling a DatetimeTZ with a `value` whose timezone
-        # is different by coercing to object.
-        if self._can_hold_element(value):
-            return super().fillna(value, limit, inplace, downcast)
-
-        # different timezones, or a non-tz
-        return self.astype(object).fillna(
-            value, limit=limit, inplace=inplace, downcast=downcast
-        )
-
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
 
@@ -2366,11 +2354,9 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return self.make_block_same_class(aware, ndim=res_blk.ndim)
 
 
-class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
+class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_timedelta = True
-    _can_hold_na = True
-    is_numeric = False
     fill_value = np.timedelta64("NaT", "ns")
 
     def _maybe_coerce_values(self, values):
@@ -2443,6 +2429,34 @@ class ObjectBlock(Block):
         object
         """
         return lib.is_bool_array(self.values.ravel("K"))
+
+    def reduce(self, func, ignore_failures: bool = False) -> List[Block]:
+        """
+        For object-dtype, we operate column-wise.
+        """
+        assert self.ndim == 2
+
+        values = self.values
+        if len(values) > 1:
+            # split_and_operate expects func with signature (mask, values, inplace)
+            def mask_func(mask, values, inplace):
+                if values.ndim == 1:
+                    values = values.reshape(1, -1)
+                return func(values)
+
+            return self.split_and_operate(None, mask_func, False)
+
+        try:
+            res = func(values)
+        except TypeError:
+            if not ignore_failures:
+                raise
+            return []
+
+        assert isinstance(res, np.ndarray)
+        assert res.ndim == 1
+        res = res.reshape(1, -1)
+        return [self.make_block_same_class(res)]
 
     def convert(
         self,
