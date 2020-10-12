@@ -2689,7 +2689,7 @@ class DataFrame(NDFrame):
         int64          40000
         float64        40000
         complex128     80000
-        object        160000
+        object        180000
         bool            5000
         dtype: int64
 
