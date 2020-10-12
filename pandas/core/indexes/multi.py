@@ -47,7 +47,12 @@ from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
+from pandas.core.indexes.base import (
+    Index,
+    _index_shared_docs,
+    ensure_index,
+    get_unanimous_names,
+)
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
@@ -782,7 +787,8 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new index (of same type and class...etc)
+        new index (of same type and class...etc) or None
+            The same type as the caller or None if ``inplace=True``.
 
         Examples
         --------
@@ -961,7 +967,8 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new index (of same type and class...etc)
+        new index (of same type and class...etc) or None
+            The same type as the caller or None if ``inplace=True``.
 
         Examples
         --------
@@ -3426,7 +3433,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other):
-            return self
+            return self.rename(result_names)
 
         # TODO: Index.union returns other when `len(self)` is 0.
 
@@ -3468,7 +3475,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
-            return self
+            return self.rename(result_names)
 
         if not is_object_dtype(other.dtype):
             # The intersection is empty
@@ -3539,7 +3546,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0:
-            return self
+            return self.rename(result_names)
 
         if self.equals(other):
             return MultiIndex(
@@ -3587,7 +3594,8 @@ class MultiIndex(Index):
                 except TypeError as err:
                     raise TypeError(msg) from err
         else:
-            result_names = self.names if self.names == other.names else None
+            result_names = get_unanimous_names(self, other)
+
         return other, result_names
 
     # --------------------------------------------------------------------
@@ -3600,8 +3608,8 @@ class MultiIndex(Index):
             raise NotImplementedError(msg)
         elif not is_object_dtype(dtype):
             raise TypeError(
-                f"Setting {type(self)} dtype to anything other "
-                "than object is not supported"
+                "Setting a MultiIndex dtype to anything other than object "
+                "is not supported"
             )
         elif copy is True:
             return self._shallow_copy()
@@ -3680,44 +3688,32 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
-    @classmethod
-    def _add_numeric_methods_add_sub_disabled(cls):
-        """
-        Add in the numeric add/sub methods to disable.
-        """
-        cls.__add__ = make_invalid_op("__add__")
-        cls.__radd__ = make_invalid_op("__radd__")
-        cls.__iadd__ = make_invalid_op("__iadd__")
-        cls.__sub__ = make_invalid_op("__sub__")
-        cls.__rsub__ = make_invalid_op("__rsub__")
-        cls.__isub__ = make_invalid_op("__isub__")
+    # ---------------------------------------------------------------
+    # Arithmetic/Numeric Methods - Disabled
 
-    @classmethod
-    def _add_numeric_methods_disabled(cls):
-        """
-        Add in numeric methods to disable other than add/sub.
-        """
-        cls.__pow__ = make_invalid_op("__pow__")
-        cls.__rpow__ = make_invalid_op("__rpow__")
-        cls.__mul__ = make_invalid_op("__mul__")
-        cls.__rmul__ = make_invalid_op("__rmul__")
-        cls.__floordiv__ = make_invalid_op("__floordiv__")
-        cls.__rfloordiv__ = make_invalid_op("__rfloordiv__")
-        cls.__truediv__ = make_invalid_op("__truediv__")
-        cls.__rtruediv__ = make_invalid_op("__rtruediv__")
-        cls.__mod__ = make_invalid_op("__mod__")
-        cls.__rmod__ = make_invalid_op("__rmod__")
-        cls.__divmod__ = make_invalid_op("__divmod__")
-        cls.__rdivmod__ = make_invalid_op("__rdivmod__")
-        cls.__neg__ = make_invalid_op("__neg__")
-        cls.__pos__ = make_invalid_op("__pos__")
-        cls.__abs__ = make_invalid_op("__abs__")
-        cls.__inv__ = make_invalid_op("__inv__")
-
-
-MultiIndex._add_numeric_methods_disabled()
-MultiIndex._add_numeric_methods_add_sub_disabled()
-MultiIndex._add_logical_methods_disabled()
+    __add__ = make_invalid_op("__add__")
+    __radd__ = make_invalid_op("__radd__")
+    __iadd__ = make_invalid_op("__iadd__")
+    __sub__ = make_invalid_op("__sub__")
+    __rsub__ = make_invalid_op("__rsub__")
+    __isub__ = make_invalid_op("__isub__")
+    __pow__ = make_invalid_op("__pow__")
+    __rpow__ = make_invalid_op("__rpow__")
+    __mul__ = make_invalid_op("__mul__")
+    __rmul__ = make_invalid_op("__rmul__")
+    __floordiv__ = make_invalid_op("__floordiv__")
+    __rfloordiv__ = make_invalid_op("__rfloordiv__")
+    __truediv__ = make_invalid_op("__truediv__")
+    __rtruediv__ = make_invalid_op("__rtruediv__")
+    __mod__ = make_invalid_op("__mod__")
+    __rmod__ = make_invalid_op("__rmod__")
+    __divmod__ = make_invalid_op("__divmod__")
+    __rdivmod__ = make_invalid_op("__rdivmod__")
+    # Unary methods disabled
+    __neg__ = make_invalid_op("__neg__")
+    __pos__ = make_invalid_op("__pos__")
+    __abs__ = make_invalid_op("__abs__")
+    __inv__ = make_invalid_op("__inv__")
 
 
 def sparsify_labels(label_list, start: int = 0, sentinel=""):

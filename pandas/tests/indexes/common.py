@@ -613,8 +613,6 @@ class Base:
     def test_equals_op(self):
         # GH9947, GH10637
         index_a = self.create_index()
-        if isinstance(index_a, PeriodIndex):
-            pytest.skip("Skip check for PeriodIndex")
 
         n = len(index_a)
         index_b = index_a[0:-1]
