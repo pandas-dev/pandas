@@ -649,7 +649,8 @@ class TestBlockManager:
         # Check sharing
         numeric.iget(num_idx).internal_values()[:] = [100.0, 200.0, 300.0]
         tm.assert_almost_equal(
-            mgr.iget(mgr_idx).internal_values(), np.array([100.0, 200.0, 300.0]),
+            mgr.iget(mgr_idx).internal_values(),
+            np.array([100.0, 200.0, 300.0]),
         )
 
         numeric2 = mgr.get_numeric_data(copy=True)
@@ -658,7 +659,8 @@ class TestBlockManager:
         )
         numeric2.iget(num_idx).internal_values()[:] = [1000.0, 2000.0, 3000.0]
         tm.assert_almost_equal(
-            mgr.iget(mgr_idx).internal_values(), np.array([100.0, 200.0, 300.0]),
+            mgr.iget(mgr_idx).internal_values(),
+            np.array([100.0, 200.0, 300.0]),
         )
 
     def test_get_bool_data(self):
