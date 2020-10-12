@@ -1436,8 +1436,7 @@ class RollingAndExpandingMixin(BaseWindow):
             args = ()
         if kwargs is None:
             kwargs = {}
-        kwargs.pop("_level", None)
-        kwargs.pop("floor", None)
+
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
@@ -1482,7 +1481,6 @@ class RollingAndExpandingMixin(BaseWindow):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_sum")
-        kwargs.pop("floor", None)
         return self._apply(window_func, floor=0, name="sum", **kwargs)
 
     _shared_docs["max"] = dedent(
@@ -1593,7 +1591,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
-        kwargs.pop("require_min_periods", None)
         window_func = self._get_roll_func("roll_var")
 
         def zsqrt_func(values, begin, end, min_periods):
@@ -1608,7 +1605,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
-        kwargs.pop("require_min_periods", None)
         window_func = partial(self._get_roll_func("roll_var"), ddof=ddof)
         return self._apply(
             window_func,
@@ -1630,7 +1626,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def skew(self, **kwargs):
         window_func = self._get_roll_func("roll_skew")
-        kwargs.pop("require_min_periods", None)
         return self._apply(
             window_func,
             require_min_periods=3,
@@ -1672,7 +1667,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def kurt(self, **kwargs):
         window_func = self._get_roll_func("roll_kurt")
-        kwargs.pop("require_min_periods", None)
         return self._apply(
             window_func,
             require_min_periods=4,
