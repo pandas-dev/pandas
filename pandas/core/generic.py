@@ -5417,7 +5417,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     )
                 object.__setattr__(self, name, value)
 
-    def _dir_additions(self):
+    def _dir_additions(self) -> Set[str]:
         """
         add the string-like attributes from the info_axis.
         If info_axis is a MultiIndex, it's first level values are used.
