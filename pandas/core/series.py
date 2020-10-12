@@ -5005,17 +5005,8 @@ Keep all original rows and also all original values
 
         return self._construct_result(result, name=res_name)
 
-    def __div__(self, other):
-        # Alias for backward compat
-        return self.__truediv__(other)
-
-    def __rdiv__(self, other):
-        # Alias for backward compat
-        return self.__rtruediv__(other)
-
 
 Series._add_numeric_operations()
 
 # Add arithmetic!
 ops.add_flex_arithmetic_methods(Series)
-ops.add_special_arithmetic_methods(Series)

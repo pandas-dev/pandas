@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import inspect
 import re
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Type, Union, cast
 import warnings
 
 import numpy as np
@@ -92,6 +92,8 @@ class Block(PandasObject):
 
     Index-ignorant; let the container take care of that
     """
+
+    values: Union[np.ndarray, ExtensionArray]
 
     __slots__ = ["_mgr_locs", "values", "ndim"]
     is_numeric = False
@@ -194,7 +196,9 @@ class Block(PandasObject):
     @property
     def is_view(self) -> bool:
         """ return a boolean if I am possibly a view """
-        return self.values.base is not None
+        values = self.values
+        values = cast(np.ndarray, values)
+        return values.base is not None
 
     @property
     def is_categorical(self) -> bool:
@@ -1465,6 +1469,7 @@ class Block(PandasObject):
         result_blocks: List["Block"] = []
         for m in [mask, ~mask]:
             if m.any():
+                result = cast(np.ndarray, result)  # EABlock overrides where
                 taken = result.take(m.nonzero()[0], axis=axis)
                 r = maybe_downcast_numeric(taken, self.dtype)
                 nb = self.make_block(r.T, placement=self.mgr_locs[m])
@@ -1618,6 +1623,8 @@ class ExtensionBlock(Block):
     _can_consolidate = False
     _validate_ndim = False
     is_extension = True
+
+    values: ExtensionArray
 
     def __init__(self, values, placement, ndim=None):
         """
@@ -2090,13 +2097,7 @@ class IntBlock(NumericBlock):
 class DatetimeLikeBlockMixin(Block):
     """Mixin class for DatetimeBlock, DatetimeTZBlock, and TimedeltaBlock."""
 
-    @property
-    def _holder(self):
-        return DatetimeArray
-
-    @property
-    def fill_value(self):
-        return np.datetime64("NaT", "ns")
+    _can_hold_na = True
 
     def get_values(self, dtype=None):
         """
@@ -2162,10 +2163,8 @@ class DatetimeLikeBlockMixin(Block):
 class DatetimeBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_datetime = True
-
-    @property
-    def _can_hold_na(self):
-        return True
+    _holder = DatetimeArray
+    fill_value = np.datetime64("NaT", "ns")
 
     def _maybe_coerce_values(self, values):
         """
@@ -2205,9 +2204,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
             if copy:
                 # this should be the only copy
                 values = values.copy()
-            if getattr(values, "tz", None) is None:
-                values = DatetimeArray(values).tz_localize("UTC")
-            values = values.tz_convert(dtype.tz)
+            values = DatetimeArray._simple_new(values.view("i8"), dtype=dtype)
             return self.make_block(values)
 
         # delegate
@@ -2251,20 +2248,23 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
 class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
 
+    values: DatetimeArray
+
     __slots__ = ()
     is_datetimetz = True
     is_extension = True
 
     internal_values = Block.internal_values
+
+    _holder = DatetimeBlock._holder
     _can_hold_element = DatetimeBlock._can_hold_element
     to_native_types = DatetimeBlock.to_native_types
     diff = DatetimeBlock.diff
-    fill_value = np.datetime64("NaT", "ns")
-    array_values = ExtensionBlock.array_values
+    fillna = DatetimeBlock.fillna  # i.e. Block.fillna
+    fill_value = DatetimeBlock.fill_value
+    _can_hold_na = DatetimeBlock._can_hold_na
 
-    @property
-    def _holder(self):
-        return DatetimeArray
+    array_values = ExtensionBlock.array_values
 
     def _maybe_coerce_values(self, values):
         """
@@ -2330,17 +2330,6 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         #  return an object-dtype ndarray of Timestamps.
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None):
-        # We support filling a DatetimeTZ with a `value` whose timezone
-        # is different by coercing to object.
-        if self._can_hold_element(value):
-            return super().fillna(value, limit, inplace, downcast)
-
-        # different timezones, or a non-tz
-        return self.astype(object).fillna(
-            value, limit=limit, inplace=inplace, downcast=downcast
-        )
-
     def quantile(self, qs, interpolation="linear", axis=0):
         naive = self.values.view("M8[ns]")
 
@@ -2355,11 +2344,9 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
         return self.make_block_same_class(aware, ndim=res_blk.ndim)
 
 
-class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
+class TimeDeltaBlock(DatetimeLikeBlockMixin):
     __slots__ = ()
     is_timedelta = True
-    _can_hold_na = True
-    is_numeric = False
     fill_value = np.timedelta64("NaT", "ns")
 
     def _maybe_coerce_values(self, values):
@@ -2689,6 +2676,8 @@ def get_block_type(values, dtype=None):
     """
     dtype = dtype or values.dtype
     vtype = dtype.type
+
+    cls: Type[Block]
 
     if is_sparse(dtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
