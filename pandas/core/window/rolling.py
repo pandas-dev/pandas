@@ -51,11 +51,10 @@ from pandas.core.aggregation import aggregate
 from pandas.core.base import DataError, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.groupby.base import ShallowMixin
+from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import (
-    WindowGroupByMixin,
     _doc_template,
     _shared_docs,
     flex_binary_moment,
@@ -64,7 +63,7 @@ from pandas.core.window.common import (
 from pandas.core.window.indexers import (
     BaseIndexer,
     FixedWindowIndexer,
-    GroupbyRollingIndexer,
+    GroupbyIndexer,
     VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import generate_numba_apply_func
@@ -855,6 +854,111 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     )
 
 
+def _dispatch(name: str, *args, **kwargs):
+    """
+    Dispatch to groupby apply.
+    """
+
+    def outer(self, *args, **kwargs):
+        def f(x):
+            x = self._shallow_copy(x, groupby=self._groupby)
+            return getattr(x, name)(*args, **kwargs)
+
+        return self._groupby.apply(f)
+
+    outer.__name__ = name
+    return outer
+
+
+class BaseWindowGroupby(GotItemMixin, BaseWindow):
+    """
+    Provide the groupby windowing facilities.
+    """
+
+    def __init__(self, obj, *args, **kwargs):
+        kwargs.pop("parent", None)
+        groupby = kwargs.pop("groupby", None)
+        if groupby is None:
+            groupby, obj = obj, obj._selected_obj
+        self._groupby = groupby
+        self._groupby.mutated = True
+        self._groupby.grouper.mutated = True
+        super().__init__(obj, *args, **kwargs)
+
+    corr = _dispatch("corr", other=None, pairwise=None)
+    cov = _dispatch("cov", other=None, pairwise=None)
+
+    def _apply(
+        self,
+        func: Callable,
+        require_min_periods: int = 0,
+        floor: int = 1,
+        is_weighted: bool = False,
+        name: Optional[str] = None,
+        use_numba_cache: bool = False,
+        **kwargs,
+    ):
+        result = super()._apply(
+            func,
+            require_min_periods,
+            floor,
+            is_weighted,
+            name,
+            use_numba_cache,
+            **kwargs,
+        )
+        # Compose MultiIndex result from grouping levels then rolling level
+        # Aggregate the MultiIndex data as tuples then the level names
+        grouped_object_index = self.obj.index
+        grouped_index_name = [*grouped_object_index.names]
+        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
+        result_index_names = groupby_keys + grouped_index_name
+
+        result_index_data = []
+        for key, values in self._groupby.grouper.indices.items():
+            for value in values:
+                data = [
+                    *com.maybe_make_list(key),
+                    *com.maybe_make_list(grouped_object_index[value]),
+                ]
+                result_index_data.append(tuple(data))
+
+        result_index = MultiIndex.from_tuples(
+            result_index_data, names=result_index_names
+        )
+        result.index = result_index
+        return result
+
+    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+        """
+        Split data into blocks & return conformed data.
+        """
+        # Ensure the object we're rolling over is monotonically sorted relative
+        # to the groups
+        # GH 36197
+        if not obj.empty:
+            groupby_order = np.concatenate(
+                list(self._groupby.grouper.indices.values())
+            ).astype(np.int64)
+            obj = obj.take(groupby_order)
+        return super()._create_data(obj)
+
+    def _gotitem(self, key, ndim, subset=None):
+        # we are setting the index on the actual object
+        # here so our index is carried through to the selected obj
+        # when we do the splitting for the groupby
+        if self.on is not None:
+            self.obj = self.obj.set_index(self._on)
+            self.on = None
+        return super()._gotitem(key, ndim, subset=subset)
+
+    def _validate_monotonic(self):
+        """
+        Validate that "on" is monotonic; already validated at a higher level.
+        """
+        pass
+
+
 class Window(BaseWindow):
     """
     Provide rolling window calculations.
@@ -1332,8 +1436,7 @@ class RollingAndExpandingMixin(BaseWindow):
             args = ()
         if kwargs is None:
             kwargs = {}
-        kwargs.pop("_level", None)
-        kwargs.pop("floor", None)
+
         if not is_bool(raw):
             raise ValueError("raw parameter must be `True` or `False`")
 
@@ -1348,13 +1451,10 @@ class RollingAndExpandingMixin(BaseWindow):
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
-        # name=func & raw=raw for WindowGroupByMixin._apply
         return self._apply(
             apply_func,
             floor=0,
-            name=func,
             use_numba_cache=maybe_use_numba(engine),
-            raw=raw,
             original_func=func,
             args=args,
             kwargs=kwargs,
@@ -1381,7 +1481,6 @@ class RollingAndExpandingMixin(BaseWindow):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_sum")
-        kwargs.pop("floor", None)
         return self._apply(window_func, floor=0, name="sum", **kwargs)
 
     _shared_docs["max"] = dedent(
@@ -1492,31 +1591,25 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("std", args, kwargs)
-        kwargs.pop("require_min_periods", None)
         window_func = self._get_roll_func("roll_var")
 
         def zsqrt_func(values, begin, end, min_periods):
             return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
 
-        # ddof passed again for compat with groupby.rolling
         return self._apply(
             zsqrt_func,
             require_min_periods=1,
             name="std",
-            ddof=ddof,
             **kwargs,
         )
 
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
-        kwargs.pop("require_min_periods", None)
         window_func = partial(self._get_roll_func("roll_var"), ddof=ddof)
-        # ddof passed again for compat with groupby.rolling
         return self._apply(
             window_func,
             require_min_periods=1,
             name="var",
-            ddof=ddof,
             **kwargs,
         )
 
@@ -1533,7 +1626,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def skew(self, **kwargs):
         window_func = self._get_roll_func("roll_skew")
-        kwargs.pop("require_min_periods", None)
         return self._apply(
             window_func,
             require_min_periods=3,
@@ -1573,9 +1665,61 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
+    def sem(self, ddof=1, *args, **kwargs):
+        return self.std(*args, **kwargs) / (self.count() - ddof).pow(0.5)
+
+    _shared_docs["sem"] = dedent(
+        """
+    Compute %(name)s standard error of mean.
+
+    Parameters
+    ----------
+
+    ddof : int, default 1
+        Delta Degrees of Freedom.  The divisor used in calculations
+        is ``N - ddof``, where ``N`` represents the number of elements.
+
+    *args, **kwargs
+        For NumPy compatibility. No additional arguments are used.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.sem : Equivalent method for Series.
+    pandas.DataFrame.sem : Equivalent method for DataFrame.
+
+    Notes
+    -----
+    A minimum of one period is required for the rolling calculation.
+
+    Examples
+    --------
+    >>> s = pd.Series([0, 1, 2, 3])
+    >>> s.rolling(2, min_periods=1).sem()
+    0         NaN
+    1    0.707107
+    2    0.707107
+    3    0.707107
+    dtype: float64
+
+    >>> s.expanding().sem()
+    0         NaN
+    1    0.707107
+    2    0.707107
+    3    0.745356
+    dtype: float64
+    """
+    )
+
     def kurt(self, **kwargs):
         window_func = self._get_roll_func("roll_kurt")
-        kwargs.pop("require_min_periods", None)
         return self._apply(
             window_func,
             require_min_periods=4,
@@ -2081,6 +2225,11 @@ class Rolling(RollingAndExpandingMixin):
     def skew(self, **kwargs):
         return super().skew(**kwargs)
 
+    @Substitution(name="rolling")
+    @Appender(_shared_docs["sem"])
+    def sem(self, ddof=1, *args, **kwargs):
+        return self.std(*args, **kwargs) / (self.count() - ddof).pow(0.5)
+
     _agg_doc = dedent(
         """
     Examples
@@ -2134,73 +2283,12 @@ class Rolling(RollingAndExpandingMixin):
 Rolling.__doc__ = Window.__doc__
 
 
-class RollingGroupby(WindowGroupByMixin, Rolling):
+class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
     """
 
-    def _apply(
-        self,
-        func: Callable,
-        require_min_periods: int = 0,
-        floor: int = 1,
-        is_weighted: bool = False,
-        name: Optional[str] = None,
-        use_numba_cache: bool = False,
-        **kwargs,
-    ):
-        result = Rolling._apply(
-            self,
-            func,
-            require_min_periods,
-            floor,
-            is_weighted,
-            name,
-            use_numba_cache,
-            **kwargs,
-        )
-        # Cannot use _wrap_outputs because we calculate the result all at once
-        # Compose MultiIndex result from grouping levels then rolling level
-        # Aggregate the MultiIndex data as tuples then the level names
-        grouped_object_index = self.obj.index
-        grouped_index_name = [*grouped_object_index.names]
-        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
-        result_index_names = groupby_keys + grouped_index_name
-
-        result_index_data = []
-        for key, values in self._groupby.grouper.indices.items():
-            for value in values:
-                data = [
-                    *com.maybe_make_list(key),
-                    *com.maybe_make_list(grouped_object_index[value]),
-                ]
-                result_index_data.append(tuple(data))
-
-        result_index = MultiIndex.from_tuples(
-            result_index_data, names=result_index_names
-        )
-        result.index = result_index
-        return result
-
-    @property
-    def _constructor(self):
-        return Rolling
-
-    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
-        """
-        Split data into blocks & return conformed data.
-        """
-        # Ensure the object we're rolling over is monotonically sorted relative
-        # to the groups
-        # GH 36197
-        if not obj.empty:
-            groupby_order = np.concatenate(
-                list(self._groupby.grouper.indices.values())
-            ).astype(np.int64)
-            obj = obj.take(groupby_order)
-        return super()._create_data(obj)
-
-    def _get_window_indexer(self, window: int) -> GroupbyRollingIndexer:
+    def _get_window_indexer(self, window: int) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
 
@@ -2211,7 +2299,7 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
 
         Returns
         -------
-        GroupbyRollingIndexer
+        GroupbyIndexer
         """
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict] = None
@@ -2227,29 +2315,11 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
         else:
             rolling_indexer = FixedWindowIndexer
             index_array = None
-        window_indexer = GroupbyRollingIndexer(
+        window_indexer = GroupbyIndexer(
             index_array=index_array,
             window_size=window,
             groupby_indicies=self._groupby.indices,
-            rolling_indexer=rolling_indexer,
+            window_indexer=rolling_indexer,
             indexer_kwargs=indexer_kwargs,
         )
         return window_indexer
-
-    def _gotitem(self, key, ndim, subset=None):
-        # we are setting the index on the actual object
-        # here so our index is carried thru to the selected obj
-        # when we do the splitting for the groupby
-        if self.on is not None:
-            self.obj = self.obj.set_index(self._on)
-            self.on = None
-        return super()._gotitem(key, ndim, subset=subset)
-
-    def _validate_monotonic(self):
-        """
-        Validate that on is monotonic;
-        we don't care for groupby.rolling
-        because we have already validated at a higher
-        level.
-        """
-        pass
