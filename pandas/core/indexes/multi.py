@@ -1279,10 +1279,7 @@ class MultiIndex(Index):
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        # pandas\core\indexes\multi.py:1280: error: Argument 1 to
-        # "format_object_attrs" has incompatible type "MultiIndex"; expected
-        # "Sequence[Any]"  [arg-type]
-        return format_object_attrs(self, include_dtype=False)  # type: ignore[arg-type]
+        return format_object_attrs(self, include_dtype=False)
 
     def _format_native_types(self, na_rep="nan", **kwargs):
         new_levels = []
@@ -3703,23 +3700,11 @@ class MultiIndex(Index):
         """
         Add in the numeric add/sub methods to disable.
         """
-        # pandas\core\indexes\multi.py:3694: error: Unsupported left operand
-        # type for + ("Type[MultiIndex]")  [operator]
-        cls.__add__ = make_invalid_op("__add__")  # type: ignore[operator]
-        # pandas\core\indexes\multi.py:3695: error: "Type[MultiIndex]" has no
-        # attribute "__radd__"  [attr-defined]
-        cls.__radd__ = make_invalid_op("__radd__")  # type: ignore[attr-defined]
-        # pandas\core\indexes\multi.py:3696: error: Cannot assign to a method
-        # [assignment]
+        cls.__add__ = make_invalid_op("__add__")  # type: ignore[assignment]
+        cls.__radd__ = make_invalid_op("__radd__")  # type: ignore[assignment]
         cls.__iadd__ = make_invalid_op("__iadd__")  # type: ignore[assignment]
-        # pandas\core\indexes\multi.py:3697: error: Unsupported left operand
-        # type for - ("Type[MultiIndex]")  [operator]
-        cls.__sub__ = make_invalid_op("__sub__")  # type: ignore[operator]
-        # pandas\core\indexes\multi.py:3698: error: "Type[MultiIndex]" has no
-        # attribute "__rsub__"  [attr-defined]
-        cls.__rsub__ = make_invalid_op("__rsub__")  # type: ignore[attr-defined]
-        # pandas\core\indexes\multi.py:3699: error: "Type[MultiIndex]" has no
-        # attribute "__isub__"  [attr-defined]
+        cls.__sub__ = make_invalid_op("__sub__")  # type: ignore[assignment]
+        cls.__rsub__ = make_invalid_op("__rsub__")  # type: ignore[assignment]
         cls.__isub__ = make_invalid_op("__isub__")  # type: ignore[attr-defined]
 
     @classmethod
@@ -3727,55 +3712,23 @@ class MultiIndex(Index):
         """
         Add in numeric methods to disable other than add/sub.
         """
-        # pandas\core\indexes\multi.py:3706: error: Unsupported left operand
-        # type for ** ("Type[MultiIndex]")  [operator]
-        cls.__pow__ = make_invalid_op("__pow__")  # type: ignore[operator]
-        # pandas\core\indexes\multi.py:3707: error: "Type[MultiIndex]" has no
-        # attribute "__rpow__"  [attr-defined]
-        cls.__rpow__ = make_invalid_op("__rpow__")  # type: ignore[attr-defined]
-        # pandas\core\indexes\multi.py:3708: error: Unsupported left operand
-        # type for * ("Type[MultiIndex]")  [operator]
-        cls.__mul__ = make_invalid_op("__mul__")  # type: ignore[operator]
-        # pandas\core\indexes\multi.py:3709: error: "Type[MultiIndex]" has no
-        # attribute "__rmul__"  [attr-defined]
-        cls.__rmul__ = make_invalid_op("__rmul__")  # type: ignore[attr-defined]
-        # pandas\core\indexes\multi.py:3710: error: Unsupported left operand
-        # type for // ("Type[MultiIndex]")  [operator]
-        cls.__floordiv__ = make_invalid_op("__floordiv__")  # type: ignore[operator]
-        # pandas\core\indexes\multi.py:3711: error: "Type[MultiIndex]" has no
-        # attribute "__rfloordiv__"  [attr-defined]
-        cls.__rfloordiv__ = make_invalid_op(  # type: ignore[attr-defined]
+        cls.__pow__ = make_invalid_op("__pow__")  # type: ignore[assignment]
+        cls.__rpow__ = make_invalid_op("__rpow__")  # type: ignore[assignment]
+        cls.__mul__ = make_invalid_op("__mul__")  # type: ignore[assignment]
+        cls.__rmul__ = make_invalid_op("__rmul__")  # type: ignore[assignment]
+        cls.__floordiv__ = make_invalid_op("__floordiv__")  # type: ignore[assignment]
+        cls.__rfloordiv__ = make_invalid_op(  # type: ignore[assignment]
             "__rfloordiv__"
         )
-        # pandas\core\indexes\multi.py:3712: error: Unsupported left operand
-        # type for / ("Type[MultiIndex]")  [operator]
-        cls.__truediv__ = make_invalid_op("__truediv__")  # type: ignore[operator]
-        # pandas\core\indexes\multi.py:3713: error: "Type[MultiIndex]" has no
-        # attribute "__rtruediv__"  [attr-defined]
-        cls.__rtruediv__ = make_invalid_op("__rtruediv__")  # type: ignore[attr-defined]
-        # pandas\core\indexes\multi.py:3714: error: Unsupported left operand
-        # type for % ("Type[MultiIndex]")  [operator]
-        cls.__mod__ = make_invalid_op("__mod__")  # type: ignore[operator]
-        # pandas\core\indexes\multi.py:3715: error: "Type[MultiIndex]" has no
-        # attribute "__rmod__"  [attr-defined]
-        cls.__rmod__ = make_invalid_op("__rmod__")  # type: ignore[attr-defined]
-        # pandas\core\indexes\multi.py:3716: error: Unsupported left operand
-        # type for divmod ("Type[MultiIndex]")  [operator]
-        cls.__divmod__ = make_invalid_op("__divmod__")  # type: ignore[operator]
-        # pandas\core\indexes\multi.py:3717: error: "Type[MultiIndex]" has no
-        # attribute "__rdivmod__"  [attr-defined]
-        cls.__rdivmod__ = make_invalid_op("__rdivmod__")  # type: ignore[attr-defined]
-        # pandas\core\indexes\multi.py:3718: error: Unsupported operand type
-        # for unary - ("Type[MultiIndex]")  [operator]
+        cls.__truediv__ = make_invalid_op("__truediv__")  # type: ignore[assignment]
+        cls.__rtruediv__ = make_invalid_op("__rtruediv__")  # type: ignore[assignment]
+        cls.__mod__ = make_invalid_op("__mod__")  # type: ignore[assignment]
+        cls.__rmod__ = make_invalid_op("__rmod__")  # type: ignore[assignment]
+        cls.__divmod__ = make_invalid_op("__divmod__")  # type: ignore[assignment]
+        cls.__rdivmod__ = make_invalid_op("__rdivmod__")  # type: ignore[assignment]
         cls.__neg__ = make_invalid_op("__neg__")  # type: ignore[operator]
-        # pandas\core\indexes\multi.py:3719: error: Unsupported operand type
-        # for unary + ("Type[MultiIndex]")  [operator]
         cls.__pos__ = make_invalid_op("__pos__")  # type: ignore[operator]
-        # pandas\core\indexes\multi.py:3720: error: "Type[MultiIndex]" has no
-        # attribute "__abs__"  [attr-defined]
         cls.__abs__ = make_invalid_op("__abs__")  # type: ignore[attr-defined]
-        # pandas\core\indexes\multi.py:3721: error: "Type[MultiIndex]" has no
-        # attribute "__inv__"  [attr-defined]
         cls.__inv__ = make_invalid_op("__inv__")  # type: ignore[attr-defined]
 
 

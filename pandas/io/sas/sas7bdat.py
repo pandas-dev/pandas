@@ -210,16 +210,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     def _get_properties(self):
 
         # Check magic number
-
-        # pandas\io\sas\sas7bdat.py:176: error: Item "str" of "Union[str,
-        # IO[Any], IOBase]" has no attribute "seek"  [union-attr]
-        self._path_or_buf.seek(0)  # type: ignore[union-attr]
-        # pandas\io\sas\sas7bdat.py:177: error: Item "str" of "Union[str,
-        # IO[Any], IOBase]" has no attribute "read"  [union-attr]
-
-        # pandas\io\sas\sas7bdat.py:177: error: Item "IOBase" of "Union[str,
-        # IO[Any], IOBase]" has no attribute "read"  [union-attr]
-        self._cached_page = self._path_or_buf.read(288)  # type: ignore[union-attr]
+        self._path_or_buf.seek(0)
+        self._cached_page = self._path_or_buf.read(288)
         if self._cached_page[0 : len(const.magic)] != const.magic:
             self.close()
             raise ValueError("magic number mismatch (not a SAS file?)")
@@ -294,15 +286,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         )
 
         # Read the rest of the header into cached_page.
-
-        # pandas\io\sas\sas7bdat.py:252: error: Item "str" of "Union[str,
-        # IO[Any], IOBase]" has no attribute "read"  [union-attr]
-
-        # pandas\io\sas\sas7bdat.py:252: error: Item "IOBase" of "Union[str,
-        # IO[Any], IOBase]" has no attribute "read"  [union-attr]
-        buf = self._path_or_buf.read(  # type: ignore[union-attr]
-            self.header_length - 288
-        )
+        buf = self._path_or_buf.read(self.header_length - 288)
         self._cached_page += buf
         if len(self._cached_page) != self.header_length:
             self.close()
@@ -383,16 +367,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     def _read_bytes(self, offset: int, length: int):
         if self._cached_page is None:
-            # pandas\io\sas\sas7bdat.py:333: error: Item "str" of "Union[str,
-            # IO[Any], IOBase]" has no attribute "seek"  [union-attr]
-            self._path_or_buf.seek(offset)  # type: ignore[union-attr]
-            # pandas\io\sas\sas7bdat.py:334: error: Item "str" of "Union[str,
-            # IO[Any], IOBase]" has no attribute "read"  [union-attr]
-
-            # pandas\io\sas\sas7bdat.py:334: error: Item "IOBase" of
-            # "Union[str, IO[Any], IOBase]" has no attribute "read"
-            # [union-attr]
-            buf = self._path_or_buf.read(length)  # type: ignore[union-attr]
+            self._path_or_buf.seek(offset)
+            buf = self._path_or_buf.read(length)
             if len(buf) < length:
                 self.close()
                 msg = f"Unable to read {length:d} bytes from file position {offset:d}."
@@ -407,15 +383,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
     def _parse_metadata(self):
         done = False
         while not done:
-            # pandas\io\sas\sas7bdat.py:349: error: Item "str" of "Union[str,
-            # IO[Any], IOBase]" has no attribute "read"  [union-attr]
-
-            # pandas\io\sas\sas7bdat.py:349: error: Item "IOBase" of
-            # "Union[str, IO[Any], IOBase]" has no attribute "read"
-            # [union-attr]
-            self._cached_page = self._path_or_buf.read(  # type: ignore[union-attr]
-                self._page_length
-            )
+            self._cached_page = self._path_or_buf.read(self._page_length)
             if len(self._cached_page) <= 0:
                 break
             if len(self._cached_page) != self._page_length:
@@ -589,10 +557,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             compression_literal = b""
             for cl in const.compression_literals:
                 if cl in cname_raw:
-                    # pandas\io\sas\sas7bdat.py:525: error: Incompatible types
-                    # in assignment (expression has type "bytes", variable has
-                    # type "str")  [assignment]
-                    compression_literal = cl  # type: ignore[assignment]
+                    compression_literal = cl
             self.compression = compression_literal
             offset -= self._int_length
 
@@ -609,13 +574,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                     offset1 += 4
                 buf = self._read_bytes(offset1, self._lcp)
                 self.creator_proc = buf[0 : self._lcp]
-            # pandas\io\sas\sas7bdat.py:542: error: Non-overlapping equality
-            # check (left operand type: "str", right operand type: "bytes")
-            # [comparison-overlap]
-            elif (
-                compression_literal  # type: ignore[comparison-overlap]
-                == const.rle_compression
-            ):
+            elif compression_literal == const.rle_compression:
                 offset1 = offset + 40
                 if self.U64:
                     offset1 += 4
@@ -781,14 +740,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
     def _read_next_page(self):
         self._current_page_data_subheader_pointers = []
-        # pandas\io\sas\sas7bdat.py:707: error: Item "str" of "Union[str,
-        # IO[Any], IOBase]" has no attribute "read"  [union-attr]
-
-        # pandas\io\sas\sas7bdat.py:707: error: Item "IOBase" of "Union[str,
-        # IO[Any], IOBase]" has no attribute "read"  [union-attr]
-        self._cached_page = self._path_or_buf.read(  # type: ignore[union-attr]
-            self._page_length
-        )
+        self._cached_page = self._path_or_buf.read(self._page_length)
         if len(self._cached_page) <= 0:
             return True
         elif len(self._cached_page) != self._page_length:

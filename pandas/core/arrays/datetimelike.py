@@ -376,12 +376,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
 
     def view(self, dtype=None):
         if dtype is None or dtype is self.dtype:
-            # pandas\core\arrays\datetimelike.py:632: error: Too many arguments for
-            # "DatetimeLikeArrayMixin"  [call-arg]
-
-            # pandas\core\arrays\datetimelike.py:632: error: Unexpected keyword
-            # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
-            return type(self)(self._ndarray, dtype=self.dtype)  # type: ignore[call-arg]
+            return type(self)(self._ndarray, dtype=self.dtype)
         return self._ndarray.view(dtype=dtype)
 
     # ------------------------------------------------------------------
@@ -420,12 +415,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
 
     @classmethod
     def _from_factorized(cls, values, original):
-        # pandas\core\arrays\datetimelike.py:671: error: Too many arguments for
-        # "DatetimeLikeArrayMixin"  [call-arg]
-
-        # pandas\core\arrays\datetimelike.py:671: error: Unexpected keyword
-        # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
-        return cls(values, dtype=original.dtype)  # type: ignore[call-arg]
+        return cls(values, dtype=original.dtype)
 
     # ------------------------------------------------------------------
     # Validation Methods
@@ -682,13 +672,8 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         cls = type(self)
 
         result = value_counts(values, sort=False, dropna=dropna)
-        # pandas\core\arrays\datetimelike.py:931: error: Too many arguments
-        # for "DatetimeLikeArrayMixin"  [call-arg]
-
-        # pandas\core\arrays\datetimelike.py:931: error: Unexpected keyword
-        # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
         index = Index(
-            cls(result.index.view("i8"), dtype=self.dtype),  # type: ignore[call-arg]
+            cls(result.index.view("i8"), dtype=self.dtype),
             name=result.index.name,
         )
         return Series(result._values, index=index, name=result.name)
@@ -823,10 +808,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             return None
 
         try:
-            # pandas\core\arrays\datetimelike.py:1065: error:
-            # "Type[DatetimeLikeArrayMixin]" has no attribute "_generate_range"
-            # [attr-defined]
-            on_freq = cls._generate_range(  # type: ignore[attr-defined]
+            on_freq = cls._generate_range(
                 start=index[0], end=None, periods=len(index), freq=freq, **kwargs
             )
             if not np.array_equal(index.asi8, on_freq.asi8):
@@ -949,12 +931,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             new_values = np.empty(self.shape, dtype="i8")
             new_values[:] = iNaT
 
-            # pandas\core\arrays\datetimelike.py:1155: error: Too many
-            # arguments for "DatetimeLikeArrayMixin"  [call-arg]
-
-            # pandas\core\arrays\datetimelike.py:1155: error: Unexpected
-            # keyword argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
-            return type(self)(new_values, dtype=self.dtype)  # type: ignore[call-arg]
+            return type(self)(new_values, dtype=self.dtype)
 
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc, arr_mask=self._isnan).view(
@@ -967,17 +944,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        # pandas\core\arrays\datetimelike.py:1168: error: Too many arguments
-        # for "DatetimeLikeArrayMixin"  [call-arg]
-
-        # pandas\core\arrays\datetimelike.py:1168: error: Unexpected keyword
-        # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
-
-        # pandas\core\arrays\datetimelike.py:1168: error: Unexpected keyword
-        # argument "freq" for "DatetimeLikeArrayMixin"  [call-arg]
-        return type(self)(  # type: ignore[call-arg]
-            new_values, dtype=self.dtype, freq=new_freq
-        )
+        return type(self)(new_values, dtype=self.dtype, freq=new_freq)
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1007,12 +974,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             mask = self._isnan | other._isnan
             new_values[mask] = iNaT
 
-        # pandas\core\arrays\datetimelike.py:1198: error: Too many arguments
-        # for "DatetimeLikeArrayMixin"  [call-arg]
-
-        # pandas\core\arrays\datetimelike.py:1198: error: Unexpected keyword
-        # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
-        return type(self)(new_values, dtype=self.dtype)  # type: ignore[call-arg]
+        return type(self)(new_values, dtype=self.dtype)
 
     def _add_nat(self):
         """
@@ -1027,16 +989,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         # and datetime dtypes
         result = np.zeros(self.shape, dtype=np.int64)
         result.fill(iNaT)
-
-        # pandas\core\arrays\datetimelike.py:1213: error: Too many arguments
-        # for "DatetimeLikeArrayMixin"  [call-arg]
-
-        # pandas\core\arrays\datetimelike.py:1213: error: Unexpected keyword
-        # argument "dtype" for "DatetimeLikeArrayMixin"  [call-arg]
-
-        # pandas\core\arrays\datetimelike.py:1213: error: Unexpected keyword
-        # argument "freq" for "DatetimeLikeArrayMixin"  [call-arg]
-        return type(self)(result, dtype=self.dtype, freq=None)  # type: ignore[call-arg]
+        return type(self)(result, dtype=self.dtype, freq=None)
 
     def _sub_nat(self):
         """
@@ -1126,13 +1079,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         # Note: in the DatetimeTZ case, _generate_range will infer the
         #  appropriate timezone from `start` and `end`, so tz does not need
         #  to be passed explicitly.
-
-        # pandas\core\arrays\datetimelike.py:1303: error:
-        # "DatetimeLikeArrayMixin" has no attribute "_generate_range"
-        # [attr-defined]
-        return self._generate_range(  # type: ignore[attr-defined]
-            start=start, end=end, periods=None, freq=self.freq
-        )
+        return self._generate_range(start=start, end=end, periods=None, freq=self.freq)
 
     @unpack_zerodim_and_defer("__add__")
     def __add__(self, other):

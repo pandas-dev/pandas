@@ -2098,35 +2098,20 @@ class DatetimeLikeBlockMixin(Block):
         """
         if is_object_dtype(dtype):
             # DTA/TDA constructor and astype can handle 2D
-
-            # pandas\core\internals\blocks.py:2090: error:
-            # "DatetimeLikeBlockMixin" has no attribute "values"
-            # [attr-defined]
-            return self._holder(self.values).astype(  # type: ignore[attr-defined]
-                object
-            )
-        # pandas\core\internals\blocks.py:2091: error: "DatetimeLikeBlockMixin"
-        # has no attribute "values"  [attr-defined]
-        return self.values  # type: ignore[attr-defined]
+            return self._holder(self.values).astype(object)
+        return self.values
 
     def internal_values(self):
         # Override to return DatetimeArray and TimedeltaArray
         return self.array_values()
 
     def array_values(self):
-        # pandas\core\internals\blocks.py:2098: error: "DatetimeLikeBlockMixin"
-        # has no attribute "values"  [attr-defined]
-        return self._holder._simple_new(self.values)  # type: ignore[attr-defined]
+        return self._holder._simple_new(self.values)
 
     def iget(self, key):
         # GH#31649 we need to wrap scalars in Timestamp/Timedelta
         # TODO(EA2D): this can be removed if we ever have 2D EA
-
-        # pandas\core\internals\blocks.py:2103: error: "DatetimeLikeBlockMixin"
-        # has no attribute "shape"  [attr-defined]
-        return self.array_values().reshape(self.shape)[  # type: ignore[attr-defined]
-            key
-        ]
+        return self.array_values().reshape(self.shape)[key]
 
     def diff(self, n: int, axis: int = 0) -> List["Block"]:
         """
@@ -2158,9 +2143,7 @@ class DatetimeLikeBlockMixin(Block):
         # TODO(EA2D) this is unnecessary if these blocks are backed by 2D EAs
         values = self.array_values()
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
-        # pandas\core\internals\blocks.py:2109: error: "DatetimeLikeBlockMixin"
-        # has no attribute "make_block_same_class"  [attr-defined]
-        return self.make_block_same_class(new_values)  # type: ignore[attr-defined]
+        return self.make_block_same_class(new_values)
 
     def to_native_types(self, na_rep="NaT", **kwargs):
         """ convert to our native types format """

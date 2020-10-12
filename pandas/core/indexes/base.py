@@ -940,10 +940,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        # pandas\core\indexes\base.py:969: error: Argument 1 to
-        # "format_object_attrs" has incompatible type "Index"; expected
-        # "Sequence[Any]"  [arg-type]
-        return format_object_attrs(self)  # type: ignore[arg-type]
+        return format_object_attrs(self)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -1581,12 +1578,8 @@ class Index(IndexOpsMixin, PandasObject):
         # The two checks above guarantee that here self is a MultiIndex
         self = cast("MultiIndex", self)
 
-        # pandas\core\indexes\base.py:1606: error: "Index" has no attribute
-        # "levels"; maybe "nlevels"?  [attr-defined]
-        new_levels = list(self.levels)  # type: ignore[attr-defined]
-        # pandas\core\indexes\base.py:1607: error: "Index" has no attribute
-        # "codes"  [attr-defined]
-        new_codes = list(self.codes)  # type: ignore[attr-defined]
+        new_levels = list(self.levels)
+        new_codes = list(self.codes)
         new_names = list(self.names)
 
         for i in levnums:
@@ -3747,9 +3740,7 @@ class Index(IndexOpsMixin, PandasObject):
         assert isinstance(left, MultiIndex)
 
         level = left._get_level_number(level)
-        # pandas\core\indexes\base.py:3757: error: "Index" has no attribute
-        # "levels"; maybe "nlevels"?  [attr-defined]
-        old_level = left.levels[level]  # type: ignore[attr-defined]
+        old_level = left.levels[level]
 
         if not right.is_unique:
             raise NotImplementedError(
@@ -3765,10 +3756,8 @@ class Index(IndexOpsMixin, PandasObject):
                 left_indexer = None
                 join_index = left
             else:  # sort the leaves
-                # pandas\core\indexes\base.py:3773: error: "Index" has no
-                # attribute "codes"  [attr-defined]
                 left_indexer = _get_leaf_sorter(
-                    left.codes[: level + 1]  # type: ignore[attr-defined]
+                    left.codes[: level + 1]
                 )
                 join_index = left[left_indexer]
 
@@ -3776,22 +3765,16 @@ class Index(IndexOpsMixin, PandasObject):
             left_lev_indexer = ensure_int64(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
 
-            # pandas\core\indexes\base.py:3781: error: "Index" has no attribute
-            # "codes"  [attr-defined]
             new_lev_codes = algos.take_nd(
                 rev_indexer,
-                left.codes[level],  # type: ignore[attr-defined]
-                allow_fill=False,
+                left.codes[level],
+                allow_fill=False
             )
 
-            # pandas\core\indexes\base.py:3784: error: "Index" has no attribute
-            # "codes"  [attr-defined]
-            new_codes = list(left.codes)  # type: ignore[attr-defined]
+            new_codes = list(left.codes)
             new_codes[level] = new_lev_codes
 
-            # pandas\core\indexes\base.py:3787: error: "Index" has no attribute
-            # "levels"; maybe "nlevels"?  [attr-defined]
-            new_levels = list(left.levels)  # type: ignore[attr-defined]
+            new_levels = list(left.levels)
             new_levels[level] = new_level
 
             if keep_order:  # just drop missing values. o.w. keep order
@@ -3834,17 +3817,11 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if right_lev_indexer is not None:
-            # pandas\core\indexes\base.py:3831: error: "Index" has no attribute
-            # "codes"  [attr-defined]
             right_indexer = algos.take_nd(
-                right_lev_indexer,
-                join_index.codes[level],  # type: ignore[attr-defined]
-                allow_fill=False,
+                right_lev_indexer, join_index.codes[level], allow_fill=False
             )
         else:
-            # pandas\core\indexes\base.py:3834: error: "Index" has no attribute
-            # "codes"  [attr-defined]
-            right_indexer = join_index.codes[level]  # type: ignore[attr-defined]
+            right_indexer = join_index.codes[level]
 
         if flip_order:
             left_indexer, right_indexer = right_indexer, left_indexer

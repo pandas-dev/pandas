@@ -356,20 +356,13 @@ class XportReader(ReaderBase, abc.Iterator):
                 msg = f"Floating field width {fl} is not between 2 and 8."
                 raise TypeError(msg)
 
-            # pandas\io\sas\sas_xport.py:359: error: "bytes" has no attribute
-            # "items"  [attr-defined]
-            for k, v in field.items():  # type: ignore[attr-defined]
+            for k, v in field.items():
                 try:
-                    # pandas\io\sas\sas_xport.py:361: error: Unsupported target
-                    # for indexed assignment ("bytes")  [index]
-                    field[k] = v.strip()  # type: ignore[index]
+                    field[k] = v.strip()
                 except AttributeError:
                     pass
 
-            # pandas\io\sas\sas_xport.py:365: error: No overload variant of
-            # "__getitem__" of "bytes" matches argument type "str"
-            # [call-overload]
-            obs_length += field["field_length"]  # type: ignore[call-overload]
+            obs_length += field["field_length"]
             fields += [field]
 
         header = self._get_row()
@@ -382,21 +375,11 @@ class XportReader(ReaderBase, abc.Iterator):
         self.record_start = self.filepath_or_buffer.tell()
 
         self.nobs = self._record_count()
-        # pandas\io\sas\sas_xport.py:378: error: No overload variant of
-        # "__getitem__" of "bytes" matches argument type "str"  [call-overload]
-        self.columns = [
-            x["name"].decode() for x in self.fields  # type: ignore[call-overload]
-        ]
+        self.columns = [x["name"].decode() for x in self.fields]
 
         # Setup the dtype.
         dtypel = [
-            # pandas\io\sas\sas_xport.py:382: error: No overload variant of
-            # "__getitem__" of "bytes" matches argument type "str"
-            # [call-overload]
-            (
-                "s" + str(i),
-                "S" + str(field["field_length"]),  # type: ignore[call-overload]
-            )
+            ("s" + str(i), "S" + str(field["field_length"]))
             for i, field in enumerate(self.fields)
         ]
         dtype = np.dtype(dtypel)
@@ -429,13 +412,7 @@ class XportReader(ReaderBase, abc.Iterator):
         last_card = np.frombuffer(last_card_bytes, dtype=np.uint64)
 
         # 8 byte blank
-
-        # pandas\io\sas\sas_xport.py:415: error: Non-overlapping equality check
-        # (left operand type: "bytes", right operand type:
-        # "Literal[2314885530818453536]")  [comparison-overlap]
-        ix = np.flatnonzero(
-            last_card == 2314885530818453536  # type: ignore[comparison-overlap]
-        )
+        ix = np.flatnonzero(last_card == 2314885530818453536)
 
         if len(ix) == 0:
             tail_pad = 0
@@ -491,24 +468,13 @@ class XportReader(ReaderBase, abc.Iterator):
         df = pd.DataFrame(index=range(read_lines))
         for j, x in enumerate(self.columns):
             vec = data["s" + str(j)]
-            # pandas\io\sas\sas_xport.py:471: error: No overload variant of
-            # "__getitem__" of "bytes" matches argument type "str"
-            # [call-overload]
-            ntype = self.fields[j]["ntype"]  # type: ignore[call-overload]
+            ntype = self.fields[j]["ntype"]
             if ntype == "numeric":
-                # pandas\io\sas\sas_xport.py:473: error: No overload variant of
-                # "__getitem__" of "bytes" matches argument type "str"
-                # [call-overload]
-                vec = _handle_truncated_float_vec(
-                    vec, self.fields[j]["field_length"]  # type: ignore[call-overload]
-                )
+                vec = _handle_truncated_float_vec(vec, self.fields[j]["field_length"])
                 miss = self._missing_double(vec)
                 v = _parse_float_vec(vec)
                 v[miss] = np.nan
-            # pandas\io\sas\sas_xport.py:477: error: No overload variant of
-            # "__getitem__" of "bytes" matches argument type "str"
-            # [call-overload]
-            elif self.fields[j]["ntype"] == "char":  # type: ignore[call-overload]
+            elif self.fields[j]["ntype"] == "char":
                 v = [y.rstrip() for y in vec]
 
                 if self._encoding is not None:
