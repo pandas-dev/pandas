@@ -306,6 +306,24 @@ def test_timezones_fixed_format_frame_empty(setup_path, dtype):
         tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.parametrize("dtype", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"])
+def test_timezones_fixed_format_series_nonempty(setup_path, dtype):
+    with ensure_clean_store(setup_path) as store:
+        s = Series([0], dtype=dtype)
+        store["s"] = s
+        result = store["s"]
+        tm.assert_series_equal(result, s)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"])
+def test_timezones_fixed_format_series_empty(setup_path, dtype):
+    with ensure_clean_store(setup_path) as store:
+        s = Series(dtype=dtype)
+        store["s"] = s
+        result = store["s"]
+        tm.assert_series_equal(result, s)
+
+
 def test_fixed_offset_tz(setup_path):
     rng = date_range("1/1/2000 00:00:00-07:00", "1/30/2000 00:00:00-07:00")
     frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
