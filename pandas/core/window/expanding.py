@@ -1,5 +1,5 @@
 from textwrap import dedent
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
@@ -65,7 +65,7 @@ class Expanding(RollingAndExpandingMixin):
     def _constructor(self):
         return Expanding
 
-    def _get_window(self, other=None, **kwargs):
+    def _get_window(self, other=None, **kwargs) -> int:
         """
         Get the window length over which to perform some operation.
 
@@ -139,8 +139,8 @@ class Expanding(RollingAndExpandingMixin):
         raw: bool = False,
         engine: Optional[str] = None,
         engine_kwargs: Optional[Dict[str, bool]] = None,
-        args=None,
-        kwargs=None,
+        args: Optional[Tuple] = None,
+        kwargs: Optional[Dict] = None,
     ):
         return super().apply(
             func,
