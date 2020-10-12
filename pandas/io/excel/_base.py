@@ -672,11 +672,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     curr_sheet = None
     path = None
 
-    @property
-    @abc.abstractmethod
-    def supported_extensions(self) -> Tuple[str, ...]:
-        """Extensions that writer engine supports."""
-        pass
+    supported_extensions: Tuple[str, ...]
+    # Exensions that writer engine supports; must be implemented by subclass
 
     @property
     @abc.abstractmethod
@@ -792,7 +789,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         """
         if ext.startswith("."):
             ext = ext[1:]
-        if not any(ext in extension for extension in cls.supported_extensions):
+        exts = cls.supported_extensions
+        if not any(ext in extension for extension in exts):
             raise ValueError(f"Invalid extension for engine '{cls.engine}': '{ext}'")
         else:
             return True
