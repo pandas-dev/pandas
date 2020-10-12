@@ -954,10 +954,7 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
 
     def _validate_monotonic(self):
         """
-        Validate that on is monotonic;
-        we don't care for groupby.rolling
-        because we have already validated at a higher
-        level.
+        Validate that "on" is monotonic; already validated at a higher level.
         """
         pass
 
@@ -1455,13 +1452,10 @@ class RollingAndExpandingMixin(BaseWindow):
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
-        # name=func & raw=raw for WindowGroupByMixin._apply
         return self._apply(
             apply_func,
             floor=0,
-            name=func,
             use_numba_cache=maybe_use_numba(engine),
-            raw=raw,
             original_func=func,
             args=args,
             kwargs=kwargs,
@@ -1605,12 +1599,10 @@ class RollingAndExpandingMixin(BaseWindow):
         def zsqrt_func(values, begin, end, min_periods):
             return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
 
-        # ddof passed again for compat with groupby.rolling
         return self._apply(
             zsqrt_func,
             require_min_periods=1,
             name="std",
-            ddof=ddof,
             **kwargs,
         )
 
@@ -1618,12 +1610,10 @@ class RollingAndExpandingMixin(BaseWindow):
         nv.validate_window_func("var", args, kwargs)
         kwargs.pop("require_min_periods", None)
         window_func = partial(self._get_roll_func("roll_var"), ddof=ddof)
-        # ddof passed again for compat with groupby.rolling
         return self._apply(
             window_func,
             require_min_periods=1,
             name="var",
-            ddof=ddof,
             **kwargs,
         )
 
