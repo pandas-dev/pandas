@@ -1,8 +1,6 @@
 from textwrap import dedent
 from typing import Dict, Optional
 
-import numpy as np
-
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
