@@ -185,9 +185,7 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
     # a datetimelike
     # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
-        if is_datetime_or_timedelta_dtype(dtype):
-            result = result.astype(dtype)
-        else:
+        if hasattr(dtype, "tz"):
             # not a numpy dtype
             if dtype.tz:
                 # convert to datetime and change timezone
@@ -195,6 +193,8 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
 
                 result = to_datetime(result).tz_localize("utc")
                 result = result.tz_convert(dtype.tz)
+        else:
+            result = result.astype(dtype)
 
     return result
 
