@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    is_categorical_dtype
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
@@ -1785,9 +1786,8 @@ class _iLocIndexer(_LocationIndexer):
         else:
             # set the item, possibly having a dtype change
             ser = ser.copy()
-            if is_list_like(value):
-                if len(value) == 1:
-                    value = value[0]
+            # if is_list_like(value) and len(value) == 1 and not is_categorical_dtype(value):
+            #         value = value[0]
             ser._mgr = ser._mgr.setitem(indexer=pi, value=value)
             ser._maybe_update_cacher(clear=True)
 
