@@ -487,7 +487,7 @@ def maybe_casted_values(
 
     # if we have the codes, extract the values with a mask
     if codes is not None:
-        mask: np.ndarray = codes == -1
+        mask = codes == -1
 
         # we can have situations where the whole mask is -1,
         # meaning there is nothing found in codes, so make all nan's
