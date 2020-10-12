@@ -27,6 +27,11 @@ def test_get_level_number_integer(idx):
         idx._get_level_number("fourth")
 
 
+def test_get_dtypes(idx):
+    expected = pd.Series({"first": np.dtype("O"), "second": np.dtype("O")})
+    assert expected.equals(idx.dtypes)
+
+
 def test_set_name_methods(idx, index_names):
     # so long as these are synonyms, we don't need to test set_names
     assert idx.rename == idx.set_names

@@ -705,6 +705,7 @@ class MultiIndex(Index):
         Return the dtypes as a Series for the underlying MultiIndex
         """
         from pandas import Series
+
         return Series({l.name: l.dtype for l in self.levels})
 
     @property
