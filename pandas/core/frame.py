@@ -124,6 +124,7 @@ from pandas.core.aggregation import (
     relabel_result,
     transform,
 )
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array
@@ -336,7 +337,7 @@ ValueError: columns overlap but no suffix specified:
 # DataFrame class
 
 
-class DataFrame(NDFrame):
+class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
@@ -5838,7 +5839,87 @@ class DataFrame(NDFrame):
         return result
 
     # ----------------------------------------------------------------------
-    # Arithmetic / combination related
+    # Arithmetic Methods
+
+    def _cmp_method(self, other, op):
+        axis = 1  # only relevant for Series other case
+
+        self, other = ops.align_method_FRAME(self, other, axis, flex=False, level=None)
+
+        # See GH#4537 for discussion of scalar op behavior
+        new_data = self._dispatch_frame_op(other, op, axis=axis)
+        return self._construct_result(new_data)
+
+    def _arith_method(self, other, op):
+        if ops.should_reindex_frame_op(self, other, op, 1, 1, None, None):
+            return ops.frame_arith_method_with_reindex(self, other, op)
+
+        axis = 1  # only relevant for Series other case
+
+        self, other = ops.align_method_FRAME(self, other, axis, flex=True, level=None)
+
+        new_data = self._dispatch_frame_op(other, op, axis=axis)
+        return self._construct_result(new_data)
+
+    _logical_method = _arith_method
+
+    def _dispatch_frame_op(self, right, func, axis: Optional[int] = None):
+        """
+        Evaluate the frame operation func(left, right) by evaluating
+        column-by-column, dispatching to the Series implementation.
+
+        Parameters
+        ----------
+        right : scalar, Series, or DataFrame
+        func : arithmetic or comparison operator
+        axis : {None, 0, 1}
+
+        Returns
+        -------
+        DataFrame
+        """
+        # Get the appropriate array-op to apply to each column/block's values.
+        array_op = ops.get_array_op(func)
+
+        right = lib.item_from_zerodim(right)
+        if not is_list_like(right):
+            # i.e. scalar, faster than checking np.ndim(right) == 0
+            bm = self._mgr.apply(array_op, right=right)
+            return type(self)(bm)
+
+        elif isinstance(right, DataFrame):
+            assert self.index.equals(right.index)
+            assert self.columns.equals(right.columns)
+            # TODO: The previous assertion `assert right._indexed_same(self)`
+            #  fails in cases with empty columns reached via
+            #  _frame_arith_method_with_reindex
+
+            bm = self._mgr.operate_blockwise(right._mgr, array_op)
+            return type(self)(bm)
+
+        elif isinstance(right, Series) and axis == 1:
+            # axis=1 means we want to operate row-by-row
+            assert right.index.equals(self.columns)
+
+            right = right._values
+            # maybe_align_as_frame ensures we do not have an ndarray here
+            assert not isinstance(right, np.ndarray)
+
+            arrays = [array_op(l, r) for l, r in zip(self._iter_column_arrays(), right)]
+
+        elif isinstance(right, Series):
+            assert right.index.equals(self.index)  # Handle other cases later
+            right = right._values
+
+            arrays = [array_op(l, right) for l in self._iter_column_arrays()]
+
+        else:
+            # Remaining cases have less-obvious dispatch rules
+            raise NotImplementedError(right)
+
+        return type(self)._from_arrays(
+            arrays, self.columns, self.index, verify_integrity=False
+        )
 
     def _combine_frame(self, other: DataFrame, func, fill_value=None):
         # at this point we have `self._indexed_same(other)`
@@ -5857,7 +5938,7 @@ class DataFrame(NDFrame):
                 left, right = ops.fill_binop(left, right, fill_value)
                 return func(left, right)
 
-        new_data = ops.dispatch_to_series(self, other, _arith_op)
+        new_data = self._dispatch_frame_op(other, _arith_op)
         return new_data
 
     def _construct_result(self, result) -> DataFrame:
@@ -5878,6 +5959,9 @@ class DataFrame(NDFrame):
         out.columns = self.columns
         out.index = self.index
         return out
+
+    # ----------------------------------------------------------------------
+    # Combination-Related
 
     @Appender(
         """
@@ -7254,7 +7338,7 @@ NaN 12.3   33.0
         bm_axis = self._get_block_manager_axis(axis)
 
         if bm_axis == 0 and periods != 0:
-            return self - self.shift(periods, axis=axis)  # type: ignore[operator]
+            return self - self.shift(periods, axis=axis)
 
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
@@ -8950,8 +9034,8 @@ NaN 12.3   33.0
         ostrich       bird     2    NaN
 
         By default, missing values are not considered, and the mode of wings
-        are both 0 and 2. The second row of species and legs contains ``NaN``,
-        because they have only one mode, but the DataFrame has two rows.
+        are both 0 and 2. Because the resulting DataFrame has two rows,
+        the second row of ``species`` and ``legs`` contains ``NaN``.
 
         >>> df.mode()
           species  legs  wings
@@ -9282,7 +9366,6 @@ NaN 12.3   33.0
 DataFrame._add_numeric_operations()
 
 ops.add_flex_arithmetic_methods(DataFrame)
-ops.add_special_arithmetic_methods(DataFrame)
 
 
 def _from_nested_dict(data) -> collections.defaultdict:

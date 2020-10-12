@@ -20,6 +20,7 @@ from typing import (
     Generic,
     Hashable,
     Iterable,
+    Iterator,
     List,
     Mapping,
     Optional,
@@ -465,7 +466,7 @@ class GroupByPlot(PandasObject):
 
 
 @contextmanager
-def group_selection_context(groupby: "BaseGroupBy"):
+def group_selection_context(groupby: "BaseGroupBy") -> Iterator["BaseGroupBy"]:
     """
     Set / reset the group_selection_context.
     """
@@ -486,7 +487,7 @@ _KeysArgType = Union[
 
 
 class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
-    _group_selection = None
+    _group_selection: Optional[IndexLabel] = None
     _apply_allowlist: FrozenSet[str] = frozenset()
 
     def __init__(
@@ -570,7 +571,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         return self.grouper.groups
 
     @property
-    def ngroups(self):
+    def ngroups(self) -> int:
         self._assure_grouper()
         return self.grouper.ngroups
 
@@ -649,7 +650,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         else:
             return self.obj[self._selection]
 
-    def _reset_group_selection(self):
+    def _reset_group_selection(self) -> None:
         """
         Clear group based selection.
 
@@ -661,7 +662,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             self._group_selection = None
             self._reset_cache("_selected_obj")
 
-    def _set_group_selection(self):
+    def _set_group_selection(self) -> None:
         """
         Create group based selection.
 
@@ -686,7 +687,9 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
             self._group_selection = ax.difference(Index(groupers), sort=False).tolist()
             self._reset_cache("_selected_obj")
 
-    def _set_result_index_ordered(self, result):
+    def _set_result_index_ordered(
+        self, result: "OutputFrameOrSeries"
+    ) -> "OutputFrameOrSeries":
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
@@ -700,7 +703,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
         result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
         return result
 
-    def _dir_additions(self):
+    def _dir_additions(self) -> Set[str]:
         return self.obj._dir_additions() | self._apply_allowlist
 
     def __getattr__(self, attr: str):
@@ -818,7 +821,7 @@ b  2""",
 
         return obj._take_with_is_copy(inds, axis=self.axis)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[Label, FrameOrSeries]]:
         """
         Groupby iterator.
 
