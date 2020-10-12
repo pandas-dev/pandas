@@ -342,10 +342,8 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     return dtype
 
 
-# TODO: annotate obj, return type
-# both ArrayLike but not necessarily the same => need a Union (xref GH36100)
 def maybe_cast_to_extension_array(
-    cls: Type["ExtensionArray"], obj, dtype: Optional[ExtensionDtype] = None
+    cls: Type["ExtensionArray"], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
 ) -> ArrayLike:
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.
@@ -489,7 +487,7 @@ def maybe_casted_values(
 
     # if we have the codes, extract the values with a mask
     if codes is not None:
-        mask = codes == -1
+        mask: np.ndarray = codes == -1
 
         # we can have situations where the whole mask is -1,
         # meaning there is nothing found in codes, so make all nan's
@@ -1742,7 +1740,7 @@ def construct_1d_ndarray_preserving_na(
     return subarr
 
 
-def maybe_cast_to_integer_array(arr, dtype: Union[str, np.dtype], copy: bool = False):
+def maybe_cast_to_integer_array(arr, dtype: Dtype, copy: bool = False):
     """
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
