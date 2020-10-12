@@ -1891,27 +1891,31 @@ def _trim_zeros_float(
     Trims zeros, leaving just one before the decimal points if need be.
     """
     trimmed = str_floats
-    number_regex = re.compile(fr"\s*[\+-]?[0-9]+(\{decimal}[0-9]*)?")
+    number_regex = re.compile(r"\s*[\+-]?[0-9]+[\.,]?([0-9]*)?")
 
-    def _is_number(x):
-        return re.match(number_regex, x) is not None
+    def is_number_with_decimal(x):
+        return re.match(number_regex, x) is not None and decimal in x
 
-    def _cond(values):
-        finite = [x for x in values if _is_number(x)]
-        has_decimal = [decimal in x for x in finite]
-
+    def should_trim(values):
+        numbers = [x for x in values if is_number_with_decimal(x)]
         return (
-            len(finite) > 0
-            and all(has_decimal)
-            and all(x.endswith("0") for x in finite)
-            and not (any(("e" in x) or ("E" in x) for x in finite))
+            len(numbers) > 0
+            and all(x.endswith("0") for x in numbers)
+            and not any(("e" in x) or ("E" in x) for x in numbers)
         )
 
-    while _cond(trimmed):
-        trimmed = [x[:-1] if _is_number(x) else x for x in trimmed]
+    while should_trim(trimmed):
+        trimmed = [
+            x[:-1] if is_number_with_decimal(x) and x.endswith("0") else x
+            for x in trimmed
+        ]
 
     # leave one 0 after the decimal points if need be.
-    return [x + "0" if x.endswith(decimal) and _is_number(x) else x for x in trimmed]
+    result = [
+        x + "0" if is_number_with_decimal(x) and x.endswith(decimal) else x
+        for x in trimmed
+    ]
+    return result
 
 
 def _has_names(index: Index) -> bool:
