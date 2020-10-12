@@ -76,11 +76,20 @@ class ExpandingMethods:
 
     def setup(self, constructor, dtype, method):
         N = 10 ** 5
+        N_groupby = 100
         arr = (100 * np.random.random(N)).astype(dtype)
         self.expanding = getattr(pd, constructor)(arr).expanding()
+        self.expanding_groupby = (
+            pd.DataFrame({"A": arr[:N_groupby], "B": range(N_groupby)})
+            .groupby("B")
+            .expanding()
+        )
 
     def time_expanding(self, constructor, dtype, method):
         getattr(self.expanding, method)()
+
+    def time_expanding_groupby(self, constructor, dtype, method):
+        getattr(self.expanding_groupby, method)()
 
 
 class EWMMethods:

@@ -4,8 +4,9 @@ from typing import Dict, Optional
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
-from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
-from pandas.core.window.rolling import RollingAndExpandingMixin
+from pandas.core.window.common import _doc_template, _shared_docs
+from pandas.core.window.indexers import ExpandingIndexer, GroupbyIndexer
+from pandas.core.window.rolling import BaseWindowGroupby, RollingAndExpandingMixin
 
 
 class Expanding(RollingAndExpandingMixin):
@@ -253,11 +254,26 @@ class Expanding(RollingAndExpandingMixin):
         return super().corr(other=other, pairwise=pairwise, **kwargs)
 
 
-class ExpandingGroupby(WindowGroupByMixin, Expanding):
+class ExpandingGroupby(BaseWindowGroupby, Expanding):
     """
     Provide a expanding groupby implementation.
     """
 
-    @property
-    def _constructor(self):
-        return Expanding
+    def _get_window_indexer(self, window: int) -> GroupbyIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+
+        Parameters
+        ----------
+        window : int
+            window size for FixedWindowIndexer (unused)
+
+        Returns
+        -------
+        GroupbyIndexer
+        """
+        window_indexer = GroupbyIndexer(
+            groupby_indicies=self._groupby.indices,
+            window_indexer=ExpandingIndexer,
+        )
+        return window_indexer
