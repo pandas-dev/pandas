@@ -11,12 +11,10 @@ from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas import compat
 from pandas.core import nanops, ops
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.base import ExtensionOpsMixin
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
@@ -118,7 +116,6 @@ class PandasDtype(ExtensionDtype):
 class PandasArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
-    ExtensionOpsMixin,
     NDArrayOperatorsMixin,
     ObjectStringArrayMixin,
 ):
@@ -393,15 +390,7 @@ class PandasArray(
             return self._wrap_ndarray_result(result)
         return result
 
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        @ops.unpack_zerodim_and_defer(op.__name__)
-        def arithmetic_method(self, other):
-            return self._cmp_method(other, op)
-
-        return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
-
-    _create_comparison_method = _create_arithmetic_method
+    _arith_method = _cmp_method
 
     def _wrap_ndarray_result(self, result: np.ndarray):
         # If we have timedelta64[ns] result, return a TimedeltaArray instead
@@ -415,6 +404,3 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # String methods interface
     _str_na_value = np.nan
-
-
-PandasArray._add_arithmetic_ops()
