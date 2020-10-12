@@ -1231,7 +1231,7 @@ def convert_dtypes(
 
     Parameters
     ----------
-    input_array : ExtensionArray or PandasArray
+    input_array : ExtensionArray, Index, Series or np.ndarray
     convert_string : bool, default True
         Whether object dtypes should be converted to ``StringDtype()``.
     convert_integer : bool, default True
