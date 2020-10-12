@@ -139,7 +139,10 @@ def _make_arithmetic_op(op, cls):
 
 
 _o_dtype = np.dtype(object)
-_Identity = object
+
+
+class _Identity:
+    pass
 
 
 def _new_Index(cls, d):
