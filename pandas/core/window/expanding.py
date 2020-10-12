@@ -194,6 +194,11 @@ class Expanding(RollingAndExpandingMixin):
         nv.validate_expanding_func("var", args, kwargs)
         return super().var(ddof=ddof, **kwargs)
 
+    @Substitution(name="expanding")
+    @Appender(_shared_docs["sem"])
+    def sem(self, ddof=1, *args, **kwargs):
+        return super().sem(ddof=ddof, **kwargs)
+
     @Substitution(name="expanding", func_name="skew")
     @Appender(_doc_template)
     @Appender(_shared_docs["skew"])

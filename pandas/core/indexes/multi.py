@@ -3695,45 +3695,32 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
-    @classmethod
-    def _add_numeric_methods_add_sub_disabled(cls):
-        """
-        Add in the numeric add/sub methods to disable.
-        """
-        cls.__add__ = make_invalid_op("__add__")  # type: ignore[assignment]
-        cls.__radd__ = make_invalid_op("__radd__")  # type: ignore[assignment]
-        cls.__iadd__ = make_invalid_op("__iadd__")  # type: ignore[assignment]
-        cls.__sub__ = make_invalid_op("__sub__")  # type: ignore[assignment]
-        cls.__rsub__ = make_invalid_op("__rsub__")  # type: ignore[assignment]
-        cls.__isub__ = make_invalid_op("__isub__")  # type: ignore[attr-defined]
+    # ---------------------------------------------------------------
+    # Arithmetic/Numeric Methods - Disabled
 
-    @classmethod
-    def _add_numeric_methods_disabled(cls):
-        """
-        Add in numeric methods to disable other than add/sub.
-        """
-        cls.__pow__ = make_invalid_op("__pow__")  # type: ignore[assignment]
-        cls.__rpow__ = make_invalid_op("__rpow__")  # type: ignore[assignment]
-        cls.__mul__ = make_invalid_op("__mul__")  # type: ignore[assignment]
-        cls.__rmul__ = make_invalid_op("__rmul__")  # type: ignore[assignment]
-        cls.__floordiv__ = make_invalid_op("__floordiv__")  # type: ignore[assignment]
-        cls.__rfloordiv__ = make_invalid_op(  # type: ignore[assignment]
-            "__rfloordiv__"
-        )
-        cls.__truediv__ = make_invalid_op("__truediv__")  # type: ignore[assignment]
-        cls.__rtruediv__ = make_invalid_op("__rtruediv__")  # type: ignore[assignment]
-        cls.__mod__ = make_invalid_op("__mod__")  # type: ignore[assignment]
-        cls.__rmod__ = make_invalid_op("__rmod__")  # type: ignore[assignment]
-        cls.__divmod__ = make_invalid_op("__divmod__")  # type: ignore[assignment]
-        cls.__rdivmod__ = make_invalid_op("__rdivmod__")  # type: ignore[assignment]
-        cls.__neg__ = make_invalid_op("__neg__")  # type: ignore[operator]
-        cls.__pos__ = make_invalid_op("__pos__")  # type: ignore[operator]
-        cls.__abs__ = make_invalid_op("__abs__")  # type: ignore[attr-defined]
-        cls.__inv__ = make_invalid_op("__inv__")  # type: ignore[attr-defined]
-
-
-MultiIndex._add_numeric_methods_disabled()
-MultiIndex._add_numeric_methods_add_sub_disabled()
+    __add__ = make_invalid_op("__add__")
+    __radd__ = make_invalid_op("__radd__")
+    __iadd__ = make_invalid_op("__iadd__")
+    __sub__ = make_invalid_op("__sub__")
+    __rsub__ = make_invalid_op("__rsub__")
+    __isub__ = make_invalid_op("__isub__")
+    __pow__ = make_invalid_op("__pow__")
+    __rpow__ = make_invalid_op("__rpow__")
+    __mul__ = make_invalid_op("__mul__")
+    __rmul__ = make_invalid_op("__rmul__")
+    __floordiv__ = make_invalid_op("__floordiv__")
+    __rfloordiv__ = make_invalid_op("__rfloordiv__")
+    __truediv__ = make_invalid_op("__truediv__")
+    __rtruediv__ = make_invalid_op("__rtruediv__")
+    __mod__ = make_invalid_op("__mod__")
+    __rmod__ = make_invalid_op("__rmod__")
+    __divmod__ = make_invalid_op("__divmod__")
+    __rdivmod__ = make_invalid_op("__rdivmod__")
+    # Unary methods disabled
+    __neg__ = make_invalid_op("__neg__")
+    __pos__ = make_invalid_op("__pos__")
+    __abs__ = make_invalid_op("__abs__")
+    __inv__ = make_invalid_op("__inv__")
 
 
 def sparsify_labels(label_list, start: int = 0, sentinel=""):

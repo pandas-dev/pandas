@@ -1578,6 +1578,59 @@ class RollingAndExpandingMixin(BaseWindow):
     """
     )
 
+    def sem(self, ddof=1, *args, **kwargs):
+        return self.std(*args, **kwargs) / (self.count() - ddof).pow(0.5)
+
+    _shared_docs["sem"] = dedent(
+        """
+    Compute %(name)s standard error of mean.
+
+    Parameters
+    ----------
+
+    ddof : int, default 1
+        Delta Degrees of Freedom.  The divisor used in calculations
+        is ``N - ddof``, where ``N`` represents the number of elements.
+
+    *args, **kwargs
+        For NumPy compatibility. No additional arguments are used.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    pandas.Series.%(name)s : Calling object with Series data.
+    pandas.DataFrame.%(name)s : Calling object with DataFrames.
+    pandas.Series.sem : Equivalent method for Series.
+    pandas.DataFrame.sem : Equivalent method for DataFrame.
+
+    Notes
+    -----
+    A minimum of one period is required for the rolling calculation.
+
+    Examples
+    --------
+    >>> s = pd.Series([0, 1, 2, 3])
+    >>> s.rolling(2, min_periods=1).sem()
+    0         NaN
+    1    0.707107
+    2    0.707107
+    3    0.707107
+    dtype: float64
+
+    >>> s.expanding().sem()
+    0         NaN
+    1    0.707107
+    2    0.707107
+    3    0.745356
+    dtype: float64
+    """
+    )
+
     def kurt(self, **kwargs):
         window_func = self._get_roll_func("roll_kurt")
         kwargs.pop("require_min_periods", None)
@@ -2098,6 +2151,11 @@ class Rolling(RollingAndExpandingMixin):
     @Appender(_shared_docs["skew"])
     def skew(self, **kwargs):
         return super().skew(**kwargs)
+
+    @Substitution(name="rolling")
+    @Appender(_shared_docs["sem"])
+    def sem(self, ddof=1, *args, **kwargs):
+        return self.std(*args, **kwargs) / (self.count() - ddof).pow(0.5)
 
     _agg_doc = dedent(
         """
