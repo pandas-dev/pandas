@@ -2008,11 +2008,7 @@ class NumericBlock(Block):
     _can_hold_na = True
 
 
-class FloatOrComplexBlock(NumericBlock):
-    __slots__ = ()
-
-
-class FloatBlock(FloatOrComplexBlock):
+class FloatBlock(NumericBlock):
     __slots__ = ()
     is_float = True
 
@@ -2020,13 +2016,13 @@ class FloatBlock(FloatOrComplexBlock):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, (np.floating, np.integer)) and not issubclass(
-                tipo.type, (np.datetime64, np.timedelta64)
+                tipo.type, np.timedelta64
             )
         return isinstance(
             element, (float, int, np.floating, np.int_)
         ) and not isinstance(
             element,
-            (bool, np.bool_, datetime, timedelta, np.datetime64, np.timedelta64),
+            (bool, np.bool_, np.timedelta64),
         )
 
     def to_native_types(
@@ -2063,7 +2059,7 @@ class FloatBlock(FloatOrComplexBlock):
         return self.make_block(res)
 
 
-class ComplexBlock(FloatOrComplexBlock):
+class ComplexBlock(NumericBlock):
     __slots__ = ()
     is_complex = True
 
@@ -2086,7 +2082,7 @@ class IntBlock(NumericBlock):
         if tipo is not None:
             return (
                 issubclass(tipo.type, np.integer)
-                and not issubclass(tipo.type, (np.datetime64, np.timedelta64))
+                and not issubclass(tipo.type, np.timedelta64)
                 and self.dtype.itemsize >= tipo.itemsize
             )
         # We have not inferred an integer from the dtype
