@@ -2968,11 +2968,17 @@ class GenericFixed(Fixed):
         node._v_attrs.value_type = str(value.dtype)
         node._v_attrs.shape = value.shape
 
-    def write_array(self, key: str, value: ArrayLike, items: Optional[Index] = None):
+    def write_array(self, key: str, obj, items: Optional[Index] = None):
         # TODO: we only have one test that gets here, the only EA
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
-        assert isinstance(value, (np.ndarray, ABCExtensionArray)), type(value)
+
+        if isinstance(obj, (np.ndarray, ABCExtensionArray)):
+            value = obj
+        elif is_datetime64tz_dtype(obj):
+            value = obj.dt._get_values()
+        else:
+            value = obj.values
 
         if key in self.group:
             self._handle.remove_node(self.group, key)
@@ -3077,7 +3083,7 @@ class SeriesFixed(GenericFixed):
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
         self.write_index("index", obj.index)
-        self.write_array("values", obj.values)
+        self.write_array("values", obj)
         self.attrs.name = obj.name
 
 
@@ -4743,13 +4749,8 @@ def _set_tz(
         assert values.tz is None or values.tz == tz
 
     if tz is not None:
-        if isinstance(values, DatetimeIndex):
-            name = values.name
-            values = values.asi8
-        else:
-            name = None
-            values = values.ravel()
-
+        name = getattr(values, "name", None)
+        values = values.ravel()
         tz = _ensure_decoded(tz)
         values = DatetimeIndex(values, name=name)
         values = values.tz_localize("UTC").tz_convert(tz)
