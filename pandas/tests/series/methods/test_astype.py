@@ -57,12 +57,7 @@ class TestAstype:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "value, string_value",
-        [
-            (None, "None"),
-            (np.nan, "nan"),
-            (NA, "<NA>"),
-        ],
+        "value, string_value", [(None, "None"), (np.nan, "nan"), (NA, "<NA>")],
     )
     def test_astype_to_str_preserves_na(self, value, string_value):
         # https://github.com/pandas-dev/pandas/issues/36904
