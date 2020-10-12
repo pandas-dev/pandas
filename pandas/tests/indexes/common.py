@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.compat.numpy import _is_numpy_dev
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype
@@ -418,7 +417,7 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             getattr(index, method)(case)
 
-    def test_intersection_base(self, index, request):
+    def test_intersection_base(self, index):
         if isinstance(index, CategoricalIndex):
             return
 
@@ -435,15 +434,6 @@ class Base:
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
-            # https://github.com/pandas-dev/pandas/issues/35481
-            if (
-                _is_numpy_dev
-                and isinstance(case, Series)
-                and isinstance(index, UInt64Index)
-            ):
-                mark = pytest.mark.xfail(reason="gh-35481")
-                request.node.add_marker(mark)
-
             result = first.intersection(case)
             assert tm.equalContents(result, second)
 
