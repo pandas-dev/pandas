@@ -48,7 +48,6 @@ class TestDataFramePlots(TestPlotBase):
         for ax, exp in zip(axes, expected):
             self._check_visible(ax.get_xticklabels(), visible=exp)
 
-    @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_plot(self):
         from pandas.plotting._matplotlib.compat import mpl_ge_3_1_0
@@ -66,6 +65,7 @@ class TestDataFramePlots(TestPlotBase):
 
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(df.plot, subplots=True, use_index=False)
+        self._check_ticks_props(axes, xrot=0)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
@@ -78,7 +78,8 @@ class TestDataFramePlots(TestPlotBase):
 
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 
-        _check_plot_works(df.plot, use_index=True)
+        ax = _check_plot_works(df.plot, use_index=True)
+        self._check_ticks_props(ax, xrot=0)
         _check_plot_works(df.plot, sort_columns=False)
         _check_plot_works(df.plot, yticks=[1, 5, 10])
         _check_plot_works(df.plot, xticks=[1, 5, 10])
@@ -110,7 +111,8 @@ class TestDataFramePlots(TestPlotBase):
 
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
-        _check_plot_works(df.plot, use_index=True)
+        ax = _check_plot_works(df.plot, use_index=True)
+        self._check_ticks_props(ax, xrot=0)
 
         # unicode
         index = MultiIndex.from_tuples(
@@ -168,10 +170,21 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_mpl2_color_cycle_str(self):
         # GH 15516
-        colors = ["C" + str(x) for x in range(10)]
         df = DataFrame(randn(10, 3), columns=["a", "b", "c"])
-        for c in colors:
-            _check_plot_works(df.plot, color=c)
+        colors = ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always", "MatplotlibDeprecationWarning")
+
+            for color in colors:
+                _check_plot_works(df.plot, color=color)
+
+            # if warning is raised, check that it is the exact problematic one
+            # GH 36972
+            if w:
+                match = "Support for uppercase single-letter colors is deprecated"
+                warning_message = str(w[0].message)
+                msg = "MatplotlibDeprecationWarning related to CN colors was raised"
+                assert match not in warning_message, msg
 
     def test_color_single_series_list(self):
         # GH 3486
@@ -304,12 +317,14 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(x_compat=True)
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+        self._check_ticks_props(ax, xrot=30)
 
         tm.close()
         pd.plotting.plot_params["xaxis.compat"] = True
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+        self._check_ticks_props(ax, xrot=30)
 
         tm.close()
         pd.plotting.plot_params["x_compat"] = False
@@ -325,12 +340,14 @@ class TestDataFramePlots(TestPlotBase):
             ax = df.plot()
             lines = ax.get_lines()
             assert not isinstance(lines[0].get_xdata(), PeriodIndex)
+            self._check_ticks_props(ax, xrot=30)
 
         tm.close()
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
         assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
+        self._check_ticks_props(ax, xrot=0)
 
     def test_period_compat(self):
         # GH 9012
@@ -486,7 +503,6 @@ class TestDataFramePlots(TestPlotBase):
         expected = [False, False, True, True]
         self._assert_xtickslabels_visibility(axes, expected)
 
-    @pytest.mark.xfail(reason="Waiting for PR 34334", strict=True)
     @pytest.mark.slow
     def test_subplots_timeseries(self):
         idx = date_range(start="2014-07-01", freq="M", periods=10)
@@ -2653,67 +2669,84 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
-        with warnings.catch_warnings():
-            d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
-            df = DataFrame(d)
-            d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
-            df_err = DataFrame(d_err)
+        d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
+        df = DataFrame(d)
+        d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
+        df_err = DataFrame(d_err)
 
-            # check line plots
-            ax = _check_plot_works(df.plot, yerr=df_err, logy=True)
+        # check line plots
+        ax = _check_plot_works(df.plot, yerr=df_err, logy=True)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
+
+        ax = _check_plot_works(df.plot, yerr=df_err, logx=True, logy=True)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
+
+        ax = _check_plot_works(df.plot, yerr=df_err, loglog=True)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
+
+        ax = _check_plot_works(
+            (df + 1).plot, yerr=df_err, xerr=df_err, kind="bar", log=True
+        )
+        self._check_has_errorbars(ax, xerr=2, yerr=2)
+
+        # yerr is raw error values
+        ax = _check_plot_works(df["y"].plot, yerr=np.ones(12) * 0.4)
+        self._check_has_errorbars(ax, xerr=0, yerr=1)
+
+        ax = _check_plot_works(df.plot, yerr=np.ones((2, 12)) * 0.4)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
+
+        # yerr is column name
+        for yerr in ["yerr", "誤差"]:
+            s_df = df.copy()
+            s_df[yerr] = np.ones(12) * 0.2
+
+            ax = _check_plot_works(s_df.plot, yerr=yerr)
             self._check_has_errorbars(ax, xerr=0, yerr=2)
-            ax = _check_plot_works(df.plot, yerr=df_err, logx=True, logy=True)
-            self._check_has_errorbars(ax, xerr=0, yerr=2)
-            ax = _check_plot_works(df.plot, yerr=df_err, loglog=True)
-            self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-            kinds = ["line", "bar", "barh"]
-            for kind in kinds:
-                ax = _check_plot_works(df.plot, yerr=df_err["x"], kind=kind)
-                self._check_has_errorbars(ax, xerr=0, yerr=2)
-                ax = _check_plot_works(df.plot, yerr=d_err, kind=kind)
-                self._check_has_errorbars(ax, xerr=0, yerr=2)
-                ax = _check_plot_works(df.plot, yerr=df_err, xerr=df_err, kind=kind)
-                self._check_has_errorbars(ax, xerr=2, yerr=2)
-                ax = _check_plot_works(
-                    df.plot, yerr=df_err["x"], xerr=df_err["x"], kind=kind
-                )
-                self._check_has_errorbars(ax, xerr=2, yerr=2)
-                ax = _check_plot_works(df.plot, xerr=0.2, yerr=0.2, kind=kind)
-                self._check_has_errorbars(ax, xerr=2, yerr=2)
-
-                # _check_plot_works adds an ax so catch warning. see GH #13188
-                axes = _check_plot_works(
-                    df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind
-                )
-                self._check_has_errorbars(axes, xerr=1, yerr=1)
-
-            ax = _check_plot_works(
-                (df + 1).plot, yerr=df_err, xerr=df_err, kind="bar", log=True
-            )
-            self._check_has_errorbars(ax, xerr=2, yerr=2)
-
-            # yerr is raw error values
-            ax = _check_plot_works(df["y"].plot, yerr=np.ones(12) * 0.4)
+            ax = _check_plot_works(s_df.plot, y="y", x="x", yerr=yerr)
             self._check_has_errorbars(ax, xerr=0, yerr=1)
-            ax = _check_plot_works(df.plot, yerr=np.ones((2, 12)) * 0.4)
-            self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-            # yerr is column name
-            for yerr in ["yerr", "誤差"]:
-                s_df = df.copy()
-                s_df[yerr] = np.ones(12) * 0.2
-                ax = _check_plot_works(s_df.plot, yerr=yerr)
-                self._check_has_errorbars(ax, xerr=0, yerr=2)
-                ax = _check_plot_works(s_df.plot, y="y", x="x", yerr=yerr)
-                self._check_has_errorbars(ax, xerr=0, yerr=1)
+        with pytest.raises(ValueError):
+            df.plot(yerr=np.random.randn(11))
 
-            with pytest.raises(ValueError):
-                df.plot(yerr=np.random.randn(11))
+        df_err = DataFrame({"x": ["zzz"] * 12, "y": ["zzz"] * 12})
+        with pytest.raises((ValueError, TypeError)):
+            df.plot(yerr=df_err)
 
-            df_err = DataFrame({"x": ["zzz"] * 12, "y": ["zzz"] * 12})
-            with pytest.raises((ValueError, TypeError)):
-                df.plot(yerr=df_err)
+    @pytest.mark.slow
+    @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
+    def test_errorbar_plot_different_kinds(self, kind):
+        d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
+        df = DataFrame(d)
+        d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
+        df_err = DataFrame(d_err)
+
+        ax = _check_plot_works(df.plot, yerr=df_err["x"], kind=kind)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
+
+        ax = _check_plot_works(df.plot, yerr=d_err, kind=kind)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
+
+        ax = _check_plot_works(df.plot, yerr=df_err, xerr=df_err, kind=kind)
+        self._check_has_errorbars(ax, xerr=2, yerr=2)
+
+        ax = _check_plot_works(df.plot, yerr=df_err["x"], xerr=df_err["x"], kind=kind)
+        self._check_has_errorbars(ax, xerr=2, yerr=2)
+
+        ax = _check_plot_works(df.plot, xerr=0.2, yerr=0.2, kind=kind)
+        self._check_has_errorbars(ax, xerr=2, yerr=2)
+
+        with tm.assert_produces_warning(UserWarning):
+            # _check_plot_works creates subplots inside,
+            # which leads to warnings like this:
+            # UserWarning: To output multiple subplots,
+            # the figure containing the passed axes is being cleared
+            # Similar warnings were observed in GH #13188
+            axes = _check_plot_works(
+                df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind
+            )
+            self._check_has_errorbars(axes, xerr=1, yerr=1)
 
     @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
     @pytest.mark.slow
@@ -2760,35 +2793,39 @@ class TestDataFramePlots(TestPlotBase):
             self._check_has_errorbars(ax, xerr=0, yerr=1)
 
     @pytest.mark.slow
-    def test_errorbar_timeseries(self):
+    @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
+    def test_errorbar_timeseries(self, kind):
+        d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
+        d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
 
-        with warnings.catch_warnings():
-            d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
-            d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
+        # check time-series plots
+        ix = date_range("1/1/2000", "1/1/2001", freq="M")
+        tdf = DataFrame(d, index=ix)
+        tdf_err = DataFrame(d_err, index=ix)
 
-            # check time-series plots
-            ix = date_range("1/1/2000", "1/1/2001", freq="M")
-            tdf = DataFrame(d, index=ix)
-            tdf_err = DataFrame(d_err, index=ix)
+        ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-            kinds = ["line", "bar", "barh"]
-            for kind in kinds:
-                ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
-                self._check_has_errorbars(ax, xerr=0, yerr=2)
-                ax = _check_plot_works(tdf.plot, yerr=d_err, kind=kind)
-                self._check_has_errorbars(ax, xerr=0, yerr=2)
-                ax = _check_plot_works(tdf.plot, y="y", yerr=tdf_err["x"], kind=kind)
-                self._check_has_errorbars(ax, xerr=0, yerr=1)
-                ax = _check_plot_works(tdf.plot, y="y", yerr="x", kind=kind)
-                self._check_has_errorbars(ax, xerr=0, yerr=1)
-                ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
-                self._check_has_errorbars(ax, xerr=0, yerr=2)
+        ax = _check_plot_works(tdf.plot, yerr=d_err, kind=kind)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-                # _check_plot_works adds an ax so catch warning. see GH #13188
-                axes = _check_plot_works(
-                    tdf.plot, kind=kind, yerr=tdf_err, subplots=True
-                )
-                self._check_has_errorbars(axes, xerr=0, yerr=1)
+        ax = _check_plot_works(tdf.plot, y="y", yerr=tdf_err["x"], kind=kind)
+        self._check_has_errorbars(ax, xerr=0, yerr=1)
+
+        ax = _check_plot_works(tdf.plot, y="y", yerr="x", kind=kind)
+        self._check_has_errorbars(ax, xerr=0, yerr=1)
+
+        ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
+        self._check_has_errorbars(ax, xerr=0, yerr=2)
+
+        with tm.assert_produces_warning(UserWarning):
+            # _check_plot_works creates subplots inside,
+            # which leads to warnings like this:
+            # UserWarning: To output multiple subplots,
+            # the figure containing the passed axes is being cleared
+            # Similar warnings were observed in GH #13188
+            axes = _check_plot_works(tdf.plot, kind=kind, yerr=tdf_err, subplots=True)
+            self._check_has_errorbars(axes, xerr=0, yerr=1)
 
     def test_errorbar_asymmetrical(self):
 
@@ -3443,7 +3480,7 @@ class TestDataFramePlots(TestPlotBase):
 
 def _generate_4_axes_via_gridspec():
     import matplotlib as mpl
-    import matplotlib.gridspec  # noqa
+    import matplotlib.gridspec
     import matplotlib.pyplot as plt
 
     gs = mpl.gridspec.GridSpec(2, 2)

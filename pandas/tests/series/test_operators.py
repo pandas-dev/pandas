@@ -276,23 +276,10 @@ class TestSeriesLogicalOps:
 
         expected = DataFrame(False, index=range(9), columns=["A"] + list(range(9)))
 
-        result = d.__and__(s, axis="columns")
-        tm.assert_frame_equal(result, expected)
-
-        result = d.__and__(s, axis=1)
-        tm.assert_frame_equal(result, expected)
-
         result = s & d
         tm.assert_frame_equal(result, expected)
 
         result = d & s
-        tm.assert_frame_equal(result, expected)
-
-        expected = (s & s).to_frame("A")
-        result = d.__and__(s, axis="index")
-        tm.assert_frame_equal(result, expected)
-
-        result = d.__and__(s, axis=0)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
@@ -536,3 +523,42 @@ class TestSeriesUnaryOps:
         ser = tm.makeStringSeries()
         ser.name = "series"
         tm.assert_series_equal(-(ser < 0), ~(ser < 0))
+
+    @pytest.mark.parametrize(
+        "source, target",
+        [
+            ([1, 2, 3], [-1, -2, -3]),
+            ([1, 2, None], [-1, -2, None]),
+            ([-1, 0, 1], [1, 0, -1]),
+        ],
+    )
+    def test_unary_minus_nullable_int(
+        self, any_signed_nullable_int_dtype, source, target
+    ):
+        dtype = any_signed_nullable_int_dtype
+        s = pd.Series(source, dtype=dtype)
+        result = -s
+        expected = pd.Series(target, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]])
+    def test_unary_plus_nullable_int(self, any_signed_nullable_int_dtype, source):
+        dtype = any_signed_nullable_int_dtype
+        expected = pd.Series(source, dtype=dtype)
+        result = +expected
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "source, target",
+        [
+            ([1, 2, 3], [1, 2, 3]),
+            ([1, -2, None], [1, 2, None]),
+            ([-1, 0, 1], [1, 0, 1]),
+        ],
+    )
+    def test_abs_nullable_int(self, any_signed_nullable_int_dtype, source, target):
+        dtype = any_signed_nullable_int_dtype
+        s = pd.Series(source, dtype=dtype)
+        result = abs(s)
+        expected = pd.Series(target, dtype=dtype)
+        tm.assert_series_equal(result, expected)

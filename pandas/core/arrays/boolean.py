@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import ArrayLike
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
@@ -27,7 +26,7 @@ from pandas.core import ops
 from .masked import BaseMaskedArray, BaseMaskedDtype
 
 if TYPE_CHECKING:
-    import pyarrow  # noqa: F401
+    import pyarrow
 
 
 @register_extension_dtype
@@ -58,8 +57,9 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
+    # mypy: https://github.com/python/mypy/issues/4125
     @property
-    def type(self) -> Type[np.bool_]:
+    def type(self) -> Type:  # type: ignore[override]
         return np.bool_
 
     @property
@@ -98,7 +98,7 @@ class BooleanDtype(BaseMaskedDtype):
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
         """
-        import pyarrow  # noqa: F811
+        import pyarrow
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -375,7 +375,10 @@ class BooleanArray(BaseMaskedArray):
 
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
-            return BooleanArray(values, mask, copy=False)
+            if not copy:
+                return self
+            else:
+                return BooleanArray(values, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -556,96 +559,123 @@ class BooleanArray(BaseMaskedArray):
             else:
                 return self.dtype.na_value
 
-    @classmethod
-    def _create_logical_method(cls, op):
-        @ops.unpack_zerodim_and_defer(op.__name__)
-        def logical_method(self, other):
+    def _logical_method(self, other, op):
 
-            assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
-            other_is_booleanarray = isinstance(other, BooleanArray)
-            other_is_scalar = lib.is_scalar(other)
-            mask = None
+        assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
+        other_is_booleanarray = isinstance(other, BooleanArray)
+        other_is_scalar = lib.is_scalar(other)
+        mask = None
 
-            if other_is_booleanarray:
-                other, mask = other._data, other._mask
-            elif is_list_like(other):
-                other = np.asarray(other, dtype="bool")
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                other, mask = coerce_to_array(other, copy=False)
-            elif isinstance(other, np.bool_):
-                other = other.item()
+        if other_is_booleanarray:
+            other, mask = other._data, other._mask
+        elif is_list_like(other):
+            other = np.asarray(other, dtype="bool")
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
+            other, mask = coerce_to_array(other, copy=False)
+        elif isinstance(other, np.bool_):
+            other = other.item()
 
-            if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
-                raise TypeError(
-                    "'other' should be pandas.NA or a bool. "
-                    f"Got {type(other).__name__} instead."
-                )
+        if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
+            raise TypeError(
+                "'other' should be pandas.NA or a bool. "
+                f"Got {type(other).__name__} instead."
+            )
 
-            if not other_is_scalar and len(self) != len(other):
+        if not other_is_scalar and len(self) != len(other):
+            raise ValueError("Lengths must match to compare")
+
+        if op.__name__ in {"or_", "ror_"}:
+            result, mask = ops.kleene_or(self._data, other, self._mask, mask)
+        elif op.__name__ in {"and_", "rand_"}:
+            result, mask = ops.kleene_and(self._data, other, self._mask, mask)
+        elif op.__name__ in {"xor", "rxor"}:
+            result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
+
+        return BooleanArray(result, mask)
+
+    def _cmp_method(self, other, op):
+        from pandas.arrays import FloatingArray, IntegerArray
+
+        if isinstance(other, (IntegerArray, FloatingArray)):
+            return NotImplemented
+
+        mask = None
+
+        if isinstance(other, BooleanArray):
+            other, mask = other._data, other._mask
+
+        elif is_list_like(other):
+            other = np.asarray(other)
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
+            if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-            if op.__name__ in {"or_", "ror_"}:
-                result, mask = ops.kleene_or(self._data, other, self._mask, mask)
-            elif op.__name__ in {"and_", "rand_"}:
-                result, mask = ops.kleene_and(self._data, other, self._mask, mask)
-            elif op.__name__ in {"xor", "rxor"}:
-                result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
+        if other is libmissing.NA:
+            # numpy does not handle pd.NA well as "other" scalar (it returns
+            # a scalar False instead of an array)
+            result = np.zeros_like(self._data)
+            mask = np.ones_like(self._data)
+        else:
+            # numpy will show a DeprecationWarning on invalid elementwise
+            # comparisons, this will raise in the future
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+                with np.errstate(all="ignore"):
+                    result = op(self._data, other)
 
-            return BooleanArray(result, mask)
-
-        name = f"__{op.__name__}__"
-        return set_function_name(logical_method, name, cls)
-
-    @classmethod
-    def _create_comparison_method(cls, op):
-        @ops.unpack_zerodim_and_defer(op.__name__)
-        def cmp_method(self, other):
-            from pandas.arrays import IntegerArray
-
-            if isinstance(other, IntegerArray):
-                # Rely on pandas to unbox and dispatch to us.
-                return NotImplemented
-
-            mask = None
-
-            if isinstance(other, BooleanArray):
-                other, mask = other._data, other._mask
-
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match to compare")
-
-            if other is libmissing.NA:
-                # numpy does not handle pd.NA well as "other" scalar (it returns
-                # a scalar False instead of an array)
-                result = np.zeros_like(self._data)
-                mask = np.ones_like(self._data)
+            # nans propagate
+            if mask is None:
+                mask = self._mask.copy()
             else:
-                # numpy will show a DeprecationWarning on invalid elementwise
-                # comparisons, this will raise in the future
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                    with np.errstate(all="ignore"):
-                        result = op(self._data, other)
+                mask = self._mask | mask
 
-                # nans propagate
-                if mask is None:
-                    mask = self._mask.copy()
-                else:
-                    mask = self._mask | mask
+        return BooleanArray(result, mask, copy=False)
 
-            return BooleanArray(result, mask, copy=False)
+    def _arith_method(self, other, op):
+        mask = None
+        op_name = op.__name__
 
-        name = f"__{op.__name__}"
-        return set_function_name(cmp_method, name, cls)
+        if isinstance(other, BooleanArray):
+            other, mask = other._data, other._mask
+
+        elif is_list_like(other):
+            other = np.asarray(other)
+            if other.ndim > 1:
+                raise NotImplementedError("can only perform ops with 1-d structures")
+            if len(self) != len(other):
+                raise ValueError("Lengths must match")
+
+        # nans propagate
+        if mask is None:
+            mask = self._mask
+            if other is libmissing.NA:
+                mask |= True
+        else:
+            mask = self._mask | mask
+
+        if other is libmissing.NA:
+            # if other is NA, the result will be all NA and we can't run the
+            # actual op, so we need to choose the resulting dtype manually
+            if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
+                dtype = "int8"
+            else:
+                dtype = "bool"
+            result = np.zeros(len(self._data), dtype=dtype)
+        else:
+            with np.errstate(all="ignore"):
+                result = op(self._data, other)
+
+        # divmod returns a tuple
+        if op_name == "divmod":
+            div, mod = result
+            return (
+                self._maybe_mask_result(div, mask, other, "floordiv"),
+                self._maybe_mask_result(mod, mask, other, "mod"),
+            )
+
+        return self._maybe_mask_result(result, mask, other, op_name)
 
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
 
@@ -682,61 +712,3 @@ class BooleanArray(BaseMaskedArray):
         else:
             result[mask] = np.nan
             return result
-
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        op_name = op.__name__
-
-        @ops.unpack_zerodim_and_defer(op_name)
-        def boolean_arithmetic_method(self, other):
-            mask = None
-
-            if isinstance(other, BooleanArray):
-                other, mask = other._data, other._mask
-
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match")
-
-            # nans propagate
-            if mask is None:
-                mask = self._mask
-                if other is libmissing.NA:
-                    mask |= True
-            else:
-                mask = self._mask | mask
-
-            if other is libmissing.NA:
-                # if other is NA, the result will be all NA and we can't run the
-                # actual op, so we need to choose the resulting dtype manually
-                if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
-                    dtype = "int8"
-                else:
-                    dtype = "bool"
-                result = np.zeros(len(self._data), dtype=dtype)
-            else:
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
-
-            # divmod returns a tuple
-            if op_name == "divmod":
-                div, mod = result
-                return (
-                    self._maybe_mask_result(div, mask, other, "floordiv"),
-                    self._maybe_mask_result(mod, mask, other, "mod"),
-                )
-
-            return self._maybe_mask_result(result, mask, other, op_name)
-
-        name = f"__{op_name}__"
-        return set_function_name(boolean_arithmetic_method, name, cls)
-
-
-BooleanArray._add_logical_ops()
-BooleanArray._add_comparison_ops()
-BooleanArray._add_arithmetic_ops()

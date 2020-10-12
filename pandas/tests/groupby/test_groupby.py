@@ -249,8 +249,8 @@ def test_len():
 
     # issue 11016
     df = pd.DataFrame(dict(a=[np.nan] * 3, b=[1, 2, 3]))
-    assert len(df.groupby(("a"))) == 0
-    assert len(df.groupby(("b"))) == 3
+    assert len(df.groupby("a")) == 0
+    assert len(df.groupby("b")) == 3
     assert len(df.groupby(["a", "b"])) == 3
 
 
@@ -368,6 +368,7 @@ def test_attr_wrapper(ts):
     # get attribute
     result = grouped.dtype
     expected = grouped.agg(lambda x: x.dtype)
+    tm.assert_series_equal(result, expected)
 
     # make sure raises error
     msg = "'SeriesGroupBy' object has no attribute 'foo'"
@@ -1503,7 +1504,7 @@ def test_groupby_reindex_inside_function():
     ind = date_range(start="2012/1/1", freq="5min", periods=periods)
     df = DataFrame({"high": np.arange(periods), "low": np.arange(periods)}, index=ind)
 
-    def agg_before(hour, func, fix=False):
+    def agg_before(func, fix=False):
         """
         Run an aggregate func on the subset of data.
         """
@@ -1518,13 +1519,9 @@ def test_groupby_reindex_inside_function():
 
         return _func
 
-    def afunc(data):
-        d = data.select(lambda x: x.hour < 11).dropna()
-        return np.max(d)
-
     grouped = df.groupby(lambda x: datetime(x.year, x.month, x.day))
-    closure_bad = grouped.agg({"high": agg_before(11, np.max)})
-    closure_good = grouped.agg({"high": agg_before(11, np.max, True)})
+    closure_bad = grouped.agg({"high": agg_before(np.max)})
+    closure_good = grouped.agg({"high": agg_before(np.max, True)})
 
     tm.assert_frame_equal(closure_bad, closure_good)
 
@@ -1961,13 +1958,6 @@ def test_shift_bfill_ffill_tz(tz_naive_fixture, op, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ffill_missing_arguments():
-    # GH 14955
-    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
-    with pytest.raises(ValueError, match="Must specify a fill"):
-        df.groupby("b").fillna()
-
-
 def test_groupby_only_none_group():
     # see GH21624
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
@@ -2135,14 +2125,12 @@ def test_groupby_column_index_name_lost(func):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["ffill", "bfill"])
-def test_groupby_column_index_name_lost_fill_funcs(func):
-    # GH: 29764 groupby loses index sometimes
+def test_groupby_duplicate_columns():
+    # GH: 31735
     df = pd.DataFrame(
-        [[1, 1.0, -1.0], [1, np.nan, np.nan], [1, 2.0, -2.0]],
-        columns=pd.Index(["type", "a", "b"], name="idx"),
-    )
-    df_grouped = df.groupby(["type"])[["a", "b"]]
-    result = getattr(df_grouped, func)().columns
-    expected = pd.Index(["a", "b"], name="idx")
-    tm.assert_index_equal(result, expected)
+        {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
+    ).astype(object)
+    df.columns = ["A", "B", "B"]
+    result = df.groupby([0, 0, 0, 0]).min()
+    expected = pd.DataFrame([["e", "a", 1]], columns=["A", "B", "B"])
+    tm.assert_frame_equal(result, expected)
