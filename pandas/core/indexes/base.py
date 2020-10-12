@@ -238,7 +238,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
-    _id = None
+    _id: _Identity
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
@@ -453,8 +453,9 @@ class Index(IndexOpsMixin, PandasObject):
         result._index_data = values
         result._name = name
         result._cache = {}
+        result._reset_identity()
 
-        return result._reset_identity()
+        return result
 
     @cache_readonly
     def _constructor(self):
@@ -561,12 +562,11 @@ class Index(IndexOpsMixin, PandasObject):
         # use something other than None to be clearer
         return self._id is getattr(other, "_id", Ellipsis) and self._id is not None
 
-    def _reset_identity(self):
+    def _reset_identity(self) -> None:
         """
         Initializes or resets ``_id`` attribute with new object.
         """
         self._id = _Identity()
-        return self
 
     def _cleanup(self):
         self._engine.clear_mapping()
