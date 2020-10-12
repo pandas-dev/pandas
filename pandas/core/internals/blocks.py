@@ -932,7 +932,7 @@ class Block(PandasObject):
         # value must be storable at this moment
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
-            # can be parsed to EADtypes
+            #  can be parsed to EADtypes
             is_ea_value = True
             arr_value = value
         else:
