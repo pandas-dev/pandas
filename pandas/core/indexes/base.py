@@ -562,7 +562,10 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.identical : Works like ``Index.is_`` but also checks metadata.
         """
-        return self._id is getattr(other, "_id", None)
+        try:
+            return self._id is other._id
+        except AttributeError:
+            return False
 
     def _reset_identity(self) -> None:
         """
