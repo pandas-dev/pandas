@@ -448,9 +448,9 @@ def infer_compression(
     if compression in _compression_to_extension:
         return compression
 
-    msg = f"Unrecognized compression type: {compression}"
-    valid = ["infer", None] + sorted(_compression_to_extension)
-    msg += f"\nValid compression types are {valid}"
+    infer = {"infer": None}
+    msg = f"Unrecognized compression type: {compression}\n" \
+          f"Valid compression types are {_compression_to_extension} and {infer}"
     raise ValueError(msg)
 
 

@@ -480,7 +480,7 @@ def transform_dict_like(
 
     if obj.ndim != 1:
         # Check for missing columns on a frame
-        cols = sorted(set(func.keys()) - set(obj.columns))
+        cols = set(func.keys()) - set(obj.columns)
         if len(cols) > 0:
             raise SpecificationError(f"Column(s) {cols} do not exist")
 
@@ -603,7 +603,7 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
             if isinstance(selected_obj, ABCDataFrame) and len(
                 selected_obj.columns.intersection(keys)
             ) != len(keys):
-                cols = sorted(set(keys) - set(selected_obj.columns.intersection(keys)))
+                cols = set(keys) - set(selected_obj.columns.intersection(keys))
                 raise SpecificationError(f"Column(s) {cols} do not exist")
 
         from pandas.core.reshape.concat import concat
