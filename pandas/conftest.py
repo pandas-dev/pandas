@@ -693,6 +693,43 @@ def all_arithmetic_operators(request):
         ops.rmod,
         operator.pow,
         ops.rpow,
+        operator.eq,
+        operator.ne,
+        operator.lt,
+        operator.le,
+        operator.gt,
+        operator.ge,
+        operator.and_,
+        ops.rand_,
+        operator.xor,
+        ops.rxor,
+        operator.or_,
+        ops.ror_,
+    ]
+)
+def all_binary_operators(request):
+    """
+    Fixture for operator and roperator arithmetic, comparison, and logical ops.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        operator.add,
+        ops.radd,
+        operator.sub,
+        ops.rsub,
+        operator.mul,
+        ops.rmul,
+        operator.truediv,
+        ops.rtruediv,
+        operator.floordiv,
+        ops.rfloordiv,
+        operator.mod,
+        ops.rmod,
+        operator.pow,
+        ops.rpow,
     ]
 )
 def all_arithmetic_functions(request):
@@ -857,6 +894,10 @@ TIMEZONES = [
     "Asia/Tokyo",
     "dateutil/US/Pacific",
     "dateutil/Asia/Singapore",
+    "+01:15",
+    "-02:15",
+    "UTC+01:15",
+    "UTC-02:15",
     tzutc(),
     tzlocal(),
     FixedOffset(300),
@@ -1226,7 +1267,7 @@ def ip():
     from IPython.core.interactiveshell import InteractiveShell
 
     # GH#35711 make sure sqlite history file handle is not leaked
-    from traitlets.config import Config  # noqa: F401 isort:skip
+    from traitlets.config import Config  # isort:skip
 
     c = Config()
     c.HistoryManager.hist_file = ":memory:"

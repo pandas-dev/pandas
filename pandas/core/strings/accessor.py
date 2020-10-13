@@ -247,6 +247,8 @@ class StringMethods(NoNewAttributesMixin):
         from pandas import Index, MultiIndex
 
         if not hasattr(result, "ndim") or not hasattr(result, "dtype"):
+            if isinstance(result, ABCDataFrame):
+                result = result.__finalize__(self._orig, name="str")
             return result
         assert result.ndim < 3
 
@@ -324,6 +326,11 @@ class StringMethods(NoNewAttributesMixin):
                 # Must be a Series
                 cons = self._orig._constructor
                 result = cons(result, name=name, index=index)
+            result = result.__finalize__(self._orig, method="str")
+            if name is not None and result.ndim == 1:
+                # __finalize__ might copy over the original name, but we may
+                # want the new name (e.g. str.extract).
+                result.name = name
             return result
 
     def _get_series_list(self, others):
@@ -597,6 +604,7 @@ class StringMethods(NoNewAttributesMixin):
             else:
                 dtype = self._orig.dtype
             result = Series(result, dtype=dtype, index=data.index, name=self._orig.name)
+            result = result.__finalize__(self._orig, method="str_cat")
         return result
 
     _shared_docs[
@@ -1170,7 +1178,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
-    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
+    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=None):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
 
@@ -1288,6 +1296,20 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
+        if regex is None:
+            if isinstance(pat, str) and any(c in pat for c in ".+*|^$?[](){}\\"):
+                # warn only in cases where regex behavior would differ from literal
+                msg = (
+                    "The default value of regex will change from True to False "
+                    "in a future version."
+                )
+                if len(pat) == 1:
+                    msg += (
+                        " In addition, single character regular expressions will"
+                        "*not* be treated as literal strings when regex=True."
+                    )
+                warnings.warn(msg, FutureWarning, stacklevel=3)
+            regex = True
         result = self._array._str_replace(
             pat, repl, n=n, case=case, flags=flags, regex=regex
         )
@@ -3034,7 +3056,8 @@ def str_extract(arr, pat, flags=0, expand=True):
     if not isinstance(expand, bool):
         raise ValueError("expand must be True or False")
     if expand:
-        return _str_extract_frame(arr._orig, pat, flags=flags)
+        result = _str_extract_frame(arr._orig, pat, flags=flags)
+        return result.__finalize__(arr._orig, method="str_extract")
     else:
         result, name = _str_extract_noexpand(arr._orig, pat, flags=flags)
         return arr._wrap_result(result, name=name, expand=expand)
