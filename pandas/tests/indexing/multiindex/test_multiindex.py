@@ -106,7 +106,7 @@ def test_combine_first_with_nan_index():
     df_combined = df.combine_first(pd.DataFrame({"col": s}))
     mi_expected = pd.MultiIndex.from_arrays([
         ["a", "a", "a", "b", "b", "b", "b", "c", "c", "d", np.nan],
-        [1, 1, 4, 1, 1, 2, 5, 1, 3, 1, 6,]
+        [1, 1, 4, 1, 1, 2, 5, 1, 3, 1, 6]
     ], names=["a", "b"])
     assert (df_combined.index == mi_expected).all()
     exp_col = np.asarray(
