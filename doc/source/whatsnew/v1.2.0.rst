@@ -379,7 +379,6 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.to_string`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` adding a leading space when ``index=False`` (:issue:`24980`)
-- Bug in :meth:`DataFrame.to_html`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` ignoring the ``na_rep`` argument when ``float_format`` was also specified (:issue:`9046`, :issue:`13828`)
 -
 
 
@@ -430,6 +429,7 @@ I/O
 - Bug in :func:`read_table` and :func:`read_csv` when ``delim_whitespace=True`` and ``sep=default`` (:issue:`36583`)
 - Bug in :meth:`to_json` with ``lines=True`` and ``orient='records'`` the last line of the record is not appended with 'new line character' (:issue:`36888`)
 - Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
+- Bug in :meth:`DataFrame.to_html`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` ignoring the ``na_rep`` argument when ``float_format`` was also specified (:issue:`9046`, :issue:`13828`)
 
 Plotting
 ^^^^^^^^
