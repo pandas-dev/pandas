@@ -9,6 +9,7 @@ from typing import (
     FrozenSet,
     Hashable,
     List,
+    NewType,
     Optional,
     Sequence,
     Tuple,
@@ -141,8 +142,7 @@ def _make_arithmetic_op(op, cls):
 _o_dtype = np.dtype(object)
 
 
-class _Identity:
-    pass
+_Identity = NewType("_Identity", object)
 
 
 def _new_Index(cls, d):
@@ -562,14 +562,13 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.identical : Works like ``Index.is_`` but also checks metadata.
         """
-        # use something other than None to be clearer
-        return self._id is getattr(other, "_id", Ellipsis) and self._id is not None
+        return self._id is getattr(other, "_id", None)
 
     def _reset_identity(self) -> None:
         """
         Initializes or resets ``_id`` attribute with new object.
         """
-        self._id = _Identity()
+        self._id = _Identity(object())
 
     def _cleanup(self):
         self._engine.clear_mapping()
