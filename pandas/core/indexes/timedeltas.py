@@ -153,7 +153,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         # - Cases checked above all return/raise before reaching here - #
 
-        tdarr = TimedeltaArray._from_sequence(
+        tdarr = TimedeltaArray._from_sequence_not_strict(
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
         return cls._simple_new(tdarr, name=name)
@@ -217,7 +217,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             raise InvalidIndexError(key)
 
         try:
-            key = self._data._validate_scalar(key, cast_str=True)
+            key = self._data._validate_scalar(key)
         except TypeError as err:
             raise KeyError(key) from err
 
@@ -259,9 +259,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     @property
     def inferred_type(self) -> str:
         return "timedelta64"
-
-
-TimedeltaIndex._add_logical_methods_disabled()
 
 
 def timedelta_range(
