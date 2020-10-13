@@ -36,7 +36,6 @@ def create_valid_python_identifier(name: str) -> str:
     # toke.tok_name contains a readable description of the replacement string.
     special_characters_replacements = {
         char: f"_{token.tok_name[tokval]}_"
-        # The ignore here is because of a bug in mypy that is resolved in 0.740
         for char, tokval in (tokenize.EXACT_TOKEN_TYPES.items())
     }
     special_characters_replacements.update(
