@@ -564,7 +564,12 @@ def get_handle(
             if zf.mode == "w":
                 f = zf
             elif zf.mode == "r":
-                zip_names = zf.namelist()
+                # Ignore hidden folders added by OS X/macOS on .zip creation
+                zip_names = [
+                    _
+                    for _ in zf.namelist()
+                    if not (_.startswith("__MACOSX/") or _.startswith(".DS_STORE"))
+                ]
                 if len(zip_names) == 1:
                     f = zf.open(zip_names.pop())
                 elif len(zip_names) == 0:
