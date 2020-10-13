@@ -4,8 +4,8 @@ intended for public consumption
 """
 from __future__ import annotations
 
-import operator
 import functools
+import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, cast
 from warnings import catch_warnings, simplefilter, warn

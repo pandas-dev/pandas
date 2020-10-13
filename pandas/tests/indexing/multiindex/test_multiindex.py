@@ -95,8 +95,7 @@ class TestMultiIndexBasic:
 
 def test_combine_first_with_nan_index():
     mi1 = pd.MultiIndex.from_arrays(
-        [["b", "b", "c", "a", "b", np.nan], [1, 2, 3, 4, 5, 6]],
-        names=["a", "b"]
+        [["b", "b", "c", "a", "b", np.nan], [1, 2, 3, 4, 5, 6]], names=["a", "b"]
     )
     df = pd.DataFrame({"c": [1, 1, 1, 1, 1, 1]}, index=mi1)
     mi2 = pd.MultiIndex.from_arrays(
@@ -104,13 +103,16 @@ def test_combine_first_with_nan_index():
     )
     s = pd.Series([1, 2, 3, 4, 5, 6], index=mi2)
     df_combined = df.combine_first(pd.DataFrame({"col": s}))
-    mi_expected = pd.MultiIndex.from_arrays([
-        ["a", "a", "a", "b", "b", "b", "b", "c", "c", "d", np.nan],
-        [1, 1, 4, 1, 1, 2, 5, 1, 3, 1, 6]
-    ], names=["a", "b"])
+    mi_expected = pd.MultiIndex.from_arrays(
+        [
+            ["a", "a", "a", "b", "b", "b", "b", "c", "c", "d", np.nan],
+            [1, 1, 4, 1, 1, 2, 5, 1, 3, 1, 6],
+        ],
+        names=["a", "b"],
+    )
     assert (df_combined.index == mi_expected).all()
     exp_col = np.asarray(
         [1.0, 4.0, np.nan, 2.0, 5.0, np.nan, np.nan, 3.0, np.nan, 6.0, np.nan]
     )
-    act_col = df_combined['col'].values
+    act_col = df_combined["col"].values
     assert np.allclose(act_col, exp_col, rtol=0, atol=0, equal_nan=True)
