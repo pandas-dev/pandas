@@ -13,25 +13,31 @@
 // is 64 bits the truncation causes collission issues.  Given all that, we use our own
 // simple hash, viewing the double bytes as an int64 and using khash's default
 // hash for 64 bit integers.
-// GH 13436
+// GH 13436 showed that _Py_HashDouble doesn't work well with khash
+// GH 28303 showed, that the simple xoring-version isn't good enough
+// thus murmur2-hash is used
+
 khint64_t PANDAS_INLINE asint64(double key) {
-  khint64_t val;
-  memcpy(&val, &key, sizeof(double));
-  return val;
+    khint64_t val;
+    memcpy(&val, &key, sizeof(double));
+    return val;
 }
 
-// correct for all inputs but not -0.0 and NaNs
-#define kh_float64_hash_func_0_NAN(key) (khint32_t)((asint64(key))>>33^(asint64(key))^(asint64(key))<<11)
+#define ZERO_HASH 0
+#define NAN_HASH  0
 
-// correct for all inputs but not NaNs
-#define kh_float64_hash_func_NAN(key) ((key) == 0.0 ?                       \
-                                        kh_float64_hash_func_0_NAN(0.0) : \
-                                        kh_float64_hash_func_0_NAN(key))
-
-// correct for all
-#define kh_float64_hash_func(key) ((key) != (key) ?                       \
-                                   kh_float64_hash_func_NAN(Py_NAN) :     \
-                                   kh_float64_hash_func_NAN(key))
+khint32_t PANDAS_INLINE kh_float64_hash_func(double val){
+    // 0.0 and -0.0 should have the same hash:
+    if (val == 0.0){
+        return ZERO_HASH;
+    }
+    // all nans should have the same hash:
+    if ( val!=val ){
+        return NAN_HASH;
+    }
+    khint64_t as_int = asint64(val);
+    return murmur2_64to32(as_int);
+}
 
 #define kh_float64_hash_equal(a, b) ((a) == (b) || ((b) != (b) && (a) != (a)))
 
