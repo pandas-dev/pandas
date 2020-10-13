@@ -449,8 +449,10 @@ def infer_compression(
         return compression
 
     infer = {"infer": None}
-    msg = f"Unrecognized compression type: {compression}\n" \
-          f"Valid compression types are {_compression_to_extension} and {infer}"
+    msg = (
+        f"Unrecognized compression type: {compression}\n"
+        f"Valid compression types are {_compression_to_extension} and {infer}"
+    )
     raise ValueError(msg)
 
 

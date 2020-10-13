@@ -36,9 +36,7 @@ def create_valid_python_identifier(name: str) -> str:
     # toke.tok_name contains a readable description of the replacement string.
     special_characters_replacements = {
         char: f"_{token.tok_name[tokval]}_"
-        for char, tokval in (
-            tokenize.EXACT_TOKEN_TYPES.items()
-        )
+        for char, tokval in (tokenize.EXACT_TOKEN_TYPES.items())
     }
     special_characters_replacements.update(
         {
