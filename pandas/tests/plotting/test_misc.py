@@ -1,8 +1,7 @@
 """ Test cases for misc plot functions """
 
 import numpy as np
-from numpy import random
-from numpy.random import randn
+from numpy.random import rand, randn, random
 import pytest
 
 import pandas.util._test_decorators as td
@@ -166,9 +165,9 @@ class TestDataFramePlots(TestPlotBase):
         length = 10
         df = DataFrame(
             {
-                "A": random.rand(length),
-                "B": random.rand(length),
-                "C": random.rand(length),
+                "A": rand(length),
+                "B": rand(length),
+                "C": rand(length),
                 "Name": ["A"] * length,
             }
         )
@@ -355,9 +354,9 @@ class TestDataFramePlots(TestPlotBase):
 
         # Make sure that the random seed isn't reset by get_standard_colors
         plotting.parallel_coordinates(df, 0)
-        rand1 = random.random()
+        rand1 = random()
         plotting.parallel_coordinates(df, 0)
-        rand2 = random.random()
+        rand2 = random()
         assert rand1 != rand2
 
         # Make sure it produces the same colors every time it's called
@@ -407,7 +406,7 @@ class TestDataFramePlots(TestPlotBase):
         color_after = get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
-        df = DataFrame(np.random.randn(48, 4), columns=list("ABCD"))
+        df = DataFrame(randn(48, 4), columns=list("ABCD"))
 
         color_list = cm.gnuplot(np.linspace(0, 1, 16))
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
@@ -421,7 +420,7 @@ class TestDataFramePlots(TestPlotBase):
 
         expected = [(0.5, 0.24, 0.6), (0.3, 0.7, 0.7)]
 
-        df1 = DataFrame(np.random.rand(2, 2), columns=data_files)
+        df1 = DataFrame(rand(2, 2), columns=data_files)
         dic_color = {"b": (0.3, 0.7, 0.7), "a": (0.5, 0.24, 0.6)}
 
         # Bar color test
@@ -508,7 +507,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_externally_shared_axes(self):
         # Example from GH33819
         # Create data
-        df = DataFrame({"a": np.random.randn(1000), "b": np.random.randn(1000)})
+        df = DataFrame({"a": randn(1000), "b": randn(1000)})
 
         # Create figure
         fig = self.plt.figure()

@@ -2,7 +2,7 @@ import os
 import warnings
 
 import numpy as np
-from numpy import random
+from numpy.random import choice, normal, randint, uniform
 
 from pandas.util._decorators import cache_readonly
 import pandas.util._test_decorators as td
@@ -43,18 +43,18 @@ class TestPlotBase:
 
         n = 100
         with tm.RNGContext(42):
-            gender = np.random.choice(["Male", "Female"], size=n)
-            classroom = np.random.choice(["A", "B", "C"], size=n)
+            gender = choice(["Male", "Female"], size=n)
+            classroom = choice(["A", "B", "C"], size=n)
 
             self.hist_df = DataFrame(
                 {
                     "gender": gender,
                     "classroom": classroom,
-                    "height": random.normal(66, 4, size=n),
-                    "weight": random.normal(161, 32, size=n),
-                    "category": random.randint(4, size=n),
+                    "height": normal(66, 4, size=n),
+                    "weight": normal(161, 32, size=n),
+                    "category": randint(4, size=n),
                     "datetime": to_datetime(
-                        random.randint(
+                        randint(
                             self.start_date_to_int64,
                             self.end_date_to_int64,
                             size=n,
@@ -67,9 +67,9 @@ class TestPlotBase:
         self.tdf = tm.makeTimeDataFrame()
         self.hexbin_df = DataFrame(
             {
-                "A": np.random.uniform(size=20),
-                "B": np.random.uniform(size=20),
-                "C": np.arange(20) + np.random.uniform(size=20),
+                "A": uniform(size=20),
+                "B": uniform(size=20),
+                "C": np.arange(20) + uniform(size=20),
             }
         )
 

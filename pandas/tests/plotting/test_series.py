@@ -5,7 +5,7 @@ from datetime import datetime
 from itertools import chain
 
 import numpy as np
-from numpy.random import randn
+from numpy.random import rand, randint, randn, uniform
 import pytest
 
 import pandas.util._test_decorators as td
@@ -306,9 +306,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_pie_series(self):
         # if sum of values is less than 1.0, pie handle them as rate and draw
         # semicircle.
-        series = Series(
-            np.random.randint(1, 5), index=["a", "b", "c", "d", "e"], name="YLABEL"
-        )
+        series = Series(randint(1, 5), index=["a", "b", "c", "d", "e"], name="YLABEL")
         ax = _check_plot_works(series.plot.pie)
         self._check_text_labels(ax.texts, series.index)
         assert ax.get_ylabel() == "YLABEL"
@@ -361,7 +359,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_df_kwargs(self):
-        df = DataFrame(np.random.randn(10, 2))
+        df = DataFrame(randn(10, 2))
         _, ax = self.plt.subplots()
         ax = df.plot.hist(bins=5, ax=ax)
         assert len(ax.patches) == 10
@@ -370,7 +368,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_df_with_nonnumerics(self):
         # GH 9853
         with tm.RNGContext(1):
-            df = DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
+            df = DataFrame(randn(10, 4), columns=["A", "B", "C", "D"])
         df["E"] = ["x", "y"] * 5
         _, ax = self.plt.subplots()
         ax = df.plot.hist(bins=5, ax=ax)
@@ -406,7 +404,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_bins_legacy(self):
-        df = DataFrame(np.random.randn(10, 2))
+        df = DataFrame(randn(10, 2))
         ax = df.hist(bins=2)[0][0]
         assert len(ax.patches) == 2
 
@@ -472,7 +470,7 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_hist_secondary_legend(self):
         # GH 9610
-        df = DataFrame(np.random.randn(30, 4), columns=list("abcd"))
+        df = DataFrame(randn(30, 4), columns=list("abcd"))
 
         # primary -> secondary
         _, ax = self.plt.subplots()
@@ -511,8 +509,8 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     def test_df_series_secondary_legend(self):
         # GH 9779
-        df = DataFrame(np.random.randn(30, 3), columns=list("abc"))
-        s = Series(np.random.randn(30), name="x")
+        df = DataFrame(randn(30, 3), columns=list("abc"))
+        s = Series(randn(30), name="x")
 
         # primary -> secondary (without passing ax)
         _, ax = self.plt.subplots()
@@ -578,8 +576,8 @@ class TestSeriesPlots(TestPlotBase):
     )
     def test_secondary_logy(self, input_logy, expected_scale):
         # GH 25545
-        s1 = Series(np.random.randn(30))
-        s2 = Series(np.random.randn(30))
+        s1 = Series(randn(30))
+        s2 = Series(randn(30))
 
         # GH 24980
         ax1 = s1.plot(logy=input_logy)
@@ -635,7 +633,7 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        s = Series(np.random.uniform(size=50))
+        s = Series(uniform(size=50))
         s[0] = np.nan
         axes = _check_plot_works(s.plot.kde)
 
@@ -741,7 +739,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_errorbar_asymmetrical(self):
         # GH9536
         s = Series(np.arange(10), name="x")
-        err = np.random.rand(2, 10)
+        err = rand(2, 10)
 
         ax = s.plot(yerr=err, xerr=err)
 
@@ -754,7 +752,7 @@ class TestSeriesPlots(TestPlotBase):
             f"with the shape \\(2, {len(s)}\\)"
         )
         with pytest.raises(ValueError, match=msg):
-            s.plot(yerr=np.random.rand(2, 11))
+            s.plot(yerr=rand(2, 11))
 
         tm.close()
 
@@ -762,7 +760,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_errorbar_plot(self):
 
         s = Series(np.arange(10), name="x")
-        s_err = np.random.randn(10)
+        s_err = randn(10)
         d_err = DataFrame(randn(10, 2), index=s.index, columns=["x", "y"])
         # test line and bar plots
         kinds = ["line", "bar"]
@@ -784,7 +782,7 @@ class TestSeriesPlots(TestPlotBase):
         # test time series plotting
         ix = date_range("1/1/2000", "1/1/2001", freq="M")
         ts = Series(np.arange(12), index=ix, name="x")
-        ts_err = Series(np.random.randn(12), index=ix)
+        ts_err = Series(randn(12), index=ix)
         td_err = DataFrame(randn(12, 2), index=ix, columns=["x", "y"])
 
         ax = _check_plot_works(ts.plot, yerr=ts_err)
