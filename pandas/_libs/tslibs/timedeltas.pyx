@@ -1,4 +1,5 @@
 import collections
+import re
 
 import cython
 
@@ -1465,6 +1466,16 @@ cdef _broadcast_floordiv_td64(
             res = res.astype('f8')
             res[mask] = np.nan
         return res
+
+
+def check_unambiguous_timedelta_values(object[:] values):
+    cdef:
+        Py_ssize_t i, n = len(values)
+
+    for i in range(n):
+        if re.search(r"^\d+\s?[M|Y|m|y]$", str(values[i])):
+            return True
+    return False
 
 
 # resolution in ns

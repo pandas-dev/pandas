@@ -7,7 +7,11 @@ import warnings
 import numpy as np
 
 from pandas._libs.tslibs import NaT
-from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
+from pandas._libs.tslibs.timedeltas import (
+    Timedelta,
+    check_unambiguous_timedelta_values,
+    parse_timedelta_unit,
+)
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -105,6 +109,16 @@ def to_timedelta(arg, unit=None, errors="raise"):
             "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
             "represent unambiguous timedelta values durations."
         )
+
+    if isinstance(arg, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
+        arr = np.array(arg, dtype="object", ndmin=1)
+        if arr.ndim == 1 and check_unambiguous_timedelta_values(arr):
+            warnings.warn(
+                "Denoting units with 'M', 'Y', 'm' or 'y' do not represent unambiguous "
+                "timedelta values durations and will removed in a future version",
+                FutureWarning,
+                stacklevel=2,
+            )
 
     if arg is None:
         return arg
