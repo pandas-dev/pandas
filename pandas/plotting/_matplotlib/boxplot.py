@@ -246,6 +246,7 @@ def boxplot(
 ):
 
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import FixedFormatter
 
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:
@@ -302,15 +303,13 @@ def boxplot(
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
             ax.tick_params(axis="both", labelsize=fontsize)
+
         if kwds.get("vert", 1):
-            ticks = ax.get_xticks()
-            if len(ticks) != len(keys):
-                i, remainder = divmod(len(ticks), len(keys))
-                assert remainder == 0, remainder
-                keys *= i
-            ax.set_xticklabels(keys, rotation=rot)
+            axis = ax.xaxis
         else:
-            ax.set_yticklabels(keys, rotation=rot)
+            axis = ax.yaxis
+        axis.set_major_formatter(FixedFormatter(keys))
+        ax.tick_params(axis=axis.axis_name, which="major", rotation=rot)
         maybe_color_bp(bp, **kwds)
 
         # Return axes in multiplot case, maybe revisit later # 985
