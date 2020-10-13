@@ -1079,8 +1079,7 @@ class TestDataFrameConstructors:
 
         # Empty generator: list(empty_gen()) == []
         def empty_gen():
-            return
-            yield
+            yield from ()
 
         df = DataFrame(empty_gen(), columns=["A", "B"])
         tm.assert_frame_equal(df, expected)
