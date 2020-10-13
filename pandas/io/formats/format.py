@@ -1444,14 +1444,13 @@ class FloatArrayFormatter(GenericArrayFormatter):
         """
 
         def format_with_na_rep(values, formatter, na_rep):
-            formatted = np.array(values, dtype="object")
             mask = isna(values)
-            formatted.flat = np.array(
+            formatted = np.array(
                 [
                     formatter(val) if not m else na_rep
                     for val, m in zip(values.ravel(), mask.ravel())
                 ]
-            )
+            ).reshape(values.shape)
             return formatted
 
         if self.formatter is not None:
