@@ -5363,6 +5363,24 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Wrapper used to dispatch comparison operations.
         """
+        from .multi import MultiIndex
+
+        if self.is_(other) and not isinstance(self, MultiIndex):
+            # short-circuit when other is same as self
+            # if we're comparing equality, return an np.ones array, else an np.zeros arr
+            bool_arr_type, na_bool = {
+                operator.eq: (np.ones, False),
+                operator.le: (np.ones, False),
+                operator.ge: (np.ones, False),
+                operator.ne: (np.zeros, True),
+                operator.lt: (np.zeros, True),
+                operator.gt: (np.zeros, True),
+            }[op]
+            bool_arr = bool_arr_type(self.shape, dtype=bool)
+            if self._can_hold_na:
+                bool_arr[isna(self)] = na_bool
+            return bool_arr
+
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
