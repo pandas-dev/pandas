@@ -1442,8 +1442,20 @@ class FloatArrayFormatter(GenericArrayFormatter):
         Returns the float values converted into strings using
         the parameters given at initialisation, as a numpy array
         """
+
+        def format_with_na_rep(values, formatter, na_rep):
+            formatted = np.array(values, dtype="object")
+            mask = isna(values)
+            formatted.flat = np.array(
+                [
+                    formatter(val) if not m else na_rep
+                    for val, m in zip(values.ravel(), mask.ravel())
+                ]
+            )
+            return formatted
+
         if self.formatter is not None:
-            return np.array([self.formatter(x) for x in self.values])
+            return format_with_na_rep(self.values, self.formatter, self.na_rep)
 
         if self.fixed_width:
             threshold = get_option("display.chop_threshold")
@@ -1464,13 +1476,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
             # separate the wheat from the chaff
             values = self.values
             is_complex = is_complex_dtype(values)
-            mask = isna(values)
-            values = np.array(values, dtype="object")
-            values[mask] = na_rep
-            imask = (~mask).ravel()
-            values.flat[imask] = np.array(
-                [formatter(val) for val in values.ravel()[imask]]
-            )
+            values = format_with_na_rep(values, formatter, na_rep)
 
             if self.fixed_width:
                 if is_complex:
@@ -1532,17 +1538,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
         return formatted_values
 
     def _format_strings(self) -> List[str]:
-        # shortcut
-        if self.formatter is not None:
-            if self.na_rep == "NaN":
-                return [self.formatter(x) for x in self.values]
-            else:
-                na_mask = isna(self.values)
-                return [
-                    self.formatter(x) if not m else self.na_rep
-                    for x, m in zip(self.values, na_mask)
-                ]
-
         return list(self.get_result_as_array())
 
 

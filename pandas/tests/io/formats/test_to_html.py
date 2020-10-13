@@ -822,7 +822,7 @@ def test_html_repr_min_rows(datapath, max_rows, min_rows, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize("na_rep, string", [("NaN", "nan"), ("Ted", "Ted")])
+@pytest.mark.parametrize("na_rep, string", [("NaN", "NaN"), ("Ted", "Ted")])
 def test_to_html_na_rep_and_float_format(na_rep, string):
     # https://github.com/pandas-dev/pandas/issues/13828
     df = DataFrame(
