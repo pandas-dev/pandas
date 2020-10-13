@@ -404,7 +404,8 @@ cdef class BlockSlider:
     """
     cdef:
         object frame, dummy, index, block
-        list blk_values
+        list blocks, blk_values
+        ndarray orig_blklocs, orig_blknos
         ndarray values
         Slider idx_slider
         char **base_ptrs
@@ -415,6 +416,13 @@ cdef class BlockSlider:
         self.frame = frame
         self.dummy = frame[:0]
         self.index = self.dummy.index
+
+        # GH#35417 attributes we need to restore at each step in case
+        #  the function modified them.
+        mgr = self.dummy._mgr
+        self.orig_blklocs = mgr.blklocs
+        self.orig_blknos = mgr.blknos
+        self.blocks = [x for x in self.dummy._mgr.blocks]
 
         self.blk_values = [block.values for block in self.dummy._mgr.blocks]
 
@@ -439,6 +447,9 @@ cdef class BlockSlider:
         cdef:
             ndarray arr
             Py_ssize_t i
+
+        self._restore_blocks()
+
         # move blocks
         for i in range(self.nblocks):
             arr = self.blk_values[i]
@@ -458,9 +469,21 @@ cdef class BlockSlider:
         cdef:
             ndarray arr
             Py_ssize_t i
+
+        self._restore_blocks()
+
         for i in range(self.nblocks):
             arr = self.blk_values[i]
 
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i]
             arr.shape[1] = 0
+
+    cdef _restore_blocks(self):
+        """
+        Ensure that we have the original blocks, blknos, and blklocs.
+        """
+        mgr = self.dummy._mgr
+        mgr.blocks = self.blocks
+        mgr._blklocs = self.orig_blklocs
+        mgr._blknos = self.orig_blknos
