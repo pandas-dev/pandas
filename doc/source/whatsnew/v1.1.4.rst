@@ -35,7 +35,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Added ability to load pickles from ``.zip`` files created by OS X and macOS containing ``__MACOSX/`` or ``.DS_STORE`` hidden folders/files (:issue:`37098`).
 
 .. ---------------------------------------------------------------------------
 
