@@ -376,6 +376,7 @@ Performance improvements
 - Reduced peak memory usage in :meth:`DataFrame.to_pickle` when using ``protocol=5`` in python 3.8+ (:issue:`34244`)
 - faster ``dir`` calls when many index labels, e.g. ``dir(ser)`` (:issue:`37450`)
 - Performance improvement in :class:`ExpandingGroupby` (:issue:`37064`)
+- Performance improvement in :meth:`pd.DataFrame.groupby` for ``float`` ``dtype`` (:issue:`28303`)
 
 .. ---------------------------------------------------------------------------
 
