@@ -5,6 +5,7 @@ intended for public consumption
 from __future__ import annotations
 
 import operator
+import functools
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, cast
 from warnings import catch_warnings, simplefilter, warn
@@ -2055,13 +2056,52 @@ def safe_sort(
         strs = np.sort(values[str_pos])
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
+    def sort_tuples(values):
+        # sorts tuples with mixed values. can handle nan vs string comparisons.
+        def cmp_func(index_x, index_y):
+            x = values[index_x]
+            y = values[index_y]
+            if x == y:
+                return 0
+            len_x = len(x)
+            len_y = len(y)
+            for i in range(max(len_x, len_y)):
+                # check if the tuples have different lengths (shorter tuples
+                # first)
+                if i >= len_x:
+                    return -1
+                if i >= len_y:
+                    return +1
+                x_i_na = isna(x[i])
+                y_i_na = isna(y[i])
+                # values are the same -> resolve tie with next element
+                if (x_i_na and y_i_na) or (x[i] == y[i]):
+                    continue
+                # check for nan values (sort nan to the end which is consistent
+                # with numpy
+                if x_i_na and not y_i_na:
+                    return +1
+                if not x_i_na and y_i_na:
+                    return -1
+                # normal greater/less than comparison
+                if x[i] < y[i]:
+                    return -1
+                return +1
+            return 0
+
+        ixs = np.arange(len(values))
+        ixs = sorted(ixs, key=functools.cmp_to_key(cmp_func))
+        return values[ixs]
+
     sorter = None
-    if (
-        not is_extension_array_dtype(values)
-        and lib.infer_dtype(values, skipna=False) == "mixed-integer"
-    ):
+
+    ext_arr = is_extension_array_dtype(values)
+    if not ext_arr and lib.infer_dtype(values, skipna=False) == "mixed-integer":
         # unorderable in py3 if mixed str/int
         ordered = sort_mixed(values)
+    elif not ext_arr and values.size and isinstance(values[0], tuple):
+        # 1-D arrays with tuples of potentially mixed type (solves GH36562)
+        ordered = sort_tuples(values)
     else:
         try:
             sorter = values.argsort()

@@ -363,7 +363,8 @@ MultiIndex
 ^^^^^^^^^^
 
 - Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
--
+- Bug in :meth:`DataFrame.combine_first` when used with :class:`MultiIndex` containing string and ``NaN`` values raises ``TypeError`` with message ``"'<' not supported between instances of 'float' and 'str'"`` (:issue:`36562`)
+
 
 I/O
 ^^^
