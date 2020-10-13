@@ -27,7 +27,6 @@ from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -68,7 +67,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCCategorical,
-    ABCDataFrame,
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPandasArray,
@@ -120,22 +118,6 @@ _index_doc_kwargs = dict(
 )
 _index_shared_docs = dict()
 str_t = str
-
-
-def _make_arithmetic_op(op, cls):
-    def index_arithmetic_method(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
-            return NotImplemented
-
-        from pandas import Series
-
-        result = op(Series(self), other)
-        if isinstance(result, tuple):
-            return (Index(result[0]), Index(result[1]))
-        return Index(result)
-
-    name = f"__{op.__name__}__"
-    return set_function_name(index_arithmetic_method, name, cls)
 
 
 _o_dtype = np.dtype(object)
@@ -5380,7 +5362,7 @@ class Index(IndexOpsMixin, PandasObject):
         Wrapper used to dispatch comparison operations.
         """
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
-            if other.ndim > 0 and len(self) != len(other):
+            if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
         if is_object_dtype(self.dtype) and isinstance(other, ABCCategorical):
