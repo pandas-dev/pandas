@@ -1,4 +1,3 @@
-import re
 from typing import TYPE_CHECKING, List, Optional, Tuple
 import warnings
 
@@ -30,7 +29,7 @@ from pandas.core.dtypes.missing import isna, notna
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.compat import _mpl_ge_3_0_0
+from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
 from pandas.plotting._matplotlib.converter import register_pandas_matplotlib_converters
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
@@ -53,6 +52,15 @@ from pandas.plotting._matplotlib.tools import (
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
+
+
+def _color_in_style(style: str) -> bool:
+    """
+    Check if there is a color letter in the style string.
+    """
+    from matplotlib.colors import BASE_COLORS
+
+    return not set(BASE_COLORS).isdisjoint(style)
 
 
 class MPLPlot:
@@ -200,8 +208,6 @@ class MPLPlot:
         self._validate_color_args()
 
     def _validate_color_args(self):
-        import matplotlib.colors
-
         if (
             "color" in self.kwds
             and self.nseries == 1
@@ -233,13 +239,12 @@ class MPLPlot:
                 styles = [self.style]
             # need only a single match
             for s in styles:
-                for char in s:
-                    if char in matplotlib.colors.BASE_COLORS:
-                        raise ValueError(
-                            "Cannot pass 'style' string with a color symbol and "
-                            "'color' keyword argument. Please use one or the other or "
-                            "pass 'style' without a color symbol"
-                        )
+                if _color_in_style(s):
+                    raise ValueError(
+                        "Cannot pass 'style' string with a color symbol and "
+                        "'color' keyword argument. Please use one or the "
+                        "other or pass 'style' without a color symbol"
+                    )
 
     def _iter_data(self, data=None, keep_index=False, fillna=None):
         if data is None:
@@ -337,7 +342,7 @@ class MPLPlot:
         valid_log = {False, True, "sym", None}
         input_log = {self.logx, self.logy, self.loglog}
         if input_log - valid_log:
-            invalid_log = next(iter((input_log - valid_log)))
+            invalid_log = next(iter(input_log - valid_log))
             raise ValueError(
                 f"Boolean, None and 'sym' are valid options, '{invalid_log}' is given."
             )
@@ -739,7 +744,7 @@ class MPLPlot:
                 style = self.style
 
         has_color = "color" in kwds or self.colormap is not None
-        nocolor_style = style is None or re.match("[a-z]+", style) is None
+        nocolor_style = style is None or not _color_in_style(style)
         if (has_color or self.subplots) and nocolor_style:
             if isinstance(colors, dict):
                 kwds["color"] = colors[label]
@@ -939,7 +944,7 @@ class PlanePlot(MPLPlot):
         img = ax.collections[-1]
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
 
-        if _mpl_ge_3_0_0():
+        if mpl_ge_3_0_0():
             # The workaround below is no longer necessary.
             return
 
@@ -1226,11 +1231,15 @@ class LinePlot(MPLPlot):
             ax.xaxis.set_major_locator(FixedLocator(xticks))
             ax.set_xticklabels(xticklabels)
 
+        # If the index is an irregular time series, then by default
+        # we rotate the tick labels. The exception is if there are
+        # subplots which don't share their x-axes, in which we case
+        # we don't rotate the ticklabels as by default the subplots
+        # would be too close together.
         condition = (
             not self._use_dynamic_x()
-            and data.index.is_all_dates
-            and not self.subplots
-            or (self.subplots and self.sharex)
+            and (data.index._is_all_dates and self.use_index)
+            and (not self.subplots or (self.subplots and self.sharex))
         )
 
         index_name = self._get_index_name()

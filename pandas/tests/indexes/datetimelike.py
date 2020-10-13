@@ -32,6 +32,11 @@ class DatetimeLike(Base):
         idx = self.create_index()
         tm.assert_index_equal(idx, idx.shift(0))
 
+    def test_shift_empty(self):
+        # GH#14811
+        idx = self.create_index()[:0]
+        tm.assert_index_equal(idx, idx.shift(1))
+
     def test_str(self):
 
         # test the string repr
@@ -103,3 +108,45 @@ class DatetimeLike(Base):
 
         result = index[:]
         assert result.freq == index.freq
+
+    def test_not_equals_numeric(self):
+        index = self.create_index()
+
+        assert not index.equals(pd.Index(index.asi8))
+        assert not index.equals(pd.Index(index.asi8.astype("u8")))
+        assert not index.equals(pd.Index(index.asi8).astype("f8"))
+
+    def test_equals(self):
+        index = self.create_index()
+
+        assert index.equals(index.astype(object))
+        assert index.equals(pd.CategoricalIndex(index))
+        assert index.equals(pd.CategoricalIndex(index.astype(object)))
+
+    def test_not_equals_strings(self):
+        index = self.create_index()
+
+        other = pd.Index([str(x) for x in index], dtype=object)
+        assert not index.equals(other)
+        assert not index.equals(pd.CategoricalIndex(other))
+
+    def test_where_cast_str(self):
+        index = self.create_index()
+
+        mask = np.ones(len(index), dtype=bool)
+        mask[-1] = False
+
+        result = index.where(mask, str(index[0]))
+        expected = index.where(mask, index[0])
+        tm.assert_index_equal(result, expected)
+
+        result = index.where(mask, [str(index[0])])
+        tm.assert_index_equal(result, expected)
+
+        msg = "Where requires matching dtype, not foo"
+        with pytest.raises(TypeError, match=msg):
+            index.where(mask, "foo")
+
+        msg = r"Where requires matching dtype, not \['foo'\]"
+        with pytest.raises(TypeError, match=msg):
+            index.where(mask, ["foo"])

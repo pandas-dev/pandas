@@ -67,6 +67,7 @@ from pandas.core.construction import extract_array
 from pandas.core.indexes.api import Index, MultiIndex, PeriodIndex, ensure_index
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
+from pandas.core.reshape.concat import concat
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
@@ -256,22 +257,20 @@ class SeriesFormatter:
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
-        self.adj = _get_adjustment()
+        self.adj = get_adjustment()
 
         self._chk_truncate()
 
     def _chk_truncate(self) -> None:
-        from pandas.core.reshape.concat import concat
-
         self.tr_row_num: Optional[int]
 
         min_rows = self.min_rows
         max_rows = self.max_rows
         # truncation determined by max_rows, actual truncated number of rows
         # used below by min_rows
-        truncate_v = max_rows and (len(self.series) > max_rows)
+        is_truncated_vertically = max_rows and (len(self.series) > max_rows)
         series = self.series
-        if truncate_v:
+        if is_truncated_vertically:
             max_rows = cast(int, max_rows)
             if min_rows:
                 # if min_rows is set (not None or 0), set max_rows to minimum
@@ -287,7 +286,7 @@ class SeriesFormatter:
         else:
             self.tr_row_num = None
         self.tr_series = series
-        self.truncate_v = truncate_v
+        self.is_truncated_vertically = is_truncated_vertically
 
     def _get_footer(self) -> str:
         name = self.series.name
@@ -306,7 +305,9 @@ class SeriesFormatter:
             series_name = pprint_thing(name, escape_chars=("\t", "\r", "\n"))
             footer += f"Name: {series_name}"
 
-        if self.length is True or (self.length == "truncate" and self.truncate_v):
+        if self.length is True or (
+            self.length == "truncate" and self.is_truncated_vertically
+        ):
             if footer:
                 footer += ", "
             footer += f"Length: {len(self.series)}"
@@ -345,6 +346,7 @@ class SeriesFormatter:
             None,
             float_format=self.float_format,
             na_rep=self.na_rep,
+            leading_space=self.index,
         )
 
     def to_string(self) -> str:
@@ -357,7 +359,7 @@ class SeriesFormatter:
         fmt_index, have_header = self._get_formatted_index()
         fmt_values = self._get_formatted_values()
 
-        if self.truncate_v:
+        if self.is_truncated_vertically:
             n_header_rows = 0
             row_num = self.tr_row_num
             row_num = cast(int, row_num)
@@ -439,7 +441,7 @@ class EastAsianTextAdjustment(TextAdjustment):
             return [x.rjust(_get_pad(x)) for x in texts]
 
 
-def _get_adjustment() -> TextAdjustment:
+def get_adjustment() -> TextAdjustment:
     use_east_asian_width = get_option("display.unicode.east_asian_width")
     if use_east_asian_width:
         return EastAsianTextAdjustment()
@@ -450,9 +452,13 @@ def _get_adjustment() -> TextAdjustment:
 class TableFormatter:
 
     show_dimensions: Union[bool, str]
-    is_truncated: bool
     formatters: FormattersType
     columns: Index
+    _is_truncated: bool
+
+    @property
+    def is_truncated(self) -> bool:
+        return self._is_truncated
 
     @property
     def should_show_dimensions(self) -> bool:
@@ -536,8 +542,6 @@ class DataFrameFormatter(TableFormatter):
     __doc__ = __doc__ if __doc__ else ""
     __doc__ += common_docstring + return_docstring
 
-    col_space: ColspaceType
-
     def __init__(
         self,
         frame: "DataFrame",
@@ -564,315 +568,404 @@ class DataFrameFormatter(TableFormatter):
     ):
         self.frame = frame
         self.show_index_names = index_names
-
-        if sparsify is None:
-            sparsify = get_option("display.multi_sparse")
-
-        self.sparsify = sparsify
-
+        self.sparsify = self._initialize_sparsify(sparsify)
         self.float_format = float_format
-        if formatters is None:
-            self.formatters = {}
-        elif len(frame.columns) == len(formatters) or isinstance(formatters, dict):
-            self.formatters = formatters
-        else:
-            raise ValueError(
-                f"Formatters length({len(formatters)}) should match "
-                f"DataFrame number of columns({len(frame.columns)})"
-            )
+        self.formatters = self._initialize_formatters(formatters)
         self.na_rep = na_rep
         self.decimal = decimal
-        if col_space is None:
-            self.col_space = {}
-        elif isinstance(col_space, (int, str)):
-            self.col_space = {"": col_space}
-            self.col_space.update({column: col_space for column in self.frame.columns})
-        elif isinstance(col_space, Mapping):
-            for column in col_space.keys():
-                if column not in self.frame.columns and column != "":
-                    raise ValueError(
-                        f"Col_space is defined for an unknown column: {column}"
-                    )
-            self.col_space = col_space
-        else:
-            if len(frame.columns) != len(col_space):
-                raise ValueError(
-                    f"Col_space length({len(col_space)}) should match "
-                    f"DataFrame number of columns({len(frame.columns)})"
-                )
-            self.col_space = dict(zip(self.frame.columns, col_space))
-
+        self.col_space = self._initialize_colspace(col_space)
         self.header = header
         self.index = index
         self.line_width = line_width
         self.max_rows = max_rows
         self.min_rows = min_rows
         self.max_cols = max_cols
-        self.max_rows_displayed = min(max_rows or len(self.frame), len(self.frame))
         self.show_dimensions = show_dimensions
         self.table_id = table_id
         self.render_links = render_links
-
-        if justify is None:
-            self.justify = get_option("display.colheader_justify")
-        else:
-            self.justify = justify
-
+        self.justify = self._initialize_justify(justify)
         self.bold_rows = bold_rows
         self.escape = escape
+        self.columns = self._initialize_columns(columns)
 
+        self.max_cols_fitted = self._calc_max_cols_fitted()
+        self.max_rows_fitted = self._calc_max_rows_fitted()
+
+        self.tr_frame = self.frame
+        self._truncate()
+        self.adj = get_adjustment()
+
+    def _initialize_sparsify(self, sparsify: Optional[bool]) -> bool:
+        if sparsify is None:
+            return get_option("display.multi_sparse")
+        return sparsify
+
+    def _initialize_formatters(
+        self, formatters: Optional[FormattersType]
+    ) -> FormattersType:
+        if formatters is None:
+            return {}
+        elif len(self.frame.columns) == len(formatters) or isinstance(formatters, dict):
+            return formatters
+        else:
+            raise ValueError(
+                f"Formatters length({len(formatters)}) should match "
+                f"DataFrame number of columns({len(self.frame.columns)})"
+            )
+
+    def _initialize_justify(self, justify: Optional[str]) -> str:
+        if justify is None:
+            return get_option("display.colheader_justify")
+        else:
+            return justify
+
+    def _initialize_columns(self, columns: Optional[Sequence[str]]) -> Index:
         if columns is not None:
-            self.columns = ensure_index(columns)
-            self.frame = self.frame[self.columns]
+            cols = ensure_index(columns)
+            self.frame = self.frame[cols]
+            return cols
         else:
-            self.columns = frame.columns
+            return self.frame.columns
 
-        self._chk_truncate()
-        self.adj = _get_adjustment()
+    def _initialize_colspace(
+        self, col_space: Optional[ColspaceArgType]
+    ) -> ColspaceType:
+        result: ColspaceType
 
-    def _chk_truncate(self) -> None:
-        """
-        Checks whether the frame should be truncated. If so, slices
-        the frame up.
-        """
-        from pandas.core.reshape.concat import concat
-
-        # Cut the data to the information actually printed
-        max_cols = self.max_cols
-        max_rows = self.max_rows
-        self.max_rows_adj: Optional[int]
-        max_rows_adj: Optional[int]
-
-        if max_cols == 0 or max_rows == 0:  # assume we are in the terminal
-            (w, h) = get_terminal_size()
-            self.w = w
-            self.h = h
-            if self.max_rows == 0:
-                dot_row = 1
-                prompt_row = 1
-                if self.show_dimensions:
-                    show_dimension_rows = 3
-                # assume we only get here if self.header is boolean.
-                # i.e. not to_latex() where self.header may be List[str]
-                self.header = cast(bool, self.header)
-                n_add_rows = self.header + dot_row + show_dimension_rows + prompt_row
-                # rows available to fill with actual data
-                max_rows_adj = self.h - n_add_rows
-                self.max_rows_adj = max_rows_adj
-
-            # Format only rows and columns that could potentially fit the
-            # screen
-            if max_cols == 0 and len(self.frame.columns) > w:
-                max_cols = w
-            if max_rows == 0 and len(self.frame) > h:
-                max_rows = h
-
-        if not hasattr(self, "max_rows_adj"):
-            if max_rows:
-                if (len(self.frame) > max_rows) and self.min_rows:
-                    # if truncated, set max_rows showed to min_rows
-                    max_rows = min(self.min_rows, max_rows)
-            self.max_rows_adj = max_rows
-        if not hasattr(self, "max_cols_adj"):
-            self.max_cols_adj = max_cols
-
-        max_cols_adj = self.max_cols_adj
-        max_rows_adj = self.max_rows_adj
-
-        truncate_h = max_cols_adj and (len(self.columns) > max_cols_adj)
-        truncate_v = max_rows_adj and (len(self.frame) > max_rows_adj)
-
-        frame = self.frame
-        if truncate_h:
-            # cast here since if truncate_h is True, max_cols_adj is not None
-            max_cols_adj = cast(int, max_cols_adj)
-            if max_cols_adj == 0:
-                col_num = len(frame.columns)
-            elif max_cols_adj == 1:
-                max_cols = cast(int, max_cols)
-                frame = frame.iloc[:, :max_cols]
-                col_num = max_cols
-            else:
-                col_num = max_cols_adj // 2
-                frame = concat(
-                    (frame.iloc[:, :col_num], frame.iloc[:, -col_num:]), axis=1
+        if col_space is None:
+            result = {}
+        elif isinstance(col_space, (int, str)):
+            result = {"": col_space}
+            result.update({column: col_space for column in self.frame.columns})
+        elif isinstance(col_space, Mapping):
+            for column in col_space.keys():
+                if column not in self.frame.columns and column != "":
+                    raise ValueError(
+                        f"Col_space is defined for an unknown column: {column}"
+                    )
+            result = col_space
+        else:
+            if len(self.frame.columns) != len(col_space):
+                raise ValueError(
+                    f"Col_space length({len(col_space)}) should match "
+                    f"DataFrame number of columns({len(self.frame.columns)})"
                 )
-                # truncate formatter
-                if isinstance(self.formatters, (list, tuple)):
-                    truncate_fmt = self.formatters
-                    self.formatters = [
-                        *truncate_fmt[:col_num],
-                        *truncate_fmt[-col_num:],
-                    ]
-            self.tr_col_num = col_num
-        if truncate_v:
-            # cast here since if truncate_v is True, max_rows_adj is not None
-            max_rows_adj = cast(int, max_rows_adj)
-            if max_rows_adj == 1:
-                row_num = max_rows
-                frame = frame.iloc[:max_rows, :]
-            else:
-                row_num = max_rows_adj // 2
-                frame = concat((frame.iloc[:row_num, :], frame.iloc[-row_num:, :]))
-            self.tr_row_num = row_num
-        else:
-            self.tr_row_num = None
+            result = dict(zip(self.frame.columns, col_space))
+        return result
 
-        self.tr_frame = frame
-        self.truncate_h = truncate_h
-        self.truncate_v = truncate_v
-        self.is_truncated = bool(self.truncate_h or self.truncate_v)
+    @property
+    def max_rows_displayed(self) -> int:
+        return min(self.max_rows or len(self.frame), len(self.frame))
+
+    def _calc_max_cols_fitted(self) -> Optional[int]:
+        """Number of columns fitting the screen."""
+        if not self._is_in_terminal():
+            return self.max_cols
+
+        width, _ = get_terminal_size()
+        if self._is_screen_narrow(width):
+            return width
+        else:
+            return self.max_cols
+
+    def _calc_max_rows_fitted(self) -> Optional[int]:
+        """Number of rows with data fitting the screen."""
+        if not self._is_in_terminal():
+            return self.max_rows
+
+        _, height = get_terminal_size()
+        if self.max_rows == 0:
+            # rows available to fill with actual data
+            return height - self._get_number_of_auxillary_rows()
+
+        max_rows: Optional[int]
+        if self._is_screen_short(height):
+            max_rows = height
+        else:
+            max_rows = self.max_rows
+
+        if max_rows:
+            if (len(self.frame) > max_rows) and self.min_rows:
+                # if truncated, set max_rows showed to min_rows
+                max_rows = min(self.min_rows, max_rows)
+        return max_rows
+
+    def _is_in_terminal(self) -> bool:
+        """Check if the output is to be shown in terminal."""
+        return bool(self.max_cols == 0 or self.max_rows == 0)
+
+    def _is_screen_narrow(self, max_width) -> bool:
+        return bool(self.max_cols == 0 and len(self.frame.columns) > max_width)
+
+    def _is_screen_short(self, max_height) -> bool:
+        return bool(self.max_rows == 0 and len(self.frame) > max_height)
+
+    def _get_number_of_auxillary_rows(self) -> int:
+        """Get number of rows occupied by prompt, dots and dimension info."""
+        dot_row = 1
+        prompt_row = 1
+        num_rows = dot_row + prompt_row
+
+        if self.show_dimensions:
+            num_rows += len(self._dimensions_info.splitlines())
+
+        if self.header:
+            num_rows += 1
+
+        return num_rows
+
+    @property
+    def is_truncated_horizontally(self) -> bool:
+        return bool(self.max_cols_fitted and (len(self.columns) > self.max_cols_fitted))
+
+    @property
+    def is_truncated_vertically(self) -> bool:
+        return bool(self.max_rows_fitted and (len(self.frame) > self.max_rows_fitted))
+
+    @property
+    def is_truncated(self) -> bool:
+        return bool(self.is_truncated_horizontally or self.is_truncated_vertically)
+
+    def _truncate(self) -> None:
+        """
+        Check whether the frame should be truncated. If so, slice the frame up.
+        """
+        if self.is_truncated_horizontally:
+            self._truncate_horizontally()
+
+        if self.is_truncated_vertically:
+            self._truncate_vertically()
+
+    def _truncate_horizontally(self) -> None:
+        """Remove columns, which are not to be displayed and adjust formatters.
+
+        Attributes affected:
+            - tr_frame
+            - formatters
+            - tr_col_num
+        """
+        assert self.max_cols_fitted is not None
+        col_num = self.max_cols_fitted // 2
+        if col_num >= 1:
+            left = self.tr_frame.iloc[:, :col_num]
+            right = self.tr_frame.iloc[:, -col_num:]
+            self.tr_frame = concat((left, right), axis=1)
+
+            # truncate formatter
+            if isinstance(self.formatters, (list, tuple)):
+                self.formatters = [
+                    *self.formatters[:col_num],
+                    *self.formatters[-col_num:],
+                ]
+        else:
+            col_num = cast(int, self.max_cols)
+            self.tr_frame = self.tr_frame.iloc[:, :col_num]
+        self.tr_col_num = col_num
+
+    def _truncate_vertically(self) -> None:
+        """Remove rows, which are not to be displayed.
+
+        Attributes affected:
+            - tr_frame
+            - tr_row_num
+        """
+        assert self.max_rows_fitted is not None
+        row_num = self.max_rows_fitted // 2
+        if row_num >= 1:
+            head = self.tr_frame.iloc[:row_num, :]
+            tail = self.tr_frame.iloc[-row_num:, :]
+            self.tr_frame = concat((head, tail))
+        else:
+            row_num = cast(int, self.max_rows)
+            self.tr_frame = self.tr_frame.iloc[:row_num, :]
+        self.tr_row_num = row_num
+
+    def _get_strcols_without_index(self) -> List[List[str]]:
+        strcols: List[List[str]] = []
+
+        if not is_list_like(self.header) and not self.header:
+            for i, c in enumerate(self.tr_frame):
+                fmt_values = self._format_col(i)
+                fmt_values = _make_fixed_width(
+                    strings=fmt_values,
+                    justify=self.justify,
+                    minimum=int(self.col_space.get(c, 0)),
+                    adj=self.adj,
+                )
+                strcols.append(fmt_values)
+            return strcols
+
+        if is_list_like(self.header):
+            # cast here since can't be bool if is_list_like
+            self.header = cast(List[str], self.header)
+            if len(self.header) != len(self.columns):
+                raise ValueError(
+                    f"Writing {len(self.columns)} cols "
+                    f"but got {len(self.header)} aliases"
+                )
+            str_columns = [[label] for label in self.header]
+        else:
+            str_columns = self._get_formatted_column_labels(self.tr_frame)
+
+        if self.show_row_idx_names:
+            for x in str_columns:
+                x.append("")
+
+        for i, c in enumerate(self.tr_frame):
+            cheader = str_columns[i]
+            header_colwidth = max(
+                int(self.col_space.get(c, 0)), *(self.adj.len(x) for x in cheader)
+            )
+            fmt_values = self._format_col(i)
+            fmt_values = _make_fixed_width(
+                fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
+            )
+
+            max_len = max(max(self.adj.len(x) for x in fmt_values), header_colwidth)
+            cheader = self.adj.justify(cheader, max_len, mode=self.justify)
+            strcols.append(cheader + fmt_values)
+
+        return strcols
+
+    def _get_strcols(self) -> List[List[str]]:
+        strcols = self._get_strcols_without_index()
+
+        str_index = self._get_formatted_index(self.tr_frame)
+        if self.index:
+            strcols.insert(0, str_index)
+
+        return strcols
 
     def _to_str_columns(self) -> List[List[str]]:
         """
         Render a DataFrame to a list of columns (as lists of strings).
         """
-        # this method is not used by to_html where self.col_space
-        # could be a string so safe to cast
-        col_space = {k: cast(int, v) for k, v in self.col_space.items()}
+        strcols = self._get_strcols()
 
-        frame = self.tr_frame
-        # may include levels names also
+        if self.is_truncated:
+            strcols = self._insert_dot_separators(strcols)
 
-        str_index = self._get_formatted_index(frame)
+        return strcols
 
-        if not is_list_like(self.header) and not self.header:
-            stringified = []
-            for i, c in enumerate(frame):
-                fmt_values = self._format_col(i)
-                fmt_values = _make_fixed_width(
-                    fmt_values, self.justify, minimum=col_space.get(c, 0), adj=self.adj
-                )
-                stringified.append(fmt_values)
-        else:
-            if is_list_like(self.header):
-                # cast here since can't be bool if is_list_like
-                self.header = cast(List[str], self.header)
-                if len(self.header) != len(self.columns):
-                    raise ValueError(
-                        f"Writing {len(self.columns)} cols "
-                        f"but got {len(self.header)} aliases"
-                    )
-                str_columns = [[label] for label in self.header]
+    def _insert_dot_separators(self, strcols: List[List[str]]) -> List[List[str]]:
+        str_index = self._get_formatted_index(self.tr_frame)
+        index_length = len(str_index)
+
+        if self.is_truncated_horizontally:
+            strcols = self._insert_dot_separator_horizontal(strcols, index_length)
+
+        if self.is_truncated_vertically:
+            strcols = self._insert_dot_separator_vertical(strcols, index_length)
+
+        return strcols
+
+    def _insert_dot_separator_horizontal(
+        self, strcols: List[List[str]], index_length: int
+    ) -> List[List[str]]:
+        strcols.insert(self.tr_col_num + 1, [" ..."] * index_length)
+        return strcols
+
+    def _insert_dot_separator_vertical(
+        self, strcols: List[List[str]], index_length: int
+    ) -> List[List[str]]:
+        n_header_rows = index_length - len(self.tr_frame)
+        row_num = self.tr_row_num
+        for ix, col in enumerate(strcols):
+            cwidth = self.adj.len(col[row_num])
+
+            if self.is_truncated_horizontally:
+                is_dot_col = ix == self.tr_col_num + 1
             else:
-                str_columns = self._get_formatted_column_labels(frame)
-
-            if self.show_row_idx_names:
-                for x in str_columns:
-                    x.append("")
-
-            stringified = []
-            for i, c in enumerate(frame):
-                cheader = str_columns[i]
-                header_colwidth = max(
-                    col_space.get(c, 0), *(self.adj.len(x) for x in cheader)
-                )
-                fmt_values = self._format_col(i)
-                fmt_values = _make_fixed_width(
-                    fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
-                )
-
-                max_len = max(max(self.adj.len(x) for x in fmt_values), header_colwidth)
-                cheader = self.adj.justify(cheader, max_len, mode=self.justify)
-                stringified.append(cheader + fmt_values)
-
-        strcols = stringified
-        if self.index:
-            strcols.insert(0, str_index)
-
-        # Add ... to signal truncated
-        truncate_h = self.truncate_h
-        truncate_v = self.truncate_v
-
-        if truncate_h:
-            col_num = self.tr_col_num
-            strcols.insert(self.tr_col_num + 1, [" ..."] * (len(str_index)))
-        if truncate_v:
-            n_header_rows = len(str_index) - len(frame)
-            row_num = self.tr_row_num
-            # cast here since if truncate_v is True, self.tr_row_num is not None
-            row_num = cast(int, row_num)
-            for ix, col in enumerate(strcols):
-                # infer from above row
-                cwidth = self.adj.len(strcols[ix][row_num])
                 is_dot_col = False
-                if truncate_h:
-                    is_dot_col = ix == col_num + 1
-                if cwidth > 3 or is_dot_col:
-                    my_str = "..."
-                else:
-                    my_str = ".."
 
-                if ix == 0:
-                    dot_mode = "left"
-                elif is_dot_col:
-                    cwidth = 4
-                    dot_mode = "right"
-                else:
-                    dot_mode = "right"
-                dot_str = self.adj.justify([my_str], cwidth, mode=dot_mode)[0]
-                strcols[ix].insert(row_num + n_header_rows, dot_str)
+            if cwidth > 3 or is_dot_col:
+                dots = "..."
+            else:
+                dots = ".."
+
+            if ix == 0:
+                dot_mode = "left"
+            elif is_dot_col:
+                cwidth = 4
+                dot_mode = "right"
+            else:
+                dot_mode = "right"
+
+            dot_str = self.adj.justify([dots], cwidth, mode=dot_mode)[0]
+            col.insert(row_num + n_header_rows, dot_str)
         return strcols
 
     def write_result(self, buf: IO[str]) -> None:
         """
         Render a DataFrame to a console-friendly tabular output.
         """
-        from pandas import Series
+        text = self._get_string_representation()
 
-        frame = self.frame
-
-        if len(frame.columns) == 0 or len(frame.index) == 0:
-            info_line = (
-                f"Empty {type(self.frame).__name__}\n"
-                f"Columns: {pprint_thing(frame.columns)}\n"
-                f"Index: {pprint_thing(frame.index)}"
-            )
-            text = info_line
-        else:
-
-            strcols = self._to_str_columns()
-            if self.line_width is None:  # no need to wrap around just print
-                # the whole frame
-                text = self.adj.adjoin(1, *strcols)
-            elif (
-                not isinstance(self.max_cols, int) or self.max_cols > 0
-            ):  # need to wrap around
-                text = self._join_multiline(*strcols)
-            else:  # max_cols == 0. Try to fit frame to terminal
-                lines = self.adj.adjoin(1, *strcols).split("\n")
-                max_len = Series(lines).str.len().max()
-                # plus truncate dot col
-                dif = max_len - self.w
-                # '+ 1' to avoid too wide repr (GH PR #17023)
-                adj_dif = dif + 1
-                col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
-                n_cols = len(col_lens)
-                counter = 0
-                while adj_dif > 0 and n_cols > 1:
-                    counter += 1
-                    mid = int(round(n_cols / 2.0))
-                    mid_ix = col_lens.index[mid]
-                    col_len = col_lens[mid_ix]
-                    # adjoin adds one
-                    adj_dif -= col_len + 1
-                    col_lens = col_lens.drop(mid_ix)
-                    n_cols = len(col_lens)
-                # subtract index column
-                max_cols_adj = n_cols - self.index
-                # GH-21180. Ensure that we print at least two.
-                max_cols_adj = max(max_cols_adj, 2)
-                self.max_cols_adj = max_cols_adj
-
-                # Call again _chk_truncate to cut frame appropriately
-                # and then generate string representation
-                self._chk_truncate()
-                strcols = self._to_str_columns()
-                text = self.adj.adjoin(1, *strcols)
         buf.writelines(text)
 
         if self.should_show_dimensions:
-            buf.write(f"\n\n[{len(frame)} rows x {len(frame.columns)} columns]")
+            buf.write(self._dimensions_info)
+
+    @property
+    def _dimensions_info(self) -> str:
+        return f"\n\n[{len(self.frame)} rows x {len(self.frame.columns)} columns]"
+
+    def _get_string_representation(self) -> str:
+        if self.frame.empty:
+            info_line = (
+                f"Empty {type(self.frame).__name__}\n"
+                f"Columns: {pprint_thing(self.frame.columns)}\n"
+                f"Index: {pprint_thing(self.frame.index)}"
+            )
+            return info_line
+
+        strcols = self._to_str_columns()
+
+        if self.line_width is None:
+            # no need to wrap around just print the whole frame
+            return self.adj.adjoin(1, *strcols)
+
+        if self.max_cols is None or self.max_cols > 0:
+            # need to wrap around
+            return self._join_multiline(*strcols)
+
+        # max_cols == 0. Try to fit frame to terminal
+        return self._fit_strcols_to_terminal_width(strcols)
+
+    def _fit_strcols_to_terminal_width(self, strcols) -> str:
+        from pandas import Series
+
+        lines = self.adj.adjoin(1, *strcols).split("\n")
+        max_len = Series(lines).str.len().max()
+        # plus truncate dot col
+        width, _ = get_terminal_size()
+        dif = max_len - width
+        # '+ 1' to avoid too wide repr (GH PR #17023)
+        adj_dif = dif + 1
+        col_lens = Series([Series(ele).apply(len).max() for ele in strcols])
+        n_cols = len(col_lens)
+        counter = 0
+        while adj_dif > 0 and n_cols > 1:
+            counter += 1
+            mid = int(round(n_cols / 2.0))
+            mid_ix = col_lens.index[mid]
+            col_len = col_lens[mid_ix]
+            # adjoin adds one
+            adj_dif -= col_len + 1
+            col_lens = col_lens.drop(mid_ix)
+            n_cols = len(col_lens)
+
+        # subtract index column
+        max_cols_fitted = n_cols - self.index
+        # GH-21180. Ensure that we print at least two.
+        max_cols_fitted = max(max_cols_fitted, 2)
+        self.max_cols_fitted = max_cols_fitted
+
+        # Call again _truncate to cut frame appropriately
+        # and then generate string representation
+        self._truncate()
+        strcols = self._to_str_columns()
+        return self.adj.adjoin(1, *strcols)
 
     def _join_multiline(self, *args) -> str:
         lwidth = self.line_width
@@ -891,26 +984,25 @@ class DataFrameFormatter(TableFormatter):
         col_bins = _binify(col_widths, lwidth)
         nbins = len(col_bins)
 
-        if self.truncate_v:
-            # cast here since if truncate_v is True, max_rows_adj is not None
-            self.max_rows_adj = cast(int, self.max_rows_adj)
-            nrows = self.max_rows_adj + 1
+        if self.is_truncated_vertically:
+            assert self.max_rows_fitted is not None
+            nrows = self.max_rows_fitted + 1
         else:
             nrows = len(self.frame)
 
         str_lst = []
-        st = 0
-        for i, ed in enumerate(col_bins):
-            row = strcols[st:ed]
+        start = 0
+        for i, end in enumerate(col_bins):
+            row = strcols[start:end]
             if self.index:
                 row.insert(0, idx)
             if nbins > 1:
-                if ed <= len(strcols) and i < nbins - 1:
+                if end <= len(strcols) and i < nbins - 1:
                     row.append([" \\"] + ["  "] * (nrows - 1))
                 else:
                     row.append([" "] * nrows)
             str_lst.append(self.adj.adjoin(adjoin_width, *row))
-            st = ed
+            start = end
         return "\n\n".join(str_lst)
 
     def to_string(
@@ -938,17 +1030,18 @@ class DataFrameFormatter(TableFormatter):
         """
         from pandas.io.formats.latex import LatexFormatter
 
-        return LatexFormatter(
+        latex_formatter = LatexFormatter(
             self,
-            column_format=column_format,
             longtable=longtable,
+            column_format=column_format,
             multicolumn=multicolumn,
             multicolumn_format=multicolumn_format,
             multirow=multirow,
             caption=caption,
             label=label,
             position=position,
-        ).get_result(buf=buf, encoding=encoding)
+        )
+        return latex_formatter.get_result(buf=buf, encoding=encoding)
 
     def _format_col(self, i: int) -> List[str]:
         frame = self.tr_frame
@@ -960,6 +1053,7 @@ class DataFrameFormatter(TableFormatter):
             na_rep=self.na_rep,
             space=self.col_space.get(frame.columns[i]),
             decimal=self.decimal,
+            leading_space=self.index,
         )
 
     def to_html(
@@ -992,7 +1086,7 @@ class DataFrameFormatter(TableFormatter):
         )
 
     def _get_formatted_column_labels(self, frame: "DataFrame") -> List[List[str]]:
-        from pandas.core.indexes.multi import _sparsify
+        from pandas.core.indexes.multi import sparsify_labels
 
         columns = frame.columns
 
@@ -1018,7 +1112,7 @@ class DataFrameFormatter(TableFormatter):
                 zip(*[[space_format(x, y) for y in x] for x in fmt_columns])
             )
             if self.sparsify and len(str_columns):
-                str_columns = _sparsify(str_columns)
+                str_columns = sparsify_labels(str_columns)
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:
@@ -1111,7 +1205,7 @@ def format_array(
     space: Optional[Union[str, int]] = None,
     justify: str = "right",
     decimal: str = ".",
-    leading_space: Optional[bool] = None,
+    leading_space: Optional[bool] = True,
     quoting: Optional[int] = None,
 ) -> List[str]:
     """
@@ -1127,7 +1221,7 @@ def format_array(
     space
     justify
     decimal
-    leading_space : bool, optional
+    leading_space : bool, optional, default True
         Whether the array should be formatted with a leading space.
         When an array as a column of a Series or DataFrame, we do want
         the leading space to pad between columns.
@@ -1194,7 +1288,7 @@ class GenericArrayFormatter:
         decimal: str = ".",
         quoting: Optional[int] = None,
         fixed_width: bool = True,
-        leading_space: Optional[bool] = None,
+        leading_space: Optional[bool] = True,
     ):
         self.values = values
         self.digits = digits
@@ -1282,10 +1376,6 @@ class GenericArrayFormatter:
 
 
 class FloatArrayFormatter(GenericArrayFormatter):
-    """
-
-    """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -1317,6 +1407,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         if float_format:
 
             def base_formatter(v):
+                assert float_format is not None  # for mypy
                 return float_format(value=v) if notna(v) else self.na_rep
 
         else:
@@ -1395,9 +1486,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
         float_format: Optional[FloatFormatType]
         if self.float_format is None:
             if self.fixed_width:
-                float_format = partial(
-                    "{value: .{digits:d}f}".format, digits=self.digits
-                )
+                if self.leading_space is True:
+                    fmt_str = "{value: .{digits:d}f}"
+                else:
+                    fmt_str = "{value:.{digits:d}f}"
+                float_format = partial(fmt_str.format, digits=self.digits)
             else:
                 float_format = self.float_format
         else:
@@ -1429,7 +1522,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
             ).any()
 
         if has_small_values or (too_long and has_large_values):
-            float_format = partial("{value: .{digits:d}e}".format, digits=self.digits)
+            if self.leading_space is True:
+                fmt_str = "{value: .{digits:d}e}"
+            else:
+                fmt_str = "{value:.{digits:d}e}"
+            float_format = partial(fmt_str.format, digits=self.digits)
             formatted_values = format_values_with(float_format)
 
         return formatted_values
@@ -1444,7 +1541,11 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
 class IntArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
-        formatter = self.formatter or (lambda x: f"{x: d}")
+        if self.leading_space is False:
+            formatter_str = lambda x: f"{x:d}".format(x=x)
+        else:
+            formatter_str = lambda x: f"{x: d}".format(x=x)
+        formatter = self.formatter or formatter_str
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
 
@@ -1573,11 +1674,12 @@ def format_percentiles(
     return [i + "%" for i in out]
 
 
-def _is_dates_only(
+def is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
-    values = values.ravel()
+    if not isinstance(values, Index):
+        values = values.ravel()
 
     values = DatetimeIndex(values)
     if values.tz is not None:
@@ -1645,8 +1747,8 @@ def get_format_datetime64_from_values(
         #  only accepts 1D values
         values = values.ravel()
 
-    is_dates_only = _is_dates_only(values)
-    if is_dates_only:
+    ido = is_dates_only(values)
+    if ido:
         return date_format or "%Y-%m-%d"
     return date_format
 
@@ -1655,9 +1757,9 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> List[str]:
         """ we by definition have a TZ """
         values = self.values.astype(object)
-        is_dates_only = _is_dates_only(values)
+        ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
-            is_dates_only, date_format=self.date_format
+            ido, date_format=self.date_format
         )
         fmt_values = [formatter(x) for x in values]
 
@@ -1733,7 +1835,7 @@ def _make_fixed_width(
         return strings
 
     if adj is None:
-        adj = _get_adjustment()
+        adj = get_adjustment()
 
     max_len = max(adj.len(x) for x in strings)
 

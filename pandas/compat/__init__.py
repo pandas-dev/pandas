@@ -77,7 +77,7 @@ def is_platform_mac() -> bool:
     return sys.platform == "darwin"
 
 
-def _import_lzma():
+def import_lzma():
     """
     Importing the `lzma` module.
 
@@ -97,7 +97,7 @@ def _import_lzma():
         warnings.warn(msg)
 
 
-def _get_lzma_file(lzma):
+def get_lzma_file(lzma):
     """
     Importing the `LZMAFile` class from the `lzma` module.
 

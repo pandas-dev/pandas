@@ -499,6 +499,23 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
+    # gh-36122, gh-35802
+    @pytest.mark.parametrize(
+        "basename,expected",
+        [
+            ("gh-35802", DataFrame({"COLUMN": ["Test (1)"]})),
+            ("gh-36122", DataFrame(columns=["got 2nd sa"])),
+        ],
+    )
+    def test_read_excel_ods_nested_xml(self, read_ext, basename, expected):
+        # see gh-35802
+        engine = pd.read_excel.keywords["engine"]
+        if engine != "odf":
+            pytest.skip(f"Skipped for engine: {engine}")
+
+        actual = pd.read_excel(basename + read_ext)
+        tm.assert_frame_equal(actual, expected)
+
     def test_reading_all_sheets(self, read_ext):
         # Test reading all sheet names by setting sheet_name to None,
         # Ensure a dict is returned.
@@ -618,8 +635,6 @@ class TestReaders:
         tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.slow
-    # ignore warning from old xlrd
-    @pytest.mark.filterwarnings("ignore:This metho:PendingDeprecationWarning")
     def test_read_from_file_url(self, read_ext, datapath):
 
         # FILE
@@ -877,7 +892,7 @@ class TestReaders:
             with pytest.raises(TypeError, match=msg):
                 pd.read_excel("test1" + read_ext, header=arg)
 
-    def test_read_excel_skiprows_list(self, read_ext):
+    def test_read_excel_skiprows(self, read_ext):
         # GH 4903
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
@@ -900,6 +915,31 @@ class TestReaders:
             "testskiprows" + read_ext,
             sheet_name="skiprows_list",
             skiprows=np.array([0, 2]),
+        )
+        tm.assert_frame_equal(actual, expected)
+
+        # GH36435
+        actual = pd.read_excel(
+            "testskiprows" + read_ext,
+            sheet_name="skiprows_list",
+            skiprows=lambda x: x in [0, 2],
+        )
+        tm.assert_frame_equal(actual, expected)
+
+        actual = pd.read_excel(
+            "testskiprows" + read_ext,
+            sheet_name="skiprows_list",
+            skiprows=3,
+            names=["a", "b", "c", "d"],
+        )
+        expected = DataFrame(
+            [
+                # [1, 2.5, pd.Timestamp("2015-01-01"), True],
+                [2, 3.5, pd.Timestamp("2015-01-02"), False],
+                [3, 4.5, pd.Timestamp("2015-01-03"), False],
+                [4, 5.5, pd.Timestamp("2015-01-04"), True],
+            ],
+            columns=["a", "b", "c", "d"],
         )
         tm.assert_frame_equal(actual, expected)
 

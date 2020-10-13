@@ -64,7 +64,7 @@ class TestDataFrameBlockInternals:
         float_frame["F"] = 8.0
         assert len(float_frame._mgr.blocks) == 3
 
-        return_value = float_frame._consolidate(inplace=True)
+        return_value = float_frame._consolidate_inplace()
         assert return_value is None
         assert len(float_frame._mgr.blocks) == 1
 
@@ -78,7 +78,7 @@ class TestDataFrameBlockInternals:
     def test_values_consolidate(self, float_frame):
         float_frame["E"] = 7.0
         assert not float_frame._mgr.is_consolidated()
-        _ = float_frame.values  # noqa
+        _ = float_frame.values
         assert float_frame._mgr.is_consolidated()
 
     def test_modify_values(self, float_frame):

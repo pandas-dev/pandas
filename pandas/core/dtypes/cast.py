@@ -22,9 +22,9 @@ from pandas._typing import ArrayLike, Dtype, DtypeObj
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
-    _POSSIBLY_CAST_DTYPES,
     DT64NS_DTYPE,
     INT64_DTYPE,
+    POSSIBLY_CAST_DTYPES,
     TD64NS_DTYPE,
     ensure_int8,
     ensure_int16,
@@ -73,11 +73,16 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import (
+    is_valid_nat_for_dtype,
+    isna,
+    na_value_for_dtype,
+    notna,
+)
 
 if TYPE_CHECKING:
     from pandas import Series
-    from pandas.core.arrays import ExtensionArray  # noqa: F401
+    from pandas.core.arrays import ExtensionArray
 
 _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
@@ -439,6 +444,66 @@ def maybe_upcast_putmask(result: np.ndarray, mask: np.ndarray, other):
     return result, False
 
 
+def maybe_casted_values(index, codes=None):
+    """
+    Convert an index, given directly or as a pair (level, code), to a 1D array.
+
+    Parameters
+    ----------
+    index : Index
+    codes : sequence of integers (optional)
+
+    Returns
+    -------
+    ExtensionArray or ndarray
+        If codes is `None`, the values of `index`.
+        If codes is passed, an array obtained by taking from `index` the indices
+        contained in `codes`.
+    """
+
+    values = index._values
+    if not isinstance(index, (ABCPeriodIndex, ABCDatetimeIndex)):
+        if values.dtype == np.object_:
+            values = lib.maybe_convert_objects(values)
+
+    # if we have the codes, extract the values with a mask
+    if codes is not None:
+        mask = codes == -1
+
+        # we can have situations where the whole mask is -1,
+        # meaning there is nothing found in codes, so make all nan's
+        if mask.size > 0 and mask.all():
+            dtype = index.dtype
+            fill_value = na_value_for_dtype(dtype)
+            values = construct_1d_arraylike_from_scalar(fill_value, len(mask), dtype)
+        else:
+            values = values.take(codes)
+
+            # TODO(https://github.com/pandas-dev/pandas/issues/24206)
+            # Push this into maybe_upcast_putmask?
+            # We can't pass EAs there right now. Looks a bit
+            # complicated.
+            # So we unbox the ndarray_values, op, re-box.
+            values_type = type(values)
+            values_dtype = values.dtype
+
+            from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+
+            if isinstance(values, DatetimeLikeArrayMixin):
+                values = values._data  # TODO: can we de-kludge yet?
+
+            if mask.any():
+                if isinstance(values, np.ndarray):
+                    values, _ = maybe_upcast_putmask(values, mask, np.nan)
+                else:
+                    values[mask] = np.nan
+
+            if issubclass(values_type, DatetimeLikeArrayMixin):
+                values = values_type(values, dtype=values_dtype)
+
+    return values
+
+
 def maybe_promote(dtype, fill_value=np.nan):
     """
     Find the minimal dtype that can hold both the given dtype and fill_value.
@@ -697,6 +762,11 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         else:
             dtype = np.dtype(np.int64)
 
+        try:
+            np.array(val, dtype=dtype)
+        except OverflowError:
+            dtype = np.array(val).dtype
+
     elif is_float(val):
         if isinstance(val, np.floating):
             dtype = np.dtype(type(val))
@@ -709,7 +779,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
     elif pandas_dtype:
         if lib.is_period(val):
             dtype = PeriodDtype(freq=val.freq)
-            val = val.ordinal
         elif lib.is_interval(val):
             subtype = infer_dtype_from_scalar(val.left, pandas_dtype=True)[0]
             dtype = IntervalDtype(subtype=subtype)
@@ -917,7 +986,9 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
         dtype = pandas_dtype(dtype)
 
     if issubclass(dtype.type, str):
-        return lib.ensure_string_array(arr.ravel(), skipna=skipna).reshape(arr.shape)
+        return lib.ensure_string_array(
+            arr.ravel(), skipna=skipna, convert_na_value=False
+        ).reshape(arr.shape)
 
     elif is_datetime64_dtype(arr):
         if is_object_dtype(dtype):
@@ -1152,9 +1223,11 @@ def convert_dtypes(
             target_int_dtype = "Int64"
 
             if is_integer_dtype(input_array.dtype):
-                from pandas.core.arrays.integer import _dtypes
+                from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 
-                inferred_dtype = _dtypes.get(input_array.dtype.name, target_int_dtype)
+                inferred_dtype = INT_STR_TO_DTYPE.get(
+                    input_array.dtype.name, target_int_dtype
+                )
             if not is_integer_dtype(input_array.dtype) and is_numeric_dtype(
                 input_array.dtype
             ):
@@ -1188,7 +1261,7 @@ def maybe_castable(arr) -> bool:
     elif kind == "m":
         return is_timedelta64_ns_dtype(arr.dtype)
 
-    return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
+    return arr.dtype.name not in POSSIBLY_CAST_DTYPES
 
 
 def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
@@ -1553,6 +1626,11 @@ def construct_1d_arraylike_from_scalar(
             dtype = np.dtype("object")
             if not isna(value):
                 value = ensure_str(value)
+        elif dtype.kind in ["M", "m"] and is_valid_nat_for_dtype(value, dtype):
+            # GH36541: can't fill array directly with pd.NaT
+            # > np.empty(10, dtype="datetime64[64]").fill(pd.NaT)
+            # ValueError: cannot convert float NaN to integer
+            value = np.datetime64("NaT")
 
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)

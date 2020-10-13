@@ -367,14 +367,17 @@ def test_2d_to_1d_assignment_raises():
     x = np.random.randn(2, 2)
     y = pd.Series(range(2))
 
-    msg = (
-        r"shape mismatch: value array of shape \(2,2\) could not be "
-        r"broadcast to indexing result of shape \(2,\)"
+    msg = "|".join(
+        [
+            r"shape mismatch: value array of shape \(2,2\) could not be "
+            r"broadcast to indexing result of shape \(2,\)",
+            r"cannot reshape array of size 4 into shape \(2,\)",
+        ]
     )
     with pytest.raises(ValueError, match=msg):
         y.loc[range(2)] = x
 
-    msg = r"could not broadcast input array from shape \(2,2\) into shape \(2\)"
+    msg = r"could not broadcast input array from shape \(2,2\) into shape \(2,?\)"
     with pytest.raises(ValueError, match=msg):
         y.loc[:] = x
 
@@ -383,7 +386,7 @@ def test_2d_to_1d_assignment_raises():
 @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_basic_getitem_setitem_corner(datetime_series):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
-    msg = "Can only tuple-index with a MultiIndex"
+    msg = "key of type tuple not found and not a MultiIndex"
     with pytest.raises(ValueError, match=msg):
         datetime_series[:, 2]
     with pytest.raises(ValueError, match=msg):
@@ -942,3 +945,22 @@ def test_slice_with_negative_step(index):
         for key2 in [keystr2, box(keystr2)]:
             assert_slices_equivalent(SLC[key2:key:-1], SLC[13:8:-1])
             assert_slices_equivalent(SLC[key:key2:-1], SLC[0:0:-1])
+
+
+def test_tuple_index():
+    # GH 35534 - Selecting values when a Series has an Index of tuples
+    s = pd.Series([1, 2], index=[("a",), ("b",)])
+    assert s[("a",)] == 1
+    assert s[("b",)] == 2
+    s[("b",)] = 3
+    assert s[("b",)] == 3
+
+
+def test_frozenset_index():
+    # GH35747 - Selecting values when a Series has an Index of frozenset
+    idx0, idx1 = frozenset("a"), frozenset("b")
+    s = pd.Series([1, 2], index=[idx0, idx1])
+    assert s[idx0] == 1
+    assert s[idx1] == 2
+    s[idx1] = 3
+    assert s[idx1] == 3

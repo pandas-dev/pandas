@@ -23,14 +23,15 @@ from pandas.core.indexes.api import (
     MultiIndex,
     all_indexes_same,
     ensure_index,
-    get_consensus_names,
     get_objs_combined_axis,
+    get_unanimous_names,
 )
 import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas.core.generic import NDFrame
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -54,7 +55,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
+    objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -69,7 +70,7 @@ def concat(
 
 
 def concat(
-    objs: Union[Iterable[FrameOrSeries], Mapping[Label, FrameOrSeries]],
+    objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -122,7 +123,6 @@ def concat(
         This has no effect when ``join='inner'``, which already preserves
         the order of the non-concatenation axis.
 
-        .. versionadded:: 0.23.0
         .. versionchanged:: 1.0.0
 
            Changed to not sort by default.
@@ -360,7 +360,7 @@ class _Concatenator:
                 raise TypeError(msg)
 
             # consolidate
-            obj._consolidate(inplace=True)
+            obj._consolidate_inplace()
             ndims.add(obj.ndim)
 
         # get the sample
@@ -655,7 +655,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
                 )
 
             # also copies
-            names = names + get_consensus_names(indexes)
+            names = list(names) + list(get_unanimous_names(*indexes))
 
         return MultiIndex(
             levels=levels, codes=codes_list, names=names, verify_integrity=False

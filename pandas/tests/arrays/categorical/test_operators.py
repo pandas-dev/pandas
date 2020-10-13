@@ -79,10 +79,6 @@ class TestCategoricalOpsWithFactor(TestCategorical):
 
         cat_rev_base2 = Categorical(["b", "b", "b"], categories=["c", "b", "a", "d"])
 
-        msg = (
-            "Categoricals can only be compared if 'categories' are the same. "
-            "Categories are different lengths"
-        )
         with pytest.raises(TypeError, match=msg):
             cat_rev > cat_rev_base2
 
@@ -90,7 +86,6 @@ class TestCategoricalOpsWithFactor(TestCategorical):
         cat_unorderd = cat.set_ordered(False)
         assert not (cat > cat).any()
 
-        msg = "Categoricals can only be compared if 'ordered' is the same"
         with pytest.raises(TypeError, match=msg):
             cat > cat_unorderd
 
@@ -171,21 +166,32 @@ class TestCategoricalOps:
         # for unequal comps, but not for equal/not equal
         cat = Categorical([1, 2, 3], ordered=True)
 
-        msg = (
-            "Cannot compare a Categorical for op __{}__ with a scalar, "
-            "which is not a category"
-        )
-        with pytest.raises(TypeError, match=msg.format("lt")):
+        msg = "Invalid comparison between dtype=category and int"
+        with pytest.raises(TypeError, match=msg):
             cat < 4
-        with pytest.raises(TypeError, match=msg.format("gt")):
+        with pytest.raises(TypeError, match=msg):
             cat > 4
-        with pytest.raises(TypeError, match=msg.format("gt")):
+        with pytest.raises(TypeError, match=msg):
             4 < cat
-        with pytest.raises(TypeError, match=msg.format("lt")):
+        with pytest.raises(TypeError, match=msg):
             4 > cat
 
         tm.assert_numpy_array_equal(cat == 4, np.array([False, False, False]))
         tm.assert_numpy_array_equal(cat != 4, np.array([True, True, True]))
+
+    def test_comparison_with_tuple(self):
+        cat = pd.Categorical(np.array(["foo", (0, 1), 3, (0, 1)], dtype=object))
+
+        result = cat == "foo"
+        expected = np.array([True, False, False, False], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = cat == (0, 1)
+        expected = np.array([False, True, False, True], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = cat != (0, 1)
+        tm.assert_numpy_array_equal(result, ~expected)
 
     def test_comparison_of_ordered_categorical_with_nan_to_scalar(
         self, compare_operators_no_eq_ne
@@ -324,7 +330,7 @@ class TestCategoricalOps:
         c1 = Categorical([], categories=["a", "b"])
         c2 = Categorical([], categories=["a"])
 
-        msg = "Categories are different lengths"
+        msg = "Categoricals can only be compared if 'categories' are the same."
         with pytest.raises(TypeError, match=msg):
             c1 == c2
 
@@ -361,7 +367,7 @@ class TestCategoricalOps:
         # min/max)
         s = df["value_group"]
         for op in ["kurt", "skew", "var", "std", "mean", "sum", "median"]:
-            msg = f"Categorical cannot perform the operation {op}"
+            msg = f"'Categorical' does not implement reduction '{op}'"
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
 
@@ -370,7 +376,7 @@ class TestCategoricalOps:
         # numpy ops
         s = Series(Categorical([1, 2, 3, 4]))
         with pytest.raises(
-            TypeError, match="Categorical cannot perform the operation sum"
+            TypeError, match="'Categorical' does not implement reduction 'sum'"
         ):
             np.sum(s)
 
