@@ -709,7 +709,7 @@ for name, data in ext_data.items():
         define_macros=comp_macros,
         extra_compile_args=extra_comp_args,
         extra_link_args=extra_link_args,
-        undef_macros=undef_macros
+        undef_macros=undef_macros,
     )
 
     extensions.append(obj)
