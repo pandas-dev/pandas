@@ -297,6 +297,33 @@ class TestGrouperGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("min_periods", [5, 4, 3])
+    def test_groupby_rolling_center_min_periods(self, min_periods):
+        # GH 36040
+        df = pd.DataFrame({"group": ["A"] * 10 + ["B"] * 10, "data": range(20)})
+
+        window_size = 5
+        result = (
+            df.groupby("group")
+            .rolling(window_size, center=True, min_periods=min_periods)
+            .mean()
+        )
+        result = result.reset_index()[["group", "data"]]
+
+        grp_A_mean = [1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.5, 8.0]
+        grp_B_mean = [x + 10.0 for x in grp_A_mean]
+
+        num_nans = max(0, min_periods - 3)  # For window_size of 5
+        nans = [np.nan] * num_nans
+        grp_A_expected = nans + grp_A_mean[num_nans : 10 - num_nans] + nans
+        grp_B_expected = nans + grp_B_mean[num_nans : 10 - num_nans] + nans
+
+        expected = pd.DataFrame(
+            {"group": ["A"] * 10 + ["B"] * 10, "data": grp_A_expected + grp_B_expected}
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_groupby_subselect_rolling(self):
         # GH 35486
         df = DataFrame(
@@ -427,4 +454,98 @@ class TestGrouperGrouping:
         expected = pd.DataFrame({"s1": [], "s2": []})
         result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
         expected.index = pd.MultiIndex.from_tuples([], names=["s1", "s2", None])
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_rolling_string_index(self):
+        # GH: 36727
+        df = pd.DataFrame(
+            [
+                ["A", "group_1", pd.Timestamp(2019, 1, 1, 9)],
+                ["B", "group_1", pd.Timestamp(2019, 1, 2, 9)],
+                ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9)],
+                ["H", "group_1", pd.Timestamp(2019, 1, 6, 9)],
+                ["E", "group_2", pd.Timestamp(2019, 1, 20, 9)],
+            ],
+            columns=["index", "group", "eventTime"],
+        ).set_index("index")
+
+        groups = df.groupby("group")
+        df["count_to_date"] = groups.cumcount()
+        rolling_groups = groups.rolling("10d", on="eventTime")
+        result = rolling_groups.apply(lambda df: df.shape[0])
+        expected = pd.DataFrame(
+            [
+                ["A", "group_1", pd.Timestamp(2019, 1, 1, 9), 1.0],
+                ["B", "group_1", pd.Timestamp(2019, 1, 2, 9), 2.0],
+                ["H", "group_1", pd.Timestamp(2019, 1, 6, 9), 3.0],
+                ["Z", "group_2", pd.Timestamp(2019, 1, 3, 9), 1.0],
+                ["E", "group_2", pd.Timestamp(2019, 1, 20, 9), 1.0],
+            ],
+            columns=["index", "group", "eventTime", "count_to_date"],
+        ).set_index(["group", "index"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_rolling_no_sort(self):
+        # GH 36889
+        result = (
+            pd.DataFrame({"foo": [2, 1], "bar": [2, 1]})
+            .groupby("foo", sort=False)
+            .rolling(1)
+            .min()
+        )
+        expected = pd.DataFrame(
+            np.array([[2.0, 2.0], [1.0, 1.0]]),
+            columns=["foo", "bar"],
+            index=pd.MultiIndex.from_tuples([(2, 0), (1, 1)], names=["foo", None]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby_rolling_count_closed_on(self):
+        # GH 35869
+        df = pd.DataFrame(
+            {
+                "column1": range(6),
+                "column2": range(6),
+                "group": 3 * ["A", "B"],
+                "date": pd.date_range(end="20190101", periods=6),
+            }
+        )
+        result = (
+            df.groupby("group")
+            .rolling("3d", on="date", closed="left")["column1"]
+            .count()
+        )
+        expected = pd.Series(
+            [np.nan, 1.0, 1.0, np.nan, 1.0, 1.0],
+            name="column1",
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ("A", pd.Timestamp("2018-12-27")),
+                    ("A", pd.Timestamp("2018-12-29")),
+                    ("A", pd.Timestamp("2018-12-31")),
+                    ("B", pd.Timestamp("2018-12-28")),
+                    ("B", pd.Timestamp("2018-12-30")),
+                    ("B", pd.Timestamp("2019-01-01")),
+                ],
+                names=["group", "date"],
+            ),
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("func", "kwargs"),
+        [("rolling", {"window": 2, "min_periods": 1}), ("expanding", {})],
+    )
+    def test_groupby_rolling_sem(self, func, kwargs):
+        # GH: 26476
+        df = pd.DataFrame(
+            [["a", 1], ["a", 2], ["b", 1], ["b", 2], ["b", 3]], columns=["a", "b"]
+        )
+        result = getattr(df.groupby("a"), func)(**kwargs).sem()
+        expected = pd.DataFrame(
+            {"a": [np.nan] * 5, "b": [np.nan, 0.70711, np.nan, 0.70711, 0.70711]},
+            index=pd.MultiIndex.from_tuples(
+                [("a", 0), ("a", 1), ("b", 2), ("b", 3), ("b", 4)], names=["a", None]
+            ),
+        )
         tm.assert_frame_equal(result, expected)

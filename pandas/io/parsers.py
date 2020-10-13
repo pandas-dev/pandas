@@ -420,7 +420,9 @@ def _validate_names(names):
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
-        if not is_list_like(names, allow_sets=False):
+        if not (
+            is_list_like(names, allow_sets=False) or isinstance(names, abc.KeysView)
+        ):
             raise ValueError("Names should be an ordered collection.")
 
 
@@ -542,7 +544,7 @@ _deprecated_args: Set[str] = set()
 )
 def read_csv(
     filepath_or_buffer: FilePathOrBuffer,
-    sep=",",
+    sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
@@ -600,93 +602,14 @@ def read_csv(
     float_precision=None,
     storage_options: StorageOptions = None,
 ):
-    # gh-23761
-    #
-    # When a dialect is passed, it overrides any of the overlapping
-    # parameters passed in directly. We don't want to warn if the
-    # default parameters were passed in (since it probably means
-    # that the user didn't pass them in explicitly in the first place).
-    #
-    # "delimiter" is the annoying corner case because we alias it to
-    # "sep" before doing comparison to the dialect values later on.
-    # Thus, we need a flag to indicate that we need to "override"
-    # the comparison to dialect values by checking if default values
-    # for BOTH "delimiter" and "sep" were provided.
-    default_sep = ","
+    kwds = locals()
+    del kwds["filepath_or_buffer"]
+    del kwds["sep"]
 
-    if dialect is not None:
-        sep_override = delimiter is None and sep == default_sep
-        kwds = dict(sep_override=sep_override)
-    else:
-        kwds = dict()
-
-    # Alias sep -> delimiter.
-    if delimiter is None:
-        delimiter = sep
-
-    if delim_whitespace and delimiter != default_sep:
-        raise ValueError(
-            "Specified a delimiter with both sep and "
-            "delim_whitespace=True; you can only specify one."
-        )
-
-    if engine is not None:
-        engine_specified = True
-    else:
-        engine = "c"
-        engine_specified = False
-
-    kwds.update(
-        delimiter=delimiter,
-        engine=engine,
-        dialect=dialect,
-        compression=compression,
-        engine_specified=engine_specified,
-        doublequote=doublequote,
-        escapechar=escapechar,
-        quotechar=quotechar,
-        quoting=quoting,
-        skipinitialspace=skipinitialspace,
-        lineterminator=lineterminator,
-        header=header,
-        index_col=index_col,
-        names=names,
-        prefix=prefix,
-        skiprows=skiprows,
-        skipfooter=skipfooter,
-        na_values=na_values,
-        true_values=true_values,
-        false_values=false_values,
-        keep_default_na=keep_default_na,
-        thousands=thousands,
-        comment=comment,
-        decimal=decimal,
-        parse_dates=parse_dates,
-        keep_date_col=keep_date_col,
-        dayfirst=dayfirst,
-        date_parser=date_parser,
-        cache_dates=cache_dates,
-        nrows=nrows,
-        iterator=iterator,
-        chunksize=chunksize,
-        converters=converters,
-        dtype=dtype,
-        usecols=usecols,
-        verbose=verbose,
-        encoding=encoding,
-        squeeze=squeeze,
-        memory_map=memory_map,
-        float_precision=float_precision,
-        na_filter=na_filter,
-        delim_whitespace=delim_whitespace,
-        warn_bad_lines=warn_bad_lines,
-        error_bad_lines=error_bad_lines,
-        low_memory=low_memory,
-        mangle_dupe_cols=mangle_dupe_cols,
-        infer_datetime_format=infer_datetime_format,
-        skip_blank_lines=skip_blank_lines,
-        storage_options=storage_options,
+    kwds_defaults = _check_defaults_read(
+        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": ","}
     )
+    kwds.update(kwds_defaults)
 
     return _read(filepath_or_buffer, kwds)
 
@@ -700,7 +623,7 @@ def read_csv(
 )
 def read_table(
     filepath_or_buffer: FilePathOrBuffer,
-    sep="\t",
+    sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
@@ -757,17 +680,16 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
-    # TODO: validation duplicated in read_csv
-    if delim_whitespace and (delimiter is not None or sep != "\t"):
-        raise ValueError(
-            "Specified a delimiter with both sep and "
-            "delim_whitespace=True; you can only specify one."
-        )
-    if delim_whitespace:
-        # In this case sep is not used so we set it to the read_csv
-        # default to avoid a ValueError
-        sep = ","
-    return read_csv(**locals())
+    kwds = locals()
+    del kwds["filepath_or_buffer"]
+    del kwds["sep"]
+
+    kwds_defaults = _check_defaults_read(
+        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": "\t"}
+    )
+    kwds.update(kwds_defaults)
+
+    return _read(filepath_or_buffer, kwds)
 
 
 def read_fwf(
@@ -3782,3 +3704,92 @@ class FixedWidthFieldParser(PythonParser):
             self.skiprows,
             self.infer_nrows,
         )
+
+
+def _check_defaults_read(
+    dialect: Union[str, csv.Dialect],
+    delimiter: Union[str, object],
+    delim_whitespace: bool,
+    engine: str,
+    sep: Union[str, object],
+    defaults: Dict[str, Any],
+):
+    """Check default values of input parameters of read_csv, read_table.
+
+    Parameters
+    ----------
+    dialect : str or csv.Dialect
+        If provided, this parameter will override values (default or not) for the
+        following parameters: `delimiter`, `doublequote`, `escapechar`,
+        `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
+        override values, a ParserWarning will be issued. See csv.Dialect
+        documentation for more details.
+    delimiter : str or object
+        Alias for sep.
+    delim_whitespace : bool
+        Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
+        used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
+        is set to True, nothing should be passed in for the ``delimiter``
+        parameter.
+    engine : {{'c', 'python'}}
+        Parser engine to use. The C engine is faster while the python engine is
+        currently more feature-complete.
+    sep : str or object
+        A delimiter provided by the user (str) or a sentinel value, i.e.
+        pandas._libs.lib.no_default.
+    defaults: dict
+        Default values of input parameters.
+
+    Returns
+    -------
+    kwds : dict
+        Input parameters with correct values.
+
+    Raises
+    ------
+    ValueError : If a delimiter was specified with ``sep`` (or ``delimiter``) and
+        ``delim_whitespace=True``.
+    """
+    # fix types for sep, delimiter to Union(str, Any)
+    delim_default = defaults["delimiter"]
+    kwds: Dict[str, Any] = {}
+    # gh-23761
+    #
+    # When a dialect is passed, it overrides any of the overlapping
+    # parameters passed in directly. We don't want to warn if the
+    # default parameters were passed in (since it probably means
+    # that the user didn't pass them in explicitly in the first place).
+    #
+    # "delimiter" is the annoying corner case because we alias it to
+    # "sep" before doing comparison to the dialect values later on.
+    # Thus, we need a flag to indicate that we need to "override"
+    # the comparison to dialect values by checking if default values
+    # for BOTH "delimiter" and "sep" were provided.
+    if dialect is not None:
+        kwds["sep_override"] = (delimiter is None) and (
+            sep is lib.no_default or sep == delim_default
+        )
+
+    # Alias sep -> delimiter.
+    if delimiter is None:
+        delimiter = sep
+
+    if delim_whitespace and (delimiter is not lib.no_default):
+        raise ValueError(
+            "Specified a delimiter with both sep and "
+            "delim_whitespace=True; you can only specify one."
+        )
+
+    if delimiter is lib.no_default:
+        # assign default separator value
+        kwds["delimiter"] = delim_default
+    else:
+        kwds["delimiter"] = delimiter
+
+    if engine is not None:
+        kwds["engine_specified"] = True
+    else:
+        kwds["engine"] = "c"
+        kwds["engine_specified"] = False
+
+    return kwds
