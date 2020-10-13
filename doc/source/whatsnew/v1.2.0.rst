@@ -368,6 +368,7 @@ Numeric
 - Bug in :class:`IntegerArray` multiplication with ``timedelta`` and ``np.timedelta64`` objects (:issue:`36870`)
 - Bug in :meth:`DataFrame.diff` with ``datetime64`` dtypes including ``NaT`` values failing to fill ``NaT`` results correctly (:issue:`32441`)
 - Bug in :class:`DataFrame` arithmetic ops incorrectly accepting keyword arguments (:issue:`36843`)
+- Bug in :class:`IntervalArray` comparisons with :class:`Series` not returning :class:`Series` (:issue:`36908`)
 
 Conversion
 ^^^^^^^^^^
