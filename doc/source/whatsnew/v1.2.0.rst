@@ -315,6 +315,7 @@ Performance improvements
   avoiding creating these again, if created on either. This can speed up operations that depend on creating copies of existing indexes (:issue:`36840`)
 - Performance improvement in :meth:`RollingGroupby.count` (:issue:`35625`)
 - Small performance decrease to :meth:`Rolling.min` and :meth:`Rolling.max` for fixed windows (:issue:`36567`)
+- Reduced peak memory usage in :meth:`DataFrame.to_pickle` when using ``protocol=5`` in python 3.8+ (:issue:`34244`)
 - Performance improvement in :class:`ExpandingGroupby` (:issue:`37064`)
 
 .. ---------------------------------------------------------------------------
@@ -430,6 +431,7 @@ I/O
 - Bug in :meth:`to_json` with ``lines=True`` and ``orient='records'`` the last line of the record is not appended with 'new line character' (:issue:`36888`)
 - Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
 - Bug in :meth:`DataFrame.to_html`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` ignoring the ``na_rep`` argument when ``float_format`` was also specified (:issue:`9046`, :issue:`13828`)
+- Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
 
 Plotting
 ^^^^^^^^

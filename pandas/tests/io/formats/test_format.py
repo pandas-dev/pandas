@@ -3443,3 +3443,10 @@ def test_to_string_na_rep_and_float_format(na_rep):
 0     A  1.22
 1     A   {na_rep}"""
     assert result == expected
+
+
+def test_to_string_complex_number_trims_zeros():
+    s = pd.Series([1.000000 + 1.000000j, 1.0 + 1.0j, 1.05 + 1.0j])
+    result = s.to_string()
+    expected = "0    1.00+1.00j\n1    1.00+1.00j\n2    1.05+1.00j"
+    assert result == expected

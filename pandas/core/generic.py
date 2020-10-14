@@ -34,7 +34,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import lib
-from pandas._libs.tslibs import Tick, Timestamp, to_offset
+from pandas._libs.tslibs import Period, Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
     CompressionOptions,
@@ -86,17 +86,21 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas.core import missing, nanops
+from pandas.core import indexing, missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.flags import Flags
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, ensure_index
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import Period, PeriodIndex
-import pandas.core.indexing as indexing
+from pandas.core.indexes.api import (
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    PeriodIndex,
+    RangeIndex,
+    ensure_index,
+)
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
@@ -2275,6 +2279,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         indent the output but does insert newlines. Currently, ``indent=0``
         and the default ``indent=None`` are equivalent in pandas, though this
         may change in a future release.
+
+        ``orient='table'`` contains a 'pandas_version' field under 'schema'.
+        This stores the version of `pandas` used in the latest revision of the
+        schema.
 
         Examples
         --------
