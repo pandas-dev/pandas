@@ -1837,9 +1837,11 @@ def _make_fixed_width(
         return strings
 
     if adj is None:
-        adj = get_adjustment()
+        adjustment = get_adjustment()
+    else:
+        adjustment = adj
 
-    max_len = max(adj.len(x) for x in strings)
+    max_len = max(adjustment.len(x) for x in strings)
 
     if minimum is not None:
         max_len = max(minimum, max_len)
@@ -1848,14 +1850,14 @@ def _make_fixed_width(
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    def just(x):
+    def just(x: str) -> str:
         if conf_max is not None:
-            if (conf_max > 3) & (adj.len(x) > max_len):
+            if (conf_max > 3) & (adjustment.len(x) > max_len):
                 x = x[: max_len - 3] + "..."
         return x
 
     strings = [just(x) for x in strings]
-    result = adj.justify(strings, max_len, mode=justify)
+    result = adjustment.justify(strings, max_len, mode=justify)
     return result
 
 
