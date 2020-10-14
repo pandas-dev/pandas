@@ -431,6 +431,7 @@ I/O
 - Bug in :func:`read_table` and :func:`read_csv` when ``delim_whitespace=True`` and ``sep=default`` (:issue:`36583`)
 - Bug in :meth:`to_json` with ``lines=True`` and ``orient='records'`` the last line of the record is not appended with 'new line character' (:issue:`36888`)
 - Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
+- Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
 
 Plotting
 ^^^^^^^^
