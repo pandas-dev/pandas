@@ -2061,32 +2061,32 @@ def safe_sort(
         def cmp_func(index_x, index_y):
             x = values[index_x]
             y = values[index_y]
+            # shortcut loop in case both tuples are the same
             if x == y:
                 return 0
-            len_x = len(x)
-            len_y = len(y)
-            for i in range(max(len_x, len_y)):
+            # lexicographic sorting
+            for i in range(max(len(x), len(y))):
                 # check if the tuples have different lengths (shorter tuples
                 # first)
-                if i >= len_x:
+                if i >= len(x):
                     return -1
-                if i >= len_y:
+                if i >= len(y):
                     return +1
-                x_i_na = isna(x[i])
-                y_i_na = isna(y[i])
+                x_is_na = isna(x[i])
+                y_is_na = isna(y[i])
                 # values are the same -> resolve tie with next element
-                if (x_i_na and y_i_na) or (x[i] == y[i]):
+                if (x_is_na and y_is_na) or (x[i] == y[i]):
                     continue
-                # check for nan values (sort nan to the end which is consistent
-                # with numpy
-                if x_i_na and not y_i_na:
+                # check for nan values (sort nan to the end)
+                if x_is_na and not y_is_na:
                     return +1
-                if not x_i_na and y_i_na:
+                if not x_is_na and y_is_na:
                     return -1
                 # normal greater/less than comparison
                 if x[i] < y[i]:
                     return -1
                 return +1
+            # both values are the same (should already have been caught)
             return 0
 
         ixs = np.arange(len(values))
@@ -2095,12 +2095,10 @@ def safe_sort(
 
     sorter = None
 
-    ext_arr = is_extension_array_dtype(values)
-    if not ext_arr and lib.infer_dtype(values, skipna=False) == "mixed-integer":
-        # unorderable in py3 if mixed str/int
+    is_ea = is_extension_array_dtype(values)
+    if not is_ea and lib.infer_dtype(values, skipna=False) == "mixed-integer":
         ordered = sort_mixed(values)
-    elif not ext_arr and values.size and isinstance(values[0], tuple):
-        # 1-D arrays with tuples of potentially mixed type (solves GH36562)
+    elif not is_ea and values.size and isinstance(values[0], tuple):
         ordered = sort_tuples(values)
     else:
         try:
