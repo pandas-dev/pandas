@@ -380,9 +380,9 @@ class TestCompression:
     def test_load_zip_with_hidden_folders(self, cruft, get_random_path):
         """Test loading .zip files that have extraneous metadata in hidden folders. """
         base = get_random_path
-        path1 = base + ".raw"
-        path2 = base + ".zip"
-        dummy = base + ".dummy"
+        path1 = f"{base}.raw"
+        path2 = f"{base}.zip"
+        dummy = f"{base}.dummy"
         compression = "zip"
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(
