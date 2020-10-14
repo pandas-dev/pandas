@@ -1584,6 +1584,6 @@ def test_arith_list_of_arraylike_raise():
     df = pd.DataFrame({'x': [1, 2], 'y': [1, 2]})
     ser = pd.Series([1, 1])
 
-    msg = "Cannot perform arithmetic on DataFrame or Series and a list of array-like."
+    msg = f"Unable to coerce list of {type(ser)} to Series/DataFrame"
     with pytest.raises(ValueError, match=msg):
         result = df + [ser, ser]
