@@ -1740,6 +1740,8 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
         ...
     ValueError: Trying to coerce float values to integers
     """
+    assert is_integer_dtype(dtype)
+
     try:
         if not hasattr(arr, "astype"):
             casted = np.array(arr, dtype=dtype, copy=copy)
@@ -1764,7 +1766,7 @@ def maybe_cast_to_integer_array(arr, dtype, copy: bool = False):
     if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
         raise OverflowError("Trying to coerce negative values to unsigned integers")
 
-    if is_integer_dtype(dtype) and (is_float_dtype(arr) or is_object_dtype(arr)):
+    if is_float_dtype(arr) or is_object_dtype(arr):
         raise ValueError("Trying to coerce float values to integers")
 
 
