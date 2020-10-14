@@ -3450,6 +3450,27 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_xlabel() == str(new_label)
 
     @pytest.mark.parametrize(
+        "xlabel, ylabel",
+        [
+            (None, None),
+            ("X Label", None),
+            (None, "Y Label"),
+            ("X Label", "Y Label"),
+        ],
+    )
+    @pytest.mark.parametrize("kind", ["scatter", "hexbin"])
+    def test_xlabel_ylabel_dataframe_plane_plot(self, kind, xlabel, ylabel):
+        # GH 37001
+        xcol = "Type A"
+        ycol = "Type B"
+        df = pd.DataFrame([[1, 2], [2, 5]], columns=[xcol, ycol])
+
+        # default is the labels are column names
+        ax = df.plot(kind=kind, x=xcol, y=ycol, xlabel=xlabel, ylabel=ylabel)
+        assert ax.get_xlabel() == (xcol if xlabel is None else xlabel)
+        assert ax.get_ylabel() == (ycol if ylabel is None else ylabel)
+
+    @pytest.mark.parametrize(
         "index_name, old_label, new_label",
         [
             (None, "", "new"),

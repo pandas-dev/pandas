@@ -678,14 +678,24 @@ class PlotAccessor(PandasObject):
     ylim : 2-tuple/list
         Set the y limits of the current axes.
     xlabel : label, optional
-        Name to use for the xlabel on x-axis. Default uses index name as xlabel.
+        Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
+        x-column name for planar plots.
 
         .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.2.0
+
+           Now applicable to planar plots (`scatter`, `hexbin`).
 
     ylabel : label, optional
-        Name to use for the ylabel on y-axis. Default will show no ylabel.
+        Name to use for the ylabel on y-axis. Default will show no ylabel, or the
+        y-column name for planar plots.
 
         .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.2.0
+
+           Now applicable to planar plots (`scatter`, `hexbin`).
 
     rot : int, default None
         Rotation for ticks (xticks for vertical, yticks for horizontal
