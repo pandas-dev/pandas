@@ -60,6 +60,20 @@ def test_zip_error_multiple_files(parser_and_data, compression):
             parser.read_csv(path, compression=compression)
 
 
+@pytest.mark.parametrize("compression", ["zip", "infer"])
+def test_zip_no_error_hidden_files(parser_and_data, compression, python_parser_only):
+    _, data, expected = parser_and_data
+
+    with tm.ensure_clean("combined_zip.zip") as path:
+        inner_file_names = ["test_file", "__MACOSX/dummy", ".DS_STORE"]
+
+        with zipfile.ZipFile(path, mode="w") as tmp:
+            for file_name in inner_file_names:
+                tmp.writestr(file_name, data)
+
+        python_parser_only.read_csv(path, compression=compression)
+
+
 def test_zip_error_no_files(parser_and_data):
     parser, _, _ = parser_and_data
 
