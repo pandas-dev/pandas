@@ -9,6 +9,7 @@ from typing import (
     FrozenSet,
     Hashable,
     List,
+    NewType,
     Optional,
     Sequence,
     Tuple,
@@ -23,16 +24,13 @@ import numpy as np
 from pandas._libs import algos as libalgos, index as libindex, lib
 import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
-from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
-from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
-from pandas.core.dtypes import concat as _concat
 from pandas.core.dtypes.cast import (
     maybe_cast_to_integer_array,
     validate_numeric_casting,
@@ -68,7 +66,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCCategorical,
-    ABCDataFrame,
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPandasArray,
@@ -79,7 +76,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import array_equivalent, isna
 
-from pandas.core import ops
+from pandas.core import missing, ops
 from pandas.core.accessor import CachedAccessor
 import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical, ExtensionArray
@@ -88,7 +85,6 @@ from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
-import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import ensure_key_mapped, nargsort
@@ -122,24 +118,10 @@ _index_shared_docs = dict()
 str_t = str
 
 
-def _make_arithmetic_op(op, cls):
-    def index_arithmetic_method(self, other):
-        if isinstance(other, (ABCSeries, ABCDataFrame, ABCTimedeltaIndex)):
-            return NotImplemented
-
-        from pandas import Series
-
-        result = op(Series(self), other)
-        if isinstance(result, tuple):
-            return (Index(result[0]), Index(result[1]))
-        return Index(result)
-
-    name = f"__{op.__name__}__"
-    return set_function_name(index_arithmetic_method, name, cls)
-
-
 _o_dtype = np.dtype(object)
-_Identity = object
+
+
+_Identity = NewType("_Identity", object)
 
 
 def _new_Index(cls, d):
@@ -238,7 +220,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
-    _id = None
+    _id: _Identity
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
@@ -453,8 +435,9 @@ class Index(IndexOpsMixin, PandasObject):
         result._index_data = values
         result._name = name
         result._cache = {}
+        result._reset_identity()
 
-        return result._reset_identity()
+        return result
 
     @cache_readonly
     def _constructor(self):
@@ -558,15 +541,16 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.identical : Works like ``Index.is_`` but also checks metadata.
         """
-        # use something other than None to be clearer
-        return self._id is getattr(other, "_id", Ellipsis) and self._id is not None
+        try:
+            return self._id is other._id
+        except AttributeError:
+            return False
 
-    def _reset_identity(self):
+    def _reset_identity(self) -> None:
         """
         Initializes or resets ``_id`` attribute with new object.
         """
-        self._id = _Identity()
-        return self
+        self._id = _Identity(object())
 
     def _cleanup(self):
         self._engine.clear_mapping()
@@ -4223,7 +4207,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
 
-        result = _concat.concat_compat(to_concat)
+        result = concat_compat(to_concat)
         return Index(result, name=name)
 
     def putmask(self, mask, value):
@@ -5380,7 +5364,7 @@ class Index(IndexOpsMixin, PandasObject):
         Wrapper used to dispatch comparison operations.
         """
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)):
-            if other.ndim > 0 and len(self) != len(other):
+            if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
         if is_object_dtype(self.dtype) and isinstance(other, ABCCategorical):
@@ -5418,29 +5402,23 @@ class Index(IndexOpsMixin, PandasObject):
             return (Index(result[0]), Index(result[1]))
         return Index(result)
 
-    @classmethod
-    def _add_numeric_methods_unary(cls):
-        """
-        Add in numeric unary methods.
-        """
+    def _unary_method(self, op):
+        result = op(self._values)
+        return Index(result, name=self.name)
 
-        def _make_evaluate_unary(op, opstr: str_t):
-            def _evaluate_numeric_unary(self):
+    def __abs__(self):
+        return self._unary_method(operator.abs)
 
-                attrs = self._get_attributes_dict()
-                return Index(op(self.values), **attrs)
+    def __neg__(self):
+        return self._unary_method(operator.neg)
 
-            _evaluate_numeric_unary.__name__ = opstr
-            return _evaluate_numeric_unary
+    def __pos__(self):
+        return self._unary_method(operator.pos)
 
-        setattr(cls, "__neg__", _make_evaluate_unary(operator.neg, "__neg__"))
-        setattr(cls, "__pos__", _make_evaluate_unary(operator.pos, "__pos__"))
-        setattr(cls, "__abs__", _make_evaluate_unary(np.abs, "__abs__"))
-        setattr(cls, "__inv__", _make_evaluate_unary(lambda x: -x, "__inv__"))
-
-    @classmethod
-    def _add_numeric_methods(cls):
-        cls._add_numeric_methods_unary()
+    def __inv__(self):
+        # TODO: why not operator.inv?
+        # TODO: __inv__ vs __invert__?
+        return self._unary_method(lambda x: -x)
 
     def any(self, *args, **kwargs):
         """
@@ -5563,9 +5541,6 @@ class Index(IndexOpsMixin, PandasObject):
         # consists of a >1 D array (see GH-27775)
         # overridden in MultiIndex.shape to avoid materializing the values
         return self._values.shape
-
-
-Index._add_numeric_methods()
 
 
 def ensure_index_from_sequences(sequences, names=None):

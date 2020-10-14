@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression where :meth:`DataFrame.agg` would fail with :exc:`TypeError` when passed positional arguments to be passed on to the aggregation function (:issue:`36948`).
 - Fixed regression in :class:`RollingGroupby` with ``sort=False`` not being respected (:issue:`36889`)
 - Fixed regression in :meth:`Series.astype` converting ``None`` to ``"nan"`` when casting to string (:issue:`36904`)
+- Fixed regression in :class:`RollingGroupby` causing a segmentation fault with Index of dtype object (:issue:`36727`)
 
 .. ---------------------------------------------------------------------------
 
@@ -26,7 +27,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug causing ``groupby(...).sum()`` and similar to not preserve metadata (:issue:`29442`)
 
 .. ---------------------------------------------------------------------------
 
