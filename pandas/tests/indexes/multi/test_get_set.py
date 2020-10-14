@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import CategoricalIndex, MultiIndex
 from pandas.core.dtypes.dtypes import DatetimeTZDtype as DateTimeTZDtype
 
+import pandas as pd
+from pandas import CategoricalIndex, MultiIndex
 import pandas._testing as tm
 
 
