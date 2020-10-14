@@ -75,6 +75,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
+DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
 
 class InvalidComparison(Exception):
@@ -86,7 +87,20 @@ class InvalidComparison(Exception):
     pass
 
 
-class AttributesMixin:
+class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
+    """
+    Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
+
+    Assumes that __new__/__init__ defines:
+        _data
+        _freq
+
+    and that the inheriting class has methods:
+        _generate_range
+    """
+
+    _is_recognized_dtype: Callable[[DtypeObj], bool]
+    _recognized_scalars: Tuple[Type, ...]
     _data: np.ndarray
 
     def __init__(self, data, dtype=None, freq=None, copy=False):
@@ -184,25 +198,6 @@ class AttributesMixin:
         """
         raise AbstractMethodError(self)
 
-
-DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
-
-
-class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionArray):
-    """
-    Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
-
-    Assumes that __new__/__init__ defines:
-        _data
-        _freq
-
-    and that the inheriting class has methods:
-        _generate_range
-    """
-
-    _is_recognized_dtype: Callable[[DtypeObj], bool]
-    _recognized_scalars: Tuple[Type, ...]
-
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
@@ -284,23 +279,6 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         result._freq = self._get_getitem_freq(key)
         return result
 
-    def _validate_getitem_key(self, key):
-        if com.is_bool_indexer(key):
-            # first convert to boolean, because check_array_indexer doesn't
-            # allow object dtype
-            if is_object_dtype(key):
-                key = np.asarray(key, dtype=bool)
-
-            key = check_array_indexer(self, key)
-            key = lib.maybe_booleans_to_slice(key.view(np.uint8))
-        elif isinstance(key, list) and len(key) == 1 and isinstance(key[0], slice):
-            # see https://github.com/pandas-dev/pandas/issues/31299, need to allow
-            # this for now (would otherwise raise in check_array_indexer)
-            pass
-        else:
-            key = super()._validate_getitem_key(key)
-        return key
-
     def _get_getitem_freq(self, key):
         """
         Find the `freq` attribute to assign to the result of a __getitem__ lookup.
@@ -311,7 +289,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         elif self.ndim != 1:
             freq = None
         else:
-            key = self._validate_getitem_key(key)  # maybe ndarray[bool] -> slice
+            key = check_array_indexer(self, key)  # maybe ndarray[bool] -> slice
             freq = None
             if isinstance(key, slice):
                 if self.freq is not None and key.step is not None:
@@ -322,6 +300,10 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
                 # GH#21282 indexing with Ellipsis is similar to a full slice,
                 #  should preserve `freq` attribute
                 freq = self.freq
+            elif com.is_bool_indexer(key):
+                new_key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+                if isinstance(new_key, slice):
+                    return self._get_getitem_freq(new_key)
         return freq
 
     def __setitem__(
@@ -874,7 +856,9 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             #  comparison otherwise it would fail to raise when
             #  comparing tz-aware and tz-naive
             with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self.astype(object), other)
+                result = ops.comp_method_OBJECT_ARRAY(
+                    op, np.asarray(self.astype(object)), other
+                )
             return result
 
         other_i8 = self._unbox(other)

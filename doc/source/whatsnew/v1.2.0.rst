@@ -191,6 +191,8 @@ Other enhancements
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
 - Added methods :meth:`IntegerArray.prod`, :meth:`IntegerArray.min`, and :meth:`IntegerArray.max` (:issue:`33790`)
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
+- Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
+- :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -313,6 +315,8 @@ Performance improvements
   avoiding creating these again, if created on either. This can speed up operations that depend on creating copies of existing indexes (:issue:`36840`)
 - Performance improvement in :meth:`RollingGroupby.count` (:issue:`35625`)
 - Small performance decrease to :meth:`Rolling.min` and :meth:`Rolling.max` for fixed windows (:issue:`36567`)
+- Reduced peak memory usage in :meth:`DataFrame.to_pickle` when using ``protocol=5`` in python 3.8+ (:issue:`34244`)
+- Performance improvement in :class:`ExpandingGroupby` (:issue:`37064`)
 
 .. ---------------------------------------------------------------------------
 
@@ -365,6 +369,7 @@ Numeric
 - Bug in :class:`IntegerArray` multiplication with ``timedelta`` and ``np.timedelta64`` objects (:issue:`36870`)
 - Bug in :meth:`DataFrame.diff` with ``datetime64`` dtypes including ``NaT`` values failing to fill ``NaT`` results correctly (:issue:`32441`)
 - Bug in :class:`DataFrame` arithmetic ops incorrectly accepting keyword arguments (:issue:`36843`)
+- Bug in :class:`IntervalArray` comparisons with :class:`Series` not returning :class:`Series` (:issue:`36908`)
 
 Conversion
 ^^^^^^^^^^
@@ -392,6 +397,8 @@ Indexing
 - Bug in :meth:`Index.sort_values` where, when empty values were passed, the method would break by trying to compare missing values instead of pushing them to the end of the sort order. (:issue:`35584`)
 - Bug in :meth:`Index.get_indexer` and :meth:`Index.get_indexer_non_unique` where int64 arrays are returned instead of intp. (:issue:`36359`)
 - Bug in :meth:`DataFrame.sort_index` where parameter ascending passed as a list on a single level index gives wrong result. (:issue:`32334`)
+- Bug in :meth:`DataFrame.reset_index` was incorrectly raising a ``ValueError`` for input with a :class:`MultiIndex` with missing values in a level with ``Categorical`` dtype (:issue:`24206`)
+- Bug in indexing with boolean masks on datetime-like values sometimes returning a view instead of a copy (:issue:`36210`)
 
 Missing
 ^^^^^^^
@@ -424,6 +431,7 @@ I/O
 - Bug in :func:`read_table` and :func:`read_csv` when ``delim_whitespace=True`` and ``sep=default`` (:issue:`36583`)
 - Bug in :meth:`to_json` with ``lines=True`` and ``orient='records'`` the last line of the record is not appended with 'new line character' (:issue:`36888`)
 - Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
+- Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
 
 Plotting
 ^^^^^^^^

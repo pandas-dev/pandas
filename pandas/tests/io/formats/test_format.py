@@ -3443,3 +3443,10 @@ def test_nullable_float_to_string(float_ea_dtype):
 1     1.0
 2    <NA>"""
     assert result == expected
+
+
+def test_to_string_complex_number_trims_zeros():
+    s = pd.Series([1.000000 + 1.000000j, 1.0 + 1.0j, 1.05 + 1.0j])
+    result = s.to_string()
+    expected = "0    1.00+1.00j\n1    1.00+1.00j\n2    1.05+1.00j"
+    assert result == expected

@@ -6,8 +6,6 @@ Methods that can be shared by many array-like classes or subclasses:
 """
 import operator
 
-from pandas.errors import AbstractMethodError
-
 from pandas.core.ops import roperator
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -17,7 +15,7 @@ class OpsMixin:
     # Comparisons
 
     def _cmp_method(self, other, op):
-        raise AbstractMethodError(self)
+        return NotImplemented
 
     @unpack_zerodim_and_defer("__eq__")
     def __eq__(self, other):
@@ -47,7 +45,7 @@ class OpsMixin:
     # Logical Methods
 
     def _logical_method(self, other, op):
-        raise AbstractMethodError(self)
+        return NotImplemented
 
     @unpack_zerodim_and_defer("__and__")
     def __and__(self, other):
