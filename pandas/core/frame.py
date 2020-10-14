@@ -8670,7 +8670,10 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        any_object = self.dtypes.apply(is_object_dtype).any()
+        any_object = np.array(
+            [is_object_dtype(values.dtype) for values in self._iter_column_arrays()],
+            dtype=bool,
+        ).any()
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
         labels = self._get_agg_axis(axis)
