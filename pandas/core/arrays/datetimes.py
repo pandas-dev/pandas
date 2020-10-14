@@ -563,19 +563,21 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         ------
         tstamp : Timestamp
         """
-
-        # convert in chunks of 10k for efficiency
-        data = self.asi8
-        length = len(self)
-        chunksize = 10000
-        chunks = int(length / chunksize) + 1
-        for i in range(chunks):
-            start_i = i * chunksize
-            end_i = min((i + 1) * chunksize, length)
-            converted = ints_to_pydatetime(
-                data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
-            )
-            yield from converted
+        if self.ndim > 1:
+            return (self[n] for n in range(len(self)))
+        else:
+            # convert in chunks of 10k for efficiency
+            data = self.asi8
+            length = len(self)
+            chunksize = 10000
+            chunks = int(length / chunksize) + 1
+            for i in range(chunks):
+                start_i = i * chunksize
+                end_i = min((i + 1) * chunksize, length)
+                converted = ints_to_pydatetime(
+                    data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
+                )
+                yield from converted
 
     def astype(self, dtype, copy=True):
         # We handle
