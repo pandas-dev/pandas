@@ -316,7 +316,9 @@ class MultiIndex(Index):
             new_codes = result._verify_integrity()
             result._codes = new_codes
 
-        return result._reset_identity()
+        result._reset_identity()
+
+        return result
 
     def _validate_codes(self, level: List, code: List):
         """
