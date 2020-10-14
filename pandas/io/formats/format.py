@@ -1474,9 +1474,9 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             if self.fixed_width:
                 if is_complex:
-                    result = _trim_zeros_complex(values, self.decimal, na_rep)
+                    result = _trim_zeros_complex(values, self.decimal)
                 else:
-                    result = _trim_zeros_float(values, self.decimal, na_rep)
+                    result = _trim_zeros_float(values, self.decimal)
                 return np.asarray(result, dtype="object")
 
             return values
@@ -1859,29 +1859,42 @@ def _make_fixed_width(
     return result
 
 
-def _trim_zeros_complex(
-    str_complexes: np.ndarray, decimal: str = ".", na_rep: str = "NaN"
-) -> List[str]:
+def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[str]:
     """
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
-    return [
-        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal, na_rep))
+    trimmed = [
+        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal))
         for x in str_complexes
     ]
 
+    # pad strings to the length of the longest trimmed string for alignment
+    lengths = [len(s) for s in trimmed]
+    max_length = max(lengths)
+    padded = [
+        s[: -((k - 1) // 2 + 1)]  # real part
+        + (max_length - k) // 2 * "0"
+        + s[-((k - 1) // 2 + 1) : -((k - 1) // 2)]  # + / -
+        + s[-((k - 1) // 2) : -1]  # imaginary part
+        + (max_length - k) // 2 * "0"
+        + s[-1]
+        for s, k in zip(trimmed, lengths)
+    ]
+    return padded
+
 
 def _trim_zeros_float(
-    str_floats: Union[np.ndarray, List[str]], decimal: str = ".", na_rep: str = "NaN"
+    str_floats: Union[np.ndarray, List[str]], decimal: str = "."
 ) -> List[str]:
     """
     Trims zeros, leaving just one before the decimal points if need be.
     """
     trimmed = str_floats
+    number_regex = re.compile(fr"\s*[\+-]?[0-9]+(\{decimal}[0-9]*)?")
 
     def _is_number(x):
-        return x != na_rep and not x.endswith("inf")
+        return re.match(number_regex, x) is not None
 
     def _cond(values):
         finite = [x for x in values if _is_number(x)]

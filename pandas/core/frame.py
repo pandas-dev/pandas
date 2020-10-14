@@ -2661,11 +2661,11 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame(data)
         >>> df.head()
            int64  float64            complex128  object  bool
-        0      1      1.0    1.000000+0.000000j       1  True
-        1      1      1.0    1.000000+0.000000j       1  True
-        2      1      1.0    1.000000+0.000000j       1  True
-        3      1      1.0    1.000000+0.000000j       1  True
-        4      1      1.0    1.000000+0.000000j       1  True
+        0      1      1.0              1.0+0.0j       1  True
+        1      1      1.0              1.0+0.0j       1  True
+        2      1      1.0              1.0+0.0j       1  True
+        3      1      1.0              1.0+0.0j       1  True
+        4      1      1.0              1.0+0.0j       1  True
 
         >>> df.memory_usage()
         Index           128
