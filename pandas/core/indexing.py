@@ -633,7 +633,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 raise
             raise IndexingError(key) from e
 
-    def _ensure_listlike_indexer(self, key, axis=None):
+    def _ensure_listlike_indexer(self, key, axis=None, value=None):
         """
         Ensure that a list-like of column labels are all present by adding them if
         they do not already exist.
@@ -663,9 +663,15 @@ class _LocationIndexer(NDFrameIndexerBase):
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
         ):
-            for k in key:
+            for i, k in enumerate(key):
                 if k not in self.obj:
-                    self.obj[k] = np.nan
+                    if value is None:
+                        self.obj[k] = np.nan
+                    elif is_list_like(value):
+                        # TODO: be more careful about this, maybe check before calling?
+                        self.obj[k] = value[i]
+                    else:
+                        self.obj[k] = value
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
@@ -1571,11 +1577,11 @@ class _iLocIndexer(_LocationIndexer):
                     # essentially this separates out the block that is needed
                     # to possibly be modified
                     if self.ndim > 1 and i == info_axis:
-
                         # add the new item, and set the value
                         # must have all defined axes if we have a scalar
                         # or a list-like on the non-info axes if we have a
                         # list-like
+
                         len_non_info_axes = (
                             len(_ax) for _i, _ax in enumerate(self.obj.axes) if _i != i
                         )
@@ -1589,7 +1595,11 @@ class _iLocIndexer(_LocationIndexer):
                             return
 
                         # add a new item with the dtype setup
-                        self.obj[key] = infer_fill_value(value)
+                        if com.is_null_slice(indexer[0]):
+                            # We are setting the entire column
+                            self.obj[key] = value
+                        else:
+                            self.obj[key] = infer_fill_value(value)
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
@@ -1781,6 +1791,13 @@ class _iLocIndexer(_LocationIndexer):
             com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
             for idx in pi
         ):
+            blk = ser._mgr.blocks[0]
+            if blk._can_hold_element(value) and is_scalar(value):
+                # FIXME: ExtensionBlock._can_hold_element
+                # We can do an inplace-setting, do it directly on _values
+                #  to get our underlying
+                ser._values[plane_indexer] = value
+                return
             ser = value
         else:
             # set the item, possibly having a dtype change
