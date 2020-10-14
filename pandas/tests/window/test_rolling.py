@@ -868,3 +868,31 @@ def test_rolling_period_index(index, window, func, values):
     result = getattr(ds.rolling(window, closed="left"), func)()
     expected = pd.Series(values, index=index)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("constructor", ["DataFrame", "Series"])
+def test_rolling_sem(constructor):
+    # GH: 26476
+    obj = getattr(pd, constructor)([0, 1, 2])
+    result = obj.rolling(2, min_periods=1).sem()
+    if isinstance(result, DataFrame):
+        result = pd.Series(result[0].values)
+    expected = pd.Series([np.nan] + [0.707107] * 2)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("func", "third_value", "values"),
+    [
+        ("var", 1, [5e33, 0, 0.5, 0.5, 2, 0]),
+        ("std", 1, [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0]),
+        ("var", 2, [5e33, 0.5, 0, 0.5, 2, 0]),
+        ("std", 2, [7.071068e16, 0.7071068, 0, 0.7071068, 1.414214, 0]),
+    ],
+)
+def test_rolling_var_numerical_issues(func, third_value, values):
+    # GH: 37051
+    ds = pd.Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
+    result = getattr(ds.rolling(2), func)()
+    expected = pd.Series([np.nan] + values)
+    tm.assert_series_equal(result, expected)

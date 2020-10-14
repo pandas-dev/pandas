@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, algos as libalgos, hashtable as htable, lib
+from pandas._libs import NaT, algos as libalgos, hashtable as htable
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly, deprecate_kwarg
@@ -1906,32 +1906,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
 
         return self._unbox_listlike(rvalue)
-
-    def _validate_setitem_key(self, key):
-        if lib.is_integer(key):
-            # set by position
-            pass
-
-        elif isinstance(key, tuple):
-            # tuple of indexers (dataframe)
-            # only allow 1 dimensional slicing, but can
-            # in a 2-d case be passed (slice(None),....)
-            if len(key) == 2:
-                if not com.is_null_slice(key[0]):
-                    raise AssertionError("invalid slicing for a 1-ndim categorical")
-                key = key[1]
-            elif len(key) == 1:
-                key = key[0]
-            else:
-                raise AssertionError("invalid slicing for a 1-ndim categorical")
-
-        elif isinstance(key, slice):
-            # slicing in Series or Categorical
-            pass
-
-        # else: array of True/False in Series or Categorical
-
-        return super()._validate_setitem_key(key)
 
     def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
         """
