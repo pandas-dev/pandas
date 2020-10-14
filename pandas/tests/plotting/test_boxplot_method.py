@@ -2,7 +2,7 @@ import itertools
 import string
 
 import numpy as np
-from numpy.random import choice, normal, rand, randint, randn, random
+from numpy import random
 import pytest
 
 import pandas.util._test_decorators as td
@@ -21,7 +21,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_boxplot_legacy1(self):
         df = DataFrame(
-            randn(6, 4),
+            np.random.randn(6, 4),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -45,7 +45,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_boxplot_legacy2(self):
-        df = DataFrame(rand(10, 2), columns=["Col1", "Col2"])
+        df = DataFrame(np.random.rand(10, 2), columns=["Col1", "Col2"])
         df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         df["Y"] = Series(["A"] * 10)
         with tm.assert_produces_warning(UserWarning):
@@ -90,7 +90,7 @@ class TestDataFramePlots(TestPlotBase):
         import matplotlib as mpl  # noqa
 
         df = DataFrame(
-            randn(6, 4),
+            np.random.randn(6, 4),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -120,7 +120,7 @@ class TestDataFramePlots(TestPlotBase):
             assert y_max >= col.max()
 
         df = self.hist_df.copy()
-        df["age"] = randint(1, 20, df.shape[0])
+        df["age"] = np.random.randint(1, 20, df.shape[0])
         # One full row
         height_ax, weight_ax = df.boxplot(["height", "weight"], by="category")
         _check_ax_limits(df["height"], height_ax)
@@ -141,13 +141,13 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_boxplot_empty_column(self):
-        df = DataFrame(randn(20, 4))
+        df = DataFrame(np.random.randn(20, 4))
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type="axes")
 
     @pytest.mark.slow
     def test_figsize(self):
-        df = DataFrame(rand(10, 5), columns=["A", "B", "C", "D", "E"])
+        df = DataFrame(np.random.rand(10, 5), columns=["A", "B", "C", "D", "E"])
         result = df.boxplot(return_type="axes", figsize=(12, 8))
         assert result.figure.bbox_inches.width == 12
         assert result.figure.bbox_inches.height == 8
@@ -163,8 +163,8 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(
             {
                 "a": date_range("2012-01-01", periods=100),
-                "b": randn(100),
-                "c": randn(100) + 2,
+                "b": np.random.randn(100),
+                "c": np.random.randn(100) + 2,
                 "d": date_range("2012-01-01", periods=100).astype(str),
                 "e": date_range("2012-01-01", periods=100, tz="UTC"),
                 "f": timedelta_range("1 days", periods=100),
@@ -186,7 +186,7 @@ class TestDataFramePlots(TestPlotBase):
     )
     def test_color_kwd(self, colors_kwd, expected):
         # GH: 26214
-        df = DataFrame(rand(10, 2))
+        df = DataFrame(random.rand(10, 2))
         result = df.boxplot(color=colors_kwd, return_type="dict")
         for k, v in expected.items():
             assert result[k][0].get_color() == v
@@ -197,7 +197,7 @@ class TestDataFramePlots(TestPlotBase):
     )
     def test_color_kwd_errors(self, dict_colors, msg):
         # GH: 26214
-        df = DataFrame(rand(10, 2))
+        df = DataFrame(random.rand(10, 2))
         with pytest.raises(ValueError, match=msg):
             df.boxplot(color=dict_colors, return_type="dict")
 
@@ -212,7 +212,7 @@ class TestDataFramePlots(TestPlotBase):
     )
     def test_specified_props_kwd(self, props, expected):
         # GH 30346
-        df = DataFrame({k: random(100) for k in "ABC"})
+        df = DataFrame({k: np.random.random(100) for k in "ABC"})
         kwd = {props: dict(color="C1")}
         result = df.boxplot(return_type="dict", **kwd)
 
@@ -233,7 +233,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_boxplot_legacy2(self):
         tuples = zip(string.ascii_letters[:10], range(10))
-        df = DataFrame(rand(10, 3), index=MultiIndex.from_tuples(tuples))
+        df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
         grouped = df.groupby(level=1)
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
@@ -245,7 +245,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_boxplot_legacy3(self):
         tuples = zip(string.ascii_letters[:10], range(10))
-        df = DataFrame(rand(10, 3), index=MultiIndex.from_tuples(tuples))
+        df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
         grouped = df.unstack(level=1).groupby(level=0, axis=1)
         with tm.assert_produces_warning(UserWarning):
             axes = _check_plot_works(grouped.boxplot, return_type="axes")
@@ -256,10 +256,10 @@ class TestDataFrameGroupByPlots(TestPlotBase):
     @pytest.mark.slow
     def test_grouped_plot_fignums(self):
         n = 10
-        weight = Series(normal(166, 20, size=n))
-        height = Series(normal(60, 10, size=n))
+        weight = Series(np.random.normal(166, 20, size=n))
+        height = Series(np.random.normal(60, 10, size=n))
         with tm.RNGContext(42):
-            gender = choice(["male", "female"], size=n)
+            gender = np.random.choice(["male", "female"], size=n)
         df = DataFrame({"height": height, "weight": weight, "gender": gender})
         gb = df.groupby("gender")
 
@@ -293,7 +293,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self._check_box_return_type(result, "dict", expected_keys=["Male", "Female"])
 
         columns2 = "X B C D A G Y N Q O".split()
-        df2 = DataFrame(randn(50, 10), columns=columns2)
+        df2 = DataFrame(random.randn(50, 10), columns=columns2)
         categories2 = "A B C D E F G H I J".split()
         df2["category"] = categories2 * 5
 
