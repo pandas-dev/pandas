@@ -29,15 +29,22 @@ def test_constructor(which):
     c(min_periods=1, center=True)
     c(min_periods=1, center=False)
 
-    # not valid
-    for w in [2.0, "foo", np.array([2])]:
-        msg = "min_periods must be an integer"
-        with pytest.raises(ValueError, match=msg):
-            c(min_periods=w)
 
-        msg = "center must be a boolean"
-        with pytest.raises(ValueError, match=msg):
-            c(min_periods=1, center=w)
+@pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
+@pytest.mark.filterwarnings(
+    "ignore:The `center` argument on `expanding` will be removed in the future"
+)
+def test_constructor_invalid(which, w):
+    # not valid
+
+    c = which.expanding
+    msg = "min_periods must be an integer"
+    with pytest.raises(ValueError, match=msg):
+        c(min_periods=w)
+
+    msg = "center must be a boolean"
+    with pytest.raises(ValueError, match=msg):
+        c(min_periods=1, center=w)
 
 
 @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
@@ -229,3 +236,14 @@ def test_center_deprecate_warning():
 
     with tm.assert_produces_warning(None):
         df.expanding()
+
+
+@pytest.mark.parametrize("constructor", ["DataFrame", "Series"])
+def test_expanding_sem(constructor):
+    # GH: 26476
+    obj = getattr(pd, constructor)([0, 1, 2])
+    result = obj.expanding().sem()
+    if isinstance(result, DataFrame):
+        result = pd.Series(result[0].values)
+    expected = pd.Series([np.nan] + [0.707107] * 2)
+    tm.assert_series_equal(result, expected)

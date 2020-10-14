@@ -82,6 +82,8 @@ class MPLPlot:
     _default_rot = 0
     orientation: Optional[str] = None
 
+    axes: np.ndarray  # of Axes objects
+
     def __init__(
         self,
         data,
@@ -177,7 +179,7 @@ class MPLPlot:
 
         self.ax = ax
         self.fig = fig
-        self.axes = None
+        self.axes = np.array([], dtype=object)  # "real" version get set in `generate`
 
         # parse errorbar input if given
         xerr = kwds.pop("xerr", None)
@@ -697,7 +699,7 @@ class MPLPlot:
         else:
             return getattr(ax, "right_ax", ax)
 
-    def _get_ax(self, i):
+    def _get_ax(self, i: int):
         # get the twinx ax if appropriate
         if self.subplots:
             ax = self.axes[i]
@@ -1238,7 +1240,7 @@ class LinePlot(MPLPlot):
         # would be too close together.
         condition = (
             not self._use_dynamic_x()
-            and (data.index.is_all_dates and self.use_index)
+            and (data.index._is_all_dates and self.use_index)
             and (not self.subplots or (self.subplots and self.sharex))
         )
 

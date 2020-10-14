@@ -3,7 +3,7 @@ import functools
 from io import BytesIO, StringIO
 from itertools import islice
 import os
-from typing import IO, Any, Callable, List, Optional, Type
+from typing import IO, Any, Callable, List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -111,6 +111,8 @@ def to_json(
 
 
 class Writer:
+    _default_orient: str
+
     def __init__(
         self,
         obj,
@@ -126,8 +128,7 @@ class Writer:
         self.obj = obj
 
         if orient is None:
-            # error: "Writer" has no attribute "_default_orient"
-            orient = self._default_orient  # type: ignore[attr-defined]
+            orient = self._default_orient
 
         self.orient = orient
         self.date_format = date_format
@@ -393,7 +394,7 @@ def read_json(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     orient : str
         Indication of expected JSON string format.
@@ -525,7 +526,7 @@ def read_json(
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -777,8 +778,8 @@ class JsonReader(abc.Iterator):
                 obj = self._get_object_parser(lines_json)
             else:
                 data = ensure_str(self.data)
-                data = data.split("\n")
-                obj = self._get_object_parser(self._combine_lines(data))
+                data_lines = data.split("\n")
+                obj = self._get_object_parser(self._combine_lines(data_lines))
         else:
             obj = self._get_object_parser(self.data)
         self.close()
@@ -848,6 +849,8 @@ class JsonReader(abc.Iterator):
 
 
 class Parser:
+    _split_keys: Tuple[str, ...]
+    _default_orient: str
 
     _STAMP_UNITS = ("s", "ms", "us", "ns")
     _MIN_STAMPS = {
@@ -873,6 +876,7 @@ class Parser:
 
         if orient is None:
             orient = self._default_orient
+
         self.orient = orient
 
         self.dtype = dtype
@@ -902,8 +906,8 @@ class Parser:
         """
         bad_keys = set(decoded.keys()).difference(set(self._split_keys))
         if bad_keys:
-            bad_keys = ", ".join(bad_keys)
-            raise ValueError(f"JSON data had unexpected key(s): {bad_keys}")
+            bad_keys_joined = ", ".join(bad_keys)
+            raise ValueError(f"JSON data had unexpected key(s): {bad_keys_joined}")
 
     def parse(self):
 
@@ -922,14 +926,22 @@ class Parser:
         self._try_convert_types()
         return self.obj
 
+    def _parse_numpy(self):
+        raise AbstractMethodError(self)
+
+    def _parse_no_numpy(self):
+        raise AbstractMethodError(self)
+
     def _convert_axes(self):
         """
         Try to convert axes.
         """
-        for axis_name in self.obj._AXIS_ORDERS:
+        obj = self.obj
+        assert obj is not None  # for mypy
+        for axis_name in obj._AXIS_ORDERS:
             new_axis, result = self._try_convert_data(
                 name=axis_name,
-                data=self.obj._get_axis(axis_name),
+                data=obj._get_axis(axis_name),
                 use_dtypes=False,
                 convert_dates=True,
             )
@@ -1083,7 +1095,11 @@ class SeriesParser(Parser):
             self.check_keys_split(decoded)
             self.obj = create_series_with_explicit_dtype(**decoded)
         elif self.orient in ["columns", "index"]:
-            self.obj = create_series_with_explicit_dtype(*data, dtype_if_empty=object)
+            # error: "create_series_with_explicit_dtype"
+            #  gets multiple values for keyword argument "dtype_if_empty
+            self.obj = create_series_with_explicit_dtype(
+                *data, dtype_if_empty=object
+            )  # type:ignore[misc]
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 
@@ -1175,9 +1191,12 @@ class FrameParser(Parser):
         if filt is None:
             filt = lambda col, c: True
 
+        obj = self.obj
+        assert obj is not None  # for mypy
+
         needs_new_obj = False
         new_obj = dict()
-        for i, (col, c) in enumerate(self.obj.items()):
+        for i, (col, c) in enumerate(obj.items()):
             if filt(col, c):
                 new_data, result = f(col, c)
                 if result:
@@ -1188,9 +1207,9 @@ class FrameParser(Parser):
         if needs_new_obj:
 
             # possibly handle dup columns
-            new_obj = DataFrame(new_obj, index=self.obj.index)
-            new_obj.columns = self.obj.columns
-            self.obj = new_obj
+            new_frame = DataFrame(new_obj, index=obj.index)
+            new_frame.columns = obj.columns
+            self.obj = new_frame
 
     def _try_convert_types(self):
         if self.obj is None:

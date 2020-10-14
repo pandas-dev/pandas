@@ -162,6 +162,14 @@ def test_groupby_dropna_series_by(dropna, expected):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dropna", (False, True))
+def test_grouper_dropna_propagation(dropna):
+    # GH 36604
+    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
+    gb = df.groupby("A", dropna=dropna)
+    assert gb.grouper.dropna == dropna
+
+
 @pytest.mark.parametrize(
     "dropna,df_expected,s_expected",
     [
@@ -191,7 +199,6 @@ def test_slice_groupby_then_transform(dropna, df_expected, s_expected):
     res = gb_slice.transform(len)
     tm.assert_frame_equal(res, df_expected)
 
-    gb_slice = gb["B"]
     res = gb["B"].transform(len)
     tm.assert_series_equal(res, s_expected)
 
