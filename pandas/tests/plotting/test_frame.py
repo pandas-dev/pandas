@@ -3460,6 +3460,7 @@ class TestDataFramePlots(TestPlotBase):
     )
     @pytest.mark.parametrize("kind", ["scatter", "hexbin"])
     def test_xlabel_ylabel_dataframe_plane_plot(self, kind, xlabel, ylabel):
+        # GH 37001
         xcol = "Type A"
         ycol = "Type B"
         df = pd.DataFrame([[1, 2], [2, 5]], columns=[xcol, ycol])
