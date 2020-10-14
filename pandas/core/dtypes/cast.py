@@ -7,15 +7,17 @@ from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
 
 import numpy as np
 
-from pandas._libs import lib, tslib, tslibs
+from pandas._libs import lib, tslib
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
     Period,
     Timedelta,
     Timestamp,
+    conversion,
     iNaT,
     ints_to_pydatetime,
+    ints_to_pytimedelta,
 )
 from pandas._libs.tslibs.timezones import tz_compare
 from pandas._typing import ArrayLike, Dtype, DtypeObj
@@ -552,7 +554,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
         else:
             try:
-                fill_value = tslibs.Timestamp(fill_value).to_datetime64()
+                fill_value = Timestamp(fill_value).to_datetime64()
             except (TypeError, ValueError):
                 dtype = np.dtype(np.object_)
     elif issubclass(dtype.type, np.timedelta64):
@@ -565,7 +567,7 @@ def maybe_promote(dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
         else:
             try:
-                fv = tslibs.Timedelta(fill_value)
+                fv = Timedelta(fill_value)
             except ValueError:
                 dtype = np.dtype(np.object_)
             else:
@@ -738,8 +740,8 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         dtype = np.dtype(object)
 
     elif isinstance(val, (np.datetime64, datetime)):
-        val = tslibs.Timestamp(val)
-        if val is tslibs.NaT or val.tz is None:
+        val = Timestamp(val)
+        if val is NaT or val.tz is None:
             dtype = np.dtype("M8[ns]")
         else:
             if pandas_dtype:
@@ -750,7 +752,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
         val = val.value
 
     elif isinstance(val, (np.timedelta64, timedelta)):
-        val = tslibs.Timedelta(val).value
+        val = Timedelta(val).value
         dtype = np.dtype("m8[ns]")
 
     elif is_bool(val):
@@ -941,9 +943,9 @@ def coerce_to_dtypes(result, dtypes):
         if np.any(isna(r)):
             pass
         elif dtype == DT64NS_DTYPE:
-            r = tslibs.Timestamp(r)
+            r = Timestamp(r)
         elif dtype == TD64NS_DTYPE:
-            r = tslibs.Timedelta(r)
+            r = Timedelta(r)
         elif dtype == np.bool_:
             # messy. non 0/1 integers do not get converted.
             if is_integer(r) and r not in [0, 1]:
@@ -1006,7 +1008,7 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
 
     elif is_timedelta64_dtype(arr):
         if is_object_dtype(dtype):
-            return tslibs.ints_to_pytimedelta(arr.view(np.int64))
+            return ints_to_pytimedelta(arr.view(np.int64))
         elif dtype == np.int64:
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
@@ -1317,8 +1319,6 @@ def maybe_infer_to_datetimelike(value, convert_dates: bool = False):
             # we might have a sequence of the same-datetimes with tz's
             # if so coerce to a DatetimeIndex; if they are not the same,
             # then these stay as object dtype, xref GH19671
-            from pandas._libs.tslibs import conversion
-
             from pandas import DatetimeIndex
 
             try:
@@ -1492,7 +1492,7 @@ def maybe_cast_to_datetime(value, dtype, errors: str = "raise"):
             dtype = value.dtype
 
             if dtype.kind == "M" and dtype != DT64NS_DTYPE:
-                value = tslibs.conversion.ensure_datetime64ns(value)
+                value = conversion.ensure_datetime64ns(value)
 
             elif dtype.kind == "m" and dtype != TD64NS_DTYPE:
                 value = to_timedelta(value)
