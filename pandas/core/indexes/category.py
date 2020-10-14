@@ -164,6 +164,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     codes: np.ndarray
     categories: Index
     _data: Categorical
+    _values: Categorical
 
     @property
     def _engine_type(self):

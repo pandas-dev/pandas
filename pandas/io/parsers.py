@@ -1661,7 +1661,7 @@ class ParserBase:
 
         return index
 
-    def _agg_index(self, index, try_parse_dates=True):
+    def _agg_index(self, index, try_parse_dates=True) -> Index:
         arrays = []
 
         for i, arr in enumerate(index):

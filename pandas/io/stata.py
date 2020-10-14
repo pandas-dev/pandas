@@ -378,8 +378,8 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["delta"] = time_delta._values.astype(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
-                d["year"] = date_index.year
-                d["month"] = date_index.month
+                d["year"] = date_index._data.year
+                d["month"] = date_index._data.month
             if days:
                 days_in_ns = dates.astype(np.int64) - to_datetime(
                     d["year"], format="%Y"
@@ -887,7 +887,9 @@ class StataParser:
                 (65530, np.int8),
             ]
         )
-        self.TYPE_MAP = list(range(251)) + list("bhlfd")
+        # error: Argument 1 to "list" has incompatible type "str";
+        #  expected "Iterable[int]"  [arg-type]
+        self.TYPE_MAP = list(range(251)) + list("bhlfd")  # type: ignore[arg-type]
         self.TYPE_MAP_XML = dict(
             [
                 # Not really a Q, unclear how to handle byteswap
