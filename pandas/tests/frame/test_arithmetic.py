@@ -1577,3 +1577,13 @@ def test_arith_reindex_with_duplicates():
     result = df1 + df2
     expected = pd.DataFrame([[np.nan, 0, 0]], columns=["first", "second", "second"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_arith_list_of_arraylike_raise():
+    # GH 36702. Raise when trying to add list of array-like to DataFrame
+    df = pd.DataFrame({'x': [1, 2], 'y': [1, 2]})
+    ser = pd.Series([1, 1])
+
+    msg = "Cannot perform arithmetic on DataFrame or Series and a list of array-like."
+    with pytest.raises(ValueError, match=msg):
+        result = df + [ser, ser]
