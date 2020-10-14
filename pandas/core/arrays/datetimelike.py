@@ -75,6 +75,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
+DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
 
 class InvalidComparison(Exception):
@@ -86,7 +87,20 @@ class InvalidComparison(Exception):
     pass
 
 
-class AttributesMixin:
+class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
+    """
+    Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
+
+    Assumes that __new__/__init__ defines:
+        _data
+        _freq
+
+    and that the inheriting class has methods:
+        _generate_range
+    """
+
+    _is_recognized_dtype: Callable[[DtypeObj], bool]
+    _recognized_scalars: Tuple[Type, ...]
     _data: np.ndarray
 
     def __init__(self, data, dtype=None, freq=None, copy=False):
@@ -183,25 +197,6 @@ class AttributesMixin:
         Exception
         """
         raise AbstractMethodError(self)
-
-
-DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
-
-
-class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionArray):
-    """
-    Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
-
-    Assumes that __new__/__init__ defines:
-        _data
-        _freq
-
-    and that the inheriting class has methods:
-        _generate_range
-    """
-
-    _is_recognized_dtype: Callable[[DtypeObj], bool]
-    _recognized_scalars: Tuple[Type, ...]
 
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
@@ -861,7 +856,9 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             #  comparison otherwise it would fail to raise when
             #  comparing tz-aware and tz-naive
             with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self.astype(object), other)
+                result = ops.comp_method_OBJECT_ARRAY(
+                    op, np.asarray(self.astype(object)), other
+                )
             return result
 
         other_i8 = self._unbox(other)

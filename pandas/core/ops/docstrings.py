@@ -4,7 +4,7 @@ Templating for ops docstrings
 from typing import Dict, Optional
 
 
-def _make_flex_doc(op_name, typ: str):
+def make_flex_doc(op_name: str, typ: str) -> str:
     """
     Make the appropriate substitutions for the given operation and class-typ
     into either _flex_doc_SERIES or _flex_doc_FRAME to return the docstring
@@ -425,33 +425,6 @@ _see_also_reverse_SERIES = """
 See Also
 --------
 Series.{reverse} : {see_also_desc}.
-"""
-
-_arith_doc_FRAME = """
-Binary operator %s with support to substitute a fill_value for missing data in
-one of the inputs
-
-Parameters
-----------
-other : Series, DataFrame, or constant
-axis : {0, 1, 'index', 'columns'}
-    For Series input, axis to match Series index on
-fill_value : None or float value, default None
-    Fill existing missing (NaN) values, and any new element needed for
-    successful DataFrame alignment, with this value before computation.
-    If data in both corresponding DataFrame locations is missing
-    the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
-
-Returns
--------
-result : DataFrame
-
-Notes
------
-Mismatched indices will be unioned together
 """
 
 _flex_doc_FRAME = """

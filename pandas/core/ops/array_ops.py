@@ -57,7 +57,7 @@ def comp_method_OBJECT_ARRAY(op, x, y):
     return result.reshape(x.shape)
 
 
-def masked_arith_op(x: np.ndarray, y, op):
+def _masked_arith_op(x: np.ndarray, y, op):
     """
     If the given arithmetic operation fails, attempt it again on
     only the non-null elements of the input array(s).
@@ -116,7 +116,7 @@ def masked_arith_op(x: np.ndarray, y, op):
     return result
 
 
-def na_arithmetic_op(left, right, op, is_cmp: bool = False):
+def _na_arithmetic_op(left, right, op, is_cmp: bool = False):
     """
     Return the result of evaluating op on the passed in values.
 
@@ -147,7 +147,7 @@ def na_arithmetic_op(left, right, op, is_cmp: bool = False):
             #  In this case we do not fall back to the masked op, as that
             #  will handle complex numbers incorrectly, see GH#32047
             raise
-        result = masked_arith_op(left, right, op)
+        result = _masked_arith_op(left, right, op)
 
     if is_cmp and (is_scalar(result) or result is NotImplemented):
         # numpy returned a scalar instead of operating element-wise
@@ -179,7 +179,7 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     #  on `left` and `right`.
     lvalues = maybe_upcast_datetimelike_array(left)
     rvalues = maybe_upcast_datetimelike_array(right)
-    rvalues = maybe_upcast_for_op(rvalues, lvalues.shape)
+    rvalues = _maybe_upcast_for_op(rvalues, lvalues.shape)
 
     if should_extension_dispatch(lvalues, rvalues) or isinstance(rvalues, Timedelta):
         # Timedelta is included because numexpr will fail on it, see GH#31457
@@ -187,7 +187,7 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
 
     else:
         with np.errstate(all="ignore"):
-            res_values = na_arithmetic_op(lvalues, rvalues, op)
+            res_values = _na_arithmetic_op(lvalues, rvalues, op)
 
     return res_values
 
@@ -248,7 +248,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
             # suppress warnings from numpy about element-wise comparison
             warnings.simplefilter("ignore", DeprecationWarning)
             with np.errstate(all="ignore"):
-                res_values = na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
+                res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
 
     return res_values
 
@@ -427,7 +427,7 @@ def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
     return obj
 
 
-def maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
+def _maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.
