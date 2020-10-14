@@ -3,6 +3,8 @@ import pytest
 
 import pandas as pd
 from pandas import CategoricalIndex, MultiIndex
+from pandas.core.dtypes.dtypes import DatetimeTZDtype as DateTimeTZDtype
+
 import pandas._testing as tm
 
 
@@ -27,9 +29,16 @@ def test_get_level_number_integer(idx):
         idx._get_level_number("fourth")
 
 
-def test_get_dtypes(idx):
-    expected = pd.Series({"first": np.dtype("O"), "second": np.dtype("O")})
-    assert expected.equals(idx.dtypes)
+def test_get_dtypes(idx_multitype):
+    # Test MultiIndex.dtypes (GH-37062)
+    expected = pd.Series(
+        {
+            "int": np.dtype("int64"),
+            "string": np.dtype("O"),
+            "dt": DateTimeTZDtype(tz="utc"),
+        }
+    )
+    assert expected.equals(idx_multitype.dtypes)
 
 
 def test_set_name_methods(idx, index_names):
