@@ -216,11 +216,6 @@ class TestComparison:
         result = op(array, other)
         expected = self.elementwise_comparison(op, array, other)
 
-        if nulls_fixture is pd.NA and array.dtype.subtype != "i8":
-            reason = "broken for non-integer IntervalArray; see GH 31882"
-            mark = pytest.mark.xfail(reason=reason)
-            request.node.add_marker(mark)
-
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(

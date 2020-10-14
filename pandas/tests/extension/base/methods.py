@@ -443,7 +443,7 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize(
         "repeats, kwargs, error, msg",
         [
-            (2, dict(axis=1), ValueError, "'axis"),
+            (2, dict(axis=1), ValueError, "axis"),
             (-1, dict(), ValueError, "negative"),
             ([1, 2], dict(), ValueError, "shape"),
             (2, dict(foo="bar"), TypeError, "'foo'"),

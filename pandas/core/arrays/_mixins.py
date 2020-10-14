@@ -3,7 +3,6 @@ from typing import Any, Sequence, Tuple, TypeVar
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -139,7 +138,6 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         --------
         numpy.ndarray.repeat
         """
-        nv.validate_repeat(tuple(), dict(axis=axis))
         new_data = self._ndarray.repeat(repeats, axis=axis)
         return self._from_backing_data(new_data)
 
