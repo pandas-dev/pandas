@@ -513,3 +513,9 @@ class TestDataFrameNonuniqueIndexes:
 
         df.iloc[:, 0] = 3
         tm.assert_series_equal(df.iloc[:, 1], expected)
+
+    def test_masking_duplicate_columns(self):
+        # https://github.com/pandas-dev/pandas/issues/31954
+        df = pd.DataFrame(np.arange(4).reshape(2, 2), columns=[0, 0])
+        expected = DataFrame([[np.nan, np.nan], [np.nan, 3.0]], columns=[0, 0])
+        tm.assert_frame_equal(df[df > 2], expected)
