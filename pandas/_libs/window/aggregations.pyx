@@ -3,7 +3,6 @@
 import cython
 from cython import Py_ssize_t
 
-from libc.stdlib cimport free, malloc
 from libcpp.deque cimport deque
 
 import numpy as np
@@ -906,7 +905,7 @@ interpolation_types = {
 
 
 def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
-                  ndarray[int64_t] end, int64_t minp, int64_t win,
+                  ndarray[int64_t] end, int64_t minp,
                   float64_t quantile, str interpolation):
     """
     O(N log(window)) implementation using skip list
@@ -933,7 +932,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
     # actual skiplist ops outweigh any window computation costs
     output = np.empty(N, dtype=float)
 
-    if win == 0 or (end - start).max() == 0:
+    if (end - start).max() == 0:
         output[:] = NaN
         return output
     win = (end - start).max()

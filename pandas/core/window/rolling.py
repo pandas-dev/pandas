@@ -1757,14 +1757,10 @@ class RollingAndExpandingMixin(BaseWindow):
         else:
             window_func = partial(
                 self._get_roll_func("roll_quantile"),
-                win=self._get_window(),
                 quantile=quantile,
                 interpolation=interpolation,
             )
 
-        # Pass through for groupby.rolling
-        kwargs["quantile"] = quantile
-        kwargs["interpolation"] = interpolation
         return self._apply(window_func, name="quantile", **kwargs)
 
     _shared_docs[
