@@ -6,8 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos as libalgos, lib, writers
-import pandas._libs.internals as libinternals
+from pandas._libs import NaT, algos as libalgos, internals as libinternals, lib, writers
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare

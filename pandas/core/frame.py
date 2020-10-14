@@ -147,6 +147,7 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
+from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
@@ -5251,8 +5252,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas._libs.hashtable import SIZE_HINT_LIMIT, duplicated_int64
 
-        from pandas.core.sorting import get_group_index
-
         if self.empty:
             return self._constructor_sliced(dtype=bool)
 
@@ -5315,7 +5314,6 @@ class DataFrame(NDFrame, OpsMixin):
                 f"Length of ascending ({len(ascending)}) != length of by ({len(by)})"
             )
         if len(by) > 1:
-            from pandas.core.sorting import lexsort_indexer
 
             keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
 
@@ -5328,7 +5326,6 @@ class DataFrame(NDFrame, OpsMixin):
             )
             indexer = ensure_platform_int(indexer)
         else:
-            from pandas.core.sorting import nargsort
 
             by = by[0]
             k = self._get_label_or_level_values(by, axis=axis)
