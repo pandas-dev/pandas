@@ -98,7 +98,7 @@ def to_pickle(
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
-        f.write(pickle.dumps(obj, protocol=protocol))
+        pickle.dump(obj, f, protocol=protocol)
     finally:
         if f != filepath_or_buffer:
             # do not close user-provided file objects GH 35679
