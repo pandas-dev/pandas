@@ -1105,19 +1105,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # TODO: arithmetic operations
 
-    # GH#30817 until IntervalArray implements inequalities, get them from Index
-    def __lt__(self, other):
-        return Index.__lt__(self, other)
-
-    def __le__(self, other):
-        return Index.__le__(self, other)
-
-    def __gt__(self, other):
-        return Index.__gt__(self, other)
-
-    def __ge__(self, other):
-        return Index.__ge__(self, other)
-
 
 def _is_valid_endpoint(endpoint) -> bool:
     """
