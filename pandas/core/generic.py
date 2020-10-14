@@ -2280,6 +2280,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         and the default ``indent=None`` are equivalent in pandas, though this
         may change in a future release.
 
+        ``orient='table'`` contains a 'pandas_version' field under 'schema'.
+        This stores the version of `pandas` used in the latest revision of the
+        schema.
+
         Examples
         --------
         >>> import json
