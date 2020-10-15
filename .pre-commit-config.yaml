@@ -61,7 +61,7 @@ repos:
             |function|image|important|include|ipython|literalinclude
             |math|module|note|raw|seealso|toctree|versionadded
             |versionchanged|warning):[^:]
-        files: .(py|pyx)$
+        files: .(py|pyx|rst)$
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
