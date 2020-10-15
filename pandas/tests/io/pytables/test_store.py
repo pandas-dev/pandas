@@ -36,11 +36,9 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    create_tempfile,
     ensure_clean_path,
     ensure_clean_store,
     safe_close,
-    safe_remove,
     tables,
 )
 
@@ -80,33 +78,25 @@ class TestHDFStore:
 
         msg = "format is not a defined argument for HDFStore"
 
-        with ensure_clean_path(setup_path) as path:
+        with tm.ensure_clean(setup_path) as path:
             with pytest.raises(ValueError, match=msg):
                 HDFStore(path, format="table")
 
     def test_context(self, setup_path):
-        path = create_tempfile(setup_path)
-        try:
-            with HDFStore(path) as tbl:
-                raise ValueError("blah")
-        except ValueError:
-            pass
-        finally:
-            safe_remove(path)
-
-        try:
+        with tm.ensure_clean(setup_path) as path:
+            try:
+                with HDFStore(path) as tbl:
+                    raise ValueError("blah")
+            except ValueError:
+                pass
+        with tm.ensure_clean(setup_path) as path:
             with HDFStore(path) as tbl:
                 tbl["a"] = tm.makeDataFrame()
-
-            with HDFStore(path) as tbl:
                 assert len(tbl) == 1
                 assert type(tbl["a"]) == DataFrame
-        finally:
-            safe_remove(path)
 
     def test_conv_read_write(self, setup_path):
-        path = create_tempfile(setup_path)
-        try:
+        with tm.ensure_clean() as path:
 
             def roundtrip(key, obj, **kwargs):
                 obj.to_hdf(path, key, **kwargs)
@@ -126,9 +116,6 @@ class TestHDFStore:
             df.to_hdf(path, "table", append=True)
             result = read_hdf(path, "table", where=["index>2"])
             tm.assert_frame_equal(df[df.index > 2], result)
-
-        finally:
-            safe_remove(path)
 
     def test_long_strings(self, setup_path):
 
@@ -605,7 +592,7 @@ class TestHDFStore:
 
     def test_open_args(self, setup_path):
 
-        with ensure_clean_path(setup_path) as path:
+        with tm.ensure_clean(setup_path) as path:
 
             df = tm.makeDataFrame()
 
@@ -621,8 +608,8 @@ class TestHDFStore:
 
             store.close()
 
-            # the file should not have actually been written
-            assert not os.path.exists(path)
+        # the file should not have actually been written
+        assert not os.path.exists(path)
 
     def test_flush(self, setup_path):
 
@@ -2189,17 +2176,6 @@ class TestHDFStore:
             result = store.select("table")
             tm.assert_series_equal(result, s)
 
-    def test_roundtrip_tz_aware_index(self, setup_path):
-        # GH 17618
-        time = pd.Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
-        df = pd.DataFrame(data=[0], index=[time])
-
-        with ensure_clean_store(setup_path) as store:
-            store.put("frame", df, format="fixed")
-            recons = store["frame"]
-            tm.assert_frame_equal(recons, df)
-            assert recons.index[0].value == 946706400000000000
-
     def test_append_with_timedelta(self, setup_path):
         # GH 3577
         # append timedelta
@@ -2551,18 +2527,6 @@ class TestHDFStore:
 
         with ensure_clean_store(setup_path) as store:
             store["frame"] = df
-            recons = store["frame"]
-            tm.assert_frame_equal(recons, df)
-
-    def test_store_index_name_with_tz(self, setup_path):
-        # GH 13884
-        df = pd.DataFrame({"A": [1, 2]})
-        df.index = pd.DatetimeIndex([1234567890123456787, 1234567890123456788])
-        df.index = df.index.tz_localize("UTC")
-        df.index.name = "foo"
-
-        with ensure_clean_store(setup_path) as store:
-            store.put("frame", df, format="table")
             recons = store["frame"]
             tm.assert_frame_equal(recons, df)
 
@@ -4217,7 +4181,6 @@ class TestHDFStore:
                         import tempfile
 
                         fd, new_f = tempfile.mkstemp()
-
                     tstore = store.copy(
                         new_f, keys=keys, propindexes=propindexes, **kwargs
                     )
@@ -4248,20 +4211,17 @@ class TestHDFStore:
                         os.close(fd)
                     except (OSError, ValueError):
                         pass
-                    safe_remove(new_f)
+                    os.remove(new_f)
 
             # new table
             df = tm.makeDataFrame()
 
-            try:
-                path = create_tempfile(setup_path)
+            with tm.ensure_clean() as path:
                 st = HDFStore(path)
                 st.append("df", df, data_columns=["A"])
                 st.close()
                 do_copy(f=path)
                 do_copy(f=path, propindexes=False)
-            finally:
-                safe_remove(path)
 
     def test_store_datetime_fractional_secs(self, setup_path):
 
@@ -4700,7 +4660,7 @@ class TestHDFStore:
 
     def test_invalid_complib(self, setup_path):
         df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
-        with ensure_clean_path(setup_path) as path:
+        with tm.ensure_clean(setup_path) as path:
             with pytest.raises(ValueError):
                 df.to_hdf(path, "df", complib="foolib")
 

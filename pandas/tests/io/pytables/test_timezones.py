@@ -210,6 +210,31 @@ def test_append_with_timezones_pytz(setup_path):
         tm.assert_frame_equal(result, df)
 
 
+def test_roundtrip_tz_aware_index(setup_path):
+    # GH 17618
+    time = pd.Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
+    df = pd.DataFrame(data=[0], index=[time])
+
+    with ensure_clean_store(setup_path) as store:
+        store.put("frame", df, format="fixed")
+        recons = store["frame"]
+        tm.assert_frame_equal(recons, df)
+        assert recons.index[0].value == 946706400000000000
+
+
+def test_store_index_name_with_tz(setup_path):
+    # GH 13884
+    df = pd.DataFrame({"A": [1, 2]})
+    df.index = pd.DatetimeIndex([1234567890123456787, 1234567890123456788])
+    df.index = df.index.tz_localize("UTC")
+    df.index.name = "foo"
+
+    with ensure_clean_store(setup_path) as store:
+        store.put("frame", df, format="table")
+        recons = store["frame"]
+        tm.assert_frame_equal(recons, df)
+
+
 def test_tseries_select_index_column(setup_path):
     # GH7777
     # selecting a UTC datetimeindex column did
@@ -243,7 +268,7 @@ def test_tseries_select_index_column(setup_path):
         assert rng.tz == result.dt.tz
 
 
-def test_timezones_fixed(setup_path):
+def test_timezones_fixed_format_frame_non_empty(setup_path):
     with ensure_clean_store(setup_path) as store:
 
         # index
@@ -266,6 +291,16 @@ def test_timezones_fixed(setup_path):
             },
             index=rng,
         )
+        store["df"] = df
+        result = store["df"]
+        tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"])
+def test_timezones_fixed_format_frame_empty(setup_path, dtype):
+    with ensure_clean_store(setup_path) as store:
+        s = Series(dtype=dtype)
+        df = DataFrame({"A": s})
         store["df"] = df
         result = store["df"]
         tm.assert_frame_equal(result, df)

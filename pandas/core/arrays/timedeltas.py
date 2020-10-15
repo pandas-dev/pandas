@@ -17,12 +17,17 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.fields import get_timedelta_field
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64, parse_timedelta_unit
+from pandas._libs.tslibs.timedeltas import (
+    array_to_timedelta64,
+    ints_to_pytimedelta,
+    parse_timedelta_unit,
+)
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
+    is_categorical_dtype,
     is_dtype_equal,
     is_float_dtype,
     is_integer_dtype,
@@ -62,7 +67,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
     return property(f)
 
 
-class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
+class TimedeltaArray(dtl.TimelikeOps):
     """
     Pandas ExtensionArray for timedelta data.
 
@@ -261,9 +266,7 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
         return result
 
     @classmethod
-    def _generate_range(
-        cls, start, end, periods, freq, closed=None
-    ) -> "TimedeltaArray":
+    def _generate_range(cls, start, end, periods, freq, closed=None):
 
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -346,6 +349,21 @@ class TimedeltaArray(dtl.DatetimeLikeArrayMixin, dtl.TimelikeOps):
                 return self.copy()
             return self
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
+
+    def __iter__(self):
+        if self.ndim > 1:
+            return (self[n] for n in range(len(self)))
+        else:
+            # convert in chunks of 10k for efficiency
+            data = self.asi8
+            length = len(self)
+            chunksize = 10000
+            chunks = int(length / chunksize) + 1
+            for i in range(chunks):
+                start_i = i * chunksize
+                end_i = min((i + 1) * chunksize, length)
+                converted = ints_to_pytimedelta(data[start_i:end_i], box=True)
+                yield from converted
 
     # ----------------------------------------------------------------
     # Reductions
@@ -940,6 +958,9 @@ def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
         data = data._data
     elif isinstance(data, IntegerArray):
         data = data.to_numpy("int64", na_value=tslibs.iNaT)
+    elif is_categorical_dtype(data.dtype):
+        data = data.categories.take(data.codes, fill_value=NaT)._values
+        copy = False
 
     # Convert whatever we have into timedelta64[ns] dtype
     if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):
