@@ -1484,6 +1484,13 @@ class TestFrameArithmeticUnsorted:
         df = pd.DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
         b = df["B"]
         with tm.assert_produces_warning(None):
+            getattr(df, all_arithmetic_operators)(b)
+
+    def test_dunder_methods_binary(self, all_arithmetic_operators):
+        # GH#??? frame.__foo__ should only accept one argument
+        df = pd.DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
+        b = df["B"]
+        with pytest.raises(TypeError, match="takes 2 positional arguments"):
             getattr(df, all_arithmetic_operators)(b, 0)
 
 

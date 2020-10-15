@@ -4,12 +4,11 @@ Arithmetic operations for PandasObjects
 This is not a public API.
 """
 import operator
-from typing import TYPE_CHECKING, Optional, Set, Type
+from typing import TYPE_CHECKING, Optional, Set
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas._typing import Level
 from pandas.util._decorators import Appender
@@ -19,27 +18,22 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
-from pandas.core.construction import extract_array
-from pandas.core.ops.array_ops import (
+from pandas.core.ops.array_ops import (  # noqa:F401
     arithmetic_op,
+    comp_method_OBJECT_ARRAY,
     comparison_op,
     get_array_op,
     logical_op,
 )
-from pandas.core.ops.array_ops import comp_method_OBJECT_ARRAY  # noqa:F401
-from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.common import unpack_zerodim_and_defer  # noqa:F401
 from pandas.core.ops.docstrings import (
-    _arith_doc_FRAME,
     _flex_comp_doc_FRAME,
-    _make_flex_doc,
     _op_descriptions,
+    make_flex_doc,
 )
 from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
 from pandas.core.ops.mask_ops import kleene_and, kleene_or, kleene_xor  # noqa: F401
-from pandas.core.ops.methods import (  # noqa:F401
-    add_flex_arithmetic_methods,
-    add_special_arithmetic_methods,
-)
+from pandas.core.ops.methods import add_flex_arithmetic_methods  # noqa:F401
 from pandas.core.ops.roperator import (  # noqa:F401
     radd,
     rand_,
@@ -145,29 +139,6 @@ def _maybe_match_name(a, b):
 
 
 # -----------------------------------------------------------------------------
-
-
-def _get_op_name(op, special: bool) -> str:
-    """
-    Find the name to attach to this method according to conventions
-    for special and non-special methods.
-
-    Parameters
-    ----------
-    op : binary operator
-    special : bool
-
-    Returns
-    -------
-    op_name : str
-    """
-    opname = op.__name__.strip("_")
-    if special:
-        opname = f"__{opname}__"
-    return opname
-
-
-# -----------------------------------------------------------------------------
 # Masking NA values and fallbacks for operations numpy does not support
 
 
@@ -213,74 +184,10 @@ def fill_binop(left, right, fill_value):
 
 
 # -----------------------------------------------------------------------------
-# Dispatch logic
-
-
-def dispatch_to_series(left, right, func, axis: Optional[int] = None):
-    """
-    Evaluate the frame operation func(left, right) by evaluating
-    column-by-column, dispatching to the Series implementation.
-
-    Parameters
-    ----------
-    left : DataFrame
-    right : scalar, Series, or DataFrame
-    func : arithmetic or comparison operator
-    axis : {None, 0, 1}
-
-    Returns
-    -------
-    DataFrame
-    """
-    # Get the appropriate array-op to apply to each column/block's values.
-    array_op = get_array_op(func)
-
-    right = lib.item_from_zerodim(right)
-    if not is_list_like(right):
-        # i.e. scalar, faster than checking np.ndim(right) == 0
-        bm = left._mgr.apply(array_op, right=right)
-        return type(left)(bm)
-
-    elif isinstance(right, ABCDataFrame):
-        assert left.index.equals(right.index)
-        assert left.columns.equals(right.columns)
-        # TODO: The previous assertion `assert right._indexed_same(left)`
-        #  fails in cases with empty columns reached via
-        #  _frame_arith_method_with_reindex
-
-        bm = left._mgr.operate_blockwise(right._mgr, array_op)
-        return type(left)(bm)
-
-    elif isinstance(right, ABCSeries) and axis == 1:
-        # axis=1 means we want to operate row-by-row
-        assert right.index.equals(left.columns)
-
-        right = right._values
-        # maybe_align_as_frame ensures we do not have an ndarray here
-        assert not isinstance(right, np.ndarray)
-
-        arrays = [array_op(l, r) for l, r in zip(left._iter_column_arrays(), right)]
-
-    elif isinstance(right, ABCSeries):
-        assert right.index.equals(left.index)  # Handle other cases later
-        right = right._values
-
-        arrays = [array_op(l, right) for l in left._iter_column_arrays()]
-
-    else:
-        # Remaining cases have less-obvious dispatch rules
-        raise NotImplementedError(right)
-
-    return type(left)._from_arrays(
-        arrays, left.columns, left.index, verify_integrity=False
-    )
-
-
-# -----------------------------------------------------------------------------
 # Series
 
 
-def _align_method_SERIES(left: "Series", right, align_asobject: bool = False):
+def align_method_SERIES(left: "Series", right, align_asobject: bool = False):
     """ align lhs and rhs Series """
     # ToDo: Different from align_method_FRAME, list, tuple and ndarray
     # are not coerced here
@@ -300,84 +207,9 @@ def _align_method_SERIES(left: "Series", right, align_asobject: bool = False):
     return left, right
 
 
-def arith_method_SERIES(cls, op, special):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    assert special  # non-special uses flex_method_SERIES
-    op_name = _get_op_name(op, special)
-
-    @unpack_zerodim_and_defer(op_name)
-    def wrapper(left, right):
-
-        left, right = _align_method_SERIES(left, right)
-        res_name = get_op_result_name(left, right)
-
-        lvalues = extract_array(left, extract_numpy=True)
-        rvalues = extract_array(right, extract_numpy=True)
-        result = arithmetic_op(lvalues, rvalues, op)
-
-        return left._construct_result(result, name=res_name)
-
-    wrapper.__name__ = op_name
-    return wrapper
-
-
-def comp_method_SERIES(cls, op, special):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    assert special  # non-special uses flex_method_SERIES
-    op_name = _get_op_name(op, special)
-
-    @unpack_zerodim_and_defer(op_name)
-    def wrapper(self, other):
-
-        res_name = get_op_result_name(self, other)
-
-        if isinstance(other, ABCSeries) and not self._indexed_same(other):
-            raise ValueError("Can only compare identically-labeled Series objects")
-
-        lvalues = extract_array(self, extract_numpy=True)
-        rvalues = extract_array(other, extract_numpy=True)
-
-        res_values = comparison_op(lvalues, rvalues, op)
-
-        return self._construct_result(res_values, name=res_name)
-
-    wrapper.__name__ = op_name
-    return wrapper
-
-
-def bool_method_SERIES(cls, op, special):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-    assert special  # non-special uses flex_method_SERIES
-    op_name = _get_op_name(op, special)
-
-    @unpack_zerodim_and_defer(op_name)
-    def wrapper(self, other):
-        self, other = _align_method_SERIES(self, other, align_asobject=True)
-        res_name = get_op_result_name(self, other)
-
-        lvalues = extract_array(self, extract_numpy=True)
-        rvalues = extract_array(other, extract_numpy=True)
-
-        res_values = logical_op(lvalues, rvalues, op)
-        return self._construct_result(res_values, name=res_name)
-
-    wrapper.__name__ = op_name
-    return wrapper
-
-
-def flex_method_SERIES(cls, op, special):
-    assert not special  # "special" also means "not flex"
-    name = _get_op_name(op, special)
-    doc = _make_flex_doc(name, "series")
+def flex_method_SERIES(op):
+    name = op.__name__.strip("_")
+    doc = make_flex_doc(name, "series")
 
     @Appender(doc)
     def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
@@ -385,13 +217,17 @@ def flex_method_SERIES(cls, op, special):
         if axis is not None:
             self._get_axis_number(axis)
 
+        res_name = get_op_result_name(self, other)
+
         if isinstance(other, ABCSeries):
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif isinstance(other, (np.ndarray, list, tuple)):
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index)
-            return self._binop(other, op, level=level, fill_value=fill_value)
+            result = self._binop(other, op, level=level, fill_value=fill_value)
+            result.name = res_name
+            return result
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)
@@ -498,7 +334,7 @@ def align_method_FRAME(
                     "Do `left, right = left.align(right, axis=1, copy=False)` "
                     "before e.g. `left == right`",
                     FutureWarning,
-                    stacklevel=3,
+                    stacklevel=5,
                 )
 
         left, right = left.align(
@@ -509,7 +345,7 @@ def align_method_FRAME(
     return left, right
 
 
-def _should_reindex_frame_op(
+def should_reindex_frame_op(
     left: "DataFrame", right, op, axis, default_axis, fill_value, level
 ) -> bool:
     """
@@ -535,7 +371,7 @@ def _should_reindex_frame_op(
     return False
 
 
-def _frame_arith_method_with_reindex(
+def frame_arith_method_with_reindex(
     left: "DataFrame", right: "DataFrame", op
 ) -> "DataFrame":
     """
@@ -604,26 +440,20 @@ def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int
     return type(frame)(rvalues, index=frame.index, columns=frame.columns)
 
 
-def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
-    # This is the only function where `special` can be either True or False
-    op_name = _get_op_name(op, special)
-    default_axis = None if special else "columns"
+def flex_arith_method_FRAME(op):
+    op_name = op.__name__.strip("_")
+    default_axis = "columns"
 
     na_op = get_array_op(op)
-
-    if op_name in _op_descriptions:
-        # i.e. include "add" but not "__add__"
-        doc = _make_flex_doc(op_name, "dataframe")
-    else:
-        doc = _arith_doc_FRAME % op_name
+    doc = make_flex_doc(op_name, "dataframe")
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
 
-        if _should_reindex_frame_op(
+        if should_reindex_frame_op(
             self, other, op, axis, default_axis, fill_value, level
         ):
-            return _frame_arith_method_with_reindex(self, other, op)
+            return frame_arith_method_with_reindex(self, other, op)
 
         if isinstance(other, ABCSeries) and fill_value is not None:
             # TODO: We could allow this in cases where we end up going
@@ -632,8 +462,6 @@ def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 
         axis = self._get_axis_number(axis) if axis is not None else 1
 
-        # TODO: why are we passing flex=True instead of flex=not special?
-        #  15 tests fail if we pass flex=not special instead
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):
@@ -641,13 +469,13 @@ def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
             new_data = self._combine_frame(other, na_op, fill_value)
 
         elif isinstance(other, ABCSeries):
-            new_data = dispatch_to_series(self, other, op, axis=axis)
+            new_data = self._dispatch_frame_op(other, op, axis=axis)
         else:
             # in this case we always have `np.ndim(other) == 0`
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            new_data = dispatch_to_series(self, other, op)
+            new_data = self._dispatch_frame_op(other, op)
 
         return self._construct_result(new_data)
 
@@ -656,9 +484,8 @@ def arith_method_FRAME(cls: Type["DataFrame"], op, special: bool):
     return f
 
 
-def flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
-    assert not special  # "special" also means "not flex"
-    op_name = _get_op_name(op, special)
+def flex_comp_method_FRAME(op):
+    op_name = op.__name__.strip("_")
     default_axis = "columns"  # because we are "flex"
 
     doc = _flex_comp_doc_FRAME.format(
@@ -671,26 +498,7 @@ def flex_comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
 
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
 
-        new_data = dispatch_to_series(self, other, op, axis=axis)
-        return self._construct_result(new_data)
-
-    f.__name__ = op_name
-
-    return f
-
-
-def comp_method_FRAME(cls: Type["DataFrame"], op, special: bool):
-    assert special  # "special" also means "not flex"
-    op_name = _get_op_name(op, special)
-
-    @Appender(f"Wrapper for comparison method {op_name}")
-    def f(self, other):
-        axis = 1  # only relevant for Series other case
-
-        self, other = align_method_FRAME(self, other, axis, level=None, flex=False)
-
-        # See GH#4537 for discussion of scalar op behavior
-        new_data = dispatch_to_series(self, other, op, axis=axis)
+        new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data)
 
     f.__name__ = op_name
