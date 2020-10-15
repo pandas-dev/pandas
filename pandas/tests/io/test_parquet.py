@@ -376,6 +376,11 @@ class TestBasic(Base):
         ]
         self.check_error_on_write(df, engine, ValueError)
 
+    def test_to_bytes_without_path_or_buf_provided(self):
+        # GH 37105
+        df = pd.DataFrame()
+        df.to_parquet()
+
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
     def test_compression(self, engine, compression):
 
