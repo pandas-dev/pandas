@@ -312,7 +312,7 @@ def align_method_FRAME(
 
     elif is_list_like(right) and not isinstance(right, (ABCSeries, ABCDataFrame)):
         # GH 36702. Raise when attempting arithmetic with list of array-like.
-        if any([is_array_like(el) for el in right]):
+        if any(is_array_like(el) for el in right):
             raise ValueError(
                 f"Unable to coerce list of {type(right[0])} " "to Series/DataFrame"
             )

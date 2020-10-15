@@ -1586,4 +1586,4 @@ def test_arith_list_of_arraylike_raise():
 
     msg = f"Unable to coerce list of {type(ser)} to Series/DataFrame"
     with pytest.raises(ValueError, match=msg):
-        result = df + [ser, ser]
+        df + [ser, ser]
