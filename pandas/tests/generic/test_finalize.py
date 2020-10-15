@@ -774,17 +774,27 @@ def test_categorical_accessor(method):
     "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
 )
 @pytest.mark.parametrize(
+    "method", [operator.methodcaller("sum"), lambda x: x.agg("sum")],
+)
+def test_groupby_finalize(obj, method):
+    obj.attrs = {"a": 1}
+    result = method(obj.groupby([0, 0]))
+    assert result.attrs == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
+)
+@pytest.mark.parametrize(
     "method",
     [
-        operator.methodcaller("sum"),
-        lambda x: x.agg("sum"),
         lambda x: x.agg(["sum", "count"]),
         lambda x: x.transform(lambda y: y),
         lambda x: x.apply(lambda y: y),
     ],
 )
 @not_implemented_mark
-def test_groupby(obj, method):
+def test_groupby_finalize_not_implemented(obj, method):
     obj.attrs = {"a": 1}
     result = method(obj.groupby([0, 0]))
     assert result.attrs == {"a": 1}
