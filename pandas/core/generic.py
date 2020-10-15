@@ -6837,6 +6837,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         **kwargs,
     ) -> Optional[FrameOrSeries]:
         """
+        Fill NaN values using an interpolation method.
+
         Please note that only ``method='linear'`` is supported for
         DataFrame/Series with a MultiIndex.
 
