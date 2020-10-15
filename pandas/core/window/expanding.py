@@ -1,5 +1,5 @@
 from textwrap import dedent
-from typing import Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 
@@ -140,12 +140,12 @@ class Expanding(RollingAndExpandingMixin):
     @Appender(_shared_docs["apply"])
     def apply(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         raw: bool = False,
         engine: Optional[str] = None,
         engine_kwargs: Optional[Dict[str, bool]] = None,
-        args: Optional[Tuple] = None,
-        kwargs: Optional[Dict] = None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         return super().apply(
             func,

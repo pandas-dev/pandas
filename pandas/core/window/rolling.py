@@ -8,6 +8,7 @@ import inspect
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Dict,
     List,
@@ -347,7 +348,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 # insert at the end
                 result[name] = extra_col
 
-    def _get_roll_func(self, func_name: str) -> Callable:
+    def _get_roll_func(self, func_name: str) -> Callable[..., Any]:
         """
         Wrap rolling function to check values passed.
 
@@ -431,7 +432,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
 
     def _apply(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         require_min_periods: int = 0,
         floor: int = 1,
         name: Optional[str] = None,
@@ -791,7 +792,7 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
 
     def _apply(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         require_min_periods: int = 0,
         floor: int = 1,
         name: Optional[str] = None,
@@ -1065,7 +1066,7 @@ class Window(BaseWindow):
         else:
             raise ValueError(f"Invalid window {window}")
 
-    def _get_win_type(self, kwargs: Dict) -> Union[str, Tuple]:
+    def _get_win_type(self, kwargs: Dict[str, Any]) -> Union[str, Tuple]:
         """
         Extract arguments for the window type, provide validation for it
         and return the validated window type.
@@ -1149,7 +1150,7 @@ class Window(BaseWindow):
 
     def _apply(
         self,
-        func: Callable,
+        func: Callable[[np.ndarray, int, int], np.ndarray],
         require_min_periods: int = 0,
         floor: int = 1,
         name: Optional[str] = None,
@@ -1391,12 +1392,12 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def apply(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         raw: bool = False,
         engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict] = None,
-        args: Optional[Tuple] = None,
-        kwargs: Optional[Dict] = None,
+        engine_kwargs: Optional[Dict[str, bool]] = None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         if args is None:
             args = ()
@@ -1427,8 +1428,12 @@ class RollingAndExpandingMixin(BaseWindow):
         )
 
     def _generate_cython_apply_func(
-        self, args: Tuple, kwargs: Dict, raw: bool, function: Callable
-    ) -> Callable:
+        self,
+        args: Tuple[Any, ...],
+        kwargs: Dict[str, Any],
+        raw: bool,
+        function: Callable[..., Any],
+    ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, int], np.ndarray]:
         from pandas import Series
 
         window_func = partial(
@@ -2266,7 +2271,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         GroupbyIndexer
         """
         rolling_indexer: Type[BaseIndexer]
-        indexer_kwargs: Optional[Dict] = None
+        indexer_kwargs: Optional[Dict[str, Any]] = None
         index_array = self._on.asi8
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
