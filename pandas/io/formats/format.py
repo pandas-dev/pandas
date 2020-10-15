@@ -1898,7 +1898,14 @@ def _trim_zeros_float(
     def is_number_with_decimal(x):
         return re.match(number_regex, x) is not None
 
-    def should_trim(values):
+    def should_trim(values: Union[np.ndarray, List[str]]) -> bool:
+        """
+        Determine if an array of strings should be trimmed.
+
+        Returns True if all numbers containing decimals (defined by the
+        above regular expression) within the array end in a zero, otherwise
+        returns False.
+        """
         numbers = [x for x in values if is_number_with_decimal(x)]
         return len(numbers) > 0 and all(x.endswith("0") for x in numbers)
 
