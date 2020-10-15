@@ -433,6 +433,7 @@ I/O
 - Bug in :meth:`to_json` with ``lines=True`` and ``orient='records'`` the last line of the record is not appended with 'new line character' (:issue:`36888`)
 - Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
 - Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
+- Bug in :class:`HDFStore` threw a ``TypeError`` when exporting an empty :class:`DataFrame` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
 
 Plotting
 ^^^^^^^^
@@ -460,6 +461,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.ffill` and :meth:`DataFrameGroupBy.bfill` where a ``NaN`` group would return filled values instead of ``NaN`` when ``dropna=True`` (:issue:`34725`)
 - Bug in :meth:`RollingGroupby.count` where a ``ValueError`` was raised when specifying the ``closed`` parameter (:issue:`35869`)
 - Bug in :meth:`DataFrame.groupby.rolling` returning wrong values with partial centered window (:issue:`36040`).
+- Bug in :meth:`DataFrameGroupBy.rolling` returned wrong values with timeaware window containing ``NaN``. Raises ``ValueError`` because windows are not monotonic now (:issue:`34617`)
 - Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
 
 Reshaping

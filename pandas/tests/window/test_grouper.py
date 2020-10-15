@@ -549,3 +549,20 @@ class TestGrouperGrouping:
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("rollings", "key"), [({"on": "a"}, "a"), ({"on": None}, "index")]
+    )
+    def test_groupby_rolling_nans_in_index(self, rollings, key):
+        # GH: 34617
+        df = pd.DataFrame(
+            {
+                "a": pd.to_datetime(["2020-06-01 12:00", "2020-06-01 14:00", np.nan]),
+                "b": [1, 2, 3],
+                "c": [1, 1, 1],
+            }
+        )
+        if key == "index":
+            df = df.set_index("a")
+        with pytest.raises(ValueError, match=f"{key} must be monotonic"):
+            df.groupby("c").rolling("60min", **rollings)
