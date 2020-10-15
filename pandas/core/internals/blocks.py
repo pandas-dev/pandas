@@ -10,7 +10,7 @@ from pandas._libs import NaT, algos as libalgos, internals as libinternals, lib,
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import ArrayLike, Scalar
+from pandas._typing import ArrayLike, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -2762,7 +2762,7 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     return values
 
 
-def safe_reshape(arr, new_shape):
+def safe_reshape(arr, new_shape: Shape):
     """
     If possible, reshape `arr` to have shape `new_shape`,
     with a couple of exceptions (see gh-13012):
