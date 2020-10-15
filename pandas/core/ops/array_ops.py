@@ -5,13 +5,13 @@ ExtensionArrays.
 from datetime import timedelta
 from functools import partial
 import operator
-from typing import Any, Tuple
+from typing import Any
 import warnings
 
 import numpy as np
 
 from pandas._libs import Timedelta, Timestamp, lib, ops as libops
-from pandas._typing import ArrayLike
+from pandas._typing import ArrayLike, Shape
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -427,7 +427,7 @@ def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
     return obj
 
 
-def _maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
+def _maybe_upcast_for_op(obj, shape: Shape):
     """
     Cast non-pandas objects to pandas types to unify behavior of arithmetic
     and comparison operations.
@@ -435,7 +435,7 @@ def _maybe_upcast_for_op(obj, shape: Tuple[int, ...]):
     Parameters
     ----------
     obj: object
-    shape : tuple[int]
+    shape : tuple[int] or int
 
     Returns
     -------
