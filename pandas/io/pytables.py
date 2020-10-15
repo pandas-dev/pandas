@@ -2978,7 +2978,7 @@ class GenericFixed(Fixed):
         elif is_datetime64tz_dtype(obj):
             value = obj.dt._get_values()
         else:
-            value = obj.values
+            value = obj.to_numpy()
 
         if key in self.group:
             self._handle.remove_node(self.group, key)
