@@ -3027,8 +3027,6 @@ class GenericFixed(Fixed):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
 
-        elif empty_array:
-            self.write_array_empty(key, value)
         elif is_datetime64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "datetime64"
@@ -3043,6 +3041,8 @@ class GenericFixed(Fixed):
         elif is_timedelta64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+        elif empty_array:
+            self.write_array_empty(key, value)
         else:
             self._handle.create_array(self.group, key, value)
 
