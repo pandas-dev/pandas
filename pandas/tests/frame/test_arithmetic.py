@@ -1581,7 +1581,7 @@ def test_arith_reindex_with_duplicates():
 
 def test_arith_list_of_arraylike_raise():
     # GH 36702. Raise when trying to add list of array-like to DataFrame
-    df = pd.DataFrame({'x': [1, 2], 'y': [1, 2]})
+    df = pd.DataFrame({"x": [1, 2], "y": [1, 2]})
     ser = pd.Series([1, 1])
 
     msg = f"Unable to coerce list of {type(ser)} to Series/DataFrame"
