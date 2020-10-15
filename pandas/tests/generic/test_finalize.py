@@ -774,11 +774,7 @@ def test_categorical_accessor(method):
     "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
 )
 @pytest.mark.parametrize(
-    "method",
-    [
-        operator.methodcaller("sum"),
-        lambda x: x.agg("sum"),
-    ],
+    "method", [operator.methodcaller("sum"), lambda x: x.agg("sum")],
 )
 def test_groupby_finalize(obj, method):
     obj.attrs = {"a": 1}
