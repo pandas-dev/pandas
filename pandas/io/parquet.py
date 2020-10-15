@@ -1,5 +1,6 @@
 """ parquet compat """
 
+import io
 from typing import Any, AnyStr, Dict, List, Optional
 from warnings import catch_warnings
 
@@ -238,7 +239,7 @@ class FastParquetImpl(BaseImpl):
 
 def to_parquet(
     df: DataFrame,
-    path: FilePathOrBuffer[AnyStr],
+    path: Optional[FilePathOrBuffer[AnyStr]] = None,
     engine: str = "auto",
     compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
@@ -302,6 +303,10 @@ def to_parquet(
     if isinstance(partition_cols, str):
         partition_cols = [partition_cols]
     impl = get_engine(engine)
+
+    if path is None:
+        path = io.BytesIO()
+
     return impl.write(
         df,
         path,
