@@ -788,15 +788,15 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return val, fmt
 
     @classmethod
-    def check_extension(cls, ext):
+    def check_extension(cls, ext: str):
         """
         checks that path's extension against the Writer's supported
         extensions.  If it isn't supported, raises UnsupportedFiletypeError.
         """
         if ext.startswith("."):
             ext = ext[1:]
-        # pandas\io\excel\_base.py:795: error: "Callable[[ExcelWriter], Any]"
-        # has no attribute "__iter__" (not iterable)  [attr-defined]
+        # error: "Callable[[ExcelWriter], Any]" has no attribute "__iter__"
+        #  (not iterable)  [attr-defined]
         if not any(
             ext in extension
             for extension in cls.supported_extensions  # type: ignore[attr-defined]

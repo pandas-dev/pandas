@@ -28,8 +28,8 @@ from pandas.core.ops.array_ops import (  # noqa:F401
 from pandas.core.ops.common import unpack_zerodim_and_defer  # noqa:F401
 from pandas.core.ops.docstrings import (
     _flex_comp_doc_FRAME,
-    _make_flex_doc,
     _op_descriptions,
+    make_flex_doc,
 )
 from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
 from pandas.core.ops.mask_ops import kleene_and, kleene_or, kleene_xor  # noqa: F401
@@ -209,7 +209,7 @@ def align_method_SERIES(left: "Series", right, align_asobject: bool = False):
 
 def flex_method_SERIES(op):
     name = op.__name__.strip("_")
-    doc = _make_flex_doc(name, "series")
+    doc = make_flex_doc(name, "series")
 
     @Appender(doc)
     def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
@@ -445,7 +445,7 @@ def flex_arith_method_FRAME(op):
     default_axis = "columns"
 
     na_op = get_array_op(op)
-    doc = _make_flex_doc(op_name, "dataframe")
+    doc = make_flex_doc(op_name, "dataframe")
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):

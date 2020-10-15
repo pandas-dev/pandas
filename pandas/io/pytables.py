@@ -565,9 +565,8 @@ class HDFStore:
     def root(self):
         """ return the root node """
         self._check_if_open()
-        # pandas\io\pytables.py:568: error: Item "None" of "Optional[Any]" has
-        # no attribute "root"  [union-attr]
-        return self._handle.root  # type: ignore[union-attr]
+        assert self._handle is not None  # for mypy
+        return self._handle.root
 
     @property
     def filename(self):
@@ -1395,6 +1394,8 @@ class HDFStore:
         """
         _tables()
         self._check_if_open()
+        assert self._handle is not None  # for mypy
+        assert _table_mod is not None  # for mypy
         return [
             g
             # pandas\io\pytables.py:1398: error: Item "None" of "Optional[Any]"
@@ -1450,9 +1451,10 @@ class HDFStore:
         """
         _tables()
         self._check_if_open()
-        # pandas\io\pytables.py:1440: error: Item "None" of "Optional[Any]" has
-        # no attribute "walk_groups"  [union-attr]
-        for g in self._handle.walk_groups(where):  # type: ignore[union-attr]
+        assert self._handle is not None  # for mypy
+        assert _table_mod is not None  # for mypy
+
+        for g in self._handle.walk_groups(where):
             if getattr(g._v_attrs, "pandas_type", None) is not None:
                 continue
 
@@ -1881,6 +1883,8 @@ class TableIterator:
     def __iter__(self):
         # iterate
         current = self.start
+        if self.coordinates is None:
+            raise ValueError("Cannot iterate until get_result is called.")
         while current < self.stop:
             stop = min(current + self.chunksize, self.stop)
             # pandas\io\pytables.py:1867: error: Value of type "None" is not
@@ -3042,8 +3046,6 @@ class GenericFixed(Fixed):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
 
-        elif empty_array:
-            self.write_array_empty(key, value)
         elif is_datetime64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "datetime64"
@@ -3058,6 +3060,8 @@ class GenericFixed(Fixed):
         elif is_timedelta64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+        elif empty_array:
+            self.write_array_empty(key, value)
         else:
             self._handle.create_array(self.group, key, value)
 
@@ -3219,7 +3223,7 @@ class Table(Fixed):
     pandas_kind = "wide_table"
     format_type: str = "table"  # GH#30962 needed by dask
     table_type: str
-    levels = 1
+    levels: Union[int, List[Label]] = 1
     is_table = True
 
     index_axes: List[IndexCol]
@@ -3315,7 +3319,9 @@ class Table(Fixed):
         """the levels attribute is 1 or a list in the case of a multi-index"""
         return isinstance(self.levels, list)
 
-    def validate_multiindex(self, obj):
+    def validate_multiindex(
+        self, obj: FrameOrSeriesUnion
+    ) -> Tuple[DataFrame, List[Label]]:
         """
         validate that we can store the multi-index; reset and return the
         new object
@@ -3324,11 +3330,13 @@ class Table(Fixed):
             l if l is not None else f"level_{i}" for i, l in enumerate(obj.index.names)
         ]
         try:
-            return obj.reset_index(), levels
+            reset_obj = obj.reset_index()
         except ValueError as err:
             raise ValueError(
                 "duplicate names/columns in the multi-index when storing as a table"
             ) from err
+        assert isinstance(reset_obj, DataFrame)  # for mypy
+        return reset_obj, levels
 
     @property
     def nrows_expected(self) -> int:
@@ -3456,12 +3464,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, "nan_rep", None)
         self.encoding = _ensure_encoding(getattr(self.attrs, "encoding", None))
         self.errors = _ensure_decoded(getattr(self.attrs, "errors", "strict"))
-        # pandas\io\pytables.py:3436: error: Incompatible types in assignment
-        # (expression has type "Union[Any, List[Any]]", variable has type
-        # "int")  [assignment]
-        self.levels = (
-            getattr(self.attrs, "levels", None) or []  # type: ignore[assignment]
-        )
+        self.levels: List[Label] = getattr(self.attrs, "levels", None) or []
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
@@ -4590,13 +4593,12 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
     def write(self, obj, **kwargs):
         """ we are going to write this as a frame table """
         name = obj.name or "values"
-        obj, self.levels = self.validate_multiindex(obj)
-        # pandas\io\pytables.py:4566: error: No overload variant of "list"
-        # matches argument type "int"  [call-overload]
-        cols = list(self.levels)  # type: ignore[call-overload]
+        newobj, self.levels = self.validate_multiindex(obj)
+        assert isinstance(self.levels, list)  # for mypy
+        cols = list(self.levels)
         cols.append(name)
-        obj.columns = cols
-        return super().write(obj=obj, **kwargs)
+        newobj.columns = Index(cols)
+        return super().write(obj=newobj, **kwargs)
 
 
 class GenericTable(AppendableFrameTable):
@@ -4606,6 +4608,7 @@ class GenericTable(AppendableFrameTable):
     table_type = "generic_table"
     ndim = 2
     obj_type = DataFrame
+    levels: List[Label]
 
     @property
     def pandas_type(self) -> str:
@@ -4642,7 +4645,7 @@ class GenericTable(AppendableFrameTable):
             name="index", axis=0, table=self.table, meta=meta, metadata=md
         )
 
-        _indexables = [index_col]
+        _indexables: List[Union[GenericIndexCol, GenericDataIndexableCol]] = [index_col]
 
         for i, n in enumerate(d._v_names):
             assert isinstance(n, str)
@@ -4688,10 +4691,8 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         elif data_columns is True:
             data_columns = obj.columns.tolist()
         obj, self.levels = self.validate_multiindex(obj)
-        # pandas\io\pytables.py:4655: error: "int" has no attribute "__iter__";
-        # maybe "__str__", "__int__", or "__invert__"? (not iterable)
-        # [attr-defined]
-        for n in self.levels:  # type: ignore[attr-defined]
+        assert isinstance(self.levels, list)  # for mypy
+        for n in self.levels:
             if n not in data_columns:
                 data_columns.insert(0, n)
         return super().write(obj=obj, data_columns=data_columns, **kwargs)
@@ -5212,7 +5213,7 @@ class Selection:
             start = 0
         elif start < 0:
             start += nrows
-        if self.stop is None:
+        if stop is None:
             stop = nrows
         # pandas\io\pytables.py:5173: error: Unsupported operand types for >
         # ("int" and "None")  [operator]

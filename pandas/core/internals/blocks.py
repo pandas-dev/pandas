@@ -6,8 +6,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import NaT, algos as libalgos, lib, writers
-import pandas._libs.internals as libinternals
+from pandas._libs import NaT, algos as libalgos, internals as libinternals, lib, writers
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
@@ -2008,11 +2007,7 @@ class NumericBlock(Block):
     _can_hold_na = True
 
 
-class FloatOrComplexBlock(NumericBlock):
-    __slots__ = ()
-
-
-class FloatBlock(FloatOrComplexBlock):
+class FloatBlock(NumericBlock):
     __slots__ = ()
     is_float = True
 
@@ -2020,13 +2015,13 @@ class FloatBlock(FloatOrComplexBlock):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, (np.floating, np.integer)) and not issubclass(
-                tipo.type, (np.datetime64, np.timedelta64)
+                tipo.type, np.timedelta64
             )
         return isinstance(
             element, (float, int, np.floating, np.int_)
         ) and not isinstance(
             element,
-            (bool, np.bool_, datetime, timedelta, np.datetime64, np.timedelta64),
+            (bool, np.bool_, np.timedelta64),
         )
 
     def to_native_types(
@@ -2063,7 +2058,7 @@ class FloatBlock(FloatOrComplexBlock):
         return self.make_block(res)
 
 
-class ComplexBlock(FloatOrComplexBlock):
+class ComplexBlock(NumericBlock):
     __slots__ = ()
     is_complex = True
 
@@ -2086,7 +2081,7 @@ class IntBlock(NumericBlock):
         if tipo is not None:
             return (
                 issubclass(tipo.type, np.integer)
-                and not issubclass(tipo.type, (np.datetime64, np.timedelta64))
+                and not issubclass(tipo.type, np.timedelta64)
                 and self.dtype.itemsize >= tipo.itemsize
             )
         # We have not inferred an integer from the dtype
