@@ -1273,6 +1273,32 @@ class TestDataFrameReductions:
         tm.assert_series_equal(result, expected)
 
 
+def test_sum_timedelta64_skipna_false():
+    # GH#17235
+    arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
+    arr[-1, -1] = "Nat"
+
+    df = pd.DataFrame(arr)
+
+    result = df.sum(skipna=False)
+    expected = pd.Series([pd.Timedelta(seconds=12), pd.NaT])
+    tm.assert_series_equal(result, expected)
+
+    result = df.sum(axis=0, skipna=False)
+    tm.assert_series_equal(result, expected)
+
+    result = df.sum(axis=1, skipna=False)
+    expected = pd.Series(
+        [
+            pd.Timedelta(seconds=1),
+            pd.Timedelta(seconds=5),
+            pd.Timedelta(seconds=9),
+            pd.NaT,
+        ]
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = pd.DataFrame([["a", 1]], columns=list("ab"))

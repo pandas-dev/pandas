@@ -381,15 +381,15 @@ class TimedeltaArray(dtl.TimelikeOps):
         nv.validate_sum(
             (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
         )
-        if not len(self):
-            return NaT
-        if not skipna and self._hasnans:
+        if not self.size and (self.ndim == 1 or axis is None):
             return NaT
 
         result = nanops.nansum(
             self._data, axis=axis, skipna=skipna, min_count=min_count
         )
-        return Timedelta(result)
+        if is_scalar(result):
+            return Timedelta(result)
+        return self._from_backing_data(result)
 
     def std(
         self,
