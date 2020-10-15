@@ -2968,7 +2968,7 @@ class GenericFixed(Fixed):
         node._v_attrs.value_type = str(value.dtype)
         node._v_attrs.shape = value.shape
 
-    def write_array(self, key: str, obj, items: Optional[Index] = None):
+    def write_array(self, key: str, obj: Series, items: Optional[Index] = None):
         # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
