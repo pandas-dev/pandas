@@ -314,7 +314,7 @@ def align_method_FRAME(
         # GH 36702. Raise when attempting arithmetic with list of array-like.
         if any(is_array_like(el) for el in right):
             raise ValueError(
-                f"Unable to coerce list of {type(right[0])} " "to Series/DataFrame"
+                f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
             )
         # GH17901
         right = to_series(right)
