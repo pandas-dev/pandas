@@ -448,8 +448,9 @@ def infer_compression(
     if compression in _compression_to_extension:
         return compression
 
-    # error: Unsupported operand types for + ("List[Optional[str]]" and "List[str]")  [operator]
-    valid = ["infer", None] + sorted(_compression_to_extension)  # type: ignore[operator]
+    # Unsupported operand types for + ("List[Optional[str]]" and "List[str]") [operator]
+    valid = ["infer", None] + \
+        sorted(_compression_to_extension)  # type: ignore[operator]
     msg = (
         f"Unrecognized compression type: {compression}\n"
         f"Valid compression types are {valid}"
