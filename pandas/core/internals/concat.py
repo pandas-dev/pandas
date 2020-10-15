@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 import numpy as np
 
 from pandas._libs import NaT, internals as libinternals
-from pandas._typing import DtypeObj
+from pandas._typing import DtypeObj, Shape
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -175,7 +175,7 @@ def _get_mgr_concatenation_plan(mgr, indexers):
 
 
 class JoinUnit:
-    def __init__(self, block, shape, indexers=None):
+    def __init__(self, block, shape: Shape, indexers=None):
         # Passing shape explicitly is required for cases when block is None.
         if indexers is None:
             indexers = {}
