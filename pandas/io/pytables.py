@@ -1398,24 +1398,13 @@ class HDFStore:
         assert _table_mod is not None  # for mypy
         return [
             g
-            # pandas\io\pytables.py:1398: error: Item "None" of "Optional[Any]"
-            # has no attribute "walk_groups"  [union-attr]
-            for g in self._handle.walk_groups()  # type: ignore[union-attr]
+            for g in self._handle.walk_groups()
             if (
-                # pandas\io\pytables.py:1400: error: Item "None" of
-                # "Optional[Any]" has no attribute "link"  [union-attr]
-                not isinstance(g, _table_mod.link.Link)  # type: ignore[union-attr]
+                not isinstance(g, _table_mod.link.Link)
                 and (
                     getattr(g._v_attrs, "pandas_type", None)
                     or getattr(g, "table", None)
-                    # pandas\io\pytables.py:1404: error: Item "None" of
-                    # "Optional[Any]" has no attribute "table"  [union-attr]
-                    or (
-                        isinstance(
-                            g, _table_mod.table.Table  # type: ignore[union-attr]
-                        )
-                        and g._v_name != "table"
-                    )
+                    or (isinstance(g, _table_mod.table.Table) and g._v_name != "table")
                 )
             )
         ]
@@ -1463,11 +1452,7 @@ class HDFStore:
             for child in g._v_children.values():
                 pandas_type = getattr(child._v_attrs, "pandas_type", None)
                 if pandas_type is None:
-                    # pandas\io\pytables.py:1449: error: Item "None" of
-                    # "Optional[Any]" has no attribute "group"  [union-attr]
-                    if isinstance(
-                        child, _table_mod.group.Group  # type: ignore[union-attr]
-                    ):
+                    if isinstance(child, _table_mod.group.Group):
                         groups.append(child._v_name)
                 else:
                     leaves.append(child._v_name)
@@ -1887,11 +1872,7 @@ class TableIterator:
             raise ValueError("Cannot iterate until get_result is called.")
         while current < self.stop:
             stop = min(current + self.chunksize, self.stop)
-            # pandas\io\pytables.py:1867: error: Value of type "None" is not
-            # indexable  [index]
-            value = self.func(
-                None, None, self.coordinates[current:stop]  # type: ignore[index]
-            )
+            value = self.func(None, None, self.coordinates[current:stop])
             current = stop
             if value is None or not len(value):
                 continue
@@ -4622,10 +4603,7 @@ class GenericTable(AppendableFrameTable):
         """ retrieve our attributes """
         self.non_index_axes = []
         self.nan_rep = None
-        # pandas\io\pytables.py:4592: error: Incompatible types in assignment
-        # (expression has type "List[<nothing>]", variable has type "int")
-        # [assignment]
-        self.levels = []  # type: ignore[assignment]
+        self.levels = []
 
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
@@ -4662,10 +4640,7 @@ class GenericTable(AppendableFrameTable):
                 meta=meta,
                 metadata=md,
             )
-            # pandas\io\pytables.py:4629: error: Argument 1 to "append" of
-            # "list" has incompatible type "GenericDataIndexableCol"; expected
-            # "GenericIndexCol"  [arg-type]
-            _indexables.append(dc)  # type: ignore[arg-type]
+            _indexables.append(dc)
 
         return _indexables
 
@@ -5215,9 +5190,7 @@ class Selection:
             start += nrows
         if stop is None:
             stop = nrows
-        # pandas\io\pytables.py:5173: error: Unsupported operand types for >
-        # ("int" and "None")  [operator]
-        elif stop < 0:  # type: ignore[operator]
+        elif stop < 0:
             stop += nrows
 
         if self.condition is not None:

@@ -593,9 +593,7 @@ class IndexOpsMixin(OpsMixin):
         array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
               dtype='datetime64[ns]')
         """
-        # pandas\core\base.py:836: error: "IndexOpsMixin" has no attribute
-        # "dtype"  [attr-defined]
-        if is_extension_array_dtype(self.dtype):  # type: ignore[attr-defined]
+        if is_extension_array_dtype(self.dtype):
             # pandas\core\base.py:837: error: Too many arguments for "to_numpy"
             # of "ExtensionArray"  [call-arg]
             return self.array.to_numpy(  # type: ignore[call-arg]
@@ -889,13 +887,18 @@ class IndexOpsMixin(OpsMixin):
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
 
-            # pandas\core\base.py:1122: error: "IndexOpsMixin" has no attribute
-            # "dtype"  [attr-defined]
-            if is_categorical_dtype(self.dtype):  # type: ignore[attr-defined]
+            if is_categorical_dtype(self.dtype):
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
-                self = cast("Categorical", self)
-                return self._values.map(mapper)
+
+                # pandas\core\base.py:893: error: Incompatible types in
+                # assignment (expression has type "Categorical", variable has
+                # type "IndexOpsMixin")  [assignment]
+                self = cast("Categorical", self)  # type: ignore[assignment]
+                # pandas\core\base.py:894: error: Item "ExtensionArray" of
+                # "Union[ExtensionArray, Any]" has no attribute "map"
+                # [union-attr]
+                return self._values.map(mapper)  # type: ignore[union-attr]
 
             values = self._values
 
@@ -906,11 +909,7 @@ class IndexOpsMixin(OpsMixin):
 
         # we must convert to python types
 
-        # pandas\core\base.py:1135: error: "IndexOpsMixin" has no attribute
-        # "dtype"  [attr-defined]
-        if is_extension_array_dtype(
-            self.dtype  # type: ignore[attr-defined]
-        ) and hasattr(self._values, "map"):
+        if is_extension_array_dtype(self.dtype) and hasattr(self._values, "map"):
             # GH#23179 some EAs do not have `map`
             values = self._values
             if na_action is not None:
@@ -1040,16 +1039,7 @@ class IndexOpsMixin(OpsMixin):
 
         if not isinstance(values, np.ndarray):
             result = values.unique()
-            # pandas\core\base.py:1258: error: "IndexOpsMixin" has no attribute
-            # "dtype"  [attr-defined]
-            if (
-                self.dtype.kind  # type: ignore[attr-defined]
-                in [
-                    "m",
-                    "M",
-                ]
-                and isinstance(self, ABCSeries)
-            ):
+            if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
                 if getattr(self.dtype, "tz", None) is None:
                     result = np.asarray(result)

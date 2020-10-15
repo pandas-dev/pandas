@@ -279,9 +279,7 @@ class MPLPlot:
         self._make_legend()
         self._adorn_subplots()
 
-        # pandas\plotting\_matplotlib\core.py:280: error: "None" has no
-        # attribute "__iter__" (not iterable)  [attr-defined]
-        for ax in self.axes:  # type: ignore[attr-defined]
+        for ax in self.axes:
             self._post_plot_logic_common(ax, self.data)
             self._post_plot_logic(ax, self.data)
 
@@ -371,9 +369,7 @@ class MPLPlot:
         """
         if self.subplots:
             if self.layout is not None and not is_list_like(self.ax):
-                # pandas\plotting\_matplotlib\core.py:370: error: "None" has no
-                # attribute "reshape"  [attr-defined]
-                return self.axes.reshape(*self.layout)  # type: ignore[attr-defined]
+                return self.axes.reshape(*self.layout)
             else:
                 return self.axes
         else:
@@ -383,16 +379,9 @@ class MPLPlot:
             )
             if sec_true or all_sec:
                 # if all data is plotted on secondary, return right axes
-
-                # pandas\plotting\_matplotlib\core.py:380: error: Value of type
-                # "None" is not indexable  [index]
-                return self._get_ax_layer(
-                    self.axes[0], primary=False  # type: ignore[index]
-                )
+                return self._get_ax_layer(self.axes[0], primary=False)
             else:
-                # pandas\plotting\_matplotlib\core.py:382: error: Value of type
-                # "None" is not indexable  [index]
-                return self.axes[0]  # type: ignore[index]
+                return self.axes[0]
 
     def _compute_plot_data(self):
         data = self.data
@@ -479,9 +468,7 @@ class MPLPlot:
 
     def _adorn_subplots(self):
         """Common post process unrelated to data"""
-        # pandas\plotting\_matplotlib\core.py:469: error: Argument 1 to "len"
-        # has incompatible type "None"; expected "Sized"  [arg-type]
-        if len(self.axes) > 0:  # type: ignore[arg-type]
+        if len(self.axes) > 0:
             all_axes = self._get_subplots()
             nrows, ncols = self._get_axes_layout()
             handle_shared_axes(
@@ -494,9 +481,7 @@ class MPLPlot:
                 sharey=self.sharey,
             )
 
-        # pandas\plotting\_matplotlib\core.py:482: error: "None" has no
-        # attribute "__iter__" (not iterable)  [attr-defined]
-        for ax in self.axes:  # type: ignore[attr-defined]
+        for ax in self.axes:
             if self.yticks is not None:
                 ax.set_yticks(self.yticks)
 
@@ -528,12 +513,7 @@ class MPLPlot:
                             f"number of columns = {self.nseries}"
                         )
 
-                    # pandas\plotting\_matplotlib\core.py:514: error: No
-                    # overload variant of "zip" matches argument types "None",
-                    # "Any"  [call-overload]
-                    for (ax, title) in zip(
-                        self.axes, self.title  # type: ignore[call-overload]
-                    ):
+                    for (ax, title) in zip(self.axes, self.title):
                         ax.set_title(title)
                 else:
                     self.fig.suptitle(self.title)
@@ -544,9 +524,7 @@ class MPLPlot:
                         "unless `subplots=True` is passed"
                     )
                     raise ValueError(msg)
-                # pandas\plotting\_matplotlib\core.py:525: error: Value of type
-                # "None" is not indexable  [index]
-                self.axes[0].set_title(self.title)  # type: ignore[index]
+                self.axes[0].set_title(self.title)
 
     def _apply_axis_properties(self, axis: "Axis", rot=None, fontsize=None):
         """
@@ -584,11 +562,7 @@ class MPLPlot:
             self.legend_labels.append(label)
 
     def _make_legend(self):
-        # pandas\plotting\_matplotlib\core.py:563: error: Value of type "None"
-        # is not indexable  [index]
-        ax, leg, handle = self._get_ax_legend_handle(
-            self.axes[0]  # type: ignore[index]
-        )
+        ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
 
         handles = []
         labels = []
@@ -628,9 +602,7 @@ class MPLPlot:
                 ax.legend(handles, labels, loc="best", title=title)
 
         elif self.subplots and self.legend:
-            # pandas\plotting\_matplotlib\core.py:591: error: "None" has no
-            # attribute "__iter__" (not iterable)  [attr-defined]
-            for ax in self.axes:  # type: ignore[attr-defined]
+            for ax in self.axes:
                 if ax.get_visible():
                     ax.legend(loc="best")
 
@@ -742,17 +714,11 @@ class MPLPlot:
     def _get_ax(self, i: int):
         # get the twinx ax if appropriate
         if self.subplots:
-            # pandas\plotting\_matplotlib\core.py:703: error: Value of type
-            # "None" is not indexable  [index]
-            ax = self.axes[i]  # type: ignore[index]
+            ax = self.axes[i]
             ax = self._maybe_right_yaxis(ax, i)
-            # pandas\plotting\_matplotlib\core.py:705: error: Unsupported
-            # target for indexed assignment ("None")  [index]
-            self.axes[i] = ax  # type: ignore[index]
+            self.axes[i] = ax
         else:
-            # pandas\plotting\_matplotlib\core.py:707: error: Value of type
-            # "None" is not indexable  [index]
-            ax = self.axes[0]  # type: ignore[index]
+            ax = self.axes[0]
             ax = self._maybe_right_yaxis(ax, i)
 
         ax.get_yaxis().set_visible(True)
@@ -923,11 +889,7 @@ class MPLPlot:
         from matplotlib.axes import Subplot
 
         return [
-            # pandas\plotting\_matplotlib\core.py:878: error: Value of type
-            # "None" is not indexable  [index]
-            ax
-            for ax in self.axes[0].get_figure().get_axes()  # type: ignore[index]
-            if isinstance(ax, Subplot)
+            ax for ax in self.axes[0].get_figure().get_axes() if isinstance(ax, Subplot)
         ]
 
     def _get_axes_layout(self) -> Tuple[int, int]:
@@ -1036,9 +998,7 @@ class ScatterPlot(PlanePlot):
 
     def _make_plot(self):
         x, y, c, data = self.x, self.y, self.c, self.data
-        # pandas\plotting\_matplotlib\core.py:985: error: Value of type "None"
-        # is not indexable  [index]
-        ax = self.axes[0]  # type: ignore[index]
+        ax = self.axes[0]
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
@@ -1103,9 +1063,7 @@ class HexBinPlot(PlanePlot):
 
     def _make_plot(self):
         x, y, data, C = self.x, self.y, self.data, self.C
-        # pandas\plotting\_matplotlib\core.py:1050: error: Value of type "None"
-        # is not indexable  [index]
-        ax = self.axes[0]  # type: ignore[index]
+        ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
         cmap = self.plt.cm.get_cmap(cmap)

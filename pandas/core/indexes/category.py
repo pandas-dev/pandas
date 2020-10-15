@@ -547,12 +547,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 "method='nearest' not implemented yet for CategoricalIndex"
             )
 
-        # pandas\core\indexes\category.py:547: error: Item "ExtensionArray" of
-        # "Union[ExtensionArray, Any]" has no attribute "_validate_listlike"
-        # [union-attr]
-        codes = self._values._validate_listlike(  # type: ignore[union-attr]
-            target._values
-        )
+        codes = self._values._validate_listlike(target._values)
         indexer, _ = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer)
 
@@ -560,12 +555,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     def get_indexer_non_unique(self, target):
         target = ibase.ensure_index(target)
 
-        # pandas\core\indexes\category.py:555: error: Item "ExtensionArray" of
-        # "Union[ExtensionArray, Any]" has no attribute "_validate_listlike"
-        # [union-attr]
-        codes = self._values._validate_listlike(  # type: ignore[union-attr]
-            target._values
-        )
+        codes = self._values._validate_listlike(target._values)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer), missing
 
@@ -671,9 +661,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        # pandas\core\indexes\category.py:661: error: Item "ExtensionArray" of
-        # "Union[ExtensionArray, Any]" has no attribute "map"  [union-attr]
-        mapped = self._values.map(mapper)  # type: ignore[union-attr]
+        mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
     def delete(self, loc):

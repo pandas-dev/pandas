@@ -3824,7 +3824,12 @@ class DataFrame(NDFrame, OpsMixin):
                     value, len(self.index), infer_dtype
                 )
             else:
-                value = cast_scalar_to_array(len(self.index), value)
+                # pandas\core\frame.py:3827: error: Argument 1 to
+                # "cast_scalar_to_array" has incompatible type "int"; expected
+                # "Tuple[Any, ...]"  [arg-type]
+                value = cast_scalar_to_array(
+                    len(self.index), value  # type: ignore[arg-type]
+                )
 
             value = maybe_cast_to_datetime(value, infer_dtype)
 
