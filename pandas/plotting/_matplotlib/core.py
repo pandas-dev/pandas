@@ -82,6 +82,8 @@ class MPLPlot:
     _default_rot = 0
     orientation: Optional[str] = None
 
+    axes: np.ndarray  # of Axes objects
+
     def __init__(
         self,
         data,
@@ -177,7 +179,7 @@ class MPLPlot:
 
         self.ax = ax
         self.fig = fig
-        self.axes = None
+        self.axes = np.array([], dtype=object)  # "real" version get set in `generate`
 
         # parse errorbar input if given
         xerr = kwds.pop("xerr", None)
@@ -697,7 +699,7 @@ class MPLPlot:
         else:
             return getattr(ax, "right_ax", ax)
 
-    def _get_ax(self, i):
+    def _get_ax(self, i: int):
         # get the twinx ax if appropriate
         if self.subplots:
             ax = self.axes[i]
@@ -922,8 +924,10 @@ class PlanePlot(MPLPlot):
 
     def _post_plot_logic(self, ax: "Axes", data):
         x, y = self.x, self.y
-        ax.set_ylabel(pprint_thing(y))
-        ax.set_xlabel(pprint_thing(x))
+        xlabel = self.xlabel if self.xlabel is not None else pprint_thing(x)
+        ylabel = self.ylabel if self.ylabel is not None else pprint_thing(y)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
 
     def _plot_colorbar(self, ax: "Axes", **kwds):
         # Addresses issues #10611 and #10678:
