@@ -1,7 +1,7 @@
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 
@@ -16,6 +16,10 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 import pandas.core.common as common
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
 from pandas.core.window.rolling import BaseWindow, flex_binary_moment
+
+if TYPE_CHECKING:
+    from pandas import Series
+
 
 _bias_template = """
         Parameters
@@ -58,6 +62,15 @@ def get_center_of_mass(
         raise ValueError("Must pass one of comass, span, halflife, or alpha")
 
     return float(comass)
+
+
+def wrap_result(obj: "Series", result: np.ndarray) -> "Series":
+    """
+    Wrap a single 1D result.
+    """
+    obj = obj._selected_obj
+
+    return obj._constructor(result, obj.index, name=obj.name)
 
 
 class ExponentialMovingWindow(BaseWindow):
@@ -413,7 +426,7 @@ class ExponentialMovingWindow(BaseWindow):
                 self.min_periods,
                 bias,
             )
-            return X._wrap_result(cov)
+            return wrap_result(X, cov)
 
         return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
@@ -467,7 +480,7 @@ class ExponentialMovingWindow(BaseWindow):
                 x_var = _cov(x_values, x_values)
                 y_var = _cov(y_values, y_values)
                 corr = cov / zsqrt(x_var * y_var)
-            return X._wrap_result(corr)
+            return wrap_result(X, corr)
 
         return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
