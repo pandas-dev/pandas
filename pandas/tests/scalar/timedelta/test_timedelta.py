@@ -160,110 +160,119 @@ class TestTimedeltas:
         assert result.astype("int64") == iNaT
 
     @pytest.mark.parametrize(
-        "units, np_unit",
-        [
-            (["W", "w"], "W"),
-            (["D", "d", "days", "day", "Days", "Day"], "D"),
-            (
-                ["m", "minute", "min", "minutes", "t", "Minute", "Min", "Minutes", "T"],
+        "unit, np_unit, warning",
+        [(value, "W", False) for value in ["W", "w"]]
+        + [(value, "D", False) for value in ["D", "d", "days", "day", "Days", "Day"]]
+        + [
+            (value, "m", FutureWarning if value == "m" else False)
+            for value in [
                 "m",
-            ),
-            (["s", "seconds", "sec", "second", "S", "Seconds", "Sec", "Second"], "s"),
-            (
-                [
-                    "ms",
-                    "milliseconds",
-                    "millisecond",
-                    "milli",
-                    "millis",
-                    "l",
-                    "MS",
-                    "Milliseconds",
-                    "Millisecond",
-                    "Milli",
-                    "Millis",
-                    "L",
-                ],
+                "minute",
+                "min",
+                "minutes",
+                "t",
+                "Minute",
+                "Min",
+                "Minutes",
+                "T",
+            ]
+        ]
+        + [
+            (value, "s", False)
+            for value in [
+                "s",
+                "seconds",
+                "sec",
+                "second",
+                "S",
+                "Seconds",
+                "Sec",
+                "Second",
+            ]
+        ]
+        + [
+            (value, "ms", False)
+            for value in [
                 "ms",
-            ),
-            (
-                [
-                    "us",
-                    "microseconds",
-                    "microsecond",
-                    "micro",
-                    "micros",
-                    "u",
-                    "US",
-                    "Microseconds",
-                    "Microsecond",
-                    "Micro",
-                    "Micros",
-                    "U",
-                ],
+                "milliseconds",
+                "millisecond",
+                "milli",
+                "millis",
+                "l",
+                "MS",
+                "Milliseconds",
+                "Millisecond",
+                "Milli",
+                "Millis",
+                "L",
+            ]
+        ]
+        + [
+            (value, "us", False)
+            for value in [
                 "us",
-            ),
-            (
-                [
-                    "ns",
-                    "nanoseconds",
-                    "nanosecond",
-                    "nano",
-                    "nanos",
-                    "n",
-                    "NS",
-                    "Nanoseconds",
-                    "Nanosecond",
-                    "Nano",
-                    "Nanos",
-                    "N",
-                ],
+                "microseconds",
+                "microsecond",
+                "micro",
+                "micros",
+                "u",
+                "US",
+                "Microseconds",
+                "Microsecond",
+                "Micro",
+                "Micros",
+                "U",
+            ]
+        ]
+        + [
+            (value, "ns", False)
+            for value in [
                 "ns",
-            ),
+                "nanoseconds",
+                "nanosecond",
+                "nano",
+                "nanos",
+                "n",
+                "NS",
+                "Nanoseconds",
+                "Nanosecond",
+                "Nano",
+                "Nanos",
+                "N",
+            ]
         ],
     )
     @pytest.mark.parametrize("wrapper", [np.array, list, pd.Index])
-    def test_unit_parser(self, units, np_unit, wrapper):
+    def test_unit_parser(self, unit, np_unit, wrapper, warning):
         # validate all units, GH 6855, GH 21762
-        for unit in units:
-            # array-likes
-            expected = TimedeltaIndex(
-                [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()]
-            )
-            result = to_timedelta(wrapper(range(5)), unit=unit)
-            tm.assert_index_equal(result, expected)
-            result = TimedeltaIndex(wrapper(range(5)), unit=unit)
-            tm.assert_index_equal(result, expected)
+        # array-likes
+        expected = TimedeltaIndex(
+            [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()]
+        )
+        result = to_timedelta(wrapper(range(5)), unit=unit)
+        tm.assert_index_equal(result, expected)
+        result = TimedeltaIndex(wrapper(range(5)), unit=unit)
+        tm.assert_index_equal(result, expected)
 
-            if unit == "M":
-                # M is treated as minutes in string repr
-                expected = TimedeltaIndex(
-                    [np.timedelta64(i, "m") for i in np.arange(5).tolist()]
-                )
-
-            str_repr = [f"{x}{unit}" for x in np.arange(5)]
+        str_repr = [f"{x}{unit}" for x in np.arange(5)]
+        with tm.assert_produces_warning(warning):
             result = to_timedelta(wrapper(str_repr))
-            tm.assert_index_equal(result, expected)
-            result = TimedeltaIndex(wrapper(str_repr))
-            tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
+        result = TimedeltaIndex(wrapper(str_repr))
+        tm.assert_index_equal(result, expected)
 
-            # scalar
-            expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
+        # scalar
+        expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
+        result = to_timedelta(2, unit=unit)
+        assert result == expected
+        result = Timedelta(2, unit=unit)
+        assert result == expected
 
-            result = to_timedelta(2, unit=unit)
-            assert result == expected
-            result = Timedelta(2, unit=unit)
-            assert result == expected
-
-            if unit == "M":
-                expected = Timedelta(np.timedelta64(2, "m").astype("timedelta64[ns]"))
-
-            warning = None if unit != "m" else FutureWarning
-            with tm.assert_produces_warning(warning):
-                result = to_timedelta(f"2{unit}")
-            assert result == expected
-            result = Timedelta(f"2{unit}")
-            assert result == expected
+        with tm.assert_produces_warning(warning):
+            result = to_timedelta(f"2{unit}")
+        assert result == expected
+        result = Timedelta(f"2{unit}")
+        assert result == expected
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
