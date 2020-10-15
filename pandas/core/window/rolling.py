@@ -120,8 +120,6 @@ def calculate_min_periods(
         raise ValueError(f"min_periods {min_periods} must be <= window {window}")
     elif min_periods > num_values:
         min_periods = num_values + 1
-    elif min_periods < 0:
-        raise ValueError("min_periods must be >= 0")
     return max(min_periods, floor)
 
 
@@ -201,8 +199,11 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
-        if self.min_periods is not None and not is_integer(self.min_periods):
-            raise ValueError("min_periods must be an integer")
+        if self.min_periods is not None:
+            if not is_integer(self.min_periods):
+                raise ValueError("min_periods must be an integer")
+            elif self.min_periods < 0:
+                raise ValueError("min_periods must be >= 0")
         if self.closed is not None and self.closed not in [
             "right",
             "both",

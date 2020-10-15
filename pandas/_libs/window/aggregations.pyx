@@ -1093,8 +1093,6 @@ cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
                          f"window (win)")
     elif minp > in_n:
         minp = in_n + 1
-    elif minp < 0:
-        raise ValueError('min_periods must be >= 0')
 
     minp = max(minp, 1)
 
