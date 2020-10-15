@@ -1146,7 +1146,6 @@ class Window(BaseWindow):
     def _apply(
         self,
         func: Callable[[np.ndarray, int, int], np.ndarray],
-        require_min_periods: int = 0,
         floor: int = 1,
         name: Optional[str] = None,
         use_numba_cache: bool = False,
