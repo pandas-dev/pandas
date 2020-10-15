@@ -134,7 +134,7 @@ def is_nested_object(obj) -> bool:
     return False
 
 
-def maybe_downcast_to_dtype(result, dtype: Dtype):
+def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
