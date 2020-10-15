@@ -1,8 +1,9 @@
-from typing import Any, Sequence, Tuple, TypeVar
+from typing import Any, Sequence, TypeVar
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
@@ -84,7 +85,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # TODO: make this a cache_readonly; for that to work we need to remove
     #  the _index_data kludge in libreduction
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         return self._ndarray.shape
 
     def __len__(self) -> int:
