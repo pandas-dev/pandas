@@ -433,6 +433,7 @@ I/O
 - Bug in :meth:`to_json` with ``lines=True`` and ``orient='records'`` the last line of the record is not appended with 'new line character' (:issue:`36888`)
 - Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
 - Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
+- Bug in :class:`HDFStore` threw a ``TypeError`` when exporting an empty :class:`DataFrame` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
 
 Plotting
 ^^^^^^^^
