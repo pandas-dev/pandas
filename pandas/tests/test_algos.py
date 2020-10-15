@@ -2411,12 +2411,12 @@ class TestDiff:
     def test_diff_datetimelike_nat(self):
         # NaT - NaT is NaT, not 0
         arr = np.arange(12).astype(np.int64).view("datetime64[ns]").reshape(3, 4)
-        arr[:, 2] = "NaT"
+        arr[:, 2] = np.datetime64("NaT", "ns")
         result = algos.diff(arr, 1, axis=0)
 
         expected = np.ones(arr.shape, dtype="timedelta64[ns]") * 4
-        expected[:, 2] = "NaT"
-        expected[0, :] = "NaT"
+        expected[:, 2] = np.timedelta64("NaT", "ns")
+        expected[0, :] = np.timedelta64("NaT", "ns")
 
         tm.assert_numpy_array_equal(result, expected)
 
