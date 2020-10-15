@@ -1088,9 +1088,6 @@ cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
     if avg:
         tot_wgt = np.zeros(in_n, dtype=np.float64)
 
-    if minp > win_n:
-        raise ValueError(f"min_periods (minp) must be <= "
-                         f"window (win)")
     elif minp > in_n:
         minp = in_n + 1
 
