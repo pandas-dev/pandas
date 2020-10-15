@@ -94,7 +94,6 @@ def calculate_min_periods(
     window: int,
     min_periods: Optional[int],
     num_values: int,
-    required_min_periods: int,
     floor: int,
 ) -> int:
     """
@@ -105,7 +104,6 @@ def calculate_min_periods(
     window : passed window value
     min_periods : passed min periods value
     num_values : total number of values
-    required_min_periods : required min periods per aggregation function
     floor : required min periods per aggregation function
 
     Returns
@@ -114,8 +112,6 @@ def calculate_min_periods(
     """
     if min_periods is None:
         min_periods = window
-    else:
-        min_periods = max(required_min_periods, min_periods)
     if min_periods > num_values:
         min_periods = num_values + 1
     return max(min_periods, floor)
@@ -517,7 +513,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def _apply(
         self,
         func: Callable,
-        require_min_periods: int = 0,
         floor: int = 1,
         is_weighted: bool = False,
         name: Optional[str] = None,
@@ -532,7 +527,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         Parameters
         ----------
         func : callable function to apply
-        require_min_periods : int
         floor : int
         is_weighted : bool
         name : str,
@@ -562,14 +556,13 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 def calc(x):
                     if not isinstance(self.window, BaseIndexer):
                         min_periods = calculate_min_periods(
-                            window, self.min_periods, len(x), require_min_periods, floor
+                            window, self.min_periods, len(x), floor
                         )
                     else:
                         min_periods = calculate_min_periods(
                             window_indexer.window_size,
                             self.min_periods,
                             len(x),
-                            require_min_periods,
                             floor,
                         )
                     start, end = window_indexer.get_window_bounds(
@@ -894,7 +887,6 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
     def _apply(
         self,
         func: Callable,
-        require_min_periods: int = 0,
         floor: int = 1,
         is_weighted: bool = False,
         name: Optional[str] = None,
@@ -903,7 +895,6 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
     ):
         result = super()._apply(
             func,
-            require_min_periods,
             floor,
             is_weighted,
             name,
@@ -1601,7 +1592,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(
             zsqrt_func,
-            require_min_periods=1,
             name="std",
             **kwargs,
         )
@@ -1611,7 +1601,6 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = partial(self._get_roll_func("roll_var"), ddof=ddof)
         return self._apply(
             window_func,
-            require_min_periods=1,
             name="var",
             **kwargs,
         )
@@ -1631,7 +1620,6 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = self._get_roll_func("roll_skew")
         return self._apply(
             window_func,
-            require_min_periods=3,
             name="skew",
             **kwargs,
         )
@@ -1725,7 +1713,6 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = self._get_roll_func("roll_kurt")
         return self._apply(
             window_func,
-            require_min_periods=4,
             name="kurt",
             **kwargs,
         )

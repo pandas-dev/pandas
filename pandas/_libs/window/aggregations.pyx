@@ -370,6 +370,7 @@ def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
+    minp = max(minp, 1)
     is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
@@ -488,6 +489,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
+    minp = max(minp, 3)
     is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
@@ -612,6 +614,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
+    minp = max(minp, 4)
     is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
