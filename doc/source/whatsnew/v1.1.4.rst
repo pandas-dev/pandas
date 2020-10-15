@@ -22,7 +22,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`GroupBy.fillna` that caused a performance regression between 1.0.5 and 1.1.X (:issue:`36757`)
 
 .. ---------------------------------------------------------------------------
 
