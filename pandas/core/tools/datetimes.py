@@ -16,8 +16,16 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import tslib, tslibs
-from pandas._libs.tslibs import Timestamp, conversion, parsing
+from pandas._libs import tslib
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    Timedelta,
+    Timestamp,
+    conversion,
+    iNaT,
+    nat_strings,
+    parsing,
+)
 from pandas._libs.tslibs.parsing import (  # noqa
     DateParseError,
     format_is_iso,
@@ -420,7 +428,7 @@ def _convert_listlike_datetimes(
                     # datetime64[ns]
                     orig_arg = ensure_object(orig_arg)
                     result = _attempt_YYYYMMDD(orig_arg, errors=errors)
-                except (ValueError, TypeError, tslibs.OutOfBoundsDatetime) as err:
+                except (ValueError, TypeError, OutOfBoundsDatetime) as err:
                     raise ValueError(
                         "cannot convert the input to '%Y%m%d' date format"
                     ) from err
@@ -435,13 +443,13 @@ def _convert_listlike_datetimes(
                         return _return_parsed_timezone_results(
                             result, timezones, tz, name
                         )
-                except tslibs.OutOfBoundsDatetime:
+                except OutOfBoundsDatetime:
                     if errors == "raise":
                         raise
                     elif errors == "coerce":
                         result = np.empty(arg.shape, dtype="M8[ns]")
                         iresult = result.view("i8")
-                        iresult.fill(tslibs.iNaT)
+                        iresult.fill(iNaT)
                     else:
                         result = arg
                 except ValueError:
@@ -454,7 +462,7 @@ def _convert_listlike_datetimes(
                         elif errors == "coerce":
                             result = np.empty(arg.shape, dtype="M8[ns]")
                             iresult = result.view("i8")
-                            iresult.fill(tslibs.iNaT)
+                            iresult.fill(iNaT)
                         else:
                             result = arg
         except ValueError as e:
@@ -524,7 +532,7 @@ def _adjust_to_origin(arg, origin, unit):
         j_max = Timestamp.max.to_julian_date() - j0
         j_min = Timestamp.min.to_julian_date() - j0
         if np.any(arg > j_max) or np.any(arg < j_min):
-            raise tslibs.OutOfBoundsDatetime(
+            raise OutOfBoundsDatetime(
                 f"{original} is Out of Bounds for origin='julian'"
             )
     else:
@@ -541,10 +549,8 @@ def _adjust_to_origin(arg, origin, unit):
         # we are going to offset back to unix / epoch time
         try:
             offset = Timestamp(origin)
-        except tslibs.OutOfBoundsDatetime as err:
-            raise tslibs.OutOfBoundsDatetime(
-                f"origin {origin} is Out of Bounds"
-            ) from err
+        except OutOfBoundsDatetime as err:
+            raise OutOfBoundsDatetime(f"origin {origin} is Out of Bounds") from err
         except ValueError as err:
             raise ValueError(
                 f"origin {origin} cannot be converted to a Timestamp"
@@ -556,7 +562,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         # convert the offset to the unit of the arg
         # this should be lossless in terms of precision
-        offset = offset // tslibs.Timedelta(1, unit=unit)
+        offset = offset // Timedelta(1, unit=unit)
 
         # scalars & ndarray-like can handle the addition
         if is_list_like(arg) and not isinstance(arg, (ABCSeries, Index, np.ndarray)):
@@ -825,7 +831,7 @@ dtype='datetime64[ns]', freq=None)
     elif is_list_like(arg):
         try:
             cache_array = _maybe_cache(arg, format, cache, convert_listlike)
-        except tslibs.OutOfBoundsDatetime:
+        except OutOfBoundsDatetime:
             # caching attempts to create a DatetimeIndex, which may raise
             # an OOB. If that's the desired behavior, then just reraise...
             if errors == "raise":
@@ -981,7 +987,7 @@ def _attempt_YYYYMMDD(arg, errors):
     def calc_with_mask(carg, mask):
         result = np.empty(carg.shape, dtype="M8[ns]")
         iresult = result.view("i8")
-        iresult[~mask] = tslibs.iNaT
+        iresult[~mask] = iNaT
 
         masked_result = calc(carg[mask].astype(np.float64).astype(np.int64))
         result[mask] = masked_result.astype("M8[ns]")
@@ -1002,7 +1008,7 @@ def _attempt_YYYYMMDD(arg, errors):
 
     # string with NaN-like
     try:
-        mask = ~algorithms.isin(arg, list(tslibs.nat_strings))
+        mask = ~algorithms.isin(arg, list(nat_strings))
         return calc_with_mask(arg, mask)
     except (ValueError, OverflowError, TypeError):
         pass

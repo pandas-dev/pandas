@@ -401,17 +401,14 @@ def handle_shared_axes(
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> Sequence["Axes"]:
+def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> np.ndarray:
     if not is_list_like(axes):
         # error: Incompatible return value type (got "ndarray", expected
         # "Sequence[Any]")
         return np.array([axes])  # type: ignore[return-value]
     elif isinstance(axes, (np.ndarray, ABCIndexClass)):
-        # error: Incompatible return value type (got "Union[ndarray, Any]",
-        # expected "Sequence[Any]")
-        return axes.ravel()  # type: ignore[return-value]
-    # error: Incompatible return value type (got "ndarray", expected "Sequence[Any]")
-    return np.array(axes)  # type: ignore[return-value]
+        return np.asarray(axes).ravel()
+    return np.array(axes)
 
 
 def set_ticks_props(

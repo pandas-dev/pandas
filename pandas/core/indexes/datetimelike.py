@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime, tzinfo
-from typing import Any, List, Optional, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union, cast
 
 import numpy as np
 
@@ -16,6 +16,7 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool_dtype,
+    is_categorical_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
@@ -40,6 +41,9 @@ from pandas.core.indexes.extension import (
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
+
+if TYPE_CHECKING:
+    from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -137,14 +141,31 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         elif other.dtype.kind in ["f", "i", "u", "c"]:
             return False
         elif not isinstance(other, type(self)):
-            try:
-                other = type(self)(other)
-            except (ValueError, TypeError, OverflowError):
-                # e.g.
-                #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
-                #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
-                #  OverflowError -> Index([very_large_timedeltas])
-                return False
+            inferrable = [
+                "timedelta",
+                "timedelta64",
+                "datetime",
+                "datetime64",
+                "date",
+                "period",
+            ]
+
+            should_try = False
+            if other.dtype == object:
+                should_try = other.inferred_type in inferrable
+            elif is_categorical_dtype(other.dtype):
+                other = cast("CategoricalIndex", other)
+                should_try = other.categories.inferred_type in inferrable
+
+            if should_try:
+                try:
+                    other = type(self)(other)
+                except (ValueError, TypeError, OverflowError):
+                    # e.g.
+                    #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
+                    #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
+                    #  OverflowError -> Index([very_large_timedeltas])
+                    return False
 
         if not is_dtype_equal(self.dtype, other.dtype):
             # have different timezone
@@ -169,12 +190,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         indices = ensure_int64(indices)
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
-        if isinstance(maybe_slice, slice):
-            return self[maybe_slice]
 
-        return ExtensionIndex.take(
+        result = ExtensionIndex.take(
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
+        if isinstance(maybe_slice, slice):
+            freq = self._data._get_getitem_freq(maybe_slice)
+            result._data._freq = freq
+        return result
 
     @doc(IndexOpsMixin.searchsorted, klass="Datetime-like Index")
     def searchsorted(self, value, side="left", sorter=None):
