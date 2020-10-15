@@ -606,7 +606,7 @@ def read_csv(
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
-    kwds_defaults = _check_defaults_read(
+    kwds_defaults = _refine_defaults_read(
         dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": ","}
     )
     kwds.update(kwds_defaults)
@@ -684,7 +684,7 @@ def read_table(
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
-    kwds_defaults = _check_defaults_read(
+    kwds_defaults = _refine_defaults_read(
         dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": "\t"}
     )
     kwds.update(kwds_defaults)
@@ -789,63 +789,16 @@ class TextFileReader(abc.Iterator):
         else:
             engine = "python"
             engine_specified = False
-
+        self.engine = engine
         self._engine_specified = kwds.get("engine_specified", engine_specified)
+
+        _validate_skipfooter(kwds)
 
         if kwds.get("dialect") is not None:
             dialect = kwds["dialect"]
             if dialect in csv.list_dialects():
                 dialect = csv.get_dialect(dialect)
-
-            # Any valid dialect should have these attributes.
-            # If any are missing, we will raise automatically.
-            for param in (
-                "delimiter",
-                "doublequote",
-                "escapechar",
-                "skipinitialspace",
-                "quotechar",
-                "quoting",
-            ):
-                try:
-                    dialect_val = getattr(dialect, param)
-                except AttributeError as err:
-                    raise ValueError(
-                        f"Invalid dialect {kwds['dialect']} provided"
-                    ) from err
-                parser_default = _parser_defaults[param]
-                provided = kwds.get(param, parser_default)
-
-                # Messages for conflicting values between the dialect
-                # instance and the actual parameters provided.
-                conflict_msgs = []
-
-                # Don't warn if the default parameter was passed in,
-                # even if it conflicts with the dialect (gh-23761).
-                if provided != parser_default and provided != dialect_val:
-                    msg = (
-                        f"Conflicting values for '{param}': '{provided}' was "
-                        f"provided, but the dialect specifies '{dialect_val}'. "
-                        "Using the dialect-specified value."
-                    )
-
-                    # Annoying corner case for not warning about
-                    # conflicts between dialect and delimiter parameter.
-                    # Refer to the outer "_read_" function for more info.
-                    if not (param == "delimiter" and kwds.pop("sep_override", False)):
-                        conflict_msgs.append(msg)
-
-                if conflict_msgs:
-                    warnings.warn(
-                        "\n\n".join(conflict_msgs), ParserWarning, stacklevel=2
-                    )
-                kwds[param] = dialect_val
-
-        if kwds.get("skipfooter"):
-            if kwds.get("iterator") or kwds.get("chunksize"):
-                raise ValueError("'skipfooter' not supported for 'iteration'")
-            if kwds.get("nrows"):
-                raise ValueError("'skipfooter' not supported with 'nrows'")
+            kwds = _merge_with_dialect_properties(dialect, kwds)
 
         if kwds.get("header", "infer") == "infer":
             kwds["header"] = 0 if kwds.get("names") is None else None
@@ -853,7 +806,6 @@ class TextFileReader(abc.Iterator):
         self.orig_options = kwds
 
         # miscellanea
-        self.engine = engine
         self._currow = 0
 
         options = self._get_options_with_defaults(engine)
@@ -928,7 +880,6 @@ class TextFileReader(abc.Iterator):
     def _clean_options(self, options, engine):
         result = options.copy()
 
-        engine_specified = self._engine_specified
         fallback_reason = None
 
         # C engine not supported yet
@@ -992,7 +943,7 @@ class TextFileReader(abc.Iterator):
                 )
                 engine = "python"
 
-        if fallback_reason and engine_specified:
+        if fallback_reason and self._engine_specified:
             raise ValueError(fallback_reason)
 
         if engine == "c":
@@ -1028,24 +979,17 @@ class TextFileReader(abc.Iterator):
 
         validate_header_arg(options["header"])
 
-        depr_warning = ""
-
         for arg in _deprecated_args:
             parser_default = _c_parser_defaults[arg]
             depr_default = _deprecated_defaults[arg]
-
-            msg = (
-                f"The {repr(arg)} argument has been deprecated and will be "
-                "removed in a future version."
-            )
-
             if result.get(arg, depr_default) != depr_default:
-                depr_warning += msg + "\n\n"
+                msg = (
+                    f"The {arg} argument has been deprecated and will be "
+                    "removed in a future version.\n\n"
+                )
+                warnings.warn(msg, FutureWarning, stacklevel=2)
             else:
                 result[arg] = parser_default
-
-        if depr_warning != "":
-            warnings.warn(depr_warning, FutureWarning, stacklevel=2)
 
         if index_col is True:
             raise ValueError("The value of index_col couldn't be 'True'")
@@ -1661,7 +1605,7 @@ class ParserBase:
 
         return index
 
-    def _agg_index(self, index, try_parse_dates=True):
+    def _agg_index(self, index, try_parse_dates=True) -> Index:
         arrays = []
 
         for i, arr in enumerate(index):
@@ -3706,7 +3650,7 @@ class FixedWidthFieldParser(PythonParser):
         )
 
 
-def _check_defaults_read(
+def _refine_defaults_read(
     dialect: Union[str, csv.Dialect],
     delimiter: Union[str, object],
     delim_whitespace: bool,
@@ -3714,7 +3658,7 @@ def _check_defaults_read(
     sep: Union[str, object],
     defaults: Dict[str, Any],
 ):
-    """Check default values of input parameters of read_csv, read_table.
+    """Validate/refine default values of input parameters of read_csv, read_table.
 
     Parameters
     ----------
@@ -3766,7 +3710,7 @@ def _check_defaults_read(
     # the comparison to dialect values by checking if default values
     # for BOTH "delimiter" and "sep" were provided.
     if dialect is not None:
-        kwds["sep_override"] = (delimiter is None) and (
+        kwds["sep_override"] = delimiter is None and (
             sep is lib.no_default or sep == delim_default
         )
 
@@ -3793,3 +3737,95 @@ def _check_defaults_read(
         kwds["engine_specified"] = False
 
     return kwds
+
+
+def _merge_with_dialect_properties(
+    dialect: csv.Dialect,
+    defaults: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Merge default kwargs in TextFileReader with dialect parameters.
+
+    Parameters
+    ----------
+    dialect : csv.Dialect
+        Concrete csv dialect. See csv.Dialect documentation for more details.
+    defaults : dict
+        Keyword arguments passed to TextFileReader.
+
+    Returns
+    -------
+    kwds : dict
+        Updated keyword arguments, merged with dialect parameters.
+
+    Raises
+    ------
+    ValueError
+        If incorrect dialect is provided.
+    """
+    kwds = defaults.copy()
+
+    # Any valid dialect should have these attributes.
+    # If any are missing, we will raise automatically.
+    mandatory_dialect_attrs = (
+        "delimiter",
+        "doublequote",
+        "escapechar",
+        "skipinitialspace",
+        "quotechar",
+        "quoting",
+    )
+
+    for param in mandatory_dialect_attrs:
+        try:
+            dialect_val = getattr(dialect, param)
+        except AttributeError as err:
+            raise ValueError(f"Invalid dialect {dialect} provided") from err
+
+        parser_default = _parser_defaults[param]
+        provided = kwds.get(param, parser_default)
+
+        # Messages for conflicting values between the dialect
+        # instance and the actual parameters provided.
+        conflict_msgs = []
+
+        # Don't warn if the default parameter was passed in,
+        # even if it conflicts with the dialect (gh-23761).
+        if provided != parser_default and provided != dialect_val:
+            msg = (
+                f"Conflicting values for '{param}': '{provided}' was "
+                f"provided, but the dialect specifies '{dialect_val}'. "
+                "Using the dialect-specified value."
+            )
+
+            # Annoying corner case for not warning about
+            # conflicts between dialect and delimiter parameter.
+            # Refer to the outer "_read_" function for more info.
+            if not (param == "delimiter" and kwds.pop("sep_override", False)):
+                conflict_msgs.append(msg)
+
+        if conflict_msgs:
+            warnings.warn("\n\n".join(conflict_msgs), ParserWarning, stacklevel=2)
+        kwds[param] = dialect_val
+    return kwds
+
+
+def _validate_skipfooter(kwds: Dict[str, Any]) -> None:
+    """
+    Check whether skipfooter is compatible with other kwargs in TextFileReader.
+
+    Parameters
+    ----------
+    kwds : dict
+        Keyword arguments passed to TextFileReader.
+
+    Raises
+    ------
+    ValueError
+        If skipfooter is not compatible with other parameters.
+    """
+    if kwds.get("skipfooter"):
+        if kwds.get("iterator") or kwds.get("chunksize"):
+            raise ValueError("'skipfooter' not supported for iteration")
+        if kwds.get("nrows"):
+            raise ValueError("'skipfooter' not supported with 'nrows'")
