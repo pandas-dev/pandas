@@ -2289,7 +2289,7 @@ class DataFrame(NDFrame, OpsMixin):
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
-        path: Optional[FilePathOrBuffer[AnyStr]] = None,
+        path: Optional[FilePathOrBuffer] = None,
         engine: str = "auto",
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,

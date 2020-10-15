@@ -239,7 +239,7 @@ class FastParquetImpl(BaseImpl):
 
 def to_parquet(
     df: DataFrame,
-    path: Optional[FilePathOrBuffer[AnyStr]] = None,
+    path: Optional[FilePathOrBuffer] = None,
     engine: str = "auto",
     compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
