@@ -77,7 +77,6 @@ if TYPE_CHECKING:
 def calculate_min_periods(
     window: int,
     min_periods: Optional[int],
-    num_values: int,
 ) -> int:
     """
     Calculate final minimum periods value for rolling aggregations.
@@ -86,7 +85,6 @@ def calculate_min_periods(
     ----------
     window : passed window value
     min_periods : passed min periods value
-    num_values : total number of values
 
     Returns
     -------
@@ -94,8 +92,6 @@ def calculate_min_periods(
     """
     if min_periods is None:
         min_periods = window
-    if min_periods > num_values:
-        min_periods = num_values + 1
     return min_periods
 
 
