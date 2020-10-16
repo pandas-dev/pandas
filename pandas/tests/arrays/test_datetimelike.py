@@ -328,10 +328,40 @@ class SharedTests:
         data2d = arr1d._data[:3, np.newaxis]
         arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
         result = list(arr2d)
+        assert len(result) == 3
         for x in result:
             assert isinstance(x, type(arr1d))
             assert x.ndim == 1
             assert x.dtype == arr1d.dtype
+
+    def test_repr_2d(self, arr1d):
+        data2d = arr1d._data[:3, np.newaxis]
+        arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
+
+        result = repr(arr2d)
+
+        if isinstance(arr2d, TimedeltaArray):
+            expected = (
+                f"<{type(arr2d).__name__}>\n"
+                "[\n"
+                f"['{arr1d[0]._repr_base()}'],\n"
+                f"['{arr1d[1]._repr_base()}'],\n"
+                f"['{arr1d[2]._repr_base()}']\n"
+                "]\n"
+                f"Shape: (3, 1), dtype: {arr1d.dtype}"
+            )
+        else:
+            expected = (
+                f"<{type(arr2d).__name__}>\n"
+                "[\n"
+                f"['{arr1d[0]}'],\n"
+                f"['{arr1d[1]}'],\n"
+                f"['{arr1d[2]}']\n"
+                "]\n"
+                f"Shape: (3, 1), dtype: {arr1d.dtype}"
+            )
+
+        assert result == expected
 
     def test_setitem(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
