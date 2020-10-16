@@ -2907,6 +2907,8 @@ class DataFrame(NDFrame, OpsMixin):
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
+            if isinstance(indexer, np.ndarray):
+                indexer = lib.maybe_indices_to_slice(indexer, len(self))
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
