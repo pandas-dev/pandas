@@ -220,7 +220,11 @@ Other enhancements
 - Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
 - :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
+<<<<<<< HEAD
 - :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
+=======
+- :meth:`DataFrame.to_parquet` now writes to ``io.Bytes`` when no ``path`` argument is passed (:issue:`37105`)
+>>>>>>> feedback: move whatsnew to enhancements
 
 .. _whatsnew_120.api_breaking.python:
 
