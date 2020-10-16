@@ -1579,15 +1579,15 @@ def test_arith_reindex_with_duplicates():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("arg1", [pd.DataFrame({"x": [1, 2], "y": [1, 2]})])
 @pytest.mark.parametrize(
-    "arg2", [[pd.Series([1, 1])], [pd.Series([1, 1]), pd.Series([1, 1])]]
+    "to_add", [[pd.Series([1, 1])], [pd.Series([1, 1]), pd.Series([1, 1])]]
 )
-def test_arith_list_of_arraylike_raise(arg1, arg2):
+def test_arith_list_of_arraylike_raise(to_add):
     # GH 36702. Raise when trying to add list of array-like to DataFrame
+    df = pd.DataFrame({"x": [1, 2], "y": [1, 2]})
 
-    msg = f"Unable to coerce list of {type(arg2[0])} to Series/DataFrame"
+    msg = f"Unable to coerce list of {type(to_add[0])} to Series/DataFrame"
     with pytest.raises(ValueError, match=msg):
-        arg1 + arg2
+        df + to_add
     with pytest.raises(ValueError, match=msg):
-        arg2 + arg1
+        to_add + df
