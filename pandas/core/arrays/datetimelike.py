@@ -1584,6 +1584,24 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 # Shared Constructor Helpers
 
 
+def ensure_arraylike(scalars, copy: bool) -> Tuple[Any, bool]:
+    """
+    Convert non-arraylike scalar sequences to ndarray.
+    """
+    if not hasattr(scalars, "dtype"):
+        copy = False
+        if np.ndim(scalars) == 0:
+            scalars = list(scalars)
+
+        scalars = np.asarray(scalars)
+        if len(scalars) == 0:
+            # Without casting, we would have float64 and so would reject later
+            #  in from_sequence
+            scalars = scalars.astype(object)
+
+    return scalars, copy
+
+
 def validate_periods(periods):
     """
     If a `periods` argument is passed to the Datetime/Timedelta Array/Index

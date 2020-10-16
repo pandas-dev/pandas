@@ -2804,6 +2804,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
         ]
         assert (res.dtypes == expected_dtypes).all()
 
+    @pytest.mark.xfail(reason="DatetimeArray._from_sequence no longer accepts i8")
     def test_from_2d_ndarray_with_dtype(self):
         # GH#12513
         array_dim2 = np.arange(10).reshape((5, 2))

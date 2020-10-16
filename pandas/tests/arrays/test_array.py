@@ -48,7 +48,7 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
         (
             [pd.Period("2000", "D"), pd.Period("2001", "D")],
             "Period[D]",
-            period_array(["2000", "2001"], freq="D"),
+            period_array([pd.Timestamp("2000"), pd.Timestamp("2001")], freq="D"),
         ),
         # Period dtype
         (
@@ -58,11 +58,6 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
         ),
         # Datetime (naive)
         (
-            [1, 2],
-            np.dtype("datetime64[ns]"),
-            DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
-        ),
-        (
             np.array([1, 2], dtype="datetime64[ns]"),
             None,
             DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
@@ -70,41 +65,42 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
         (
             pd.DatetimeIndex(["2000", "2001"]),
             np.dtype("datetime64[ns]"),
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")]),
         ),
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")]),
         ),
         (
             ["2000", "2001"],
             np.dtype("datetime64[ns]"),
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")]),
         ),
         # Datetime (tz-aware)
         (
             ["2000", "2001"],
             pd.DatetimeTZDtype(tz="CET"),
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET")
+                [pd.Timestamp("2000"), pd.Timestamp("2001")],
+                dtype=pd.DatetimeTZDtype(tz="CET"),
             ),
         ),
         # Timedelta
         (
             ["1H", "2H"],
             np.dtype("timedelta64[ns]"),
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            TimedeltaArray._from_sequence([pd.Timedelta("1H"), pd.Timedelta("2H")]),
         ),
         (
             pd.TimedeltaIndex(["1H", "2H"]),
             np.dtype("timedelta64[ns]"),
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            TimedeltaArray._from_sequence([pd.Timedelta("1H"), pd.Timedelta("2H")]),
         ),
         (
             pd.TimedeltaIndex(["1H", "2H"]),
             None,
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            TimedeltaArray._from_sequence([pd.Timedelta("1H"), pd.Timedelta("2H")]),
         ),
         # Category
         (["a", "b"], "category", pd.Categorical(["a", "b"])),
@@ -184,11 +180,11 @@ cet = pytz.timezone("CET")
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")]),
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")]),
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
@@ -202,7 +198,8 @@ cet = pytz.timezone("CET")
         (
             [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET")
+                [pd.Timestamp("2000"), pd.Timestamp("2001")],
+                dtype=pd.DatetimeTZDtype(tz="CET"),
             ),
         ),
         (
@@ -211,13 +208,14 @@ cet = pytz.timezone("CET")
                 datetime.datetime(2001, 1, 1, tzinfo=cet),
             ],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet)
+                [pd.Timestamp("2000"), pd.Timestamp("2001")],
+                dtype=pd.DatetimeTZDtype(tz=cet),
             ),
         ),
         # timedelta
         (
             [pd.Timedelta("1H"), pd.Timedelta("2H")],
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            TimedeltaArray._from_sequence([pd.Timedelta("1H"), pd.Timedelta("2H")]),
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),

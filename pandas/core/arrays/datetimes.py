@@ -43,7 +43,12 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCIndexClass, ABCPandasArray, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndexClass,
+    ABCMultiIndex,
+    ABCPandasArray,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import checked_add_with_arr
@@ -300,6 +305,34 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy: bool = False):
+
+        scalars, copy = dtl.ensure_arraylike(scalars, copy)
+
+        if scalars.dtype.kind == "M":
+            pass
+        elif scalars.dtype == object:
+            if isinstance(scalars, ABCMultiIndex):
+                raise TypeError("Cannot create a DatetimeArray from MultiIndex")
+
+            inferred = lib.infer_dtype(scalars)
+            if inferred in ["datetime64", "date", "datetime", "empty"]:
+                pass
+            else:
+                msg = f"dtype {scalars.dtype} cannot be converted to datetime64[ns]"
+                raise TypeError(msg)
+        elif is_string_dtype(scalars.dtype):
+            # TODO: should go through from_sequence_of_strings?
+            pass
+        elif (
+            is_categorical_dtype(scalars.dtype) and scalars.categories.dtype.kind == "M"
+        ):
+            # TODO: Could also use Categorical[object]
+            #  with inferred_type as above?
+            pass
+        else:
+            msg = f"dtype {scalars.dtype} cannot be converted to datetime64[ns]"
+            raise TypeError(msg)
+
         return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
 
     @classmethod

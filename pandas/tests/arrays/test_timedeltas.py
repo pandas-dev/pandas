@@ -188,7 +188,9 @@ class TestReductions:
         assert result is pd.NaT
 
     def test_min_max(self):
-        arr = TimedeltaArray._from_sequence(["3H", "3H", "NaT", "2H", "5H", "4H"])
+        vals = ["3H", "3H", "NaT", "2H", "5H", "4H"]
+        vals = [pd.Timedelta(x) for x in vals]
+        arr = TimedeltaArray._from_sequence(vals)
 
         result = arr.min()
         expected = pd.Timedelta("2H")

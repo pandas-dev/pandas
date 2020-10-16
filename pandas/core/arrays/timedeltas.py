@@ -224,6 +224,22 @@ class TimedeltaArray(dtl.TimelikeOps):
         if dtype:
             _validate_td64_dtype(dtype)
 
+        data, copy = dtl.ensure_arraylike(data, copy)
+
+        if data.dtype.kind == "m":
+            pass
+        elif data.dtype == object:
+            inferred = lib.infer_dtype(data)
+            if inferred in ["timedelta64", "timedelta", "empty"]:
+                pass
+            else:
+                raise TypeError(inferred)
+        elif is_string_dtype(data.dtype):
+            # TODO: should go through from_sequence_of_strings?
+            pass
+        else:
+            raise TypeError(data.dtype)
+
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
         freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
 
