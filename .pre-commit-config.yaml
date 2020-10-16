@@ -53,6 +53,15 @@ repos:
         types: [rst]
         args: [--filename=*.rst]
         additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
+    -   id: incorrect-sphinx-directives
+        name: Check for incorrect Sphinx directives
+        language: pygrep
+        entry: >-
+            \.\. (autosummary|contents|currentmodule|deprecated
+            |function|image|important|include|ipython|literalinclude
+            |math|module|note|raw|seealso|toctree|versionadded
+            |versionchanged|warning):[^:]
+        files: \.(py|pyx|rst)$
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
@@ -61,4 +70,4 @@ repos:
     rev: v3.2.0
     hooks:
     -   id: end-of-file-fixer
-        exclude: '.html$|^LICENSES/|.csv$|.txt$|.svg$|.py$'
+        exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$

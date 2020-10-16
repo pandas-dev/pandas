@@ -5343,7 +5343,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             A passed method name providing context on where ``__finalize__``
             was called.
 
-            .. warning:
+            .. warning::
 
                The value passed as `method` are not currently considered
                stable across pandas releases.
