@@ -74,41 +74,6 @@ if TYPE_CHECKING:
     from pandas.core.internals import Block  # noqa:F401
 
 
-def calculate_min_periods(
-    window: int,
-    min_periods: Optional[int],
-    num_values: int,
-    required_min_periods: int,
-    floor: int,
-) -> int:
-    """
-    Calculate final minimum periods value for rolling aggregations.
-
-    Parameters
-    ----------
-    window : passed window value
-    min_periods : passed min periods value
-    num_values : total number of values
-    required_min_periods : required min periods per aggregation function
-    floor : required min periods per aggregation function
-
-    Returns
-    -------
-    min_periods : int
-    """
-    if min_periods is None:
-        min_periods = window
-    else:
-        min_periods = max(required_min_periods, min_periods)
-    if min_periods > window:
-        raise ValueError(f"min_periods {min_periods} must be <= window {window}")
-    elif min_periods > num_values:
-        min_periods = num_values + 1
-    elif min_periods < 0:
-        raise ValueError("min_periods must be >= 0")
-    return max(min_periods, floor)
-
-
 class BaseWindow(ShallowMixin, SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
@@ -163,8 +128,15 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
-        if self.min_periods is not None and not is_integer(self.min_periods):
-            raise ValueError("min_periods must be an integer")
+        if self.min_periods is not None:
+            if not is_integer(self.min_periods):
+                raise ValueError("min_periods must be an integer")
+            elif self.min_periods < 0:
+                raise ValueError("min_periods must be >= 0")
+            elif is_integer(self.window) and self.min_periods > self.window:
+                raise ValueError(
+                    f"min_periods {self.min_periods} must be <= window {self.window}"
+                )
         if self.closed is not None and self.closed not in [
             "right",
             "both",
@@ -433,8 +405,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def _apply(
         self,
         func: Callable[..., Any],
-        require_min_periods: int = 0,
-        floor: int = 1,
         name: Optional[str] = None,
         use_numba_cache: bool = False,
         **kwargs,
@@ -447,8 +417,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         Parameters
         ----------
         func : callable function to apply
-        require_min_periods : int
-        floor : int
         name : str,
         use_numba_cache : bool
             whether to cache a numba compiled function. Only available for numba
@@ -462,6 +430,11 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         """
         window = self._get_window()
         window_indexer = self._get_window_indexer(window)
+        min_periods = (
+            self.min_periods
+            if self.min_periods is not None
+            else window_indexer.window_size
+        )
 
         def homogeneous_func(values: np.ndarray):
             # calculation function
@@ -470,21 +443,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 return values.copy()
 
             def calc(x):
-                if not isinstance(self.window, BaseIndexer):
-                    min_periods = calculate_min_periods(
-                        window, self.min_periods, len(x), require_min_periods, floor
-                    )
-                else:
-                    min_periods = calculate_min_periods(
-                        window_indexer.window_size,
-                        self.min_periods,
-                        len(x),
-                        require_min_periods,
-                        floor,
-                    )
                 start, end = window_indexer.get_window_bounds(
                     num_values=len(x),
-                    min_periods=self.min_periods,
+                    min_periods=min_periods,
                     center=self.center,
                     closed=self.closed,
                 )
@@ -793,16 +754,12 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
     def _apply(
         self,
         func: Callable[..., Any],
-        require_min_periods: int = 0,
-        floor: int = 1,
         name: Optional[str] = None,
         use_numba_cache: bool = False,
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
             func,
-            require_min_periods,
-            floor,
             name,
             use_numba_cache,
             **kwargs,
@@ -1151,8 +1108,6 @@ class Window(BaseWindow):
     def _apply(
         self,
         func: Callable[[np.ndarray, int, int], np.ndarray],
-        require_min_periods: int = 0,
-        floor: int = 1,
         name: Optional[str] = None,
         use_numba_cache: bool = False,
         **kwargs,
@@ -1165,8 +1120,6 @@ class Window(BaseWindow):
         Parameters
         ----------
         func : callable function to apply
-        require_min_periods : int
-        floor : int
         name : str,
         use_numba_cache : bool
             whether to cache a numba compiled function. Only available for numba
@@ -1420,7 +1373,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(
             apply_func,
-            floor=0,
             use_numba_cache=maybe_use_numba(engine),
             original_func=func,
             args=args,
@@ -1454,7 +1406,7 @@ class RollingAndExpandingMixin(BaseWindow):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_sum")
-        return self._apply(window_func, floor=0, name="sum", **kwargs)
+        return self._apply(window_func, name="sum", **kwargs)
 
     _shared_docs["max"] = dedent(
         """
@@ -1571,7 +1523,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(
             zsqrt_func,
-            require_min_periods=1,
             name="std",
             **kwargs,
         )
@@ -1581,7 +1532,6 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = partial(self._get_roll_func("roll_var"), ddof=ddof)
         return self._apply(
             window_func,
-            require_min_periods=1,
             name="var",
             **kwargs,
         )
@@ -1601,7 +1551,6 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = self._get_roll_func("roll_skew")
         return self._apply(
             window_func,
-            require_min_periods=3,
             name="skew",
             **kwargs,
         )
@@ -1695,7 +1644,6 @@ class RollingAndExpandingMixin(BaseWindow):
         window_func = self._get_roll_func("roll_kurt")
         return self._apply(
             window_func,
-            require_min_periods=4,
             name="kurt",
             **kwargs,
         )
