@@ -1,4 +1,4 @@
-from collections import OrderedDict, abc, deque
+from collections import abc, deque
 import datetime as dt
 from datetime import datetime
 from decimal import Decimal
@@ -1300,8 +1300,8 @@ class TestConcatenate:
         "name_in1,name_in2,name_in3,name_out",
         [
             ("idx", "idx", "idx", "idx"),
-            ("idx", "idx", None, "idx"),
-            ("idx", None, None, "idx"),
+            ("idx", "idx", None, None),
+            ("idx", None, None, None),
             ("idx1", "idx2", None, None),
             ("idx1", "idx1", "idx2", None),
             ("idx1", "idx2", "idx3", None),
@@ -2609,9 +2609,7 @@ bar2,12,13,14,15
             [pd.Series(range(3)), pd.Series(range(4))], keys=["First", "Another"]
         )
         result = pd.concat(
-            OrderedDict(
-                [("First", pd.Series(range(3))), ("Another", pd.Series(range(4)))]
-            )
+            dict([("First", pd.Series(range(3))), ("Another", pd.Series(range(4)))])
         )
         tm.assert_series_equal(result, expected)
 

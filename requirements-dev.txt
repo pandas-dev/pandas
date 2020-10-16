@@ -6,14 +6,15 @@ python-dateutil>=2.7.3
 pytz
 asv
 cython>=0.29.21
-black==19.10b0
+black==20.8b1
 cpplint
-flake8<3.8.0
+flake8
 flake8-comprehensions>=3.1.0
-flake8-rst>=0.6.0,<=0.7.0
 isort>=5.2.1
 mypy==0.782
+pre-commit
 pycodestyle
+pyupgrade
 gitpython
 gitdb
 sphinx
@@ -37,6 +38,7 @@ pytest>=5.0.1
 pytest-cov
 pytest-xdist>=1.21
 pytest-asyncio
+pytest-instafail
 seaborn
 statsmodels
 ipywidgets
@@ -64,7 +66,7 @@ fastparquet>=0.3.2
 pyarrow>=0.15.0
 python-snappy
 pyqt5>=5.9.2
-tables>=3.4.4
+tables>=3.5.1
 s3fs>=0.4.0
 fsspec>=0.7.4
 gcsfs>=0.6.0
@@ -76,4 +78,3 @@ tabulate>=0.8.3
 natsort
 git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
 git+https://github.com/numpy/numpydoc
-pyflakes>=2.2.0

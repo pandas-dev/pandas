@@ -22,10 +22,6 @@ Attributes
    :toctree: api/
 
    Series.index
-
-.. autosummary::
-   :toctree: api/
-
    Series.array
    Series.values
    Series.dtype
@@ -280,7 +276,7 @@ Time Series-related
 Accessors
 ---------
 
-Pandas provides dtype-specific methods under various accessors.
+pandas provides dtype-specific methods under various accessors.
 These are separate namespaces within :class:`Series` that only apply
 to specific data types.
 

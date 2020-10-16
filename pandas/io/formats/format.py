@@ -10,7 +10,6 @@ import decimal
 from functools import partial
 from io import StringIO
 import math
-from operator import itemgetter
 import re
 from shutil import get_terminal_size
 from typing import (
@@ -592,6 +591,7 @@ class DataFrameFormatter(TableFormatter):
         self.max_cols_fitted = self._calc_max_cols_fitted()
         self.max_rows_fitted = self._calc_max_rows_fitted()
 
+        self.tr_frame = self.frame
         self._truncate()
         self.adj = get_adjustment()
 
@@ -730,8 +730,6 @@ class DataFrameFormatter(TableFormatter):
         """
         Check whether the frame should be truncated. If so, slice the frame up.
         """
-        self.tr_frame = self.frame.copy()
-
         if self.is_truncated_horizontally:
             self._truncate_horizontally()
 
@@ -749,17 +747,16 @@ class DataFrameFormatter(TableFormatter):
         assert self.max_cols_fitted is not None
         col_num = self.max_cols_fitted // 2
         if col_num >= 1:
-            cols_to_keep = [
-                x
-                for x in range(self.frame.shape[1])
-                if x < col_num or x >= len(self.frame.columns) - col_num
-            ]
-            self.tr_frame = self.tr_frame.iloc[:, cols_to_keep]
+            left = self.tr_frame.iloc[:, :col_num]
+            right = self.tr_frame.iloc[:, -col_num:]
+            self.tr_frame = concat((left, right), axis=1)
 
             # truncate formatter
             if isinstance(self.formatters, (list, tuple)):
-                slicer = itemgetter(*cols_to_keep)
-                self.formatters = slicer(self.formatters)
+                self.formatters = [
+                    *self.formatters[:col_num],
+                    *self.formatters[-col_num:],
+                ]
         else:
             col_num = cast(int, self.max_cols)
             self.tr_frame = self.tr_frame.iloc[:, :col_num]
@@ -775,12 +772,9 @@ class DataFrameFormatter(TableFormatter):
         assert self.max_rows_fitted is not None
         row_num = self.max_rows_fitted // 2
         if row_num >= 1:
-            rows_to_keep = [
-                x
-                for x in range(self.frame.shape[0])
-                if x < row_num or x >= len(self.frame) - row_num
-            ]
-            self.tr_frame = self.tr_frame.iloc[rows_to_keep, :]
+            head = self.tr_frame.iloc[:row_num, :]
+            tail = self.tr_frame.iloc[-row_num:, :]
+            self.tr_frame = concat((head, tail))
         else:
             row_num = cast(int, self.max_rows)
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
@@ -1317,7 +1311,7 @@ class GenericArrayFormatter:
             float_format = get_option("display.float_format")
             if float_format is None:
                 precision = get_option("display.precision")
-                float_format = lambda x: f"{x: .{precision:d}g}"
+                float_format = lambda x: f"{x: .{precision:d}f}"
         else:
             float_format = self.float_format
 
@@ -1378,14 +1372,12 @@ class GenericArrayFormatter:
                     tpl = " {v}"
                 fmt_values.append(tpl.format(v=_format(v)))
 
+        fmt_values = _trim_zeros_float(str_floats=fmt_values, decimal=".")
+
         return fmt_values
 
 
 class FloatArrayFormatter(GenericArrayFormatter):
-    """
-
-    """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -1417,6 +1409,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         if float_format:
 
             def base_formatter(v):
+                assert float_format is not None  # for mypy
                 return float_format(value=v) if notna(v) else self.na_rep
 
         else:
@@ -1483,9 +1476,9 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             if self.fixed_width:
                 if is_complex:
-                    result = _trim_zeros_complex(values, self.decimal, na_rep)
+                    result = _trim_zeros_complex(values, self.decimal)
                 else:
-                    result = _trim_zeros_float(values, self.decimal, na_rep)
+                    result = _trim_zeros_float(values, self.decimal)
                 return np.asarray(result, dtype="object")
 
             return values
@@ -1687,7 +1680,8 @@ def is_dates_only(
     values: Union[np.ndarray, DatetimeArray, Index, DatetimeIndex]
 ) -> bool:
     # return a boolean if we are only dates (and don't have a timezone)
-    values = values.ravel()
+    if not isinstance(values, Index):
+        values = values.ravel()
 
     values = DatetimeIndex(values)
     if values.tz is not None:
@@ -1843,9 +1837,11 @@ def _make_fixed_width(
         return strings
 
     if adj is None:
-        adj = get_adjustment()
+        adjustment = get_adjustment()
+    else:
+        adjustment = adj
 
-    max_len = max(adj.len(x) for x in strings)
+    max_len = max(adjustment.len(x) for x in strings)
 
     if minimum is not None:
         max_len = max(minimum, max_len)
@@ -1854,57 +1850,74 @@ def _make_fixed_width(
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    def just(x):
+    def just(x: str) -> str:
         if conf_max is not None:
-            if (conf_max > 3) & (adj.len(x) > max_len):
+            if (conf_max > 3) & (adjustment.len(x) > max_len):
                 x = x[: max_len - 3] + "..."
         return x
 
     strings = [just(x) for x in strings]
-    result = adj.justify(strings, max_len, mode=justify)
+    result = adjustment.justify(strings, max_len, mode=justify)
     return result
 
 
-def _trim_zeros_complex(
-    str_complexes: np.ndarray, decimal: str = ".", na_rep: str = "NaN"
-) -> List[str]:
+def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> List[str]:
     """
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
-    return [
-        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal, na_rep))
+    trimmed = [
+        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal))
         for x in str_complexes
     ]
 
+    # pad strings to the length of the longest trimmed string for alignment
+    lengths = [len(s) for s in trimmed]
+    max_length = max(lengths)
+    padded = [
+        s[: -((k - 1) // 2 + 1)]  # real part
+        + (max_length - k) // 2 * "0"
+        + s[-((k - 1) // 2 + 1) : -((k - 1) // 2)]  # + / -
+        + s[-((k - 1) // 2) : -1]  # imaginary part
+        + (max_length - k) // 2 * "0"
+        + s[-1]
+        for s, k in zip(trimmed, lengths)
+    ]
+    return padded
+
 
 def _trim_zeros_float(
-    str_floats: Union[np.ndarray, List[str]], decimal: str = ".", na_rep: str = "NaN"
+    str_floats: Union[np.ndarray, List[str]], decimal: str = "."
 ) -> List[str]:
     """
     Trims zeros, leaving just one before the decimal points if need be.
     """
     trimmed = str_floats
+    number_regex = re.compile(fr"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
 
-    def _is_number(x):
-        return x != na_rep and not x.endswith("inf")
+    def is_number_with_decimal(x):
+        return re.match(number_regex, x) is not None
 
-    def _cond(values):
-        finite = [x for x in values if _is_number(x)]
-        has_decimal = [decimal in x for x in finite]
+    def should_trim(values: Union[np.ndarray, List[str]]) -> bool:
+        """
+        Determine if an array of strings should be trimmed.
 
-        return (
-            len(finite) > 0
-            and all(has_decimal)
-            and all(x.endswith("0") for x in finite)
-            and not (any(("e" in x) or ("E" in x) for x in finite))
-        )
+        Returns True if all numbers containing decimals (defined by the
+        above regular expression) within the array end in a zero, otherwise
+        returns False.
+        """
+        numbers = [x for x in values if is_number_with_decimal(x)]
+        return len(numbers) > 0 and all(x.endswith("0") for x in numbers)
 
-    while _cond(trimmed):
-        trimmed = [x[:-1] if _is_number(x) else x for x in trimmed]
+    while should_trim(trimmed):
+        trimmed = [x[:-1] if is_number_with_decimal(x) else x for x in trimmed]
 
     # leave one 0 after the decimal points if need be.
-    return [x + "0" if x.endswith(decimal) and _is_number(x) else x for x in trimmed]
+    result = [
+        x + "0" if is_number_with_decimal(x) and x.endswith(decimal) else x
+        for x in trimmed
+    ]
+    return result
 
 
 def _has_names(index: Index) -> bool:

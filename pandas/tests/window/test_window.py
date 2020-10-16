@@ -19,16 +19,25 @@ def test_constructor(which):
     c(win_type="boxcar", window=2, min_periods=1, center=True)
     c(win_type="boxcar", window=2, min_periods=1, center=False)
 
-    # not valid
-    for w in [2.0, "foo", np.array([2])]:
-        with pytest.raises(ValueError, match="min_periods must be an integer"):
-            c(win_type="boxcar", window=2, min_periods=w)
-        with pytest.raises(ValueError, match="center must be a boolean"):
-            c(win_type="boxcar", window=2, min_periods=1, center=w)
 
-    for wt in ["foobar", 1]:
-        with pytest.raises(ValueError, match="Invalid win_type"):
-            c(win_type=wt, window=2)
+@pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
+@td.skip_if_no_scipy
+def test_invalid_constructor(which, w):
+    # not valid
+
+    c = which.rolling
+    with pytest.raises(ValueError, match="min_periods must be an integer"):
+        c(win_type="boxcar", window=2, min_periods=w)
+    with pytest.raises(ValueError, match="center must be a boolean"):
+        c(win_type="boxcar", window=2, min_periods=1, center=w)
+
+
+@pytest.mark.parametrize("wt", ["foobar", 1])
+@td.skip_if_no_scipy
+def test_invalid_constructor_wintype(which, wt):
+    c = which.rolling
+    with pytest.raises(ValueError, match="Invalid win_type"):
+        c(win_type=wt, window=2)
 
 
 @td.skip_if_no_scipy

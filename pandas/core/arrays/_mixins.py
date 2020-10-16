@@ -8,12 +8,15 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
 from pandas.core.algorithms import take, unique
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionArray")
@@ -114,6 +117,13 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     # ------------------------------------------------------------------------
 
+    def equals(self, other) -> bool:
+        if type(self) is not type(other):
+            return False
+        if not is_dtype_equal(self.dtype, other.dtype):
+            return False
+        return bool(array_equivalent(self._ndarray, other._ndarray))
+
     def _values_for_argsort(self):
         return self._ndarray
 
@@ -170,12 +180,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return self._validate_fill_value(fill_value)
 
     def __setitem__(self, key, value):
-        key = self._validate_setitem_key(key)
+        key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
         self._ndarray[key] = value
-
-    def _validate_setitem_key(self, key):
-        return check_array_indexer(self, key)
 
     def _validate_setitem_value(self, value):
         return value
@@ -188,16 +195,14 @@ class NDArrayBackedExtensionArray(ExtensionArray):
                 return self._box_func(result)
             return self._from_backing_data(result)
 
-        key = self._validate_getitem_key(key)
+        key = extract_array(key, extract_numpy=True)
+        key = check_array_indexer(self, key)
         result = self._ndarray[key]
         if lib.is_scalar(result):
             return self._box_func(result)
 
         result = self._from_backing_data(result)
         return result
-
-    def _validate_getitem_key(self, key):
-        return check_array_indexer(self, key)
 
     @doc(ExtensionArray.fillna)
     def fillna(self: _T, value=None, method=None, limit=None) -> _T:
@@ -227,3 +232,11 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         else:
             new_values = self.copy()
         return new_values
+
+    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+        meth = getattr(self, name, None)
+        if meth:
+            return meth(skipna=skipna, **kwargs)
+        else:
+            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
+            raise TypeError(msg)

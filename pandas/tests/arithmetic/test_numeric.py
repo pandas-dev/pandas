@@ -11,9 +11,17 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Series, Timedelta, TimedeltaIndex
+from pandas import Index, Int64Index, Series, Timedelta, TimedeltaIndex, array
 import pandas._testing as tm
 from pandas.core import ops
+
+
+@pytest.fixture(params=[Index, Series, tm.to_array])
+def box_pandas_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series and tm.to_array classes
+    """
+    return request.param
 
 
 def adjust_negative_zero(zero, expected):
@@ -89,8 +97,9 @@ class TestNumericComparisons:
         b.name = pd.Timestamp("2000-01-01")
         tm.assert_series_equal(a / b, 1 / (b / a))
 
-    def test_numeric_cmp_string_numexpr_path(self, box):
+    def test_numeric_cmp_string_numexpr_path(self, box_with_array):
         # GH#36377, GH#35700
+        box = box_with_array
         xbox = box if box is not pd.Index else np.ndarray
 
         obj = pd.Series(np.random.randn(10 ** 5))
@@ -183,10 +192,10 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar(self, scalar_td, numeric_idx, box):
+    def test_numeric_arr_mul_tdscalar(self, scalar_td, numeric_idx, box_with_array):
         # GH#19333
+        box = box_with_array
         index = numeric_idx
-
         expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(5)])
 
         index = tm.box_expected(index, box)
@@ -207,7 +216,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box):
+    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box_with_array):
+        box = box_with_array
+
         arr = np.arange(2 * 10 ** 4).astype(np.int64)
         obj = tm.box_expected(arr, box, transpose=False)
 
@@ -220,7 +231,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = scalar_td * obj
         tm.assert_equal(result, expected)
 
-    def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
+    def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box_with_array):
+        box = box_with_array
+
         index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(["3 Days", "36 Hours"])
@@ -248,7 +261,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             pd.offsets.Second(0),
         ],
     )
-    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box):
+    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box_with_array):
+        box = box_with_array
+
         left = tm.box_expected(numeric_idx, box)
         msg = (
             "unsupported operand type|"
@@ -276,16 +291,21 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
     )
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
-    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box):
+    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box_with_array):
         # GH#28080 numeric+datetime64 should raise; Timestamp raises
         #  NullFrequencyError instead of TypeError so is excluded.
+        box = box_with_array
         left = tm.box_expected(numeric_idx, box)
 
-        msg = (
-            "unsupported operand type|"
-            "Cannot (add|subtract) NaT (to|from) ndarray|"
-            "Addition/subtraction of integers and integer-arrays|"
-            "Concatenation operation is not implemented for NumPy arrays"
+        msg = "|".join(
+            [
+                "unsupported operand type",
+                "Cannot (add|subtract) NaT (to|from) ndarray",
+                "Addition/subtraction of integers and integer-arrays",
+                "Concatenation operation is not implemented for NumPy arrays",
+                # pd.array vs np.datetime64 case
+                r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -568,8 +588,9 @@ class TestMultiplicationDivision:
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
     # for non-timestamp/timedelta/period dtypes
 
-    def test_divide_decimal(self, box):
+    def test_divide_decimal(self, box_with_array):
         # resolves issue GH#9787
+        box = box_with_array
         ser = Series([Decimal(10)])
         expected = Series([Decimal(5)])
 
@@ -1317,3 +1338,33 @@ def test_dataframe_div_silenced():
     )
     with tm.assert_produces_warning(None):
         pdf1.div(pdf2, fill_value=0)
+
+
+@pytest.mark.parametrize(
+    "data, expected_data",
+    [([0, 1, 2], [0, 2, 4])],
+)
+def test_integer_array_add_list_like(
+    box_pandas_1d_array, box_1d_array, data, expected_data
+):
+    # GH22606 Verify operators with IntegerArray and list-likes
+    arr = array(data, dtype="Int64")
+    container = box_pandas_1d_array(arr)
+    left = container + box_1d_array(data)
+    right = box_1d_array(data) + container
+
+    if Series == box_pandas_1d_array:
+        assert_function = tm.assert_series_equal
+        expected = Series(expected_data, dtype="Int64")
+    elif Series == box_1d_array:
+        assert_function = tm.assert_series_equal
+        expected = Series(expected_data, dtype="object")
+    elif Index in (box_pandas_1d_array, box_1d_array):
+        assert_function = tm.assert_index_equal
+        expected = Int64Index(expected_data)
+    else:
+        assert_function = tm.assert_numpy_array_equal
+        expected = np.array(expected_data, dtype="object")
+
+    assert_function(left, expected)
+    assert_function(right, expected)

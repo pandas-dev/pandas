@@ -16,9 +16,6 @@ from pandas.io.pytables import read_hdf
 pytestmark = td.skip_array_manager_not_yet_implemented
 
 
-# GH10447
-
-
 def test_complex_fixed(setup_path):
     df = DataFrame(
         np.random.rand(4, 5).astype(np.complex64),
@@ -66,7 +63,6 @@ def test_complex_table(setup_path):
         tm.assert_frame_equal(df, reread)
 
 
-@td.xfail_non_writeable
 def test_complex_mixed_fixed(setup_path):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64

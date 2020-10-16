@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import datetime
 from datetime import timedelta
 from io import StringIO
@@ -9,7 +8,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import IS64, PY38, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -473,7 +472,7 @@ class TestPandasContainer:
         index = pd.DatetimeIndex(list(index), freq=None)
 
         df_mixed = DataFrame(
-            OrderedDict(
+            dict(
                 float_1=[
                     -0.92077639,
                     0.77434435,
@@ -991,7 +990,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         ],
     )
     def test_url(self, field, dtype):
-        url = "https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5"  # noqa
+        url = "https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5"
         result = read_json(url, convert_dates=True)
         assert result[field].dtype == dtype
 
@@ -1295,19 +1294,19 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH9180
         df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         result = df.to_json(orient="records", lines=True)
-        expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
+        expected = '{"a":1,"b":2}\n{"a":1,"b":2}\n'
         assert result == expected
 
         df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=["a", "b"])
         result = df.to_json(orient="records", lines=True)
-        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
+        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}\n'
         assert result == expected
         tm.assert_frame_equal(pd.read_json(result, lines=True), df)
 
         # GH15096: escaped characters in columns and data
         df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]], columns=["a\\", "b"])
         result = df.to_json(orient="records", lines=True)
-        expected = '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}'
+        expected = '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n'
         assert result == expected
         tm.assert_frame_equal(pd.read_json(result, lines=True), df)
 
@@ -1699,6 +1698,11 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = series.to_json(orient="index")
         assert result == expected
 
+    @pytest.mark.xfail(
+        is_platform_windows() and PY38,
+        reason="localhost connection rejected",
+        strict=False,
+    )
     def test_to_s3(self, s3_resource, s3so):
         import time
 

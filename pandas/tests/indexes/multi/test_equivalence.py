@@ -202,7 +202,7 @@ def test_is_():
 
 
 def test_is_all_dates(idx):
-    assert not idx.is_all_dates
+    assert not idx._is_all_dates
 
 
 def test_is_numeric(idx):

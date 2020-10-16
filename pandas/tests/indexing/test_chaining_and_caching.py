@@ -155,10 +155,11 @@ class TestChaining:
         )
         assert df._is_copy is None
 
-        with pytest.raises(com.SettingWithCopyError):
+        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df["A"][0] = -5
 
-        with pytest.raises(com.SettingWithCopyError):
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df["A"][1] = np.nan
 
         assert df["A"]._is_copy is None
@@ -171,7 +172,7 @@ class TestChaining:
             }
         )
 
-        with pytest.raises(com.SettingWithCopyError):
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df.loc[0]["A"] = -5
 
         # Doc example
@@ -183,17 +184,17 @@ class TestChaining:
         )
         assert df._is_copy is None
 
-        with pytest.raises(com.SettingWithCopyError):
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             indexer = df.a.str.startswith("o")
             df[indexer]["c"] = 42
 
         expected = DataFrame({"A": [111, "bbb", "ccc"], "B": [1, 2, 3]})
         df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
 
-        with pytest.raises(com.SettingWithCopyError):
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df["A"][0] = 111
 
-        with pytest.raises(com.SettingWithCopyError):
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df.loc[0]["A"] = 111
 
         df.loc[0, "A"] = 111
@@ -293,7 +294,7 @@ class TestChaining:
         df = DataFrame(np.arange(0, 9), columns=["count"])
         df["group"] = "b"
 
-        with pytest.raises(com.SettingWithCopyError):
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df.iloc[0:5]["group"] = "a"
 
         # Mixed type setting but same dtype & changing dtype
@@ -306,13 +307,13 @@ class TestChaining:
             )
         )
 
-        with pytest.raises(com.SettingWithCopyError):
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df.loc[2]["D"] = "foo"
 
-        with pytest.raises(com.SettingWithCopyError):
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df.loc[2]["C"] = "foo"
 
-        with pytest.raises(com.SettingWithCopyError):
+        with pytest.raises(com.SettingWithCopyError, match=msg):
             df["C"][2] = "foo"
 
     def test_setting_with_copy_bug(self):
@@ -335,11 +336,15 @@ class TestChaining:
         # this should not raise
         df2["y"] = ["g", "h", "i"]
 
-    def test_detect_chained_assignment_warnings(self):
+    def test_detect_chained_assignment_warnings_errors(self):
+        df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
         with option_context("chained_assignment", "warn"):
-            df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
-
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                df.loc[0]["A"] = 111
+
+        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+        with option_context("chained_assignment", "raise"):
+            with pytest.raises(com.SettingWithCopyError, match=msg):
                 df.loc[0]["A"] = 111
 
     def test_detect_chained_assignment_warnings_filter_and_dupe_cols(self):
