@@ -78,7 +78,6 @@ def calculate_min_periods(
     window: int,
     min_periods: Optional[int],
     num_values: int,
-    floor: int,
 ) -> int:
     """
     Calculate final minimum periods value for rolling aggregations.
@@ -88,7 +87,6 @@ def calculate_min_periods(
     window : passed window value
     min_periods : passed min periods value
     num_values : total number of values
-    floor : required min periods per aggregation function
 
     Returns
     -------
@@ -98,7 +96,7 @@ def calculate_min_periods(
         min_periods = window
     if min_periods > num_values:
         min_periods = num_values + 1
-    return max(min_periods, floor)
+    return min_periods
 
 
 class BaseWindow(ShallowMixin, SelectionMixin):
@@ -432,7 +430,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def _apply(
         self,
         func: Callable[..., Any],
-        floor: int = 1,
         name: Optional[str] = None,
         use_numba_cache: bool = False,
         **kwargs,
@@ -445,7 +442,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         Parameters
         ----------
         func : callable function to apply
-        floor : int
         name : str,
         use_numba_cache : bool
             whether to cache a numba compiled function. Only available for numba
@@ -469,14 +465,13 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             def calc(x):
                 if not isinstance(self.window, BaseIndexer):
                     min_periods = calculate_min_periods(
-                        window, self.min_periods, len(x), floor
+                        window, self.min_periods, len(x)
                     )
                 else:
                     min_periods = calculate_min_periods(
                         window_indexer.window_size,
                         self.min_periods,
                         len(x),
-                        floor,
                     )
 
                 start, end = window_indexer.get_window_bounds(
@@ -790,14 +785,12 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
     def _apply(
         self,
         func: Callable[..., Any],
-        floor: int = 1,
         name: Optional[str] = None,
         use_numba_cache: bool = False,
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
             func,
-            floor,
             name,
             use_numba_cache,
             **kwargs,
@@ -1146,7 +1139,6 @@ class Window(BaseWindow):
     def _apply(
         self,
         func: Callable[[np.ndarray, int, int], np.ndarray],
-        floor: int = 1,
         name: Optional[str] = None,
         use_numba_cache: bool = False,
         **kwargs,
@@ -1159,8 +1151,6 @@ class Window(BaseWindow):
         Parameters
         ----------
         func : callable function to apply
-        require_min_periods : int
-        floor : int
         name : str,
         use_numba_cache : bool
             whether to cache a numba compiled function. Only available for numba
@@ -1414,7 +1404,6 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(
             apply_func,
-            floor=0,
             use_numba_cache=maybe_use_numba(engine),
             original_func=func,
             args=args,
@@ -1448,7 +1437,7 @@ class RollingAndExpandingMixin(BaseWindow):
     def sum(self, *args, **kwargs):
         nv.validate_window_func("sum", args, kwargs)
         window_func = self._get_roll_func("roll_sum")
-        return self._apply(window_func, floor=0, name="sum", **kwargs)
+        return self._apply(window_func, name="sum", **kwargs)
 
     _shared_docs["max"] = dedent(
         """
