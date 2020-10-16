@@ -137,6 +137,14 @@ def test_expanding_count_default_min_periods_with_null_values(constructor):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_expanding_count_with_min_periods_exceeding_series_length(constructor):
+    # GH 25857
+    result = constructor(range(5)).expanding(min_periods=6).count()
+    expected = constructor([np.nan, np.nan, np.nan, np.nan, np.nan])
+    tm.assert_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "df,expected,min_periods",
     [
