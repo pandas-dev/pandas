@@ -1083,7 +1083,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
-                blk.set(blk_locs, value_getitem(val_locs))
+                blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
