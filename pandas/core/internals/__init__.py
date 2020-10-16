@@ -1,3 +1,4 @@
+from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import (  # io.pytables, io.packers
     Block,
     BoolBlock,
@@ -15,7 +16,6 @@ from pandas.core.internals.blocks import (  # io.pytables, io.packers
 )
 from pandas.core.internals.concat import concatenate_block_managers
 from pandas.core.internals.managers import (
-    ArrayManager,
     BlockManager,
     SingleBlockManager,
     create_block_manager_from_arrays,

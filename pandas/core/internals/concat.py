@@ -26,8 +26,9 @@ from pandas.core.dtypes.missing import isna_all
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, ExtensionArray
+from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import make_block
-from pandas.core.internals.managers import ArrayManager, BlockManager
+from pandas.core.internals.managers import BlockManager
 
 if TYPE_CHECKING:
     from pandas.core.arrays.sparse.dtype import SparseDtype
