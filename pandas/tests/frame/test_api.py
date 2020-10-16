@@ -355,7 +355,8 @@ class TestDataFrameMisc:
 
     def test_to_numpy_copy(self):
         arr = np.random.randn(4, 3)
-        df = pd.DataFrame(arr, manager="block")
+        with pd.option_context("mode.data_manager", "block"):
+            df = pd.DataFrame(arr)
         assert df.values.base is arr
         assert df.to_numpy(copy=False).base is arr
         assert df.to_numpy(copy=True).base is not arr

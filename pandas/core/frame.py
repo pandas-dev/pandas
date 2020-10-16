@@ -442,9 +442,6 @@ class DataFrame(NDFrame, OpsMixin):
         columns: Optional[Axes] = None,
         dtype: Optional[Dtype] = None,
         copy: bool = False,
-        # TODO do we want to keep this as a keyword as well? (I think it can be handy)
-        # can we somehow make it a "private" keyword? (`_manager` ?)
-        manager: Optional[str] = None,
     ):
         if data is None:
             data = {}
@@ -561,17 +558,50 @@ class DataFrame(NDFrame, OpsMixin):
                     values, index, columns, dtype=values.dtype, copy=False
                 )
 
-        if manager is None:
-            manager = get_option("mode.data_manager")
+        manager = get_option("mode.data_manager")
 
         if manager == "array" and not isinstance(mgr, ArrayManager):
             # TODO proper initialization
-            df = DataFrame(mgr, manager="block")
-            arrays = [arr.copy() for arr in df._iter_column_arrays()]
-            mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
+            df = DataFrame(mgr)
+            mgr = df._as_manager("array")._mgr
         # TODO check for case of manager="block" but mgr is ArrayManager
 
         NDFrame.__init__(self, mgr)
+
+    def _as_manager(self, typ):
+        """
+        Private helper function to create a DataFrame with specific manager.
+
+        Parameters
+        ----------
+        mgr : {"block", "array"}
+
+        Returns
+        -------
+        DataFrame
+            New DataFrame using specified manager type. Is not guaranteed
+            to be a copy or not.
+        """
+        mgr = self._mgr
+        if typ == "block":
+            if isinstance(mgr, BlockManager):
+                new_mgr = mgr
+            else:
+                new_mgr = arrays_to_mgr(
+                    mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], dtype=None
+                )
+        elif typ == "array":
+            if isinstance(mgr, ArrayManager):
+                new_mgr = mgr
+            else:
+                arrays = [arr.copy() for arr in self._iter_column_arrays()]
+                new_mgr = ArrayManager(arrays, [mgr.axes[1], mgr.axes[0]])
+        else:
+            raise ValueError(
+                f"'typ' needs to be one of {{'block', 'array'}}, got '{type}'"
+            )
+        # fastpath of passing a manager doesn't check the option/manager class
+        return DataFrame(new_mgr)
 
     # ----------------------------------------------------------------------
 
