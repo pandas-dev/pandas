@@ -304,18 +304,20 @@ def to_parquet(
         partition_cols = [partition_cols]
     impl = get_engine(engine)
 
-    if path is None:
-        path = io.BytesIO()
+    path_or_buf = io.BytesIO() if path is None else path
 
-    return impl.write(
+    impl.write(
         df,
-        path,
+        path_or_buf,
         compression=compression,
         index=index,
         partition_cols=partition_cols,
         storage_options=storage_options,
         **kwargs,
     )
+
+    if path is None:
+        return path_or_buf.getvalue()
 
 
 def read_parquet(path, engine: str = "auto", columns=None, **kwargs):

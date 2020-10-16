@@ -2392,7 +2392,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.parquet import to_parquet
 
-        to_parquet(
+        return to_parquet(
             self,
             path,
             engine,
