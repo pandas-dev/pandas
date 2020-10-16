@@ -960,8 +960,6 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
         for i in range(0, N):
             s = start[i]
             e = end[i]
-            with gil:
-                print(nobs)
 
             if i == 0 or not is_monotonic_increasing_bounds:
                 if not is_monotonic_increasing_bounds:
