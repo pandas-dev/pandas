@@ -361,7 +361,7 @@ class Size:
 class FillNA:
     def setup(self):
         N = 1500
-        self.df = pd.DataFrame({
+        self.df = DataFrame({
                     'group' : [1] * N + [2] * N,
                     'value' : [np.nan, 1.0] * N
                 }).set_index('group')
