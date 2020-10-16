@@ -246,19 +246,21 @@ def to_parquet(
     storage_options: StorageOptions = None,
     partition_cols: Optional[List[str]] = None,
     **kwargs,
-):
+) -> Optional[bytes]:
     """
     Write a DataFrame to the parquet format.
 
     Parameters
     ----------
     df : DataFrame
-    path : str or file-like object
+    path : str or file-like object, default None
         If a string, it will be used as Root Directory path
         when writing a partitioned dataset. By file-like object,
         we refer to objects with a write() method, such as a file handle
         (e.g. via builtin open function) or io.BytesIO. The engine
-        fastparquet does not accept file-like objects.
+        fastparquet does not accept file-like objects. If path is None,
+        frame is written to an io.BytesIO object and a bytes object with
+        the contents of the buffer is returned.
 
         .. versionchanged:: 0.24.0
 
@@ -304,7 +306,10 @@ def to_parquet(
         partition_cols = [partition_cols]
     impl = get_engine(engine)
 
-    path_or_buf = io.BytesIO() if path is None else path
+    if path is None:
+        path_or_buf = io.BytesIO()
+    else:
+        path_or_buf = path
 
     impl.write(
         df,
@@ -318,6 +323,8 @@ def to_parquet(
 
     if path is None:
         return path_or_buf.getvalue()
+    else:
+        return None
 
 
 def read_parquet(path, engine: str = "auto", columns=None, **kwargs):

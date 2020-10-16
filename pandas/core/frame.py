@@ -2296,7 +2296,7 @@ class DataFrame(NDFrame, OpsMixin):
         partition_cols: Optional[List[str]] = None,
         storage_options: StorageOptions = None,
         **kwargs,
-    ) -> None:
+    ) -> Optional[bytes]:
         """
         Write a DataFrame to the binary parquet format.
 
