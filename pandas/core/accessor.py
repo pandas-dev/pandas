@@ -4,7 +4,7 @@ accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
-from typing import FrozenSet, Set
+from typing import FrozenSet, List, Set
 import warnings
 
 from pandas.util._decorators import doc
@@ -14,13 +14,13 @@ class DirNamesMixin:
     _accessors: Set[str] = set()
     _deprecations: FrozenSet[str] = frozenset()
 
-    def _dir_deletions(self):
+    def _dir_deletions(self) -> Set[str]:
         """
         Delete unwanted __dir__ for this object.
         """
         return self._accessors | self._deprecations
 
-    def _dir_additions(self):
+    def _dir_additions(self) -> Set[str]:
         """
         Add additional __dir__ for this object.
         """
@@ -33,7 +33,7 @@ class DirNamesMixin:
                 pass
         return rv
 
-    def __dir__(self):
+    def __dir__(self) -> List[str]:
         """
         Provide method name lookup and completion.
 
@@ -41,7 +41,7 @@ class DirNamesMixin:
         -----
         Only provide 'public' methods.
         """
-        rv = set(dir(type(self)))
+        rv = set(super().__dir__())
         rv = (rv - self._dir_deletions()) | self._dir_additions()
         return sorted(rv)
 
