@@ -28,7 +28,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug causing ``groupby(...).sum()`` and similar to not preserve metadata (:issue:`29442`)
-- Bug in :meth:`GroupBy.fillna` that caused a performance regression between 1.0.5 and 1.1.X (:issue:`36757`)
+- Bug in :meth:`GroupBy.fillna` that introduced a performance regression after 1.0.5 (:issue:`36757`)
 
 .. ---------------------------------------------------------------------------
 

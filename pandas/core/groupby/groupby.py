@@ -1201,7 +1201,7 @@ b  2""",
                 indexer = algorithms.unique1d(indexer)
                 result = result.take(indexer, axis=self.axis)
             else:
-                result = result.reindex(ax, axis=self.axis)
+                result = result.reindex(ax, axis=self.axis, copy=False)
 
         elif self.group_keys:
 
