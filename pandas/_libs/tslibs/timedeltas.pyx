@@ -604,7 +604,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
 
     for c in ts:
         # number (ascii codes)
-        if ord(c) >= 48 and ord(c) <= 57:
+        if 48 <= ord(c) <= 57:
 
             have_value = 1
             if have_dot:
