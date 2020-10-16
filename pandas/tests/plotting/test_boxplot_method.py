@@ -219,38 +219,26 @@ class TestDataFramePlots(TestPlotBase):
         assert result[expected][0].get_color() == "C1"
 
     @pytest.mark.parametrize("vert", [(True), (False)])
-    def test_boxplot_shared_axis(self, vert):
+    def test_boxplot_multiple_times_same_axis(self, vert):
         # GH 37107
-        df1 = DataFrame(np.random.random((100, 5)), columns=["A", "B", "C", "D", "E"])
-        df2 = DataFrame(np.random.random((100, 5)), columns=["A", "B", "C", "D", "E"])
+        df = DataFrame(np.random.random((100, 5)), columns=["A", "B", "C", "D", "E"])
 
-        # Two rows if shared axis is y, two rows if shared axis is y.
-        # This is done so that the shared axes are actually separated
-        # and get_ticklabels returns a non empty list on each ax object
-        nrows, ncols, sharex, sharey = (
-            (1, 2, True, False) if vert else (2, 1, False, True)
-        )
-        fig, axes = self.plt.subplots(
-            nrows=nrows, ncols=ncols, sharex=sharex, sharey=sharey
-        )
-        df1.boxplot(ax=axes[0], vert=vert, fontsize=10, rot=10)
-        df2.boxplot(ax=axes[1], vert=vert, fontsize=10, rot=10)
+        fig, ax = self.plt.subplots(nrows=1, ncols=1)
+        df.boxplot(ax=ax, vert=vert, fontsize=10, rot=10)
+        df.boxplot(ax=ax, vert=vert, fontsize=10, rot=10)
 
         # In order for the ticklabels to be placed, the plot has to be drawn
         fig.canvas.draw()
 
-        for ax in axes:
-            axis = ax.xaxis if vert else ax.yaxis
-            labels = [x.get_text() for x in axis.get_ticklabels(which="major")]
-            if vert:
-                self._check_ticks_props(ax, xlabelsize=10, xrot=10)
-            else:
-                self._check_ticks_props(ax, ylabelsize=10, yrot=10)
+        if vert:
+            self._check_ticks_props(ax, xlabelsize=10, xrot=10)
+        else:
+            self._check_ticks_props(ax, ylabelsize=10, yrot=10)
 
-            # Matplotlib returns 10 ticklabels, 5 of which are empty
-            assert len(labels) % 5 == 0
-            assert len(labels) // (len(labels) // 5) == 5
-            assert labels[:5] == ["A", "B", "C", "D", "E"]
+        axis = ax.xaxis if vert else ax.yaxis
+        self._check_text_labels(
+            axis.get_ticklabels(which="major"), ["A", "B", "C", "D", "E"]
+        )
 
 
 @td.skip_if_no_mpl

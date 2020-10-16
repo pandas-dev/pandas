@@ -246,7 +246,7 @@ def boxplot(
 ):
 
     import matplotlib.pyplot as plt
-    from matplotlib.ticker import FixedFormatter
+    from matplotlib.ticker import FixedFormatter, FixedLocator
 
     # validate return_type:
     if return_type not in BoxPlot._valid_return_types:
@@ -308,6 +308,8 @@ def boxplot(
             axis = ax.xaxis
         else:
             axis = ax.yaxis
+        positions = kwds.get("positions", list(range(1, 1 + len(values))))
+        axis.set_major_locator(FixedLocator(positions))
         axis.set_major_formatter(FixedFormatter(keys))
         ax.tick_params(axis=axis.axis_name, which="major", rotation=rot)
         maybe_color_bp(bp, **kwds)

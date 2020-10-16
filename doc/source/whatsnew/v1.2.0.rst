@@ -437,7 +437,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot` was rotating xticklabels when ``subplots=True``, even if the x-axis wasn't an irregular time series (:issue:`29460`)
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
 - Twinned axes were losing their tick labels which should only happen to all but the last row or column of 'externally' shared axes (:issue:`33819`)
-- Bug in :meth:`DataFrame.boxplot` was raising ``ValueError`` when plotting with ``vert=True`` on a subplot with shared axes (:issue:`36918`)
+- Bug in :meth:`DataFrame.boxplot` was raising ``ValueError`` when plotting with ``vert=False`` on a subplot with shared axes (:issue:`36918`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
