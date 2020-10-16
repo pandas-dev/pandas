@@ -296,6 +296,7 @@ Deprecations
 - :meth:`Rolling.count` with ``min_periods=None`` will default to the size of the window in a future version (:issue:`31302`)
 - Deprecated slice-indexing on timezone-aware :class:`DatetimeIndex` with naive ``datetime`` objects, to match scalar indexing behavior (:issue:`36148`)
 - :meth:`Index.ravel` returning a ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
+- Deprecated special-casing for :meth:`PeriodIndex.values`, :meth:`DatetimeIndex.values`, and :meth:`Series.values` with ``PeriodDtype``, ``IntervalDtype`` or ``Datetime64TZDtype``.  In a future version these will return the underlying :class:`ExtensionArray` objects.  To retain the old behavior, use ``np.asarray(obj, dtype=desired_type)`` (:issue:`36957`)
 
 .. ---------------------------------------------------------------------------
 
