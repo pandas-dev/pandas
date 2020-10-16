@@ -155,6 +155,8 @@ def roll_sum(ndarray[float64_t] values, ndarray[int64_t] start,
             e = end[i]
 
             if i == 0 or not is_monotonic_bounds:
+                with gil:
+                    print(sum_x)
 
                 # setup
 
@@ -669,6 +671,11 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
         int64_t nobs = 0, N = len(values), s, e, win
         int midpoint
         ndarray[float64_t] output
+        bint is_monotonic_increasing_bounds
+
+    is_monotonic_increasing_bounds = is_monotonic_start_end_bounds(
+        start, end
+    )
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
@@ -688,7 +695,7 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
             s = start[i]
             e = end[i]
 
-            if i == 0:
+            if i == 0 or not is_monotonic_increasing_bounds:
 
                 # setup
                 for j in range(s, e):
@@ -701,38 +708,21 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
 
             else:
 
-                if end[i - 1] > e:
-                    for j in range(e, end[i - 1]):
-                        val = values[j]
-                        if notnan(val):
-                            skiplist_remove(sl, val)
-                            nobs -= 1
-                else:
-                    # calculate adds
-                    for j in range(end[i - 1], e):
-                        val = values[j]
-                        if notnan(val):
-                            nobs += 1
-                            err = skiplist_insert(sl, val) != 1
-                            if err:
-                                break
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    val = values[j]
+                    if notnan(val):
+                        nobs += 1
+                        err = skiplist_insert(sl, val) != 1
+                        if err:
+                            break
 
-                # if start was shifted back, add these again
-                if start[i -1] > s:
-                    for j in range(s, start[i -1]):
-                        val = values[j]
-                        if notnan(val):
-                            nobs += 1
-                            err = skiplist_insert(sl, val) != 1
-                            if err:
-                                break
-                else:
-                    # calculate deletes if start is shifted forward
-                    for j in range(start[i - 1], s):
-                        val = values[j]
-                        if notnan(val):
-                            skiplist_remove(sl, val)
-                            nobs -= 1
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    if notnan(val):
+                        skiplist_remove(sl, val)
+                        nobs -= 1
             if nobs >= minp:
                 midpoint = <int>(nobs / 2)
                 if nobs % 2:
@@ -746,6 +736,10 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
                 res = NaN
 
             output[i] = res
+
+            if not is_monotonic_increasing_bounds:
+                nobs = 0
+                sl = skiplist_init(<int>win)
 
     skiplist_destroy(sl)
     if err:
@@ -934,7 +928,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
     cdef:
         float64_t val, prev, midpoint, idx_with_fraction
         skiplist_t *skiplist
-        int64_t nobs = 0, i, j, s, e, N = len(values)
+        int64_t nobs = 0, i, j, s, e, N = len(values), win
         Py_ssize_t idx
         ndarray[float64_t] output
         float64_t vlow, vhigh
@@ -949,6 +943,9 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
     except KeyError:
         raise ValueError(f"Interpolation '{interpolation}' is not supported")
 
+    is_monotonic_increasing_bounds = is_monotonic_start_end_bounds(
+        start, end
+    )
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
     output = np.empty(N, dtype=float)
@@ -965,8 +962,13 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
         for i in range(0, N):
             s = start[i]
             e = end[i]
+            with gil:
+                print(nobs)
 
-            if i == 0:
+            if i == 0 or not is_monotonic_increasing_bounds:
+                if not is_monotonic_increasing_bounds:
+                    nobs = 0
+                    skiplist = skiplist_init(<int>win)
 
                 # setup
                 for j in range(s, e):
@@ -1005,7 +1007,8 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
                         if notnan(val):
                             skiplist_remove(skiplist, val)
                             nobs -= 1
-
+            with gil:
+                print(nobs)
             if nobs >= minp:
                 if nobs == 1:
                     # Single value in skip list
