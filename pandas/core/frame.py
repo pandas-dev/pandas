@@ -5960,6 +5960,18 @@ class DataFrame(NDFrame, OpsMixin):
         out.index = self.index
         return out
 
+    def __divmod__(self, other):
+        # Naive implementation, room for optimization
+        div = self // other
+        mod = self - div * other
+        return div, mod
+
+    def __rdivmod__(self, other):
+        # Naive implementation, room for optimization
+        div = other // self
+        mod = other - div * self
+        return div, mod
+
     # ----------------------------------------------------------------------
     # Combination-Related
 
