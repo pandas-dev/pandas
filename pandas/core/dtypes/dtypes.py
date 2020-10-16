@@ -406,8 +406,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @staticmethod
     def _hash_categories(categories, ordered: Ordered = True) -> int:
-        from pandas.core.dtypes.common import DT64NS_DTYPE, is_datetime64tz_dtype
-
         from pandas.core.util.hashing import (
             combine_hash_arrays,
             hash_array,
@@ -430,9 +428,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     hashed = hash((tuple(categories), ordered))
                     return hashed
 
-            if is_datetime64tz_dtype(categories.dtype):
+            if DatetimeTZDtype.is_dtype(categories.dtype):
                 # Avoid future warning.
-                categories = categories.astype(DT64NS_DTYPE)
+                categories = categories.astype("datetime64[ns]")
 
             cat_array = hash_array(np.asarray(categories), categorize=False)
         if ordered:
@@ -1011,11 +1009,7 @@ class IntervalDtype(PandasExtensionDtype):
     _cache: Dict[str_type, PandasExtensionDtype] = {}
 
     def __new__(cls, subtype=None):
-        from pandas.core.dtypes.common import (
-            is_categorical_dtype,
-            is_string_dtype,
-            pandas_dtype,
-        )
+        from pandas.core.dtypes.common import is_string_dtype, pandas_dtype
 
         if isinstance(subtype, IntervalDtype):
             return subtype
@@ -1038,7 +1032,7 @@ class IntervalDtype(PandasExtensionDtype):
             except TypeError as err:
                 raise TypeError("could not construct IntervalDtype") from err
 
-        if is_categorical_dtype(subtype) or is_string_dtype(subtype):
+        if CategoricalDtype.is_dtype(subtype) or is_string_dtype(subtype):
             # GH 19016
             msg = (
                 "category, object, and string subtypes are not supported "
