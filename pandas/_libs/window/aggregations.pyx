@@ -369,6 +369,7 @@ def roll_var(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
+    minp = max(minp, 1)
     is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
@@ -487,6 +488,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
+    minp = max(minp, 3)
     is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
@@ -611,6 +613,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_bounds
 
+    minp = max(minp, 4)
     is_monotonic_bounds = is_monotonic_start_end_bounds(start, end)
     output = np.empty(N, dtype=float)
 
@@ -655,7 +658,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
-                  ndarray[int64_t] end, int64_t minp, int64_t win=0):
+                  ndarray[int64_t] end, int64_t minp):
     # GH 32865. win argument kept for compatibility
     cdef:
         float64_t val, res, prev
@@ -663,7 +666,7 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
         int ret = 0
         skiplist_t *sl
         Py_ssize_t i, j
-        int64_t nobs = 0, N = len(values), s, e
+        int64_t nobs = 0, N = len(values), s, e, win
         int midpoint
         ndarray[float64_t] output
 
@@ -721,6 +724,8 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
                 else:
                     res = (skiplist_get(sl, midpoint, &ret) +
                            skiplist_get(sl, (midpoint - 1), &ret)) / 2
+                if ret == 0:
+                    res = NaN
             else:
                 res = NaN
 
@@ -1008,6 +1013,9 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
                         vlow = skiplist_get(skiplist, idx, &ret)
                         vhigh = skiplist_get(skiplist, idx + 1, &ret)
                         output[i] = <float64_t>(vlow + vhigh) / 2
+
+                    if ret == 0:
+                        output[i] = NaN
             else:
                 output[i] = NaN
 
@@ -1087,13 +1095,8 @@ cdef ndarray[float64_t] _roll_weighted_sum_mean(float64_t[:] values,
     if avg:
         tot_wgt = np.zeros(in_n, dtype=np.float64)
 
-    if minp > win_n:
-        raise ValueError(f"min_periods (minp) must be <= "
-                         f"window (win)")
     elif minp > in_n:
         minp = in_n + 1
-    elif minp < 0:
-        raise ValueError('min_periods must be >= 0')
 
     minp = max(minp, 1)
 
