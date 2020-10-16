@@ -9,7 +9,7 @@ requires = [
     "numpy==1.17.3; python_version=='3.8' and platform_system!='AIX'",
     "numpy==1.16.5; python_version=='3.7' and platform_system=='AIX'",
     "numpy==1.17.3; python_version=='3.8' and platform_system=='AIX'",
-    "numpy==1.19.2; python_version>='3.9'",
+    "numpy; python_version>='3.9'",
 ]
 
 [tool.black]
