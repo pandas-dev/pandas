@@ -34,7 +34,7 @@ import numpy as np
 from pandas._config import config
 
 from pandas._libs import lib
-from pandas._libs.tslibs import Tick, Timestamp, to_offset
+from pandas._libs.tslibs import Period, Tick, Timestamp, to_offset
 from pandas._typing import (
     Axis,
     CompressionOptions,
@@ -86,17 +86,21 @@ from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 
 import pandas as pd
-from pandas.core import missing, nanops
+from pandas.core import indexing, missing, nanops
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject, SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.flags import Flags
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import Index, MultiIndex, RangeIndex, ensure_index
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import Period, PeriodIndex
-import pandas.core.indexing as indexing
+from pandas.core.indexes.api import (
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    PeriodIndex,
+    RangeIndex,
+    ensure_index,
+)
 from pandas.core.internals import BlockManager
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
@@ -2275,6 +2279,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         indent the output but does insert newlines. Currently, ``indent=0``
         and the default ``indent=None`` are equivalent in pandas, though this
         may change in a future release.
+
+        ``orient='table'`` contains a 'pandas_version' field under 'schema'.
+        This stores the version of `pandas` used in the latest revision of the
+        schema.
 
         Examples
         --------
@@ -5416,7 +5424,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     )
                 object.__setattr__(self, name, value)
 
-    def _dir_additions(self):
+    def _dir_additions(self) -> Set[str]:
         """
         add the string-like attributes from the info_axis.
         If info_axis is a MultiIndex, it's first level values are used.
@@ -5450,27 +5458,18 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         self._protect_consolidate(f)
 
-    def _consolidate(self, inplace: bool_t = False):
+    def _consolidate(self):
         """
         Compute NDFrame with "consolidated" internals (data of each dtype
         grouped together in a single ndarray).
-
-        Parameters
-        ----------
-        inplace : bool, default False
-            If False return new object, otherwise modify existing object.
 
         Returns
         -------
         consolidated : same type as caller
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        if inplace:
-            self._consolidate_inplace()
-        else:
-            f = lambda: self._mgr.consolidate()
-            cons_data = self._protect_consolidate(f)
-            return self._constructor(cons_data).__finalize__(self)
+        f = lambda: self._mgr.consolidate()
+        cons_data = self._protect_consolidate(f)
+        return self._constructor(cons_data).__finalize__(self)
 
     @property
     def _is_mixed_type(self) -> bool_t:
@@ -6837,6 +6836,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         **kwargs,
     ) -> Optional[FrameOrSeries]:
         """
+        Fill NaN values using an interpolation method.
+
         Please note that only ``method='linear'`` is supported for
         DataFrame/Series with a MultiIndex.
 
@@ -9807,6 +9808,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     # ----------------------------------------------------------------------
     # Numeric Methods
+
     def abs(self: FrameOrSeries) -> FrameOrSeries:
         """
         Return a Series/DataFrame with absolute numeric value of each element.
@@ -10731,7 +10733,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             desc="Return the mean absolute deviation of the values "
-            "for the requested axis.",
+            "over the requested axis.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
@@ -10867,7 +10869,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the sum of the values for the requested axis.\n\n"
+            desc="Return the sum of the values over the requested axis.\n\n"
             "This is equivalent to the method ``numpy.sum``.",
             name1=name1,
             name2=name2,
@@ -10893,7 +10895,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the product of the values for the requested axis.",
+            desc="Return the product of the values over the requested axis.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
@@ -10919,7 +10921,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the mean of the values for the requested axis.",
+            desc="Return the mean of the values over the requested axis.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
@@ -10968,7 +10970,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the median of the values for the requested axis.",
+            desc="Return the median of the values over the requested axis.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
@@ -10985,7 +10987,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the maximum of the values for the requested axis.\n\n"
+            desc="Return the maximum of the values over the requested axis.\n\n"
             "If you want the *index* of the maximum, use ``idxmax``. This is"
             "the equivalent of the ``numpy.ndarray`` method ``argmax``.",
             name1=name1,
@@ -11002,7 +11004,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         @doc(
             _num_doc,
-            desc="Return the minimum of the values for the requested axis.\n\n"
+            desc="Return the minimum of the values over the requested axis.\n\n"
             "If you want the *index* of the minimum, use ``idxmin``. This is"
             "the equivalent of the ``numpy.ndarray`` method ``argmin``.",
             name1=name1,
@@ -11095,6 +11097,55 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             axis=axis,
             times=times,
         )
+
+    # ----------------------------------------------------------------------
+    # Arithmetic Methods
+
+    def _inplace_method(self, other, op):
+        """
+        Wrap arithmetic method to operate inplace.
+        """
+        result = op(self, other)
+
+        # Delete cacher
+        self._reset_cacher()
+
+        # this makes sure that we are aligned like the input
+        # we are updating inplace so we want to ignore is_copy
+        self._update_inplace(
+            result.reindex_like(self, copy=False), verify_is_copy=False
+        )
+        return self
+
+    def __iadd__(self, other):
+        return self._inplace_method(other, type(self).__add__)
+
+    def __isub__(self, other):
+        return self._inplace_method(other, type(self).__sub__)
+
+    def __imul__(self, other):
+        return self._inplace_method(other, type(self).__mul__)
+
+    def __itruediv__(self, other):
+        return self._inplace_method(other, type(self).__truediv__)
+
+    def __ifloordiv__(self, other):
+        return self._inplace_method(other, type(self).__floordiv__)
+
+    def __imod__(self, other):
+        return self._inplace_method(other, type(self).__mod__)
+
+    def __ipow__(self, other):
+        return self._inplace_method(other, type(self).__pow__)
+
+    def __iand__(self, other):
+        return self._inplace_method(other, type(self).__and__)
+
+    def __ior__(self, other):
+        return self._inplace_method(other, type(self).__or__)
+
+    def __ixor__(self, other):
+        return self._inplace_method(other, type(self).__xor__)
 
     # ----------------------------------------------------------------------
     # Misc methods

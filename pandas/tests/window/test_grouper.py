@@ -531,3 +531,38 @@ class TestGrouperGrouping:
             ),
         )
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("func", "kwargs"),
+        [("rolling", {"window": 2, "min_periods": 1}), ("expanding", {})],
+    )
+    def test_groupby_rolling_sem(self, func, kwargs):
+        # GH: 26476
+        df = pd.DataFrame(
+            [["a", 1], ["a", 2], ["b", 1], ["b", 2], ["b", 3]], columns=["a", "b"]
+        )
+        result = getattr(df.groupby("a"), func)(**kwargs).sem()
+        expected = pd.DataFrame(
+            {"a": [np.nan] * 5, "b": [np.nan, 0.70711, np.nan, 0.70711, 0.70711]},
+            index=pd.MultiIndex.from_tuples(
+                [("a", 0), ("a", 1), ("b", 2), ("b", 3), ("b", 4)], names=["a", None]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("rollings", "key"), [({"on": "a"}, "a"), ({"on": None}, "index")]
+    )
+    def test_groupby_rolling_nans_in_index(self, rollings, key):
+        # GH: 34617
+        df = pd.DataFrame(
+            {
+                "a": pd.to_datetime(["2020-06-01 12:00", "2020-06-01 14:00", np.nan]),
+                "b": [1, 2, 3],
+                "c": [1, 1, 1],
+            }
+        )
+        if key == "index":
+            df = df.set_index("a")
+        with pytest.raises(ValueError, match=f"{key} must be monotonic"):
+            df.groupby("c").rolling("60min", **rollings)
