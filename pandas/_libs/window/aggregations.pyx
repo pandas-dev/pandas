@@ -155,8 +155,6 @@ def roll_sum(ndarray[float64_t] values, ndarray[int64_t] start,
             e = end[i]
 
             if i == 0 or not is_monotonic_bounds:
-                with gil:
-                    print(sum_x)
 
                 # setup
 
@@ -978,37 +976,19 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
                         skiplist_insert(skiplist, val)
 
             else:
-                # Remove values again if end was moved back
-                if end[i - 1] > e:
-                    for j in range(e, end[i - 1]):
-                        val = values[j]
-                        if notnan(val):
-                            skiplist_remove(skiplist, val)
-                            nobs -= 1
-                else:
-                    # calculate adds
-                    for j in range(end[i - 1], e):
-                        val = values[j]
-                        if notnan(val):
-                            nobs += 1
-                            skiplist_insert(skiplist, val)
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    val = values[j]
+                    if notnan(val):
+                        nobs += 1
+                        skiplist_insert(skiplist, val)
 
-                # if start was shifted back, add these again
-                if start[i -1] > s:
-                    for j in range(s, start[i -1]):
-                        val = values[j]
-                        if notnan(val):
-                            nobs += 1
-                            skiplist_insert(skiplist, val)
-                else:
-                    # calculate deletes if start is shifted forward
-                    for j in range(start[i - 1], s):
-                        val = values[j]
-                        if notnan(val):
-                            skiplist_remove(skiplist, val)
-                            nobs -= 1
-            with gil:
-                print(nobs)
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    if notnan(val):
+                        skiplist_remove(skiplist, val)
+                        nobs -= 1
             if nobs >= minp:
                 if nobs == 1:
                     # Single value in skip list
