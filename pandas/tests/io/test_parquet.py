@@ -376,10 +376,17 @@ class TestBasic(Base):
         ]
         self.check_error_on_write(df, engine, ValueError)
 
-    def test_to_bytes_without_path_or_buf_provided(self):
+    def test_to_bytes_without_path_or_buf_provided(self, df_full):
         # GH 37105
-        df = pd.DataFrame()
-        df.to_parquet()
+
+        buf = df_full.to_parquet()
+
+        with tm.ensure_clean() as path:
+            with open(path, "wb") as f:
+                f.write(buf)
+            res = pd.read_parquet(path)
+
+        tm.assert_frame_equal(df_full, res)
 
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
     def test_compression(self, engine, compression):
