@@ -103,7 +103,10 @@ class TestComparison:
         Helper that performs elementwise comparisons between `array` and `other`
         """
         other = other if is_list_like(other) else [other] * len(array)
-        return np.array([op(x, y) for x, y in zip(array, other)])
+        expected = np.array([op(x, y) for x, y in zip(array, other)])
+        if isinstance(other, Series):
+            return Series(expected, index=other.index)
+        return expected
 
     def test_compare_scalar_interval(self, op, array):
         # matches first interval
@@ -161,19 +164,19 @@ class TestComparison:
         other = interval_constructor(array.left, array.right)
         result = op(array, other)
         expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         # different endpoints
         other = interval_constructor(array.left[::-1], array.right[::-1])
         result = op(array, other)
         expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         # all nan endpoints
         other = interval_constructor([np.nan] * 4, [np.nan] * 4)
         result = op(array, other)
         expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     def test_compare_list_like_interval_mixed_closed(
         self, op, interval_constructor, closed, other_closed
@@ -183,7 +186,7 @@ class TestComparison:
 
         result = op(array, other)
         expected = self.elementwise_comparison(op, array, other)
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
         "other",
