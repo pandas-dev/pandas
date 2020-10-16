@@ -516,6 +516,7 @@ class TestDataFrameNonuniqueIndexes:
 
     def test_masking_duplicate_columns_mixed_dtypes(self):
         # https://github.com/pandas-dev/pandas/issues/31954
-        df = pd.DataFrame([[0.0, 1], [2.0, 3]], columns=[0, 0])
+        df = DataFrame([[0.0, 1], [2.0, 3]], columns=[0, 0])
         expected = DataFrame([[np.nan, np.nan], [np.nan, 3.0]], columns=[0, 0])
-        tm.assert_frame_equal(df[df > 2], expected)
+        result = df[df > 2]
+        tm.assert_frame_equal(result, expected)
