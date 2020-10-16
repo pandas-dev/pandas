@@ -435,7 +435,7 @@ def _maybe_upcast_for_op(obj, shape: Shape):
     Parameters
     ----------
     obj: object
-    shape : tuple[int] or int
+    shape : tuple[int]
 
     Returns
     -------
