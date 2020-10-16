@@ -180,14 +180,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -r -E --include '*.py' "[[:space:]] pytest.raises" pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for python2-style file encodings' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E "# -\*- coding: utf-8 -\*-" pandas scripts
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for python2-style super usage' ; echo $MSG
-    invgrep -R --include="*.py" -E "super\(\w*, (self|cls)\)" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for use of builtin filter function' ; echo $MSG
     invgrep -R --include="*.py" -P '(?<!def)[\(\s]filter\(' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -204,10 +196,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check for deprecated messages without sphinx directive' ; echo $MSG
     invgrep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for python2 new-style classes and for empty parentheses' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E "class\s\S*\((object)?\):" pandas asv_bench/benchmarks scripts
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
@@ -257,10 +245,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     # -------------------------------------------------------------------------
     MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of xrange instead of range' ; echo $MSG
-    invgrep -R --include=*.{py,pyx} 'xrange' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
