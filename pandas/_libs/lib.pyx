@@ -1414,10 +1414,12 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "time"
 
     elif is_decimal(val):
-        return "decimal"
+        if all(is_decimal(x) for x in values):
+            return "decimal"
 
     elif is_complex(val):
-        return "complex"
+        if is_complex_array(values):
+            return "complex"
 
     elif util.is_float_object(val):
         if is_float_array(values):
@@ -1699,6 +1701,23 @@ cdef class FloatValidator(Validator):
 cpdef bint is_float_array(ndarray values):
     cdef:
         FloatValidator validator = FloatValidator(len(values), values.dtype)
+    return validator.validate(values)
+
+
+cdef class ComplexValidator(Validator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return (
+            util.is_complex_object(value)
+            or (util.is_float_object(value) and is_nan(value))
+        )
+
+    cdef inline bint is_array_typed(self) except -1:
+        return issubclass(self.dtype.type, np.complexfloating)
+
+
+cdef bint is_complex_array(ndarray values):
+    cdef:
+        ComplexValidator validator = ComplexValidator(len(values), values.dtype)
     return validator.validate(values)
 
 
@@ -2545,8 +2564,6 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     if n == 0:
         # kludge, for Series
         return np.empty(0, dtype='f8')
-
-    keys = getattr(keys, 'values', keys)
 
     for i in range(n):
         val = keys[i]
