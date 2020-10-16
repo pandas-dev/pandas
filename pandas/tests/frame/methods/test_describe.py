@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 import pandas as pd
@@ -329,7 +331,9 @@ class TestDataFrameDescribe:
         expected = pd.concat([s1_, s2_], axis=1, keys=["s1", "s2"]).loc[idx]
 
         with tm.assert_produces_warning(FutureWarning):
-            result = df.describe(include="all")
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=r".*\.values")
+                result = df.describe(include="all")
         tm.assert_frame_equal(result, expected)
 
     def test_describe_percentiles_integer_idx(self):

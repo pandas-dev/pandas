@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 from pandas import Period, Series, Timedelta, Timestamp, date_range
@@ -106,7 +108,9 @@ class TestSeriesDescribe:
         s = Series(date_range(start, end, tz=tz), name=name)
 
         with tm.assert_produces_warning(FutureWarning):
-            result = s.describe()
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=r".*\.values")
+                result = s.describe()
 
         expected = Series(
             [

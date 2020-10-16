@@ -1998,6 +1998,13 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
     """
 
     def external_values(self):
+        warnings.warn(
+            f"Series.values with dtype={self.dtype} will "
+            f"return a {type(self.values)} in a future version.  "
+            "To retain the old behavior, use `series.values.astype(object)`",
+            FutureWarning,
+            stacklevel=4,
+        )
         return self.values.astype(object)
 
 
@@ -2323,6 +2330,14 @@ class DatetimeTZBlock(ExtensionBlock, DatetimeBlock):
     def external_values(self):
         # NB: this is different from np.asarray(self.values), since that
         #  return an object-dtype ndarray of Timestamps.
+        warnings.warn(
+            f"Series.values with dtype={self.dtype} will "
+            f"return a {type(self.values)} in a future version.  "
+            "To retain the old behavior, use "
+            "`np.asarray(series.values.astype('datetime64[ns]'))`",
+            FutureWarning,
+            stacklevel=4,
+        )
         return np.asarray(self.values.astype("datetime64[ns]", copy=False))
 
     def quantile(self, qs, interpolation="linear", axis=0):

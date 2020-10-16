@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Any
+import warnings
 
 import numpy as np
 
@@ -251,6 +252,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def values(self) -> np.ndarray:
+        warnings.warn(
+            "PeriodIndex.values will return a PeriodArray in a future version.  "
+            "To retain the old behavior, use `index.values.astype(object)`",
+            FutureWarning,
+            stacklevel=4,
+        )
         return np.asarray(self)
 
     @property

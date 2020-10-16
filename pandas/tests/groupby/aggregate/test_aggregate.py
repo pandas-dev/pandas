@@ -3,6 +3,7 @@ test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 import functools
 from functools import partial
+import warnings
 
 import numpy as np
 import pytest
@@ -307,7 +308,9 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
     )
     # PerformanceWarning is thrown by `assert col in right` in assert_frame_equal
     with tm.assert_produces_warning(PerformanceWarning):
-        tm.assert_frame_equal(result, expected)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=r".*\.values")
+            tm.assert_frame_equal(result, expected)
 
 
 def test_multiple_functions_tuples_and_non_tuples(df):

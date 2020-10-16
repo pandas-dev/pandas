@@ -1,5 +1,6 @@
 from datetime import date, datetime, time, timedelta
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -326,9 +327,12 @@ class TestDataFrameIndexing:
         # key is not the same as the given index, we will reindex
         # not sure this is really necessary
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            indexer_obj = indexer_obj.reindex(datetime_frame.index[::-1])
-            subframe_obj = datetime_frame[indexer_obj]
-            tm.assert_frame_equal(subframe_obj, subframe)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=r".*\.values")
+
+                indexer_obj = indexer_obj.reindex(datetime_frame.index[::-1])
+                subframe_obj = datetime_frame[indexer_obj]
+                tm.assert_frame_equal(subframe_obj, subframe)
 
         # test df[df > 0]
         for df in [

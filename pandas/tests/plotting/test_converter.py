@@ -1,6 +1,7 @@
 from datetime import date, datetime
 import subprocess
 import sys
+import warnings
 
 import numpy as np
 import pytest
@@ -76,7 +77,9 @@ class TestRegistration:
         s = Series(range(12), index=date_range("2017", periods=12))
         # Set to the "warn" state, in case this isn't the first test run
         with tm.assert_produces_warning(None) as w:
-            s.plot()
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=r".*DatetimeIndex\.values")
+                s.plot()
 
         assert len(w) == 0
 

@@ -3,6 +3,7 @@ Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime, tzinfo
 from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union, cast
+import warnings
 
 import numpy as np
 
@@ -111,6 +112,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     @property
     def values(self) -> np.ndarray:
         # Note: PeriodArray overrides this to return an ndarray of objects.
+        if self.dtype.kind == "M":
+            warnings.warn(
+                "In a future version, DatetimeIndex.values will return a "
+                "DatetimeArray.  To retain the old behavior, use "
+                "np.asarray(dti.values, dtype='datetime64[ns]')",
+                FutureWarning,
+                stacklevel=2,
+            )
         return self._data._data
 
     def __array_wrap__(self, result, context=None):
