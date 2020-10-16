@@ -13,7 +13,7 @@ from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:
 from pandas._typing import Level
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_array_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -311,6 +311,11 @@ def align_method_FRAME(
             )
 
     elif is_list_like(right) and not isinstance(right, (ABCSeries, ABCDataFrame)):
+        # GH 36702. Raise when attempting arithmetic with list of array-like.
+        if any(is_array_like(el) for el in right):
+            raise ValueError(
+                f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
+            )
         # GH17901
         right = to_series(right)
 

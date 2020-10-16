@@ -371,6 +371,7 @@ Numeric
 - Bug in :meth:`DataFrame.diff` with ``datetime64`` dtypes including ``NaT`` values failing to fill ``NaT`` results correctly (:issue:`32441`)
 - Bug in :class:`DataFrame` arithmetic ops incorrectly accepting keyword arguments (:issue:`36843`)
 - Bug in :class:`IntervalArray` comparisons with :class:`Series` not returning :class:`Series` (:issue:`36908`)
+- Bug in :class:`DataFrame` allowing arithmetic operations with list of array-likes with undefined results. Behavior changed to raising ``ValueError`` (:issue:`36702`)
 
 Conversion
 ^^^^^^^^^^
