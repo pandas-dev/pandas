@@ -1023,10 +1023,11 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
     else:
         to_raise = (
-            (np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]
-        ).any() or (
-            (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
-        ).any()
+            ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any()
+            or (
+                (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
+            ).any()
+        )
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
@@ -2095,18 +2096,24 @@ def safe_sort(
 
     sorter = None
 
-    is_ea = is_extension_array_dtype(values)
-    if not is_ea and lib.infer_dtype(values, skipna=False) == "mixed-integer":
+    if (
+        not is_extension_array_dtype(values)
+        and lib.infer_dtype(values, skipna=False) == "mixed-integer"
+    ):
         ordered = sort_mixed(values)
-    elif not is_ea and values.size and isinstance(values[0], tuple):
-        ordered = sort_tuples(values)
     else:
         try:
             sorter = values.argsort()
             ordered = values.take(sorter)
         except TypeError:
             # try this anyway
-            ordered = sort_mixed(values)
+            try:
+                ordered = sort_mixed(values)
+            except TypeError:
+                if values.size and isinstance(values[0], tuple):
+                    ordered = sort_tuples(values)
+                else:
+                    raise
 
     # codes:
 
