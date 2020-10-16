@@ -6,8 +6,6 @@ Methods that can be shared by many array-like classes or subclasses:
 """
 import operator
 
-from pandas.errors import AbstractMethodError
-
 from pandas.core.ops import roperator
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
@@ -17,7 +15,7 @@ class OpsMixin:
     # Comparisons
 
     def _cmp_method(self, other, op):
-        raise AbstractMethodError(self)
+        return NotImplemented
 
     @unpack_zerodim_and_defer("__eq__")
     def __eq__(self, other):
@@ -47,7 +45,7 @@ class OpsMixin:
     # Logical Methods
 
     def _logical_method(self, other, op):
-        raise AbstractMethodError(self)
+        return NotImplemented
 
     @unpack_zerodim_and_defer("__and__")
     def __and__(self, other):
@@ -72,3 +70,73 @@ class OpsMixin:
     @unpack_zerodim_and_defer("__rxor__")
     def __rxor__(self, other):
         return self._logical_method(other, roperator.rxor)
+
+    # -------------------------------------------------------------
+    # Arithmetic Methods
+
+    def _arith_method(self, other, op):
+        return NotImplemented
+
+    @unpack_zerodim_and_defer("__add__")
+    def __add__(self, other):
+        return self._arith_method(other, operator.add)
+
+    @unpack_zerodim_and_defer("__radd__")
+    def __radd__(self, other):
+        return self._arith_method(other, roperator.radd)
+
+    @unpack_zerodim_and_defer("__sub__")
+    def __sub__(self, other):
+        return self._arith_method(other, operator.sub)
+
+    @unpack_zerodim_and_defer("__rsub__")
+    def __rsub__(self, other):
+        return self._arith_method(other, roperator.rsub)
+
+    @unpack_zerodim_and_defer("__mul__")
+    def __mul__(self, other):
+        return self._arith_method(other, operator.mul)
+
+    @unpack_zerodim_and_defer("__rmul__")
+    def __rmul__(self, other):
+        return self._arith_method(other, roperator.rmul)
+
+    @unpack_zerodim_and_defer("__truediv__")
+    def __truediv__(self, other):
+        return self._arith_method(other, operator.truediv)
+
+    @unpack_zerodim_and_defer("__rtruediv__")
+    def __rtruediv__(self, other):
+        return self._arith_method(other, roperator.rtruediv)
+
+    @unpack_zerodim_and_defer("__floordiv__")
+    def __floordiv__(self, other):
+        return self._arith_method(other, operator.floordiv)
+
+    @unpack_zerodim_and_defer("__rfloordiv")
+    def __rfloordiv__(self, other):
+        return self._arith_method(other, roperator.rfloordiv)
+
+    @unpack_zerodim_and_defer("__mod__")
+    def __mod__(self, other):
+        return self._arith_method(other, operator.mod)
+
+    @unpack_zerodim_and_defer("__rmod__")
+    def __rmod__(self, other):
+        return self._arith_method(other, roperator.rmod)
+
+    @unpack_zerodim_and_defer("__divmod__")
+    def __divmod__(self, other):
+        return self._arith_method(other, divmod)
+
+    @unpack_zerodim_and_defer("__rdivmod__")
+    def __rdivmod__(self, other):
+        return self._arith_method(other, roperator.rdivmod)
+
+    @unpack_zerodim_and_defer("__pow__")
+    def __pow__(self, other):
+        return self._arith_method(other, operator.pow)
+
+    @unpack_zerodim_and_defer("__rpow__")
+    def __rpow__(self, other):
+        return self._arith_method(other, roperator.rpow)

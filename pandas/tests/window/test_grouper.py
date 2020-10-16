@@ -297,6 +297,68 @@ class TestGrouperGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_rolling_center_on(self):
+        # GH 37141
+        df = pd.DataFrame(
+            data={
+                "Date": pd.date_range("2020-01-01", "2020-01-10"),
+                "gb": ["group_1"] * 6 + ["group_2"] * 4,
+                "value": range(10),
+            }
+        )
+        result = (
+            df.groupby("gb")
+            .rolling(6, on="Date", center=True, min_periods=1)
+            .value.mean()
+        )
+        expected = Series(
+            [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 7.0, 7.5, 7.5, 7.5],
+            name="value",
+            index=pd.MultiIndex.from_tuples(
+                (
+                    ("group_1", pd.Timestamp("2020-01-01")),
+                    ("group_1", pd.Timestamp("2020-01-02")),
+                    ("group_1", pd.Timestamp("2020-01-03")),
+                    ("group_1", pd.Timestamp("2020-01-04")),
+                    ("group_1", pd.Timestamp("2020-01-05")),
+                    ("group_1", pd.Timestamp("2020-01-06")),
+                    ("group_2", pd.Timestamp("2020-01-07")),
+                    ("group_2", pd.Timestamp("2020-01-08")),
+                    ("group_2", pd.Timestamp("2020-01-09")),
+                    ("group_2", pd.Timestamp("2020-01-10")),
+                ),
+                names=["gb", "Date"],
+            ),
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("min_periods", [5, 4, 3])
+    def test_groupby_rolling_center_min_periods(self, min_periods):
+        # GH 36040
+        df = pd.DataFrame({"group": ["A"] * 10 + ["B"] * 10, "data": range(20)})
+
+        window_size = 5
+        result = (
+            df.groupby("group")
+            .rolling(window_size, center=True, min_periods=min_periods)
+            .mean()
+        )
+        result = result.reset_index()[["group", "data"]]
+
+        grp_A_mean = [1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 7.5, 8.0]
+        grp_B_mean = [x + 10.0 for x in grp_A_mean]
+
+        num_nans = max(0, min_periods - 3)  # For window_size of 5
+        nans = [np.nan] * num_nans
+        grp_A_expected = nans + grp_A_mean[num_nans : 10 - num_nans] + nans
+        grp_B_expected = nans + grp_B_mean[num_nans : 10 - num_nans] + nans
+
+        expected = pd.DataFrame(
+            {"group": ["A"] * 10 + ["B"] * 10, "data": grp_A_expected + grp_B_expected}
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_groupby_subselect_rolling(self):
         # GH 35486
         df = DataFrame(
@@ -504,3 +566,38 @@ class TestGrouperGrouping:
             ),
         )
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("func", "kwargs"),
+        [("rolling", {"window": 2, "min_periods": 1}), ("expanding", {})],
+    )
+    def test_groupby_rolling_sem(self, func, kwargs):
+        # GH: 26476
+        df = pd.DataFrame(
+            [["a", 1], ["a", 2], ["b", 1], ["b", 2], ["b", 3]], columns=["a", "b"]
+        )
+        result = getattr(df.groupby("a"), func)(**kwargs).sem()
+        expected = pd.DataFrame(
+            {"a": [np.nan] * 5, "b": [np.nan, 0.70711, np.nan, 0.70711, 0.70711]},
+            index=pd.MultiIndex.from_tuples(
+                [("a", 0), ("a", 1), ("b", 2), ("b", 3), ("b", 4)], names=["a", None]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("rollings", "key"), [({"on": "a"}, "a"), ({"on": None}, "index")]
+    )
+    def test_groupby_rolling_nans_in_index(self, rollings, key):
+        # GH: 34617
+        df = pd.DataFrame(
+            {
+                "a": pd.to_datetime(["2020-06-01 12:00", "2020-06-01 14:00", np.nan]),
+                "b": [1, 2, 3],
+                "c": [1, 1, 1],
+            }
+        )
+        if key == "index":
+            df = df.set_index("a")
+        with pytest.raises(ValueError, match=f"{key} must be monotonic"):
+            df.groupby("c").rolling("60min", **rollings)

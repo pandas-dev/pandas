@@ -1,11 +1,15 @@
 from textwrap import dedent
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
+import numpy as np
+
+from pandas._typing import FrameOrSeries
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
-from pandas.core.window.common import WindowGroupByMixin, _doc_template, _shared_docs
-from pandas.core.window.rolling import RollingAndExpandingMixin
+from pandas.core.window.common import _doc_template, _shared_docs
+from pandas.core.window.indexers import ExpandingIndexer, GroupbyIndexer
+from pandas.core.window.rolling import BaseWindowGroupby, RollingAndExpandingMixin
 
 
 class Expanding(RollingAndExpandingMixin):
@@ -64,7 +68,9 @@ class Expanding(RollingAndExpandingMixin):
     def _constructor(self):
         return Expanding
 
-    def _get_window(self, other=None, **kwargs):
+    def _get_window(
+        self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, **kwargs
+    ) -> int:
         """
         Get the window length over which to perform some operation.
 
@@ -134,12 +140,12 @@ class Expanding(RollingAndExpandingMixin):
     @Appender(_shared_docs["apply"])
     def apply(
         self,
-        func,
+        func: Callable[..., Any],
         raw: bool = False,
         engine: Optional[str] = None,
         engine_kwargs: Optional[Dict[str, bool]] = None,
-        args=None,
-        kwargs=None,
+        args: Optional[Tuple[Any, ...]] = None,
+        kwargs: Optional[Dict[str, Any]] = None,
     ):
         return super().apply(
             func,
@@ -182,15 +188,20 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["std"])
-    def std(self, ddof=1, *args, **kwargs):
+    def std(self, ddof: int = 1, *args, **kwargs):
         nv.validate_expanding_func("std", args, kwargs)
         return super().std(ddof=ddof, **kwargs)
 
     @Substitution(name="expanding", versionadded="")
     @Appender(_shared_docs["var"])
-    def var(self, ddof=1, *args, **kwargs):
+    def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_expanding_func("var", args, kwargs)
         return super().var(ddof=ddof, **kwargs)
+
+    @Substitution(name="expanding")
+    @Appender(_shared_docs["sem"])
+    def sem(self, ddof: int = 1, *args, **kwargs):
+        return super().sem(ddof=ddof, **kwargs)
 
     @Substitution(name="expanding", func_name="skew")
     @Appender(_doc_template)
@@ -239,20 +250,46 @@ class Expanding(RollingAndExpandingMixin):
     @Substitution(name="expanding", func_name="cov")
     @Appender(_doc_template)
     @Appender(_shared_docs["cov"])
-    def cov(self, other=None, pairwise=None, ddof=1, **kwargs):
+    def cov(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        ddof: int = 1,
+        **kwargs,
+    ):
         return super().cov(other=other, pairwise=pairwise, ddof=ddof, **kwargs)
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["corr"])
-    def corr(self, other=None, pairwise=None, **kwargs):
+    def corr(
+        self,
+        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
+        pairwise: Optional[bool] = None,
+        **kwargs,
+    ):
         return super().corr(other=other, pairwise=pairwise, **kwargs)
 
 
-class ExpandingGroupby(WindowGroupByMixin, Expanding):
+class ExpandingGroupby(BaseWindowGroupby, Expanding):
     """
     Provide a expanding groupby implementation.
     """
 
-    @property
-    def _constructor(self):
-        return Expanding
+    def _get_window_indexer(self, window: int) -> GroupbyIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+
+        Parameters
+        ----------
+        window : int
+            window size for FixedWindowIndexer (unused)
+
+        Returns
+        -------
+        GroupbyIndexer
+        """
+        window_indexer = GroupbyIndexer(
+            groupby_indicies=self._groupby.indices,
+            window_indexer=ExpandingIndexer,
+        )
+        return window_indexer
