@@ -10,7 +10,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
@@ -118,11 +118,6 @@ def _make_wrapped_comparison_op(opname: str):
     """
 
     def wrapper(self, other):
-        if isinstance(other, ABCSeries):
-            # the arrays defer to Series for comparison ops but the indexes
-            #  don't, so we have to unwrap here.
-            other = other._values
-
         other = _maybe_unwrap_index(other)
 
         op = getattr(self._data, opname)

@@ -4977,11 +4977,14 @@ Keep all original rows and also all original values
 
         if isinstance(other, Series) and not self._indexed_same(other):
             raise ValueError("Can only compare identically-labeled Series objects")
+        if isinstance(other, MultiIndex):
+            res_values = op(self._values, other)
+        else:
+            lvalues = extract_array(self, extract_numpy=True)
 
-        lvalues = extract_array(self, extract_numpy=True)
-        rvalues = extract_array(other, extract_numpy=True)
+            rvalues = extract_array(other, extract_numpy=True)
 
-        res_values = ops.comparison_op(lvalues, rvalues, op)
+            res_values = ops.comparison_op(lvalues, rvalues, op)
 
         return self._construct_result(res_values, name=res_name)
 
