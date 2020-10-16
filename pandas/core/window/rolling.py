@@ -463,16 +463,11 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 return values.copy()
 
             def calc(x):
-                if not isinstance(self.window, BaseIndexer):
-                    min_periods = calculate_min_periods(
-                        window, self.min_periods, len(x)
-                    )
-                else:
-                    min_periods = calculate_min_periods(
-                        window_indexer.window_size,
-                        self.min_periods,
-                        len(x),
-                    )
+                min_periods = calculate_min_periods(
+                    window_indexer.window_size,
+                    self.min_periods,
+                    len(x),
+                )
 
                 start, end = window_indexer.get_window_bounds(
                     num_values=len(x),
