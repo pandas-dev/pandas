@@ -74,27 +74,6 @@ if TYPE_CHECKING:
     from pandas.core.internals import Block  # noqa:F401
 
 
-def calculate_min_periods(
-    window: int,
-    min_periods: Optional[int],
-) -> int:
-    """
-    Calculate final minimum periods value for rolling aggregations.
-
-    Parameters
-    ----------
-    window : passed window value
-    min_periods : passed min periods value
-
-    Returns
-    -------
-    min_periods : int
-    """
-    if min_periods is None:
-        min_periods = window
-    return min_periods
-
-
 class BaseWindow(ShallowMixin, SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
@@ -451,6 +430,11 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         """
         window = self._get_window()
         window_indexer = self._get_window_indexer(window)
+        min_periods = (
+            self.min_periods
+            if self.min_periods is not None
+            else window_indexer.window_size
+        )
 
         def homogeneous_func(values: np.ndarray):
             # calculation function
@@ -459,15 +443,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
                 return values.copy()
 
             def calc(x):
-                min_periods = calculate_min_periods(
-                    window_indexer.window_size,
-                    self.min_periods,
-                    len(x),
-                )
-
                 start, end = window_indexer.get_window_bounds(
                     num_values=len(x),
-                    min_periods=self.min_periods,
+                    min_periods=min_periods,
                     center=self.center,
                     closed=self.closed,
                 )
