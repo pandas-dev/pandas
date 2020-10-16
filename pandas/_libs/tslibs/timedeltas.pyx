@@ -620,7 +620,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
             if not len(unit):
                 number.append(c)
             else:
-                if 'H' in unit or 'M' in unit:
+                if 'H' in unit or 'M' in unit or 'W' in unit:
                     if len(number) > 2:
                         raise ValueError(err_msg)
                 r = timedelta_from_spec(number, '0', unit)
@@ -636,7 +636,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
                     raise ValueError(err_msg)
                 else:
                     neg = 1
-            elif c in ['D', 'H', 'M']:
+            elif c in ['W', 'D', 'H', 'M']:
                 unit.append(c)
             elif c == '.':
                 # append any seconds

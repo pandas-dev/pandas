@@ -230,6 +230,7 @@ def test_overflow_on_construction():
         ("P1DT25H61M61S", Timedelta(days=1, hours=25, minutes=61, seconds=61)),
         ("PT1S", Timedelta(seconds=1)),
         ("PT0S", Timedelta(seconds=0)),
+        ("P1WT0S", Timedelta(days=7, seconds=0)),
     ],
 )
 def test_iso_constructor(fmt, exp):
