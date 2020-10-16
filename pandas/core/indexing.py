@@ -668,7 +668,6 @@ class _LocationIndexer(NDFrameIndexerBase):
                     if value is None:
                         self.obj[k] = np.nan
                     elif is_list_like(value):
-                        # TODO: be more careful about this, maybe check before calling?
                         self.obj[k] = value[i]
                     else:
                         self.obj[k] = value
@@ -1546,9 +1545,10 @@ class _iLocIndexer(_LocationIndexer):
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
         if not take_split_path and self.obj._mgr.blocks:
-            (blk,) = self.obj._mgr.blocks
-            if 1 < blk.ndim:  # in case of dict, keys are indices
+            if self.ndim > 1:
+                # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value, dict) else value
+                blk = self.obj._mgr.blocks[0]
                 take_split_path = not blk._can_hold_element(val)
 
         # if we have any multi-indexes that have non-trivial slices
@@ -1581,11 +1581,7 @@ class _iLocIndexer(_LocationIndexer):
                         # must have all defined axes if we have a scalar
                         # or a list-like on the non-info axes if we have a
                         # list-like
-
-                        len_non_info_axes = (
-                            len(_ax) for _i, _ax in enumerate(self.obj.axes) if _i != i
-                        )
-                        if any(not l for l in len_non_info_axes):
+                        if not len(self.obj):
                             if not is_list_like_indexer(value):
                                 raise ValueError(
                                     "cannot set a frame with no "
@@ -1774,7 +1770,7 @@ class _iLocIndexer(_LocationIndexer):
                     self._setitem_single_column(loc, value, pi)
 
         else:
-            self._setitem_single_block_inplace(indexer, value)
+            self._setitem_single_block(indexer, value)
 
     def _setitem_single_column(self, loc: int, value, plane_indexer):
         # positional setting on column loc
@@ -1808,10 +1804,9 @@ class _iLocIndexer(_LocationIndexer):
         # reset the sliced object if unique
         self.obj._iset_item(loc, ser, inplace=True)
 
-    def _setitem_single_block_inplace(self, indexer, value):
+    def _setitem_single_block(self, indexer, value):
         """
-        _setitem_with_indexer for the case when we have a single Block
-        and the value can be set into it without casting.
+        _setitem_with_indexer for the case when we have a single Block.
         """
         from pandas import Series
 

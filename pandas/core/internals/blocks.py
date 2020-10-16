@@ -340,7 +340,7 @@ class Block(PandasObject):
     def iget(self, i):
         return self.values[i]
 
-    def set(self, locs, values):
+    def set_inplace(self, locs, values):
         """
         Modify block values in-place with new item value.
 
@@ -1676,7 +1676,9 @@ class ExtensionBlock(Block):
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
-    def set(self, locs, values):
+    def set_inplace(self, locs, values):
+        # NB: This is a misnomer, is supposed to be inplace but is not,
+        #  see GH#33457
         assert locs.tolist() == [0]
         self.values[:] = values
 
@@ -2231,7 +2233,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin):
 
         return is_valid_nat_for_dtype(element, self.dtype)
 
-    def set(self, locs, values):
+    def set_inplace(self, locs, values):
         """
         See Block.set.__doc__
         """
