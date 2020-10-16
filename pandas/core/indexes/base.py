@@ -3404,6 +3404,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
         target = ensure_index(target)
+        if len(target) == 0:
+            # GH#13691
+            return self[:0], np.array([], dtype=np.intp), None
+
         indexer, missing = self.get_indexer_non_unique(target)
         check = indexer != -1
         new_labels = self.take(indexer[check])
