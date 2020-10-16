@@ -1540,7 +1540,7 @@ class _iLocIndexer(_LocationIndexer):
         info_axis = self.obj._info_axis_number
 
         # maybe partial set
-        take_split_path = len(self.obj._mgr.blocks) > 1
+        take_split_path = not self.obj._mgr._is_single_block
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
