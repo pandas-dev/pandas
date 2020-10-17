@@ -3561,11 +3561,17 @@ class Index(IndexOpsMixin, PandasObject):
 
         if return_indexers:
             if join_index is self:
-                lindexer = None
+                # pandas\core\indexes\base.py:3564: error: Incompatible types
+                # in assignment (expression has type "None", variable has type
+                # "ndarray")  [assignment]
+                lindexer = None  # type: ignore[assignment]
             else:
                 lindexer = self.get_indexer(join_index)
             if join_index is other:
-                rindexer = None
+                # pandas\core\indexes\base.py:3568: error: Incompatible types
+                # in assignment (expression has type "None", variable has type
+                # "ndarray")  [assignment]
+                rindexer = None  # type: ignore[assignment]
             else:
                 rindexer = other.get_indexer(join_index)
             return join_index, lindexer, rindexer
@@ -5390,7 +5396,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             with np.errstate(all="ignore"):
-                result = ops.comparison_op(self._values, np.asarray(other), op)
+                # pandas\core\indexes\base.py:5393: error: Value of type
+                # variable "ArrayLike" of "comparison_op" cannot be
+                # "Union[ExtensionArray, ndarray]"  [type-var]
+                result = ops.comparison_op(
+                    self._values, np.asarray(other), op  # type: ignore[type-var]
+                )
 
         return result
 
@@ -5800,7 +5811,12 @@ def _maybe_cast_data_without_dtype(subarr):
 
     if inferred == "integer":
         try:
-            data = _try_convert_to_int_array(subarr, False, None)
+            # pandas\core\indexes\base.py:5803: error: Argument 3 to
+            # "_try_convert_to_int_array" has incompatible type "None";
+            # expected "dtype"  [arg-type]
+            data = _try_convert_to_int_array(
+                subarr, False, None  # type: ignore[arg-type]
+            )
             return data, data.dtype
         except ValueError:
             pass
@@ -5833,7 +5849,12 @@ def _maybe_cast_data_without_dtype(subarr):
                 pass
 
         elif inferred.startswith("timedelta"):
-            data = TimedeltaArray._from_sequence(subarr, copy=False)
+            # pandas\core\indexes\base.py:5836: error: Incompatible types in
+            # assignment (expression has type "TimedeltaArray", variable has
+            # type "ndarray")  [assignment]
+            data = TimedeltaArray._from_sequence(  # type: ignore[assignment]
+                subarr, copy=False
+            )
             return data, data.dtype
         elif inferred == "period":
             try:

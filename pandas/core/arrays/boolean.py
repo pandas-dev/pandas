@@ -607,7 +607,10 @@ class BooleanArray(BaseMaskedArray):
         elif op.__name__ in {"xor", "rxor"}:
             result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-        return BooleanArray(result, mask)
+        # pandas\core\arrays\boolean.py:610: error: Argument 2 to
+        # "BooleanArray" has incompatible type "Optional[Any]"; expected
+        # "ndarray"  [arg-type]
+        return BooleanArray(result, mask)  # type: ignore[arg-type]
 
     def _cmp_method(self, other, op):
         from pandas.arrays import FloatingArray, IntegerArray

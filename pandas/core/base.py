@@ -676,7 +676,15 @@ class IndexOpsMixin(OpsMixin):
         """
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmax(self._values, skipna=skipna)
+        # pandas\core\base.py:679: error: Incompatible return value type (got
+        # "Union[int, ndarray]", expected "int")  [return-value]
+
+        # pandas\core\base.py:679: error: Argument 1 to "nanargmax" has
+        # incompatible type "Union[ExtensionArray, ndarray]"; expected
+        # "ndarray"  [arg-type]
+        return nanops.nanargmax(  # type: ignore[return-value]
+            self._values, skipna=skipna  # type: ignore[arg-type]
+        )
 
     def min(self, axis=None, skipna: bool = True, *args, **kwargs):
         """
@@ -726,7 +734,13 @@ class IndexOpsMixin(OpsMixin):
     def argmin(self, axis=None, skipna=True, *args, **kwargs) -> int:
         nv.validate_minmax_axis(axis)
         nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        return nanops.nanargmin(self._values, skipna=skipna)
+        # pandas\core\base.py:729: error: Argument 1 to "nanargmin" has
+        # incompatible type "Union[ExtensionArray, ndarray]"; expected
+        # "ndarray"  [arg-type]
+        result = nanops.nanargmin(self._values, skipna=skipna)  # type: ignore[arg-type]
+        # pandas\core\base.py:732: error: Incompatible return value type (got
+        # "Union[int, ndarray]", expected "int")  [return-value]
+        return result  # type: ignore[return-value]
 
     def tolist(self):
         """

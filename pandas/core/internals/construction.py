@@ -609,14 +609,17 @@ def _list_of_series_to_arrays(
     values = np.vstack(aligned_values)
 
     if values.dtype == np.object_:
-        # error: "ExtensionArray" has no attribute "T"
-        content = list(values.T)  # type: ignore[attr-defined]
+        content = list(values.T)
         columns = _validate_or_indexify_columns(content, columns)
         content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
         return content, columns
     else:
-        # error: "ExtensionArray" has no attribute "T"
-        return values.T, columns  # type: ignore[attr-defined]
+        # pandas\core\internals\construction.py:619: error: Incompatible return
+        # value type (got "Tuple[ExtensionArray, Union[Index, List[Any]]]",
+        # expected "Tuple[List[Union[Union[str, int, float, bool], Union[Any,
+        # Any, Any, Any]]], Union[Index, List[Union[str, int]]]]")
+        # [return-value]
+        return values.T, columns  # type: ignore[return-value]
 
 
 def _list_of_dict_to_arrays(
@@ -739,7 +742,11 @@ def _convert_object_array(
     def convert(arr):
         if dtype != np.dtype("O"):
             arr = lib.maybe_convert_objects(arr, try_float=coerce_float)
-            arr = maybe_cast_to_datetime(arr, dtype)
+            # pandas\core\internals\construction.py:742: error: Argument 2 to
+            # "maybe_cast_to_datetime" has incompatible type "Union[dtype,
+            # ExtensionDtype, None]"; expected "Union[dtype, ExtensionDtype]"
+            # [arg-type]
+            arr = maybe_cast_to_datetime(arr, dtype)  # type: ignore[arg-type]
         return arr
 
     arrays = [convert(arr) for arr in content]

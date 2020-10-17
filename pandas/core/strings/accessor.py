@@ -613,7 +613,11 @@ class StringMethods(NoNewAttributesMixin):
             result = Series(  # type: ignore[assignment]
                 result, dtype=dtype, index=data.index, name=self._orig.name
             )
-            result = result.__finalize__(self._orig, method="str_cat")
+            # pandas\core\strings\accessor.py:616: error: "ndarray" has no
+            # attribute "__finalize__"  [attr-defined]
+            result = result.__finalize__(  # type: ignore[attr-defined]
+                self._orig, method="str_cat"
+            )
         return result
 
     _shared_docs[

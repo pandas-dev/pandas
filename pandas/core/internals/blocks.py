@@ -229,7 +229,10 @@ class Block(PandasObject):
         """
         The array that Series.array returns. Always an ExtensionArray.
         """
-        return PandasArray(self.values)
+        # pandas\core\internals\blocks.py:232: error: Argument 1 to
+        # "PandasArray" has incompatible type "Union[ndarray, ExtensionArray]";
+        # expected "Union[ndarray, PandasArray]"  [arg-type]
+        return PandasArray(self.values)  # type: ignore[arg-type]
 
     def get_values(self, dtype=None):
         """
@@ -841,12 +844,21 @@ class Block(PandasObject):
             an element-wise regular expression matching
             """
             if isna(s):
-                return ~mask
+                # pandas\core\internals\blocks.py:844: error: Incompatible
+                # return value type (got "Union[ndarray, integer, bool_]",
+                # expected "ndarray")  [return-value]
+                return ~mask  # type: ignore[return-value]
 
             s = com.maybe_box_datetimelike(s)
             # error: Incompatible return value type (got "Union[ndarray,
             # bool]", expected "ndarray")
-            tmp = compare_or_regex_search(self.values, s, regex, mask)
+
+            # pandas\core\internals\blocks.py:849: error: Value of type
+            # variable "ArrayLike" of "compare_or_regex_search" cannot be
+            # "Union[ndarray, ExtensionArray]"  [type-var]
+            tmp = compare_or_regex_search(
+                self.values, s, regex, mask  # type: ignore[type-var]
+            )
             return tmp  # type: ignore[return-value]
 
         # Calculate the mask once, prior to the call of comp
@@ -912,7 +924,12 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(value):
-                value = convert_scalar_for_putitemlike(value, values.dtype)
+                # pandas\core\internals\blocks.py:915: error: Argument 2 to
+                # "convert_scalar_for_putitemlike" has incompatible type
+                # "Union[dtype, ExtensionDtype]"; expected "dtype"  [arg-type]
+                value = convert_scalar_for_putitemlike(
+                    value, values.dtype  # type: ignore[arg-type]
+                )
 
         else:
             # current dtype cannot store value, coerce to common dtype
@@ -1028,7 +1045,12 @@ class Block(PandasObject):
             # We only get here for non-Extension Blocks, so _try_coerce_args
             #  is only relevant for DatetimeBlock and TimedeltaBlock
             if lib.is_scalar(new):
-                new = convert_scalar_for_putitemlike(new, self.values.dtype)
+                # pandas\core\internals\blocks.py:1031: error: Argument 2 to
+                # "convert_scalar_for_putitemlike" has incompatible type
+                # "Union[dtype, ExtensionDtype]"; expected "dtype"  [arg-type]
+                new = convert_scalar_for_putitemlike(
+                    new, self.values.dtype  # type: ignore[arg-type]
+                )
 
             if transpose:
                 new_values = new_values.T
@@ -1373,9 +1395,20 @@ class Block(PandasObject):
         """ shift the block by periods, possibly upcast """
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        new_values, fill_value = maybe_upcast(self.values, fill_value)
 
-        new_values = shift(new_values, periods, axis, fill_value)
+        # pandas\core\internals\blocks.py:1376: error: Value of type variable
+        # "ArrayLike" of "maybe_upcast" cannot be "Union[ndarray,
+        # ExtensionArray]"  [type-var]
+        new_values, fill_value = maybe_upcast(
+            self.values, fill_value  # type: ignore[type-var]
+        )
+
+        # pandas\core\internals\blocks.py:1378: error: Argument 1 to "shift"
+        # has incompatible type "Union[ndarray, ExtensionArray]"; expected
+        # "ndarray"  [arg-type]
+        new_values = shift(
+            new_values, periods, axis, fill_value  # type: ignore[arg-type]
+        )
 
         return [self.make_block(new_values)]
 
@@ -1475,7 +1508,17 @@ class Block(PandasObject):
         for m in [mask, ~mask]:
             if m.any():
                 result = cast(np.ndarray, result)  # EABlock overrides where
-                taken = result.take(m.nonzero()[0], axis=axis)
+
+                # pandas\core\internals\blocks.py:1478: error: Item "integer"
+                # of "Union[ndarray, integer, bool_]" has no attribute
+                # "nonzero"  [union-attr]
+
+                # pandas\core\internals\blocks.py:1478: error: Item "bool_" of
+                # "Union[ndarray, integer, bool_]" has no attribute "nonzero"
+                # [union-attr]
+                taken = result.take(
+                    m.nonzero()[0], axis=axis  # type: ignore[union-attr]
+                )
                 r = maybe_downcast_numeric(taken, self.dtype)
                 nb = self.make_block(r.T, placement=self.mgr_locs[m])
                 result_blocks.append(nb)
@@ -1800,7 +1843,10 @@ class ExtensionBlock(Block):
         values = self.values
         mask = isna(values)
 
-        values = np.asarray(values.astype(object))
+        # pandas\core\internals\blocks.py:1803: error: Incompatible types in
+        # assignment (expression has type "ndarray", variable has type
+        # "ExtensionArray")  [assignment]
+        values = np.asarray(values.astype(object))  # type: ignore[assignment]
         values[mask] = na_rep
 
         # TODO(EA2D): reshape not needed with 2D EAs
@@ -2627,7 +2673,10 @@ class ObjectBlock(Block):
         f = np.vectorize(re_replacer, otypes=[self.dtype])
 
         if mask is None:
-            new_values[:] = f(new_values)
+            # pandas\core\internals\blocks.py:2630: error: Invalid index type
+            # "slice" for "ExtensionArray"; expected type "Union[int, ndarray]"
+            # [index]
+            new_values[:] = f(new_values)  # type: ignore[index]
         else:
             new_values[mask] = f(new_values[mask])
 

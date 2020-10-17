@@ -4506,8 +4506,7 @@ class AppendableFrameTable(AppendableTable):
                 index_ = cols
                 cols_ = Index(index, name=getattr(index, "name", None))
             else:
-                # error: "ExtensionArray" has no attribute "T"
-                values = cvalues.T  # type: ignore[attr-defined]
+                values = cvalues.T
                 index_ = Index(index, name=getattr(index, "name", None))
                 cols_ = cols
 

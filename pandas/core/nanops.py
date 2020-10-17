@@ -159,7 +159,9 @@ def _has_infs(result) -> bool:
         elif result.dtype == "f4":
             return lib.has_infs_f4(result.ravel("K"))
     try:
-        return np.isinf(result).any()
+        # pandas\core\nanops.py:162: error: Incompatible return value type (got
+        # "bool_", expected "bool")  [return-value]
+        return np.isinf(result).any()  # type: ignore[return-value]
     except (TypeError, NotImplementedError):
         # if it doesn't support infs, then it can't have infs
         return False
@@ -440,7 +442,9 @@ def nanany(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
-    return values.any(axis)
+    # pandas\core\nanops.py:443: error: Incompatible return value type (got
+    # "Union[bool_, ndarray]", expected "bool")  [return-value]
+    return values.any(axis)  # type: ignore[return-value]
 
 
 def nanall(
@@ -477,7 +481,9 @@ def nanall(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
-    return values.all(axis)
+    # pandas\core\nanops.py:480: error: Incompatible return value type (got
+    # "Union[bool_, ndarray]", expected "bool")  [return-value]
+    return values.all(axis)  # type: ignore[return-value]
 
 
 @disallow("M8")
@@ -522,7 +528,16 @@ def nansum(
         # "Type[float64]", variable has type "dtype")
         dtype_sum = np.float64  # type: ignore[assignment]
     the_sum = values.sum(axis, dtype=dtype_sum)
-    the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
+    # pandas\core\nanops.py:525: error: Incompatible types in assignment
+    # (expression has type "float", variable has type "Union[number, ndarray]")
+    # [assignment]
+
+    # pandas\core\nanops.py:525: error: Argument 1 to "_maybe_null_out" has
+    # incompatible type "Union[number, ndarray]"; expected "ndarray"
+    # [arg-type]
+    the_sum = _maybe_null_out(  # type: ignore[assignment]
+        the_sum, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
+    )
 
     return _wrap_results(the_sum, dtype)
 
@@ -968,7 +983,9 @@ def nanargmax(
     array([2, 2, 1, 1], dtype=int64)
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="-inf", mask=mask)
-    result = values.argmax(axis)
+    # pandas\core\nanops.py:971: error: Need type annotation for 'result'
+    # [var-annotated]
+    result = values.argmax(axis)  # type: ignore[var-annotated]
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
@@ -1012,7 +1029,9 @@ def nanargmin(
     array([0, 0, 1, 1], dtype=int64)
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="+inf", mask=mask)
-    result = values.argmin(axis)
+    # pandas\core\nanops.py:1015: error: Need type annotation for 'result'
+    # [var-annotated]
+    result = values.argmin(axis)  # type: ignore[var-annotated]
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
@@ -1073,8 +1092,12 @@ def nanskew(
     adjusted = values - mean
     if skipna and mask is not None:
         np.putmask(adjusted, mask, 0)
-    adjusted2 = adjusted ** 2
-    adjusted3 = adjusted2 * adjusted
+    # pandas\core\nanops.py:1076: error: Unsupported operand types for **
+    # ("generic" and "int")  [operator]
+    adjusted2 = adjusted ** 2  # type: ignore[operator]
+    # pandas\core\nanops.py:1077: error: Unsupported left operand type for *
+    # ("generic")  [operator]
+    adjusted3 = adjusted2 * adjusted  # type: ignore[operator]
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m3 = adjusted3.sum(axis, dtype=np.float64)
 
@@ -1184,8 +1207,12 @@ def nankurt(
     adjusted = values - mean
     if skipna and mask is not None:
         np.putmask(adjusted, mask, 0)
-    adjusted2 = adjusted ** 2
-    adjusted4 = adjusted2 ** 2
+    # pandas\core\nanops.py:1187: error: Unsupported operand types for **
+    # ("generic" and "int")  [operator]
+    adjusted2 = adjusted ** 2  # type: ignore[operator]
+    # pandas\core\nanops.py:1188: error: Unsupported operand types for **
+    # ("generic" and "int")  [operator]
+    adjusted4 = adjusted2 ** 2  # type: ignore[operator]
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m4 = adjusted4.sum(axis, dtype=np.float64)
 
@@ -1239,7 +1266,13 @@ def nankurt(
 
         # pandas\core\nanops.py:1155: error: Unsupported left operand type for
         # * ("generic")  [operator]
-        numer = count * (count + 1) * (count - 1) * m4  # type: ignore[operator]
+
+        # pandas\core\nanops.py:1242: error: Argument 1 to "__call__" of
+        # "_NumberOp" has incompatible type "generic"; expected "Union[int,
+        # float, complex, number, bool_]"  [arg-type]
+        numer = (
+            count * (count + 1) * (count - 1) * m4  # type: ignore[operator,arg-type]
+        )
         # pandas\core\nanops.py:1156: error: Unsupported operand types for *
         # ("float" and "generic")  [operator]
 
@@ -1318,7 +1351,12 @@ def nanprod(
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
-    return _maybe_null_out(result, axis, mask, values.shape, min_count=min_count)
+    # pandas\core\nanops.py:1321: error: Argument 1 to "_maybe_null_out" has
+    # incompatible type "Union[number, ndarray]"; expected "ndarray"
+    # [arg-type]
+    return _maybe_null_out(
+        result, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
+    )
 
 
 def _maybe_arg_null_out(
@@ -1386,14 +1424,26 @@ def _get_counts(
     if mask is not None:
         count = mask.shape[axis] - mask.sum(axis)
     else:
-        count = values_shape[axis]
+        # pandas\core\nanops.py:1389: error: Incompatible types in assignment
+        # (expression has type "int", variable has type "Union[ndarray,
+        # generic]")  [assignment]
+        count = values_shape[axis]  # type: ignore[assignment]
 
     if is_scalar(count):
         # error: Incompatible return value type (got "Union[Any, generic]",
         # expected "Union[int, float, ndarray]")
         return dtype.type(count)  # type: ignore[return-value]
     try:
-        return count.astype(dtype)
+        # pandas\core\nanops.py:1396: error: Incompatible return value type
+        # (got "Union[ndarray, generic]", expected "Union[int, float,
+        # ndarray]")  [return-value]
+
+        # pandas\core\nanops.py:1396: error: Argument 1 to "astype" of
+        # "_ArrayOrScalarCommon" has incompatible type "Union[ExtensionDtype,
+        # dtype]"; expected "Union[dtype, None, type, _SupportsDtype, str,
+        # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+        # _DtypeDict, Tuple[Any, Any]]"  [arg-type]
+        return count.astype(dtype)  # type: ignore[return-value,arg-type]
     except AttributeError:
         # error: Argument "dtype" to "array" has incompatible type
         # "Union[ExtensionDtype, dtype]"; expected "Union[dtype, None, type,
@@ -1416,7 +1466,11 @@ def _maybe_null_out(
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
     if mask is not None and axis is not None and getattr(result, "ndim", False):
-        null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
+        # pandas\core\nanops.py:1419: error: Unsupported operand types for -
+        # ("generic" and "int")  [operator]
+        null_mask = (
+            mask.shape[axis] - mask.sum(axis) - min_count  # type: ignore[operator]
+        ) < 0
         if np.any(null_mask):
             if is_numeric_dtype(result):
                 if np.iscomplexobj(result):
@@ -1753,7 +1807,15 @@ def na_accum_func(values: ArrayLike, accum_func, skipna: bool) -> ArrayLike:
             result[mask] = iNaT
         elif accum_func == np.minimum.accumulate:
             # Restore NaTs that we masked previously
-            nz = (~np.asarray(mask)).nonzero()[0]
+
+            # pandas\core\nanops.py:1756: error: Item "integer" of
+            # "Union[ndarray, integer, bool_]" has no attribute "nonzero"
+            # [union-attr]
+
+            # pandas\core\nanops.py:1756: error: Item "bool_" of
+            # "Union[ndarray, integer, bool_]" has no attribute "nonzero"
+            # [union-attr]
+            nz = (~np.asarray(mask)).nonzero()[0]  # type: ignore[union-attr]
             if len(nz):
                 # everything up to the first non-na entry stays NaT
                 result[: nz[0]] = iNaT

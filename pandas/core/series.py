@@ -264,7 +264,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 copy = False
 
             elif isinstance(data, np.ndarray):
-                if len(data.dtype):
+                # pandas\core\series.py:267: error: Argument 1 to "len" has
+                # incompatible type "dtype"; expected "Sized"  [arg-type]
+                if len(data.dtype):  # type: ignore[arg-type]
                     # GH#13296 we are dealing with a compound dtype, which
                     #  should be treated as 2D
                     raise ValueError(
@@ -372,7 +374,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Input is now list-like, so rely on "standard" construction:
 
         # TODO: passing np.float64 to not break anything yet. See GH-17261
-        s = create_series_with_explicit_dtype(
+
+        # pandas\core\series.py:375: error: Value of type variable "ArrayLike"
+        # of "create_series_with_explicit_dtype" cannot be "Tuple[Any, ...]"
+        # [type-var]
+        s = create_series_with_explicit_dtype(  # type: ignore[type-var]
             values, index=keys, dtype=dtype, dtype_if_empty=np.float64
         )
 
@@ -1047,7 +1053,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with_engine(self, key, value):
         # fails with AttributeError for IntervalIndex
         loc = self.index._engine.get_loc(key)
-        validate_numeric_casting(self.dtype, value)
+        # pandas\core\series.py:1050: error: Argument 1 to
+        # "validate_numeric_casting" has incompatible type "Union[dtype,
+        # ExtensionDtype]"; expected "dtype"  [arg-type]
+        validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
         self._values[loc] = value
 
     def _set_with(self, key, value):
@@ -2975,7 +2984,13 @@ Keep all original rows and also all original values
             # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-            new_values = maybe_cast_to_extension_array(type(self._values), new_values)
+
+            # pandas\core\series.py:2978: error: Value of type variable
+            # "ArrayLike" of "maybe_cast_to_extension_array" cannot be
+            # "List[Any]"  [type-var]
+            new_values = maybe_cast_to_extension_array(
+                type(self._values), new_values  # type: ignore[type-var]
+            )
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> "Series":

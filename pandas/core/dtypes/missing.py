@@ -192,7 +192,9 @@ def _use_inf_as_na(key):
     inf_as_na = get_option(key)
     globals()["_isna"] = partial(_isna, inf_as_na=inf_as_na)
     if inf_as_na:
-        globals()["nan_checker"] = lambda x: ~np.isfinite(x)
+        # pandas\core\dtypes\missing.py:195: error: Unsupported operand type
+        # for ~ ("Union[ndarray, generic]")  [operator]
+        globals()["nan_checker"] = lambda x: ~np.isfinite(x)  # type: ignore[operator]
         globals()["INF_AS_NA"] = True
     else:
         globals()["nan_checker"] = np.isnan
@@ -230,7 +232,9 @@ def _isna_ndarraylike(obj, inf_as_na: bool = False):
         result = values.view("i8") == iNaT
     else:
         if inf_as_na:
-            result = ~np.isfinite(values)
+            # pandas\core\dtypes\missing.py:233: error: Unsupported operand
+            # type for ~ ("Union[ndarray, generic]")  [operator]
+            result = ~np.isfinite(values)  # type: ignore[operator]
         else:
             result = np.isnan(values)
 
@@ -455,7 +459,11 @@ def array_equivalent(
 
 
 def _array_equivalent_float(left, right):
-    return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+    # pandas\core\dtypes\missing.py:458: error: Unsupported left operand type
+    # for & ("generic")  [operator]
+    return (
+        (left == right) | (np.isnan(left) & np.isnan(right))  # type: ignore[operator]
+    ).all()
 
 
 def _array_equivalent_datetimelike(left, right):

@@ -215,7 +215,11 @@ def _parse_float_vec(vec):
     # order 3 bits of the first half since we're only shifting by
     # 1, 2, or 3.
     ieee1 >>= shift
-    ieee2 = (xport2 >> shift) | ((xport1 & 0x00000007) << (29 + (3 - shift)))
+    # pandas\io\sas\sas_xport.py:218: error: Unsupported operand types for +
+    # ("int" and "generic")  [operator]
+    ieee2 = (xport2 >> shift) | (
+        (xport1 & 0x00000007) << (29 + (3 - shift))  # type: ignore[operator]
+    )
 
     # clear the 1 bit to the left of the binary point
     ieee1 &= 0xFFEFFFFF

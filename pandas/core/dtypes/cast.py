@@ -169,30 +169,80 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
 
         dtype = np.dtype(dtype)
 
-    converted = maybe_downcast_numeric(result, dtype, do_round)
+    # pandas\core\dtypes\cast.py:172: error: Argument 2 to
+    # "maybe_downcast_numeric" has incompatible type "Union[ExtensionDtype,
+    # dtype, Type[object]]"; expected "Union[dtype, ExtensionDtype]"
+    # [arg-type]
+    converted = maybe_downcast_numeric(
+        result, dtype, do_round  # type: ignore[arg-type]
+    )
     if converted is not result:
         return converted
 
     # a datetimelike
     # GH12821, iNaT is casted to float
-    if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
+
+    # pandas\core\dtypes\cast.py:178: error: Item "type" of
+    # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute "kind"
+    # [union-attr]
+    if dtype.kind in ["M", "m"] and result.dtype.kind in [  # type: ignore[union-attr]
+        "i",
+        "f",
+    ]:
         if hasattr(dtype, "tz"):
             # not a numpy dtype
-            if dtype.tz:
+
+            # pandas\core\dtypes\cast.py:181: error: Item "ExtensionDtype" of
+            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
+            # "tz"  [union-attr]
+
+            # pandas\core\dtypes\cast.py:181: error: Item "dtype" of
+            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
+            # "tz"  [union-attr]
+
+            # pandas\core\dtypes\cast.py:181: error: Item "type" of
+            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
+            # "tz"  [union-attr]
+            if dtype.tz:  # type: ignore
                 # convert to datetime and change timezone
                 from pandas import to_datetime
 
                 result = to_datetime(result).tz_localize("utc")
-                result = result.tz_convert(dtype.tz)
+                # pandas\core\dtypes\cast.py:186: error: Item "ExtensionDtype"
+                # of "Union[ExtensionDtype, dtype, Type[object]]" has no
+                # attribute "tz"  [union-attr]
+
+                # pandas\core\dtypes\cast.py:186: error: Item "dtype" of
+                # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
+                # "tz"  [union-attr]
+
+                # pandas\core\dtypes\cast.py:186: error: Item "type" of
+                # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
+                # "tz"  [union-attr]
+                result = result.tz_convert(dtype.tz)  # type: ignore[union-attr]
         else:
             result = result.astype(dtype)
 
-    elif dtype.type is Period:
+    # pandas\core\dtypes\cast.py:190: error: Item "type" of
+    # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute "type"
+    # [union-attr]
+    elif dtype.type is Period:  # type: ignore[union-attr]
         # TODO(DatetimeArray): merge with previous elif
         from pandas.core.arrays import PeriodArray
 
         try:
-            return PeriodArray(result, freq=dtype.freq)
+            # pandas\core\dtypes\cast.py:195: error: Item "ExtensionDtype" of
+            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
+            # "freq"  [union-attr]
+
+            # pandas\core\dtypes\cast.py:195: error: Item "dtype" of
+            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
+            # "freq"  [union-attr]
+
+            # pandas\core\dtypes\cast.py:195: error: Item "type" of
+            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
+            # "freq"  [union-attr]
+            return PeriodArray(result, freq=dtype.freq)  # type: ignore[union-attr]
         except TypeError:
             # e.g. TypeError: int() argument must be a string, a
             #  bytes-like object or a number, not 'Period
@@ -498,7 +548,10 @@ def maybe_casted_values(
             fill_value = na_value_for_dtype(dtype)
             values = construct_1d_arraylike_from_scalar(fill_value, len(mask), dtype)
         else:
-            values = values.take(codes)
+            # pandas\core\dtypes\cast.py:501: error: Argument 1 to "take" of
+            # "ExtensionArray" has incompatible type "ndarray"; expected
+            # "Sequence[int]"  [arg-type]
+            values = values.take(codes)  # type: ignore[arg-type]
 
             # TODO(https://github.com/pandas-dev/pandas/issues/24206)
             # Push this into maybe_upcast_putmask?
@@ -522,7 +575,14 @@ def maybe_casted_values(
             if issubclass(values_type, DatetimeLikeArrayMixin):
                 values = values_type(values, dtype=values_dtype)
 
-    return values
+    # pandas\core\dtypes\cast.py:525: error: Incompatible return value type
+    # (got "Union[ExtensionArray, ndarray]", expected "ExtensionArray")
+    # [return-value]
+
+    # pandas\core\dtypes\cast.py:525: error: Incompatible return value type
+    # (got "Union[ExtensionArray, ndarray]", expected "ndarray")
+    # [return-value]
+    return values  # type: ignore[return-value]
 
 
 def maybe_promote(dtype, fill_value=np.nan):
@@ -843,7 +903,10 @@ def infer_dtype_from_array(
     (dtype('O'), [1, '1'])
     """
     if isinstance(arr, np.ndarray):
-        return arr.dtype, arr
+        # pandas\core\dtypes\cast.py:846: error: Incompatible return value type
+        # (got "Tuple[dtype, ndarray]", expected "Tuple[Union[dtype,
+        # ExtensionDtype], ExtensionArray]")  [return-value]
+        return arr.dtype, arr  # type: ignore[return-value]
 
     if not is_list_like(arr):
         arr = [arr]
@@ -852,7 +915,10 @@ def infer_dtype_from_array(
         return arr.dtype, arr
 
     elif isinstance(arr, ABCSeries):
-        return arr.dtype, np.asarray(arr)
+        # pandas\core\dtypes\cast.py:855: error: Incompatible return value type
+        # (got "Tuple[Any, ndarray]", expected "Tuple[Union[dtype,
+        # ExtensionDtype], ExtensionArray]")  [return-value]
+        return arr.dtype, np.asarray(arr)  # type: ignore[return-value]
 
     # don't force numpy coerce with nan's
     inferred = lib.infer_dtype(arr, skipna=False)
@@ -900,7 +966,11 @@ def maybe_infer_dtype_type(element):
 def maybe_upcast(
     values: ArrayLike,
     fill_value: Scalar = np.nan,
-    dtype: Dtype = None,
+    # pandas\core\dtypes\cast.py:903: error: Incompatible default for argument
+    # "dtype" (default has type "None", argument has type
+    # "Union[ExtensionDtype, str, dtype, Type[str], Type[float], Type[int],
+    # Type[complex], Type[bool], Type[object]]")  [assignment]
+    dtype: Dtype = None,  # type: ignore[assignment]
     copy: bool = False,
 ) -> Tuple[ArrayLike, Scalar]:
     """
@@ -1016,7 +1086,12 @@ def astype_nansafe(
     """
     # dispatch on extension dtype if needed
     if is_extension_array_dtype(dtype):
-        return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
+        # pandas\core\dtypes\cast.py:1019: error: Item "dtype" of "Union[dtype,
+        # ExtensionDtype]" has no attribute "construct_array_type"
+        # [union-attr]
+        return dtype.construct_array_type()._from_sequence(  # type: ignore[union-attr]
+            arr, dtype=dtype, copy=copy
+        )
 
     if not isinstance(dtype, np.dtype):
         dtype = pandas_dtype(dtype)
@@ -1062,7 +1137,13 @@ def astype_nansafe(
 
         raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
 
-    elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
+    # pandas\core\dtypes\cast.py:1065: error: Argument 1 to "issubdtype" has
+    # incompatible type "Union[dtype, ExtensionDtype]"; expected "Union[dtype,
+    # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+    # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"  [arg-type]
+    elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(
+        dtype, np.integer  # type: ignore[arg-type]
+    ):
 
         if not np.isfinite(arr).all():
             raise ValueError("Cannot convert non-finite values (NA or inf) to integer")
@@ -1079,11 +1160,19 @@ def astype_nansafe(
         elif is_datetime64_dtype(dtype):
             from pandas import to_datetime
 
-            return astype_nansafe(to_datetime(arr).values, dtype, copy=copy)
+            # pandas\core\dtypes\cast.py:1082: error: Incompatible return value
+            # type (got "ExtensionArray", expected "ndarray")  [return-value]
+            return astype_nansafe(  # type: ignore[return-value]
+                to_datetime(arr).values, dtype, copy=copy
+            )
         elif is_timedelta64_dtype(dtype):
             from pandas import to_timedelta
 
-            return astype_nansafe(to_timedelta(arr)._values, dtype, copy=copy)
+            # pandas\core\dtypes\cast.py:1086: error: Incompatible return value
+            # type (got "ExtensionArray", expected "ndarray")  [return-value]
+            return astype_nansafe(  # type: ignore[return-value]
+                to_timedelta(arr)._values, dtype, copy=copy
+            )
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = (
@@ -1447,7 +1536,10 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
 
                 # pandas supports dtype whose granularity is less than [ns]
                 # e.g., [ps], [fs], [as]
-                if dtype <= np.dtype("M8[ns]"):
+
+                # pandas\core\dtypes\cast.py:1450: error: Unsupported operand
+                # types for >= ("dtype" and "ExtensionDtype")  [operator]
+                if dtype <= np.dtype("M8[ns]"):  # type: ignore[operator]
                     if dtype.name == "datetime64":
                         raise ValueError(msg)
                     dtype = DT64NS_DTYPE
@@ -1465,7 +1557,10 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
 
                 # pandas supports dtype whose granularity is less than [ns]
                 # e.g., [ps], [fs], [as]
-                if dtype <= np.dtype("m8[ns]"):
+
+                # pandas\core\dtypes\cast.py:1468: error: Unsupported operand
+                # types for >= ("dtype" and "ExtensionDtype")  [operator]
+                if dtype <= np.dtype("m8[ns]"):  # type: ignore[operator]
                     if dtype.name == "timedelta64":
                         raise ValueError(msg)
                     dtype = TD64NS_DTYPE
@@ -1501,11 +1596,33 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
                             value = to_datetime(value, errors=errors).array
                             if is_dt_string:
                                 # Strings here are naive, so directly localize
-                                value = value.tz_localize(dtype.tz)
+
+                                # pandas\core\dtypes\cast.py:1504: error: Item
+                                # "dtype" of "Union[dtype, ExtensionDtype]" has
+                                # no attribute "tz"  [union-attr]
+
+                                # pandas\core\dtypes\cast.py:1504: error: Item
+                                # "ExtensionDtype" of "Union[dtype,
+                                # ExtensionDtype]" has no attribute "tz"
+                                # [union-attr]
+                                value = value.tz_localize(
+                                    dtype.tz  # type: ignore[union-attr]
+                                )
                             else:
                                 # Numeric values are UTC at this point,
                                 # so localize and convert
-                                value = value.tz_localize("UTC").tz_convert(dtype.tz)
+
+                                # pandas\core\dtypes\cast.py:1508: error: Item
+                                # "dtype" of "Union[dtype, ExtensionDtype]" has
+                                # no attribute "tz"  [union-attr]
+
+                                # pandas\core\dtypes\cast.py:1508: error: Item
+                                # "ExtensionDtype" of "Union[dtype,
+                                # ExtensionDtype]" has no attribute "tz"
+                                # [union-attr]
+                                value = value.tz_localize("UTC").tz_convert(
+                                    dtype.tz  # type: ignore[union-attr]
+                                )
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
                     except OutOfBoundsDatetime:
@@ -1808,7 +1925,14 @@ def maybe_cast_to_integer_array(arr, dtype: Dtype, copy: bool = False):
 
     try:
         if not hasattr(arr, "astype"):
-            casted = np.array(arr, dtype=dtype, copy=copy)
+            # pandas\core\dtypes\cast.py:1811: error: Argument "dtype" to
+            # "array" has incompatible type "Union[ExtensionDtype, str, dtype,
+            # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]"; expected "Union[dtype, None, type,
+            # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
+            # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]"
+            # [arg-type]
+            casted = np.array(arr, dtype=dtype, copy=copy)  # type: ignore[arg-type]
         else:
             casted = arr.astype(dtype, copy=copy)
     except OverflowError as err:

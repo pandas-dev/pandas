@@ -117,7 +117,15 @@ def _get_same_shape_values(
         assert rvals.shape[0] == 1, rvals.shape
         rvals = rvals[0, :]
 
-    return lvals, rvals
+    # pandas\core\internals\ops.py:120: error: Incompatible return value type
+    # (got "Tuple[Union[ndarray, ExtensionArray], Union[ndarray,
+    # ExtensionArray]]", expected "Tuple[ExtensionArray, ExtensionArray]")
+    # [return-value]
+
+    # pandas\core\internals\ops.py:120: error: Incompatible return value type
+    # (got "Tuple[Union[ndarray, ExtensionArray], Union[ndarray,
+    # ExtensionArray]]", expected "Tuple[ndarray, ndarray]")  [return-value]
+    return lvals, rvals  # type: ignore[return-value]
 
 
 def blockwise_all(left: "BlockManager", right: "BlockManager", op) -> bool:

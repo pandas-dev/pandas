@@ -325,7 +325,11 @@ class SparseDtype(ExtensionDtype):
             if is_extension_array_dtype(dtype):
                 raise TypeError("sparse arrays of extension dtypes not supported")
 
-            fill_value = astype_nansafe(np.array(self.fill_value), dtype).item()
+            # pandas\core\arrays\sparse\dtype.py:328: error: "ExtensionArray"
+            # has no attribute "item"  [attr-defined]
+            fill_value = astype_nansafe(
+                np.array(self.fill_value), dtype
+            ).item()  # type: ignore[attr-defined]
             dtype = cls(dtype, fill_value=fill_value)
 
         return dtype

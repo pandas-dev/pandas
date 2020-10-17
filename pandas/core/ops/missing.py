@@ -58,7 +58,10 @@ def fill_zeros(result, x, y):
 
             # GH#7325, mask and nans must be broadcastable (also: GH#9308)
             # Raveling and then reshaping makes np.putmask faster
-            mask = ((y == 0) & ~np.isnan(result)).ravel()
+
+            # pandas\core\ops\missing.py:61: error: Unsupported operand type
+            # for ~ ("Union[ndarray, generic]")  [operator]
+            mask = ((y == 0) & ~np.isnan(result)).ravel()  # type: ignore[operator]
 
             shape = result.shape
             result = result.astype("float64", copy=False).ravel()

@@ -864,7 +864,9 @@ class RangeIndex(Int64Index):
             # apply if we have an override
             if step:
                 with np.errstate(all="ignore"):
-                    rstep = step(left.step, right)
+                    # pandas\core\indexes\range.py:867: error: "bool" not
+                    # callable  [operator]
+                    rstep = step(left.step, right)  # type: ignore[operator]
 
                 # we don't have a representable op
                 # so return a base index

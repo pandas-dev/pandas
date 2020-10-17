@@ -29,7 +29,12 @@ def mask_missing(arr, values_to_mask):
     dtype, values_to_mask = infer_dtype_from_array(values_to_mask)
 
     try:
-        values_to_mask = np.array(values_to_mask, dtype=dtype)
+        # pandas\core\missing.py:32: error: Argument "dtype" to "array" has
+        # incompatible type "Union[dtype, ExtensionDtype]"; expected
+        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"  [arg-type]
+        values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
 
     except Exception:
         values_to_mask = np.array(values_to_mask, dtype=object)
@@ -49,7 +54,10 @@ def mask_missing(arr, values_to_mask):
             # if x is a string and arr is not, then we get False and we must
             # expand the mask to size arr.shape
             if is_scalar(mask):
-                mask = np.zeros(arr.shape, dtype=bool)
+                # pandas\core\missing.py:52: error: Incompatible types in
+                # assignment (expression has type "ndarray", variable has type
+                # "Optional[bool]")  [assignment]
+                mask = np.zeros(arr.shape, dtype=bool)  # type: ignore[assignment]
         else:
             if is_numeric_v_string_like(arr, x):
                 # GH#29553 prevent numpy deprecation warnings
@@ -65,7 +73,10 @@ def mask_missing(arr, values_to_mask):
 
     # GH 21977
     if mask is None:
-        mask = np.zeros(arr.shape, dtype=bool)
+        # pandas\core\missing.py:68: error: Incompatible types in assignment
+        # (expression has type "ndarray", variable has type "Optional[bool]")
+        # [assignment]
+        mask = np.zeros(arr.shape, dtype=bool)  # type: ignore[assignment]
 
     return mask
 
@@ -718,7 +729,10 @@ def _interp_limit(invalid, fw_limit, bw_limit):
             return f_idx
         else:
             b_idx_inv = list(inner(invalid[::-1], bw_limit))
-            b_idx = set(N - 1 - np.asarray(b_idx_inv))
+            # pandas\core\missing.py:721: error: Argument 1 to "set" has
+            # incompatible type "Union[ndarray, generic]"; expected
+            # "Iterable[Any]"  [arg-type]
+            b_idx = set(N - 1 - np.asarray(b_idx_inv))  # type: ignore[arg-type]
             if fw_limit == 0:
                 return b_idx
 

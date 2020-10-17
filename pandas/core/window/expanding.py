@@ -88,8 +88,14 @@ class Expanding(RollingAndExpandingMixin):
         axis = self.obj._get_axis(self.axis)
         length = len(axis) + (other is not None) * len(axis)
 
-        other = self.min_periods or -1
-        return max(length, other)
+        # pandas\core\window\expanding.py:91: error: Incompatible types in
+        # assignment (expression has type "int", variable has type
+        # "Union[ndarray, FrameOrSeries, None]")  [assignment]
+        other = self.min_periods or -1  # type: ignore[assignment]
+        # pandas\core\window\expanding.py:92: error: Incompatible return value
+        # type (got "Union[int, ndarray, FrameOrSeries, None]", expected "int")
+        # [return-value]
+        return max(length, other)  # type: ignore[return-value]
 
     _agg_see_also_doc = dedent(
         """

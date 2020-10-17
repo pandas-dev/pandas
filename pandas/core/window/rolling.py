@@ -1140,7 +1140,9 @@ class Window(BaseWindow):
             result = np.copy(result[tuple(lead_indexer)])
         return result
 
-    def _get_window_weights(
+    # pandas\core\window\rolling.py:1143: error: Missing return statement
+    # [return]
+    def _get_window_weights(  # type: ignore[return]
         self, win_type: Optional[Union[str, Tuple]] = None
     ) -> np.ndarray:
         """

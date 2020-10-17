@@ -403,9 +403,7 @@ def handle_shared_axes(
 
 def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> np.ndarray:
     if not is_list_like(axes):
-        # error: Incompatible return value type (got "ndarray", expected
-        # "Sequence[Any]")
-        return np.array([axes])  # type: ignore[return-value]
+        return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndexClass)):
         return np.asarray(axes).ravel()
     return np.array(axes)

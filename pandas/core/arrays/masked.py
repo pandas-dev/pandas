@@ -138,7 +138,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return len(self._data)
 
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
-        return type(self)(~self._data, self._mask)
+        # pandas\core\arrays\masked.py:141: error: Argument 1 to
+        # "BaseMaskedArray" has incompatible type "Union[ndarray, integer,
+        # bool_]"; expected "ndarray"  [arg-type]
+        return type(self)(~self._data, self._mask)  # type: ignore[arg-type]
 
     def to_numpy(
         self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default
@@ -246,7 +249,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # Note: this is expensive right now! The hope is that we can
         # make this faster by having an optional mask, but not have to change
         # source code using it..
-        return self._mask.any()
+
+        # pandas\core\arrays\masked.py:249: error: Incompatible return value
+        # type (got "bool_", expected "bool")  [return-value]
+        return self._mask.any()  # type: ignore[return-value]
 
     # error: Return type "ndarray" of "isna" incompatible with return type
     # "ArrayLike" in supertype "ExtensionArray"

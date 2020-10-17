@@ -841,9 +841,13 @@ class BlockManager(PandasObject):
             blk = self.blocks[0]
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
-                arr = blk.values.to_numpy(dtype=dtype, na_value=na_value).reshape(
-                    blk.shape
-                )
+
+                # pandas\core\internals\managers.py:844: error: Item "ndarray"
+                # of "Union[ndarray, ExtensionArray]" has no attribute
+                # "to_numpy"  [union-attr]
+                arr = blk.values.to_numpy(  # type: ignore[union-attr]
+                    dtype=dtype, na_value=na_value
+                ).reshape(blk.shape)
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
@@ -886,7 +890,13 @@ class BlockManager(PandasObject):
             rl = blk.mgr_locs
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
-                arr = blk.values.to_numpy(dtype=dtype, na_value=na_value)
+
+                # pandas\core\internals\managers.py:889: error: Item "ndarray"
+                # of "Union[ndarray, ExtensionArray]" has no attribute
+                # "to_numpy"  [union-attr]
+                arr = blk.values.to_numpy(  # type: ignore[union-attr]
+                    dtype=dtype, na_value=na_value
+                )
             else:
                 arr = blk.get_values(dtype)
             result[rl.indexer] = arr
@@ -1425,7 +1435,12 @@ class BlockManager(PandasObject):
         block_shape[0] = len(placement)
 
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
-        block_values = np.empty(block_shape, dtype=dtype)
+        # pandas\core\internals\managers.py:1428: error: Argument "dtype" to
+        # "empty" has incompatible type "Union[dtype, ExtensionDtype]";
+        # expected "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any,
+        # int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
+        # Tuple[Any, Any]]"  [arg-type]
+        block_values = np.empty(block_shape, dtype=dtype)  # type: ignore[arg-type]
         block_values.fill(fill_value)
         return make_block(block_values, placement=placement)
 
@@ -1469,7 +1484,10 @@ class BlockManager(PandasObject):
                 return False
             left = self.blocks[0].values
             right = other.blocks[0].values
-            return array_equals(left, right)
+            # pandas\core\internals\managers.py:1472: error: Value of type
+            # variable "ArrayLike" of "array_equals" cannot be "Union[ndarray,
+            # ExtensionArray]"  [type-var]
+            return array_equals(left, right)  # type: ignore[type-var]
 
         return blockwise_all(self, other, array_equals)
 

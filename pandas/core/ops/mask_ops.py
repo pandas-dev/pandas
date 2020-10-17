@@ -46,7 +46,10 @@ def kleene_or(
     if right is libmissing.NA:
         result = left.copy()
     else:
-        result = left | right
+        # pandas\core\ops\mask_ops.py:49: error: Incompatible types in
+        # assignment (expression has type "Union[ndarray, integer, bool_]",
+        # variable has type "ndarray")  [assignment]
+        result = left | right  # type: ignore[assignment]
 
     if right_mask is not None:
         # output is unknown where (False & NA), (NA & False), (NA & NA)
@@ -113,7 +116,10 @@ def kleene_xor(
         else:
             mask = left_mask.copy()
     else:
-        mask = left_mask | right_mask
+        # pandas\core\ops\mask_ops.py:116: error: Incompatible types in
+        # assignment (expression has type "Union[ndarray, integer, bool_]",
+        # variable has type "ndarray")  [assignment]
+        mask = left_mask | right_mask  # type: ignore[assignment]
 
     return result, mask
 
@@ -154,7 +160,10 @@ def kleene_and(
     if right is libmissing.NA:
         result = np.zeros_like(left)
     else:
-        result = left & right
+        # pandas\core\ops\mask_ops.py:157: error: Incompatible types in
+        # assignment (expression has type "Union[ndarray, integer, bool_]",
+        # variable has type "ndarray")  [assignment]
+        result = left & right  # type: ignore[assignment]
 
     if right_mask is None:
         # Scalar `right`

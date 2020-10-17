@@ -878,11 +878,14 @@ class StataParser:
         self.DTYPE_MAP = dict(
             list(zip(range(1, 245), ["a" + str(i) for i in range(1, 245)]))
             + [
-                (251, np.int8),
-                (252, np.int16),
-                (253, np.int32),
-                (254, np.float32),
-                (255, np.float64),
+                (251, np.int8),  # type:ignore[list-item]
+                (252, np.int16),  # type:ignore[list-item]
+                (253, np.int32),  # type:ignore[list-item]
+                (254, np.float32),  # type:ignore[list-item]
+                # pandas\io\stata.py:885: error: List item 4 has incompatible
+                # type "Tuple[int, Type[float64]]"; expected "Tuple[int, str]"
+                # [list-item]
+                (255, np.float64),  # type:ignore[list-item]
             ]
         )
         self.DTYPE_MAP_XML = dict(
@@ -1223,7 +1226,10 @@ class StataReader(StataParser, abc.Iterator):
             if typ <= 2045:
                 return str(typ)
             try:
-                return self.DTYPE_MAP_XML[typ]
+                # pandas\io\stata.py:1226: error: Incompatible return value
+                # type (got "Type[number]", expected "Union[str, dtype]")
+                # [return-value]
+                return self.DTYPE_MAP_XML[typ]  # type: ignore[return-value]
             except KeyError as err:
                 raise ValueError(f"cannot convert stata dtype [{typ}]") from err
 
@@ -1356,7 +1362,12 @@ class StataReader(StataParser, abc.Iterator):
             invalid_types = ",".join(str(x) for x in typlist)
             raise ValueError(f"cannot convert stata types [{invalid_types}]") from err
         try:
-            self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
+            # pandas\io\stata.py:1359: error: List comprehension has
+            # incompatible type List[str]; expected List[Union[int, dtype]]
+            # [misc]
+            self.dtyplist = [
+                self.DTYPE_MAP[typ] for typ in typlist  # type: ignore[misc]
+            ]
         except ValueError as err:
             invalid_dtypes = ",".join(str(x) for x in typlist)
             raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]") from err

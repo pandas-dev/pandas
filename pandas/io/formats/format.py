@@ -973,7 +973,16 @@ class DataFrameFormatter(TableFormatter):
         strcols = list(args)
         if self.index:
             idx = strcols.pop(0)
-            lwidth -= np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
+            # pandas\io\formats\format.py:976: error: Argument 1 to "__call__"
+            # of "_NumberOp" has incompatible type "None"; expected "Union[int,
+            # float, complex, number, bool_]"  [arg-type]
+
+            # pandas\io\formats\format.py:976: error: Incompatible types in
+            # assignment (expression has type "number", variable has type
+            # "Optional[int]")  [assignment]
+            lwidth -= (  # type: ignore[arg-type,assignment]
+                np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
+            )
 
         col_widths = [
             np.array([self.adj.len(x) for x in col]).max() if len(col) > 0 else 0
@@ -981,7 +990,9 @@ class DataFrameFormatter(TableFormatter):
         ]
 
         assert lwidth is not None
-        col_bins = _binify(col_widths, lwidth)
+        # pandas\io\formats\format.py:984: error: Argument 1 to "_binify" has
+        # incompatible type "List[object]"; expected "List[int]"  [arg-type]
+        col_bins = _binify(col_widths, lwidth)  # type: ignore[arg-type]
         nbins = len(col_bins)
 
         if self.is_truncated_vertically:
