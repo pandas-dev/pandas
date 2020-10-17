@@ -96,6 +96,32 @@ For example:
    buffer = io.BytesIO()
    data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
 
+Support for short caption and table position in ``to_latex``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.to_latex` now allows one to specify
+a floating table position (:issue:`35281`)
+and a short caption (:issue:`36267`).
+
+New keyword ``position`` is implemented to set the position.
+
+.. ipython:: python
+
+   data = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+   table = data.to_latex(position='ht')
+   print(table)
+
+Usage of keyword ``caption`` is extended.
+Besides taking a single string as an argument,
+one can optionally provide a tuple of ``(full_caption, short_caption)``
+to add a short caption macro.
+
+.. ipython:: python
+
+   data = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+   table = data.to_latex(caption=('the full long caption', 'short caption'))
+   print(table)
+
 .. _whatsnew_120.read_csv_table_precision_default:
 
 Change in default floating precision for ``read_csv`` and ``read_table``
@@ -194,6 +220,7 @@ Other enhancements
 - Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
 - :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
+- :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -348,8 +375,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
--
--
+- Bug in parsing of ISO 8601 durations in :class:`Timedelta`, :meth:`pd.to_datetime` (:issue:`37159`, fixes :issue:`29773` and :issue:`36204`)
 
 Timezones
 ^^^^^^^^^
@@ -401,6 +427,7 @@ Indexing
 - Bug in :meth:`DataFrame.sort_index` where parameter ascending passed as a list on a single level index gives wrong result. (:issue:`32334`)
 - Bug in :meth:`DataFrame.reset_index` was incorrectly raising a ``ValueError`` for input with a :class:`MultiIndex` with missing values in a level with ``Categorical`` dtype (:issue:`24206`)
 - Bug in indexing with boolean masks on datetime-like values sometimes returning a view instead of a copy (:issue:`36210`)
+- Bug in :meth:`DataFrame.__getitem__` and :meth:`DataFrame.loc.__getitem__` with :class:`IntervalIndex` columns and a numeric indexer (:issue:`26490`)
 - Bug in :meth:`Series.loc.__getitem__` with a non-unique :class:`MultiIndex` and an empty-list indexer (:issue:`13691`)
 
 Missing
