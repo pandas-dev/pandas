@@ -45,12 +45,8 @@ def _cycle_colors(colors, num_colors):
     # Extra colors will be ignored by matplotlib if there are more colors
     # than needed and nothing needs to be done here.
     if len(colors) < num_colors:
-        try:
-            multiple = num_colors // len(colors) - 1
-        except ZeroDivisionError:
-            raise ValueError("Invalid color argument: ''")
+        multiple = num_colors // len(colors) - 1
         mod = num_colors % len(colors)
-
         colors += multiple * colors
         colors += colors[:mod]
 
@@ -72,6 +68,9 @@ def _get_cmap_instance(colormap):
 
 
 def _get_colors_from_color(color):
+    if len(color) == 0:
+        raise ValueError("Invalid color argument: {color}")
+
     if is_list_like(color) and not isinstance(color, dict):
         return list(color)
 
