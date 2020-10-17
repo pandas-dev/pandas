@@ -999,27 +999,24 @@ class Window(BaseWindow):
     def validate(self):
         super().validate()
 
-        window = self.window
-        if isinstance(window, BaseIndexer):
+        if isinstance(self.window, BaseIndexer):
             raise NotImplementedError(
                 "BaseIndexer subclasses not implemented with win_types."
             )
-        elif isinstance(window, (list, tuple, np.ndarray)):
+        elif isinstance(self.window, (list, tuple, np.ndarray)):
             pass
-        elif is_integer(window):
-            if window <= 0:
+        elif is_integer(self.window):
+            if self.window <= 0:
                 raise ValueError("window must be > 0 ")
-            import_optional_dependency(
-                "scipy", extra="Scipy is required to generate window weight."
+            sig = import_optional_dependency(
+                "scipy.signal", extra="Scipy is required to generate window weight."
             )
-            import scipy.signal as sig
-
             if not isinstance(self.win_type, str):
                 raise ValueError(f"Invalid win_type {self.win_type}")
             if getattr(sig, self.win_type, None) is None:
                 raise ValueError(f"Invalid win_type {self.win_type}")
         else:
-            raise ValueError(f"Invalid window {window}")
+            raise ValueError(f"Invalid window {self.window}")
 
     def _get_win_type(self, kwargs: Dict[str, Any]) -> Union[str, Tuple]:
         """
@@ -1034,36 +1031,27 @@ class Window(BaseWindow):
         -------
         win_type : str, or tuple
         """
-        # the below may pop from kwargs
-        def _validate_win_type(win_type, kwargs):
-            arg_map = {
-                "kaiser": ["beta"],
-                "gaussian": ["std"],
-                "general_gaussian": ["power", "width"],
-                "slepian": ["width"],
-                "exponential": ["tau"],
-            }
+        arg_map = {
+            "kaiser": ["beta"],
+            "gaussian": ["std"],
+            "general_gaussian": ["power", "width"],
+            "slepian": ["width"],
+            "exponential": ["tau"],
+        }
+        window_arguments = arg_map.get(self.win_type)
+        if window_arguments is not None:
+            extracted_arguments = []
+            for argument in window_arguments:
+                if argument not in kwargs:
+                    raise ValueError(f"{self.win_type} window requires {argument}")
+                extracted_arguments.append(kwargs.pop(argument))
+            if self.win_type == "exponential":
+                # exponential window requires the first arg (center)
+                # to be set to None (necessary for symmetric window)
+                extracted_arguments.insert(0, None)
 
-            if win_type in arg_map:
-                win_args = _pop_args(win_type, arg_map[win_type], kwargs)
-                if win_type == "exponential":
-                    # exponential window requires the first arg (center)
-                    # to be set to None (necessary for symmetric window)
-                    win_args.insert(0, None)
-
-                return tuple([win_type] + win_args)
-
-            return win_type
-
-        def _pop_args(win_type, arg_names, kwargs):
-            all_args = []
-            for n in arg_names:
-                if n not in kwargs:
-                    raise ValueError(f"{win_type} window requires {n}")
-                all_args.append(kwargs.pop(n))
-            return all_args
-
-        return _validate_win_type(self.win_type, kwargs)
+            return tuple([self.win_type] + extracted_arguments)
+        return self.win_type
 
     def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
         """
@@ -1094,14 +1082,15 @@ class Window(BaseWindow):
         window : ndarray
             the window, weights
         """
-        window = self.window
-        if isinstance(window, (list, tuple, np.ndarray)):
-            return com.asarray_tuplesafe(window).astype(float)
-        elif is_integer(window):
+        if isinstance(self.window, (list, tuple, np.ndarray)):
+            return com.asarray_tuplesafe(self.window).astype(float, copy=False)
+        elif is_integer(self.window):
             import scipy.signal as sig
 
             # GH #15662. `False` makes symmetric window, rather than periodic.
-            return sig.get_window(win_type, window, False).astype(float)
+            return sig.get_window(win_type, self.window, False).astype(
+                float, copy=False
+            )
 
     def _apply(
         self,
