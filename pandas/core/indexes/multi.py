@@ -2865,15 +2865,18 @@ class MultiIndex(Index):
         (1, None)
         """
         # different name to distinguish from maybe_droplevels
-        def maybe_mi_droplevels(indexer, levels, drop_level: bool):
+        def maybe_mi_droplevels(
+            indexer, levels, drop_level: bool, level_nums_only: bool = False
+        ):
             if not drop_level:
                 return self[indexer]
             # kludge around
             orig_index = new_index = self[indexer]
-            levels = [self._get_level_number(i) for i in levels]
+            if not level_nums_only:
+                levels = [self._get_level_number(i) for i in levels]
             for i in sorted(levels, reverse=True):
                 try:
-                    new_index = new_index.droplevel(i)
+                    new_index = new_index._drop_level_nums([i])
                 except ValueError:
 
                     # no dropping here
@@ -2897,7 +2900,11 @@ class MultiIndex(Index):
 
             return result, maybe_mi_droplevels(result, level, drop_level)
 
-        level = self._get_level_number(level)
+        try:
+            level = self._get_level_number(level)
+        except ValueError:
+            # Ambiguous if there are duplicate names
+            level = 0
 
         # kludge for #1796
         if isinstance(key, list):
@@ -2961,7 +2968,9 @@ class MultiIndex(Index):
                 return indexer, maybe_mi_droplevels(indexer, ilevels, drop_level)
         else:
             indexer = self._get_level_indexer(key, level=level)
-            return indexer, maybe_mi_droplevels(indexer, [level], drop_level)
+            return indexer, maybe_mi_droplevels(
+                indexer, [level], drop_level, level_nums_only=True
+            )
 
     def _get_level_indexer(self, key, level=0, indexer=None):
         # return an indexer, boolean array or a slice showing where the key is

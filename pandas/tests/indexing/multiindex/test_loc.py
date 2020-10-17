@@ -522,3 +522,20 @@ def test_loc_with_mi_indexer():
         columns=["author", "price"],
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_mi_with_datetimeindex_level():
+    dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+    ser = pd.Series(range(3), index=dti)
+    df = ser.to_frame()
+    df[1] = dti
+
+    df2 = df.set_index(0, append=True)
+    ser2 = df2[1]
+
+    ser2.index.get_loc(dti[0])  # smoke test
+    result = ser2.loc[dti[0]]
+
+    expected = ser2.iloc[[0]].droplevel(None)
+    tm.assert_series_equal(result, expected)
