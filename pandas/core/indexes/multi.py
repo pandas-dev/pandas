@@ -3779,13 +3779,13 @@ def maybe_droplevels(index, key):
     if isinstance(key, tuple):
         for _ in key:
             try:
-                index = index._drop_level_nums([0])
+                index = index._drop_level_numbers([0])
             except ValueError:
                 # we have dropped too much, so back out
                 return original_index
     else:
         try:
-            index = index._drop_level_nums([0])
+            index = index._drop_level_numbers([0])
         except ValueError:
             pass
 
