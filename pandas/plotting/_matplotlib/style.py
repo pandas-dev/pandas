@@ -12,7 +12,6 @@ import warnings
 
 import matplotlib.cm as cm
 import matplotlib.colors
-import matplotlib.pyplot as plt
 import numpy as np
 
 import pandas.core.common as com
@@ -135,6 +134,8 @@ def _get_colors_from_color_type(color_type: str, num_colors: int) -> Collection[
 
 def _get_default_colors(num_colors: int) -> Collection[Color]:
     """Get ``num_colors`` of default colors from matplotlib rc params."""
+    import matplotlib.pyplot as plt
+
     # need to call list() on the result to copy so we don't
     # modify the global rcParams below
     try:
