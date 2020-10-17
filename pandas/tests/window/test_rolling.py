@@ -774,7 +774,7 @@ def test_rolling_numerical_too_large_numbers():
     ds[2] = -9e33
     result = ds.rolling(5).mean()
     expected = pd.Series(
-        [np.nan, np.nan, np.nan, np.nan, -1.8e33, -1.8e33, -1.8e33, 0.0, 6.0, 7.0],
+        [np.nan, np.nan, np.nan, np.nan, -1.8e33, -1.8e33, -1.8e33, 5.0, 6.0, 7.0],
         index=dates,
     )
     tm.assert_series_equal(result, expected)
@@ -867,4 +867,32 @@ def test_rolling_period_index(index, window, func, values):
     ds = pd.Series([0, 1, 2, 3, 4, 5, 6, 7, 8], index=index)
     result = getattr(ds.rolling(window, closed="left"), func)()
     expected = pd.Series(values, index=index)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("constructor", ["DataFrame", "Series"])
+def test_rolling_sem(constructor):
+    # GH: 26476
+    obj = getattr(pd, constructor)([0, 1, 2])
+    result = obj.rolling(2, min_periods=1).sem()
+    if isinstance(result, DataFrame):
+        result = pd.Series(result[0].values)
+    expected = pd.Series([np.nan] + [0.707107] * 2)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("func", "third_value", "values"),
+    [
+        ("var", 1, [5e33, 0, 0.5, 0.5, 2, 0]),
+        ("std", 1, [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0]),
+        ("var", 2, [5e33, 0.5, 0, 0.5, 2, 0]),
+        ("std", 2, [7.071068e16, 0.7071068, 0, 0.7071068, 1.414214, 0]),
+    ],
+)
+def test_rolling_var_numerical_issues(func, third_value, values):
+    # GH: 37051
+    ds = pd.Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
+    result = getattr(ds.rolling(2), func)()
+    expected = pd.Series([np.nan] + values)
     tm.assert_series_equal(result, expected)

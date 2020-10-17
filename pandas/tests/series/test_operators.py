@@ -42,42 +42,6 @@ class TestSeriesLogicalOps:
         expected = s_tft
         tm.assert_series_equal(res, expected)
 
-    @pytest.mark.parametrize(
-        "left, right, op, expected",
-        [
-            (
-                [True, False, np.nan],
-                [True, False, True],
-                operator.and_,
-                [True, False, False],
-            ),
-            (
-                [True, False, True],
-                [True, False, np.nan],
-                operator.and_,
-                [True, False, False],
-            ),
-            (
-                [True, False, np.nan],
-                [True, False, True],
-                operator.or_,
-                [True, False, False],
-            ),
-            (
-                [True, False, True],
-                [True, False, np.nan],
-                operator.or_,
-                [True, False, True],
-            ),
-        ],
-    )
-    def test_logical_operators_nans(self, left, right, op, expected):
-        # GH 13896
-        result = op(Series(left), Series(right))
-        expected = Series(expected)
-
-        tm.assert_series_equal(result, expected)
-
     def test_logical_operators_int_dtype_with_int_dtype(self):
         # GH#9016: support bitwise op for integer types
 
@@ -276,23 +240,10 @@ class TestSeriesLogicalOps:
 
         expected = DataFrame(False, index=range(9), columns=["A"] + list(range(9)))
 
-        result = d.__and__(s, axis="columns")
-        tm.assert_frame_equal(result, expected)
-
-        result = d.__and__(s, axis=1)
-        tm.assert_frame_equal(result, expected)
-
         result = s & d
         tm.assert_frame_equal(result, expected)
 
         result = d & s
-        tm.assert_frame_equal(result, expected)
-
-        expected = (s & s).to_frame("A")
-        result = d.__and__(s, axis="index")
-        tm.assert_frame_equal(result, expected)
-
-        result = d.__and__(s, axis=0)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])

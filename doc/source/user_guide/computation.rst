@@ -328,6 +328,7 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.apply`, Generic apply
     :meth:`~Rolling.cov`, Sample covariance (binary)
     :meth:`~Rolling.corr`, Sample correlation (binary)
+    :meth:`~Rolling.sem`, Standard error of mean
 
 .. _computation.window_variance.caveats:
 
@@ -938,6 +939,7 @@ Method summary
     :meth:`~Expanding.apply`, Generic apply
     :meth:`~Expanding.cov`, Sample covariance (binary)
     :meth:`~Expanding.corr`, Sample correlation (binary)
+    :meth:`~Expanding.sem`, Standard error of mean
 
 .. note::
 

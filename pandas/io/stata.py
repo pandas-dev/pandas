@@ -16,7 +16,18 @@ import os
 from pathlib import Path
 import struct
 import sys
-from typing import Any, AnyStr, BinaryIO, Dict, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    AnyStr,
+    BinaryIO,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -367,8 +378,8 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["delta"] = time_delta._values.astype(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
-                d["year"] = date_index.year
-                d["month"] = date_index.month
+                d["year"] = date_index._data.year
+                d["month"] = date_index._data.month
             if days:
                 days_in_ns = dates.astype(np.int64) - to_datetime(
                     d["year"], format="%Y"
@@ -876,7 +887,9 @@ class StataParser:
                 (65530, np.int8),
             ]
         )
-        self.TYPE_MAP = list(range(251)) + list("bhlfd")
+        # error: Argument 1 to "list" has incompatible type "str";
+        #  expected "Iterable[int]"  [arg-type]
+        self.TYPE_MAP = list(range(251)) + list("bhlfd")  # type: ignore[arg-type]
         self.TYPE_MAP_XML = dict(
             [
                 # Not really a Q, unclear how to handle byteswap
@@ -1389,6 +1402,7 @@ class StataReader(StataParser, abc.Iterator):
         dtypes = []  # Convert struct data types to numpy data type
         for i, typ in enumerate(self.typlist):
             if typ in self.NUMPY_TYPE_MAP:
+                typ = cast(str, typ)  # only strs in NUMPY_TYPE_MAP
                 dtypes.append(("s" + str(i), self.byteorder + self.NUMPY_TYPE_MAP[typ]))
             else:
                 dtypes.append(("s" + str(i), "S" + str(typ)))
@@ -1699,6 +1713,7 @@ the string values returned are correct."""
             if fmt not in self.VALID_RANGE:
                 continue
 
+            fmt = cast(str, fmt)  # only strs in VALID_RANGE
             nmin, nmax = self.VALID_RANGE[fmt]
             series = data[colname]
             missing = np.logical_or(series < nmin, series > nmax)
