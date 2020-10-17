@@ -452,3 +452,17 @@ def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
     ser = Series([], dtype=float)
     result = ser.where([])
     tm.assert_series_equal(result, ser)
+
+
+def test_where_category_not_dropping():
+
+    s = pd.Series(["A","A","B","B","C"],dtype='category')
+    exp = s.dtype
+    s.where(s!="C", s)
+    res = s.dtype
+    assert(exp==res)
+
+def test_where_categorical_frame_ValueError():
+    s = pd.Series(["A","A","B","B","C"],dtype='category')
+    df = s.to_frame()
+    df.where(df != "C")
