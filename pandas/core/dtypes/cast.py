@@ -2,6 +2,7 @@
 Routines for casting.
 """
 
+from contextlib import suppress
 from datetime import date, datetime, timedelta
 from typing import (
     TYPE_CHECKING,
@@ -133,7 +134,7 @@ def is_nested_object(obj) -> bool:
     return False
 
 
-def maybe_downcast_to_dtype(result, dtype: Dtype):
+def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
@@ -169,12 +170,20 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
 
         dtype = np.dtype(dtype)
 
+    elif dtype.type is Period:
+        from pandas.core.arrays import PeriodArray
+
+        with suppress(TypeError):
+            # e.g. TypeError: int() argument must be a string, a
+            #  bytes-like object or a number, not 'Period
+            return PeriodArray(result, freq=dtype.freq)
+
     converted = maybe_downcast_numeric(result, dtype, do_round)
     if converted is not result:
         return converted
 
     # a datetimelike
-    # GH12821, iNaT is casted to float
+    # GH12821, iNaT is cast to float
     if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
         if hasattr(dtype, "tz"):
             # not a numpy dtype
@@ -186,17 +195,6 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
                 result = result.tz_convert(dtype.tz)
         else:
             result = result.astype(dtype)
-
-    elif dtype.type is Period:
-        # TODO(DatetimeArray): merge with previous elif
-        from pandas.core.arrays import PeriodArray
-
-        try:
-            return PeriodArray(result, freq=dtype.freq)
-        except TypeError:
-            # e.g. TypeError: int() argument must be a string, a
-            #  bytes-like object or a number, not 'Period
-            pass
 
     return result
 
