@@ -8,7 +8,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.window.common import _doc_template, _shared_docs
-from pandas.core.window.indexers import ExpandingIndexer, GroupbyIndexer
+from pandas.core.window.indexers import BaseIndexer, ExpandingIndexer, GroupbyIndexer
 from pandas.core.window.rolling import BaseWindowGroupby, RollingAndExpandingMixin
 
 
@@ -68,11 +68,17 @@ class Expanding(RollingAndExpandingMixin):
     def _constructor(self):
         return Expanding
 
-    def _get_window(
+    def _get_window_indexer(self) -> BaseIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+        """
+        return ExpandingIndexer()
+
+    def _get_cov_corr_window(
         self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None, **kwargs
     ) -> int:
         """
-        Get the window length over which to perform some operation.
+        Get the window length over which to perform cov and corr operations.
 
         Parameters
         ----------
@@ -275,14 +281,9 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
     Provide a expanding groupby implementation.
     """
 
-    def _get_window_indexer(self, window: int) -> GroupbyIndexer:
+    def _get_window_indexer(self) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
-
-        Parameters
-        ----------
-        window : int
-            window size for FixedWindowIndexer (unused)
 
         Returns
         -------
