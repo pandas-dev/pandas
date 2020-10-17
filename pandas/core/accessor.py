@@ -9,6 +9,8 @@ import warnings
 
 from pandas.util._decorators import doc
 
+from pandas.util import cache_readonly
+
 
 class DirNamesMixin:
     _accessors: Set[str] = set()
