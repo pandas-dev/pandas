@@ -1018,7 +1018,7 @@ class Window(BaseWindow):
         else:
             raise ValueError(f"Invalid window {self.window}")
 
-    def _get_win_type(self, kwargs: Dict[str, Any]) -> Union[str, Tuple]:
+    def _get_win_type(self, kwargs: Dict[str, Any]) -> Optional[Union[str, Tuple]]:
         """
         Extract arguments for the window type, provide validation for it
         and return the validated window type.
@@ -1031,17 +1031,16 @@ class Window(BaseWindow):
         -------
         win_type : str, or tuple
         """
-        arg_map = {
+        arg_map: Dict[str, List[str]] = {
             "kaiser": ["beta"],
             "gaussian": ["std"],
             "general_gaussian": ["power", "width"],
             "slepian": ["width"],
             "exponential": ["tau"],
         }
-        window_arguments = arg_map.get(self.win_type)
-        if window_arguments is not None:
+        if self.win_type in arg_map:
             extracted_arguments = []
-            for argument in window_arguments:
+            for argument in arg_map[self.win_type]:
                 if argument not in kwargs:
                     raise ValueError(f"{self.win_type} window requires {argument}")
                 extracted_arguments.append(kwargs.pop(argument))
