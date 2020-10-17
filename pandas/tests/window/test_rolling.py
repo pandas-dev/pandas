@@ -498,27 +498,27 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
                 ({"A": [2, 3], "B": [5, 6]}, [1, 2]),
             ],
             2,
-            3,
-        ),
-        (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
-            [
-                ({"A": [1], "B": [4]}, [0]),
-                ({"A": [2], "B": [5]}, [1]),
-                ({"A": [3], "B": [6]}, [2]),
-            ],
-            1,
-            1,
-        ),
-        (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
-            [
-                ({"A": [1], "B": [4]}, [0]),
-                ({"A": [2], "B": [5]}, [1]),
-                ({"A": [3], "B": [6]}, [2]),
-            ],
-            1,
             2,
+        ),
+        (
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [2], "B": [5]}, [1]),
+                ({"A": [3], "B": [6]}, [2]),
+            ],
+            1,
+            1,
+        ),
+        (
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [2], "B": [5]}, [1]),
+                ({"A": [3], "B": [6]}, [2]),
+            ],
+            1,
+            0,
         ),
         (DataFrame({"A": [1], "B": [4]}), [], 2, None),
         (DataFrame({"A": [1], "B": [4]}), [], 2, 1),
@@ -605,9 +605,9 @@ def test_iter_rolling_on_dataframe(expected, window):
             1,
         ),
         (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 1),
-        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 3),
+        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 2),
         (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1, 0),
-        (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1, 2),
+        (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1, 1),
         (Series([1, 2]), [([1], [0]), ([1, 2], [0, 1])], 2, 0),
         (Series([], dtype="int64"), [], 2, 1),
     ],
@@ -878,4 +878,21 @@ def test_rolling_sem(constructor):
     if isinstance(result, DataFrame):
         result = pd.Series(result[0].values)
     expected = pd.Series([np.nan] + [0.707107] * 2)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("func", "third_value", "values"),
+    [
+        ("var", 1, [5e33, 0, 0.5, 0.5, 2, 0]),
+        ("std", 1, [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0]),
+        ("var", 2, [5e33, 0.5, 0, 0.5, 2, 0]),
+        ("std", 2, [7.071068e16, 0.7071068, 0, 0.7071068, 1.414214, 0]),
+    ],
+)
+def test_rolling_var_numerical_issues(func, third_value, values):
+    # GH: 37051
+    ds = pd.Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
+    result = getattr(ds.rolling(2), func)()
+    expected = pd.Series([np.nan] + values)
     tm.assert_series_equal(result, expected)
