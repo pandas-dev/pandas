@@ -11,10 +11,8 @@ from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_array_like,
-    is_categorical_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -665,14 +663,9 @@ class _LocationIndexer(NDFrameIndexerBase):
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
         ):
-            for i, k in enumerate(key):
+            for k in key:
                 if k not in self.obj:
-                    if value is None:
-                        self.obj[k] = np.nan
-                    elif is_list_like(value):
-                        self.obj[k] = value[i]
-                    else:
-                        self.obj[k] = value
+                    self.obj[k] = np.nan
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
@@ -1542,15 +1535,14 @@ class _iLocIndexer(_LocationIndexer):
         info_axis = self.obj._info_axis_number
 
         # maybe partial set
-        take_split_path = not self.obj._mgr.is_single_block
+        take_split_path = len(self.obj._mgr.blocks) > 1
 
         # if there is only one block/type, still have to take split path
         # unless the block is one-dimensional or it can hold the value
         if not take_split_path and self.obj._mgr.blocks:
-            if self.ndim > 1:
-                # in case of dict, keys are indices
+            (blk,) = self.obj._mgr.blocks
+            if 1 < blk.ndim:  # in case of dict, keys are indices
                 val = list(value.values()) if isinstance(value, dict) else value
-                blk = self.obj._mgr.blocks[0]
                 take_split_path = not blk._can_hold_element(val)
 
         # if we have any multi-indexes that have non-trivial slices
@@ -1584,7 +1576,10 @@ class _iLocIndexer(_LocationIndexer):
                         # must have all defined axes if we have a scalar
                         # or a list-like on the non-info axes if we have a
                         # list-like
-                        if not len(self.obj):
+                        len_non_info_axes = (
+                            len(_ax) for _i, _ax in enumerate(self.obj.axes) if _i != i
+                        )
+                        if any(not l for l in len_non_info_axes):
                             if not is_list_like_indexer(value):
                                 raise ValueError(
                                     "cannot set a frame with no "
@@ -1769,7 +1764,7 @@ class _iLocIndexer(_LocationIndexer):
                     self._setitem_single_column(loc, value, pi)
 
         else:
-            self._setitem_single_block(indexer, value)
+            self._setitem_single_block_inplace(indexer, value)
 
     def _setitem_single_column(self, loc: int, value, plane_indexer):
         # positional setting on column loc
@@ -1796,9 +1791,10 @@ class _iLocIndexer(_LocationIndexer):
         # reset the sliced object if unique
         self.obj._iset_item(loc, ser)
 
-    def _setitem_single_block(self, indexer, value):
+    def _setitem_single_block_inplace(self, indexer, value):
         """
-        _setitem_with_indexer for the case when we have a single Block.
+        _setitem_with_indexer for the case when we have a single Block
+        and the value can be set into it without casting.
         """
         from pandas import Series
 
@@ -1847,13 +1843,7 @@ class _iLocIndexer(_LocationIndexer):
         Insert new row(s) or column(s) into the Series or DataFrame.
         """
         from pandas import DataFrame, Series
-
-        def check_valid_categorical(new_values, obj_dtype):
-            if is_categorical_dtype(obj_dtype):
-                if (~np.in1d(new_values, obj_dtype.categories.values)).any():
-                    raise ValueError(
-                        "Cannot setitem on a Categorical with a new category"
-                    )
+        from pandas.core.dtypes.cast import find_common_type
 
         # reindex the axis to the new value
         # and set inplace
@@ -1878,16 +1868,8 @@ class _iLocIndexer(_LocationIndexer):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
                 new_values = concat_compat([self.obj._values, new_values])
-                if is_object_dtype(new_values.dtype):
-                    dtype = None
-                else:
-                    dtype = find_common_type([self.obj.dtype, new_values.dtype])
-            else:
-                dtype = None
-
-            check_valid_categorical(new_values, self.obj.dtype)
             self.obj._mgr = self.obj._constructor(
-                new_values, index=new_index, name=self.obj.name, dtype=dtype
+                new_values, index=new_index, name=self.obj.name
             )._mgr
             self.obj._maybe_update_cacher(clear=True)
 
@@ -1915,13 +1897,14 @@ class _iLocIndexer(_LocationIndexer):
                 if len(set(self.obj.dtypes)) > 1:
                     value = list(value)
                     for i in range(len(self.obj.columns)):
-                        value[i] = Series(data=[value[i]], dtype=self.obj.dtypes[i])
-                        check_valid_categorical(value[i], self.obj.dtypes[i])
-                    value = dict(zip(self.obj.columns, value))
-                    value = DataFrame(value)
+                        dtype = find_common_type([self.obj.dtypes[i], type(value[i])])
+                        value[i] = Series(data=[value[i]], dtype=dtype)
+                    value = DataFrame(dict(zip(self.obj.columns, value)))
                     value.index = [indexer]
                 else:
-                    value = Series(value, index=self.obj.columns, name=indexer)
+                    dtype = find_common_type([self.obj.dtypes[0], type(value)])
+                    value = Series(value, index=self.obj.columns, name=indexer, dtype=dtype)
+
 
             self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)

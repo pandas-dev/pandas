@@ -71,6 +71,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
@@ -1581,6 +1582,25 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     # get unique types (dict.fromkeys is used as order-preserving set())
     types = list(dict.fromkeys(types).keys())
 
+    # If set of dtypes contains only categoricals (with the exception of strings)
+    # then the common dtype will be the categorical (in case it's the only one)
+    is_cat_or_str = lambda x: is_categorical_dtype(x) or is_string_dtype(x)
+    if all(is_cat_or_str(t) for t in types) and not any(is_object_dtype(t) for t in types):
+        # Return union of the categorical dtypes?
+        cat_dtypes = []
+        for t in types:
+            if is_categorical_dtype(t):
+                cat_dtypes.append(t)
+        if len(cat_dtypes) > 0:
+            dtype_ref = cat_dtypes[0]
+            cat_dtypes_same = True
+            for dtype in cat_dtypes:
+                if not is_dtype_equal(dtype, dtype_ref):
+                    cat_dtypes_same = False
+                    break
+            if cat_dtypes_same:
+                return dtype_ref
+                
     if any(isinstance(t, ExtensionDtype) for t in types):
         for t in types:
             if isinstance(t, ExtensionDtype):

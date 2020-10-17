@@ -6,12 +6,6 @@ import pandas._testing as tm
 
 
 class TestCategoricalSeries:
-    def test_loc_new_category_series_raises(self):
-        ser = pd.Series(Categorical(["a", "b", "c"]))
-        msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
-            ser.loc[3] = "d"
-
     def test_unused_category_retention(self):
         # Init case
         exp_cats = Index(["a", "b", "c", "d"])
@@ -31,9 +25,15 @@ class TestCategoricalSeries:
                 "cat": Categorical(["a", "b", "c"], categories=["a", "b", "c"]),
             }
         )
-        msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
-            df.loc[3] = [3, "d"]
+        df.loc[3] = [3, "d"]
+
+        expected = pd.DataFrame(
+            {
+                "int": [0, 1, 2, 3],
+                "cat": Categorical(["a", "b", "c", pd.NA], categories=["a", "b", "c"]),
+            }
+        )
+        tm.assert_frame_equal(df, expected)
 
     def test_loc_new_row_category_dtype_retention(self):
         df = pd.DataFrame(

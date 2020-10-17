@@ -281,7 +281,7 @@ def union_categoricals(
     def _maybe_unwrap(x):
         if isinstance(x, (ABCCategoricalIndex, ABCSeries)):
             return x._values
-        elif isinstance(x, Categorical):
+        elif isinstance(x, Categorical) or is_categorical_dtype(x):
             return x
         else:
             raise TypeError("all components to combine must be Categorical")
