@@ -2656,7 +2656,7 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> dtypes = ['int64', 'float64', 'complex128', 'object', 'bool']
-        >>> data = dict([(t, np.ones(shape=5000).astype(t))
+        >>> data = dict([(t, np.ones(shape=5000, dtype=int).astype(t))
         ...              for t in dtypes])
         >>> df = pd.DataFrame(data)
         >>> df.head()
@@ -2691,7 +2691,7 @@ class DataFrame(NDFrame, OpsMixin):
         int64          40000
         float64        40000
         complex128     80000
-        object        160000
+        object        180000
         bool            5000
         dtype: int64
 
@@ -2790,7 +2790,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2_transposed
                       0     1
         name      Alice   Bob
-        score       9.5     8
+        score       9.5   8.0
         employed  False  True
         kids          0     0
 
@@ -2946,7 +2946,8 @@ class DataFrame(NDFrame, OpsMixin):
             # - the key itself is repeated (test on data.shape, #9519), or
             # - we have a MultiIndex on columns (test on self.columns, #21309)
             if data.shape[1] == 1 and not isinstance(self.columns, MultiIndex):
-                data = data[key]
+                # GH#26490 using data[key] can cause RecursionError
+                data = data._get_item_cache(key)
 
         return data
 
@@ -3091,7 +3092,7 @@ class DataFrame(NDFrame, OpsMixin):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
-                self.loc._ensure_listlike_indexer(key, axis=1)
+                self.loc._ensure_listlike_indexer(key, axis=1, value=value)
                 indexer = self.loc._get_listlike_indexer(
                     key, axis=1, raise_missing=False
                 )[1]
