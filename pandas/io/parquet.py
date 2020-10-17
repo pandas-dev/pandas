@@ -309,10 +309,7 @@ def to_parquet(
         partition_cols = [partition_cols]
     impl = get_engine(engine)
 
-    if path is None:
-        path_or_buf = io.BytesIO()
-    else:
-        path_or_buf = path
+    path_or_buf: FilePathOrBuffer = io.BytesIO() if path is None else path
 
     impl.write(
         df,
@@ -325,6 +322,7 @@ def to_parquet(
     )
 
     if path is None:
+        assert isinstance(path_or_buf, io.BytesIO)
         return path_or_buf.getvalue()
     else:
         return None
