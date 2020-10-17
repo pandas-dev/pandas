@@ -220,11 +220,8 @@ Other enhancements
 - Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
 - :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
-<<<<<<< HEAD
 - :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
-=======
-- :meth:`DataFrame.to_parquet` now writes to ``io.Bytes`` when no ``path`` argument is passed (:issue:`37105`)
->>>>>>> feedback: move whatsnew to enhancements
+- :meth:`DataFrame.to_parquet` now returns a ``bytes`` object when no ``path`` argument is passed (:issue:`37105`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -468,7 +465,6 @@ I/O
 - Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
 - Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
 - Bug in :class:`HDFStore` threw a ``TypeError`` when exporting an empty :class:`DataFrame` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
-- Bug in :meth:`DataFrame.to_parquet` now returns bytes when no ``path`` argument is passed (:issue:`37105`)
 
 Plotting
 ^^^^^^^^
