@@ -1386,9 +1386,7 @@ class RollingAndExpandingMixin(BaseWindow):
     ) -> Callable[[np.ndarray, np.ndarray, np.ndarray, int], np.ndarray]:
         from pandas import Series
 
-        # pandas\core\window\rolling.py:1369: error: "partial" gets multiple
-        # values for keyword argument "func"  [misc]
-        window_func = partial(  # type: ignore[misc]
+        window_func = partial(
             self._get_roll_func("roll_apply"),
             args=args,
             kwargs=kwargs,
