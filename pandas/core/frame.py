@@ -7097,9 +7097,11 @@ NaN 12.3   33.0
         from pandas.core.reshape.reshape import stack, stack_multiple
 
         if isinstance(level, (tuple, list)):
-            return stack_multiple(self, level, dropna=dropna)
+            result = stack_multiple(self, level, dropna=dropna)
         else:
-            return stack(self, level, dropna=dropna)
+            result = stack(self, level, dropna=dropna)
+
+        return result.__finalize__(self, method="stack")
 
     def explode(
         self, column: Union[str, Tuple], ignore_index: bool = False
