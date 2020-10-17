@@ -7309,7 +7309,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -------
         {klass}
             Mask of bool values for each element in {klass} that
-            indicates whether an element is not an NA value.
+            indicates whether an element is an NA value.
 
         See Also
         --------
