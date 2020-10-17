@@ -85,11 +85,10 @@ class FixedWindowIndexer(BaseIndexer):
 
         end = np.arange(1 + offset, num_values + 1 + offset, dtype="int64")
         start = end - self.window_size
-
         if closed in ["left", "both"]:
             start -= 1
         if closed in ["left", "neither"]:
-            end = -1
+            end -= 1
 
         end = np.clip(end, 0, num_values)
         start = np.clip(start, 0, num_values)
@@ -109,9 +108,10 @@ class VariableWindowIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
-        return calculate_variable_window_bounds(
+        start, end = calculate_variable_window_bounds(
             num_values, self.window_size, min_periods, center, closed, self.index_array
         )
+        return start, end
 
 
 class VariableOffsetWindowIndexer(BaseIndexer):

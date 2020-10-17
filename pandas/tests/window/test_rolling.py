@@ -122,14 +122,18 @@ def test_numpy_compat(method):
         getattr(r, method)(dtype=np.float64)
 
 
-def test_closed():
-    df = DataFrame({"A": [0, 1, 2, 3, 4]})
-    # closed only allowed for datetimelike
+@pytest.mark.parametrize("closed", ["left", "right", "both", "neither"])
+def test_closed_fixed(closed, arithmetic_win_operators):
+    func_name = arithmetic_win_operators
+    df_fixed = DataFrame({"A": [0, 1, 2, 3, 4]})
+    df_time = DataFrame({"A": [0, 1, 2, 3, 4]}, index=date_range("2020", periods=5))
 
-    msg = "closed only implemented for datetimelike and offset based windows"
+    result = getattr(df_fixed.rolling(2, closed=closed, min_periods=1), func_name)()
+    expected = getattr(df_time.rolling("2D", closed=closed), func_name)().reset_index(
+        drop=True
+    )
 
-    with pytest.raises(ValueError, match=msg):
-        df.rolling(window=3, closed="neither")
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("closed", ["neither", "left"])
