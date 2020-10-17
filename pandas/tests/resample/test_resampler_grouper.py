@@ -360,3 +360,5 @@ def test_apply_to_one_column_of_df():
         [3, 12, 21, 9], index=pd.date_range("2012-01-01", periods=4, freq="H")
     )
     tm.assert_series_equal(result, expected)
+    result = df.resample("H").apply(lambda group: group["col"].sum())
+    tm.assert_series_equal(result, expected)
