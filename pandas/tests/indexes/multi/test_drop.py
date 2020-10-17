@@ -142,7 +142,7 @@ def test_drop_not_lexsorted():
 
 
 def test_droplevel_multiindex_one_level():
-    # GH: 37207
+    # GH: 37208
     index = pd.MultiIndex.from_tuples([(2,)], names=("b",))
     result = index.droplevel([])
     expected = pd.Int64Index([2], name="b")
