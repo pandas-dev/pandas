@@ -380,6 +380,7 @@ class TestBasic(Base):
         # GH 37105
 
         buf = df_full.to_parquet()
+        assert isinstance(buf, bytes)
 
         with tm.ensure_clean() as path:
             with open(path, "wb") as f:
