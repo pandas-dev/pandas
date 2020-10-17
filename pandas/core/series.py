@@ -1473,8 +1473,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        This method requires the `tabulate package
-                <https://pypi.org/project/tabulate>`_.
+        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
 
         Examples
         --------
