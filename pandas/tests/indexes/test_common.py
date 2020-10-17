@@ -320,6 +320,10 @@ class TestCommon:
             vals[0] = np.nan
 
         vals_unique = vals[:2]
+        if index.dtype.kind in ["m", "M"]:
+            # i.e. needs_i8_conversion but not period_dtype, as above
+            vals = type(index._data)._simple_new(vals, dtype=index.dtype)
+            vals_unique = type(index._data)._simple_new(vals_unique, dtype=index.dtype)
         idx_nan = index._shallow_copy(vals)
         idx_unique_nan = index._shallow_copy(vals_unique)
         assert idx_unique_nan.is_unique is True

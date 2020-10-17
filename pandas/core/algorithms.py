@@ -696,6 +696,8 @@ def factorize(
 
     # return original tenor
     if isinstance(original, ABCIndexClass):
+        if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
+            uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
         uniques = original._shallow_copy(uniques, name=None)
     elif isinstance(original, ABCSeries):
         from pandas import Index
@@ -1650,7 +1652,8 @@ def take_nd(
     """
     mask_info = None
 
-    if is_extension_array_dtype(arr):
+    if isinstance(arr, ABCExtensionArray):
+        # Check for EA to catch DatetimeArray, TimedeltaArray
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = extract_array(arr)
@@ -2043,7 +2046,7 @@ def safe_sort(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
 
-    if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):
+    if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         values = np.asarray(values, dtype=dtype)
