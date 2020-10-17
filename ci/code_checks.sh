@@ -202,10 +202,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for incorrect sphinx directives' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
     MSG='Check that unittest.mock is not used (pytest builtin monkeypatch fixture should be used instead)' ; echo $MSG
     invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
@@ -252,6 +248,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
     RET=$(($RET + $?)) ; echo $MSG "DONE"
     unset INVGREP_APPEND
+
+    MSG='Check code for instances of os.remove' ; echo $MSG
+    invgrep -R --include="*.py*" --exclude "common.py" --exclude "test_writers.py" --exclude "test_store.py" -E "os\.remove" pandas/tests/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### CODE ###

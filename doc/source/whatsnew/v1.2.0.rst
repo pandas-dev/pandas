@@ -348,8 +348,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
--
--
+- Bug in parsing of ISO 8601 durations in :class:`Timedelta`, :meth:`pd.to_datetime` (:issue:`37159`, fixes :issue:`29773` and :issue:`36204`)
 
 Timezones
 ^^^^^^^^^
@@ -371,6 +370,7 @@ Numeric
 - Bug in :meth:`DataFrame.diff` with ``datetime64`` dtypes including ``NaT`` values failing to fill ``NaT`` results correctly (:issue:`32441`)
 - Bug in :class:`DataFrame` arithmetic ops incorrectly accepting keyword arguments (:issue:`36843`)
 - Bug in :class:`IntervalArray` comparisons with :class:`Series` not returning :class:`Series` (:issue:`36908`)
+- Bug in :class:`DataFrame` allowing arithmetic operations with list of array-likes with undefined results. Behavior changed to raising ``ValueError`` (:issue:`36702`)
 
 Conversion
 ^^^^^^^^^^
@@ -400,6 +400,8 @@ Indexing
 - Bug in :meth:`DataFrame.sort_index` where parameter ascending passed as a list on a single level index gives wrong result. (:issue:`32334`)
 - Bug in :meth:`DataFrame.reset_index` was incorrectly raising a ``ValueError`` for input with a :class:`MultiIndex` with missing values in a level with ``Categorical`` dtype (:issue:`24206`)
 - Bug in indexing with boolean masks on datetime-like values sometimes returning a view instead of a copy (:issue:`36210`)
+- Bug in :meth:`DataFrame.__getitem__` and :meth:`DataFrame.loc.__getitem__` with :class:`IntervalIndex` columns and a numeric indexer (:issue:`26490`)
+- Bug in :meth:`Series.loc.__getitem__` with a non-unique :class:`MultiIndex` and an empty-list indexer (:issue:`13691`)
 
 Missing
 ^^^^^^^
@@ -462,6 +464,7 @@ Groupby/resample/rolling
 - Bug in :meth:`RollingGroupby.count` where a ``ValueError`` was raised when specifying the ``closed`` parameter (:issue:`35869`)
 - Bug in :meth:`DataFrame.groupby.rolling` returning wrong values with partial centered window (:issue:`36040`).
 - Bug in :meth:`DataFrameGroupBy.rolling` returned wrong values with timeaware window containing ``NaN``. Raises ``ValueError`` because windows are not monotonic now (:issue:`34617`)
+- Bug in :meth:`Rolling.__iter__` where a ``ValueError`` was not raised when ``min_periods`` was larger than ``window`` (:issue:`37156`)
 
 Reshaping
 ^^^^^^^^^
