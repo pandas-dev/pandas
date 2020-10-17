@@ -6,7 +6,6 @@ import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pandas.core.dtypes.common import is_list_like
 
 import pandas.core.common as com
 
@@ -80,14 +79,11 @@ def _get_colors_from_color(color):
     if isinstance(color, dict):
         return color
 
-    if is_list_like(color):
-        return list(color)
-
     if _is_single_color(color):
         # GH #36972
         return [color]
 
-    return color
+    return list(color)
 
 
 def _get_colors_from_color_type(color_type, num_colors):
