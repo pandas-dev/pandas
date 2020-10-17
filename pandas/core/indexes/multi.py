@@ -2886,7 +2886,7 @@ class MultiIndex(Index):
 
             for i in sorted(levels, reverse=True):
                 try:
-                    new_index = new_index._drop_level_nums([i])
+                    new_index = new_index._drop_level_numbers([i])
                 except ValueError:
 
                     # no dropping here
