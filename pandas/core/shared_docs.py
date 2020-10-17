@@ -4,7 +4,7 @@ _shared_docs: Dict[str, str] = dict()
 
 _shared_docs[
     "aggregate"
-] = """\
+] = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters
@@ -46,7 +46,7 @@ A passed user-defined-function will be passed a Series for evaluation.
 
 _shared_docs[
     "compare"
-] = """\
+] = """
 Compare to another %(klass)s and show the differences.
 
 .. versionadded:: 1.1.0
@@ -75,7 +75,7 @@ keep_equal : bool, default False
 
 _shared_docs[
     "groupby"
-] = """\
+] = """
 Group %(klass)s using a mapper or by a Series of columns.
 
 A groupby operation involves some combination of splitting the
@@ -144,7 +144,7 @@ See the `user guide
 
 _shared_docs[
     "melt"
-] = """\
+] = """
 Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
 
 This function is useful to massage a DataFrame into a format where one
@@ -258,7 +258,7 @@ If you have multi-index columns:
 
 _shared_docs[
     "transform"
-] = """\
+] = """
 Call ``func`` on self producing a {klass} with transformed values.
 
 Produced {klass} will have same axis length as self.

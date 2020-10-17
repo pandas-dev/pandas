@@ -1489,6 +1489,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         str
             {klass} in Markdown-friendly format.
 
+        Notes
+        -----
+        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
+
         Examples
         --------
         >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
