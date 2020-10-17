@@ -1900,10 +1900,13 @@ class TestTimedeltaArraylikeMulDivOps:
         result = tdarr % three_days
         tm.assert_equal(result, expected)
 
-        if box_with_array is pd.DataFrame:
-            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
+        warn = None
+        if box_with_array is pd.DataFrame and isinstance(three_days, pd.DateOffset):
+            warn = PerformanceWarning
 
-        result = divmod(tdarr, three_days)
+        with tm.assert_produces_warning(warn):
+            result = divmod(tdarr, three_days)
+
         tm.assert_equal(result[1], expected)
         tm.assert_equal(result[0], tdarr // three_days)
 
@@ -1921,9 +1924,6 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(TypeError, match=msg):
             2 % tdarr
 
-        if box_with_array is pd.DataFrame:
-            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
-
         result = divmod(tdarr, 2)
         tm.assert_equal(result[1], expected)
         tm.assert_equal(result[0], tdarr // 2)
@@ -1938,9 +1938,6 @@ class TestTimedeltaArraylikeMulDivOps:
 
         result = three_days % tdarr
         tm.assert_equal(result, expected)
-
-        if box_with_array is pd.DataFrame:
-            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
 
         result = divmod(three_days, tdarr)
         tm.assert_equal(result[1], expected)
