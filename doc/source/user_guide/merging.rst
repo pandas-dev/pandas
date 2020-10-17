@@ -76,9 +76,8 @@ a simple example:
    :suppress:
 
    @savefig merging_concat_basic.png
-   p.plot(frames, result,
-          labels=['df1', 'df2', 'df3'], vertical=True);
-   plt.close('all');
+   p.plot(frames, result, labels=["df1", "df2", "df3"], vertical=True);
+   plt.close("all");
 
 Like its sibling function on ndarrays, ``numpy.concatenate``, ``pandas.concat``
 takes a list or dict of homogeneously-typed objects and concatenates them with
@@ -86,8 +85,17 @@ some configurable handling of "what to do with the other axes":
 
 ::
 
-    pd.concat(objs, axis=0, join='outer', ignore_index=False, keys=None,
-              levels=None, names=None, verify_integrity=False, copy=True)
+    pd.concat(
+        objs,
+        axis=0,
+        join="outer",
+        ignore_index=False,
+        keys=None,
+        levels=None,
+        names=None,
+        verify_integrity=False,
+        copy=True,
+    )
 
 * ``objs`` : a sequence or mapping of Series or DataFrame objects. If a
   dict is passed, the sorted keys will be used as the ``keys`` argument, unless
@@ -128,9 +136,8 @@ with each of the pieces of the chopped up DataFrame. We can do this using the
    :suppress:
 
    @savefig merging_concat_keys.png
-   p.plot(frames, result,
-          labels=['df1', 'df2', 'df3'], vertical=True)
-   plt.close('all');
+   p.plot(frames, result, labels=["df1", "df2", "df3"], vertical=True)
+   plt.close("all");
 
 As you can see (if you've read the rest of the documentation), the resulting
 object's index has a :ref:`hierarchical index <advanced.hierarchical>`. This
@@ -153,6 +160,14 @@ functionality below.
 
    frames = [ process_your_file(f) for f in files ]
    result = pd.concat(frames)
+
+.. note::
+
+   When concatenating DataFrames with named axes, pandas will attempt to preserve
+   these index/column names whenever possible. In the case where all inputs share a
+   common name, this name will be assigned to the result. When the input names do
+   not all agree, the result will be unnamed. The same is true for :class:`MultiIndex`,
+   but the logic is applied separately on a level-by-level basis.
 
 
 Set logic on the other axes
@@ -186,9 +201,8 @@ behavior:
    :suppress:
 
    @savefig merging_concat_axis1.png
-   p.plot([df1, df4], result,
-          labels=['df1', 'df4'], vertical=False);
-   plt.close('all');
+   p.plot([df1, df4], result, labels=["df1", "df4"], vertical=False);
+   plt.close("all");
 
 .. warning::
 
@@ -207,9 +221,8 @@ Here is the same thing with ``join='inner'``:
    :suppress:
 
    @savefig merging_concat_axis1_inner.png
-   p.plot([df1, df4], result,
-          labels=['df1', 'df4'], vertical=False);
-   plt.close('all');
+   p.plot([df1, df4], result, labels=["df1", "df4"], vertical=False);
+   plt.close("all");
 
 Lastly, suppose we just wanted to reuse the *exact index* from the original
 DataFrame:
@@ -228,9 +241,8 @@ Similarly, we could index before the concatenation:
    :suppress:
 
    @savefig merging_concat_axis1_join_axes.png
-   p.plot([df1, df4], result,
-          labels=['df1', 'df4'], vertical=False);
-   plt.close('all');
+   p.plot([df1, df4], result, labels=["df1", "df4"], vertical=False);
+   plt.close("all");
 
 .. _merging.concatenation:
 
@@ -249,9 +261,8 @@ instance methods on ``Series`` and ``DataFrame``. These methods actually predate
    :suppress:
 
    @savefig merging_append1.png
-   p.plot([df1, df2], result,
-          labels=['df1', 'df2'], vertical=True);
-   plt.close('all');
+   p.plot([df1, df2], result, labels=["df1", "df2"], vertical=True);
+   plt.close("all");
 
 In the case of ``DataFrame``, the indexes must be disjoint but the columns do not
 need to be:
@@ -264,9 +275,8 @@ need to be:
    :suppress:
 
    @savefig merging_append2.png
-   p.plot([df1, df4], result,
-          labels=['df1', 'df4'], vertical=True);
-   plt.close('all');
+   p.plot([df1, df4], result, labels=["df1", "df4"], vertical=True);
+   plt.close("all");
 
 ``append`` may take multiple objects to concatenate:
 
@@ -278,9 +288,8 @@ need to be:
    :suppress:
 
    @savefig merging_append3.png
-   p.plot([df1, df2, df3], result,
-          labels=['df1', 'df2', 'df3'], vertical=True);
-   plt.close('all');
+   p.plot([df1, df2, df3], result, labels=["df1", "df2", "df3"], vertical=True);
+   plt.close("all");
 
 .. note::
 
@@ -304,9 +313,8 @@ do this, use the ``ignore_index`` argument:
    :suppress:
 
    @savefig merging_concat_ignore_index.png
-   p.plot([df1, df4], result,
-          labels=['df1', 'df4'], vertical=True);
-   plt.close('all');
+   p.plot([df1, df4], result, labels=["df1", "df4"], vertical=True);
+   plt.close("all");
 
 This is also a valid argument to :meth:`DataFrame.append`:
 
@@ -318,9 +326,8 @@ This is also a valid argument to :meth:`DataFrame.append`:
    :suppress:
 
    @savefig merging_append_ignore_index.png
-   p.plot([df1, df4], result,
-          labels=['df1', 'df4'], vertical=True);
-   plt.close('all');
+   p.plot([df1, df4], result, labels=["df1", "df4"], vertical=True);
+   plt.close("all");
 
 .. _merging.mixed_ndims:
 
@@ -340,9 +347,8 @@ the name of the ``Series``.
    :suppress:
 
    @savefig merging_concat_mixed_ndim.png
-   p.plot([df1, s1], result,
-          labels=['df1', 's1'], vertical=False);
-   plt.close('all');
+   p.plot([df1, s1], result, labels=["df1", "s1"], vertical=False);
+   plt.close("all");
 
 .. note::
 
@@ -362,9 +368,8 @@ If unnamed ``Series`` are passed they will be numbered consecutively.
    :suppress:
 
    @savefig merging_concat_unnamed_series.png
-   p.plot([df1, s2], result,
-          labels=['df1', 's2'], vertical=False);
-   plt.close('all');
+   p.plot([df1, s2], result, labels=["df1", "s2"], vertical=False);
+   plt.close("all");
 
 Passing ``ignore_index=True`` will drop all name references.
 
@@ -376,9 +381,8 @@ Passing ``ignore_index=True`` will drop all name references.
    :suppress:
 
    @savefig merging_concat_series_ignore_index.png
-   p.plot([df1, s1], result,
-          labels=['df1', 's1'], vertical=False);
-   plt.close('all');
+   p.plot([df1, s1], result, labels=["df1", "s1"], vertical=False);
+   plt.close("all");
 
 More concatenating with group keys
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -412,9 +416,8 @@ Let's consider a variation of the very first example presented:
    :suppress:
 
    @savefig merging_concat_group_keys2.png
-   p.plot(frames, result,
-          labels=['df1', 'df2', 'df3'], vertical=True);
-   plt.close('all');
+   p.plot(frames, result, labels=["df1", "df2", "df3"], vertical=True);
+   plt.close("all");
 
 You can also pass a dict to ``concat`` in which case the dict keys will be used
 for the ``keys`` argument (unless other keys are specified):
@@ -428,9 +431,8 @@ for the ``keys`` argument (unless other keys are specified):
    :suppress:
 
    @savefig merging_concat_dict.png
-   p.plot([df1, df2, df3], result,
-          labels=['df1', 'df2', 'df3'], vertical=True);
-   plt.close('all');
+   p.plot([df1, df2, df3], result, labels=["df1", "df2", "df3"], vertical=True);
+   plt.close("all");
 
 .. ipython:: python
 
@@ -440,9 +442,8 @@ for the ``keys`` argument (unless other keys are specified):
    :suppress:
 
    @savefig merging_concat_dict_keys.png
-   p.plot([df1, df2, df3], result,
-          labels=['df1', 'df2', 'df3'], vertical=True);
-   plt.close('all');
+   p.plot([df1, df2, df3], result, labels=["df1", "df2", "df3"], vertical=True);
+   plt.close("all");
 
 The MultiIndex created has levels that are constructed from the passed keys and
 the index of the ``DataFrame`` pieces:
@@ -464,9 +465,8 @@ do so using the ``levels`` argument:
    :suppress:
 
    @savefig merging_concat_dict_keys_names.png
-   p.plot([df1, df2, df3], result,
-          labels=['df1', 'df2', 'df3'], vertical=True);
-   plt.close('all');
+   p.plot([df1, df2, df3], result, labels=["df1", "df2", "df3"], vertical=True);
+   plt.close("all");
 
 .. ipython:: python
 
@@ -493,9 +493,8 @@ append a single row to a ``DataFrame`` by passing a ``Series`` or dict to
    :suppress:
 
    @savefig merging_append_series_as_row.png
-   p.plot([df1, s2], result,
-          labels=['df1', 's2'], vertical=True);
-   plt.close('all');
+   p.plot([df1, s2], result, labels=["df1", "s2"], vertical=True);
+   plt.close("all");
 
 You should use ``ignore_index`` with this method to instruct DataFrame to
 discard its index. If you wish to preserve the index, you should construct an
@@ -512,9 +511,8 @@ You can also pass a list of dicts or Series:
    :suppress:
 
    @savefig merging_append_dits.png
-   p.plot([df1, pd.DataFrame(dicts)], result,
-          labels=['df1', 'dicts'], vertical=True);
-   plt.close('all');
+   p.plot([df1, pd.DataFrame(dicts)], result, labels=["df1", "dicts"], vertical=True);
+   plt.close("all");
 
 .. _merging.join:
 
@@ -538,10 +536,21 @@ all standard database join operations between ``DataFrame`` or named ``Series`` 
 
 ::
 
-    pd.merge(left, right, how='inner', on=None, left_on=None, right_on=None,
-             left_index=False, right_index=False, sort=True,
-             suffixes=('_x', '_y'), copy=True, indicator=False,
-             validate=None)
+    pd.merge(
+        left,
+        right,
+        how="inner",
+        on=None,
+        left_on=None,
+        right_on=None,
+        left_index=False,
+        right_index=False,
+        sort=True,
+        suffixes=("_x", "_y"),
+        copy=True,
+        indicator=False,
+        validate=None,
+    )
 
 * ``left``: A DataFrame or named Series object.
 * ``right``: Another DataFrame or named Series object.
@@ -656,9 +665,8 @@ key combination:
    :suppress:
 
    @savefig merging_merge_on_key.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 Here is a more complicated example with multiple join keys. Only the keys
 appearing in ``left`` and ``right`` are present (the intersection), since
@@ -690,9 +698,8 @@ appearing in ``left`` and ``right`` are present (the intersection), since
    :suppress:
 
    @savefig merging_merge_on_key_multiple.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 The ``how`` argument to ``merge`` specifies how to determine which keys are to
 be included in the resulting table. If a key combination **does not appear** in
@@ -716,9 +723,8 @@ either the left or right tables, the values in the joined table will be
    :suppress:
 
    @savefig merging_merge_on_key_left.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. ipython:: python
 
@@ -728,8 +734,7 @@ either the left or right tables, the values in the joined table will be
    :suppress:
 
    @savefig merging_merge_on_key_right.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
 
 .. ipython:: python
 
@@ -739,9 +744,8 @@ either the left or right tables, the values in the joined table will be
    :suppress:
 
    @savefig merging_merge_on_key_outer.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. ipython:: python
 
@@ -751,9 +755,8 @@ either the left or right tables, the values in the joined table will be
    :suppress:
 
    @savefig merging_merge_on_key_inner.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 You can merge a mult-indexed Series and a DataFrame, if the names of
 the MultiIndex correspond to the columns from the DataFrame. Transform
@@ -790,9 +793,8 @@ Here is another example with duplicate join keys in DataFrames:
    :suppress:
 
    @savefig merging_merge_on_key_dup.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 
 .. warning::
@@ -821,7 +823,7 @@ In the following example, there are duplicate values of ``B`` in the right
 
 .. code-block:: ipython
 
-  In [53]: result = pd.merge(left, right, on='B', how='outer', validate="one_to_one")
+  In [53]: result = pd.merge(left, right, on="B", how="outer", validate="one_to_one")
   ...
   MergeError: Merge keys are not unique in right dataset; not a one-to-one merge
 
@@ -965,9 +967,8 @@ potentially differently-indexed ``DataFrames`` into a single result
    :suppress:
 
    @savefig merging_join.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. ipython:: python
 
@@ -977,9 +978,8 @@ potentially differently-indexed ``DataFrames`` into a single result
    :suppress:
 
    @savefig merging_join_outer.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 The same as above, but with ``how='inner'``.
 
@@ -991,9 +991,8 @@ The same as above, but with ``how='inner'``.
    :suppress:
 
    @savefig merging_join_inner.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 The data alignment here is on the indexes (row labels). This same behavior can
 be achieved using ``merge`` plus additional arguments instructing it to use the
@@ -1007,9 +1006,8 @@ indexes:
    :suppress:
 
    @savefig merging_merge_index_outer.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. ipython:: python
 
@@ -1019,9 +1017,8 @@ indexes:
    :suppress:
 
    @savefig merging_merge_index_inner.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 Joining key columns on an index
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1034,8 +1031,9 @@ completely equivalent:
 ::
 
     left.join(right, on=key_or_keys)
-    pd.merge(left, right, left_on=key_or_keys, right_index=True,
-          how='left', sort=False)
+    pd.merge(
+        left, right, left_on=key_or_keys, right_index=True, how="left", sort=False
+    )
 
 Obviously you can choose whichever form you find more convenient. For
 many-to-one joins (where one of the ``DataFrame``'s is already indexed by the
@@ -1059,9 +1057,8 @@ join key), using ``join`` may be more convenient. Here is a simple example:
    :suppress:
 
    @savefig merging_join_key_columns.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. ipython:: python
 
@@ -1073,9 +1070,8 @@ join key), using ``join`` may be more convenient. Here is a simple example:
    :suppress:
 
    @savefig merging_merge_key_columns.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. _merging.multikey_join:
 
@@ -1109,9 +1105,8 @@ Now this can be joined by passing the two key column names:
    :suppress:
 
    @savefig merging_join_multikeys.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. _merging.df_inner_join:
 
@@ -1128,9 +1123,8 @@ easily performed:
    :suppress:
 
    @savefig merging_join_multikeys_inner.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 As you can see, this drops any rows where there was no match.
 
@@ -1145,41 +1139,44 @@ a level name of the MultiIndexed frame.
 
 ..  ipython:: python
 
-   left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
-                        'B': ['B0', 'B1', 'B2']},
-                        index=pd.Index(['K0', 'K1', 'K2'], name='key'))
+    left = pd.DataFrame(
+        {"A": ["A0", "A1", "A2"], "B": ["B0", "B1", "B2"]},
+        index=pd.Index(["K0", "K1", "K2"], name="key"),
+    )
 
-   index = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
-                                     ('K2', 'Y2'), ('K2', 'Y3')],
-                                      names=['key', 'Y'])
-   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3']},
-                         index=index)
+    index = pd.MultiIndex.from_tuples(
+        [("K0", "Y0"), ("K1", "Y1"), ("K2", "Y2"), ("K2", "Y3")],
+        names=["key", "Y"],
+    )
+    right = pd.DataFrame(
+        {"C": ["C0", "C1", "C2", "C3"], "D": ["D0", "D1", "D2", "D3"]},
+        index=index,
+    )
 
-   result = left.join(right, how='inner')
+    result = left.join(right, how="inner")
+
 
 .. ipython:: python
    :suppress:
 
    @savefig merging_join_multiindex_inner.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 This is equivalent but less verbose and more memory efficient / faster than this.
 
 ..  ipython:: python
 
-    result = pd.merge(left.reset_index(), right.reset_index(),
-          on=['key'], how='inner').set_index(['key','Y'])
+    result = pd.merge(
+        left.reset_index(), right.reset_index(), on=["key"], how="inner"
+    ).set_index(["key","Y"])
 
 .. ipython:: python
    :suppress:
 
    @savefig merging_merge_multiindex_alternative.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. _merging.join_with_two_multi_indexes:
 
@@ -1233,9 +1230,8 @@ done using the following code.
    :suppress:
 
    @savefig merging_merge_two_multiindex.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. _merging.merge_on_columns_and_levels:
 
@@ -1277,9 +1273,8 @@ resetting indexes.
    :suppress:
 
    @savefig merge_on_index_and_column.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. note::
 
@@ -1317,9 +1312,8 @@ columns:
    :suppress:
 
    @savefig merging_merge_overlapped.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. ipython:: python
 
@@ -1329,9 +1323,8 @@ columns:
    :suppress:
 
    @savefig merging_merge_overlapped_suffix.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 :meth:`DataFrame.join` has ``lsuffix`` and ``rsuffix`` arguments which behave
 similarly.
@@ -1346,9 +1339,8 @@ similarly.
    :suppress:
 
    @savefig merging_merge_overlapped_multi_suffix.png
-   p.plot([left, right], result,
-          labels=['left', 'right'], vertical=False);
-   plt.close('all');
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
 .. _merging.multiple_join:
 
@@ -1367,9 +1359,13 @@ to join them together on their indexes.
    :suppress:
 
    @savefig merging_join_multi_df.png
-   p.plot([left, right, right2], result,
-          labels=['left', 'right', 'right2'], vertical=False);
-   plt.close('all');
+   p.plot(
+       [left, right, right2],
+       result,
+       labels=["left", "right", "right2"],
+       vertical=False,
+   );
+   plt.close("all");
 
 .. _merging.combine_first.update:
 
@@ -1397,9 +1393,8 @@ For this, use the :meth:`~DataFrame.combine_first` method:
    :suppress:
 
    @savefig merging_combine_first.png
-   p.plot([df1, df2], result,
-          labels=['df1', 'df2'], vertical=False);
-   plt.close('all');
+   p.plot([df1, df2], result, labels=["df1", "df2"], vertical=False);
+   plt.close("all");
 
 Note that this method only takes values from the right ``DataFrame`` if they are
 missing in the left ``DataFrame``. A related method, :meth:`~DataFrame.update`,
@@ -1418,9 +1413,8 @@ alters non-NA values in place:
    :suppress:
 
    @savefig merging_update.png
-   p.plot([df1_copy, df2], df1,
-          labels=['df1', 'df2'], vertical=False);
-   plt.close('all');
+   p.plot([df1_copy, df2], df1, labels=["df1", "df2"], vertical=False);
+   plt.close("all");
 
 .. _merging.time_series:
 
