@@ -2405,3 +2405,28 @@ class TestMode:
             dtype="timedelta64[ns]",
         )
         tm.assert_series_equal(algos.mode(idx), exp)
+
+
+class TestDiff:
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_diff_datetimelike_nat(self, dtype):
+        # NaT - NaT is NaT, not 0
+        arr = np.arange(12).astype(np.int64).view(dtype).reshape(3, 4)
+        arr[:, 2] = arr.dtype.type("NaT", "ns")
+        result = algos.diff(arr, 1, axis=0)
+
+        expected = np.ones(arr.shape, dtype="timedelta64[ns]") * 4
+        expected[:, 2] = np.timedelta64("NaT", "ns")
+        expected[0, :] = np.timedelta64("NaT", "ns")
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.diff(arr.T, 1, axis=1)
+        tm.assert_numpy_array_equal(result, expected.T)
+
+    def test_diff_ea_axis(self):
+        dta = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")._data
+
+        msg = "cannot diff DatetimeArray on axis=1"
+        with pytest.raises(ValueError, match=msg):
+            algos.diff(dta, 1, axis=1)

@@ -2160,6 +2160,20 @@ class TestDataFrameIndexing:
         result = df.loc[1, "A"]
         tm.assert_series_equal(result, expected)
 
+    def test_getitem_interval_index_partial_indexing(self):
+        # GH#36490
+        df = pd.DataFrame(
+            np.ones((3, 4)), columns=pd.IntervalIndex.from_breaks(np.arange(5))
+        )
+
+        expected = df.iloc[:, 0]
+
+        res = df[0.5]
+        tm.assert_series_equal(res, expected)
+
+        res = df.loc[:, 0.5]
+        tm.assert_series_equal(res, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):

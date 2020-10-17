@@ -194,6 +194,7 @@ Other enhancements
 - Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
 - :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
+- :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -400,6 +401,7 @@ Indexing
 - Bug in :meth:`DataFrame.sort_index` where parameter ascending passed as a list on a single level index gives wrong result. (:issue:`32334`)
 - Bug in :meth:`DataFrame.reset_index` was incorrectly raising a ``ValueError`` for input with a :class:`MultiIndex` with missing values in a level with ``Categorical`` dtype (:issue:`24206`)
 - Bug in indexing with boolean masks on datetime-like values sometimes returning a view instead of a copy (:issue:`36210`)
+- Bug in :meth:`DataFrame.__getitem__` and :meth:`DataFrame.loc.__getitem__` with :class:`IntervalIndex` columns and a numeric indexer (:issue:`26490`)
 - Bug in :meth:`Series.loc.__getitem__` with a non-unique :class:`MultiIndex` and an empty-list indexer (:issue:`13691`)
 
 Missing
