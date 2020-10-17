@@ -604,7 +604,7 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
 
     for c in ts:
         # number (ascii codes)
-        if ord(c) >= 48 and ord(c) <= 57:
+        if 48 <= ord(c) <= 57:
 
             have_value = 1
             if have_dot:
@@ -620,27 +620,28 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
             if not len(unit):
                 number.append(c)
             else:
-                # if in days, pop trailing T
-                if unit[-1] == 'T':
-                    unit.pop()
-                elif 'H' in unit or 'M' in unit:
-                    if len(number) > 2:
-                        raise ValueError(err_msg)
                 r = timedelta_from_spec(number, '0', unit)
                 result += timedelta_as_neg(r, neg)
 
                 neg = 0
                 unit, number = [], [c]
         else:
-            if c == 'P':
-                pass  # ignore leading character
+            if c == 'P' or c == 'T':
+                pass  # ignore marking characters P and T
             elif c == '-':
                 if neg or have_value:
                     raise ValueError(err_msg)
                 else:
                     neg = 1
-            elif c in ['D', 'T', 'H', 'M']:
+            elif c in ['W', 'D', 'H', 'M']:
                 unit.append(c)
+                if c in ['H', 'M'] and len(number) > 2:
+                    raise ValueError(err_msg)
+                r = timedelta_from_spec(number, '0', unit)
+                result += timedelta_as_neg(r, neg)
+
+                neg = 0
+                unit, number = [], []
             elif c == '.':
                 # append any seconds
                 if len(number):
@@ -661,11 +662,8 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
                     r = timedelta_from_spec(number, '0', dec_unit)
                     result += timedelta_as_neg(r, neg)
                 else:  # seconds
-                    if len(number) <= 2:
-                        r = timedelta_from_spec(number, '0', 'S')
-                        result += timedelta_as_neg(r, neg)
-                    else:
-                        raise ValueError(err_msg)
+                    r = timedelta_from_spec(number, '0', 'S')
+                    result += timedelta_as_neg(r, neg)
             else:
                 raise ValueError(err_msg)
 

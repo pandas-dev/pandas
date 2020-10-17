@@ -348,8 +348,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
--
--
+- Bug in parsing of ISO 8601 durations in :class:`Timedelta`, :meth:`pd.to_datetime` (:issue:`37159`, fixes :issue:`29773` and :issue:`36204`)
 
 Timezones
 ^^^^^^^^^
