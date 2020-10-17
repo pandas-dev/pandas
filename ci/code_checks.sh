@@ -263,8 +263,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?))
     check_namespace "DataFrame"
     RET=$(($RET + $?))
-    check_namespace "Index"
-    RET=$(($RET + $?))
     echo $MSG "DONE"
 fi
 
