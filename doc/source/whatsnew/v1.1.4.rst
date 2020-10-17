@@ -33,8 +33,8 @@ Bug fixes
 
 .. _whatsnew_114.other:
 
-Other
-~~~~~
+Indexing
+~~~~~~~~
 - Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` raising a ``ValueError`` when the target was read-only (:issue:`37174`)
 -
 
