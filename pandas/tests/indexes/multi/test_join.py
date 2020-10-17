@@ -71,7 +71,7 @@ def test_join_multi():
     # keep MultiIndex
     jidx, lidx, ridx = midx.join(idx, how="left", return_indexers=True)
     exp_ridx = np.array(
-        [-1, -1, -1, -1,  0,  0,  0,  0,  1,  1,  1,  1, -1, -1, -1, -1], dtype=np.intp
+        [-1, -1, -1, -1, 0, 0, 0, 0, 1, 1, 1, 1, -1, -1, -1, -1], dtype=np.intp
     )
     exp_idx = midx.copy()
     exp_idx.names = ["b", "a"]
@@ -115,3 +115,14 @@ def test_join_multi_return_indexers():
 
     result = midx1.join(midx2, return_indexers=False)
     tm.assert_index_equal(result, midx1)
+
+
+def test_join_multi_and_index():
+    # GH: 34292
+    idx = pd.Index([1, 2], name="a")
+    midx = pd.MultiIndex.from_tuples([(1, 4), (3, 0), (1, 5)], names=["a", "b"])
+    result = idx.join(midx, how="left")
+    expected = pd.MultiIndex.from_tuples(
+        [(1, 4), (1, 5), (2, np.nan)], names=["a", "b"]
+    )
+    tm.assert_index_equal(result, expected)
