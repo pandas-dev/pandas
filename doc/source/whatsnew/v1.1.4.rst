@@ -35,6 +35,7 @@ Bug fixes
 
 Other
 ~~~~~
+- Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` raising a ``ValueError`` when the target was read-only (:issue:`37174`)
 -
 
 .. ---------------------------------------------------------------------------
