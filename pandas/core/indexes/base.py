@@ -3581,12 +3581,12 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
         # figure out join names
-        self_names = list(com.not_none(*self.names))
-        other_names = list(com.not_none(*other.names))
-        self_names_order = self_names.index
-        other_names_order = other_names.index
-        self_names = set(self_names)
-        other_names = set(other_names)
+        self_names_list = list(com.not_none(*self.names))
+        other_names_list = list(com.not_none(*other.names))
+        self_names_order = self_names_list.index
+        other_names_order = other_names_list.index
+        self_names = set(self_names_list)
+        other_names = set(other_names_list)
         overlap = self_names & other_names
 
         # need at least 1 in common
