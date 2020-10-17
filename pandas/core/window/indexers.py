@@ -86,6 +86,11 @@ class FixedWindowIndexer(BaseIndexer):
         end = np.arange(1 + offset, num_values + 1 + offset, dtype="int64")
         start = end - self.window_size
 
+        if closed in ["left", "both"]:
+            start -= 1
+        if closed in ["left", "neither"]:
+            end = -1
+
         end = np.clip(end, 0, num_values)
         start = np.clip(start, 0, num_values)
 

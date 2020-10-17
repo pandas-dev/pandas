@@ -850,10 +850,7 @@ class Window(BaseWindow):
     axis : int or str, default 0
     closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
-        'neither' endpoints.
-        For offset-based windows, it defaults to 'right'.
-        For fixed windows, defaults to 'both'. Remaining cases not implemented
-        for fixed windows.
+        'neither' endpoints. Defaults to 'right'.
 
     Returns
     -------
@@ -1975,11 +1972,6 @@ class Rolling(RollingAndExpandingMixin):
             raise ValueError("window must be an integer")
         elif self.window < 0:
             raise ValueError("window must be non-negative")
-
-        if not self.is_datetimelike and self.closed is not None:
-            raise ValueError(
-                "closed only implemented for datetimelike and offset based windows"
-            )
 
     def _determine_window_length(self) -> Union[int, float]:
         """
