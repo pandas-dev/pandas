@@ -1476,7 +1476,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         This method requires the `tabulate package
                 <https://pypi.org/project/tabulate>`_.
 
-
         Examples
         --------
         >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
