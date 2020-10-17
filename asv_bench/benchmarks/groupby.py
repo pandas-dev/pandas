@@ -361,16 +361,15 @@ class Size:
 class FillNA:
     def setup(self):
         N = 1500
-        self.df = DataFrame({
-                    'group' : [1] * N + [2] * N,
-                    'value' : [np.nan, 1.0] * N
-                }).set_index('group')
-    
+        self.df = DataFrame(
+            {"group": [1] * N + [2] * N, "value": [np.nan, 1.0] * N}
+        ).set_index("group")
+
     def time_df_ffill(self):
-        self.df.groupby('group').fillna(method='ffill')
-    
+        self.df.groupby("group").fillna(method="ffill")
+
     def time_srs_ffill(self):
-        self.df.groupby('group')['value'].fillna(method='ffill')
+        self.df.groupby("group")["value"].fillna(method="ffill")
 
 
 class GroupByMethods:
