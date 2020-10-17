@@ -415,6 +415,11 @@ class TestToLatexCaptionLabel:
         return "a table in a \\texttt{table/tabular} environment"
 
     @pytest.fixture
+    def short_caption(self):
+        """Short caption for testing \\caption[short_caption]{full_caption}."""
+        return "a table"
+
+    @pytest.fixture
     def label_table(self):
         """Label for table/tabular LaTeX environment."""
         return "tab:table_tabular"
@@ -480,6 +485,107 @@ class TestToLatexCaptionLabel:
             \centering
             \caption{a table in a \texttt{table/tabular} environment}
             \label{tab:table_tabular}
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            \end{table}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_caption_and_shortcaption(
+        self,
+        df_short,
+        caption_table,
+        short_caption,
+    ):
+        result = df_short.to_latex(caption=(caption_table, short_caption))
+        expected = _dedent(
+            r"""
+            \begin{table}
+            \centering
+            \caption[a table]{a table in a \texttt{table/tabular} environment}
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            \end{table}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_caption_and_shortcaption_list_is_ok(self, df_short):
+        caption = ("Long-long-caption", "Short")
+        result_tuple = df_short.to_latex(caption=caption)
+        result_list = df_short.to_latex(caption=list(caption))
+        assert result_tuple == result_list
+
+    def test_to_latex_caption_shortcaption_and_label(
+        self,
+        df_short,
+        caption_table,
+        short_caption,
+        label_table,
+    ):
+        # test when the short_caption is provided alongside caption and label
+        result = df_short.to_latex(
+            caption=(caption_table, short_caption),
+            label=label_table,
+        )
+        expected = _dedent(
+            r"""
+            \begin{table}
+            \centering
+            \caption[a table]{a table in a \texttt{table/tabular} environment}
+            \label{tab:table_tabular}
+            \begin{tabular}{lrl}
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            \end{table}
+            """
+        )
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "bad_caption",
+        [
+            ("full_caption", "short_caption", "extra_string"),
+            ("full_caption", "short_caption", 1),
+            ("full_caption", "short_caption", None),
+            ("full_caption",),
+            (None,),
+        ],
+    )
+    def test_to_latex_bad_caption_raises(self, bad_caption):
+        # test that wrong number of params is raised
+        df = pd.DataFrame({"a": [1]})
+        msg = "caption must be either a string or a tuple of two strings"
+        with pytest.raises(ValueError, match=msg):
+            df.to_latex(caption=bad_caption)
+
+    def test_to_latex_two_chars_caption(self, df_short):
+        # test that two chars caption is handled correctly
+        # it must not be unpacked into long_caption, short_caption.
+        result = df_short.to_latex(caption="xy")
+        expected = _dedent(
+            r"""
+            \begin{table}
+            \centering
+            \caption{xy}
             \begin{tabular}{lrl}
             \toprule
             {} &  a &   b \\
@@ -571,6 +677,47 @@ class TestToLatexCaptionLabel:
             r"""
             \begin{longtable}{lrl}
             \caption{a table in a \texttt{longtable} environment}
+            \label{tab:longtable}\\
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endfirsthead
+            \caption[]{a table in a \texttt{longtable} environment} \\
+            \toprule
+            {} &  a &   b \\
+            \midrule
+            \endhead
+            \midrule
+            \multicolumn{3}{r}{{Continued on next page}} \\
+            \midrule
+            \endfoot
+
+            \bottomrule
+            \endlastfoot
+            0 &  1 &  b1 \\
+            1 &  2 &  b2 \\
+            \end{longtable}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_longtable_caption_shortcaption_and_label(
+        self,
+        df_short,
+        caption_longtable,
+        short_caption,
+        label_longtable,
+    ):
+        # test when the caption, the short_caption and the label are provided
+        result = df_short.to_latex(
+            longtable=True,
+            caption=(caption_longtable, short_caption),
+            label=label_longtable,
+        )
+        expected = _dedent(
+            r"""
+            \begin{longtable}{lrl}
+            \caption[a table]{a table in a \texttt{longtable} environment}
             \label{tab:longtable}\\
             \toprule
             {} &  a &   b \\

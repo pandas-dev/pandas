@@ -1021,7 +1021,7 @@ class DataFrameFormatter(TableFormatter):
         multicolumn: bool = False,
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
-        caption: Optional[str] = None,
+        caption: Optional[Union[str, Tuple[str, str]]] = None,
         label: Optional[str] = None,
         position: Optional[str] = None,
     ) -> Optional[str]:
