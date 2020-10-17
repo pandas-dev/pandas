@@ -217,9 +217,7 @@ class JoinUnit:
         # a block is NOT null, chunks should help in such cases.  1000 value
         # was chosen rather arbitrarily.
         values = self.block.values
-        if self.block.is_categorical:
-            values_flat = values.categories
-        elif is_sparse(self.block.values.dtype):
+        if is_sparse(self.block.values.dtype):
             return False
         elif self.block.is_extension:
             # TODO(EA2D): no need for special case with 2D EAs
