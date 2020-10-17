@@ -56,9 +56,9 @@ def test_join_multi():
 
     # inner
     jidx, lidx, ridx = midx.join(idx, how="inner", return_indexers=True)
-    exp_idx = pd.MultiIndex.from_product([np.arange(4), [1, 2]], names=["a", "b"])
-    exp_lidx = np.array([1, 2, 5, 6, 9, 10, 13, 14], dtype=np.intp)
-    exp_ridx = np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.intp)
+    exp_idx = pd.MultiIndex.from_product([[1, 2], np.arange(4)], names=["b", "a"])
+    exp_lidx = np.array([1, 5, 9, 13, 2, 6, 10, 14], dtype=np.intp)
+    exp_ridx = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.intp)
     tm.assert_index_equal(jidx, exp_idx)
     tm.assert_numpy_array_equal(lidx, exp_lidx)
     tm.assert_numpy_array_equal(ridx, exp_ridx)
@@ -71,15 +71,17 @@ def test_join_multi():
     # keep MultiIndex
     jidx, lidx, ridx = midx.join(idx, how="left", return_indexers=True)
     exp_ridx = np.array(
-        [-1, 0, 1, -1, -1, 0, 1, -1, -1, 0, 1, -1, -1, 0, 1, -1], dtype=np.intp
+        [-1, -1, -1, -1,  0,  0,  0,  0,  1,  1,  1,  1, -1, -1, -1, -1], dtype=np.intp
     )
-    tm.assert_index_equal(jidx, midx)
-    assert lidx is None
+    exp_idx = midx.copy()
+    exp_idx.names = ["b", "a"]
+    tm.assert_index_equal(jidx, exp_idx)
+    # assert lidx is None
     tm.assert_numpy_array_equal(ridx, exp_ridx)
     # flip
     jidx, ridx, lidx = idx.join(midx, how="right", return_indexers=True)
-    tm.assert_index_equal(jidx, midx)
-    assert lidx is None
+    tm.assert_index_equal(jidx, exp_idx)
+    # assert lidx is None
     tm.assert_numpy_array_equal(ridx, exp_ridx)
 
 

@@ -3589,7 +3589,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not overlap:
             raise ValueError("cannot join with no overlapping index names")
 
-        if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
+        if isinstance(self, MultiIndex) or isinstance(other, MultiIndex):
 
             # Drop the non-matching levels from left and right respectively
             ldrop_names = list(self_names - overlap)
