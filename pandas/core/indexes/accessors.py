@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
-    _deprecations = PandasObject._deprecations | {
+    _hidden_attrs = PandasObject._hidden_attrs | {
         "orig",
         "name",
     }

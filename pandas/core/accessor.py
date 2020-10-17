@@ -9,18 +9,16 @@ import warnings
 
 from pandas.util._decorators import doc
 
-from pandas.util import cache_readonly
-
 
 class DirNamesMixin:
     _accessors: Set[str] = set()
-    _deprecations: FrozenSet[str] = frozenset()
+    _hidden_attrs: FrozenSet[str] = frozenset()
 
     def _dir_deletions(self) -> Set[str]:
         """
         Delete unwanted __dir__ for this object.
         """
-        return self._accessors | self._deprecations
+        return self._accessors | self._hidden_attrs
 
     def _dir_additions(self) -> Set[str]:
         """

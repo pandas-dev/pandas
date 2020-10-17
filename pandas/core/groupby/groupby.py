@@ -489,7 +489,7 @@ _KeysArgType = Union[
 class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection: Optional[IndexLabel] = None
     _apply_allowlist: FrozenSet[str] = frozenset()
-    _deprecations = PandasObject._deprecations | {
+    _hidden_attrs = PandasObject._hidden_attrs | {
         "as_index",
         "axis",
         "dropna",
