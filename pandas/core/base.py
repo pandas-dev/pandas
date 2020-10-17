@@ -4,12 +4,22 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Callable, Dict, FrozenSet, Optional, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import IndexLabel
+from pandas._typing import DtypeObj, IndexLabel
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -32,6 +42,9 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
+
+if TYPE_CHECKING:
+    from pandas import Categorical
 
 _shared_docs: Dict[str, str] = dict()
 _indexops_doc_kwargs = dict(
@@ -238,7 +251,7 @@ class SelectionMixin:
         Parameters
         ----------
         key : str / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
@@ -306,6 +319,11 @@ class IndexOpsMixin(OpsMixin):
     )
 
     @property
+    def dtype(self) -> DtypeObj:
+        # must be defined here as a property for mypy
+        raise AbstractMethodError(self)
+
+    @property
     def _values(self) -> Union[ExtensionArray, np.ndarray]:
         # must be defined here as a property for mypy
         raise AbstractMethodError(self)
@@ -348,7 +366,7 @@ class IndexOpsMixin(OpsMixin):
 
     def item(self):
         """
-        Return the first element of the underlying data as a python scalar.
+        Return the first element of the underlying data as a Python scalar.
 
         Returns
         -------
@@ -832,6 +850,7 @@ class IndexOpsMixin(OpsMixin):
             if is_categorical_dtype(self.dtype):
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
+                self = cast("Categorical", self)
                 return self._values.map(mapper)
 
             values = self._values
