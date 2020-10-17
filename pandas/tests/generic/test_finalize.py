@@ -115,10 +115,7 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("notnull")),
     (pd.DataFrame, frame_data, operator.methodcaller("dropna")),
     (pd.DataFrame, frame_data, operator.methodcaller("drop_duplicates")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("duplicated")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("duplicated")),
     (pd.DataFrame, frame_data, operator.methodcaller("sort_values", by="A")),
     (pd.DataFrame, frame_data, operator.methodcaller("sort_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("nlargest", 1, "A")),

@@ -5286,7 +5286,8 @@ class DataFrame(NDFrame, OpsMixin):
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
-        return self._constructor_sliced(duplicated_int64(ids, keep), index=self.index)
+        result = self._constructor_sliced(duplicated_int64(ids, keep), index=self.index)
+        return result.__finalize__(self, method="duplicated")
 
     # ----------------------------------------------------------------------
     # Sorting
