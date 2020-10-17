@@ -1437,7 +1437,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         **kwargs,
     ) -> Optional[str]:
         """
-        Print {klass} in Markdown-friendly format (requires the tabulate package).
+        Print {klass} in Markdown-friendly format.
 
         .. versionadded:: 1.0.0
 
@@ -1470,6 +1470,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         str
             {klass} in Markdown-friendly format.
+
+        Notes
+        -----
+        This method requires the tabulate package.
 
         Examples
         --------
