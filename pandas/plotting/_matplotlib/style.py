@@ -98,9 +98,6 @@ def _get_default_colors(num_colors):
     except KeyError:
         colors = list(plt.rcParams.get("axes.color_cycle", list("bgrcmyk")))
 
-    if isinstance(colors, str):
-        colors = list(colors)
-
     return colors[0:num_colors]
 
 
