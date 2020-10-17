@@ -85,7 +85,7 @@ class TestSeriesIsIn:
         # https://github.com/pandas-dev/pandas/issues/37174
         arr = np.array([1, 2, 3])
         arr.setflags(write=False)
-        s = pd.Series([1, 2, 3])
+        s = Series([1, 2, 3])
         result = s.isin(arr)
         expected = Series([True, True, True])
         tm.assert_series_equal(result, expected)
