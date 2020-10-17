@@ -107,16 +107,19 @@ def _get_colors_from_color(
     if isinstance(color, dict):
         return color
 
-    if isinstance(color, str) and _is_single_color(color):
-        # GH #36972
-        return [color]
+    if isinstance(color, str):
+        if _is_single_color(color):
+            # GH #36972
+            return [color]
+        else:
+            return list(color)
 
     # ignoring mypy error here
     # error: Argument 1 to "list" has incompatible type
     # "Union[Sequence[float], Collection[Union[str, Sequence[float]]]]";
     # expected "Iterable[Union[str, Sequence[float]]]"  [arg-type]
-    # A this point color may be string with multiple letters,
-    # sequence of floats or series of colors, all convertible to list
+    # A this point color may be sequence of floats or series of colors,
+    # all convertible to list
     return list(color)  # type: ignore [arg-type]
 
 
