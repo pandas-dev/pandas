@@ -13,7 +13,7 @@ from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:
 from pandas._typing import Level
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import is_array_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -28,8 +28,8 @@ from pandas.core.ops.array_ops import (  # noqa:F401
 from pandas.core.ops.common import unpack_zerodim_and_defer  # noqa:F401
 from pandas.core.ops.docstrings import (
     _flex_comp_doc_FRAME,
-    _make_flex_doc,
     _op_descriptions,
+    make_flex_doc,
 )
 from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
 from pandas.core.ops.mask_ops import kleene_and, kleene_or, kleene_xor  # noqa: F401
@@ -209,7 +209,7 @@ def align_method_SERIES(left: "Series", right, align_asobject: bool = False):
 
 def flex_method_SERIES(op):
     name = op.__name__.strip("_")
-    doc = _make_flex_doc(name, "series")
+    doc = make_flex_doc(name, "series")
 
     @Appender(doc)
     def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
@@ -311,6 +311,11 @@ def align_method_FRAME(
             )
 
     elif is_list_like(right) and not isinstance(right, (ABCSeries, ABCDataFrame)):
+        # GH 36702. Raise when attempting arithmetic with list of array-like.
+        if any(is_array_like(el) for el in right):
+            raise ValueError(
+                f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
+            )
         # GH17901
         right = to_series(right)
 
@@ -445,7 +450,7 @@ def flex_arith_method_FRAME(op):
     default_axis = "columns"
 
     na_op = get_array_op(op)
-    doc = _make_flex_doc(op_name, "dataframe")
+    doc = make_flex_doc(op_name, "dataframe")
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
