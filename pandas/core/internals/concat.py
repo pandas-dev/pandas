@@ -1,6 +1,6 @@
 from collections import defaultdict
 import copy
-from typing import Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple, cast
 
 import numpy as np
 
@@ -27,6 +27,9 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, ExtensionArray
 from pandas.core.internals.blocks import make_block
 from pandas.core.internals.managers import BlockManager
+
+if TYPE_CHECKING:
+    from pandas.core.arrays.sparse.dtype import SparseDtype
 
 
 def concatenate_block_managers(
@@ -112,7 +115,7 @@ def _get_mgr_concatenation_plan(mgr, indexers):
         blklocs = algos.take_1d(mgr.blklocs, ax0_indexer, fill_value=-1)
     else:
 
-        if mgr._is_single_block:
+        if mgr.is_single_block:
             blk = mgr.blocks[0]
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 
@@ -184,7 +187,7 @@ class JoinUnit:
         return f"{type(self).__name__}({repr(self.block)}, {self.indexers})"
 
     @cache_readonly
-    def needs_filling(self):
+    def needs_filling(self) -> bool:
         for indexer in self.indexers.values():
             # FIXME: cache results of indexer == -1 checks.
             if (indexer == -1).any():
@@ -203,7 +206,7 @@ class JoinUnit:
             return get_dtype(maybe_promote(self.block.dtype, self.block.fill_value)[0])
 
     @cache_readonly
-    def is_na(self):
+    def is_na(self) -> bool:
         if self.block is None:
             return True
 
@@ -344,7 +347,7 @@ def _concatenate_join_units(join_units, concat_axis, copy):
     return concat_values
 
 
-def _get_empty_dtype_and_na(join_units):
+def _get_empty_dtype_and_na(join_units: Sequence[JoinUnit]) -> Tuple[DtypeObj, Any]:
     """
     Return dtype and N/A values to use when concatenating specified units.
 
@@ -374,45 +377,8 @@ def _get_empty_dtype_and_na(join_units):
         else:
             dtypes[i] = unit.dtype
 
-    upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
-    null_upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
-    for dtype, unit in zip(dtypes, join_units):
-        if dtype is None:
-            continue
+    upcast_classes = _get_upcast_classes(join_units, dtypes)
 
-        if is_categorical_dtype(dtype):
-            upcast_cls = "category"
-        elif is_datetime64tz_dtype(dtype):
-            upcast_cls = "datetimetz"
-
-        elif is_extension_array_dtype(dtype):
-            upcast_cls = "extension"
-
-        elif issubclass(dtype.type, np.bool_):
-            upcast_cls = "bool"
-        elif issubclass(dtype.type, np.object_):
-            upcast_cls = "object"
-        elif is_datetime64_dtype(dtype):
-            upcast_cls = "datetime"
-        elif is_timedelta64_dtype(dtype):
-            upcast_cls = "timedelta"
-        elif is_sparse(dtype):
-            upcast_cls = dtype.subtype.name
-        elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
-            upcast_cls = dtype.name
-        else:
-            upcast_cls = "float"
-
-        # Null blocks should not influence upcast class selection, unless there
-        # are only null blocks, when same upcasting rules must be applied to
-        # null upcast classes.
-        if unit.is_na:
-            null_upcast_classes[upcast_cls].append(dtype)
-        else:
-            upcast_classes[upcast_cls].append(dtype)
-
-    if not upcast_classes:
-        upcast_classes = null_upcast_classes
     # TODO: de-duplicate with maybe_promote?
     # create the result
     if "extension" in upcast_classes:
@@ -441,21 +407,72 @@ def _get_empty_dtype_and_na(join_units):
         return np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")
     else:  # pragma
         try:
-            g = np.find_common_type(upcast_classes, [])
+            common_dtype = np.find_common_type(upcast_classes, [])
         except TypeError:
             # At least one is an ExtensionArray
             return np.dtype(np.object_), np.nan
         else:
-            if is_float_dtype(g):
-                return g, g.type(np.nan)
-            elif is_numeric_dtype(g):
+            if is_float_dtype(common_dtype):
+                return common_dtype, common_dtype.type(np.nan)
+            elif is_numeric_dtype(common_dtype):
                 if has_none_blocks:
                     return np.dtype(np.float64), np.nan
                 else:
-                    return g, None
+                    return common_dtype, None
 
     msg = "invalid dtype determination in get_concat_dtype"
     raise AssertionError(msg)
+
+
+def _get_upcast_classes(
+    join_units: Sequence[JoinUnit],
+    dtypes: Sequence[DtypeObj],
+) -> Dict[str, List[DtypeObj]]:
+    """Create mapping between upcast class names and lists of dtypes."""
+    upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
+    null_upcast_classes: Dict[str, List[DtypeObj]] = defaultdict(list)
+    for dtype, unit in zip(dtypes, join_units):
+        if dtype is None:
+            continue
+
+        upcast_cls = _select_upcast_cls_from_dtype(dtype)
+        # Null blocks should not influence upcast class selection, unless there
+        # are only null blocks, when same upcasting rules must be applied to
+        # null upcast classes.
+        if unit.is_na:
+            null_upcast_classes[upcast_cls].append(dtype)
+        else:
+            upcast_classes[upcast_cls].append(dtype)
+
+    if not upcast_classes:
+        upcast_classes = null_upcast_classes
+
+    return upcast_classes
+
+
+def _select_upcast_cls_from_dtype(dtype: DtypeObj) -> str:
+    """Select upcast class name based on dtype."""
+    if is_categorical_dtype(dtype):
+        return "category"
+    elif is_datetime64tz_dtype(dtype):
+        return "datetimetz"
+    elif is_extension_array_dtype(dtype):
+        return "extension"
+    elif issubclass(dtype.type, np.bool_):
+        return "bool"
+    elif issubclass(dtype.type, np.object_):
+        return "object"
+    elif is_datetime64_dtype(dtype):
+        return "datetime"
+    elif is_timedelta64_dtype(dtype):
+        return "timedelta"
+    elif is_sparse(dtype):
+        dtype = cast("SparseDtype", dtype)
+        return dtype.subtype.name
+    elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
+        return dtype.name
+    else:
+        return "float"
 
 
 def _is_uniform_join_units(join_units: List[JoinUnit]) -> bool:

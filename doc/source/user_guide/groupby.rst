@@ -267,7 +267,9 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    height = np.random.normal(60, 10, size=n)
    time = pd.date_range("1/1/2000", periods=n)
    gender = np.random.choice(["male", "female"], size=n)
-   df = pd.DataFrame({"height": height, "weight": weight, "gender": gender}, index=time)
+   df = pd.DataFrame(
+       {"height": height, "weight": weight, "gender": gender}, index=time
+   )
 
 .. ipython:: python
 
@@ -614,7 +616,7 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
       grouped["C"].agg(["sum", "sum"])
 
 
-   Pandas *does* allow you to provide multiple lambdas. In this case, pandas
+   pandas *does* allow you to provide multiple lambdas. In this case, pandas
    will mangle the name of the (nameless) lambda functions, appending ``_<i>``
    to each subsequent lambda.
 
@@ -636,7 +638,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
 
 - The keywords are the *output* column names
 - The values are tuples whose first element is the column to select
-  and the second element is the aggregation to apply to that column. Pandas
+  and the second element is the aggregation to apply to that column. pandas
   provides the ``pandas.NamedAgg`` namedtuple with the fields ``['column', 'aggfunc']``
   to make it clearer what the arguments are. As usual, the aggregation can
   be a callable or a string alias.
@@ -677,7 +679,7 @@ and unpack the keyword arguments
 
    animals.groupby("kind").agg(
        **{
-           "total weight": pd.NamedAgg(column="weight", aggfunc=sum),
+           "total weight": pd.NamedAgg(column="weight", aggfunc=sum)
        }
    )
 
@@ -767,7 +769,10 @@ For example, suppose we wished to standardize the data within each group:
    ts.head()
    ts.tail()
 
-   transformed = ts.groupby(lambda x: x.year).transform(lambda x: (x - x.mean()) / x.std())
+   transformed = ts.groupby(lambda x: x.year).transform(
+       lambda x: (x - x.mean()) / x.std()
+   )
+
 
 We would expect the result to now have mean 0 and standard deviation 1 within
 each group, which we can easily check:

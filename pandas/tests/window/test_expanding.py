@@ -137,6 +137,14 @@ def test_expanding_count_default_min_periods_with_null_values(constructor):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_expanding_count_with_min_periods_exceeding_series_length(constructor):
+    # GH 25857
+    result = constructor(range(5)).expanding(min_periods=6).count()
+    expected = constructor([np.nan, np.nan, np.nan, np.nan, np.nan])
+    tm.assert_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "df,expected,min_periods",
     [
@@ -236,3 +244,14 @@ def test_center_deprecate_warning():
 
     with tm.assert_produces_warning(None):
         df.expanding()
+
+
+@pytest.mark.parametrize("constructor", ["DataFrame", "Series"])
+def test_expanding_sem(constructor):
+    # GH: 26476
+    obj = getattr(pd, constructor)([0, 1, 2])
+    result = obj.expanding().sem()
+    if isinstance(result, DataFrame):
+        result = pd.Series(result[0].values)
+    expected = pd.Series([np.nan] + [0.707107] * 2)
+    tm.assert_series_equal(result, expected)

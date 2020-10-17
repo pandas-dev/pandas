@@ -328,6 +328,7 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.apply`, Generic apply
     :meth:`~Rolling.cov`, Sample covariance (binary)
     :meth:`~Rolling.corr`, Sample correlation (binary)
+    :meth:`~Rolling.sem`, Standard error of mean
 
 .. _computation.window_variance.caveats:
 
@@ -787,7 +788,11 @@ can even be omitted:
 
 .. ipython:: python
 
-   covs = df[["B", "C", "D"]].rolling(window=50).cov(df[["A", "B", "C"]], pairwise=True)
+   covs = (
+       df[["B", "C", "D"]]
+       .rolling(window=50)
+       .cov(df[["A", "B", "C"]], pairwise=True)
+   )
    covs.loc["2002-09-22":]
 
 .. ipython:: python
@@ -934,6 +939,7 @@ Method summary
     :meth:`~Expanding.apply`, Generic apply
     :meth:`~Expanding.cov`, Sample covariance (binary)
     :meth:`~Expanding.corr`, Sample correlation (binary)
+    :meth:`~Expanding.sem`, Standard error of mean
 
 .. note::
 
