@@ -259,10 +259,9 @@ def to_parquet(
         we refer to objects with a write() method, such as a file handle
         (e.g. via builtin open function) or io.BytesIO. The engine
         fastparquet does not accept file-like objects. If path is None,
-        frame is written to an io.BytesIO object and a bytes object with
-        the contents of the buffer is returned.
+        a bytes object is returned.
 
-        .. versionchanged:: 0.24.0
+        .. versionchanged:: 1.2.0
 
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
@@ -301,6 +300,10 @@ def to_parquet(
 
     kwargs
         Additional keyword arguments passed to the engine
+
+    Returns
+    -------
+    bytes if no path argument is provided else None
     """
     if isinstance(partition_cols, str):
         partition_cols = [partition_cols]
