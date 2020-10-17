@@ -213,9 +213,9 @@ class BaseWindow(ShallowMixin, SelectionMixin):
     def _dir_additions(self):
         return self.obj._dir_additions()
 
-    def _get_window(
+    def _get_cov_corr_window(
         self, other: Optional[Union[np.ndarray, FrameOrSeries]] = None
-    ) -> int:
+    ) -> Optional[Union[int, timedelta, BaseOffset, BaseIndexer]]:
         """
         Return window length.
 
@@ -228,8 +228,6 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         -------
         window : int
         """
-        if isinstance(self.window, BaseIndexer):
-            return self.min_periods or 0
         return self.window
 
     @property
@@ -249,11 +247,10 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         return f"{self._window_type} [{attrs}]"
 
     def __iter__(self):
-        window = self._get_window()
         obj = self._create_data(self._selected_obj)
-        index = self._get_window_indexer(window=window)
+        indexer = self._get_window_indexer()
 
-        start, end = index.get_window_bounds(
+        start, end = indexer.get_window_bounds(
             num_values=len(obj),
             min_periods=self.min_periods,
             center=self.center,
@@ -340,15 +337,17 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             )
         return window_func
 
-    def _get_window_indexer(self, window: int) -> BaseIndexer:
+    def _get_window_indexer(self) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
         """
         if isinstance(self.window, BaseIndexer):
             return self.window
         if self.is_freq_type:
-            return VariableWindowIndexer(index_array=self._on.asi8, window_size=window)
-        return FixedWindowIndexer(window_size=window)
+            return VariableWindowIndexer(
+                index_array=self._on.asi8, window_size=self.window
+            )
+        return FixedWindowIndexer(window_size=self.window)
 
     def _apply_series(
         self, homogeneous_func: Callable[..., ArrayLike], name: Optional[str] = None
@@ -428,8 +427,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
         -------
         y : type of input
         """
-        window = self._get_window()
-        window_indexer = self._get_window_indexer(window)
+        window_indexer = self._get_window_indexer()
         min_periods = (
             self.min_periods
             if self.min_periods is not None
@@ -1750,14 +1748,10 @@ class RollingAndExpandingMixin(BaseWindow):
         # GH 32865. We leverage rolling.mean, so we pass
         # to the rolling constructors the data used when constructing self:
         # window width, frequency data, or a BaseIndexer subclass
-        if isinstance(self.window, BaseIndexer):
-            window = self.window
-        else:
-            # GH 16058: offset window
-            if self.is_freq_type:
-                window = self.win_freq
-            else:
-                window = self._get_window(other)
+        # GH 16058: offset window
+        window = (
+            self._get_cov_corr_window(other) if not self.is_freq_type else self.win_freq
+        )
 
         def _get_cov(X, Y):
             # GH #12373 : rolling functions error on float32 data
@@ -1899,10 +1893,10 @@ class RollingAndExpandingMixin(BaseWindow):
         # GH 32865. We leverage rolling.cov and rolling.std here, so we pass
         # to the rolling constructors the data used when constructing self:
         # window width, frequency data, or a BaseIndexer subclass
-        if isinstance(self.window, BaseIndexer):
-            window = self.window
-        else:
-            window = self._get_window(other) if not self.is_freq_type else self.win_freq
+        # GH 16058: offset window
+        window = (
+            self._get_cov_corr_window(other) if not self.is_freq_type else self.win_freq
+        )
 
         def _get_corr(a, b):
             a = a.rolling(
@@ -2208,14 +2202,9 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     Provide a rolling groupby implementation.
     """
 
-    def _get_window_indexer(self, window: int) -> GroupbyIndexer:
+    def _get_window_indexer(self) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
-
-        Parameters
-        ----------
-        window : int
-            window size for FixedWindowIndexer
 
         Returns
         -------
@@ -2224,12 +2213,14 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         rolling_indexer: Type[BaseIndexer]
         indexer_kwargs: Optional[Dict[str, Any]] = None
         index_array = self._on.asi8
+        window = self.window
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__
             assert isinstance(indexer_kwargs, dict)  # for mypy
             # We'll be using the index of each group later
             indexer_kwargs.pop("index_array", None)
+            window = 0
         elif self.is_freq_type:
             rolling_indexer = VariableWindowIndexer
         else:
