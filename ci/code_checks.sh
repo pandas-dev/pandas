@@ -39,7 +39,8 @@ function invgrep {
 }
 
 function check_namespace {
-    grep -R -l --include="test_analytics.py" " ${1}(" | xargs grep -n "pd\.${1}("
+    ERROR_MSG="   <--- do not use both pd\.${1} and ${1} in the same file/"
+    grep -R -l --include="${2}" --exclude="${3}" " ${1}(" | xargs grep -n "pd\.${1}(" | sed "s/$/${ERROR_MSG}"
     test $? -gt 0
 }
 
@@ -259,9 +260,9 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for inconsistent use of pandas namespace' ; echo $MSG
-    check_namespace "Series"
+    check_namespace "Series" "test_analytics.py"
     RET=$(($RET + $?))
-    check_namespace "DataFrame"
+    check_namespace "DataFrame" "test_missing.py"
     RET=$(($RET + $?))
     echo $MSG "DONE"
 fi
