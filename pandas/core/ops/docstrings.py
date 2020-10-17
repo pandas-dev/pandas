@@ -26,6 +26,8 @@ def make_flex_doc(op_name: str, typ: str) -> str:
     assert op_desc_op is not None  # for mypy
     if op_name.startswith("r"):
         equiv = "other " + op_desc_op + " " + typ
+    elif op_name == "divmod":
+        equiv = f"{op_name}({typ}, other)"
     else:
         equiv = typ + " " + op_desc_op + " other"
 
@@ -159,6 +161,25 @@ c    NaN
 d    0.0
 e    NaN
 dtype: float64
+"""
+)
+
+_divmod_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
+>>> a.divmod(b, fill_value=0)
+(a    1.0
+ b    NaN
+ c    NaN
+ d    0.0
+ e    NaN
+ dtype: float64,
+ a    0.0
+ b    NaN
+ c    NaN
+ d    0.0
+ e    NaN
+ dtype: float64)
 """
 )
 
@@ -332,7 +353,7 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "op": "divmod",
         "desc": "Integer division and modulo",
         "reverse": "rdivmod",
-        "series_examples": None,
+        "series_examples": _divmod_example_SERIES,
         "series_returns": _returns_tuple,
         "df_examples": None,
     },
