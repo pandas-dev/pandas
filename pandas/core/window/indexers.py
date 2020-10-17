@@ -108,10 +108,9 @@ class VariableWindowIndexer(BaseIndexer):
         closed: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
 
-        start, end = calculate_variable_window_bounds(
+        return calculate_variable_window_bounds(
             num_values, self.window_size, min_periods, center, closed, self.index_array
         )
-        return start, end
 
 
 class VariableOffsetWindowIndexer(BaseIndexer):
