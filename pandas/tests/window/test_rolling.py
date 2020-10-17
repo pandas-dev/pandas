@@ -124,6 +124,7 @@ def test_numpy_compat(method):
 
 @pytest.mark.parametrize("closed", ["left", "right", "both", "neither"])
 def test_closed_fixed(closed, arithmetic_win_operators):
+    # GH 34315
     func_name = arithmetic_win_operators
     df_fixed = DataFrame({"A": [0, 1, 2, 3, 4]})
     df_time = DataFrame({"A": [0, 1, 2, 3, 4]}, index=date_range("2020", periods=5))
