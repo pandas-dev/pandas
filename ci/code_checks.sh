@@ -252,6 +252,12 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check code for instances of os.remove' ; echo $MSG
     invgrep -R --include="*.py*" --exclude "common.py" --exclude "test_writers.py" --exclude "test_store.py" -E "os\.remove" pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for inconsistent use of pandas namespace' ; echo $MSG
+    grep -R -l --include="test_missing.py" " Series(" | xargs grep -n "pd\.Series("; test $? -gt 0
+    RET=$(($RET + $?))
+    grep -R -l --include="test_missing.py" " DataFrame(" | xargs grep -n "pd\.DataFrame("; test $? -gt 0
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### CODE ###

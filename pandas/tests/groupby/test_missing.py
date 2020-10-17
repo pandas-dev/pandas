@@ -9,7 +9,7 @@ import pandas._testing as tm
 @pytest.mark.parametrize("func", ["ffill", "bfill"])
 def test_groupby_column_index_name_lost_fill_funcs(func):
     # GH: 29764 groupby loses index sometimes
-    df = pd.DataFrame(
+    df = DataFrame(
         [[1, 1.0, -1.0], [1, np.nan, np.nan], [1, 2.0, -2.0]],
         columns=pd.Index(["type", "a", "b"], name="idx"),
     )
@@ -22,10 +22,10 @@ def test_groupby_column_index_name_lost_fill_funcs(func):
 @pytest.mark.parametrize("func", ["ffill", "bfill"])
 def test_groupby_fill_duplicate_column_names(func):
     # GH: 25610 ValueError with duplicate column names
-    df1 = pd.DataFrame({"field1": [1, 3, 4], "field2": [1, 3, 4]})
-    df2 = pd.DataFrame({"field1": [1, np.nan, 4]})
+    df1 = DataFrame({"field1": [1, 3, 4], "field2": [1, 3, 4]})
+    df2 = DataFrame({"field1": [1, np.nan, 4]})
     df_grouped = pd.concat([df1, df2], axis=1).groupby(by=["field2"])
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [[1, 1.0], [3, np.nan], [4, 4.0]], columns=["field1", "field1"]
     )
     result = getattr(df_grouped, func)()
@@ -34,7 +34,7 @@ def test_groupby_fill_duplicate_column_names(func):
 
 def test_ffill_missing_arguments():
     # GH 14955
-    df = pd.DataFrame({"a": [1, 2], "b": [1, 1]})
+    df = DataFrame({"a": [1, 2], "b": [1, 1]})
     with pytest.raises(ValueError, match="Must specify a fill"):
         df.groupby("b").fillna()
 
@@ -90,7 +90,7 @@ def test_fill_consistency():
 def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
     # GH 34725
 
-    df_without_nan_rows = pd.DataFrame([(1, 0.1), (2, 0.2)])
+    df_without_nan_rows = DataFrame([(1, 0.1), (2, 0.2)])
 
     ridx = [-1, 0, -1, -1, 1, -1]
     df = df_without_nan_rows.reindex(ridx).reset_index(drop=True)

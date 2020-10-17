@@ -90,8 +90,8 @@ class TestIsNA:
         assert not isna_f(-np.inf)
 
         # type
-        assert not isna_f(type(pd.Series(dtype=object)))
-        assert not isna_f(type(pd.Series(dtype=np.float64)))
+        assert not isna_f(type(Series(dtype=object)))
+        assert not isna_f(type(Series(dtype=np.float64)))
         assert not isna_f(type(pd.DataFrame()))
 
         # series
@@ -247,11 +247,11 @@ class TestIsNA:
             tm.assert_numpy_array_equal(isna(values), exp)
             tm.assert_numpy_array_equal(notna(values), ~exp)
 
-            exp = pd.Series([False, True, False])
-            s = pd.Series(values)
+            exp = Series([False, True, False])
+            s = Series(values)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
-            s = pd.Series(values, dtype=object)
+            s = Series(values, dtype=object)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
 
@@ -278,11 +278,11 @@ class TestIsNA:
             tm.assert_numpy_array_equal(isna(values), exp)
             tm.assert_numpy_array_equal(notna(values), ~exp)
 
-            exp = pd.Series([False, True, False])
-            s = pd.Series(values)
+            exp = Series([False, True, False])
+            s = Series(values)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
-            s = pd.Series(values, dtype=object)
+            s = Series(values, dtype=object)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
 
@@ -292,11 +292,11 @@ class TestIsNA:
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
 
-        exp = pd.Series([False, True, False])
-        s = pd.Series(idx)
+        exp = Series([False, True, False])
+        s = Series(idx)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
-        s = pd.Series(idx, dtype=object)
+        s = Series(idx, dtype=object)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
 
