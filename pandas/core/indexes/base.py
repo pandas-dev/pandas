@@ -1552,7 +1552,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         levnums = sorted(self._get_level_number(lev) for lev in level)[::-1]
 
-        if len(level) == 0:
+        if len(level) == 0 and (len(self) > 1 or not isinstance(self, ABCMultiIndex)):
             return self
         if len(level) >= self.nlevels:
             raise ValueError(

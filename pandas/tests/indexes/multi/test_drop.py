@@ -139,3 +139,11 @@ def test_drop_not_lexsorted():
     tm.assert_index_equal(lexsorted_mi, not_lexsorted_mi)
     with tm.assert_produces_warning(PerformanceWarning):
         tm.assert_index_equal(lexsorted_mi.drop("a"), not_lexsorted_mi.drop("a"))
+
+
+def test_droplevel_multiindex_one_level():
+    # GH: 37207
+    index = pd.MultiIndex.from_tuples([(2,)], names=("b",))
+    result = index.droplevel([])
+    expected = pd.Int64Index([2], name="b")
+    tm.assert_index_equal(result, expected)

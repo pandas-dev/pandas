@@ -879,3 +879,20 @@ def _join_by_hand(a, b, how="left"):
     for col, s in b_re.items():
         a_re[col] = s
     return a_re.reindex(columns=result_columns)
+
+
+@pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
+def test_join_multiindex_one_level(how):
+    # GH: 36909
+    left = pd.DataFrame(
+        data={"c": 3}, index=pd.MultiIndex.from_tuples([(1, 2)], names=("a", "b"))
+    )
+    right = pd.DataFrame(
+        data={"d": 4}, index=pd.MultiIndex.from_tuples([(2,)], names=("b",))
+    )
+    result = left.join(right, how=how)
+    expected = pd.DataFrame(
+        {"c": [3], "d": [4]},
+        index=pd.MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
+    )
+    tm.assert_frame_equal(result, expected)
