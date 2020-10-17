@@ -28,14 +28,14 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug causing ``groupby(...).sum()`` and similar to not preserve metadata (:issue:`29442`)
+- Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` raising a ``ValueError`` when the target was read-only (:issue:`37174`)
 
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_114.other:
 
-Indexing
-~~~~~~~~
-- Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` raising a ``ValueError`` when the target was read-only (:issue:`37174`)
+Other
+~~~~~
 -
 
 .. ---------------------------------------------------------------------------
