@@ -5957,13 +5957,13 @@ class DataFrame(NDFrame, OpsMixin):
         out.index = self.index
         return out
 
-    def __divmod__(self, other):
+    def __divmod__(self, other) -> Tuple[DataFrame, DataFrame]:
         # Naive implementation, room for optimization
         div = self // other
         mod = self - div * other
         return div, mod
 
-    def __rdivmod__(self, other):
+    def __rdivmod__(self, other) -> Tuple[DataFrame, DataFrame]:
         # Naive implementation, room for optimization
         div = other // self
         mod = other - div * self
