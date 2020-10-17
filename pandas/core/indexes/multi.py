@@ -463,7 +463,7 @@ class MultiIndex(Index):
         if names is lib.no_default:
             names = [getattr(arr, "name", None) for arr in arrays]
 
-        return MultiIndex(
+        return cls(
             levels=levels,
             codes=codes,
             sortorder=sortorder,
@@ -534,7 +534,7 @@ class MultiIndex(Index):
         else:
             arrays = zip(*tuples)
 
-        return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
+        return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
     def from_product(cls, iterables, sortorder=None, names=lib.no_default):
@@ -593,7 +593,7 @@ class MultiIndex(Index):
 
         # codes are all ndarrays, so cartesian_product is lossless
         codes = cartesian_product(codes)
-        return MultiIndex(levels, codes, sortorder=sortorder, names=names)
+        return cls(levels, codes, sortorder=sortorder, names=names)
 
     @classmethod
     def from_frame(cls, df, sortorder=None, names=None):
