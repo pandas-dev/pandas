@@ -369,9 +369,8 @@ class Resampler(BaseGroupBy, ShallowMixin):
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
-        except (DataError, AttributeError):
+        except DataError:
             # we have a non-reducing function; try to evaluate
-            # alternatively we want to evaluate only a column of the input
             result = grouped.apply(how, *args, **kwargs)
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
