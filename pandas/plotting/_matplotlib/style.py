@@ -28,6 +28,7 @@ def get_standard_colors(
 
 
 def _get_colors(*, color, colormap, color_type, num_colors):
+    """Get colors from user input."""
     if color is None and colormap is not None:
         return _get_colors_from_colormap(colormap, num_colors=num_colors)
     elif color is not None:
@@ -41,9 +42,11 @@ def _get_colors(*, color, colormap, color_type, num_colors):
 
 
 def _cycle_colors(colors, num_colors):
-    # Append more colors by cycling if there is not enough color.
-    # Extra colors will be ignored by matplotlib if there are more colors
-    # than needed and nothing needs to be done here.
+    """Append more colors by cycling if there is not enough color.
+
+    Extra colors will be ignored by matplotlib if there are more colors
+    than needed and nothing needs to be done here.
+    """
     if len(colors) < num_colors:
         multiple = num_colors // len(colors) - 1
         mod = num_colors % len(colors)
@@ -54,11 +57,13 @@ def _cycle_colors(colors, num_colors):
 
 
 def _get_colors_from_colormap(colormap, num_colors):
+    """Get colors from colormap."""
     colormap = _get_cmap_instance(colormap)
     return [colormap(num) for num in np.linspace(0, 1, num=num_colors)]
 
 
 def _get_cmap_instance(colormap):
+    """Get instance of matplotlib colormap."""
     if isinstance(colormap, str):
         cmap = colormap
         colormap = cm.get_cmap(colormap)
@@ -68,6 +73,7 @@ def _get_cmap_instance(colormap):
 
 
 def _get_colors_from_color(color):
+    """Get colors from user input color."""
     if len(color) == 0:
         raise ValueError("Invalid color argument: {color}")
 
@@ -85,6 +91,7 @@ def _get_colors_from_color(color):
 
 
 def _get_colors_from_color_type(color_type, num_colors):
+    """Get colors from user input color type."""
     if color_type == "default":
         return _get_default_colors(num_colors)
     elif color_type == "random":
@@ -94,6 +101,7 @@ def _get_colors_from_color_type(color_type, num_colors):
 
 
 def _get_default_colors(num_colors):
+    """Get ``num_colors`` of default colors from matplotlib rc params."""
     # need to call list() on the result to copy so we don't
     # modify the global rcParams below
     try:
@@ -105,11 +113,12 @@ def _get_default_colors(num_colors):
 
 
 def _get_random_colors(num_colors):
+    """Get ``num_colors`` of random colors."""
     return [_random_color(num) for num in range(num_colors)]
 
 
 def _random_color(column):
-    """ Returns a random color represented as a list of length 3"""
+    """Get a random color represented as a list of length 3"""
     # GH17525 use common._random_state to avoid resetting the seed
     rs = com.random_state(column)
     return rs.rand(3).tolist()
