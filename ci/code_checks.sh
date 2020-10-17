@@ -39,7 +39,7 @@ function invgrep {
 }
 
 function check_namespace {
-    grep -R -l --include="test_missing.py" " ${1}(" | xargs grep -n "pd\.${1}("
+    grep -R -l --include="test_analytics.py" " ${1}(" | xargs grep -n "pd\.${1}("
     test $? -gt 0
 }
 
