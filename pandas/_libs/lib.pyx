@@ -1414,7 +1414,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "time"
 
     elif is_decimal(val):
-        if all(is_decimal(x) for x in values):
+        if is_decimal_array(values):
             return "decimal"
 
     elif is_complex(val):
@@ -1718,6 +1718,17 @@ cdef class ComplexValidator(Validator):
 cdef bint is_complex_array(ndarray values):
     cdef:
         ComplexValidator validator = ComplexValidator(len(values), values.dtype)
+    return validator.validate(values)
+
+
+cdef class DecimalValidator(Validator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return is_decimal(value)
+
+
+cdef bint is_decimal_array(ndarray values):
+    cdef:
+        DecimalValidator validator = DecimalValidator(len(values), values.dtype)
     return validator.validate(values)
 
 
