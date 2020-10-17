@@ -1554,7 +1554,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._drop_level_nums(levnums)
 
-    def _drop_level_nums(self, levnums: List[int]) -> "MultiIndex":
+    def _drop_level_nums(self, levnums: List[int]):
         """
         Drop MultiIndex levels by level _number_, not name.
         """
