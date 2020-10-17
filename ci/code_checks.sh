@@ -39,8 +39,8 @@ function invgrep {
 }
 
 function check_namespace {
-    ERROR_MSG="   <--- do not use both pd\.${1} and ${1} in the same file/"
-    grep -R -l --include="${2}" --exclude="${3}" " ${1}(" | xargs grep -n "pd\.${1}(" | sed "s/$/${ERROR_MSG}"
+    ERROR_MSG="   <--- do not use both pd\.${1} and ${1} in the same file"
+    grep -R -l --include="${2}" --exclude="${3}" " ${1}(" | xargs grep -n "pd\.${1}(" | sed "s/$/${ERROR_MSG}/"
     test $? -gt 0
 }
 
