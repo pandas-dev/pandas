@@ -5343,7 +5343,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             A passed method name providing context on where ``__finalize__``
             was called.
 
-            .. warning:
+            .. warning::
 
                The value passed as `method` are not currently considered
                stable across pandas releases.
@@ -5474,7 +5474,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @property
     def _is_mixed_type(self) -> bool_t:
-        if len(self._mgr.blocks) == 1:
+        if self._mgr.is_single_block:
             return False
 
         if self._mgr.any_extension_types:
@@ -6262,7 +6262,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if value is None:
-            if len(self._mgr.blocks) > 1 and axis == 1:
+            if not self._mgr.is_single_block and axis == 1:
                 if inplace:
                     raise NotImplementedError()
                 result = self.T.fillna(method=method, limit=limit).T
@@ -6837,6 +6837,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         **kwargs,
     ) -> Optional[FrameOrSeries]:
         """
+        Fill NaN values using an interpolation method.
+
         Please note that only ``method='linear'`` is supported for
         DataFrame/Series with a MultiIndex.
 

@@ -3450,3 +3450,25 @@ def test_to_string_complex_number_trims_zeros():
     result = s.to_string()
     expected = "0    1.00+1.00j\n1    1.00+1.00j\n2    1.05+1.00j"
     assert result == expected
+
+
+def test_nullable_float_to_string(float_ea_dtype):
+    # https://github.com/pandas-dev/pandas/issues/36775
+    dtype = float_ea_dtype
+    s = pd.Series([0.0, 1.0, None], dtype=dtype)
+    result = s.to_string()
+    expected = """0     0.0
+1     1.0
+2    <NA>"""
+    assert result == expected
+
+
+def test_nullable_int_to_string(any_nullable_int_dtype):
+    # https://github.com/pandas-dev/pandas/issues/36775
+    dtype = any_nullable_int_dtype
+    s = pd.Series([0, 1, None], dtype=dtype)
+    result = s.to_string()
+    expected = """0       0
+1       1
+2    <NA>"""
+    assert result == expected

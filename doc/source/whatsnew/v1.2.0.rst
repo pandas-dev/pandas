@@ -193,6 +193,7 @@ Other enhancements
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 - Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
+- :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -347,8 +348,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
--
--
+- Bug in parsing of ISO 8601 durations in :class:`Timedelta`, :meth:`pd.to_datetime` (:issue:`37159`, fixes :issue:`29773` and :issue:`36204`)
 
 Timezones
 ^^^^^^^^^
@@ -370,6 +370,7 @@ Numeric
 - Bug in :meth:`DataFrame.diff` with ``datetime64`` dtypes including ``NaT`` values failing to fill ``NaT`` results correctly (:issue:`32441`)
 - Bug in :class:`DataFrame` arithmetic ops incorrectly accepting keyword arguments (:issue:`36843`)
 - Bug in :class:`IntervalArray` comparisons with :class:`Series` not returning :class:`Series` (:issue:`36908`)
+- Bug in :class:`DataFrame` allowing arithmetic operations with list of array-likes with undefined results. Behavior changed to raising ``ValueError`` (:issue:`36702`)
 
 Conversion
 ^^^^^^^^^^
@@ -398,6 +399,7 @@ Indexing
 - Bug in :meth:`DataFrame.sort_index` where parameter ascending passed as a list on a single level index gives wrong result. (:issue:`32334`)
 - Bug in :meth:`DataFrame.reset_index` was incorrectly raising a ``ValueError`` for input with a :class:`MultiIndex` with missing values in a level with ``Categorical`` dtype (:issue:`24206`)
 - Bug in indexing with boolean masks on datetime-like values sometimes returning a view instead of a copy (:issue:`36210`)
+- Bug in :meth:`Series.loc.__getitem__` with a non-unique :class:`MultiIndex` and an empty-list indexer (:issue:`13691`)
 
 Missing
 ^^^^^^^
@@ -432,6 +434,7 @@ I/O
 - Bug in :meth:`read_parquet` with fixed offset timezones. String representation of timezones was not recognized (:issue:`35997`, :issue:`36004`)
 - Bug in :meth:`DataFrame.to_html`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` ignoring the ``na_rep`` argument when ``float_format`` was also specified (:issue:`9046`, :issue:`13828`)
 - Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
+- Bug in :class:`HDFStore` threw a ``TypeError`` when exporting an empty :class:`DataFrame` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
 
 Plotting
 ^^^^^^^^
@@ -459,6 +462,8 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.ffill` and :meth:`DataFrameGroupBy.bfill` where a ``NaN`` group would return filled values instead of ``NaN`` when ``dropna=True`` (:issue:`34725`)
 - Bug in :meth:`RollingGroupby.count` where a ``ValueError`` was raised when specifying the ``closed`` parameter (:issue:`35869`)
 - Bug in :meth:`DataFrame.groupby.rolling` returning wrong values with partial centered window (:issue:`36040`).
+- Bug in :meth:`DataFrameGroupBy.rolling` returned wrong values with timeaware window containing ``NaN``. Raises ``ValueError`` because windows are not monotonic now (:issue:`34617`)
+- Bug in :meth:`Rolling.__iter__` where a ``ValueError`` was not raised when ``min_periods`` was larger than ``window`` (:issue:`37156`)
 
 Reshaping
 ^^^^^^^^^
