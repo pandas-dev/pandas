@@ -71,7 +71,10 @@ def _get_colors_from_color(color):
     if len(color) == 0:
         raise ValueError("Invalid color argument: {color}")
 
-    if is_list_like(color) and not isinstance(color, dict):
+    if isinstance(color, dict):
+        return color
+
+    if is_list_like(color):
         return list(color)
 
     if _is_single_color(color):
