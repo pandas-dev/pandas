@@ -5346,7 +5346,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
             # For subclasses using _metadata.
-            for name in self._metadata:
+            for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
