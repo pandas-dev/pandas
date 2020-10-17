@@ -27,7 +27,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug causing ``groupby(...).sum()`` and similar to not preserve metadata (:issue:`29442`)
 
 .. ---------------------------------------------------------------------------
 

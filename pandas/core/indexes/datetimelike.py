@@ -190,12 +190,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         indices = ensure_int64(indices)
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
-        if isinstance(maybe_slice, slice):
-            return self[maybe_slice]
 
-        return ExtensionIndex.take(
+        result = ExtensionIndex.take(
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
+        if isinstance(maybe_slice, slice):
+            freq = self._data._get_getitem_freq(maybe_slice)
+            result._data._freq = freq
+        return result
 
     @doc(IndexOpsMixin.searchsorted, klass="Datetime-like Index")
     def searchsorted(self, value, side="left", sorter=None):
@@ -694,9 +696,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         name = self.name if name is lib.no_default else name
 
         if values is not None:
-            # TODO: We would rather not get here
-            if isinstance(values, np.ndarray):
-                values = type(self._data)(values, dtype=self.dtype)
             return self._simple_new(values, name=name)
 
         result = self._simple_new(self._data, name=name)
