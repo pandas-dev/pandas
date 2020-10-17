@@ -152,8 +152,6 @@ class TestDatetime64ArrayLikeComparisons:
 
 
 class TestDatetime64SeriesComparison:
-    # TODO: moved from tests.series.test_operators; needs cleanup
-
     @pytest.mark.parametrize(
         "pair",
         [
@@ -173,7 +171,26 @@ class TestDatetime64SeriesComparison:
     )
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize("dtype", [None, object])
-    def test_nat_comparisons(self, dtype, index_or_series, reverse, pair):
+    @pytest.mark.parametrize(
+        "operator, expected",
+        [
+            (operator.eq, Series([False, False, True])),
+            (operator.ne, Series([True, True, False])),
+            (operator.lt, Series([False, False, False])),
+            (operator.gt, Series([False, False, False])),
+            (operator.ge, Series([False, False, True])),
+            (operator.le, Series([False, False, True])),
+        ],
+    )
+    def test_nat_comparisons(
+        self,
+        dtype,
+        index_or_series,
+        reverse,
+        pair,
+        operator,
+        expected,
+    ):
         box = index_or_series
         l, r = pair
         if reverse:
@@ -182,25 +199,10 @@ class TestDatetime64SeriesComparison:
 
         left = Series(l, dtype=dtype)
         right = box(r, dtype=dtype)
-        # Series, Index
 
-        expected = Series([False, False, True])
-        tm.assert_series_equal(left == right, expected)
+        result = operator(left, right)
 
-        expected = Series([True, True, False])
-        tm.assert_series_equal(left != right, expected)
-
-        expected = Series([False, False, False])
-        tm.assert_series_equal(left < right, expected)
-
-        expected = Series([False, False, False])
-        tm.assert_series_equal(left > right, expected)
-
-        expected = Series([False, False, True])
-        tm.assert_series_equal(left >= right, expected)
-
-        expected = Series([False, False, True])
-        tm.assert_series_equal(left <= right, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_comparison_invalid(self, tz_naive_fixture, box_with_array):
         # GH#4968
