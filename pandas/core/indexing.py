@@ -11,28 +11,17 @@ from pandas._libs.lib import item_from_zerodim
 from pandas.errors import AbstractMethodError, InvalidIndexError
 from pandas.util._decorators import doc
 
-from pandas.core.dtypes.common import (
-    is_array_like,
-    is_hashable,
-    is_integer,
-    is_iterator,
-    is_list_like,
-    is_numeric_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_sequence,
-)
+from pandas.core.dtypes.common import (is_array_like, is_hashable, is_integer,
+                                       is_iterator, is_list_like, is_numeric_dtype,
+                                       is_object_dtype, is_scalar, is_sequence)
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
 from pandas.core.dtypes.missing import infer_fill_value, isna
 
 import pandas.core.common as com
 from pandas.core.construction import array as pd_array
-from pandas.core.indexers import (
-    check_array_indexer,
-    is_list_like_indexer,
-    length_of_indexer,
-)
+from pandas.core.indexers import (check_array_indexer, is_list_like_indexer,
+                                  length_of_indexer)
 from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:

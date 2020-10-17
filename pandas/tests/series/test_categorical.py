@@ -1,5 +1,3 @@
-import pytest
-
 import pandas as pd
 from pandas import Categorical, Index
 import pandas._testing as tm
