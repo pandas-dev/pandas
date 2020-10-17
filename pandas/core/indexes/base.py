@@ -1552,12 +1552,19 @@ class Index(IndexOpsMixin, PandasObject):
 
         levnums = sorted(self._get_level_number(lev) for lev in level)[::-1]
 
-        if len(level) == 0:
+        return self._drop_level_nums(levnums)
+
+    def _drop_level_nums(self, levnums: List[int]) -> "MultiIndex":
+        """
+        Drop MultiIndex levels by level _number_, not name.
+        """
+
+        if len(levnums) == 0:
             return self
-        if len(level) >= self.nlevels:
+        if len(levnums) >= self.nlevels:
             raise ValueError(
-                f"Cannot remove {len(level)} levels from an index with {self.nlevels} "
-                "levels: at least one level must be left."
+                f"Cannot remove {len(levnums)} levels from an index with "
+                f"{self.nlevels} levels: at least one level must be left."
             )
         # The two checks above guarantee that here self is a MultiIndex
         self = cast("MultiIndex", self)

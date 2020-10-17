@@ -3677,7 +3677,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index = self.index
         if isinstance(index, MultiIndex):
             try:
-                loc, new_index = self.index.get_loc_level(key, drop_level=drop_level)
+                loc, new_index = self.index._get_loc_level(
+                    key, level=0, drop_level=drop_level
+                )
             except TypeError as e:
                 raise TypeError(f"Expected label or tuple of labels, got {key}") from e
         else:

@@ -2864,16 +2864,29 @@ class MultiIndex(Index):
         >>> mi.get_loc_level(['b', 'e'])
         (1, None)
         """
+        if not isinstance(level, (list, tuple)):
+            level = self._get_level_number(level)
+        else:
+            level = [self._get_level_number(lev) for lev in level]
+        return self._get_loc_level(key, level=level, drop_level=drop_level)
+
+    def _get_loc_level(
+        self, key, level: Union[int, List[int]] = 0, drop_level: bool = True
+    ):
+        """
+        get_loc_level but with `level` known to be positional, not name-based.
+        """
+
         # different name to distinguish from maybe_droplevels
         def maybe_mi_droplevels(indexer, levels, drop_level: bool):
             if not drop_level:
                 return self[indexer]
             # kludge around
             orig_index = new_index = self[indexer]
-            levels = [self._get_level_number(i) for i in levels]
+
             for i in sorted(levels, reverse=True):
                 try:
-                    new_index = new_index.droplevel(i)
+                    new_index = new_index._drop_level_nums([i])
                 except ValueError:
 
                     # no dropping here
@@ -2887,7 +2900,7 @@ class MultiIndex(Index):
                 )
             result = None
             for lev, k in zip(level, key):
-                loc, new_index = self.get_loc_level(k, level=lev)
+                loc, new_index = self._get_loc_level(k, level=lev)
                 if isinstance(loc, slice):
                     mask = np.zeros(len(self), dtype=bool)
                     mask[loc] = True
@@ -2896,8 +2909,6 @@ class MultiIndex(Index):
                 result = loc if result is None else result & loc
 
             return result, maybe_mi_droplevels(result, level, drop_level)
-
-        level = self._get_level_number(level)
 
         # kludge for #1796
         if isinstance(key, list):
@@ -2963,7 +2974,8 @@ class MultiIndex(Index):
             indexer = self._get_level_indexer(key, level=level)
             return indexer, maybe_mi_droplevels(indexer, [level], drop_level)
 
-    def _get_level_indexer(self, key, level=0, indexer=None):
+    def _get_level_indexer(self, key, level: int = 0, indexer=None):
+        # `level` kwarg is _always_ positional, never name
         # return an indexer, boolean array or a slice showing where the key is
         # in the totality of values
         # if the indexer is provided, then use this
@@ -3767,13 +3779,13 @@ def maybe_droplevels(index, key):
     if isinstance(key, tuple):
         for _ in key:
             try:
-                index = index.droplevel(0)
+                index = index._drop_level_nums([0])
             except ValueError:
                 # we have dropped too much, so back out
                 return original_index
     else:
         try:
-            index = index.droplevel(0)
+            index = index._drop_level_nums([0])
         except ValueError:
             pass
 
