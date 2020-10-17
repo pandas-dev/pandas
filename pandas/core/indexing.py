@@ -1903,8 +1903,9 @@ class _iLocIndexer(_LocationIndexer):
                     value.index = [indexer]
                 else:
                     dtype = find_common_type([self.obj.dtypes[0], type(value)])
-                    value = Series(value, index=self.obj.columns, name=indexer, dtype=dtype)
-
+                    value = Series(
+                        value, index=self.obj.columns, name=indexer, dtype=dtype
+                    )
 
             self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
