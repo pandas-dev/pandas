@@ -38,6 +38,11 @@ function invgrep {
     return $((! $EXIT_STATUS))
 }
 
+function check_namespace {
+    grep -R -l --include="test_missing.py" " ${1}(" | xargs grep -n "pd\.${1}("
+    test $? -gt 0
+}
+
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
     FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code)s:%(text)s"
     INVGREP_PREPEND="##[error]"
@@ -254,10 +259,13 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for inconsistent use of pandas namespace' ; echo $MSG
-    grep -R -l --include="test_missing.py" " Series(" | xargs grep -n "pd\.Series("; test $? -gt 0
+    check_namespace "Series"
     RET=$(($RET + $?))
-    grep -R -l --include="test_missing.py" " DataFrame(" | xargs grep -n "pd\.DataFrame("; test $? -gt 0
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
+    check_namespace "DataFrame"
+    RET=$(($RET + $?))
+    check_namespace "Index"
+    RET=$(($RET + $?))
+    echo $MSG "DONE"
 fi
 
 ### CODE ###
