@@ -1030,6 +1030,7 @@ Other:
   If ``Period`` freq is ``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``, ``Timedelta``-like can be added if the result can have same freq. Otherwise, only the same ``offsets`` can be added.
 
   .. ipython:: python
+    :okwarning:
 
      idx = pd.period_range('2014-07-01 09:00', periods=5, freq='H')
      idx

@@ -174,7 +174,7 @@ class TestSeries2:
         # GH22397
         assert s.shift(shift_size) is not s
 
-    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1M")])
+    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1min")])
     def test_datetime_shift_always_copy(self, move_by_freq):
         # GH22397
         s = pd.Series(range(5), index=pd.date_range("2017", periods=5))

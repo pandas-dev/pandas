@@ -164,7 +164,7 @@ class TestTimedeltas:
         [(value, "W", False) for value in ["W", "w"]]
         + [(value, "D", False) for value in ["D", "d", "days", "day", "Days", "Day"]]
         + [
-            (value, "m", FutureWarning if value == "m" else False)
+            (value, "m", FutureWarning if value == "m" else False)  # type: ignore[misc]
             for value in [
                 "m",
                 "minute",
