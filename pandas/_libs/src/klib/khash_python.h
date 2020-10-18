@@ -15,7 +15,7 @@
 // hash for 64 bit integers.
 // GH 13436 showed that _Py_HashDouble doesn't work well with khash
 // GH 28303 showed, that the simple xoring-version isn't good enough
-// thus murmur2-hash is used
+// See GH 36729 for evaluation of the currently used murmur2-hash version
 
 khint64_t PANDAS_INLINE asint64(double key) {
     khint64_t val;
