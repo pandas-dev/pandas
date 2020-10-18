@@ -147,13 +147,7 @@ def _get_default_colors(num_colors: int) -> List[Color]:
     """Get ``num_colors`` of default colors from matplotlib rc params."""
     import matplotlib.pyplot as plt
 
-    # need to call list() on the result to copy so we don't
-    # modify the global rcParams below
-    try:
-        colors = [c["color"] for c in list(plt.rcParams["axes.prop_cycle"])]
-    except KeyError:
-        colors = list(plt.rcParams.get("axes.color_cycle", list("bgrcmyk")))
-
+    colors = [c["color"] for c in plt.rcParams["axes.prop_cycle"]]
     return colors[0:num_colors]
 
 
