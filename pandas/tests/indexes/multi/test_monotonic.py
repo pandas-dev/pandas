@@ -174,3 +174,9 @@ def test_is_strictly_monotonic_decreasing():
     )
     assert idx.is_monotonic_decreasing is True
     assert idx._is_strictly_monotonic_decreasing is False
+
+
+def test_is_monotonic_with_nans():
+    # GH: 37220
+    idx = pd.MultiIndex.from_tuples([(np.nan,), (1,)], names=["test"])
+    assert idx.is_monotonic_increasing is False
