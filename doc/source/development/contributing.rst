@@ -206,7 +206,7 @@ You will need `Build Tools for Visual Studio 2017
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
 	In the installer, select the "C++ build tools" workload.
 
-**Mac OS**
+**macOS**
 
 Information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
@@ -299,7 +299,7 @@ Creating a Python environment (pip)
 If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least Python 3.6.1 installed on your system.
 
-**Unix**/**Mac OS with virtualenv**
+**Unix**/**macOS with virtualenv**
 
 .. code-block:: bash
 
@@ -318,7 +318,7 @@ You'll need to have at least Python 3.6.1 installed on your system.
    python setup.py build_ext --inplace -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
-**Unix**/**Mac OS with pyenv**
+**Unix**/**macOS with pyenv**
 
 Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
 
