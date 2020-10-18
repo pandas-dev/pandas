@@ -79,8 +79,8 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 _common_see_also = """
         See Also
         --------
-        Series.%(name)s
-        DataFrame.%(name)s
+        Series.%(name)s : Apply a function %(name)s to a Series.
+        DataFrame.%(name)s : Apply a function %(name)s to each row or column of a DataFrame.
 """
 
 _apply_docs = dict(
