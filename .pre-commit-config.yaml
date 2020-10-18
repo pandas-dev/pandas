@@ -63,4 +63,4 @@ repos:
     -   id: end-of-file-fixer
         exclude: '.html$|^LICENSES/|.csv$|.txt$|.svg$|.py$'
     -   id: trailing-whitespace
-        exclude: '.html$|.svg$'
+        exclude: \.(html|svg)$
