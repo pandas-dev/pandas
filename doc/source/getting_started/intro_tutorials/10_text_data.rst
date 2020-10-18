@@ -145,7 +145,7 @@ Extract the passenger data about the countesses on board of the Titanic.
 
     titanic[titanic["Name"].str.contains("Countess")]
 
-(*Interested in her story? See *\ `Wikipedia <https://en.wikipedia.org/wiki/No%C3%ABl_Leslie,_Countess_of_Rothes>`__\ *!*)
+(*Interested in her story? See* `Wikipedia <https://en.wikipedia.org/wiki/No%C3%ABl_Leslie,_Countess_of_Rothes>`__\ *!*)
 
 The string method :meth:`Series.str.contains` checks for each of the values in the
 column ``Name`` if the string contains the word ``Countess`` and returns
