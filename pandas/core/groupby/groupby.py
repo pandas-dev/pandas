@@ -80,7 +80,8 @@ _common_see_also = """
         See Also
         --------
         Series.%(name)s : Apply a function %(name)s to a Series.
-        DataFrame.%(name)s : Apply a function %(name)s to each row or column of a DataFrame.
+        DataFrame.%(name)s : Apply a function %(name)s
+         to each row or column of a DataFrame.
 """
 
 _apply_docs = dict(
