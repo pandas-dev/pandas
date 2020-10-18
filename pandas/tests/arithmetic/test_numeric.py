@@ -172,20 +172,12 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         with pytest.raises(TypeError, match=msg):
             left // right
 
-    # TODO: de-duplicate with test_numeric_arr_mul_tdscalar
-    def test_ops_series(self):
-        # regression test for G#H8813
-        td = Timedelta("1 day")
-        other = pd.Series([1, 2])
-        expected = pd.Series(pd.to_timedelta(["1 day", "2 days"]))
-        tm.assert_series_equal(expected, td * other)
-        tm.assert_series_equal(expected, other * td)
-
     # TODO: also test non-nanosecond timedelta64 and Tick objects;
     #  see test_numeric_arr_rdiv_tdscalar for note on these failing
     @pytest.mark.parametrize(
         "scalar_td",
         [
+            Timedelta("1 day"),
             Timedelta(days=1),
             Timedelta(days=1).to_timedelta64(),
             Timedelta(days=1).to_pytimedelta(),
@@ -196,7 +188,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#19333
         box = box_with_array
         index = numeric_idx
-        expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(5)])
+        expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(len(index))])
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
