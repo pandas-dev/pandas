@@ -1578,12 +1578,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
                 cat_dtypes.append(t)
         if len(cat_dtypes) > 0:
             dtype_ref = cat_dtypes[0]
-            cat_dtypes_equal = True
-            for dtype in cat_dtypes:
-                if not is_dtype_equal(dtype, dtype_ref):
-                    cat_dtypes_equal = False
-                    break
-            if cat_dtypes_equal:
+            if all(is_dtype_equal(dtype, dtype_ref) for dtype in cat_dtypes):
                 return dtype_ref
 
     if any(isinstance(t, ExtensionDtype) for t in types):
