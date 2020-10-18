@@ -1,6 +1,4 @@
 from cycler import cycler
-import matplotlib as mpl
-import matplotlib.colors
 import pytest
 
 from pandas import Series
@@ -20,6 +18,8 @@ class TestGetStandardColors:
         ],
     )
     def test_default_colors_named_from_prop_cycle(self, num_colors, expected):
+        import matplotlib as mpl
+
         mpl_params = {
             "axes.prop_cycle": cycler(color=["red", "green", "blue"]),
         }
@@ -38,6 +38,8 @@ class TestGetStandardColors:
         ],
     )
     def test_default_colors_named_from_prop_cycle_string(self, num_colors, expected):
+        import matplotlib as mpl
+
         mpl_params = {
             "axes.prop_cycle": cycler(color="bgry"),
         }
@@ -70,8 +72,11 @@ class TestGetStandardColors:
         ],
     )
     def test_default_colors_named_undefined_prop_cycle(self, num_colors, expected_name):
+        import matplotlib as mpl
+        import matplotlib.colors as mcolors
+
         with mpl.rc_context(rc={}):
-            expected = [matplotlib.colors.to_hex(x) for x in expected_name]
+            expected = [mcolors.to_hex(x) for x in expected_name]
             result = get_standard_colors(num_colors=num_colors)
             assert result == expected
 
@@ -138,8 +143,8 @@ class TestGetStandardColors:
     @pytest.mark.parametrize(
         "color",
         [
-            "BAD_COLOR",
-            ("red", "green", "BAD_COLOR"),
+            "bad_color",
+            ("red", "green", "bad_color"),
             (0.1,),
             (0.1, 0.2),
             (0.1, 0.2, 0.3, 0.4, 0.5),  # must be either 3 or 4 floats

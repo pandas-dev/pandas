@@ -123,9 +123,6 @@ def _gen_list_of_colors_from_iterable(color: Collection[Color]) -> Iterator[Colo
     Yield colors from string of several letters or from collection of colors.
     """
     for x in color:
-        if isinstance(x, str):
-            # to avoid warnings on upper case single letter colors
-            x = x.lower()
         if _is_single_color(x):
             yield x
         else:
