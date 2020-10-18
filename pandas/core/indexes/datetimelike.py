@@ -696,9 +696,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         name = self.name if name is lib.no_default else name
 
         if values is not None:
-            # TODO: We would rather not get here
-            if isinstance(values, np.ndarray):
-                values = type(self._data)(values, dtype=self.dtype)
             return self._simple_new(values, name=name)
 
         result = self._simple_new(self._data, name=name)
