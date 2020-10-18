@@ -71,3 +71,5 @@ repos:
     hooks:
     -   id: end-of-file-fixer
         exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$
+    -   id: trailing-whitespace
+        exclude: \.(html|svg)$
