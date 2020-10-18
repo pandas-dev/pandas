@@ -16,7 +16,7 @@ class TestCategoricalSeries:
         tm.assert_index_equal(ser.cat.categories, exp_cats)
         tm.assert_series_equal(ser, expected)
 
-    def test_loc_new_category_row_raises(self):
+    def test_loc_new_category_nan_value(self):
         df = pd.DataFrame(
             {
                 "int": [0, 1, 2],
