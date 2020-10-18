@@ -324,6 +324,15 @@ class SharedTests:
         expected = arr1d[-1]
         assert result == expected
 
+    def test_iter_2d(self, arr1d):
+        data2d = arr1d._data[:3, np.newaxis]
+        arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
+        result = list(arr2d)
+        for x in result:
+            assert isinstance(x, type(arr1d))
+            assert x.ndim == 1
+            assert x.dtype == arr1d.dtype
+
     def test_setitem(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")

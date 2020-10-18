@@ -268,7 +268,7 @@ def test_tseries_select_index_column(setup_path):
         assert rng.tz == result.dt.tz
 
 
-def test_timezones_fixed(setup_path):
+def test_timezones_fixed_format_frame_non_empty(setup_path):
     with ensure_clean_store(setup_path) as store:
 
         # index
@@ -291,6 +291,16 @@ def test_timezones_fixed(setup_path):
             },
             index=rng,
         )
+        store["df"] = df
+        result = store["df"]
+        tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"])
+def test_timezones_fixed_format_frame_empty(setup_path, dtype):
+    with ensure_clean_store(setup_path) as store:
+        s = Series(dtype=dtype)
+        df = DataFrame({"A": s})
         store["df"] = df
         result = store["df"]
         tm.assert_frame_equal(result, df)

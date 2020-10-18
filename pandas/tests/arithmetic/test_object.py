@@ -343,8 +343,9 @@ class MyIndex(pd.Index):
         result._index_data = values
         result._name = name
         result._calls = 0
+        result._reset_identity()
 
-        return result._reset_identity()
+        return result
 
     def __add__(self, other):
         self._calls += 1
