@@ -455,6 +455,7 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
+        from pandas import DataFrame, Series
 
         # series only
         if self._is_series:
@@ -463,6 +464,7 @@ class _Concatenator:
             if self.bm_axis == 0:
                 name = com.consensus_name_attr(self.objs)
                 cons = self.objs[0]._constructor
+                assert issubclass(cons, Series)  # for mypy
 
                 arrs = [ser._values for ser in self.objs]
 
@@ -476,6 +478,7 @@ class _Concatenator:
 
                 # GH28330 Preserves subclassed objects through concat
                 cons = self.objs[0]._constructor_expanddim
+                assert issubclass(cons, DataFrame)  # for mypy
 
                 index, columns = self.new_axes
                 df = cons(data, index=index)
