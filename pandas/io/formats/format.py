@@ -98,7 +98,7 @@ common_docstring = """
         index : bool, optional, default True
             Whether to print index (row) labels.
         na_rep : str, optional, default 'NaN'
-            String representation of NAN to use.
+            String representation of ``NaN`` to use.
         formatters : list, tuple or dict of one-param. functions, optional
             Formatter functions to apply to columns' elements by position or
             name.
@@ -106,7 +106,12 @@ common_docstring = """
             List/tuple must be of length equal to the number of columns.
         float_format : one-parameter function, optional, default None
             Formatter function to apply to columns' elements if they are
-            floats. The result of this function must be a unicode string.
+            floats. This function must return a unicode string and will be
+            applied only to the non-``NaN`` elements, with ``NaN`` being
+            handled by ``na_rep``.
+
+            .. versionchanged:: 1.2.0
+
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
