@@ -172,7 +172,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         with pytest.raises(TypeError, match=msg):
             left // right
 
-    # TODO: also test non-nanosecond timedelta64 and Tick objects;
+    # TODO: also test Tick objects;
     #  see test_numeric_arr_rdiv_tdscalar for note on these failing
     @pytest.mark.parametrize(
         "scalar_td",
@@ -181,6 +181,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             Timedelta(days=1),
             Timedelta(days=1).to_timedelta64(),
             Timedelta(days=1).to_pytimedelta(),
+            Timedelta(days=1).to_timedelta64().astype("timedelta64[s]"),
+            Timedelta(days=1).to_timedelta64().astype("timedelta64[ms]"),
         ],
         ids=lambda x: type(x).__name__,
     )
