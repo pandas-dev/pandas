@@ -580,14 +580,13 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
 
         elif not type(self)._is_recognized_dtype(value.dtype):
             raise TypeError(
-                f"{opname} requires compatible dtype or scalar, "
+                f"value should be compatible dtype or scalar, "
                 f"not {type(value).__name__}"
             )
-
         return value
 
     def _validate_searchsorted_value(self, value):
-        msg = "searchsorted requires compatible dtype or scalar"
+        msg = f"value should be compatible dtype or scalar, not {type(value).__name__}"
         if not is_list_like(value):
             value = self._validate_scalar(value, msg)
         else:

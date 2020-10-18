@@ -407,7 +407,7 @@ class SharedTests:
     def test_setitem_numeric_raises(self, arr1d, box):
         # We dont case e.g. int64 to our own dtype for setitem
 
-        msg = "requires compatible dtype"
+        msg = "value should be compatible dtype or scalar, not"
         with pytest.raises(TypeError, match=msg):
             arr1d[:2] = box([0, 1])
 

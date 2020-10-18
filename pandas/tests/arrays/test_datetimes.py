@@ -393,12 +393,7 @@ class TestDatetimeArray:
         if index:
             arr = pd.Index(arr)
 
-        msg = "|".join(
-            [
-                "searchsorted requires compatible dtype or scalar",
-                "Unexpected type for 'value'",
-            ]
-        )
+        msg = "value should be compatible dtype or scalar, not"
         with pytest.raises(TypeError, match=msg):
             arr.searchsorted(other)
 
