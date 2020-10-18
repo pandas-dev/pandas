@@ -5,14 +5,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.fixture
-def data():
-    return pd.array(
-        [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],
-        dtype="boolean",
-    )
-
-
 @pytest.mark.parametrize(
     "ufunc", [np.add, np.logical_or, np.logical_and, np.logical_xor]
 )

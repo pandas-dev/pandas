@@ -71,7 +71,7 @@ class TestDataFrameConstructors:
             lambda: DataFrame({}),
             lambda: DataFrame(()),
             lambda: DataFrame([]),
-            lambda: DataFrame((_ for _ in [])),
+            lambda: DataFrame(_ for _ in []),
             lambda: DataFrame(range(0)),
             lambda: DataFrame(data=None),
             lambda: DataFrame(data={}),
@@ -1637,8 +1637,8 @@ class TestDataFrameConstructors:
         "name_in1,name_in2,name_in3,name_out",
         [
             ("idx", "idx", "idx", "idx"),
-            ("idx", "idx", None, "idx"),
-            ("idx", None, None, "idx"),
+            ("idx", "idx", None, None),
+            ("idx", None, None, None),
             ("idx1", "idx2", None, None),
             ("idx1", "idx1", "idx2", None),
             ("idx1", "idx2", "idx3", None),
@@ -2588,6 +2588,7 @@ class TestDataFrameConstructors:
         result = DataFrame(Series(name=0, dtype=object)).dtypes
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.arm_slow
     @pytest.mark.parametrize("dtype", [None, "uint8", "category"])
     def test_constructor_range_dtype(self, dtype):
         expected = DataFrame({"A": [0, 1, 2, 3, 4]}, dtype=dtype or "int64")

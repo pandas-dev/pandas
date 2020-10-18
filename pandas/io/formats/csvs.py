@@ -42,7 +42,7 @@ class CSVFormatter:
         cols: Optional[Sequence[Label]] = None,
         header: Union[bool, Sequence[Hashable]] = True,
         index: bool = True,
-        index_label: IndexLabel = None,
+        index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
         errors: str = "strict",
@@ -100,7 +100,7 @@ class CSVFormatter:
         return self._index_label
 
     @index_label.setter
-    def index_label(self, index_label: IndexLabel) -> None:
+    def index_label(self, index_label: Optional[IndexLabel]) -> None:
         if index_label is not False:
             if index_label is None:
                 index_label = self._get_index_label_from_obj()
@@ -154,7 +154,7 @@ class CSVFormatter:
 
         if cols is not None:
             if isinstance(cols, ABCIndexClass):
-                cols = cols.to_native_types(**self._number_format)
+                cols = cols._format_native_types(**self._number_format)
             else:
                 cols = list(cols)
             self.obj = self.obj.loc[:, cols]
@@ -163,7 +163,7 @@ class CSVFormatter:
         # and make sure sure cols is just a list of labels
         cols = self.obj.columns
         if isinstance(cols, ABCIndexClass):
-            return cols.to_native_types(**self._number_format)
+            return cols._format_native_types(**self._number_format)
         else:
             assert isinstance(cols, Sequence)
             return list(cols)
@@ -334,18 +334,12 @@ class CSVFormatter:
             self._save_chunk(start_i, end_i)
 
     def _save_chunk(self, start_i: int, end_i: int) -> None:
-        ncols = self.obj.shape[-1]
-        data = [None] * ncols
-
         # create the data for a chunk
         slicer = slice(start_i, end_i)
-
         df = self.obj.iloc[slicer]
-        mgr = df._mgr
 
-        res = mgr.apply("to_native_types", **self._number_format)
-        for i in range(len(res.items)):
-            data[i] = res.iget_values(i)
+        res = df._mgr.to_native_types(**self._number_format)
+        data = [res.iget_values(i) for i in range(len(res.items))]
 
-        ix = self.data_index.to_native_types(slicer=slicer, **self._number_format)
+        ix = self.data_index[slicer]._format_native_types(**self._number_format)
         libwriters.write_csv_rows(data, ix, self.nlevels, self.cols, self.writer)

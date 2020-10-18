@@ -100,9 +100,13 @@ class TestRangeIndex(Numeric):
 
         # GH 18295 (test missing)
         expected = Float64Index([0, np.nan, 1, 2, 3, 4])
-        for na in (np.nan, pd.NaT, None):
+        for na in [np.nan, None, pd.NA]:
             result = RangeIndex(5).insert(1, na)
             tm.assert_index_equal(result, expected)
+
+        result = RangeIndex(5).insert(1, pd.NaT)
+        expected = pd.Index([0, pd.NaT, 1, 2, 3, 4], dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_delete(self):
 

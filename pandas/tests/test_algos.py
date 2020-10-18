@@ -801,7 +801,6 @@ class TestIsin:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_large(self):
-
         s = pd.date_range("20000101", periods=2000000, freq="s").values
         result = algos.isin(s, s[0:2])
         expected = np.zeros(len(s), dtype=bool)
@@ -840,6 +839,23 @@ class TestIsin:
         expected = np.array([True])
         result = algos.isin(comps, values)
         tm.assert_numpy_array_equal(expected, result)
+
+    def test_same_nan_is_in_large(self):
+        # https://github.com/pandas-dev/pandas/issues/22205
+        s = np.tile(1.0, 1_000_001)
+        s[0] = np.nan
+        result = algos.isin(s, [np.nan, 1])
+        expected = np.ones(len(s), dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_same_nan_is_in_large_series(self):
+        # https://github.com/pandas-dev/pandas/issues/22205
+        s = np.tile(1.0, 1_000_001)
+        series = pd.Series(s)
+        s[0] = np.nan
+        result = series.isin([np.nan, 1])
+        expected = pd.Series(np.ones(len(s), dtype=bool))
+        tm.assert_series_equal(result, expected)
 
     def test_same_object_is_in(self):
         # GH 22160
@@ -1529,7 +1545,7 @@ class TestHashTable:
         xs.setflags(write=writable)
         m = ht.Float64HashTable()
         m.map_locations(xs)
-        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.int64))
+        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.intp))
 
     def test_add_signed_zeros(self):
         # GH 21866 inconsistent hash-function for float64
@@ -1562,7 +1578,7 @@ class TestHashTable:
         xs.setflags(write=writable)
         m = ht.UInt64HashTable()
         m.map_locations(xs)
-        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.int64))
+        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.intp))
 
     def test_get_unique(self):
         s = Series([1, 2, 2 ** 63, 2 ** 63], dtype=np.uint64)
@@ -2389,3 +2405,28 @@ class TestMode:
             dtype="timedelta64[ns]",
         )
         tm.assert_series_equal(algos.mode(idx), exp)
+
+
+class TestDiff:
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_diff_datetimelike_nat(self, dtype):
+        # NaT - NaT is NaT, not 0
+        arr = np.arange(12).astype(np.int64).view(dtype).reshape(3, 4)
+        arr[:, 2] = arr.dtype.type("NaT", "ns")
+        result = algos.diff(arr, 1, axis=0)
+
+        expected = np.ones(arr.shape, dtype="timedelta64[ns]") * 4
+        expected[:, 2] = np.timedelta64("NaT", "ns")
+        expected[0, :] = np.timedelta64("NaT", "ns")
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.diff(arr.T, 1, axis=1)
+        tm.assert_numpy_array_equal(result, expected.T)
+
+    def test_diff_ea_axis(self):
+        dta = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")._data
+
+        msg = "cannot diff DatetimeArray on axis=1"
+        with pytest.raises(ValueError, match=msg):
+            algos.diff(dta, 1, axis=1)

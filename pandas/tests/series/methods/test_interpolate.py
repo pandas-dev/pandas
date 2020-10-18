@@ -340,6 +340,14 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=invalid_method, limit=-1)
 
+    def test_interp_invalid_method_and_value(self):
+        # GH#36624
+        ser = Series([1, 3, np.nan, 12, np.nan, 25])
+
+        msg = "Cannot pass both fill_value and method"
+        with pytest.raises(ValueError, match=msg):
+            ser.interpolate(fill_value=3, method="pad")
+
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
 

@@ -157,6 +157,7 @@ class TestGetItem:
         exp = ts.iloc[[1]]
         tm.assert_series_equal(ts[[Period("2012-01-02", freq="D")]], exp)
 
+    @pytest.mark.arm_slow
     def test_getitem_seconds(self):
         # GH#6716
         didx = date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
@@ -449,7 +450,7 @@ class TestGetIndexer:
 
         result = idx1.get_indexer_non_unique(idx2)
         expected_indexer = np.array([1, 0, 2, -1, -1], dtype=np.intp)
-        expected_missing = np.array([2, 3], dtype=np.int64)
+        expected_missing = np.array([2, 3], dtype=np.intp)
 
         tm.assert_numpy_array_equal(result[0], expected_indexer)
         tm.assert_numpy_array_equal(result[1], expected_missing)

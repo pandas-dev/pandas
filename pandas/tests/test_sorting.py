@@ -60,6 +60,7 @@ class TestSorting:
             assert left[k] == v
         assert len(left) == len(right)
 
+    @pytest.mark.arm_slow
     def test_int64_overflow_moar(self):
 
         # GH9096
@@ -297,7 +298,7 @@ class TestMerge:
             "outer": np.ones(len(out), dtype="bool"),
         }
 
-        for how in "left", "right", "outer", "inner":
+        for how in ["left", "right", "outer", "inner"]:
             mask = jmask[how]
             frame = align(out[mask].copy())
             assert mask.all() ^ mask.any() or how == "outer"

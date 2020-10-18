@@ -56,13 +56,13 @@ class TestReductions:
             expected = getattr(obj.values, opname)()
         else:
             expected = pd.Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
-        try:
-            assert result == expected
-        except TypeError:
-            # comparing tz-aware series with np.array results in
-            # TypeError
+
+        if getattr(obj, "tz", None) is not None:
+            # We need to de-localize before comparing to the numpy-produced result
             expected = expected.astype("M8[ns]").astype("int64")
             assert result.value == expected
+        else:
+            assert result == expected
 
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize(
@@ -351,6 +351,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
+                f"'TimedeltaArray' does not implement reduction '{opname}'",
             ]
         )
 
@@ -695,6 +696,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
+                    "'TimedeltaArray' does not implement reduction 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):

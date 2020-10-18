@@ -33,9 +33,7 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_get_version",
     "__main__",
     "_transform_template",
-    "_arith_doc_FRAME",
     "_flex_comp_doc_FRAME",
-    "_make_flex_doc",
     "_op_descriptions",
     "_IntegerDtype",
     "_use_inf_as_na",
@@ -447,7 +445,7 @@ def main(
 
     if os.path.isfile(source_path):
         file_path = source_path
-        with open(file_path, "r") as file_obj:
+        with open(file_path) as file_obj:
             for line_number, msg in function(file_obj):
                 is_failed = True
                 print(
@@ -466,7 +464,7 @@ def main(
                 continue
 
             file_path = os.path.join(subdir, file_name)
-            with open(file_path, "r") as file_obj:
+            with open(file_path) as file_obj:
                 for line_number, msg in function(file_obj):
                     is_failed = True
                     print(

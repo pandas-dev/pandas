@@ -48,7 +48,7 @@ from pandas.core.computation.ops import (
         )
         for engine in ENGINES
     )
-)  # noqa
+)
 def engine(request):
     return request.param
 
@@ -1054,15 +1054,15 @@ class TestAlignment:
                     m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
                 )
                 index = getattr(locals().get(obj_name), index_name)
-                s = Series(np.random.randn(n), index[:n])
+                ser = Series(np.random.randn(n), index[:n])
 
                 if r2 == "dt" or c2 == "dt":
                     if engine == "numexpr":
-                        expected2 = df2.add(s)
+                        expected2 = df2.add(ser)
                     else:
-                        expected2 = df2 + s
+                        expected2 = df2 + ser
                 else:
-                    expected2 = df2 + s
+                    expected2 = df2 + ser
 
                 if r1 == "dt" or c1 == "dt":
                     if engine == "numexpr":
@@ -1072,11 +1072,11 @@ class TestAlignment:
                 else:
                     expected = expected2 + df
 
-                if should_warn(df2.index, s.index, df.index):
+                if should_warn(df2.index, ser.index, df.index):
                     with tm.assert_produces_warning(RuntimeWarning):
-                        res = pd.eval("df2 + s + df", engine=engine, parser=parser)
+                        res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
                 else:
-                    res = pd.eval("df2 + s + df", engine=engine, parser=parser)
+                    res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
                 assert res.shape == expected.shape
                 tm.assert_frame_equal(res, expected)
 
@@ -1885,7 +1885,7 @@ class TestScope:
         )
 
     def test_no_new_locals(self, engine, parser):
-        x = 1  # noqa
+        x = 1
         lcls = locals().copy()
         pd.eval("x + 1", local_dict=lcls, engine=engine, parser=parser)
         lcls2 = locals().copy()
@@ -1995,8 +1995,8 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
     mid = gen[lhs]()  # noqa
-    lhs = gen[lhs]()  # noqa
-    rhs = gen[rhs]()  # noqa
+    lhs = gen[lhs]()
+    rhs = gen[rhs]()
 
     ex1 = f"lhs {cmp} mid {cmp} rhs"
     ex2 = f"lhs {cmp} mid and mid {cmp} rhs"

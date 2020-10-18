@@ -93,15 +93,8 @@ common_apply_allowlist = (
 )
 
 series_apply_allowlist = (
-    (
-        common_apply_allowlist
-        | {
-            "nlargest",
-            "nsmallest",
-            "is_monotonic_increasing",
-            "is_monotonic_decreasing",
-        }
-    )
+    common_apply_allowlist
+    | {"nlargest", "nsmallest", "is_monotonic_increasing", "is_monotonic_decreasing"}
 ) | frozenset(["dtype", "unique"])
 
 dataframe_apply_allowlist = common_apply_allowlist | frozenset(["dtypes", "corrwith"])

@@ -11,8 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, hashtable as libhashtable, lib
-import pandas._libs.join as libjoin
+from pandas._libs import Timedelta, hashtable as libhashtable, join as libjoin, lib
 from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
@@ -50,7 +49,7 @@ from pandas.core.internals import concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame  # noqa:F401
+    from pandas import DataFrame
 
 
 @Substitution("\nleft : DataFrame")
@@ -1837,7 +1836,7 @@ def _get_single_indexer(join_key, index, sort: bool = False):
 def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool = False):
     if len(join_keys) > 1:
         if not (
-            (isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels)
+            isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels
         ):
             raise AssertionError(
                 "If more than one join key is given then "

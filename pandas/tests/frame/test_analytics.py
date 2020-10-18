@@ -1060,14 +1060,14 @@ class TestDataFrameAnalytics:
             (np.any, {"A": pd.Series([0.0, 1.0], dtype="float")}, True),
             (np.all, {"A": pd.Series([0, 1], dtype=int)}, False),
             (np.any, {"A": pd.Series([0, 1], dtype=int)}, True),
-            pytest.param(np.all, {"A": pd.Series([0, 1], dtype="M8[ns]")}, False,),
-            pytest.param(np.any, {"A": pd.Series([0, 1], dtype="M8[ns]")}, True,),
-            pytest.param(np.all, {"A": pd.Series([1, 2], dtype="M8[ns]")}, True,),
-            pytest.param(np.any, {"A": pd.Series([1, 2], dtype="M8[ns]")}, True,),
-            pytest.param(np.all, {"A": pd.Series([0, 1], dtype="m8[ns]")}, False,),
-            pytest.param(np.any, {"A": pd.Series([0, 1], dtype="m8[ns]")}, True,),
-            pytest.param(np.all, {"A": pd.Series([1, 2], dtype="m8[ns]")}, True,),
-            pytest.param(np.any, {"A": pd.Series([1, 2], dtype="m8[ns]")}, True,),
+            pytest.param(np.all, {"A": pd.Series([0, 1], dtype="M8[ns]")}, False),
+            pytest.param(np.any, {"A": pd.Series([0, 1], dtype="M8[ns]")}, True),
+            pytest.param(np.all, {"A": pd.Series([1, 2], dtype="M8[ns]")}, True),
+            pytest.param(np.any, {"A": pd.Series([1, 2], dtype="M8[ns]")}, True),
+            pytest.param(np.all, {"A": pd.Series([0, 1], dtype="m8[ns]")}, False),
+            pytest.param(np.any, {"A": pd.Series([0, 1], dtype="m8[ns]")}, True),
+            pytest.param(np.all, {"A": pd.Series([1, 2], dtype="m8[ns]")}, True),
+            pytest.param(np.any, {"A": pd.Series([1, 2], dtype="m8[ns]")}, True),
             (np.all, {"A": pd.Series([0, 1], dtype="category")}, False),
             (np.any, {"A": pd.Series([0, 1], dtype="category")}, True),
             (np.all, {"A": pd.Series([1, 2], dtype="category")}, True),
@@ -1176,6 +1176,20 @@ class TestDataFrameAnalytics:
 
         with pytest.raises(ValueError, match="aligned"):
             operator.matmul(df, df2)
+
+    def test_matmul_message_shapes(self):
+        # GH#21581 exception message should reflect original shapes,
+        #  not transposed shapes
+        a = np.random.rand(10, 4)
+        b = np.random.rand(5, 3)
+
+        df = DataFrame(b)
+
+        msg = r"shapes \(10, 4\) and \(5, 3\) not aligned"
+        with pytest.raises(ValueError, match=msg):
+            a @ df
+        with pytest.raises(ValueError, match=msg):
+            a.tolist() @ df
 
     # ---------------------------------------------------------------------
     # Unsorted
