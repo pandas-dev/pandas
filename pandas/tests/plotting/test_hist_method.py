@@ -130,21 +130,19 @@ class TestSeriesPlots(TestPlotBase):
             self.ts.hist(ax=ax1, figure=fig2)
 
     @pytest.mark.parametrize(
-        "histtype, expected, agg_func",
+        "histtype, expected",
         [
-            ("bar", True, all),
-            ("barstacked", True, all),
-            ("step", False, any),
-            ("stepfilled", True, all),
+            ("bar", True),
+            ("barstacked", True),
+            ("step", False),
+            ("stepfilled", True),
         ],
     )
-    def test_histtype_argument(self, histtype, expected, agg_func):
+    def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
         ser = Series(np.random.randint(1, 10))
-        ax = ser.hist(bins=12, histtype=histtype)
-
-        result = agg_func(patch.fill for patch in ax.patches)
-        assert result == expected
+        ax = ser.hist(histtype=histtype)
+        self._check_filled(ax, filled=expected)
 
     @pytest.mark.parametrize(
         "by, expected_axes_num, expected_layout", [(None, 1, (1, 1)), ("b", 2, (1, 2))]
@@ -383,21 +381,19 @@ class TestDataFramePlots(TestPlotBase):
         assert result == expected
 
     @pytest.mark.parametrize(
-        "histtype, expected, agg_func",
+        "histtype, expected",
         [
-            ("bar", True, all),
-            ("barstacked", True, all),
-            ("step", False, any),
-            ("stepfilled", True, all),
+            ("bar", True),
+            ("barstacked", True),
+            ("step", False),
+            ("stepfilled", True),
         ],
     )
-    def test_histtype_argument(self, histtype, expected, agg_func):
+    def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
         df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
-        ax = df.hist(bins=12, histtype=histtype, layout=(-1, 1))
-
-        result = agg_func(patch.fill for row in ax for patch in row[0].patches)
-        assert result == expected
+        ax = df.hist(histtype=histtype)
+        self._check_filled(ax, filled=expected)
 
     @pytest.mark.parametrize("by", [None, "c"])
     @pytest.mark.parametrize("column", [None, "b"])
@@ -631,20 +627,16 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         assert ax2._shared_y_axes.joined(ax1, ax2)
 
     @pytest.mark.parametrize(
-        "histtype, expected, agg_func",
+        "histtype, expected",
         [
-            ("bar", True, all),
-            ("barstacked", True, all),
-            ("step", False, any),
-            ("stepfilled", True, all),
+            ("bar", True),
+            ("barstacked", True),
+            ("step", False),
+            ("stepfilled", True),
         ],
     )
-    def test_histtype_argument(self, histtype, expected, agg_func):
+    def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
-        df = DataFrame(
-            np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"]
-        ).groupby("a")
-        ax = df.hist(bins=12, histtype=histtype, layout=(-1, 1))
-
-        result = agg_func(patch.fill for rows in ax for patch in rows[0][0].patches)
-        assert result == expected
+        df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
+        ax = df.hist(by="a", histtype=histtype)
+        self._check_filled(ax, filled=expected)
