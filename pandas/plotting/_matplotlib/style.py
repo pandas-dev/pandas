@@ -136,7 +136,7 @@ def _is_floats_color(color: Union[Color, Collection[Color]]) -> bool:
     return bool(
         is_list_like(color)
         and (len(color) == 3 or len(color) == 4)
-        and all([isinstance(x, float) for x in color])
+        and all(isinstance(x, float) for x in color)
     )
 
 
