@@ -622,37 +622,17 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
         keys = list(arg.keys())
 
         # combine results
+        from pandas.core.generic import NDFrame
 
-        def is_any_series() -> bool:
-            # return a boolean if we have *any* nested series
-            return any(isinstance(r, ABCSeries) for r in results.values())
-
-        def is_any_frame() -> bool:
-            # return a boolean if we have *any* nested series
-            return any(isinstance(r, ABCDataFrame) for r in results.values())
-
-        if isinstance(results, list):
-            return concat(results, keys=keys, axis=1, sort=True), True
-
-        elif is_any_frame():
-            # we have a dict of DataFrames
-            # return a MI DataFrame
-
-            keys_to_use = [k for k in keys if not results[k].empty]
-            # Have to check, if at least one DataFrame is not empty.
-            keys_to_use = keys_to_use if keys_to_use != [] else keys
-            return (
-                concat([results[k] for k in keys_to_use], keys=keys_to_use, axis=1),
-                True,
-            )
-
-        elif isinstance(obj, ABCSeries) and is_any_series():
-
-            # we have a dict of Series
-            # return a MI Series
+        if any(isinstance(r, NDFrame) for r in results.values()):
             try:
-                result = concat(results)
-            except TypeError as err:
+                keys_to_use = [k for k in keys if not results[k].empty]
+                # Have to check, if at least one DataFrame is not empty.
+                keys_to_use = keys_to_use if keys_to_use != [] else keys
+                axis = 0 if isinstance(obj, ABCSeries) else 1
+                result = concat({k: results[k] for k in keys_to_use}, axis=axis)
+            # Raised if some value of results is not a NDFrame
+            except AttributeError as err:
                 # we want to give a nice error here if
                 # we have non-same sized objects, so
                 # we don't automatically broadcast
@@ -663,16 +643,10 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
                     "simultaneously"
                 ) from err
 
-            return result, True
+        else:
+            from pandas import Series
 
-        # fall thru
-        from pandas import DataFrame, Series
-
-        try:
-            result = DataFrame(results)
-        except ValueError:
             # we have a dict of scalars
-
             # GH 36212 use name only if obj is a series
             if obj.ndim == 1:
                 obj = cast("Series", obj)

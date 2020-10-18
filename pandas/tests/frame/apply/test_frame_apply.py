@@ -1254,7 +1254,7 @@ class TestDataFrameAggregate:
         # dict input with lists with multiple
         func = dict([(name1, ["mean", "sum"]), (name2, ["sum", "max"])])
         result = float_frame.agg(func, axis=axis)
-        expected = DataFrame(
+        expected = pd.concat(
             dict(
                 [
                     (
@@ -1278,7 +1278,8 @@ class TestDataFrameAggregate:
                         ),
                     ),
                 ]
-            )
+            ),
+            axis=1,
         )
         expected = expected.T if axis in {1, "columns"} else expected
         tm.assert_frame_equal(result, expected)
