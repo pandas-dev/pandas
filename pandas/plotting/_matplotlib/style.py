@@ -1,12 +1,11 @@
 from typing import (
     TYPE_CHECKING,
     Collection,
-    Dict,
-    Iterable,
     List,
     Optional,
     Sequence,
     Union,
+    cast,
 )
 import warnings
 
@@ -15,6 +14,7 @@ import matplotlib.colors
 import numpy as np
 
 import pandas.core.common as com
+from pandas.core.dtypes.common import is_list_like
 
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
@@ -29,6 +29,9 @@ def get_standard_colors(
     color_type: str = "default",
     color=None,
 ):
+    if isinstance(color, dict):
+        return color
+
     colors = _get_colors(
         color=color,
         colormap=colormap,
@@ -36,19 +39,16 @@ def get_standard_colors(
         num_colors=num_colors,
     )
 
-    if isinstance(colors, dict):
-        return colors
-
-    return _cycle_colors(list(colors), num_colors=num_colors)
+    return _cycle_colors(colors, num_colors=num_colors)
 
 
 def _get_colors(
     *,
-    color: Optional[Union[Color, Dict[str, Color], Collection[Color]]],
+    color: Optional[Union[Color, Collection[Color]]],
     colormap: Optional[Union[str, "Colormap"]],
     color_type: str,
     num_colors: int,
-) -> Union[Dict[str, Color], Collection[Color]]:
+) -> List[Color]:
     """Get colors from user input."""
     if color is None and colormap is not None:
         return _get_colors_from_colormap(colormap, num_colors=num_colors)
@@ -80,7 +80,7 @@ def _cycle_colors(colors: List[Color], num_colors: int) -> List[Color]:
 def _get_colors_from_colormap(
     colormap: Union[str, "Colormap"],
     num_colors: int,
-) -> Collection[Color]:
+) -> List[Color]:
     """Get colors from colormap."""
     colormap = _get_cmap_instance(colormap)
     return [colormap(num) for num in np.linspace(0, 1, num=num_colors)]
@@ -97,14 +97,11 @@ def _get_cmap_instance(colormap: Union[str, "Colormap"]) -> "Colormap":
 
 
 def _get_colors_from_color(
-    color: Union[Color, Dict[str, Color], Collection[Color]],
-) -> Union[Dict[str, Color], Collection[Color]]:
+    color: Union[Color, Collection[Color]],
+) -> List[Color]:
     """Get colors from user input color."""
-    if isinstance(color, Iterable) and len(color) == 0:
-        raise ValueError("Invalid color argument: {color}")
-
-    if isinstance(color, dict):
-        return color
+    if len(color) == 0:
+        raise ValueError(f"Invalid color argument: {color}")
 
     if isinstance(color, str):
         if _is_single_color(color):
@@ -113,16 +110,30 @@ def _get_colors_from_color(
         else:
             return list(color)
 
-    # ignoring mypy error here
-    # error: Argument 1 to "list" has incompatible type
-    # "Union[Sequence[float], Collection[Union[str, Sequence[float]]]]";
-    # expected "Iterable[Union[str, Sequence[float]]]"  [arg-type]
-    # A this point color may be sequence of floats or series of colors,
-    # all convertible to list
-    return list(color)  # type: ignore [arg-type]
+    if _is_floats_color(color):
+        color = cast(Sequence[float], color)
+        return [color]
+
+    color = cast(Collection[Color], color)
+    colors = []
+    for x in color:
+        if _is_single_color(x):
+            colors.append(x)
+        else:
+            raise ValueError(f"Invalid color {x}")
+    return colors
 
 
-def _get_colors_from_color_type(color_type: str, num_colors: int) -> Collection[Color]:
+def _is_floats_color(color: Union[Color, Collection[Color]]) -> bool:
+    """Check if color comprises a sequence of floats representing color."""
+    return bool(
+        is_list_like(color)
+        and (len(color) == 3 or len(color) == 4)
+        and all([isinstance(x, float) for x in color])
+    )
+
+
+def _get_colors_from_color_type(color_type: str, num_colors: int) -> List[Color]:
     """Get colors from user input color type."""
     if color_type == "default":
         return _get_default_colors(num_colors)
@@ -132,7 +143,7 @@ def _get_colors_from_color_type(color_type: str, num_colors: int) -> Collection[
         raise ValueError("color_type must be either 'default' or 'random'")
 
 
-def _get_default_colors(num_colors: int) -> Collection[Color]:
+def _get_default_colors(num_colors: int) -> List[Color]:
     """Get ``num_colors`` of default colors from matplotlib rc params."""
     import matplotlib.pyplot as plt
 
@@ -146,19 +157,19 @@ def _get_default_colors(num_colors: int) -> Collection[Color]:
     return colors[0:num_colors]
 
 
-def _get_random_colors(num_colors: int) -> Sequence[Sequence[float]]:
+def _get_random_colors(num_colors: int) -> List[Color]:
     """Get ``num_colors`` of random colors."""
     return [_random_color(num) for num in range(num_colors)]
 
 
-def _random_color(column: int) -> Sequence[float]:
+def _random_color(column: int) -> List[float]:
     """Get a random color represented as a list of length 3"""
     # GH17525 use common._random_state to avoid resetting the seed
     rs = com.random_state(column)
     return rs.rand(3).tolist()
 
 
-def _is_single_color(color: str) -> bool:
+def _is_single_color(color: Color) -> bool:
     """Check if ``color`` is a single color.
 
     Examples of single colors:
@@ -170,8 +181,8 @@ def _is_single_color(color: str) -> bool:
 
     Parameters
     ----------
-    color : string
-        Color string.
+    color : Color
+        Color string or sequence of floats.
 
     Returns
     -------
