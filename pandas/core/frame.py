@@ -124,6 +124,7 @@ from pandas.core.aggregation import (
     relabel_result,
     transform,
 )
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array
@@ -146,6 +147,7 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
+from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
@@ -336,7 +338,7 @@ ValueError: columns overlap but no suffix specified:
 # DataFrame class
 
 
-class DataFrame(NDFrame):
+class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
@@ -2654,16 +2656,16 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> dtypes = ['int64', 'float64', 'complex128', 'object', 'bool']
-        >>> data = dict([(t, np.ones(shape=5000).astype(t))
+        >>> data = dict([(t, np.ones(shape=5000, dtype=int).astype(t))
         ...              for t in dtypes])
         >>> df = pd.DataFrame(data)
         >>> df.head()
            int64  float64            complex128  object  bool
-        0      1      1.0    1.000000+0.000000j       1  True
-        1      1      1.0    1.000000+0.000000j       1  True
-        2      1      1.0    1.000000+0.000000j       1  True
-        3      1      1.0    1.000000+0.000000j       1  True
-        4      1      1.0    1.000000+0.000000j       1  True
+        0      1      1.0              1.0+0.0j       1  True
+        1      1      1.0              1.0+0.0j       1  True
+        2      1      1.0              1.0+0.0j       1  True
+        3      1      1.0              1.0+0.0j       1  True
+        4      1      1.0              1.0+0.0j       1  True
 
         >>> df.memory_usage()
         Index           128
@@ -2689,7 +2691,7 @@ class DataFrame(NDFrame):
         int64          40000
         float64        40000
         complex128     80000
-        object        160000
+        object        180000
         bool            5000
         dtype: int64
 
@@ -2788,7 +2790,7 @@ class DataFrame(NDFrame):
         >>> df2_transposed
                       0     1
         name      Alice   Bob
-        score       9.5     8
+        score       9.5   8.0
         employed  False  True
         kids          0     0
 
@@ -2944,7 +2946,8 @@ class DataFrame(NDFrame):
             # - the key itself is repeated (test on data.shape, #9519), or
             # - we have a MultiIndex on columns (test on self.columns, #21309)
             if data.shape[1] == 1 and not isinstance(self.columns, MultiIndex):
-                data = data[key]
+                # GH#26490 using data[key] can cause RecursionError
+                data = data._get_item_cache(key)
 
         return data
 
@@ -3089,7 +3092,7 @@ class DataFrame(NDFrame):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
-                self.loc._ensure_listlike_indexer(key, axis=1)
+                self.loc._ensure_listlike_indexer(key, axis=1, value=value)
                 indexer = self.loc._get_listlike_indexer(
                     key, axis=1, raise_missing=False
                 )[1]
@@ -5250,8 +5253,6 @@ class DataFrame(NDFrame):
         """
         from pandas._libs.hashtable import SIZE_HINT_LIMIT, duplicated_int64
 
-        from pandas.core.sorting import get_group_index
-
         if self.empty:
             return self._constructor_sliced(dtype=bool)
 
@@ -5314,7 +5315,6 @@ class DataFrame(NDFrame):
                 f"Length of ascending ({len(ascending)}) != length of by ({len(by)})"
             )
         if len(by) > 1:
-            from pandas.core.sorting import lexsort_indexer
 
             keys = [self._get_label_or_level_values(x, axis=axis) for x in by]
 
@@ -5327,7 +5327,6 @@ class DataFrame(NDFrame):
             )
             indexer = ensure_platform_int(indexer)
         else:
-            from pandas.core.sorting import nargsort
 
             by = by[0]
             k = self._get_label_or_level_values(by, axis=axis)
@@ -5838,7 +5837,87 @@ class DataFrame(NDFrame):
         return result
 
     # ----------------------------------------------------------------------
-    # Arithmetic / combination related
+    # Arithmetic Methods
+
+    def _cmp_method(self, other, op):
+        axis = 1  # only relevant for Series other case
+
+        self, other = ops.align_method_FRAME(self, other, axis, flex=False, level=None)
+
+        # See GH#4537 for discussion of scalar op behavior
+        new_data = self._dispatch_frame_op(other, op, axis=axis)
+        return self._construct_result(new_data)
+
+    def _arith_method(self, other, op):
+        if ops.should_reindex_frame_op(self, other, op, 1, 1, None, None):
+            return ops.frame_arith_method_with_reindex(self, other, op)
+
+        axis = 1  # only relevant for Series other case
+
+        self, other = ops.align_method_FRAME(self, other, axis, flex=True, level=None)
+
+        new_data = self._dispatch_frame_op(other, op, axis=axis)
+        return self._construct_result(new_data)
+
+    _logical_method = _arith_method
+
+    def _dispatch_frame_op(self, right, func, axis: Optional[int] = None):
+        """
+        Evaluate the frame operation func(left, right) by evaluating
+        column-by-column, dispatching to the Series implementation.
+
+        Parameters
+        ----------
+        right : scalar, Series, or DataFrame
+        func : arithmetic or comparison operator
+        axis : {None, 0, 1}
+
+        Returns
+        -------
+        DataFrame
+        """
+        # Get the appropriate array-op to apply to each column/block's values.
+        array_op = ops.get_array_op(func)
+
+        right = lib.item_from_zerodim(right)
+        if not is_list_like(right):
+            # i.e. scalar, faster than checking np.ndim(right) == 0
+            bm = self._mgr.apply(array_op, right=right)
+            return type(self)(bm)
+
+        elif isinstance(right, DataFrame):
+            assert self.index.equals(right.index)
+            assert self.columns.equals(right.columns)
+            # TODO: The previous assertion `assert right._indexed_same(self)`
+            #  fails in cases with empty columns reached via
+            #  _frame_arith_method_with_reindex
+
+            bm = self._mgr.operate_blockwise(right._mgr, array_op)
+            return type(self)(bm)
+
+        elif isinstance(right, Series) and axis == 1:
+            # axis=1 means we want to operate row-by-row
+            assert right.index.equals(self.columns)
+
+            right = right._values
+            # maybe_align_as_frame ensures we do not have an ndarray here
+            assert not isinstance(right, np.ndarray)
+
+            arrays = [array_op(l, r) for l, r in zip(self._iter_column_arrays(), right)]
+
+        elif isinstance(right, Series):
+            assert right.index.equals(self.index)  # Handle other cases later
+            right = right._values
+
+            arrays = [array_op(l, right) for l in self._iter_column_arrays()]
+
+        else:
+            # Remaining cases have less-obvious dispatch rules
+            raise NotImplementedError(right)
+
+        return type(self)._from_arrays(
+            arrays, self.columns, self.index, verify_integrity=False
+        )
 
     def _combine_frame(self, other: DataFrame, func, fill_value=None):
         # at this point we have `self._indexed_same(other)`
@@ -5857,7 +5936,7 @@ class DataFrame(NDFrame):
                 left, right = ops.fill_binop(left, right, fill_value)
                 return func(left, right)
 
-        new_data = ops.dispatch_to_series(self, other, _arith_op)
+        new_data = self._dispatch_frame_op(other, _arith_op)
         return new_data
 
     def _construct_result(self, result) -> DataFrame:
@@ -5878,6 +5957,21 @@ class DataFrame(NDFrame):
         out.columns = self.columns
         out.index = self.index
         return out
+
+    def __divmod__(self, other) -> Tuple[DataFrame, DataFrame]:
+        # Naive implementation, room for optimization
+        div = self // other
+        mod = self - div * other
+        return div, mod
+
+    def __rdivmod__(self, other) -> Tuple[DataFrame, DataFrame]:
+        # Naive implementation, room for optimization
+        div = other // self
+        mod = other - div * self
+        return div, mod
+
+    # ----------------------------------------------------------------------
+    # Combination-Related
 
     @Appender(
         """
@@ -7254,7 +7348,7 @@ NaN 12.3   33.0
         bm_axis = self._get_block_manager_axis(axis)
 
         if bm_axis == 0 and periods != 0:
-            return self - self.shift(periods, axis=axis)  # type: ignore[operator]
+            return self - self.shift(periods, axis=axis)
 
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
         return self._constructor(new_data)
@@ -8571,11 +8665,10 @@ NaN 12.3   33.0
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
+        own_dtypes = [arr.dtype for arr in self._iter_column_arrays()]
+
         dtype_is_dt = np.array(
-            [
-                is_datetime64_any_dtype(values.dtype)
-                for values in self._iter_column_arrays()
-            ],
+            [is_datetime64_any_dtype(dtype) for dtype in own_dtypes],
             dtype=bool,
         )
         if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
@@ -8589,7 +8682,11 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        any_object = self.dtypes.apply(is_object_dtype).any()
+        any_object = np.array(
+            [is_object_dtype(dtype) for dtype in own_dtypes],
+            dtype=bool,
+        ).any()
+
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
         labels = self._get_agg_axis(axis)
@@ -9282,7 +9379,6 @@ NaN 12.3   33.0
 DataFrame._add_numeric_operations()
 
 ops.add_flex_arithmetic_methods(DataFrame)
-ops.add_special_arithmetic_methods(DataFrame)
 
 
 def _from_nested_dict(data) -> collections.defaultdict:

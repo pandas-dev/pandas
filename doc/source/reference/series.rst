@@ -22,10 +22,6 @@ Attributes
    :toctree: api/
 
    Series.index
-
-.. autosummary::
-   :toctree: api/
-
    Series.array
    Series.values
    Series.dtype

@@ -896,7 +896,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         new_left = self.left.delete(loc)
         new_right = self.right.delete(loc)
-        result = self._data._shallow_copy(new_left, new_right)
+        result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
         return self._shallow_copy(result)
 
     def insert(self, loc, item):
@@ -918,7 +918,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
-        result = self._data._shallow_copy(new_left, new_right)
+        result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
         return self._shallow_copy(result)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
