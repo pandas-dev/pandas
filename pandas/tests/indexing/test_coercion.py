@@ -444,7 +444,7 @@ class TestInsertIndexCoercion(CoercionBase):
             with pytest.raises(TypeError, match=msg):
                 obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
 
-        msg = "value should be compatible dtype or scalar, not"
+        msg = "cannot insert DatetimeArray with incompatible label"
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
@@ -461,12 +461,12 @@ class TestInsertIndexCoercion(CoercionBase):
         )
 
         # ToDo: must coerce to object
-        msg = "value should be compatible dtype or scalar, not"
+        msg = "cannot insert TimedeltaArray with incompatible label"
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, pd.Timestamp("2012-01-01"))
 
         # ToDo: must coerce to object
-        msg = "value should be compatible dtype or scalar, not"
+        msg = "cannot insert TimedeltaArray with incompatible label"
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 

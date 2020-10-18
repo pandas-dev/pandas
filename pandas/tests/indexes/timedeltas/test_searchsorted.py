@@ -21,6 +21,6 @@ class TestSearchSorted:
     )
     def test_searchsorted_invalid_argument_dtype(self, arg):
         idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
-        msg = "value should be compatible dtype or scalar, not"
+        msg = "searchsorted requires compatible dtype"
         with pytest.raises(TypeError, match=msg):
             idx.searchsorted(arg)

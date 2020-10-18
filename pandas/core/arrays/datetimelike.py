@@ -578,13 +578,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         elif not type(self)._is_recognized_dtype(value.dtype):
             raise TypeError(
-                f"value should be compatible dtype or scalar, "
+                f"{opname} requires compatible dtype or scalar, "
                 f"not {type(value).__name__}"
             )
+
         return value
 
     def _validate_searchsorted_value(self, value):
-        msg = f"value should be compatible dtype or scalar, not {type(value).__name__}"
+        msg = "searchsorted requires compatible dtype or scalar"
         if not is_list_like(value):
             value = self._validate_scalar(value, msg)
         else:
@@ -606,7 +607,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._unbox(value, setitem=True)
 
     def _validate_insert_value(self, value):
-        msg = f"value should be compatible dtype or scalar, not {type(value).__name__}"
+        msg = f"cannot insert {type(self).__name__} with incompatible label"
         value = self._validate_scalar(value, msg)
 
         self._check_compatible_with(value, setitem=True)

@@ -133,7 +133,12 @@ class TestTimedeltaArray:
         if index:
             arr = pd.Index(arr)
 
-        msg = "value should be compatible dtype or scalar, not"
+        msg = "|".join(
+            [
+                "searchsorted requires compatible dtype or scalar",
+                "Unexpected type for 'value'",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             arr.searchsorted(other)
 

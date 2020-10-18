@@ -59,7 +59,12 @@ class TestSearchsorted:
 
         other = np.array([0, 1], dtype=np.int64)
 
-        msg = "value should be compatible dtype or scalar, not"
+        msg = "|".join(
+            [
+                "searchsorted requires compatible dtype or scalar",
+                "Unexpected type for 'value'",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             pidx.searchsorted(other)
 

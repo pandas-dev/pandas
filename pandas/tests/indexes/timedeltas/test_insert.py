@@ -79,9 +79,7 @@ class TestTimedeltaIndexInsert:
 
     def test_insert_invalid_na(self):
         idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
-
-        msg = "value should be compatible dtype or scalar, not datetime64"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match="incompatible label"):
             idx.insert(0, np.datetime64("NaT"))
 
     @pytest.mark.parametrize(
@@ -91,7 +89,7 @@ class TestTimedeltaIndexInsert:
         # GH#33703 dont cast these to td64
         tdi = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
 
-        msg = "value should be compatible dtype or scalar, not "
+        msg = "incompatible label"
         with pytest.raises(TypeError, match=msg):
             tdi.insert(1, item)
 
