@@ -260,7 +260,6 @@ class TestTimedeltas:
         tm.assert_index_equal(result, expected)
         with tm.assert_produces_warning(warning, check_stacklevel=False):
             result = to_timedelta(wrapper(str_repr))
-
         tm.assert_index_equal(result, expected)
 
         # scalar
