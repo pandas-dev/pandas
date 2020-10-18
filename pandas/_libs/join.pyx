@@ -278,7 +278,6 @@ def left_join_indexer_unique(join_t[:] left, join_t[:] right):
     j = 0
     nleft = len(left)
     nright = len(right)
-    print(nleft)
 
     indexer = np.empty(nleft, dtype=np.int64)
     while True:
@@ -295,9 +294,7 @@ def left_join_indexer_unique(join_t[:] left, join_t[:] right):
         while i < nleft - 1 and left[i] == rval:
             indexer[i] = j
             i += 1
-        print(left[i])
-        print(rval)
-        print(left[i] > rval)
+
         if left[i] == right[j]:
             indexer[i] = j
             i += 1
@@ -306,11 +303,9 @@ def left_join_indexer_unique(join_t[:] left, join_t[:] right):
                 i += 1
             j += 1
         elif left[i] > rval:
-            print("test")
             indexer[i] = -1
             j += 1
         else:
-            print(left[i])
             indexer[i] = -1
             i += 1
     return indexer
