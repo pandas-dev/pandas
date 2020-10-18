@@ -161,6 +161,21 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         arr = self._data.to_timestamp(freq, how)
         return DatetimeIndex._simple_new(arr, name=self.name)
 
+    # TODO: use @doc(PeriodArray.hour) once mypy supports
+    @property
+    def hour(self) -> Int64Index:
+        return Int64Index(self._data.hour, name=self.name)
+
+    # TODO: use @doc(PeriodArray.minute) once mypy supports
+    @property
+    def minute(self) -> Int64Index:
+        return Int64Index(self._data.minute, name=self.name)
+
+    # TODO: use @doc(PeriodArray.second) once mypy supports
+    @property
+    def second(self) -> Int64Index:
+        return Int64Index(self._data.second, name=self.name)
+
     # ------------------------------------------------------------------------
     # Index Constructors
 
