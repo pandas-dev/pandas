@@ -266,7 +266,11 @@ class TestFromBreaks(Base):
         # GH#36310
         breaks = np.arange(5)
         result = IntervalIndex.from_breaks(breaks)._data
-        assert result._left.base is None or result._left.base is not result._right.base
+        left = result._left
+        right = result._right
+
+        left[:] = 10000
+        assert not (right == 10000).any()
 
 
 class TestFromTuples(Base):

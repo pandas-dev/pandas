@@ -435,6 +435,11 @@ found in NumPy or pandas, which work well with pandas' data containers.
 Cyberpandas provides an extension type for storing arrays of IP Addresses. These
 arrays can be stored inside pandas' Series and DataFrame.
 
+`Pandas-Genomics`_
+~~~~~~~~~~~~~~~~~~
+
+Pandas-Genomics provides extension types and extension arrays for working with genomics data
+
 `Pint-Pandas`_
 ~~~~~~~~~~~~~~
 
@@ -465,6 +470,7 @@ Library         Accessor   Classes                   Description
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/
 .. _Altair: https://altair-viz.github.io/
+.. _pandas-genomics: https://pandas-genomics.readthedocs.io/en/latest/
 .. _pandas_path: https://github.com/drivendataorg/pandas-path/
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
 .. _pint-pandas: https://github.com/hgrecco/pint-pandas

@@ -39,6 +39,60 @@ class TestDataFrameDiff:
         expected = pd.DataFrame({"x": np.nan, "y": pd.Series(1), "z": pd.Series(1)})
         tm.assert_frame_equal(result, expected)
 
+    def test_diff_timedelta64_with_nat(self):
+        # GH#32441
+        arr = np.arange(6).reshape(3, 2).astype("timedelta64[ns]")
+        arr[:, 0] = np.timedelta64("NaT", "ns")
+
+        df = pd.DataFrame(arr)
+        result = df.diff(1, axis=0)
+
+        expected = pd.DataFrame(
+            {0: df[0], 1: [pd.NaT, pd.Timedelta(2), pd.Timedelta(2)]}
+        )
+        tm.assert_equal(result, expected)
+
+        result = df.diff(0)
+        expected = df - df
+        assert expected[0].isna().all()
+        tm.assert_equal(result, expected)
+
+        result = df.diff(-1, axis=1)
+        expected = df * np.nan
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_diff_datetime_axis0_with_nat(self, tz):
+        # GH#32441
+        dti = pd.DatetimeIndex(["NaT", "2019-01-01", "2019-01-02"], tz=tz)
+        ser = pd.Series(dti)
+
+        df = ser.to_frame()
+
+        result = df.diff()
+        ex_index = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta(days=1)])
+        expected = pd.Series(ex_index).to_frame()
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_diff_datetime_with_nat_zero_periods(self, tz):
+        # diff on NaT values should give NaT, not timedelta64(0)
+        dti = pd.date_range("2016-01-01", periods=4, tz=tz)
+        ser = pd.Series(dti)
+        df = ser.to_frame()
+
+        df[1] = ser.copy()
+        df.iloc[:, 0] = pd.NaT
+
+        expected = df - df
+        assert expected[0].isna().all()
+
+        result = df.diff(0, axis=0)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.diff(0, axis=1)
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_diff_datetime_axis0(self, tz):
         # GH#18578

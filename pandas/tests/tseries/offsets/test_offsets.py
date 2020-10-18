@@ -266,9 +266,10 @@ class TestCommon(Base):
     def test_immutable(self, offset_types):
         # GH#21341 check that __setattr__ raises
         offset = self._get_offset(offset_types)
-        with pytest.raises(AttributeError):
+        msg = "objects is not writable|DateOffset objects are immutable"
+        with pytest.raises(AttributeError, match=msg):
             offset.normalize = True
-        with pytest.raises(AttributeError):
+        with pytest.raises(AttributeError, match=msg):
             offset.n = 91
 
     def test_return_type(self, offset_types):
@@ -2328,11 +2329,14 @@ class TestCustomBusinessHour(Base):
     def test_constructor_errors(self):
         from datetime import time as dt_time
 
-        with pytest.raises(ValueError):
+        msg = "time data must be specified only with hour and minute"
+        with pytest.raises(ValueError, match=msg):
             CustomBusinessHour(start=dt_time(11, 0, 5))
-        with pytest.raises(ValueError):
+        msg = "time data must match '%H:%M' format"
+        with pytest.raises(ValueError, match=msg):
             CustomBusinessHour(start="AAA")
-        with pytest.raises(ValueError):
+        msg = "time data must match '%H:%M' format"
+        with pytest.raises(ValueError, match=msg):
             CustomBusinessHour(start="14:00:05")
 
     def test_different_normalize_equals(self):
@@ -3195,7 +3199,7 @@ class TestWeek(Base):
         assert repr(Week(n=-2, weekday=0)) == "<-2 * Weeks: weekday=0>"
 
     def test_corner(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Day must be"):
             Week(weekday=7)
 
         with pytest.raises(ValueError, match="Day must be"):
@@ -4315,7 +4319,8 @@ def test_valid_month_attributes(kwd, month_classes):
     # GH#18226
     cls = month_classes
     # check that we cannot create e.g. MonthEnd(weeks=3)
-    with pytest.raises(TypeError):
+    msg = rf"__init__\(\) got an unexpected keyword argument '{kwd}'"
+    with pytest.raises(TypeError, match=msg):
         cls(**{kwd: 3})
 
 
@@ -4338,24 +4343,25 @@ def test_valid_tick_attributes(kwd, tick_classes):
     # GH#18226
     cls = tick_classes
     # check that we cannot create e.g. Hour(weeks=3)
-    with pytest.raises(TypeError):
+    msg = rf"__init__\(\) got an unexpected keyword argument '{kwd}'"
+    with pytest.raises(TypeError, match=msg):
         cls(**{kwd: 3})
 
 
 def test_validate_n_error():
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="argument must be an integer"):
         DateOffset(n="Doh!")
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="argument must be an integer"):
         MonthBegin(n=timedelta(1))
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="argument must be an integer"):
         BDay(n=np.array([1, 2], dtype=np.int64))
 
 
 def test_require_integers(offset_types):
     cls = offset_types
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="argument must be an integer"):
         cls(n=1.5)
 
 
@@ -4363,7 +4369,8 @@ def test_tick_normalize_raises(tick_classes):
     # check that trying to create a Tick object with normalize=True raises
     # GH#21427
     cls = tick_classes
-    with pytest.raises(ValueError):
+    msg = "Tick offset with `normalize=True` are not allowed."
+    with pytest.raises(ValueError, match=msg):
         cls(n=3, normalize=True)
 
 

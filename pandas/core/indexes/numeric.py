@@ -275,8 +275,6 @@ class Int64Index(IntegerIndex):
         return other.dtype == "f8" or other.dtype == self.dtype
 
 
-Int64Index._add_numeric_methods()
-
 _uint64_descr_args = dict(
     klass="UInt64Index", ltype="unsigned integer", dtype="uint64", extra=""
 )
@@ -320,8 +318,6 @@ class UInt64Index(IntegerIndex):
         # See GH#26778, further casting may occur in NumericIndex._union
         return other.dtype == "f8" or other.dtype == self.dtype
 
-
-UInt64Index._add_numeric_methods()
 
 _float64_descr_args = dict(
     klass="Float64Index", dtype="float64", ltype="float", extra=""
@@ -425,6 +421,3 @@ class Float64Index(NumericIndex):
     def _can_union_without_object_cast(self, other) -> bool:
         # See GH#26778, further casting may occur in NumericIndex._union
         return is_numeric_dtype(other.dtype)
-
-
-Float64Index._add_numeric_methods()

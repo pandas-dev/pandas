@@ -598,22 +598,13 @@ def test_binops(args, annotate, all_arithmetic_functions):
     [
         operator.methodcaller("capitalize"),
         operator.methodcaller("casefold"),
-        pytest.param(
-            operator.methodcaller("cat", ["a"]),
-            marks=pytest.mark.xfail(reason="finalize not called."),
-        ),
+        operator.methodcaller("cat", ["a"]),
         operator.methodcaller("contains", "a"),
         operator.methodcaller("count", "a"),
         operator.methodcaller("encode", "utf-8"),
         operator.methodcaller("endswith", "a"),
-        pytest.param(
-            operator.methodcaller("extract", r"(\w)(\d)"),
-            marks=pytest.mark.xfail(reason="finalize not called."),
-        ),
-        pytest.param(
-            operator.methodcaller("extract", r"(\w)(\d)"),
-            marks=pytest.mark.xfail(reason="finalize not called."),
-        ),
+        operator.methodcaller("extract", r"(\w)(\d)"),
+        operator.methodcaller("extract", r"(\w)(\d)", expand=False),
         operator.methodcaller("find", "a"),
         operator.methodcaller("findall", "a"),
         operator.methodcaller("get", 0),
@@ -655,7 +646,6 @@ def test_binops(args, annotate, all_arithmetic_functions):
     ],
     ids=idfn,
 )
-@not_implemented_mark
 def test_string_method(method):
     s = pd.Series(["a1"])
     s.attrs = {"a": 1}
@@ -772,13 +762,27 @@ def test_categorical_accessor(method):
     [
         operator.methodcaller("sum"),
         lambda x: x.agg("sum"),
+    ],
+)
+def test_groupby_finalize(obj, method):
+    obj.attrs = {"a": 1}
+    result = method(obj.groupby([0, 0]))
+    assert result.attrs == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
+)
+@pytest.mark.parametrize(
+    "method",
+    [
         lambda x: x.agg(["sum", "count"]),
         lambda x: x.transform(lambda y: y),
         lambda x: x.apply(lambda y: y),
     ],
 )
 @not_implemented_mark
-def test_groupby(obj, method):
+def test_groupby_finalize_not_implemented(obj, method):
     obj.attrs = {"a": 1}
     result = method(obj.groupby([0, 0]))
     assert result.attrs == {"a": 1}

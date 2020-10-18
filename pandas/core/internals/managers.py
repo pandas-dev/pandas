@@ -2,6 +2,7 @@ from collections import defaultdict
 import itertools
 from typing import (
     Any,
+    Callable,
     DefaultDict,
     Dict,
     List,
@@ -224,7 +225,7 @@ class BlockManager(PandasObject):
         self.axes[axis] = new_labels
 
     @property
-    def _is_single_block(self) -> bool:
+    def is_single_block(self) -> bool:
         # Assumes we are 2D; overridden by SingleBlockManager
         return len(self.blocks) == 1
 
@@ -324,18 +325,44 @@ class BlockManager(PandasObject):
                 f"tot_items: {tot_items}"
             )
 
-    def reduce(self: T, func) -> T:
+    def reduce(
+        self: T, func: Callable, ignore_failures: bool = False
+    ) -> Tuple[T, np.ndarray]:
+        """
+        Apply reduction function blockwise, returning a single-row BlockManager.
+
+        Parameters
+        ----------
+        func : reduction function
+        ignore_failures : bool, default False
+            Whether to drop blocks where func raises TypeError.
+
+        Returns
+        -------
+        BlockManager
+        np.ndarray
+            Indexer of mgr_locs that are retained.
+        """
         # If 2D, we assume that we're operating column-wise
         assert self.ndim == 2
 
         res_blocks: List[Block] = []
         for blk in self.blocks:
-            nbs = blk.reduce(func)
+            nbs = blk.reduce(func, ignore_failures)
             res_blocks.extend(nbs)
 
-        index = Index([0])  # placeholder
-        new_mgr = BlockManager.from_blocks(res_blocks, [self.items, index])
-        return new_mgr
+        index = Index([None])  # placeholder
+        if ignore_failures:
+            if res_blocks:
+                indexer = np.concatenate([blk.mgr_locs.as_array for blk in res_blocks])
+                new_mgr = self._combine(res_blocks, copy=False, index=index)
+            else:
+                indexer = []
+                new_mgr = type(self).from_blocks([], [Index([]), index])
+        else:
+            indexer = np.arange(self.shape[0])
+            new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
+        return new_mgr, indexer
 
     def operate_blockwise(self, other: "BlockManager", array_op) -> "BlockManager":
         """
@@ -698,7 +725,9 @@ class BlockManager(PandasObject):
         """
         return self._combine([b for b in self.blocks if b.is_numeric], copy)
 
-    def _combine(self: T, blocks: List[Block], copy: bool = True) -> T:
+    def _combine(
+        self: T, blocks: List[Block], copy: bool = True, index: Optional[Index] = None
+    ) -> T:
         """ return a new manager with the blocks """
         if len(blocks) == 0:
             return self.make_empty()
@@ -714,6 +743,8 @@ class BlockManager(PandasObject):
             new_blocks.append(b)
 
         axes = list(self.axes)
+        if index is not None:
+            axes[-1] = index
         axes[0] = self.items.take(indexer)
 
         return type(self).from_blocks(new_blocks, axes)
@@ -802,7 +833,7 @@ class BlockManager(PandasObject):
         # mutating the original object
         copy = copy or na_value is not lib.no_default
 
-        if self._is_single_block:
+        if self.is_single_block:
             blk = self.blocks[0]
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
@@ -1052,7 +1083,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
-                blk.set(blk_locs, value_getitem(val_locs))
+                blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
@@ -1282,7 +1313,7 @@ class BlockManager(PandasObject):
             slice_or_indexer, self.shape[0], allow_fill=allow_fill
         )
 
-        if self._is_single_block:
+        if self.is_single_block:
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
@@ -1472,7 +1503,7 @@ class SingleBlockManager(BlockManager):
     _is_consolidated = True
     _known_consolidated = True
     __slots__ = ()
-    _is_single_block = True
+    is_single_block = True
 
     def __init__(
         self,
@@ -1844,7 +1875,7 @@ def _consolidate(blocks):
         merged_blocks = _merge_blocks(
             list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
         )
-        new_blocks = extend_blocks(merged_blocks, new_blocks)
+        new_blocks.extend(merged_blocks)
     return new_blocks
 
 
