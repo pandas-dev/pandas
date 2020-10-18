@@ -454,16 +454,13 @@ def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
     tm.assert_series_equal(result, ser)
 
 
-def test_where_category_not_dropping():
-
-    s = pd.Series(["A", "A", "B", "B", "C"], dtype="category")
-    exp = s.dtype
-    s.where(s != "C", s)
-    res = s.dtype
-    assert exp == res
-
-
-def test_where_categorical_frame_ValueError():
-    s = pd.Series(["A", "A", "B", "B", "C"], dtype="category")
-    df = s.to_frame()
-    df.where(df != "C")
+@pytest.mark.parametrize("klass", [Series, pd.DataFrame])
+def test_where_categorical(klass):
+    # https://github.com/pandas-dev/pandas/issues/18888
+    exp = klass(
+        pd.Categorical(["A", "A", "B", "B", np.nan], categories=["A", "B", "C"]),
+        dtype="category",
+    )
+    df = klass(["A", "A", "B", "B", "C"], dtype="category")
+    res = df.where(df != "C")
+    tm.assert_equal(exp, res)
