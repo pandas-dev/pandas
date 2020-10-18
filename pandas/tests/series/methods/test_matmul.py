@@ -3,14 +3,13 @@ import operator
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
-class TestSeriesAnalytics:
+class TestMatmul:
     def test_matmul(self):
-        # matmul test is for GH #10259
+        # matmul test is for GH#10259
         a = Series(np.random.randn(4), index=["p", "q", "r", "s"])
         b = DataFrame(
             np.random.randn(3, 4), index=["1", "2", "3"], columns=["p", "q", "r", "s"]
@@ -31,25 +30,25 @@ class TestSeriesAnalytics:
         expected = np.dot(a.values, a.values)
         tm.assert_almost_equal(result, expected)
 
-        # GH 21530
+        # GH#21530
         # vector (1D np.array) @ Series (__rmatmul__)
         result = operator.matmul(a.values, a)
         expected = np.dot(a.values, a.values)
         tm.assert_almost_equal(result, expected)
 
-        # GH 21530
+        # GH#21530
         # vector (1D list) @ Series (__rmatmul__)
         result = operator.matmul(a.values.tolist(), a)
         expected = np.dot(a.values, a.values)
         tm.assert_almost_equal(result, expected)
 
-        # GH 21530
+        # GH#21530
         # matrix (2D np.array) @ Series (__rmatmul__)
         result = operator.matmul(b.T.values, a)
         expected = np.dot(b.T.values, a.values)
         tm.assert_almost_equal(result, expected)
 
-        # GH 21530
+        # GH#21530
         # matrix (2D nested lists) @ Series (__rmatmul__)
         result = operator.matmul(b.T.values.tolist(), a)
         expected = np.dot(b.T.values, a.values)
@@ -74,27 +73,3 @@ class TestSeriesAnalytics:
         msg = "matrices are not aligned"
         with pytest.raises(ValueError, match=msg):
             a.dot(b.T)
-
-    def test_ptp(self):
-        # GH21614
-        N = 1000
-        arr = np.random.randn(N)
-        ser = Series(arr)
-        assert np.ptp(ser) == np.ptp(arr)
-
-    def test_is_monotonic(self):
-
-        s = Series(np.random.randint(0, 10, size=1000))
-        assert not s.is_monotonic
-        s = Series(np.arange(1000))
-        assert s.is_monotonic is True
-        assert s.is_monotonic_increasing is True
-        s = Series(np.arange(1000, 0, -1))
-        assert s.is_monotonic_decreasing is True
-
-        s = Series(pd.date_range("20130101", periods=10))
-        assert s.is_monotonic is True
-        assert s.is_monotonic_increasing is True
-        s = Series(list(reversed(s.tolist())))
-        assert s.is_monotonic is False
-        assert s.is_monotonic_decreasing is True
