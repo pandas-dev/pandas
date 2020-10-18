@@ -2664,6 +2664,11 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy(result)
 
     def _wrap_setop_result(self, other, result):
+        if isinstance(self, (ABCDatetimeIndex, ABCTimedeltaIndex)) and isinstance(
+            result, np.ndarray
+        ):
+            result = type(self._data)._simple_new(result, dtype=self.dtype)
+
         name = get_op_result_name(self, other)
         if isinstance(result, Index):
             if result.name != name:
@@ -2740,10 +2745,10 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = algos.unique1d(Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
-        result = other.take(indexer)
+        result = other.take(indexer)._values
 
         if sort is None:
-            result = algos.safe_sort(result.values)
+            result = algos.safe_sort(result)
 
         return self._wrap_setop_result(other, result)
 
@@ -2800,7 +2805,7 @@ class Index(IndexOpsMixin, PandasObject):
         indexer = indexer.take((indexer != -1).nonzero()[0])
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
-        the_diff = this.values.take(label_diff)
+        the_diff = this._values.take(label_diff)
         if sort is None:
             try:
                 the_diff = algos.safe_sort(the_diff)
