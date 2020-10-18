@@ -255,10 +255,12 @@ class TestTimedeltas:
         tm.assert_index_equal(result, expected)
 
         str_repr = [f"{x}{unit}" for x in np.arange(5)]
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
             result = to_timedelta(wrapper(str_repr))
         tm.assert_index_equal(result, expected)
-        result = TimedeltaIndex(wrapper(str_repr))
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            result = to_timedelta(wrapper(str_repr))
+
         tm.assert_index_equal(result, expected)
 
         # scalar
@@ -268,10 +270,11 @@ class TestTimedeltas:
         result = Timedelta(2, unit=unit)
         assert result == expected
 
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
             result = to_timedelta(f"2{unit}")
         assert result == expected
-        result = Timedelta(f"2{unit}")
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            result = Timedelta(f"2{unit}")
         assert result == expected
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])

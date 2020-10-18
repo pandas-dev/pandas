@@ -1,17 +1,11 @@
 """
 timedelta support tools
 """
-import re
-import warnings
 
 import numpy as np
 
 from pandas._libs.tslibs import NaT
-from pandas._libs.tslibs.timedeltas import (
-    Timedelta,
-    check_unambiguous_timedelta_values,
-    parse_timedelta_unit,
-)
+from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -110,16 +104,6 @@ def to_timedelta(arg, unit=None, errors="raise"):
             "represent unambiguous timedelta values durations."
         )
 
-    if isinstance(arg, (list, tuple, ABCSeries, ABCIndexClass, np.ndarray)):
-        arr = np.array(arg, dtype="object", ndmin=1)
-        if arr.ndim == 1 and check_unambiguous_timedelta_values(arr):
-            warnings.warn(
-                "Denoting units with 'M', 'Y', 'm' or 'y' do not represent unambiguous "
-                "timedelta values durations and will removed in a future version",
-                FutureWarning,
-                stacklevel=2,
-            )
-
     if arg is None:
         return arg
     elif isinstance(arg, ABCSeries):
@@ -137,18 +121,8 @@ def to_timedelta(arg, unit=None, errors="raise"):
             "arg must be a string, timedelta, list, tuple, 1-d array, or Series"
         )
 
-    if isinstance(arg, str):
-        if unit is not None:
-            raise ValueError(
-                "unit must not be specified if the input is/contains a str"
-            )
-        elif re.search(r"^\d+\s?[M|Y|m|y]$", arg):
-            warnings.warn(
-                "Denoting units with 'M', 'Y', 'm' or 'y' do not represent unambiguous "
-                "timedelta values durations and will removed in a future version",
-                FutureWarning,
-                stacklevel=2,
-            )
+    if isinstance(arg, str) and unit is not None:
+        raise ValueError("unit must not be specified if the input is/contains a str")
 
     # ...so it must be a scalar value. Return scalar.
     return _coerce_scalar_to_timedelta_type(arg, unit=unit, errors=errors)

@@ -1,5 +1,6 @@
 import collections
 import re
+import warnings
 
 import cython
 
@@ -297,6 +298,14 @@ cdef inline int64_t parse_timedelta_string(str ts) except? -1:
 
     if len(ts) == 0 or ts in nat_strings:
         return NPY_NAT
+
+    if re.search(r"^\d+\s?[M|Y|m|y]$", ts):
+        warnings.warn(
+            "Denoting units with 'M', 'Y', 'm' or 'y' do not represent unambiguous "
+            "timedelta values durations and will be removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
 
     for c in ts:
 
@@ -1466,16 +1475,6 @@ cdef _broadcast_floordiv_td64(
             res = res.astype('f8')
             res[mask] = np.nan
         return res
-
-
-def check_unambiguous_timedelta_values(object[:] values):
-    cdef:
-        Py_ssize_t i, n = len(values)
-
-    for i in range(n):
-        if re.search(r"^\d+\s?[M|Y|m|y]$", str(values[i])):
-            return True
-    return False
 
 
 # resolution in ns

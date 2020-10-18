@@ -139,7 +139,7 @@ class TestTimedeltas:
     def test_unambiguous_timedelta_values(self, val, warning):
         # GH36666 Deprecate use of strings denoting units with 'M', 'Y', 'm' or 'y'
         # in pd.to_timedelta
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
             to_timedelta(val)
 
     def test_to_timedelta_via_apply(self):
