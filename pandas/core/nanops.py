@@ -685,9 +685,22 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
     return _wrap_results(get_median(values) if notempty else np.nan, dtype)
 
 
-def get_empty_reduction_result(shape, axis: int, dtype, fill_value) -> np.ndarray:
+def get_empty_reduction_result(
+    shape: Tuple[int, ...], axis: int, dtype: np.dtype, fill_value: Any
+) -> np.ndarray:
     """
     The result from a reduction on an empty ndarray.
+
+    Parameters
+    ----------
+    shape : Tuple[int]
+    axis : int
+    dtype : np.dtype
+    fill_value : Any
+
+    Returns
+    -------
+    np.ndarray
     """
     shp = np.array(shape)
     dims = np.arange(len(shape))
