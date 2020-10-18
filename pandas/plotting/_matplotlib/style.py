@@ -1,6 +1,7 @@
 from typing import (
     TYPE_CHECKING,
     Collection,
+    Dict,
     Iterator,
     List,
     Optional,
@@ -27,9 +28,9 @@ Color = Union[str, Sequence[float]]
 
 def get_standard_colors(
     num_colors: int,
-    colormap=None,
+    colormap: Optional["Colormap"] = None,
     color_type: str = "default",
-    color=None,
+    color: Optional[Union[Dict[str, Color], Color, Collection[Color]]] = None,
 ):
     if isinstance(color, dict):
         return color
