@@ -1,6 +1,7 @@
 from typing import (
     TYPE_CHECKING,
     Collection,
+    Iterator,
     List,
     Optional,
     Sequence,
@@ -13,8 +14,9 @@ import matplotlib.cm as cm
 import matplotlib.colors
 import numpy as np
 
-import pandas.core.common as com
 from pandas.core.dtypes.common import is_list_like
+
+import pandas.core.common as com
 
 if TYPE_CHECKING:
     from matplotlib.colors import Colormap
@@ -103,25 +105,30 @@ def _get_colors_from_color(
     if len(color) == 0:
         raise ValueError(f"Invalid color argument: {color}")
 
-    if isinstance(color, str):
-        if _is_single_color(color):
-            # GH #36972
-            return [color]
-        else:
-            return list(color)
+    if isinstance(color, str) and _is_single_color(color):
+        # GH #36972
+        return [color]
 
     if _is_floats_color(color):
         color = cast(Sequence[float], color)
         return [color]
 
     color = cast(Collection[Color], color)
-    colors = []
+    return list(_gen_list_of_colors_from_iterable(color))
+
+
+def _gen_list_of_colors_from_iterable(color: Collection[Color]) -> Iterator[Color]:
+    """
+    Yield colors from string of several letters or from collection of colors.
+    """
     for x in color:
+        if isinstance(x, str):
+            # to avoid warnings on upper case single letter colors
+            x = x.lower()
         if _is_single_color(x):
-            colors.append(x)
+            yield x
         else:
             raise ValueError(f"Invalid color {x}")
-    return colors
 
 
 def _is_floats_color(color: Union[Color, Collection[Color]]) -> bool:
@@ -172,6 +179,7 @@ def _is_single_color(color: Color) -> bool:
         - 'red'
         - 'green'
         - 'C3'
+        - 'firebrick'
 
     Parameters
     ----------
