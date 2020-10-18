@@ -608,7 +608,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         return self._unbox(value, setitem=True)
 
     def _validate_insert_value(self, value):
-        msg = f"cannot insert {type(self).__name__} with incompatible label"
+        msg = f"value should be compatible dtype or scalar, not {type(value).__name__}"
         value = self._validate_scalar(value, msg)
 
         self._check_compatible_with(value, setitem=True)
