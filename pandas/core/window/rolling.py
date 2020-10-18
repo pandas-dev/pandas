@@ -851,6 +851,10 @@ class Window(BaseWindow):
     closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
         'neither' endpoints. Defaults to 'right'.
+        
+        .. versionchanged:: 1.2.0
+
+        The closed parameter with fixed windows is now supported.
 
     Returns
     -------
