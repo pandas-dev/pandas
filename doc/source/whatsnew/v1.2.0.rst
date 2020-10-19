@@ -180,7 +180,7 @@ Alternatively, you can also use the dtype object:
 .. warning::
 
    Experimental: the new floating data types are currently experimental, and its
-   behaviour or API may still change without warning. Expecially the behaviour
+   behaviour or API may still change without warning. Especially the behaviour
    regarding NaN (distinct from NA missing values) is subject to change.
 
 .. _whatsnew_120.index_name_preservation:

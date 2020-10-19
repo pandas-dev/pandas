@@ -147,7 +147,7 @@ Bug fixes
 - Bug in ``setitem`` where type promotion is applied to the entire block (:issue:`10280`)
 - Bug in ``Series`` arithmetic methods may incorrectly hold names (:issue:`10068`)
 - Bug in ``GroupBy.get_group`` when grouping on multiple keys, one of which is categorical. (:issue:`10132`)
-- Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetics ( :issue:`9926`)
+- Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetic ( :issue:`9926`)
 - Bug in ``DataFrame`` construction from nested ``dict`` with ``datetime64`` (:issue:`10160`)
 - Bug in ``Series`` construction from ``dict`` with ``datetime64`` keys (:issue:`9456`)
 - Bug in ``Series.plot(label="LABEL")`` not correctly setting the label (:issue:`10119`)
