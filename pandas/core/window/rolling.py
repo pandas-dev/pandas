@@ -899,7 +899,8 @@ class Window(BaseWindow):
 
     .. versionadded:: 1.2.0
 
-    All Scipy window types, concurrent with your installed version, are recognized ``win_types``.
+    All Scipy window types, concurrent with your installed version,
+    are recognized ``win_types``.
 
     Examples
     --------
