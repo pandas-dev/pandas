@@ -67,7 +67,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for storing Period data.
 
-    Users should use :func:`period_array` to create new instances.
+    Users should use :func:`period_range` to create new instances.
 
     Parameters
     ----------
@@ -97,7 +97,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     See Also
     --------
-    period_array : Create a new PeriodArray.
+    period_range: Create a fixed-frequency PeriodArray.
     PeriodIndex : Immutable Index for period data.
 
     Notes
