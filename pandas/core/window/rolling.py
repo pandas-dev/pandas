@@ -891,8 +891,10 @@ class Window(BaseWindow):
     * ``slepian`` (needs parameter: width)
     * ``exponential`` (needs parameter: tau), center is set to None.
 
-    Certain window types require additional parameters to be passed. Please see
-    the third example below on how to add the additional parameters.
+    Certain window types require additional parameters to be passed
+    in the aggregation function. The additional parameters must match
+    the keywords specified in the Scipy window type method signature.
+    Please see the third example below on how to add the additional parameters.
 
     To learn more about different window types see `scipy.signal window functions
     <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
