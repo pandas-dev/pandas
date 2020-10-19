@@ -288,7 +288,11 @@ class DataFrameInfo(BaseInfo):
         len_column = len(pprint_thing(column_head))
         space = max(max_col, len_column) + col_space
 
-        max_id = len(pprint_thing(col_count))
+        # GH #36765
+        # add one space in max_id because there is a one-space padding
+        # in front of the number
+        # this allows maintain two spaces gap between columns
+        max_id = len(pprint_thing(col_count)) + 1
         len_id = len(pprint_thing(id_head))
         space_num = max(max_id, len_id) + col_space
 

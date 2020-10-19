@@ -48,11 +48,21 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
     # `setup.cfg` contains the list of error codes that are being ignored in flake8
-    echo "flake8-rst --version"
-    flake8-rst --version
 
-    MSG='Linting code-blocks in .rst documentation' ; echo $MSG
-    flake8-rst doc/source --filename=*.rst --format="$FLAKE8_FORMAT"
+    echo "flake8 --version"
+    flake8 --version
+
+    # pandas/_libs/src is C code, so no need to search there.
+    MSG='Linting .py code' ; echo $MSG
+    flake8 --format="$FLAKE8_FORMAT" .
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Linting .pyx and .pxd code' ; echo $MSG
+    flake8 --format="$FLAKE8_FORMAT" pandas --append-config=flake8/cython.cfg
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Linting .pxi.in' ; echo $MSG
+    flake8 --format="$FLAKE8_FORMAT" pandas/_libs --append-config=flake8/cython-template.cfg
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
@@ -149,14 +159,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -r -E --include '*.py' "[[:space:]] pytest.raises" pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for python2-style file encodings' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E "# -\*- coding: utf-8 -\*-" pandas scripts
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for python2-style super usage' ; echo $MSG
-    invgrep -R --include="*.py" -E "super\(\w*, (self|cls)\)" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for use of builtin filter function' ; echo $MSG
     invgrep -R --include="*.py" -P '(?<!def)[\(\s]filter\(' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -175,16 +177,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for python2 new-style classes and for empty parentheses' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E "class\s\S*\((object)?\):" pandas asv_bench/benchmarks scripts
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
     invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for incorrect sphinx directives' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ./doc/source
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check for the following code in testing: `unittest.mock`, `mock.Mock()` or `mock.patch`
@@ -228,15 +222,15 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for use of xrange instead of range' ; echo $MSG
-    invgrep -R --include=*.{py,pyx} 'xrange' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
     INVGREP_APPEND=" <- trailing whitespaces found"
     invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
     RET=$(($RET + $?)) ; echo $MSG "DONE"
     unset INVGREP_APPEND
+
+    MSG='Check code for instances of os.remove' ; echo $MSG
+    invgrep -R --include="*.py*" --exclude "common.py" --exclude "test_writers.py" --exclude "test_store.py" -E "os\.remove" pandas/tests/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 ### CODE ###

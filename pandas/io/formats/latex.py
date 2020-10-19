@@ -2,13 +2,46 @@
 Module for formatting output data in Latex.
 """
 from abc import ABC, abstractmethod
-from typing import IO, Iterator, List, Optional, Type
+from typing import IO, Iterator, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas.io.formats.format import DataFrameFormatter, TableFormatter
+
+
+def _split_into_full_short_caption(
+    caption: Optional[Union[str, Tuple[str, str]]]
+) -> Tuple[str, str]:
+    """Extract full and short captions from caption string/tuple.
+
+    Parameters
+    ----------
+    caption : str or tuple, optional
+        Either table caption string or tuple (full_caption, short_caption).
+        If string is provided, then it is treated as table full caption,
+        while short_caption is considered an empty string.
+
+    Returns
+    -------
+    full_caption, short_caption : tuple
+        Tuple of full_caption, short_caption strings.
+    """
+    if caption:
+        if isinstance(caption, str):
+            full_caption = caption
+            short_caption = ""
+        else:
+            try:
+                full_caption, short_caption = caption
+            except ValueError as err:
+                msg = "caption must be either a string or a tuple of two strings"
+                raise ValueError(msg) from err
+    else:
+        full_caption = ""
+        short_caption = ""
+    return full_caption, short_caption
 
 
 class RowStringConverter(ABC):
@@ -275,6 +308,8 @@ class TableBuilderAbstract(ABC):
         Use multirow to enhance MultiIndex rows.
     caption: str, optional
         Table caption.
+    short_caption: str, optional
+        Table short caption.
     label: str, optional
         LaTeX label.
     position: str, optional
@@ -289,6 +324,7 @@ class TableBuilderAbstract(ABC):
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
         caption: Optional[str] = None,
+        short_caption: Optional[str] = None,
         label: Optional[str] = None,
         position: Optional[str] = None,
     ):
@@ -298,6 +334,7 @@ class TableBuilderAbstract(ABC):
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
         self.caption = caption
+        self.short_caption = short_caption
         self.label = label
         self.position = position
 
@@ -384,8 +421,23 @@ class GenericTableBuilder(TableBuilderAbstract):
 
     @property
     def _caption_macro(self) -> str:
-        r"""Caption macro, extracted from self.caption, like \caption{cap}."""
-        return f"\\caption{{{self.caption}}}" if self.caption else ""
+        r"""Caption macro, extracted from self.caption.
+
+        With short caption:
+            \caption[short_caption]{caption_string}.
+
+        Without short caption:
+            \caption{caption_string}.
+        """
+        if self.caption:
+            return "".join(
+                [
+                    r"\caption",
+                    f"[{self.short_caption}]" if self.short_caption else "",
+                    f"{{{self.caption}}}",
+                ]
+            )
+        return ""
 
     @property
     def _label_macro(self) -> str:
@@ -596,15 +648,32 @@ class TabularBuilder(GenericTableBuilder):
 
 
 class LatexFormatter(TableFormatter):
-    """
+    r"""
     Used to render a DataFrame to a LaTeX tabular/longtable environment output.
 
     Parameters
     ----------
     formatter : `DataFrameFormatter`
+    longtable : bool, default False
+        Use longtable environment.
     column_format : str, default None
         The columns format as specified in `LaTeX table format
         <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3 columns
+    multicolumn : bool, default False
+        Use \multicolumn to enhance MultiIndex columns.
+    multicolumn_format : str, default 'l'
+        The alignment for multicolumns, similar to `column_format`
+    multirow : bool, default False
+        Use \multirow to enhance MultiIndex rows.
+    caption : str or tuple, optional
+        Tuple (full_caption, short_caption),
+        which results in \caption[short_caption]{full_caption};
+        if a single string is passed, no short caption will be set.
+    label : str, optional
+        The LaTeX label to be placed inside ``\label{}`` in the output.
+    position : str, optional
+        The LaTeX positional argument for tables, to be placed after
+        ``\begin{}`` in the output.
 
     See Also
     --------
@@ -619,18 +688,18 @@ class LatexFormatter(TableFormatter):
         multicolumn: bool = False,
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
-        caption: Optional[str] = None,
+        caption: Optional[Union[str, Tuple[str, str]]] = None,
         label: Optional[str] = None,
         position: Optional[str] = None,
     ):
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.longtable = longtable
-        self.column_format = column_format  # type: ignore[assignment]
+        self.column_format = column_format
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
-        self.caption = caption
+        self.caption, self.short_caption = _split_into_full_short_caption(caption)
         self.label = label
         self.position = position
 
@@ -658,6 +727,7 @@ class LatexFormatter(TableFormatter):
             multicolumn_format=self.multicolumn_format,
             multirow=self.multirow,
             caption=self.caption,
+            short_caption=self.short_caption,
             label=self.label,
             position=self.position,
         )
@@ -671,7 +741,7 @@ class LatexFormatter(TableFormatter):
         return TabularBuilder
 
     @property
-    def column_format(self) -> str:
+    def column_format(self) -> Optional[str]:
         """Column format."""
         return self._column_format
 

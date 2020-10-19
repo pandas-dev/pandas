@@ -33,7 +33,7 @@ Enhancements
 
 .. _whatsnew_0250.enhancements.agg_relabel:
 
-Groupby aggregation with relabeling
+GroupBy aggregation with relabeling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 pandas has added special groupby behavior, known as "named aggregation", for naming the
@@ -85,7 +85,7 @@ See :ref:`groupby.aggregate.named` for more.
 
 .. _whatsnew_0250.enhancements.multiple_lambdas:
 
-Groupby aggregation with multiple lambdas
+GroupBy aggregation with multiple lambdas
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can now provide multiple lambda functions to a list-like aggregation in
@@ -161,7 +161,7 @@ To restore the previous behaviour of a single threshold, set
 
 .. _whatsnew_0250.enhancements.json_normalize_with_max_level:
 
-Json normalize with max_level param support
+JSON normalize with max_level param support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`json_normalize` normalizes the provided input dict to all
@@ -308,7 +308,7 @@ would be reassigned as -1. (:issue:`19387`)
 
 .. _whatsnew_0250.api_breaking.groupby_apply_first_group_once:
 
-``Groupby.apply`` on ``DataFrame`` evaluates first group only once
+``GroupBy.apply`` on ``DataFrame`` evaluates first group only once
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The implementation of :meth:`DataFrameGroupBy.apply() <pandas.core.groupby.DataFrameGroupBy.apply>`
@@ -422,7 +422,7 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
 
 .. _whatsnew_0250.api_breaking.groupby_categorical:
 
-Categorical dtypes are preserved during groupby
+Categorical dtypes are preserved during GroupBy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, columns that were categorical, but not the groupby key(s) would be converted to ``object`` dtype during groupby operations. pandas now will preserve these dtypes. (:issue:`18502`)
@@ -483,7 +483,7 @@ values are coerced to floating point, which may result in loss of precision. See
 :ref:`indexing.set_ops` for more.
 
 
-``DataFrame`` groupby ffill/bfill no longer return group labels
+``DataFrame`` GroupBy ffill/bfill no longer return group labels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The methods ``ffill``, ``bfill``, ``pad`` and ``backfill`` of
@@ -513,7 +513,7 @@ are returned. (:issue:`21521`)
 
     df.groupby("a").ffill()
 
-``DataFrame`` describe on an empty categorical / object column will return top and freq
+``DataFrame`` describe on an empty Categorical / object column will return top and freq
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When calling :meth:`DataFrame.describe` with an empty categorical / object
@@ -1085,7 +1085,6 @@ Conversion
 
 - Bug in :func:`DataFrame.astype()` when passing a dict of columns and types the ``errors`` parameter was ignored. (:issue:`25905`)
 -
--
 
 Strings
 ^^^^^^^
@@ -1139,8 +1138,8 @@ MultiIndex
 - Bug in which incorrect exception raised by :class:`Timedelta` when testing the membership of :class:`MultiIndex` (:issue:`24570`)
 -
 
-I/O
-^^^
+IO
+^^
 
 - Bug in :func:`DataFrame.to_html()` where values were truncated using display options instead of outputting the full content (:issue:`17004`)
 - Fixed bug in missing text when using :meth:`to_clipboard` if copying utf-16 characters in Python 3 on Windows (:issue:`25040`)
@@ -1182,9 +1181,8 @@ Plotting
 - Fixed bug causing plots of :class:`PeriodIndex` timeseries to fail if the frequency is a multiple of the frequency rule code (:issue:`14763`)
 - Fixed bug when plotting a :class:`DatetimeIndex` with ``datetime.timezone.utc`` timezone (:issue:`17173`)
 -
--
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`pandas.core.resample.Resampler.agg` with a timezone aware index where ``OverflowError`` would raise when passing a list of functions (:issue:`22660`)

@@ -196,7 +196,7 @@ You can use the alias ``"boolean"`` as well.
 
 .. _whatsnew_100.convert_dtypes:
 
-``convert_dtypes`` method to ease use of supported extension dtypes
+Method ``convert_dtypes`` to ease use of supported extension dtypes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In order to encourage use of the extension dtypes ``StringDtype``,
@@ -1082,12 +1082,10 @@ Timedelta
 ^^^^^^^^^
 - Bug in subtracting a :class:`TimedeltaIndex` or :class:`TimedeltaArray` from a ``np.datetime64`` object (:issue:`29558`)
 -
--
 
 Timezones
 ^^^^^^^^^
 
--
 -
 
 
@@ -1113,7 +1111,6 @@ Numeric
 Conversion
 ^^^^^^^^^^
 
--
 -
 
 Strings
@@ -1153,7 +1150,6 @@ Missing
 ^^^^^^^
 
 -
--
 
 MultiIndex
 ^^^^^^^^^^
@@ -1162,8 +1158,8 @@ MultiIndex
 - Series and MultiIndex ``.drop`` with ``MultiIndex`` raise exception if labels not in given in level (:issue:`8594`)
 -
 
-I/O
-^^^
+IO
+^^
 
 - :meth:`read_csv` now accepts binary mode file buffers when using the Python csv engine (:issue:`23779`)
 - Bug in :meth:`DataFrame.to_json` where using a Tuple as a column or index value and using ``orient="columns"`` or ``orient="index"`` would produce invalid JSON (:issue:`20500`)
@@ -1203,7 +1199,7 @@ Plotting
 - Allow :meth:`DataFrame.plot.scatter` to plot ``objects`` and ``datetime`` type data (:issue:`18755`, :issue:`30391`)
 - Bug in :meth:`DataFrame.hist`, ``xrot=0`` does not work with ``by`` and subplots (:issue:`30288`).
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :meth:`core.groupby.DataFrameGroupBy.apply` only showing output from a single group when function returns an :class:`Index` (:issue:`28652`)
