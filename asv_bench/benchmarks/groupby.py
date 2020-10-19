@@ -358,6 +358,26 @@ class Size:
         self.draws.groupby(self.cats).size()
 
 
+class FillNA:
+    def setup(self):
+        N = 100
+        self.df = DataFrame(
+            {"group": [1] * N + [2] * N, "value": [np.nan, 1.0] * N}
+        ).set_index("group")
+
+    def time_df_ffill(self):
+        self.df.groupby("group").fillna(method="ffill")
+
+    def time_df_bfill(self):
+        self.df.groupby("group").fillna(method="bfill")
+
+    def time_srs_ffill(self):
+        self.df.groupby("group")["value"].fillna(method="ffill")
+
+    def time_srs_bfill(self):
+        self.df.groupby("group")["value"].fillna(method="bfill")
+
+
 class GroupByMethods:
 
     param_names = ["dtype", "method", "application"]
