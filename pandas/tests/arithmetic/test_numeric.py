@@ -177,7 +177,6 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "scalar_td",
         [
-            Timedelta("1 day"),
             Timedelta(days=1),
             Timedelta(days=1).to_timedelta64(),
             Timedelta(days=1).to_pytimedelta(),
