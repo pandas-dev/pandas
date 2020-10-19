@@ -622,12 +622,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             #  why is that check not needed?
             raise ValueError
 
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
-        # TODO: Check for non-True use_lhs/use_rhs
+    def _get_string_slice(self, key: str):
         parsed, reso = parse_time_string(key, self.freq)
         reso = Resolution.from_attrname(reso)
         try:
-            return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
+            return self._partial_date_slice(reso, parsed)
         except KeyError as err:
             raise KeyError(key) from err
 
