@@ -1,8 +1,9 @@
 import numpy as np
 
+from pandas.core.dtypes.dtypes import ExtensionDtype
+
 import pandas as pd
 from pandas.core.arrays import ExtensionArray
-from pandas.core.dtypes.dtypes import ExtensionDtype
 
 
 class DummyDtype(ExtensionDtype):

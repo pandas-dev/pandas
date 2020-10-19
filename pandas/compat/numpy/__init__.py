@@ -5,7 +5,6 @@ import re
 
 import numpy as np
 
-
 # numpy versioning
 _np_version = np.__version__
 _nlv = LooseVersion(_np_version)
