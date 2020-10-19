@@ -14,7 +14,6 @@ import warnings
 import zipfile
 
 import numpy as np
-from numpy.random import rand, randn
 
 from pandas._config.localization import (  # noqa:F401
     can_set_locale,
@@ -491,7 +490,7 @@ def assert_dict_equal(left, right, compare_keys: bool = True):
 
 
 def randbool(size=(), p: float = 0.5):
-    return rand(*size) <= p
+    return np.random.rand(*size) <= p
 
 
 RANDS_CHARS = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
@@ -1989,12 +1988,12 @@ def all_timeseries_index_generator(k=10):
 # make series
 def makeFloatSeries(name=None):
     index = makeStringIndex(_N)
-    return Series(randn(_N), index=index, name=name)
+    return Series(np.random.randn(_N), index=index, name=name)
 
 
 def makeStringSeries(name=None):
     index = makeStringIndex(_N)
-    return Series(randn(_N), index=index, name=name)
+    return Series(np.random.randn(_N), index=index, name=name)
 
 
 def makeObjectSeries(name=None):
@@ -2006,19 +2005,21 @@ def makeObjectSeries(name=None):
 
 def getSeriesData():
     index = makeStringIndex(_N)
-    return {c: Series(randn(_N), index=index) for c in getCols(_K)}
+    return {c: Series(np.random.randn(_N), index=index) for c in getCols(_K)}
 
 
 def makeTimeSeries(nper=None, freq="B", name=None):
     if nper is None:
         nper = _N
-    return Series(randn(nper), index=makeDateIndex(nper, freq=freq), name=name)
+    return Series(
+        np.random.randn(nper), index=makeDateIndex(nper, freq=freq), name=name
+    )
 
 
 def makePeriodSeries(nper=None, name=None):
     if nper is None:
         nper = _N
-    return Series(randn(nper), index=makePeriodIndex(nper), name=name)
+    return Series(np.random.randn(nper), index=makePeriodIndex(nper), name=name)
 
 
 def getTimeSeriesData(nper=None, freq="B"):

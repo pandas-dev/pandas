@@ -15,7 +15,6 @@ def test_multiindex_get_loc():  # GH7724, GH2646
     with warnings.catch_warnings(record=True):
 
         # test indexing into a multi-index before & past the lexsort depth
-        from numpy.random import choice, randint, randn
 
         cols = ["jim", "joe", "jolie", "joline", "jolia"]
 
@@ -58,20 +57,20 @@ def test_multiindex_get_loc():  # GH7724, GH2646
         n, m = 1000, 50
 
         vals = [
-            randint(0, 10, n),
-            choice(list("abcdefghij"), n),
-            choice(pd.date_range("20141009", periods=10).tolist(), n),
-            choice(list("ZYXWVUTSRQ"), n),
-            randn(n),
+            np.random.randint(0, 10, n),
+            np.random.choice(list("abcdefghij"), n),
+            np.random.choice(pd.date_range("20141009", periods=10).tolist(), n),
+            np.random.choice(list("ZYXWVUTSRQ"), n),
+            np.random.randn(n),
         ]
         vals = list(map(tuple, zip(*vals)))
 
         # bunch of keys for testing
         keys = [
-            randint(0, 11, m),
-            choice(list("abcdefghijk"), m),
-            choice(pd.date_range("20141009", periods=11).tolist(), m),
-            choice(list("ZYXWVUTSRQP"), m),
+            np.random.randint(0, 11, m),
+            np.random.choice(list("abcdefghijk"), m),
+            np.random.choice(pd.date_range("20141009", periods=11).tolist(), m),
+            np.random.choice(list("ZYXWVUTSRQP"), m),
         ]
         keys = list(map(tuple, zip(*keys)))
         keys += list(map(lambda t: t[:-1], vals[:: n // m]))

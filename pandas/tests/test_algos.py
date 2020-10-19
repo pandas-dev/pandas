@@ -3,7 +3,6 @@ from itertools import permutations
 import struct
 
 import numpy as np
-from numpy.random import RandomState
 import pytest
 
 from pandas._libs import algos as libalgos, hashtable as ht
@@ -1411,7 +1410,7 @@ class TestDuplicated:
 
 class GroupVarTestMixin:
     def test_group_var_generic_1d(self):
-        prng = RandomState(1234)
+        prng = np.random.RandomState(1234)
 
         out = (np.nan * np.ones((5, 1))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
@@ -1428,7 +1427,7 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_1d_flat_labels(self):
-        prng = RandomState(1234)
+        prng = np.random.RandomState(1234)
 
         out = (np.nan * np.ones((1, 1))).astype(self.dtype)
         counts = np.zeros(1, dtype="int64")
@@ -1444,7 +1443,7 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_all_finite(self):
-        prng = RandomState(1234)
+        prng = np.random.RandomState(1234)
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
@@ -1459,7 +1458,7 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_some_nan(self):
-        prng = RandomState(1234)
+        prng = np.random.RandomState(1234)
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
@@ -1503,7 +1502,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
 
     def test_group_var_large_inputs(self):
 
-        prng = RandomState(1234)
+        prng = np.random.RandomState(1234)
 
         out = np.array([[np.nan]], dtype=self.dtype)
         counts = np.array([0], dtype="int64")

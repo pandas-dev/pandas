@@ -4,7 +4,6 @@ import itertools
 from itertools import product
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
@@ -53,7 +52,7 @@ class Base:
         ]
         tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
-        s = Series(randn(8), index=index)
+        s = Series(np.random.randn(8), index=index)
         s[3] = np.NaN
         self.series = s
 
@@ -1289,7 +1288,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(randn(4, 6), columns=index)
+        df = DataFrame(np.random.randn(4, 6), columns=index)
 
         df1 = df.copy()
         df2 = df.copy()
