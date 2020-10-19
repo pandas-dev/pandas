@@ -312,7 +312,7 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
  * object into a NumPy npy_datetimestruct.  Uses tzinfo (if present)
  * to convert to UTC time.
  *
- * The following implementation just asks for attributes, and thus 
+ * The following implementation just asks for attributes, and thus
  * supports datetime duck typing. The tzinfo time zone conversion
  * requires this style of access as well.
  *
