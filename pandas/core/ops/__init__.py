@@ -14,7 +14,7 @@ from pandas._typing import Level
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_array_like, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -25,7 +25,10 @@ from pandas.core.ops.array_ops import (  # noqa:F401
     get_array_op,
     logical_op,
 )
-from pandas.core.ops.common import unpack_zerodim_and_defer  # noqa:F401
+from pandas.core.ops.common import (  # noqa:F401
+    get_op_result_name,
+    unpack_zerodim_and_defer,
+)
 from pandas.core.ops.docstrings import (
     _flex_comp_doc_FRAME,
     _op_descriptions,
@@ -75,67 +78,6 @@ ARITHMETIC_BINOPS: Set[str] = {
 
 
 COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
-
-# -----------------------------------------------------------------------------
-# Ops Wrapping Utilities
-
-
-def get_op_result_name(left, right):
-    """
-    Find the appropriate name to pin to an operation result.  This result
-    should always be either an Index or a Series.
-
-    Parameters
-    ----------
-    left : {Series, Index}
-    right : object
-
-    Returns
-    -------
-    name : object
-        Usually a string
-    """
-    # `left` is always a Series when called from within ops
-    if isinstance(right, (ABCSeries, ABCIndexClass)):
-        name = _maybe_match_name(left, right)
-    else:
-        name = left.name
-    return name
-
-
-def _maybe_match_name(a, b):
-    """
-    Try to find a name to attach to the result of an operation between
-    a and b.  If only one of these has a `name` attribute, return that
-    name.  Otherwise return a consensus name if they match of None if
-    they have different names.
-
-    Parameters
-    ----------
-    a : object
-    b : object
-
-    Returns
-    -------
-    name : str or None
-
-    See Also
-    --------
-    pandas.core.common.consensus_name_attr
-    """
-    a_has = hasattr(a, "name")
-    b_has = hasattr(b, "name")
-    if a_has and b_has:
-        if a.name == b.name:
-            return a.name
-        else:
-            # TODO: what if they both have np.nan for their names?
-            return None
-    elif a_has:
-        return a.name
-    elif b_has:
-        return b.name
-    return None
 
 
 # -----------------------------------------------------------------------------

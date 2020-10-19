@@ -106,7 +106,7 @@ def test_random_state():
     ],
 )
 def test_maybe_match_name(left, right, expected):
-    assert ops._maybe_match_name(left, right) == expected
+    assert ops.common._maybe_match_name(left, right) == expected
 
 
 def test_dict_compat():
