@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
+import pyarrow as pa
+import pyarrow.compute as pc
 
 from pandas._libs import missing as libmissing
 from pandas._typing import ArrayLike
@@ -22,9 +22,6 @@ from pandas.api.types import (
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import check_array_indexer
 
-if TYPE_CHECKING:
-    import pyarrow as pa
-
 
 def _as_pandas_scalar(arrow_scalar: pa.Scalar) -> Optional[str]:
     scalar = arrow_scalar.as_py()
@@ -39,7 +36,7 @@ class ArrowStringDtype(ExtensionDtype):
     """
     Extension dtype for string data in a ``pyarrow.ChunkedArray``.
 
-    .. versionadded:: 1.2.0
+    .. versionadded:: 1.1.0
 
     .. warning::
 
@@ -59,9 +56,6 @@ class ArrowStringDtype(ExtensionDtype):
     >>> pd.ArrowStringDtype()
     ArrowStringDtype
     """
-
-    import pyarrow as pa
-    import pyarrow.compute as pc
 
     name = "arrow_string"
 
@@ -124,7 +118,7 @@ class ArrowStringArray(ExtensionArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
-    .. versionadded:: 1.2.0
+    .. versionadded:: 1.1.0
 
     .. warning::
 
@@ -164,13 +158,10 @@ class ArrowStringArray(ExtensionArray):
     Length: 4, dtype: arrow_string
     """
 
-    import pyarrow as pa
-    import pyarrow.compute as pc
-
     def __init__(self, values):
-        if isinstance(values, self.pa.Array):
-            self.data = self.pa.chunked_array([values])
-        elif isinstance(values, self.pa.ChunkedArray):
+        if isinstance(values, pa.Array):
+            self.data = pa.chunked_array([values])
+        elif isinstance(values, pa.ChunkedArray):
             self.data = values
         else:
             raise ValueError(f"Unsupported type '{type(values)}' for ArrowStringArray")
@@ -179,7 +170,7 @@ class ArrowStringArray(ExtensionArray):
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         # TODO(ARROW-9407): Accept pd.NA in Arrow
         scalars_corrected = [None if pd.isna(x) else x for x in scalars]
-        return cls(cls.pa.array(scalars_corrected, type=cls.pa.string()))
+        return cls(pa.array(scalars_corrected, type=pa.string()))
 
     @property
     def dtype(self) -> ArrowStringDtype:
@@ -263,7 +254,7 @@ class ArrowStringArray(ExtensionArray):
             if not is_array_like(item):
                 item = np.array(item)
             if len(item) == 0:
-                return type(self)(self.pa.chunked_array([], type=self.pa.string()))
+                return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item):
                 return self.take(item)
             elif is_bool_dtype(item):
@@ -280,7 +271,7 @@ class ArrowStringArray(ExtensionArray):
                 raise IndexError("index out of bounds")
 
         value = self.data[item]
-        if isinstance(value, self.pa.ChunkedArray):
+        if isinstance(value, pa.ChunkedArray):
             return type(self)(value)
         else:
             return _as_pandas_scalar(value)
@@ -332,9 +323,9 @@ class ArrowStringArray(ExtensionArray):
         if isinstance(other, (pd.Series, pd.DataFrame, pd.Index)):
             return NotImplemented
         if isinstance(other, ArrowStringArray):
-            result = self.pc.equal(self.data, other.data)
+            result = pc.equal(self.data, other.data)
         elif is_scalar(other):
-            result = self.pc.equal(self.data, self.pa.scalar(other))
+            result = pc.equal(self.data, pa.scalar(other))
         else:
             raise NotImplementedError("Neither scalar nor ArrowStringArray")
 
@@ -376,10 +367,10 @@ class ArrowStringArray(ExtensionArray):
             # Slice data and insert inbetween
             new_data = [
                 *self.data[0:key].chunks,
-                self.pa.array([value], type=self.pa.string()),
+                pa.array([value], type=pa.string()),
                 *self.data[(key + 1) :].chunks,
             ]
-            self.data = self.pa.chunked_array(new_data)
+            self.data = pa.chunked_array(new_data)
         else:
             # Convert to integer indices and iteratively assign.
             # TODO: Make a faster variant of this in Arrow upstream.
@@ -476,11 +467,11 @@ class ArrowStringArray(ExtensionArray):
         if allow_fill:
             if (indices_array < 0).any():
                 # TODO(ARROW-9433): Treat negative indices as NULL
-                indices_array = self.pa.array(indices_array, mask=indices_array < 0)
+                indices_array = pa.array(indices_array, mask=indices_array < 0)
                 result = self.data.take(indices_array)
                 if pd.isna(fill_value):
                     return type(self)(result)
-                return type(self)(self.pc.fill_null(result, self.pa.scalar(fill_value)))
+                return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
             else:
                 # Nothing to fill
                 return type(self)(self.data.take(indices))
