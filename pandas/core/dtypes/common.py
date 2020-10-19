@@ -1262,7 +1262,7 @@ def np_issubclass_compat(unique_dtype, dtypes_set) -> bool:
     >>> np_issubclass_compat(pd.Float64Dtype(), [np.number])
     True
     """
-    if issubclass(unique_dtype.type, tuple(dtypes_set)) or (  # type: ignore
+    if issubclass(unique_dtype.type, tuple(dtypes_set)) or (
         np.number in dtypes_set
         and hasattr(unique_dtype, "_is_numeric")  # is an extensionarray
         and unique_dtype._is_numeric
