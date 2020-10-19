@@ -8,7 +8,7 @@ import pytest
 
 from pandas.errors import DtypeWarning, PerformanceWarning
 
-from pandas._testing import assert_produces_warning
+import pandas._testing as tm
 
 
 @pytest.fixture(
@@ -25,7 +25,7 @@ from pandas._testing import assert_produces_warning
 def category(request):
     """Return unique warning.
 
-    Useful for testing behavior of assert_produces_warning with various categories.
+    Useful for testing behavior of tm.assert_produces_warning with various categories.
     """
     return request.param
 
@@ -47,7 +47,7 @@ def pair_different_warnings(request):
     """Return pair or different warnings.
 
     Useful for testing how several different warnings are handled
-    in assert_produces_warning.
+    in tm.assert_produces_warning.
     """
     return request.param
 
@@ -69,7 +69,7 @@ def pair_different_warnings(request):
     ],
 )
 def test_catch_warning_category_and_match(category, message, match):
-    with assert_produces_warning(category, match=match):
+    with tm.assert_produces_warning(category, match=match):
         warnings.warn(message, category)
 
 
@@ -84,7 +84,7 @@ def test_catch_warning_category_and_match(category, message, match):
 def test_fail_to_match(category, message, match):
     msg = f"Did not see warning {repr(category.__name__)} matching"
     with pytest.raises(AssertionError, match=msg):
-        with assert_produces_warning(category, match=match):
+        with tm.assert_produces_warning(category, match=match):
             warnings.warn(message, category)
 
 
@@ -92,13 +92,13 @@ def test_fail_to_catch_actual_warning(pair_different_warnings):
     expected_category, actual_category = pair_different_warnings
     match = "Did not see expected warning of class"
     with pytest.raises(AssertionError, match=match):
-        with assert_produces_warning(expected_category):
+        with tm.assert_produces_warning(expected_category):
             warnings.warn("warning message", actual_category)
 
 
 def test_ignore_extra_warning(pair_different_warnings):
     expected_category, extra_category = pair_different_warnings
-    with assert_produces_warning(expected_category, raise_on_extra_warnings=False):
+    with tm.assert_produces_warning(expected_category, raise_on_extra_warnings=False):
         warnings.warn("Expected warning", expected_category)
         warnings.warn("Unexpected warning OK", extra_category)
 
@@ -107,14 +107,14 @@ def test_raise_on_extra_warning(pair_different_warnings):
     expected_category, extra_category = pair_different_warnings
     match = r"Caused unexpected warning\(s\)"
     with pytest.raises(AssertionError, match=match):
-        with assert_produces_warning(expected_category):
+        with tm.assert_produces_warning(expected_category):
             warnings.warn("Expected warning", expected_category)
             warnings.warn("Unexpected warning NOT OK", extra_category)
 
 
 def test_same_category_different_messages_first_match():
     category = UserWarning
-    with assert_produces_warning(category, match=r"^Match this"):
+    with tm.assert_produces_warning(category, match=r"^Match this"):
         warnings.warn("Match this", category)
         warnings.warn("Do not match that", category)
         warnings.warn("Do not match that either", category)
@@ -122,7 +122,7 @@ def test_same_category_different_messages_first_match():
 
 def test_same_category_different_messages_last_match():
     category = DeprecationWarning
-    with assert_produces_warning(category, match=r"^Match this"):
+    with tm.assert_produces_warning(category, match=r"^Match this"):
         warnings.warn("Do not match that", category)
         warnings.warn("Do not match that either", category)
         warnings.warn("Match this", category)
@@ -131,6 +131,6 @@ def test_same_category_different_messages_last_match():
 def test_right_category_wrong_match_raises(pair_different_warnings):
     target_category, other_category = pair_different_warnings
     with pytest.raises(AssertionError, match="Did not see warning.*matching"):
-        with assert_produces_warning(target_category, match=r"^Match this"):
+        with tm.assert_produces_warning(target_category, match=r"^Match this"):
             warnings.warn("Do not match it", target_category)
             warnings.warn("Match this", other_category)
