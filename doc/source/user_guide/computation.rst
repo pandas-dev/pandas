@@ -451,6 +451,10 @@ The list of recognized types are the `scipy.signal window functions
 * ``slepian`` (needs width)
 * ``exponential`` (needs tau).
 
+.. versionadded:: 1.2.0
+
+All Scipy window types, concurrent with your installed version, are recognized ``win_types``.
+
 .. ipython:: python
 
    ser = pd.Series(np.random.randn(10), index=pd.date_range("1/1/2000", periods=10))

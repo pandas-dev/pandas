@@ -872,7 +872,8 @@ class Window(BaseWindow):
     To learn more about the offsets & frequency strings, please see `this link
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
-    The recognized win_types are:
+    If ``win_type=None``, all points are evenly weighted; otherwise,
+    the recognized ``win_type``s are:
 
     * ``boxcar``
     * ``triang``
@@ -890,12 +891,15 @@ class Window(BaseWindow):
     * ``slepian`` (needs parameter: width)
     * ``exponential`` (needs parameter: tau), center is set to None.
 
-    If ``win_type=None`` all points are evenly weighted. To learn more about
-    different window types see `scipy.signal window functions
-    <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
-
     Certain window types require additional parameters to be passed. Please see
     the third example below on how to add the additional parameters.
+
+    To learn more about different window types see `scipy.signal window functions
+    <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
+
+    .. versionadded:: 1.2.0
+
+    All Scipy window types, concurrent with your installed version, are recognized ``win_types``.
 
     Examples
     --------
@@ -1003,8 +1007,6 @@ class Window(BaseWindow):
             raise NotImplementedError(
                 "BaseIndexer subclasses not implemented with win_types."
             )
-        elif isinstance(self.window, (list, tuple, np.ndarray)):
-            pass
         elif is_integer(self.window):
             if self.window <= 0:
                 raise ValueError("window must be > 0 ")
@@ -1018,40 +1020,6 @@ class Window(BaseWindow):
         else:
             raise ValueError(f"Invalid window {self.window}")
 
-    def _get_win_type(self, kwargs: Dict[str, Any]) -> Optional[Union[str, Tuple]]:
-        """
-        Extract arguments for the window type, provide validation for it
-        and return the validated window type.
-
-        Parameters
-        ----------
-        kwargs : dict
-
-        Returns
-        -------
-        win_type : str, or tuple
-        """
-        arg_map: Dict[str, List[str]] = {
-            "kaiser": ["beta"],
-            "gaussian": ["std"],
-            "general_gaussian": ["power", "width"],
-            "slepian": ["width"],
-            "exponential": ["tau"],
-        }
-        if self.win_type in arg_map:
-            extracted_arguments = []
-            for argument in arg_map[self.win_type]:
-                if argument not in kwargs:
-                    raise ValueError(f"{self.win_type} window requires {argument}")
-                extracted_arguments.append(kwargs.pop(argument))
-            if self.win_type == "exponential":
-                # exponential window requires the first arg (center)
-                # to be set to None (necessary for symmetric window)
-                extracted_arguments.insert(0, None)
-
-            return tuple([self.win_type] + extracted_arguments)
-        return self.win_type
-
     def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
         """
         Center the result in the window for weighted rolling aggregations.
@@ -1064,32 +1032,6 @@ class Window(BaseWindow):
             lead_indexer[self.axis] = slice(offset, None)
             result = np.copy(result[tuple(lead_indexer)])
         return result
-
-    def _get_window_weights(
-        self, win_type: Optional[Union[str, Tuple]] = None
-    ) -> np.ndarray:
-        """
-        Get the window, weights.
-
-        Parameters
-        ----------
-        win_type : str, or tuple
-            type of window to create
-
-        Returns
-        -------
-        window : ndarray
-            the window, weights
-        """
-        if isinstance(self.window, (list, tuple, np.ndarray)):
-            return com.asarray_tuplesafe(self.window).astype(float, copy=False)
-        elif is_integer(self.window):
-            import scipy.signal as sig
-
-            # GH #15662. `False` makes symmetric window, rather than periodic.
-            return sig.get_window(win_type, self.window, False).astype(
-                float, copy=False
-            )
 
     def _apply(
         self,
@@ -1111,14 +1053,16 @@ class Window(BaseWindow):
             whether to cache a numba compiled function. Only available for numba
             enabled methods (so far only apply)
         **kwargs
-            additional arguments for rolling function and window function
+            additional arguments for scipy windows if necessary
 
         Returns
         -------
         y : type of input
         """
-        win_type = self._get_win_type(kwargs)
-        window = self._get_window_weights(win_type=win_type)
+        signal = import_optional_dependency(
+            "scipy.signal", extra="Scipy is required to generate window weight."
+        )
+        window = getattr(signal, self.win_type)(self.window, **kwargs)
         offset = (len(window) - 1) // 2 if self.center else 0
 
         def homogeneous_func(values: np.ndarray):
