@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pytest
 
@@ -526,11 +524,9 @@ def test_loc_with_mi_indexer():
     tm.assert_frame_equal(result, expected)
 
 
-def test_getitem_str_slice():
+def test_getitem_str_slice(datapath):
     # GH#15928
-    path = os.path.join(
-        pd.__path__[0], "tests", "reshape", "merge", "data", "quotes2.csv"
-    )
+    path = datapath("reshape", "merge", "data", "quotes2.csv")
     df = pd.read_csv(path, parse_dates=["time"])
     df2 = df.set_index(["ticker", "time"]).sort_index()
 
