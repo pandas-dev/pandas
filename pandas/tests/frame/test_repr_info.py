@@ -8,6 +8,7 @@ import pytest
 from pandas import (
     Categorical,
     DataFrame,
+    PeriodIndex,
     Series,
     date_range,
     option_context,
@@ -218,3 +219,10 @@ class TestDataFrameReprInfoEtc:
         df = DataFrame({"year": date_range("1/1/1700", periods=50, freq="A-DEC")})
         # it works!
         repr(df)
+
+    def test_frame_to_string_with_periodindex(self):
+        index = PeriodIndex(["2011-1", "2011-2", "2011-3"], freq="M")
+        frame = DataFrame(np.random.randn(3, 4), index=index)
+
+        # it works!
+        frame.to_string()
