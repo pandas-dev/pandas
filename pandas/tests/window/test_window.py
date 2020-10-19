@@ -50,7 +50,7 @@ def test_constructor_with_win_type(which, win_types):
 @pytest.mark.parametrize("method", ["sum", "mean"])
 def test_numpy_compat(method):
     # see gh-12811
-    w = Window(Series([2, 4, 6]), window=[0, 2])
+    w = Window(Series([2, 4, 6]), window=0)
 
     msg = "numpy operations are not valid with window objects"
 

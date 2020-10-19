@@ -1066,6 +1066,7 @@ class Window(BaseWindow):
         signal = import_optional_dependency(
             "scipy.signal", extra="Scipy is required to generate window weight."
         )
+        assert self.win_type is not None  # for mypy
         window = getattr(signal, self.win_type)(self.window, **kwargs)
         offset = (len(window) - 1) // 2 if self.center else 0
 
