@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections import abc
 from typing import Any, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
@@ -53,7 +53,8 @@ class ArrowStringDtype(ExtensionDtype):
 
     Examples
     --------
-    >>> pd.ArrowStringDtype()
+    >>> from pandas.core.arrays.string_arrow import ArrowStringDtype
+    >>> ArrowStringDtype()
     ArrowStringDtype
     """
 
@@ -223,8 +224,7 @@ class ArrowStringArray(ExtensionArray):
     def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
-    def __getitem__(self, item):
-        # type (Any) -> Any
+    def __getitem__(self, item: Any) -> Any:
         """Select a subset of self.
 
         Parameters
@@ -250,7 +250,7 @@ class ArrowStringArray(ExtensionArray):
         """
         item = check_array_indexer(self, item)
 
-        if isinstance(item, Iterable):
+        if isinstance(item, abc.Iterable):
             if not is_array_like(item):
                 item = np.array(item)
             if len(item) == 0:
@@ -332,8 +332,7 @@ class ArrowStringArray(ExtensionArray):
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
         return pd.array(result.to_pandas().values)
 
-    def __setitem__(self, key, value):
-        # type: (Union[int, np.ndarray], Any) -> None
+    def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
         """Set one or more values inplace.
 
         Parameters
