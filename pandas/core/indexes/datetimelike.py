@@ -398,16 +398,12 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         self,
         reso: Resolution,
         parsed: datetime,
-        use_lhs: bool = True,
-        use_rhs: bool = True,
     ):
         """
         Parameters
         ----------
         reso : Resolution
         parsed : datetime
-        use_lhs : bool, default True
-        use_rhs : bool, default True
 
         Returns
         -------
@@ -422,8 +418,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         if self.is_monotonic:
 
             if len(self) and (
-                (use_lhs and t1 < self[0] and t2 < self[0])
-                or (use_rhs and t1 > self[-1] and t2 > self[-1])
+                (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
             ):
                 # we are out of range
                 raise KeyError
@@ -432,13 +427,13 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
             # a monotonic (sorted) series can be sliced
             # Use asi8.searchsorted to avoid re-validating Periods/Timestamps
-            left = i8vals.searchsorted(unbox(t1), side="left") if use_lhs else None
-            right = i8vals.searchsorted(unbox(t2), side="right") if use_rhs else None
+            left = i8vals.searchsorted(unbox(t1), side="left")
+            right = i8vals.searchsorted(unbox(t2), side="right")
             return slice(left, right)
 
         else:
-            lhs_mask = (i8vals >= unbox(t1)) if use_lhs else True
-            rhs_mask = (i8vals <= unbox(t2)) if use_rhs else True
+            lhs_mask = i8vals >= unbox(t1)
+            rhs_mask = i8vals <= unbox(t2)
 
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
