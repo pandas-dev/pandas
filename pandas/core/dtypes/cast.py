@@ -85,6 +85,7 @@ from pandas.core.dtypes.generic import (
     ABCPeriodArray,
     ABCPeriodIndex,
     ABCSeries,
+    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import (
@@ -93,6 +94,8 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
     notna,
 )
+
+from pandas.core.arrays.timedeltas import TimedeltaArray
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -1307,9 +1310,16 @@ def maybe_infer_to_datetimelike(
        leave inferred dtype 'date' alone
 
     """
-    # TODO: why not timedelta?
     if isinstance(
-        value, (ABCDatetimeIndex, ABCPeriodIndex, ABCDatetimeArray, ABCPeriodArray)
+        value,
+        (
+            ABCDatetimeIndex,
+            ABCPeriodIndex,
+            ABCDatetimeArray,
+            ABCPeriodArray,
+            ABCTimedeltaIndex,
+            TimedeltaArray,
+        ),
     ):
         return value
     elif isinstance(value, ABCSeries):
