@@ -1231,6 +1231,49 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
     )
 
 
+def np_issubclass_compat(unique_dtype, dtypes_set) -> bool:
+    """
+    Check whether the provided dtype is a subclass of, or has an attribute
+    (e.g. _is_numeric) indiciating it is a subclass of any of the dtypes in
+    dtypes_set.
+
+    Parameters
+    ----------
+    unique_dtype : dtype
+        The dtype to check.
+    dtypes_set : array-like
+        The dtypes to check unique_dtype is a sublass of.
+
+    Returns
+    -------
+    boolean
+        Whether or not the unique_dtype is a subclass of dtype_set.
+
+    Examples
+    --------
+    >>> np_issubclass_compat(pd.Int16Dtype(), [np.bool_, np.float])
+    False
+    >>> np_issubclass_compat(pd.Int16Dtype(), [np.integer])
+    True
+    >>> np_issubclass_compat(pd.BooleanDtype(), [np.bool_])
+    True
+    >>> np_issubclass_compat(pd.Float64Dtype(), [np.float])
+    True
+    >>> np_issubclass_compat(pd.Float64Dtype(), [np.number])
+    True
+    >>> import pint_pandas
+    >>> np_issubclass_compat(pint_pandas.PintType("meter"), [np.number])
+    True
+    """
+    if issubclass(unique_dtype.type, tuple(dtypes_set)) or (  # type: ignore
+        np.number in dtypes_set
+        and hasattr(unique_dtype, "_is_numeric")  # is an extensionarray
+        and unique_dtype._is_numeric
+    ):
+        return True
+    return False
+
+
 def is_numeric_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a numeric dtype.

@@ -5,6 +5,43 @@ import pandas as pd
 from pandas import DataFrame, Timestamp
 import pandas._testing as tm
 
+from pandas.core.arrays import ExtensionArray
+from pandas.core.dtypes.dtypes import ExtensionDtype
+
+
+class DummyDtype(ExtensionDtype):
+    type = int
+
+    def __init__(self, numeric):
+        self._numeric = numeric
+
+    @property
+    def name(self):
+        return "Dummy"
+
+    @property
+    def _is_numeric(self):
+        return self._numeric
+
+
+class DummyArray(ExtensionArray):
+    def __init__(self, data, dtype):
+        self.data = data
+        self._dtype = dtype
+
+    def __array__(self, dtype):
+        return self.data
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __getitem__(self, item):
+        pass
+
 
 class TestSelectDtypes:
     def test_select_dtypes_include_using_list_like(self):
@@ -324,3 +361,13 @@ class TestSelectDtypes:
         expected = df
         FLOAT_TYPES = list(np.typecodes["AllFloat"])
         tm.assert_frame_equal(df.select_dtypes(FLOAT_TYPES), expected)
+
+    def test_select_dtypes_numeric(self):
+        # GH 35340
+        da = DummyArray([1, 2], dtype=DummyDtype(numeric=True))
+        df = pd.DataFrame(da)
+        assert df.select_dtypes(np.number).shape == df.shape
+
+        da = DummyArray([1, 2], dtype=DummyDtype(numeric=False))
+        df = pd.DataFrame(da)
+        assert df.select_dtypes(np.number).shape != df.shape

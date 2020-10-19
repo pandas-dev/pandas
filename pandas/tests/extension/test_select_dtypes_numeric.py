@@ -7,7 +7,9 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 
 class DummyDtype(ExtensionDtype):
     type = int
-    _numeric = False
+
+    def __init__(self, numeric):
+        self._numeric = numeric
 
     @property
     def name(self):
@@ -19,10 +21,9 @@ class DummyDtype(ExtensionDtype):
 
 
 class DummyArray(ExtensionArray):
-    _dtype = DummyDtype()
-
-    def __init__(self, data):
+    def __init__(self, data, dtype):
         self.data = data
+        self._dtype = dtype
 
     def __array__(self, dtype):
         return self.data
@@ -39,12 +40,10 @@ class DummyArray(ExtensionArray):
 
 
 def test_select_dtypes_numeric():
-    da = DummyArray([1, 2])
-    da._dtype._numeric = True
+    da = DummyArray([1, 2], dtype=DummyDtype(numeric=True))
     df = pd.DataFrame(da)
     assert df.select_dtypes(np.number).shape == df.shape
 
-    da = DummyArray([1, 2])
-    da._dtype._numeric = False
+    da = DummyArray([1, 2], dtype=DummyDtype(numeric=False))
     df = pd.DataFrame(da)
     assert df.select_dtypes(np.number).shape != df.shape

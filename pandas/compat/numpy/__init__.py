@@ -63,17 +63,6 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
     return np.array(arr, *args, **kwargs)
 
 
-def np_issubclass_compat(unique_dtype, dtypes_set):
-    if (issubclass(unique_dtype.type, tuple(dtypes_set))  # type: ignore
-        or (
-            np.number in dtypes_set
-            and hasattr(unique_dtype, "_is_numeric"  # is an extensionarray
-            and unique_dtype._is_numeric
-    )):
-        return True
-    return False
-
-
 __all__ = [
     "np",
     "_np_version",

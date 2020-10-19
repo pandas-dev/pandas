@@ -62,7 +62,6 @@ from pandas._typing import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
-from pandas.compat.numpy import np_issubclass_compat
 from pandas.util._decorators import (
     Appender,
     Substitution,
@@ -114,6 +113,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     needs_i8_conversion,
     pandas_dtype,
+    np_issubclass_compat,
 )
 from pandas.core.dtypes.missing import isna, notna
 
