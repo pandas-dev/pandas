@@ -815,31 +815,45 @@ class TestAdditionSubtraction:
     # __add__, __sub__, __radd__, __rsub__, __iadd__, __isub__
     # for non-timestamp/timedelta/period dtypes
 
-    # TODO: This came from series.test.test_operators, needs cleanup
-    def test_arith_ops_df_compat(self):
+    @pytest.mark.parametrize(
+        "first, second, expected",
+        [
+            (
+                pd.Series([1, 2, 3], index=list("ABC"), name="x"),
+                pd.Series([2, 2, 2], index=list("ABD"), name="x"),
+                pd.Series([3.0, 4.0, np.nan, np.nan], index=list("ABCD"), name="x"),
+            ),
+            (
+                pd.Series([1, 2, 3], index=list("ABC"), name="x"),
+                pd.Series([2, 2, 2, 2], index=list("ABCD"), name="x"),
+                pd.Series([3, 4, 5, np.nan], index=list("ABCD"), name="x"),
+            ),
+        ],
+    )
+    def test_add_series(self, first, second, expected):
         # GH#1134
-        s1 = pd.Series([1, 2, 3], index=list("ABC"), name="x")
-        s2 = pd.Series([2, 2, 2], index=list("ABD"), name="x")
+        tm.assert_series_equal(first + second, expected)
+        tm.assert_series_equal(second + first, expected)
 
-        exp = pd.Series([3.0, 4.0, np.nan, np.nan], index=list("ABCD"), name="x")
-        tm.assert_series_equal(s1 + s2, exp)
-        tm.assert_series_equal(s2 + s1, exp)
-
-        exp = pd.DataFrame({"x": [3.0, 4.0, np.nan, np.nan]}, index=list("ABCD"))
-        tm.assert_frame_equal(s1.to_frame() + s2.to_frame(), exp)
-        tm.assert_frame_equal(s2.to_frame() + s1.to_frame(), exp)
-
-        # different length
-        s3 = pd.Series([1, 2, 3], index=list("ABC"), name="x")
-        s4 = pd.Series([2, 2, 2, 2], index=list("ABCD"), name="x")
-
-        exp = pd.Series([3, 4, 5, np.nan], index=list("ABCD"), name="x")
-        tm.assert_series_equal(s3 + s4, exp)
-        tm.assert_series_equal(s4 + s3, exp)
-
-        exp = pd.DataFrame({"x": [3, 4, 5, np.nan]}, index=list("ABCD"))
-        tm.assert_frame_equal(s3.to_frame() + s4.to_frame(), exp)
-        tm.assert_frame_equal(s4.to_frame() + s3.to_frame(), exp)
+    @pytest.mark.parametrize(
+        "first, second, expected",
+        [
+            (
+                pd.DataFrame({"x": [1, 2, 3]}, index=list("ABC")),
+                pd.DataFrame({"x": [2, 2, 2]}, index=list("ABD")),
+                pd.DataFrame({"x": [3.0, 4.0, np.nan, np.nan]}, index=list("ABCD")),
+            ),
+            (
+                pd.DataFrame({"x": [1, 2, 3]}, index=list("ABC")),
+                pd.DataFrame({"x": [2, 2, 2, 2]}, index=list("ABCD")),
+                pd.DataFrame({"x": [3, 4, 5, np.nan]}, index=list("ABCD")),
+            ),
+        ],
+    )
+    def test_add_frames(self, first, second, expected):
+        # GH#1134
+        tm.assert_frame_equal(first + second, expected)
+        tm.assert_frame_equal(second + first, expected)
 
     # TODO: This came from series.test.test_operators, needs cleanup
     def test_series_frame_radd_bug(self):
