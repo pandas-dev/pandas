@@ -697,11 +697,7 @@ class TestDataFrameFormatting:
                 float=lambda x: f"[2] {x}",
                 object=lambda x: f"[3] {x}",
             ),
-            [
-                lambda x: f"[1] {x}",
-                lambda x: f"[2] {x}",
-                lambda x: f"[3] {x}"
-            ],
+            [lambda x: f"[1] {x}", lambda x: f"[2] {x}", lambda x: f"[3] {x}"],
         ]
     )
     def test_to_string_with_truncated_formatters(self, formatters):
