@@ -301,8 +301,8 @@ cdef inline int64_t parse_timedelta_string(str ts) except? -1:
 
     if re.search(r"^\d+\s?[M|Y|m|y]$", ts):
         warnings.warn(
-            "Denoting units with 'M', 'Y', 'm' or 'y' do not represent unambiguous "
-            "timedelta values durations and will be removed in a future version",
+            "Units 'M', 'Y', 'm' and 'y' do not represent unambiguous "
+            "timedelta values and will be removed in a future version",
             FutureWarning,
             stacklevel=2,
         )
