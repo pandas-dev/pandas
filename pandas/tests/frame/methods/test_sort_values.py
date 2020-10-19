@@ -77,22 +77,28 @@ class TestDataFrameSortValues:
         )
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", inplace=True)
+        return_value = sorted_df.sort_values(by="A", inplace=True)
+        assert return_value is None
         expected = frame.sort_values(by="A")
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by=1, axis=1, inplace=True)
+        return_value = sorted_df.sort_values(by=1, axis=1, inplace=True)
+        assert return_value is None
         expected = frame.sort_values(by=1, axis=1)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", ascending=False, inplace=True)
+        return_value = sorted_df.sort_values(by="A", ascending=False, inplace=True)
+        assert return_value is None
         expected = frame.sort_values(by="A", ascending=False)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by=["A", "B"], ascending=False, inplace=True)
+        return_value = sorted_df.sort_values(
+            by=["A", "B"], ascending=False, inplace=True
+        )
+        assert return_value is None
         expected = frame.sort_values(by=["A", "B"], ascending=False)
         tm.assert_frame_equal(sorted_df, expected)
 
@@ -544,17 +550,24 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         )
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", inplace=True, key=sort_by_key)
+        return_value = sorted_df.sort_values(by="A", inplace=True, key=sort_by_key)
+        assert return_value is None
         expected = frame.sort_values(by="A", key=sort_by_key)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by=1, axis=1, inplace=True, key=sort_by_key)
+        return_value = sorted_df.sort_values(
+            by=1, axis=1, inplace=True, key=sort_by_key
+        )
+        assert return_value is None
         expected = frame.sort_values(by=1, axis=1, key=sort_by_key)
         tm.assert_frame_equal(sorted_df, expected)
 
         sorted_df = frame.copy()
-        sorted_df.sort_values(by="A", ascending=False, inplace=True, key=sort_by_key)
+        return_value = sorted_df.sort_values(
+            by="A", ascending=False, inplace=True, key=sort_by_key
+        )
+        assert return_value is None
         expected = frame.sort_values(by="A", ascending=False, key=sort_by_key)
         tm.assert_frame_equal(sorted_df, expected)
 
@@ -677,4 +690,24 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
 
         result = df.sort_values(1, key=lambda col: -col, axis=1)
         expected = df.loc[:, ::-1]
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("ordered", [True, False])
+    def test_sort_values_key_casts_to_categorical(self, ordered):
+        # https://github.com/pandas-dev/pandas/issues/36383
+        categories = ["c", "b", "a"]
+        df = pd.DataFrame({"x": [1, 1, 1], "y": ["a", "b", "c"]})
+
+        def sorter(key):
+            if key.name == "y":
+                return pd.Series(
+                    pd.Categorical(key, categories=categories, ordered=ordered)
+                )
+            return key
+
+        result = df.sort_values(by=["x", "y"], key=sorter)
+        expected = pd.DataFrame(
+            {"x": [1, 1, 1], "y": ["c", "b", "a"]}, index=pd.Index([2, 1, 0])
+        )
+
         tm.assert_frame_equal(result, expected)

@@ -108,7 +108,7 @@ def test_ewma_halflife_without_times(halflife_with_times):
 @pytest.mark.parametrize("min_periods", [0, 2])
 def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     halflife = halflife_with_times
-    data = np.arange(10)
+    data = np.arange(10.0)
     data[::2] = np.nan
     df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
     result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()

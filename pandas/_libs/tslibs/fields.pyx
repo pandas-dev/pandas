@@ -6,26 +6,37 @@ from locale import LC_TIME
 
 import cython
 from cython import Py_ssize_t
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, int32_t, int8_t, uint32_t
+from numpy cimport int8_t, int32_t, int64_t, ndarray, uint32_t
+
 cnp.import_array()
 
 from pandas._config.localization import set_locale
 
-from pandas._libs.tslibs.ccalendar import MONTHS_FULL, DAYS_FULL
+from pandas._libs.tslibs.ccalendar import DAYS_FULL, MONTHS_FULL
+
 from pandas._libs.tslibs.ccalendar cimport (
-    get_days_in_month, is_leapyear, dayofweek, get_week_of_year,
-    get_day_of_year, get_iso_calendar, iso_calendar_t,
-    month_offset,
+    dayofweek,
+    get_day_of_year,
+    get_days_in_month,
     get_firstbday,
+    get_iso_calendar,
     get_lastbday,
+    get_week_of_year,
+    is_leapyear,
+    iso_calendar_t,
+    month_offset,
 )
-from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct, pandas_timedeltastruct, dt64_to_dtstruct,
-    td64_to_tdstruct)
 from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.np_datetime cimport (
+    dt64_to_dtstruct,
+    npy_datetimestruct,
+    pandas_timedeltastruct,
+    td64_to_tdstruct,
+)
+
 from pandas._libs.tslibs.strptime import LocaleTime
 
 
@@ -71,6 +82,46 @@ def build_field_sarray(const int64_t[:] dtindex):
         mus[i] = dts.us
 
     return out
+
+
+def month_position_check(fields, weekdays):
+    cdef:
+        int32_t daysinmonth, y, m, d
+        bint calendar_end = True
+        bint business_end = True
+        bint calendar_start = True
+        bint business_start = True
+        bint cal
+        int32_t[:] years = fields["Y"]
+        int32_t[:] months = fields["M"]
+        int32_t[:] days = fields["D"]
+
+    for y, m, d, wd in zip(years, months, days, weekdays):
+        if calendar_start:
+            calendar_start &= d == 1
+        if business_start:
+            business_start &= d == 1 or (d <= 3 and wd == 0)
+
+        if calendar_end or business_end:
+            daysinmonth = get_days_in_month(y, m)
+            cal = d == daysinmonth
+            if calendar_end:
+                calendar_end &= cal
+            if business_end:
+                business_end &= cal or (daysinmonth - d < 3 and wd == 4)
+        elif not calendar_start and not business_start:
+            break
+
+    if calendar_end:
+        return "ce"
+    elif business_end:
+        return "be"
+    elif calendar_start:
+        return "cs"
+    elif business_start:
+        return "bs"
+    else:
+        return None
 
 
 @cython.wraparound(False)

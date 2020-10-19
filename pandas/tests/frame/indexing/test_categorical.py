@@ -326,7 +326,10 @@ class TestDataFrameIndexingCategorical:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        exp_fancy["cats"].cat.set_categories(["a", "b", "c"], inplace=True)
+        return_value = exp_fancy["cats"].cat.set_categories(
+            ["a", "b", "c"], inplace=True
+        )
+        assert return_value is None
 
         df[df["cats"] == "c"] = ["b", 2]
         # category c is kept in .categories
@@ -391,3 +394,14 @@ class TestDataFrameIndexingCategorical:
 
         result = df.loc[["a"]].index.levels[0]
         tm.assert_index_equal(result, expected)
+
+    def test_categorical_filtering(self):
+        # GH22609 Verify filtering operations on DataFrames with categorical Series
+        df = pd.DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
+        df["b"] = df.b.astype("category")
+
+        result = df.where(df.a > 0)
+        expected = df.copy()
+        expected.loc[0, :] = np.nan
+
+        tm.assert_equal(result, expected)

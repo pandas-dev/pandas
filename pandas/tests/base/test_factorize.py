@@ -26,3 +26,16 @@ def test_factorize(index_or_series_obj, sort):
 
     tm.assert_numpy_array_equal(result_codes, expected_codes)
     tm.assert_index_equal(result_uniques, expected_uniques)
+
+
+def test_series_factorize_na_sentinel_none():
+    # GH35667
+    values = np.array([1, 2, 1, np.nan])
+    ser = pd.Series(values)
+    codes, uniques = ser.factorize(na_sentinel=None)
+
+    expected_codes = np.array([0, 1, 0, 2], dtype=np.intp)
+    expected_uniques = pd.Index([1.0, 2.0, np.nan])
+
+    tm.assert_numpy_array_equal(codes, expected_codes)
+    tm.assert_index_equal(uniques, expected_uniques)

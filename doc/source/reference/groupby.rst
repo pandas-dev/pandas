@@ -128,6 +128,7 @@ The following methods are available only for ``SeriesGroupBy`` objects.
 .. autosummary::
    :toctree: api/
 
+   SeriesGroupBy.hist
    SeriesGroupBy.nlargest
    SeriesGroupBy.nsmallest
    SeriesGroupBy.nunique

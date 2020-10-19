@@ -71,6 +71,7 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match="^$"):
             s.loc[[-1, 3]]
 
+    @pytest.mark.arm_slow
     def test_large_series(self):
         s = Series(
             np.arange(1000000), index=IntervalIndex.from_breaks(np.arange(1000001))

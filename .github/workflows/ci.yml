@@ -4,7 +4,9 @@ on:
   push:
     branches: master
   pull_request:
-    branches: master
+    branches:
+      - master
+      - 1.1.x
 
 env:
   ENV_FILE: environment.yml
@@ -123,7 +125,7 @@ jobs:
     # This can be removed when the ipython directive fails when there are errors,
     # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
     - name: Check ipython directive errors
-      run: "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
+      run: "! grep -B10 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
 
     - name: Install ssh key
       run: |

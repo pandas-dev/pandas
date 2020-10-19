@@ -358,63 +358,33 @@ class TestDataFrameToCSV:
 
         N = 100
         chunksize = 1000
-
-        for ncols in [4]:
-            base = int((chunksize // ncols or 1) or 1)
-            for nrows in [
-                2,
-                10,
-                N - 1,
-                N,
-                N + 1,
-                N + 2,
-                2 * N - 2,
-                2 * N - 1,
-                2 * N,
-                2 * N + 1,
-                2 * N + 2,
-                base - 1,
-                base,
-                base + 1,
-            ]:
-                _do_test(
-                    tm.makeCustomDataframe(
-                        nrows, ncols, r_idx_type="dt", c_idx_type="s"
-                    ),
-                    "dt",
-                    "s",
-                )
-
-        for ncols in [4]:
-            base = int((chunksize // ncols or 1) or 1)
-            for nrows in [
-                2,
-                10,
-                N - 1,
-                N,
-                N + 1,
-                N + 2,
-                2 * N - 2,
-                2 * N - 1,
-                2 * N,
-                2 * N + 1,
-                2 * N + 2,
-                base - 1,
-                base,
-                base + 1,
-            ]:
-                _do_test(
-                    tm.makeCustomDataframe(
-                        nrows, ncols, r_idx_type="dt", c_idx_type="s"
-                    ),
-                    "dt",
-                    "s",
-                )
-                pass
+        ncols = 4
+        base = chunksize // ncols
+        for nrows in [
+            2,
+            10,
+            N - 1,
+            N,
+            N + 1,
+            N + 2,
+            2 * N - 2,
+            2 * N - 1,
+            2 * N,
+            2 * N + 1,
+            2 * N + 2,
+            base - 1,
+            base,
+            base + 1,
+        ]:
+            _do_test(
+                tm.makeCustomDataframe(nrows, ncols, r_idx_type="dt", c_idx_type="s"),
+                "dt",
+                "s",
+            )
 
         for r_idx_type, c_idx_type in [("i", "i"), ("s", "s"), ("u", "dt"), ("p", "p")]:
             for ncols in [1, 2, 3, 4]:
-                base = int((chunksize // ncols or 1) or 1)
+                base = chunksize // ncols
                 for nrows in [
                     2,
                     10,
@@ -440,7 +410,7 @@ class TestDataFrameToCSV:
                     )
 
         for ncols in [1, 2, 3, 4]:
-            base = int((chunksize // ncols or 1) or 1)
+            base = chunksize // ncols
             for nrows in [
                 10,
                 N - 2,
@@ -570,7 +540,8 @@ class TestDataFrameToCSV:
             from_df.to_csv(path, index=False, header=["X", "Y"])
             recons = self.read_csv(path)
 
-            recons.reset_index(inplace=True)
+            return_value = recons.reset_index(inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(to_df, recons)
 
     def test_to_csv_multiindex(self, float_frame, datetime_frame):

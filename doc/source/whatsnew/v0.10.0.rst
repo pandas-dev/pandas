@@ -49,8 +49,8 @@ talking about:
    :okwarning:
 
    import pandas as pd
-   df = pd.DataFrame(np.random.randn(6, 4),
-                     index=pd.date_range('1/1/2000', periods=6))
+
+   df = pd.DataFrame(np.random.randn(6, 4), index=pd.date_range("1/1/2000", periods=6))
    df
    # deprecated now
    df - df[0]
@@ -184,12 +184,14 @@ labeled the aggregated group with the end of the interval: the next day).
 
     import io
 
-    data = ('a,b,c\n'
-            '1,Yes,2\n'
-            '3,No,4')
+    data = """
+    a,b,c
+    1,Yes,2
+    3,No,4
+    """
     print(data)
     pd.read_csv(io.StringIO(data), header=None)
-    pd.read_csv(io.StringIO(data), header=None, prefix='X')
+    pd.read_csv(io.StringIO(data), header=None, prefix="X")
 
 - Values like ``'Yes'`` and ``'No'`` are not interpreted as boolean by default,
   though this can be controlled by new ``true_values`` and ``false_values``
@@ -199,7 +201,7 @@ labeled the aggregated group with the end of the interval: the next day).
 
     print(data)
     pd.read_csv(io.StringIO(data))
-    pd.read_csv(io.StringIO(data), true_values=['Yes'], false_values=['No'])
+    pd.read_csv(io.StringIO(data), true_values=["Yes"], false_values=["No"])
 
 - The file parsers will not recognize non-string values arising from a
   converter function as NA if passed in the ``na_values`` argument. It's better
@@ -210,10 +212,10 @@ labeled the aggregated group with the end of the interval: the next day).
 
 .. ipython:: python
 
-   s = pd.Series([np.nan, 1., 2., np.nan, 4])
+   s = pd.Series([np.nan, 1.0, 2.0, np.nan, 4])
    s
    s.fillna(0)
-   s.fillna(method='pad')
+   s.fillna(method="pad")
 
 Convenience methods ``ffill`` and  ``bfill`` have been added:
 
@@ -229,7 +231,8 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
   .. ipython:: python
 
       def f(x):
-          return pd.Series([x, x**2], index=['x', 'x^2'])
+          return pd.Series([x, x ** 2], index=["x", "x^2"])
+
 
       s = pd.Series(np.random.rand(5))
       s
@@ -272,20 +275,20 @@ The old behavior of printing out summary information can be achieved via the
 
 .. ipython:: python
 
-   pd.set_option('expand_frame_repr', False)
+   pd.set_option("expand_frame_repr", False)
 
    wide_frame
 
 .. ipython:: python
    :suppress:
 
-   pd.reset_option('expand_frame_repr')
+   pd.reset_option("expand_frame_repr")
 
 The width of each line can be changed via 'line_width' (80 by default):
 
 .. code-block:: python
 
-   pd.set_option('line_width', 40)
+   pd.set_option("line_width", 40)
 
    wide_frame
 

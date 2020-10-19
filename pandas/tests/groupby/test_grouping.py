@@ -191,11 +191,13 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        result = g.apply(lambda x: x.sum())
-        tm.assert_frame_equal(result, expected)
-
         g = df.groupby(pd.Grouper(key="A", axis=0))
         result = g.sum()
+        tm.assert_frame_equal(result, expected)
+
+        result = g.apply(lambda x: x.sum())
+        expected["A"] = [0, 2, 4]
+        expected = expected.loc[:, ["A", "B"]]
         tm.assert_frame_equal(result, expected)
 
         # GH14334
@@ -737,7 +739,7 @@ class TestGetGroup:
         with pytest.raises(ValueError, match=msg):
             g.get_group("foo")
         with pytest.raises(ValueError, match=msg):
-            g.get_group(("foo"))
+            g.get_group("foo")
         msg = "must supply a same-length tuple to get_group with multiple grouping keys"
         with pytest.raises(ValueError, match=msg):
             g.get_group(("foo", "bar", "baz"))

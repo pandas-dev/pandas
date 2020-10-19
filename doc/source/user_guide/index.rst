@@ -33,6 +33,7 @@ Further information on any specific method can be obtained in the
     reshaping
     text
     missing_data
+    duplicates
     categorical
     integer_na
     boolean

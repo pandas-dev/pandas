@@ -1,7 +1,8 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
 import numpy as np
-from numpy cimport ndarray, int64_t
+
+from numpy cimport int64_t, ndarray
 
 # Cython routines for window indexers
 

@@ -732,11 +732,11 @@ class TestWideToLong:
         )
         df["id"] = df.index
         exp_data = {
-            "X": ["X1", "X2", "X1", "X2"],
-            "A": [1.0, 2.0, 3.0, 4.0],
-            "B": [5.0, 6.0, np.nan, np.nan],
-            "id": [0, 1, 0, 1],
-            "year": [2010, 2010, 2011, 2011],
+            "X": ["X1", "X1", "X2", "X2"],
+            "A": [1.0, 3.0, 2.0, 4.0],
+            "B": [5.0, np.nan, 6.0, np.nan],
+            "id": [0, 0, 1, 1],
+            "year": [2010, 2011, 2010, 2011],
         }
         expected = pd.DataFrame(exp_data)
         expected = expected.set_index(["id", "year"])[["X", "A", "B"]]
@@ -799,7 +799,7 @@ class TestWideToLong:
         expected = expected.set_index(["id", "year"])[
             ["X", "A2010", "A2011", "B2010", "A", "B"]
         ]
-        expected.index.set_levels([0, 1], level=0, inplace=True)
+        expected.index = expected.index.set_levels([0, 1], level=0)
         result = wide_to_long(df, ["A", "B"], i="id", j="year", sep=sep)
         tm.assert_frame_equal(result.sort_index(axis=1), expected.sort_index(axis=1))
 
@@ -861,7 +861,7 @@ class TestWideToLong:
         expected = pd.DataFrame(exp_data).astype({"year": "int"})
 
         expected = expected.set_index(["id", "year"])
-        expected.index.set_levels([0, 1], level=0, inplace=True)
+        expected.index = expected.index.set_levels([0, 1], level=0)
         result = wide_to_long(df, ["A", "B"], i="id", j="year")
         tm.assert_frame_equal(result.sort_index(axis=1), expected.sort_index(axis=1))
 
@@ -979,10 +979,10 @@ class TestWideToLong:
         )
         expected = pd.DataFrame(
             {
-                "A": ["X1", "X2", "X1", "X2"],
-                "colname": ["placebo", "placebo", "test", "test"],
-                "result": [5.0, 6.0, np.nan, np.nan],
-                "treatment": [1.0, 2.0, 3.0, 4.0],
+                "A": ["X1", "X1", "X2", "X2"],
+                "colname": ["placebo", "test", "placebo", "test"],
+                "result": [5.0, np.nan, 6.0, np.nan],
+                "treatment": [1.0, 3.0, 2.0, 4.0],
             }
         )
         expected = expected.set_index(["A", "colname"])
@@ -1026,10 +1026,10 @@ class TestWideToLong:
         )
         expected = pd.DataFrame(
             {
-                "A": ["X1", "X2", "X1", "X2", "X1", "X2", "X1", "X2"],
-                "colname": [1.2, 1.2, 1.0, 1.0, 1.1, 1.1, 2.1, 2.1],
-                "result": [5.0, 6.0, 0.0, 9.0, np.nan, np.nan, np.nan, np.nan],
-                "treatment": [np.nan, np.nan, np.nan, np.nan, 1.0, 2.0, 3.0, 4.0],
+                "A": ["X1", "X1", "X1", "X1", "X2", "X2", "X2", "X2"],
+                "colname": [1, 1.1, 1.2, 2.1, 1, 1.1, 1.2, 2.1],
+                "result": [0.0, np.nan, 5.0, np.nan, 9.0, np.nan, 6.0, np.nan],
+                "treatment": [np.nan, 1.0, np.nan, 3.0, np.nan, 2.0, np.nan, 4.0],
             }
         )
         expected = expected.set_index(["A", "colname"])

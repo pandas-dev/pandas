@@ -137,13 +137,13 @@ class TestSeriesDtypes:
         ts = Series([Timestamp("2010-01-04 00:00:00")])
         s = ts.astype(str)
 
-        expected = Series([str("2010-01-04")])
+        expected = Series(["2010-01-04"])
         tm.assert_series_equal(s, expected)
 
         ts = Series([Timestamp("2010-01-04 00:00:00", tz="US/Eastern")])
         s = ts.astype(str)
 
-        expected = Series([str("2010-01-04 00:00:00-05:00")])
+        expected = Series(["2010-01-04 00:00:00-05:00"])
         tm.assert_series_equal(s, expected)
 
     def test_astype_str_cast_td64(self):
@@ -152,7 +152,7 @@ class TestSeriesDtypes:
         td = Series([Timedelta(1, unit="d")])
         ser = td.astype(str)
 
-        expected = Series([str("1 days")])
+        expected = Series(["1 days"])
         tm.assert_series_equal(ser, expected)
 
     def test_astype_unicode(self):
@@ -167,7 +167,7 @@ class TestSeriesDtypes:
         former_encoding = None
 
         if sys.getdefaultencoding() == "utf-8":
-            test_series.append(Series(["野菜食べないとやばい".encode("utf-8")]))
+            test_series.append(Series(["野菜食べないとやばい".encode()]))
 
         for s in test_series:
             res = s.astype("unicode")

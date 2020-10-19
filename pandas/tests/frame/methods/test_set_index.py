@@ -137,7 +137,8 @@ class TestSetIndex:
 
         if inplace:
             result = df.copy()
-            result.set_index(keys, drop=drop, inplace=True)
+            return_value = result.set_index(keys, drop=drop, inplace=True)
+            assert return_value is None
         else:
             result = df.set_index(keys, drop=drop)
 

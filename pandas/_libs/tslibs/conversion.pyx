@@ -1,44 +1,68 @@
 import cython
-
 import numpy as np
+
 cimport numpy as cnp
-from numpy cimport int64_t, int32_t, intp_t, ndarray
+from numpy cimport int32_t, int64_t, intp_t, ndarray
+
 cnp.import_array()
 
 import pytz
 
 # stdlib datetime imports
-from cpython.datetime cimport (datetime, time, tzinfo,
-                               PyDateTime_Check, PyDate_Check,
-                               PyDateTime_IMPORT)
+
+from cpython.datetime cimport (
+    PyDate_Check,
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    datetime,
+    time,
+    tzinfo,
+)
+
 PyDateTime_IMPORT
 
 from pandas._libs.tslibs.base cimport ABCTimestamp
-
 from pandas._libs.tslibs.np_datetime cimport (
-    check_dts_bounds, npy_datetimestruct, pandas_datetime_to_datetimestruct,
-    _string_to_dts, npy_datetime, dt64_to_dtstruct, dtstruct_to_dt64,
-    get_datetime64_unit, get_datetime64_value, pydatetime_to_dt64,
-    NPY_DATETIMEUNIT, NPY_FR_ns)
+    NPY_DATETIMEUNIT,
+    NPY_FR_ns,
+    _string_to_dts,
+    check_dts_bounds,
+    dt64_to_dtstruct,
+    dtstruct_to_dt64,
+    get_datetime64_unit,
+    get_datetime64_value,
+    npy_datetime,
+    npy_datetimestruct,
+    pandas_datetime_to_datetimestruct,
+    pydatetime_to_dt64,
+)
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
-from pandas._libs.tslibs.util cimport (
-    is_datetime64_object, is_integer_object, is_float_object)
-
 from pandas._libs.tslibs.timezones cimport (
-    is_utc, is_tzlocal, is_fixed_offset, get_utcoffset, get_dst_info,
-    maybe_get_tz, tz_compare,
+    get_dst_info,
+    get_utcoffset,
+    is_fixed_offset,
+    is_tzlocal,
+    is_utc,
+    maybe_get_tz,
+    tz_compare,
     utc_pytz as UTC,
 )
+from pandas._libs.tslibs.util cimport (
+    is_datetime64_object,
+    is_float_object,
+    is_integer_object,
+)
+
 from pandas._libs.tslibs.parsing import parse_datetime_string
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
-    checknull_with_nat,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
+    checknull_with_nat,
 )
-
 from pandas._libs.tslibs.tzconversion cimport (
     tz_convert_utc_to_tzlocal,
     tz_localize_to_utc_single,
@@ -49,6 +73,15 @@ from pandas._libs.tslibs.tzconversion cimport (
 
 DT64NS_DTYPE = np.dtype('M8[ns]')
 TD64NS_DTYPE = np.dtype('m8[ns]')
+
+
+class OutOfBoundsTimedelta(ValueError):
+    """
+    Raised when encountering a timedelta value that cannot be represented
+    as a timedelta64[ns].
+    """
+    # Timedelta analogue to OutOfBoundsDatetime
+    pass
 
 
 # ----------------------------------------------------------------------
@@ -228,11 +261,34 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
 
     Returns
     -------
-    result : ndarray with dtype timedelta64[ns]
-
+    ndarray[timedelta64[ns]]
     """
-    return arr.astype(TD64NS_DTYPE, copy=copy)
-    # TODO: check for overflows when going from a lower-resolution to nanos
+    assert arr.dtype.kind == "m", arr.dtype
+
+    if arr.dtype == TD64NS_DTYPE:
+        return arr.copy() if copy else arr
+
+    # Re-use the datetime64 machinery to do an overflow-safe `astype`
+    dtype = arr.dtype.str.replace("m8", "M8")
+    dummy = arr.view(dtype)
+    try:
+        dt64_result = ensure_datetime64ns(dummy, copy)
+    except OutOfBoundsDatetime as err:
+        # Re-write the exception in terms of timedelta64 instead of dt64
+
+        # Find the value that we are going to report as causing an overflow
+        tdmin = arr.min()
+        tdmax = arr.max()
+        if np.abs(tdmin) >= np.abs(tdmax):
+            bad_val = tdmin
+        else:
+            bad_val = tdmax
+
+        raise OutOfBoundsTimedelta(
+            f"Out of bounds for nanosecond {arr.dtype.name} {bad_val}"
+        )
+
+    return dt64_result.view(TD64NS_DTYPE)
 
 
 # ----------------------------------------------------------------------
@@ -607,11 +663,20 @@ cdef inline check_overflows(_TSObject obj):
     # GH#12677
     if obj.dts.year == 1677:
         if not (obj.value < 0):
-            raise OutOfBoundsDatetime
+            from pandas._libs.tslibs.timestamps import Timestamp
+            fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
+                   f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
+            raise OutOfBoundsDatetime(
+                f"Converting {fmt} underflows past {Timestamp.min}"
+            )
     elif obj.dts.year == 2262:
         if not (obj.value > 0):
-            raise OutOfBoundsDatetime
-
+            from pandas._libs.tslibs.timestamps import Timestamp
+            fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
+                   f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
+            raise OutOfBoundsDatetime(
+                f"Converting {fmt} overflows past {Timestamp.max}"
+            )
 
 # ----------------------------------------------------------------------
 # Localization
@@ -765,7 +830,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 # ----------------------------------------------------------------------
 # Normalization
 
-@cython.cdivision
+@cython.cdivision(False)
 cdef inline int64_t normalize_i8_stamp(int64_t local_val) nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.

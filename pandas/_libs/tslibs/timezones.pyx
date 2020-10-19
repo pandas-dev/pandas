@@ -1,27 +1,31 @@
-from datetime import timezone
+from datetime import timedelta, timezone
+
 from cpython.datetime cimport datetime, timedelta, tzinfo
 
 # dateutil compat
+
 from dateutil.tz import (
     gettz as dateutil_gettz,
     tzfile as _dateutil_tzfile,
     tzlocal as _dateutil_tzlocal,
     tzutc as _dateutil_tzutc,
 )
-
-
-from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
 import pytz
+from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
+
 UTC = pytz.utc
 
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t
+
 cnp.import_array()
 
 # ----------------------------------------------------------------------
-from pandas._libs.tslibs.util cimport is_integer_object, get_nat
+from pandas._libs.tslibs.util cimport get_nat, is_integer_object
+
 
 cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
@@ -98,6 +102,14 @@ cpdef inline tzinfo maybe_get_tz(object tz):
             # On Python 3 on Windows, the filename is not always set correctly.
             if isinstance(tz, _dateutil_tzfile) and '.tar.gz' in tz._filename:
                 tz._filename = zone
+        elif tz[0] in {'-', '+'}:
+            hours = int(tz[0:3])
+            minutes = int(tz[0] + tz[4:6])
+            tz = timezone(timedelta(hours=hours, minutes=minutes))
+        elif tz[0:4] in {'UTC-', 'UTC+'}:
+            hours = int(tz[3:6])
+            minutes = int(tz[3] + tz[7:9])
+            tz = timezone(timedelta(hours=hours, minutes=minutes))
         else:
             tz = pytz.timezone(tz)
     elif is_integer_object(tz):

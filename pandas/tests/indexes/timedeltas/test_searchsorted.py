@@ -17,7 +17,7 @@ class TestSearchSorted:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "arg", [[1, 2], ["a", "b"], [Timestamp("2020-01-01", tz="Europe/London")] * 2],
+        "arg", [[1, 2], ["a", "b"], [Timestamp("2020-01-01", tz="Europe/London")] * 2]
     )
     def test_searchsorted_invalid_argument_dtype(self, arg):
         idx = TimedeltaIndex(["1 day", "2 days", "3 days"])
