@@ -230,18 +230,6 @@ class TestDataFrameDataTypes:
     def test_is_homogeneous_type(self, data, expected):
         assert data._is_homogeneous_type is expected
 
-    def test_is_homogeneous_type_clears_cache(self):
-        ser = pd.Series([1, 2, 3])
-        df = ser.to_frame("A")
-        df["B"] = ser
-
-        assert len(df._mgr.blocks) == 2
-
-        a = df["B"]  # caches lookup
-        df._is_homogeneous_type  # _should_ clear cache
-        assert len(df._mgr.blocks) == 1
-        assert df["B"] is not a
-
     def test_asarray_homogenous(self):
         df = pd.DataFrame({"A": pd.Categorical([1, 2]), "B": pd.Categorical([1, 2])})
         result = np.asarray(df)

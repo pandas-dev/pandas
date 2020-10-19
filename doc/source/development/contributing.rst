@@ -206,7 +206,7 @@ You will need `Build Tools for Visual Studio 2017
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
 	In the installer, select the "C++ build tools" workload.
 
-**Mac OS**
+**macOS**
 
 Information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
@@ -299,7 +299,7 @@ Creating a Python environment (pip)
 If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least Python 3.6.1 installed on your system.
 
-**Unix**/**Mac OS with virtualenv**
+**Unix**/**macOS with virtualenv**
 
 .. code-block:: bash
 
@@ -318,7 +318,7 @@ You'll need to have at least Python 3.6.1 installed on your system.
    python setup.py build_ext --inplace -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
-**Unix**/**Mac OS with pyenv**
+**Unix**/**macOS with pyenv**
 
 Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
 
@@ -836,6 +836,9 @@ to run its checks by running::
     pre-commit run --files <files you have modified>
 
 without having to have done ``pre-commit install`` beforehand.
+
+Note that if you have conflicting installations of ``virtualenv``, then you may get an
+error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1362,16 +1365,16 @@ environments. If you want to use virtualenv instead, write::
 The ``-E virtualenv`` option should be added to all ``asv`` commands
 that run benchmarks. The default value is defined in ``asv.conf.json``.
 
-Running the full test suite can take up to one hour and use up to 3GB of RAM.
-Usually it is sufficient to paste only a subset of the results into the pull
-request to show that the committed changes do not cause unexpected performance
-regressions.  You can run specific benchmarks using the ``-b`` flag, which
-takes a regular expression.  For example, this will only run tests from a
-``pandas/asv_bench/benchmarks/groupby.py`` file::
+Running the full benchmark suite can be an all-day process, depending on your
+hardware and its resource utilization. However, usually it is sufficient to paste
+only a subset of the results into the pull request to show that the committed changes
+do not cause unexpected performance regressions.  You can run specific benchmarks
+using the ``-b`` flag, which takes a regular expression. For example, this will
+only run benchmarks from a ``pandas/asv_bench/benchmarks/groupby.py`` file::
 
     asv continuous -f 1.1 upstream/master HEAD -b ^groupby
 
-If you want to only run a specific group of tests from a file, you can do it
+If you want to only run a specific group of benchmarks from a file, you can do it
 using ``.`` as a separator. For example::
 
     asv continuous -f 1.1 upstream/master HEAD -b groupby.GroupByMethods

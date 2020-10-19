@@ -1,7 +1,15 @@
+from numpy cimport intp_t, ndarray
+
 from pandas._libs.khash cimport (
-    kh_int64_t, kh_uint64_t, kh_float64_t, kh_pymap_t, kh_str_t, uint64_t,
-    int64_t, float64_t)
-from numpy cimport ndarray, intp_t
+    float64_t,
+    int64_t,
+    kh_float64_t,
+    kh_int64_t,
+    kh_pymap_t,
+    kh_str_t,
+    kh_uint64_t,
+    uint64_t,
+)
 
 # prototypes for sharing
 

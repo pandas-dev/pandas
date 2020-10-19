@@ -1,4 +1,3 @@
-import operator
 from typing import TYPE_CHECKING, Type, Union
 
 import numpy as np
@@ -15,7 +14,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas import compat
 from pandas.core import ops
 from pandas.core.arrays import IntegerArray, PandasArray
 from pandas.core.arrays.integer import _IntegerDtype
@@ -314,55 +312,38 @@ class StringArray(PandasArray):
             return result + lib.memory_usage_of_objects(self._ndarray)
         return result
 
-    # Override parent because we have different return types.
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        # Note: this handles both arithmetic and comparison methods.
+    def _cmp_method(self, other, op):
+        from pandas.arrays import BooleanArray
 
-        @ops.unpack_zerodim_and_defer(op.__name__)
-        def method(self, other):
-            from pandas.arrays import BooleanArray
+        if isinstance(other, StringArray):
+            other = other._ndarray
 
-            assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
+        mask = isna(self) | isna(other)
+        valid = ~mask
 
-            if isinstance(other, cls):
-                other = other._ndarray
+        if not lib.is_scalar(other):
+            if len(other) != len(self):
+                # prevent improper broadcasting when other is 2D
+                raise ValueError(
+                    f"Lengths of operands do not match: {len(self)} != {len(other)}"
+                )
 
-            mask = isna(self) | isna(other)
-            valid = ~mask
+            other = np.asarray(other)
+            other = other[valid]
 
-            if not lib.is_scalar(other):
-                if len(other) != len(self):
-                    # prevent improper broadcasting when other is 2D
-                    raise ValueError(
-                        f"Lengths of operands do not match: {len(self)} != {len(other)}"
-                    )
+        if op.__name__ in ops.ARITHMETIC_BINOPS:
+            result = np.empty_like(self._ndarray, dtype="object")
+            result[mask] = StringDtype.na_value
+            result[valid] = op(self._ndarray[valid], other)
+            return StringArray(result)
+        else:
+            # logical
+            result = np.zeros(len(self._ndarray), dtype="bool")
+            result[valid] = op(self._ndarray[valid], other)
+            return BooleanArray(result, mask)
 
-                other = np.asarray(other)
-                other = other[valid]
+    _arith_method = _cmp_method
 
-            if op.__name__ in ops.ARITHMETIC_BINOPS:
-                result = np.empty_like(self._ndarray, dtype="object")
-                result[mask] = StringDtype.na_value
-                result[valid] = op(self._ndarray[valid], other)
-                return StringArray(result)
-            else:
-                # logical
-                result = np.zeros(len(self._ndarray), dtype="bool")
-                result[valid] = op(self._ndarray[valid], other)
-                return BooleanArray(result, mask)
-
-        return compat.set_function_name(method, f"__{op.__name__}__", cls)
-
-    @classmethod
-    def _add_arithmetic_ops(cls):
-        cls.__add__ = cls._create_arithmetic_method(operator.add)
-        cls.__radd__ = cls._create_arithmetic_method(ops.radd)
-
-        cls.__mul__ = cls._create_arithmetic_method(operator.mul)
-        cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
-
-    _create_comparison_method = _create_arithmetic_method
     # ------------------------------------------------------------------------
     # String methods interface
     _str_na_value = StringDtype.na_value
@@ -415,7 +396,3 @@ class StringArray(PandasArray):
             #    or .findall returns a list).
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
-
-
-StringArray._add_arithmetic_ops()
-StringArray._add_comparison_ops()

@@ -9,7 +9,7 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY38
+from pandas.compat import PY38, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -125,6 +125,21 @@ def df_full():
     )
 
 
+@pytest.fixture(
+    params=[
+        datetime.datetime.now(datetime.timezone.utc),
+        datetime.datetime.now(datetime.timezone.min),
+        datetime.datetime.now(datetime.timezone.max),
+        datetime.datetime.strptime("2019-01-04T16:41:24+0200", "%Y-%m-%dT%H:%M:%S%z"),
+        datetime.datetime.strptime("2019-01-04T16:41:24+0215", "%Y-%m-%dT%H:%M:%S%z"),
+        datetime.datetime.strptime("2019-01-04T16:41:24-0200", "%Y-%m-%dT%H:%M:%S%z"),
+        datetime.datetime.strptime("2019-01-04T16:41:24-0215", "%Y-%m-%dT%H:%M:%S%z"),
+    ]
+)
+def timezone_aware_date_list(request):
+    return request.param
+
+
 def check_round_trip(
     df,
     engine=None,
@@ -134,6 +149,7 @@ def check_round_trip(
     expected=None,
     check_names=True,
     check_like=False,
+    check_dtype=True,
     repeat=2,
 ):
     """Verify parquet serializer and deserializer produce the same results.
@@ -175,7 +191,11 @@ def check_round_trip(
                 actual = read_parquet(path, **read_kwargs)
 
             tm.assert_frame_equal(
-                expected, actual, check_names=check_names, check_like=check_like
+                expected,
+                actual,
+                check_names=check_names,
+                check_like=check_like,
+                check_dtype=check_dtype,
             )
 
     if path is None:
@@ -539,6 +559,11 @@ class TestParquetPyArrow(Base):
             expected = df.astype(object)
             check_round_trip(df, pa, expected=expected)
 
+    @pytest.mark.xfail(
+        is_platform_windows() and PY38,
+        reason="localhost connection rejected",
+        strict=False,
+    )
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
@@ -739,6 +764,21 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": "2.0"})
 
+    def test_timezone_aware_index(self, pa, timezone_aware_date_list):
+        idx = 5 * [timezone_aware_date_list]
+        df = pd.DataFrame(index=idx, data={"index_as_col": idx})
+
+        # see gh-36004
+        # compare time(zone) values only, skip their class:
+        # pyarrow always creates fixed offset timezones using pytz.FixedOffset()
+        # even if it was datetime.timezone() originally
+        #
+        # technically they are the same:
+        # they both implement datetime.tzinfo
+        # they both wrap datetime.timedelta()
+        # this use-case sets the resolution to 1 minute
+        check_round_trip(df, pa, check_dtype=False)
+
     @td.skip_if_no("pyarrow", min_version="0.17")
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
@@ -874,6 +914,15 @@ class TestParquetFastParquet(Base):
     def test_empty_dataframe(self, fp):
         # GH #27339
         df = pd.DataFrame()
+        expected = df.copy()
+        expected.index.name = "index"
+        check_round_trip(df, fp, expected=expected)
+
+    def test_timezone_aware_index(self, fp, timezone_aware_date_list):
+        idx = 5 * [timezone_aware_date_list]
+
+        df = pd.DataFrame(index=idx, data={"index_as_col": idx})
+
         expected = df.copy()
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)

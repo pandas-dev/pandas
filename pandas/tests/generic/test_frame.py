@@ -190,9 +190,6 @@ class TestDataFrame2:
             super(DataFrame, df).drop("a", axis=1, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df)._consolidate(inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).fillna(value=0, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
