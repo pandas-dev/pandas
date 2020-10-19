@@ -230,7 +230,7 @@ allows users to view, manipulate and edit pandas ``Index``, ``Series``,
 and ``DataFrame`` objects like a "spreadsheet", including copying and modifying
 values, sorting, displaying a "heatmap", converting data types and more.
 pandas objects can also be renamed, duplicated, new columns added,
-copyed/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
+copyied/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
 Spyder can also import data from a variety of plain text and binary files
 or the clipboard into a new pandas DataFrame via a sophisticated import wizard.
 
