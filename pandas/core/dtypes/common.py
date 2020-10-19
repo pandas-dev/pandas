@@ -1261,9 +1261,6 @@ def np_issubclass_compat(unique_dtype, dtypes_set) -> bool:
     True
     >>> np_issubclass_compat(pd.Float64Dtype(), [np.number])
     True
-    >>> import pint_pandas
-    >>> np_issubclass_compat(pint_pandas.PintType("meter"), [np.number])
-    True
     """
     if issubclass(unique_dtype.type, tuple(dtypes_set)) or (  # type: ignore
         np.number in dtypes_set

@@ -112,8 +112,8 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_sequence,
     needs_i8_conversion,
-    pandas_dtype,
     np_issubclass_compat,
+    pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
 
