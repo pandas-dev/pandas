@@ -36,7 +36,7 @@ class ArrowStringDtype(ExtensionDtype):
     """
     Extension dtype for string data in a ``pyarrow.ChunkedArray``.
 
-    .. versionadded:: 1.1.0
+    .. versionadded:: 1.2.0
 
     .. warning::
 
@@ -118,7 +118,7 @@ class ArrowStringArray(ExtensionArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
-    .. versionadded:: 1.1.0
+    .. versionadded:: 1.2.0
 
     .. warning::
 
