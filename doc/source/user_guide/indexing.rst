@@ -584,7 +584,7 @@ IX indexer is deprecated
 
    The ``.ix`` indexer was removed, in favor of the more strict ``.iloc`` and ``.loc`` indexers.
 
-``.ix`` offers a lot of magic on the inference of what the user wants to do. To with, ``.ix`` can decide
+``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide
 to index *positionally* OR via *labels* depending on the data type of the index. This has caused quite a
 bit of user confusion over the years.
 
