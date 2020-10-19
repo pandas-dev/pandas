@@ -62,6 +62,11 @@ repos:
             |math|module|note|raw|seealso|toctree|versionadded
             |versionchanged|warning):[^:]
         files: \.(py|pyx|rst)$
+    -   id: incorrect-code-directives
+        name: Check for incorrect code block or IPython directives
+        language: pygrep
+        entry: (.. code-block ::|.. ipython ::)
+        types: [rst]
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
