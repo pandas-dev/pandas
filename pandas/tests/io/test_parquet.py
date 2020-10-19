@@ -376,10 +376,10 @@ class TestBasic(Base):
         ]
         self.check_error_on_write(df, engine, ValueError)
 
-    def test_to_bytes_without_path_or_buf_provided(self, df_full):
+    def test_to_bytes_without_path_or_buf_provided(self, engine, df_full):
         # GH 37105
 
-        buf = df_full.to_parquet()
+        buf = df_full.to_parquet(engine=engine)
         assert isinstance(buf, bytes)
 
         with tm.ensure_clean() as path:
