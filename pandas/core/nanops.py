@@ -513,27 +513,27 @@ def nansum(
     elif is_timedelta64_dtype(dtype):
         datetimelike = True
         dtype_sum = np.float64
-        if mask is None and not skipna:
-            mask = isna(orig_values)
 
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
 
     the_sum = _wrap_results(the_sum, dtype)
     if datetimelike and not skipna:
-        the_sum = _mask_datetimelike_result(the_sum, axis, mask, orig_values.dtype)
+        the_sum = _mask_datetimelike_result(the_sum, axis, mask, orig_values)
     return the_sum
 
 
 def _mask_datetimelike_result(
     result: Union[np.ndarray, np.datetime64, np.timedelta64],
     axis: Optional[int],
-    mask: np.ndarray,
-    orig_dtype: np.dtype,
+    mask: Optional[np.ndarray],
+    orig_values: np.ndarray,
 ):
+    if mask is None:
+        mask = isna(orig_values)
     if isinstance(result, np.ndarray):
         # we need to apply the mask
-        result = result.astype("i8").view(orig_dtype)
+        result = result.astype("i8").view(orig_values.dtype)
         axis_mask = mask.any(axis=axis)
         result[axis_mask] = iNaT
     else:
@@ -586,8 +586,6 @@ def nanmean(
     datetimelike = False
     if dtype.kind in ["m", "M"]:
         datetimelike = True
-        if mask is None and not skipna:
-            mask = isna(orig_values)
         dtype_sum = np.float64
     elif is_integer_dtype(dtype):
         dtype_sum = np.float64
@@ -611,7 +609,7 @@ def nanmean(
 
     the_mean = _wrap_results(the_mean, dtype)
     if datetimelike and not skipna:
-        the_mean = _mask_datetimelike_result(the_mean, axis, mask, orig_values.dtype)
+        the_mean = _mask_datetimelike_result(the_mean, axis, mask, orig_values)
     return the_mean
 
 
