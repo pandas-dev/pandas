@@ -872,38 +872,14 @@ class Window(BaseWindow):
     To learn more about the offsets & frequency strings, please see `this link
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
-    If ``win_type=None``, all points are evenly weighted; otherwise,
-    the recognized ``win_type``s are:
+    If ``win_type=None``, all points are evenly weighted; otherwise, ``win_type``
+    can accept a string of any `scipy.signal window function
+    <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
 
-    * ``boxcar``
-    * ``triang``
-    * ``blackman``
-    * ``hamming``
-    * ``bartlett``
-    * ``parzen``
-    * ``bohman``
-    * ``blackmanharris``
-    * ``nuttall``
-    * ``barthann``
-    * ``kaiser`` (needs parameter: beta)
-    * ``gaussian`` (needs parameter: std)
-    * ``general_gaussian`` (needs parameters: power, width)
-    * ``slepian`` (needs parameter: width)
-    * ``exponential`` (needs parameter: tau), center is set to None.
-
-    Certain window types require additional parameters to be passed
+    Certain Scipy window types require additional parameters to be passed
     in the aggregation function. The additional parameters must match
     the keywords specified in the Scipy window type method signature.
     Please see the third example below on how to add the additional parameters.
-
-    To learn more about different window types see `scipy.signal window functions
-    <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
-
-    .. versionadded:: 1.2.0
-
-    All Scipy window types, concurrent with your installed version,
-    are recognized ``win_types``, now supporting
-    ``flattop``, ``dpss``, ``chebwinn``, and ``turkey`` as of Scipy version 1.2.0.
 
     Examples
     --------
