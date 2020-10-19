@@ -65,6 +65,7 @@ from pandas.core.api import (
     IntervalDtype,
     DatetimeTZDtype,
     StringDtype,
+    ArrowStringDtype,
     BooleanDtype,
     # missing
     NA,
