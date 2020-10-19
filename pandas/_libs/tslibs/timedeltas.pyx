@@ -1056,7 +1056,8 @@ cdef class _Timedelta(timedelta):
 
         See Also
         --------
-        Timestamp.isoformat
+        Timestamp.isoformat : function is used to convert the given
+         Timestamp object into the ISO format.
 
         Notes
         -----

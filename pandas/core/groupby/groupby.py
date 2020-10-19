@@ -319,9 +319,12 @@ Returns
 
 See Also
 --------
-%(klass)s.groupby.apply
-%(klass)s.groupby.aggregate
-%(klass)s.transform
+%(klass)s.groupby.apply : Apply function func group-wise
+ and combine the results together.
+%(klass)s.groupby.aggregate : Aggregate using one or more
+ operations over the specified axis.
+%(klass)s.transform : Transforms the Series on each group
+ based on the given function.
 
 Notes
 -----
@@ -428,9 +431,12 @@ Returns
 
 See Also
 --------
-{klass}.groupby.apply
-{klass}.groupby.transform
-{klass}.aggregate
+{klass}.groupby.apply : Apply function func group-wise
+ and combine the results together.
+{klass}.groupby.transform : Aggregate using one or more
+ operations over the specified axis.
+{klass}.aggregate : Transforms the Series on each group
+ based on the given function.
 
 Notes
 -----
@@ -1857,8 +1863,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        pad
-        backfill
+        pad : Returns Series with minimum number of char in object.
+        backfill : Backward fill the missing values in the dataset.
         """
         # Need int value for Cython
         if limit is None:
@@ -1892,10 +1898,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        Series.pad
-        DataFrame.pad
-        Series.fillna
-        DataFrame.fillna
+        Series.pad: Returns Series with minimum number of char in object.
+        DataFrame.pad: Object with missing values filled or None if inplace=True.
+        Series.fillna: Fill NaN values of a Series.
+        DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("ffill", limit=limit)
 
@@ -1918,10 +1924,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        Series.backfill
-        DataFrame.backfill
-        Series.fillna
-        DataFrame.fillna
+        Series.backfill :  Backward fill the missing values in the dataset.
+        DataFrame.backfill:  Backward fill the missing values in the dataset
+        Series.fillna: Fill NaN values of a Series.
+        DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("bfill", limit=limit)
 

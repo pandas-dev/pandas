@@ -257,7 +257,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        DataFrame.flags
+        DataFrame.flags : Global flags applying to this object.
         """
         if self._attrs is None:
             self._attrs = {}
@@ -278,8 +278,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        Flags
-        DataFrame.attrs
+        Flags : Flags that apply to pandas objects.
+        DataFrame.attrs : Global metadata applying to this dataset.
 
         Notes
         -----
