@@ -199,7 +199,6 @@ def test_slice_groupby_then_transform(dropna, df_expected, s_expected):
     res = gb_slice.transform(len)
     tm.assert_frame_equal(res, df_expected)
 
-    gb_slice = gb["B"]
     res = gb["B"].transform(len)
     tm.assert_series_equal(res, s_expected)
 

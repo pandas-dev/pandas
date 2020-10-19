@@ -6,7 +6,6 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import ArrayLike, DtypeObj
-from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
@@ -26,9 +25,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-from pandas.core.arraylike import OpsMixin
 from pandas.core.ops import invalid_comparison
-from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.tools.numeric import to_numeric
 
 from .masked import BaseMaskedArray, BaseMaskedDtype
@@ -202,7 +199,7 @@ def coerce_to_array(
     return values, mask
 
 
-class FloatingArray(OpsMixin, BaseMaskedArray):
+class FloatingArray(BaseMaskedArray):
     """
     Array of floating (optional missing) values.
 
@@ -479,83 +476,70 @@ class FloatingArray(OpsMixin, BaseMaskedArray):
 
         return type(self)(result, mask, copy=False)
 
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        op_name = op.__name__
+    def _arith_method(self, other, op):
+        from pandas.arrays import IntegerArray
 
-        @unpack_zerodim_and_defer(op.__name__)
-        def floating_arithmetic_method(self, other):
-            from pandas.arrays import IntegerArray
+        omask = None
 
-            omask = None
+        if getattr(other, "ndim", 0) > 1:
+            raise NotImplementedError("can only perform ops with 1-d structures")
 
-            if getattr(other, "ndim", 0) > 1:
+        if isinstance(other, (IntegerArray, FloatingArray)):
+            other, omask = other._data, other._mask
+
+        elif is_list_like(other):
+            other = np.asarray(other)
+            if other.ndim > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
+            if len(self) != len(other):
+                raise ValueError("Lengths must match")
+            if not (is_float_dtype(other) or is_integer_dtype(other)):
+                raise TypeError("can only perform ops with numeric values")
 
-            if isinstance(other, (IntegerArray, FloatingArray)):
-                other, omask = other._data, other._mask
+        else:
+            if not (is_float(other) or is_integer(other) or other is libmissing.NA):
+                raise TypeError("can only perform ops with numeric values")
 
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 1:
-                    raise NotImplementedError(
-                        "can only perform ops with 1-d structures"
-                    )
-                if len(self) != len(other):
-                    raise ValueError("Lengths must match")
-                if not (is_float_dtype(other) or is_integer_dtype(other)):
-                    raise TypeError("can only perform ops with numeric values")
-
-            else:
-                if not (is_float(other) or is_integer(other) or other is libmissing.NA):
-                    raise TypeError("can only perform ops with numeric values")
-
-            if omask is None:
-                mask = self._mask.copy()
-                if other is libmissing.NA:
-                    mask |= True
-            else:
-                mask = self._mask | omask
-
-            if op_name == "pow":
-                # 1 ** x is 1.
-                mask = np.where((self._data == 1) & ~self._mask, False, mask)
-                # x ** 0 is 1.
-                if omask is not None:
-                    mask = np.where((other == 0) & ~omask, False, mask)
-                elif other is not libmissing.NA:
-                    mask = np.where(other == 0, False, mask)
-
-            elif op_name == "rpow":
-                # 1 ** x is 1.
-                if omask is not None:
-                    mask = np.where((other == 1) & ~omask, False, mask)
-                elif other is not libmissing.NA:
-                    mask = np.where(other == 1, False, mask)
-                # x ** 0 is 1.
-                mask = np.where((self._data == 0) & ~self._mask, False, mask)
-
+        if omask is None:
+            mask = self._mask.copy()
             if other is libmissing.NA:
-                result = np.ones_like(self._data)
-            else:
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
+                mask |= True
+        else:
+            mask = self._mask | omask
 
-            # divmod returns a tuple
-            if op_name == "divmod":
-                div, mod = result
-                return (
-                    self._maybe_mask_result(div, mask, other, "floordiv"),
-                    self._maybe_mask_result(mod, mask, other, "mod"),
-                )
+        if op.__name__ == "pow":
+            # 1 ** x is 1.
+            mask = np.where((self._data == 1) & ~self._mask, False, mask)
+            # x ** 0 is 1.
+            if omask is not None:
+                mask = np.where((other == 0) & ~omask, False, mask)
+            elif other is not libmissing.NA:
+                mask = np.where(other == 0, False, mask)
 
-            return self._maybe_mask_result(result, mask, other, op_name)
+        elif op.__name__ == "rpow":
+            # 1 ** x is 1.
+            if omask is not None:
+                mask = np.where((other == 1) & ~omask, False, mask)
+            elif other is not libmissing.NA:
+                mask = np.where(other == 1, False, mask)
+            # x ** 0 is 1.
+            mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
-        name = f"__{op.__name__}__"
-        return set_function_name(floating_arithmetic_method, name, cls)
+        if other is libmissing.NA:
+            result = np.ones_like(self._data)
+        else:
+            with np.errstate(all="ignore"):
+                result = op(self._data, other)
 
+        # divmod returns a tuple
+        if op.__name__ == "divmod":
+            div, mod = result
+            return (
+                self._maybe_mask_result(div, mask, other, "floordiv"),
+                self._maybe_mask_result(mod, mask, other, "mod"),
+            )
 
-FloatingArray._add_arithmetic_ops()
+        return self._maybe_mask_result(result, mask, other, op.__name__)
 
 
 _dtype_docstring = """

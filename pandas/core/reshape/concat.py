@@ -360,7 +360,7 @@ class _Concatenator:
                 raise TypeError(msg)
 
             # consolidate
-            obj._consolidate(inplace=True)
+            obj._consolidate_inplace()
             ndims.add(obj.ndim)
 
         # get the sample
