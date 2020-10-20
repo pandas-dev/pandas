@@ -221,6 +221,7 @@ Other enhancements
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
 - :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
 - :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
+- Added :meth:`DataFrame.is_sparse` to check for sparse columns in a DataFrame (:issue:`26706`)
 
 .. _whatsnew_120.api_breaking.python:
 

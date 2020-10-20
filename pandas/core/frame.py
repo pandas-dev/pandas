@@ -111,6 +111,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    is_sparse,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -8987,6 +8988,29 @@ NaN 12.3   33.0
         index = self._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
         return self._constructor_sliced(result, index=self._get_agg_axis(axis))
+
+    @property
+    def is_sparse(self):
+        """
+        Return an overview of the sparseness of each column in a DataFrame
+
+        .. versionadded:: 1.2.0
+
+        Returns
+        -------
+        Series
+            A Series with boolean values denoting whether each of the column is sparse
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([1, np.nan, 1]),
+        ...                    "B": [1, 2, 3]})
+        >>> df.is_sparse
+        a     True
+        b    False
+        dtype: bool
+        """
+        return self.apply(is_sparse)
 
     def _get_agg_axis(self, axis_num: int) -> Index:
         """
