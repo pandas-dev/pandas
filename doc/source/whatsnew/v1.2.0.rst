@@ -180,7 +180,7 @@ Alternatively, you can also use the dtype object:
 .. warning::
 
    Experimental: the new floating data types are currently experimental, and its
-   behaviour or API may still change without warning. Expecially the behaviour
+   behaviour or API may still change without warning. Especially the behaviour
    regarding NaN (distinct from NA missing values) is subject to change.
 
 .. _whatsnew_120.index_name_preservation:
@@ -394,6 +394,7 @@ Numeric
 - Bug in :meth:`DataFrame.__rmatmul__` error handling reporting transposed shapes (:issue:`21581`)
 - Bug in :class:`Series` flex arithmetic methods where the result when operating with a ``list``, ``tuple`` or ``np.ndarray`` would have an incorrect name (:issue:`36760`)
 - Bug in :class:`IntegerArray` multiplication with ``timedelta`` and ``np.timedelta64`` objects (:issue:`36870`)
+- Bug in :class:`MultiIndex` comparison with tuple incorrectly treating tuple as array-like (:issue:`21517`)
 - Bug in :meth:`DataFrame.diff` with ``datetime64`` dtypes including ``NaT`` values failing to fill ``NaT`` results correctly (:issue:`32441`)
 - Bug in :class:`DataFrame` arithmetic ops incorrectly accepting keyword arguments (:issue:`36843`)
 - Bug in :class:`IntervalArray` comparisons with :class:`Series` not returning :class:`Series` (:issue:`36908`)
@@ -408,7 +409,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.to_string`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` adding a leading space when ``index=False`` (:issue:`24980`)
--
+- Bug in :func:`to_numeric` raising a ``TypeError`` when attempting to convert a string dtype :class:`Series` containing only numeric strings and ``NA`` (:issue:`37262`)
 -
 
 
@@ -523,7 +524,8 @@ Other
 
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
-- Fixed metadata propagation in the :class:`Series.dt` and :class:`Series.str` accessors (:issue:`28283`)
+- Fixed bug in metadata propagation incorrectly copying DataFrame columns as metadata when the column name overlaps with the metadata name (:issue:`37037`)
+- Fixed metadata propagation in the :class:`Series.dt` and :class:`Series.str` accessors and :class:`DataFrame.duplicated` and ::class:`DataFrame.stack` methods (:issue:`28283`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError``, from a bare ``Exception`` previously (:issue:`35744`)
 

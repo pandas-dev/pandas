@@ -65,7 +65,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
-    ABCCategorical,
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPandasArray,
@@ -83,6 +82,7 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.ops import get_op_result_name
@@ -5001,7 +5001,7 @@ class Index(IndexOpsMixin, PandasObject):
             self._validate_index_level(level)
         return algos.isin(self, values)
 
-    def _get_string_slice(self, key: str_t, use_lhs: bool = True, use_rhs: bool = True):
+    def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,
         # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
         raise NotImplementedError
@@ -5383,11 +5383,13 @@ class Index(IndexOpsMixin, PandasObject):
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-        if is_object_dtype(self.dtype) and isinstance(other, ABCCategorical):
-            left = type(other)(self._values, dtype=other.dtype)
-            return op(left, other)
-        elif is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
-            # e.g. PeriodArray
+        if not isinstance(other, ABCMultiIndex):
+            other = extract_array(other, extract_numpy=True)
+        else:
+            other = np.asarray(other)
+
+        if is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
+            # e.g. PeriodArray, Categorical
             with np.errstate(all="ignore"):
                 result = op(self._values, other)
 
@@ -5402,7 +5404,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             with np.errstate(all="ignore"):
-                result = ops.comparison_op(self._values, np.asarray(other), op)
+                result = ops.comparison_op(self._values, other, op)
 
         return result
 

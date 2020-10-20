@@ -546,3 +546,47 @@ def test_loc_mi_with_level1_named_0():
     result = ser2.loc[dti[0]]
     expected = ser2.iloc[[0]].droplevel(None)
     tm.assert_series_equal(result, expected)
+
+
+def test_getitem_str_slice(datapath):
+    # GH#15928
+    path = datapath("reshape", "merge", "data", "quotes2.csv")
+    df = pd.read_csv(path, parse_dates=["time"])
+    df2 = df.set_index(["ticker", "time"]).sort_index()
+
+    res = df2.loc[("AAPL", slice("2016-05-25 13:30:00")), :].droplevel(0)
+    expected = df2.loc["AAPL"].loc[slice("2016-05-25 13:30:00"), :]
+    tm.assert_frame_equal(res, expected)
+
+
+def test_3levels_leading_period_index():
+    # GH#24091
+    pi = pd.PeriodIndex(
+        ["20181101 1100", "20181101 1200", "20181102 1300", "20181102 1400"],
+        name="datetime",
+        freq="B",
+    )
+    lev2 = ["A", "A", "Z", "W"]
+    lev3 = ["B", "C", "Q", "F"]
+    mi = pd.MultiIndex.from_arrays([pi, lev2, lev3])
+
+    ser = pd.Series(range(4), index=mi, dtype=np.float64)
+    result = ser.loc[(pi[0], "A", "B")]
+    assert result == 0.0
+
+
+class TestKeyErrorsWithMultiIndex:
+    def test_missing_keys_raises_keyerror(self):
+        # GH#27420 KeyError, not TypeError
+        df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
+        df2 = df.set_index(["A", "B"])
+
+        with pytest.raises(KeyError, match="1"):
+            df2.loc[(1, 6)]
+
+    def test_missing_key_raises_keyerror2(self):
+        # GH#21168 KeyError, not "IndexingError: Too many indexers"
+        ser = pd.Series(-1, index=pd.MultiIndex.from_product([[0, 1]] * 2))
+
+        with pytest.raises(KeyError, match=r"\(0, 3\)"):
+            ser.loc[0, 3]
