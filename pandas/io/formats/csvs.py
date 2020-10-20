@@ -13,6 +13,7 @@ from pandas._libs import writers as libwriters
 from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
+    FloatFormatType,
     IndexLabel,
     Label,
     StorageOptions,
@@ -31,7 +32,7 @@ from pandas.core.indexes.api import Index
 from pandas.io.common import get_filepath_or_buffer, get_handle
 
 if TYPE_CHECKING:
-    from pandas.io.formats.format import DataFrameFormatter, FloatFormatType
+    from pandas.io.formats.format import DataFrameFormatter
 
 
 class CSVFormatter:

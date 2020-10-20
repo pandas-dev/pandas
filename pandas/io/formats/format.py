@@ -42,6 +42,7 @@ from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
+    FloatFormatType,
     IndexLabel,
     Label,
     StorageOptions,
@@ -80,10 +81,10 @@ from pandas.io.formats.printing import adjoin, justify, pprint_thing
 if TYPE_CHECKING:
     from pandas import Categorical, DataFrame, Series
 
+
 FormattersType = Union[
     List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
 ]
-FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceType = Mapping[Label, Union[str, int]]
 ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Label, Union[str, int]]
