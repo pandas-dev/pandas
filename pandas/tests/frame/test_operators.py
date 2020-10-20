@@ -19,8 +19,8 @@ class TestDataFrameUnaryOperators:
             (pd.DataFrame({"a": [-1, 1]}), pd.DataFrame({"a": [1, -1]})),
             (pd.DataFrame({"a": [False, True]}), pd.DataFrame({"a": [True, False]})),
             (
-                pd.DataFrame({"a": pd.Series(pd.to_timedelta([-1, 1]))}),
-                pd.DataFrame({"a": pd.Series(pd.to_timedelta([1, -1]))}),
+                pd.DataFrame({"a": Series(pd.to_timedelta([-1, 1]))}),
+                pd.DataFrame({"a": Series(pd.to_timedelta([1, -1]))}),
             ),
         ],
     )
@@ -90,7 +90,7 @@ class TestDataFrameUnaryOperators:
         [
             pd.DataFrame({"a": [-1, 1]}),
             pd.DataFrame({"a": [False, True]}),
-            pd.DataFrame({"a": pd.Series(pd.to_timedelta([-1, 1]))}),
+            pd.DataFrame({"a": Series(pd.to_timedelta([-1, 1]))}),
         ],
     )
     def test_pos_numeric(self, df):

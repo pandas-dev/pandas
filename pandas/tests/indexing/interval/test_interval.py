@@ -146,5 +146,5 @@ class TestIntervalIndexInsideMultiIndex:
         idx = pd.MultiIndex.from_arrays([query_df.Item, query_df.RID, query_df.MP])
         query_df.index = idx
         result = df.value.loc[query_df.index]
-        expected = pd.Series([1, 6, 2, 8, 7], index=idx, name="value")
+        expected = Series([1, 6, 2, 8, 7], index=idx, name="value")
         tm.assert_series_equal(result, expected)

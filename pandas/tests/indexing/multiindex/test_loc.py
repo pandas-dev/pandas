@@ -463,7 +463,7 @@ def test_loc_period_string_indexing():
         ),
     )
     result = df.loc[("2013Q1", 1111), "OMS"]
-    expected = pd.Series(
+    expected = Series(
         [np.nan],
         dtype=object,
         name="OMS",
@@ -482,7 +482,7 @@ def test_loc_datetime_mask_slicing():
         data=[[1, 2], [3, 4], [5, 6], [7, 6]], index=m_idx, columns=["C1", "C2"]
     )
     result = df.loc[(dt_idx[0], (df.index.get_level_values(1) > "2017-05-04")), "C1"]
-    expected = pd.Series(
+    expected = Series(
         [3],
         name="C1",
         index=MultiIndex.from_tuples(
@@ -496,7 +496,7 @@ def test_loc_datetime_mask_slicing():
 def test_loc_datetime_series_tuple_slicing():
     # https://github.com/pandas-dev/pandas/issues/35858
     date = pd.Timestamp("2000")
-    ser = pd.Series(
+    ser = Series(
         1,
         index=pd.MultiIndex.from_tuples([("a", date)], names=["a", "b"]),
         name="c",

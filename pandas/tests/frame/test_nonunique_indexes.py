@@ -238,7 +238,7 @@ class TestDataFrameNonuniqueIndexes:
         )
         for index in [df.index, pd.Index(list("edcba"))]:
             this_df = df.copy()
-            expected_ser = pd.Series(index.values, index=this_df.index)
+            expected_ser = Series(index.values, index=this_df.index)
             expected_df = DataFrame(
                 {"A": expected_ser, "B": this_df["B"], "A": expected_ser},
                 columns=["A", "B", "A"],

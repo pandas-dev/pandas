@@ -39,8 +39,8 @@ function invgrep {
 }
 
 function check_namespace {
-    local -r CLASS="${1}" INCLUDE="${2}" EXCLUDE="${3}"
-    grep -R -l --include "${INCLUDE}" --exclude "${EXCLUDE}" " ${CLASS}(" pandas/tests | xargs grep -n "pd\.${CLASS}("
+    local -r CLASS="${1}"
+    grep -R -l --include "*.py" " ${CLASS}(" pandas/tests | xargs grep -n "pd\.${CLASS}("
     test $? -gt 0
 }
 
@@ -259,10 +259,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.py*" --exclude "common.py" --exclude "test_writers.py" --exclude "test_store.py" -E "os\.remove" pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for inconsistent use of pandas namespace' ; echo $MSG
-    check_namespace "Series" "test_missing.py"
-    RET=$(($RET + $?))
-    check_namespace "DataFrame" "test_missing.py"
+    MSG='Check for inconsistent use of pandas namespace in tests' ; echo $MSG
+    check_namespace "Series"
     RET=$(($RET + $?))
     echo $MSG "DONE"
 fi

@@ -159,11 +159,11 @@ class TestDataFrameConcat:
         concatted_1 = pd.concat([df1, df2], axis=1)
         tm.assert_frame_equal(concatted_1, expected_columns)
 
-        series1 = pd.Series([0.1, 0.2])
-        series2 = pd.Series([0.3, 0.4])
+        series1 = Series([0.1, 0.2])
+        series2 = Series([0.3, 0.4])
 
         # Index/row/0 Series
-        expected_index_series = pd.Series([0.1, 0.2, 0.3, 0.4], index=[0, 1, 0, 1])
+        expected_index_series = Series([0.1, 0.2, 0.3, 0.4], index=[0, 1, 0, 1])
 
         concatted_index_series = pd.concat([series1, series2], axis="index")
         tm.assert_series_equal(concatted_index_series, expected_index_series)

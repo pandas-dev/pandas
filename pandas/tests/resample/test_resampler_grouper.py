@@ -142,7 +142,7 @@ def test_groupby_with_origin():
     middle = "1/15/2000 00:00:00"
 
     rng = pd.date_range(start, end, freq="1231min")  # prime number
-    ts = pd.Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.randn(len(rng)), index=rng)
     ts2 = ts[middle:end]
 
     # proves that grouper without a fixed origin does not work
