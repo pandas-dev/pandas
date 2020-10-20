@@ -5,7 +5,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO, TextIOWrapper
 import os
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -29,13 +29,15 @@ from pandas.core.dtypes.missing import notna
 from pandas.core.indexes.api import Index
 
 from pandas.io.common import get_filepath_or_buffer, get_handle
-from pandas.io.formats.format import DataFrameFormatter, FloatFormatType
+
+if TYPE_CHECKING:
+    from pandas.io.formats.format import DataFrameFormatter, FloatFormatType
 
 
 class CSVFormatter:
     def __init__(
         self,
-        formatter: DataFrameFormatter,
+        formatter: "DataFrameFormatter",
         path_or_buf: Optional[FilePathOrBuffer[str]] = None,
         sep: str = ",",
         cols: Optional[Sequence[Label]] = None,
@@ -93,7 +95,7 @@ class CSVFormatter:
         return self.fmt.na_rep
 
     @property
-    def float_format(self) -> Optional[FloatFormatType]:
+    def float_format(self) -> Optional["FloatFormatType"]:
         return self.fmt.float_format
 
     @property
