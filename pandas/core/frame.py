@@ -5286,7 +5286,8 @@ class DataFrame(NDFrame, OpsMixin):
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
-        return self._constructor_sliced(duplicated_int64(ids, keep), index=self.index)
+        result = self._constructor_sliced(duplicated_int64(ids, keep), index=self.index)
+        return result.__finalize__(self, method="duplicated")
 
     # ----------------------------------------------------------------------
     # Sorting
@@ -7096,9 +7097,11 @@ NaN 12.3   33.0
         from pandas.core.reshape.reshape import stack, stack_multiple
 
         if isinstance(level, (tuple, list)):
-            return stack_multiple(self, level, dropna=dropna)
+            result = stack_multiple(self, level, dropna=dropna)
         else:
-            return stack(self, level, dropna=dropna)
+            result = stack(self, level, dropna=dropna)
+
+        return result.__finalize__(self, method="stack")
 
     def explode(
         self, column: Union[str, Tuple], ignore_index: bool = False
