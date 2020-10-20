@@ -96,6 +96,32 @@ For example:
    buffer = io.BytesIO()
    data.to_csv(buffer, mode="w+b", encoding="utf-8", compression="gzip")
 
+Support for short caption and table position in ``to_latex``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.to_latex` now allows one to specify
+a floating table position (:issue:`35281`)
+and a short caption (:issue:`36267`).
+
+New keyword ``position`` is implemented to set the position.
+
+.. ipython:: python
+
+   data = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+   table = data.to_latex(position='ht')
+   print(table)
+
+Usage of keyword ``caption`` is extended.
+Besides taking a single string as an argument,
+one can optionally provide a tuple of ``(full_caption, short_caption)``
+to add a short caption macro.
+
+.. ipython:: python
+
+   data = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+   table = data.to_latex(caption=('the full long caption', 'short caption'))
+   print(table)
+
 .. _whatsnew_120.read_csv_table_precision_default:
 
 Change in default floating precision for ``read_csv`` and ``read_table``
@@ -154,7 +180,7 @@ Alternatively, you can also use the dtype object:
 .. warning::
 
    Experimental: the new floating data types are currently experimental, and its
-   behaviour or API may still change without warning. Expecially the behaviour
+   behaviour or API may still change without warning. Especially the behaviour
    regarding NaN (distinct from NA missing values) is subject to change.
 
 .. _whatsnew_120.index_name_preservation:
@@ -194,6 +220,7 @@ Other enhancements
 - Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
 - :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
+- :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -367,6 +394,7 @@ Numeric
 - Bug in :meth:`DataFrame.__rmatmul__` error handling reporting transposed shapes (:issue:`21581`)
 - Bug in :class:`Series` flex arithmetic methods where the result when operating with a ``list``, ``tuple`` or ``np.ndarray`` would have an incorrect name (:issue:`36760`)
 - Bug in :class:`IntegerArray` multiplication with ``timedelta`` and ``np.timedelta64`` objects (:issue:`36870`)
+- Bug in :class:`MultiIndex` comparison with tuple incorrectly treating tuple as array-like (:issue:`21517`)
 - Bug in :meth:`DataFrame.diff` with ``datetime64`` dtypes including ``NaT`` values failing to fill ``NaT`` results correctly (:issue:`32441`)
 - Bug in :class:`DataFrame` arithmetic ops incorrectly accepting keyword arguments (:issue:`36843`)
 - Bug in :class:`IntervalArray` comparisons with :class:`Series` not returning :class:`Series` (:issue:`36908`)
@@ -400,6 +428,7 @@ Indexing
 - Bug in :meth:`DataFrame.sort_index` where parameter ascending passed as a list on a single level index gives wrong result. (:issue:`32334`)
 - Bug in :meth:`DataFrame.reset_index` was incorrectly raising a ``ValueError`` for input with a :class:`MultiIndex` with missing values in a level with ``Categorical`` dtype (:issue:`24206`)
 - Bug in indexing with boolean masks on datetime-like values sometimes returning a view instead of a copy (:issue:`36210`)
+- Bug in :meth:`DataFrame.__getitem__` and :meth:`DataFrame.loc.__getitem__` with :class:`IntervalIndex` columns and a numeric indexer (:issue:`26490`)
 - Bug in :meth:`Series.loc.__getitem__` with a non-unique :class:`MultiIndex` and an empty-list indexer (:issue:`13691`)
 
 Missing
@@ -494,7 +523,8 @@ Other
 
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` incorrectly raising ``AssertionError`` instead of ``ValueError`` when invalid parameter combinations are passed (:issue:`36045`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with numeric values and string ``to_replace`` (:issue:`34789`)
-- Fixed metadata propagation in the :class:`Series.dt` and :class:`Series.str` accessors (:issue:`28283`)
+- Fixed bug in metadata propagation incorrectly copying DataFrame columns as metadata when the column name overlaps with the metadata name (:issue:`37037`)
+- Fixed metadata propagation in the :class:`Series.dt` and :class:`Series.str` accessors and :class:`DataFrame.duplicated` and ::class:`DataFrame.stack` methods (:issue:`28283`)
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError``, from a bare ``Exception`` previously (:issue:`35744`)
 
