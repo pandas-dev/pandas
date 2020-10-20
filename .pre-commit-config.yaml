@@ -56,29 +56,35 @@ repos:
     -   id: incorrect-sphinx-directives
         name: Check for incorrect Sphinx directives
         language: pygrep
-        entry: "\
-            \\.\\. (autosummary|contents|currentmodule|deprecated\
-            |function|image|important|include|ipython|literalinclude\
-            |math|module|note|raw|seealso|toctree|versionadded\
-            |versionchanged|warning):[^:]"
+        entry: |
+            (?x)\.\.\ (
+                autosummary|contents|currentmodule|deprecated|
+                function|image|important|include|ipython|literalinclude|
+                math|module|note|raw|seealso|toctree|versionadded|
+                versionchanged|warning
+            ):[^:]
         files: \.(py|pyx|rst)$
     -   id: non-standard-imports
         name: Check for non-standard imports
         language: pygrep
-        entry: "\
-            from pandas\\.core\\.common import\
-            |from pandas\\.core import common\
-            |from collections\\.abc import\
-            |from numpy import nan"
+        entry: |
+            (?x)^(
+                from\ pandas\.core\.common\ import
+                from\ pandas\.core\ import\ common|
+                from\ collections\.abc\ import|
+                from\ numpy\ import\ nan
+            )
         types: [python]
     -   id: non-standard-imports-in-tests
         name: Check for non-standard imports in test suite
         language: pygrep
-        entry: "\
-            from pandas\\._testing import\
-            |from pandas import _testing as tm\
-            |conftest import\
-            |import conftest"
+        entry: |
+            (?x)^(
+                from\ pandas\._testing\ import|
+                from\ pandas\ import\ _testing\ as\ tm|
+                conftest\ import|
+                import\ conftest
+            )
         types: [python]
         files: ^pandas/tests/
     -   id: incorrect-code-directives
