@@ -1663,6 +1663,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Introspection Methods
 
+    @final
     @property
     def is_monotonic(self) -> bool:
         """
@@ -1777,6 +1778,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return not self.is_unique
 
+    @final
     def is_boolean(self) -> bool:
         """
         Check if the Index only consists of booleans.
@@ -1812,6 +1814,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.inferred_type in ["boolean"]
 
+    @final
     def is_integer(self) -> bool:
         """
         Check if the Index only consists of integers.
@@ -1847,6 +1850,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.inferred_type in ["integer"]
 
+    @final
     def is_floating(self) -> bool:
         """
         Check if the Index is a floating type.
@@ -1890,6 +1894,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.inferred_type in ["floating", "mixed-integer-float", "integer-na"]
 
+    @final
     def is_numeric(self) -> bool:
         """
         Check if the Index only consists of numeric data.
@@ -1933,6 +1938,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.inferred_type in ["integer", "floating"]
 
+    @final
     def is_object(self) -> bool:
         """
         Check if the Index is of the object dtype.
@@ -1973,6 +1979,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return is_object_dtype(self.dtype)
 
+    @final
     def is_categorical(self) -> bool:
         """
         Check if the Index holds categorical data.
@@ -2016,6 +2023,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.inferred_type in ["categorical"]
 
+    @final
     def is_interval(self) -> bool:
         """
         Check if the Index holds Interval objects.
@@ -2049,6 +2057,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.inferred_type in ["interval"]
 
+    @final
     def is_mixed(self) -> bool:
         """
         Check if the Index holds data with mixed data types.
