@@ -261,7 +261,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for inconsistent use of pandas namespace' ; echo $MSG
-    check_namespace "Series" "test_inference.py"
+    check_namespace "Series" "test_missing.py"
     RET=$(($RET + $?))
     check_namespace "DataFrame" "test_missing.py"
     RET=$(($RET + $?))
