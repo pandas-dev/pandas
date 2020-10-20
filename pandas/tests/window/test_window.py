@@ -6,7 +6,6 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Series
-from pandas.core.window import Window
 
 
 @td.skip_if_no_scipy
@@ -50,7 +49,7 @@ def test_constructor_with_win_type(which, win_types):
 @pytest.mark.parametrize("method", ["sum", "mean"])
 def test_numpy_compat(method):
     # see gh-12811
-    w = Window(Series([2, 4, 6]), window=2)
+    w = Series([2, 4, 6]).rolling(window=2)
 
     msg = "numpy operations are not valid with window objects"
 
