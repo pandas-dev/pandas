@@ -444,7 +444,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         else:
             try:
-                other = self._validate_listlike(other, opname, allow_object=True)
+                other = self._validate_listlike(other, allow_object=True)
                 self._check_compatible_with(other)
             except TypeError as err:
                 if is_object_dtype(getattr(other, "dtype", None)):
@@ -548,7 +548,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return value
 
-    def _validate_listlike(self, value, opname: str, allow_object: bool = False):
+    def _validate_listlike(self, value, allow_object: bool = False):
         if isinstance(value, type(self)):
             return value
 
@@ -578,10 +578,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         elif not type(self)._is_recognized_dtype(value.dtype):
             raise TypeError(
-                f"{opname} requires compatible dtype or scalar, "
-                f"not {type(value).__name__}"
+                f"value should be a '{self._scalar_type.__name__}', 'NaT', "
+                f"or array of those. Got '{type(value).__name__}' instead."
             )
-
         return value
 
     def _validate_searchsorted_value(self, value):
@@ -589,7 +588,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if not is_list_like(value):
             value = self._validate_scalar(value, msg)
         else:
-            value = self._validate_listlike(value, "searchsorted")
+            value = self._validate_listlike(value)
 
         rv = self._unbox(value)
         return self._rebox_native(rv)
@@ -600,7 +599,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             f"or array of those. Got '{type(value).__name__}' instead."
         )
         if is_list_like(value):
-            value = self._validate_listlike(value, "setitem")
+            value = self._validate_listlike(value)
         else:
             value = self._validate_scalar(value, msg)
 
@@ -622,7 +621,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if not is_list_like(other):
             other = self._validate_scalar(other, msg)
         else:
-            other = self._validate_listlike(other, "where")
+            other = self._validate_listlike(other)
 
         return self._unbox(other, setitem=True)
 
