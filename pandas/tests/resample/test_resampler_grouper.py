@@ -356,7 +356,7 @@ def test_apply_to_one_column_of_df():
         index=pd.date_range("2012-01-01", periods=10, freq="20min"),
     )
     result = df.resample("H").apply(lambda group: group.col.sum())
-    expected = pd.Series(
+    expected = Series(
         [3, 12, 21, 9], index=pd.date_range("2012-01-01", periods=4, freq="H")
     )
     tm.assert_series_equal(result, expected)

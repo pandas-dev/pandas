@@ -546,7 +546,7 @@ def test_3levels_leading_period_index():
     lev3 = ["B", "C", "Q", "F"]
     mi = pd.MultiIndex.from_arrays([pi, lev2, lev3])
 
-    ser = pd.Series(range(4), index=mi, dtype=np.float64)
+    ser = Series(range(4), index=mi, dtype=np.float64)
     result = ser.loc[(pi[0], "A", "B")]
     assert result == 0.0
 
@@ -562,7 +562,7 @@ class TestKeyErrorsWithMultiIndex:
 
     def test_missing_key_raises_keyerror2(self):
         # GH#21168 KeyError, not "IndexingError: Too many indexers"
-        ser = pd.Series(-1, index=pd.MultiIndex.from_product([[0, 1]] * 2))
+        ser = Series(-1, index=pd.MultiIndex.from_product([[0, 1]] * 2))
 
         with pytest.raises(KeyError, match=r"\(0, 3\)"):
             ser.loc[0, 3]

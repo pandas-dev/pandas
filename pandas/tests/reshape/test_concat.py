@@ -91,7 +91,7 @@ class TestConcatAppendCommon:
                 assert obj.dtype == "object"
             else:
                 assert obj.dtype == label
-        elif isinstance(obj, pd.Series):
+        elif isinstance(obj, Series):
             if label.startswith("period"):
                 assert obj.dtype == "Period[M]"
             else:
@@ -2614,7 +2614,7 @@ bar2,12,13,14,15
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("pdt", [pd.Series, pd.DataFrame])
+@pytest.mark.parametrize("pdt", [Series, pd.DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["float"])
 def test_concat_no_unnecessary_upcast(dt, pdt):
     # GH 13247
@@ -3196,11 +3196,11 @@ class TestDataFrameConcat:
         concatted_1 = pd.concat([df1, df2], axis=1)
         tm.assert_frame_equal(concatted_1, expected_columns)
 
-        series1 = pd.Series([0.1, 0.2])
-        series2 = pd.Series([0.3, 0.4])
+        series1 = Series([0.1, 0.2])
+        series2 = Series([0.3, 0.4])
 
         # Index/row/0 Series
-        expected_index_series = pd.Series([0.1, 0.2, 0.3, 0.4], index=[0, 1, 0, 1])
+        expected_index_series = Series([0.1, 0.2, 0.3, 0.4], index=[0, 1, 0, 1])
 
         concatted_index_series = pd.concat([series1, series2], axis="index")
         tm.assert_series_equal(concatted_index_series, expected_index_series)
