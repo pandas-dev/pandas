@@ -3,7 +3,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import InvalidIndexError, PerformanceWarning
 
 import pandas as pd
 from pandas import Categorical, Index, MultiIndex, date_range
@@ -645,6 +645,22 @@ class TestGetLoc:
         )
 
         assert index.get_loc("D") == slice(0, 3)
+
+    def test_get_loc_past_lexsort_depth(self):
+        # GH#30053
+        idx = MultiIndex(
+            levels=[["a"], [0, 7], [1]],
+            codes=[[0, 0], [1, 0], [0, 0]],
+            names=["x", "y", "z"],
+            sortorder=0,
+        )
+        key = ("a", 7)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            # PerformanceWarning: indexing past lexsort depth may impact performance
+            result = idx.get_loc(key)
+
+        assert result == slice(0, 1, None)
 
 
 class TestWhere:
