@@ -714,6 +714,9 @@ def test_precision_float_conversion(strrep):
     [
         (["1", "2", None], Series([1, 2, np.nan])),
         (["1", "2", "3"], Series([1, 2, 3])),
+        (["1", "2", 3], Series([1, 2, 3])),
+        (["1", "2", 3.5], Series([1, 2, 3.5])),
+        (["1", None, 3.5], Series([1, np.nan, 3.5])),
         (["1", "2", "3.5"], Series([1, 2, 3.5])),
     ],
 )
