@@ -409,8 +409,8 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.to_string`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` adding a leading space when ``index=False`` (:issue:`24980`)
+- Bug in :func:`to_numeric` raising a ``TypeError`` when attempting to convert a string dtype :class:`Series` containing only numeric strings and ``NA`` (:issue:`37262`)
 -
-
 
 Interval
 ^^^^^^^^
