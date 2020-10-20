@@ -374,7 +374,16 @@ def nargsort(
     if not ascending:
         non_nans = non_nans[::-1]
         non_nan_idx = non_nan_idx[::-1]
-    indexer = non_nan_idx[non_nans.argsort(kind=kind)]
+
+    # GH 35922. Move support for object sort here from Series.sort_values
+    try:
+        # if kind==mergesort, it can fail for object dtype
+        indexer = non_nan_idx[non_nans.argsort(kind=kind)]
+    except TypeError:
+        # stable sort not available for object dtype
+        # uses the argsort default quicksort
+        indexer = non_nan_idx[non_nans.argsort(kind="quicksort")]
+
     if not ascending:
         indexer = indexer[::-1]
     # Finally, place the NaNs at the end or the beginning according to

@@ -92,7 +92,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
 from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import ensure_key_mapped
+from pandas.core.sorting import ensure_key_mapped, nargsort
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
@@ -3274,52 +3274,9 @@ Keep all original rows and also all original values
                 "sort in-place you must create a copy"
             )
 
-        def _try_kind_sort(arr):
-            arr = ensure_key_mapped(arr, key)
-            arr = getattr(arr, "_values", arr)
-
-            # easier to ask forgiveness than permission
-            try:
-                # if kind==mergesort, it can fail for object dtype
-                return arr.argsort(kind=kind)
-            except TypeError:
-                # stable sort not available for object dtype
-                # uses the argsort default quicksort
-                return arr.argsort(kind="quicksort")
-
         arr = self._values
-        sorted_index = np.empty(len(self), dtype=np.int32)
 
-        bad = isna(arr)
-
-        good = ~bad
-        idx = ibase.default_index(len(self))
-
-        argsorted = _try_kind_sort(self[good])
-
-        if is_list_like(ascending):
-            if len(ascending) != 1:
-                raise ValueError(
-                    f"Length of ascending ({len(ascending)}) must be 1 for Series"
-                )
-            ascending = ascending[0]
-
-        if not is_bool(ascending):
-            raise ValueError("ascending must be boolean")
-
-        if not ascending:
-            argsorted = argsorted[::-1]
-
-        if na_position == "last":
-            n = good.sum()
-            sorted_index[:n] = idx[good][argsorted]
-            sorted_index[n:] = idx[bad]
-        elif na_position == "first":
-            n = bad.sum()
-            sorted_index[n:] = idx[good][argsorted]
-            sorted_index[:n] = idx[bad]
-        else:
-            raise ValueError(f"invalid na_position: {na_position}")
+        sorted_index = nargsort(arr, kind, ascending, na_position, key)
 
         result = self._constructor(arr[sorted_index], index=self.index[sorted_index])
 
