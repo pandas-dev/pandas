@@ -40,6 +40,7 @@ from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
+    ArrayLike,
     CompressionOptions,
     FilePathOrBuffer,
     FloatFormatType,
@@ -1370,7 +1371,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         the parameters given at initialisation, as a numpy array
         """
 
-        def format_with_na_rep(values, formatter, na_rep):
+        def format_with_na_rep(values: ArrayLike, formatter: Callable, na_rep: str):
             mask = isna(values)
             formatted = np.array(
                 [
