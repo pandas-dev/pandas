@@ -8,7 +8,11 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, Series, to_datetime
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    _check_plot_works,
+    _check_single_plot_works,
+)
 
 
 @td.skip_if_no_mpl
@@ -138,7 +142,7 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(np.random.randn(30), index=index, name="a")
         s.index.name = "b"
 
-        axes = _check_plot_works(s.hist, legend=True, by=by)
+        axes = _check_single_plot_works(s.hist, legend=True, by=by)
         self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
         self._check_legend_labels(axes, "a")
 
@@ -318,7 +322,7 @@ class TestDataFramePlots(TestPlotBase):
                 dtype=np.int64,
             )
         )
-        _check_plot_works(df.hist)
+        _check_single_plot_works(df.hist)
         self.plt.tight_layout()
 
         tm.close()
@@ -331,7 +335,7 @@ class TestDataFramePlots(TestPlotBase):
                 "animal": ["pig", "rabbit", "pig", "pig", "rabbit"],
             }
         )
-        axes = _check_plot_works(
+        axes = _check_single_plot_works(
             df.hist,
             filterwarnings="always",
             column="length",
@@ -360,10 +364,16 @@ class TestDataFramePlots(TestPlotBase):
             index=["pig", "rabbit", "duck", "chicken", "horse"],
         )
 
-        axes = _check_plot_works(df.hist, column=column, layout=(1, 3))
-        result = [axes[0, i].get_title() for i in range(3)]
-
-        assert result == expected
+        with tm.assert_produces_warning(UserWarning):
+            # _check_plot_works creates subplots inside,
+            # meanwhile df.hist here creates subplots itself for each column.
+            # It leads to warnings like this:
+            # UserWarning: To output multiple subplots,
+            # the figure containing the passed axes is being cleared
+            # Similar warnings were observed in GH #13188
+            axes = _check_plot_works(df.hist, column=column, layout=(1, 3))
+            result = [axes[0, i].get_title() for i in range(3)]
+            assert result == expected
 
     @pytest.mark.parametrize("by", [None, "c"])
     @pytest.mark.parametrize("column", [None, "b"])
@@ -378,7 +388,8 @@ class TestDataFramePlots(TestPlotBase):
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
 
-        axes = _check_plot_works(df.hist, legend=True, by=by, column=column)
+        axes = _check_single_plot_works(df.hist, legend=True, by=by, column=column)
+
         self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
         if by is None and column is None:
             axes = axes[0]
