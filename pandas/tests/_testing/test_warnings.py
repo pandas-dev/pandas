@@ -23,7 +23,8 @@ import pandas._testing as tm
     ],
 )
 def category(request):
-    """Return unique warning.
+    """
+    Return unique warning.
 
     Useful for testing behavior of tm.assert_produces_warning with various categories.
     """
@@ -44,7 +45,8 @@ def category(request):
     ids=lambda x: type(x).__name__,
 )
 def pair_different_warnings(request):
-    """Return pair or different warnings.
+    """
+    Return pair or different warnings.
 
     Useful for testing how several different warnings are handled
     in tm.assert_produces_warning.
