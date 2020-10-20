@@ -42,42 +42,6 @@ class TestSeriesLogicalOps:
         expected = s_tft
         tm.assert_series_equal(res, expected)
 
-    @pytest.mark.parametrize(
-        "left, right, op, expected",
-        [
-            (
-                [True, False, np.nan],
-                [True, False, True],
-                operator.and_,
-                [True, False, False],
-            ),
-            (
-                [True, False, True],
-                [True, False, np.nan],
-                operator.and_,
-                [True, False, False],
-            ),
-            (
-                [True, False, np.nan],
-                [True, False, True],
-                operator.or_,
-                [True, False, False],
-            ),
-            (
-                [True, False, True],
-                [True, False, np.nan],
-                operator.or_,
-                [True, False, True],
-            ),
-        ],
-    )
-    def test_logical_operators_nans(self, left, right, op, expected):
-        # GH 13896
-        result = op(Series(left), Series(right))
-        expected = Series(expected)
-
-        tm.assert_series_equal(result, expected)
-
     def test_logical_operators_int_dtype_with_int_dtype(self):
         # GH#9016: support bitwise op for integer types
 
@@ -509,56 +473,3 @@ class TestSeriesLogicalOps:
 
         tm.assert_frame_equal(s3.to_frame() | s4.to_frame(), exp_or1.to_frame())
         tm.assert_frame_equal(s4.to_frame() | s3.to_frame(), exp_or.to_frame())
-
-
-class TestSeriesUnaryOps:
-    # __neg__, __pos__, __inv__
-
-    def test_neg(self):
-        ser = tm.makeStringSeries()
-        ser.name = "series"
-        tm.assert_series_equal(-ser, -1 * ser)
-
-    def test_invert(self):
-        ser = tm.makeStringSeries()
-        ser.name = "series"
-        tm.assert_series_equal(-(ser < 0), ~(ser < 0))
-
-    @pytest.mark.parametrize(
-        "source, target",
-        [
-            ([1, 2, 3], [-1, -2, -3]),
-            ([1, 2, None], [-1, -2, None]),
-            ([-1, 0, 1], [1, 0, -1]),
-        ],
-    )
-    def test_unary_minus_nullable_int(
-        self, any_signed_nullable_int_dtype, source, target
-    ):
-        dtype = any_signed_nullable_int_dtype
-        s = pd.Series(source, dtype=dtype)
-        result = -s
-        expected = pd.Series(target, dtype=dtype)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]])
-    def test_unary_plus_nullable_int(self, any_signed_nullable_int_dtype, source):
-        dtype = any_signed_nullable_int_dtype
-        expected = pd.Series(source, dtype=dtype)
-        result = +expected
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "source, target",
-        [
-            ([1, 2, 3], [1, 2, 3]),
-            ([1, -2, None], [1, 2, None]),
-            ([-1, 0, 1], [1, 0, 1]),
-        ],
-    )
-    def test_abs_nullable_int(self, any_signed_nullable_int_dtype, source, target):
-        dtype = any_signed_nullable_int_dtype
-        s = pd.Series(source, dtype=dtype)
-        result = abs(s)
-        expected = pd.Series(target, dtype=dtype)
-        tm.assert_series_equal(result, expected)

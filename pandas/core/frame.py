@@ -2656,7 +2656,7 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> dtypes = ['int64', 'float64', 'complex128', 'object', 'bool']
-        >>> data = dict([(t, np.ones(shape=5000).astype(t))
+        >>> data = dict([(t, np.ones(shape=5000, dtype=int).astype(t))
         ...              for t in dtypes])
         >>> df = pd.DataFrame(data)
         >>> df.head()
@@ -2691,7 +2691,7 @@ class DataFrame(NDFrame, OpsMixin):
         int64          40000
         float64        40000
         complex128     80000
-        object        160000
+        object        180000
         bool            5000
         dtype: int64
 
@@ -2790,7 +2790,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2_transposed
                       0     1
         name      Alice   Bob
-        score       9.5     8
+        score       9.5   8.0
         employed  False  True
         kids          0     0
 
@@ -2946,7 +2946,8 @@ class DataFrame(NDFrame, OpsMixin):
             # - the key itself is repeated (test on data.shape, #9519), or
             # - we have a MultiIndex on columns (test on self.columns, #21309)
             if data.shape[1] == 1 and not isinstance(self.columns, MultiIndex):
-                data = data[key]
+                # GH#26490 using data[key] can cause RecursionError
+                data = data._get_item_cache(key)
 
         return data
 
@@ -3091,7 +3092,7 @@ class DataFrame(NDFrame, OpsMixin):
                 for k1, k2 in zip(key, value.columns):
                     self[k1] = value[k2]
             else:
-                self.loc._ensure_listlike_indexer(key, axis=1)
+                self.loc._ensure_listlike_indexer(key, axis=1, value=value)
                 indexer = self.loc._get_listlike_indexer(
                     key, axis=1, raise_missing=False
                 )[1]
@@ -5957,6 +5958,18 @@ class DataFrame(NDFrame, OpsMixin):
         out.index = self.index
         return out
 
+    def __divmod__(self, other) -> Tuple[DataFrame, DataFrame]:
+        # Naive implementation, room for optimization
+        div = self // other
+        mod = self - div * other
+        return div, mod
+
+    def __rdivmod__(self, other) -> Tuple[DataFrame, DataFrame]:
+        # Naive implementation, room for optimization
+        div = other // self
+        mod = other - div * self
+        return div, mod
+
     # ----------------------------------------------------------------------
     # Combination-Related
 
@@ -8652,11 +8665,10 @@ NaN 12.3   33.0
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
+        own_dtypes = [arr.dtype for arr in self._iter_column_arrays()]
+
         dtype_is_dt = np.array(
-            [
-                is_datetime64_any_dtype(values.dtype)
-                for values in self._iter_column_arrays()
-            ],
+            [is_datetime64_any_dtype(dtype) for dtype in own_dtypes],
             dtype=bool,
         )
         if numeric_only is None and name in ["mean", "median"] and dtype_is_dt.any():
@@ -8670,7 +8682,11 @@ NaN 12.3   33.0
             cols = self.columns[~dtype_is_dt]
             self = self[cols]
 
-        any_object = self.dtypes.apply(is_object_dtype).any()
+        any_object = np.array(
+            [is_object_dtype(dtype) for dtype in own_dtypes],
+            dtype=bool,
+        ).any()
+
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
         labels = self._get_agg_axis(axis)
