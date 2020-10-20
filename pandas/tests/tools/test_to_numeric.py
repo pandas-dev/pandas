@@ -718,6 +718,7 @@ def test_precision_float_conversion(strrep):
     ],
 )
 def test_to_numeric_from_nullable_string(values, expected):
+    # https://github.com/pandas-dev/pandas/issues/37262
     s = Series(values, dtype="string")
     result = to_numeric(s)
     tm.assert_series_equal(result, expected)
