@@ -419,7 +419,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
 
-    def _validate_comparison_value(self, other, opname: str):
+    def _validate_comparison_value(self, other):
         if isinstance(other, str):
             try:
                 # GH#18435 strings get a pass from tzawareness compat
@@ -867,7 +867,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return op(self.ravel(), other.ravel()).reshape(self.shape)
 
         try:
-            other = self._validate_comparison_value(other, f"__{op.__name__}__")
+            other = self._validate_comparison_value(other)
         except InvalidComparison:
             return invalid_comparison(self, other, op)
 
