@@ -4076,6 +4076,7 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(values, dtype=dtype, name=self.name)
 
     # construction helpers
+    @final
     @classmethod
     def _scalar_data_error(cls, data):
         # We return the TypeError so that we can raise it from the constructor
@@ -4085,6 +4086,7 @@ class Index(IndexOpsMixin, PandasObject):
             f"kind, {repr(data)} was passed"
         )
 
+    @final
     @classmethod
     def _string_data_error(cls, data):
         raise TypeError(
@@ -4517,6 +4519,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
+    @final
     def sort_values(
         self,
         return_indexer: bool = False,
@@ -4899,6 +4902,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return True
 
+    @final
     def groupby(self, values) -> PrettyDict[Hashable, np.ndarray]:
         """
         Group the index labels by a given array of values.
@@ -5612,6 +5616,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._maybe_disable_logical_methods("all")
         return np.all(self.values)
 
+    @final
     def _maybe_disable_logical_methods(self, opname: str_t):
         """
         raise if this Index subclass does not support any or all.
