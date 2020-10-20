@@ -552,7 +552,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 return invalid_comparison(self, other, op)
             if isinstance(other, Interval):
                 other = type(self)._from_sequence([other])
-                if self._combined.dtype.kind in ["m", "M"]:
+                if self._left.dtype.kind in ["m", "M"]:
                     # Need to repeat bc we do not broadcast length-1
                     # TODO: would be helpful to have a tile method to do
                     #  this without copies
@@ -561,24 +561,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 other = type(self)(other)
 
             if op is operator.eq:
-                return (self._combined[:, 0] == other._left) & (
-                    self._combined[:, 1] == other._right
-                )
+                return (self._left == other._left) & (self._right == other._right)
             elif op is operator.ne:
-                return (self._combined[:, 0] != other._left) | (
-                    self._combined[:, 1] != other._right
-                )
+                return (self._left != other._left) | (self._right != other._right)
             elif op is operator.gt:
-                return (self._combined[:, 0] > other._combined[:, 0]) | (
-                    (self._combined[:, 0] == other._left)
-                    & (self._combined[:, 1] > other._right)
+                return (self._left > other._left) | (
+                    (self._left == other._left) & (self._right > other._right)
                 )
             elif op is operator.ge:
                 return (self == other) | (self > other)
             elif op is operator.lt:
-                return (self._combined[:, 0] < other._combined[:, 0]) | (
-                    (self._combined[:, 0] == other._left)
-                    & (self._combined[:, 1] < other._right)
+                return (self._left < other._left) | (
+                    (self._left == other._left) & (self._right < other._right)
                 )
             else:
                 # operator.lt
@@ -589,8 +583,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return invalid_comparison(self, other, op)
 
         # object dtype -> iteratively check for intervals
+        result = np.zeros(len(self), dtype=bool)
         try:
-            result = np.zeros(len(self), dtype=bool)
             for i, obj in enumerate(other):
                 result[i] = op(self[i], obj)
         except TypeError:
