@@ -31,21 +31,6 @@ AGG_FUNCTIONS = [
 class Base:
     def setup_method(self, method):
 
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
-        self.frame = DataFrame(
-            np.random.randn(10, 3),
-            index=index,
-            columns=Index(["A", "B", "C"], name="exp"),
-        )
-
-        self.single_level = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"]], codes=[[0, 1, 2, 3]], names=["first"]
-        )
-
         # create test series object
         arrays = [
             ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
@@ -57,27 +42,18 @@ class Base:
         s[3] = np.NaN
         self.series = s
 
-        self.tdf = tm.makeTimeDataFrame(100)
-        self.ymd = self.tdf.groupby(
-            [lambda x: x.year, lambda x: x.month, lambda x: x.day]
-        ).sum()
-
-        # use Int64Index, to make sure things work
-        self.ymd.index = self.ymd.index.set_levels(
-            [lev.astype("i8") for lev in self.ymd.index.levels]
-        )
-        self.ymd.index.set_names(["year", "month", "day"], inplace=True)
-
 
 class TestMultiLevel(Base):
-    def test_append(self):
-        a, b = self.frame[:5], self.frame[5:]
+    def test_append(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        a, b = frame[:5], frame[5:]
 
         result = a.append(b)
-        tm.assert_frame_equal(result, self.frame)
+        tm.assert_frame_equal(result, frame)
 
         result = a["A"].append(b["A"])
-        tm.assert_series_equal(result, self.frame["A"])
+        tm.assert_series_equal(result, frame["A"])
 
     def test_dataframe_constructor(self):
         multi = DataFrame(
@@ -104,40 +80,44 @@ class TestMultiLevel(Base):
         multi = Series(range(4), index=[["a", "a", "b", "b"], ["x", "y", "x", "y"]])
         assert isinstance(multi.index, MultiIndex)
 
-    def test_reindex_level(self):
+    def test_reindex_level(self, multiindex_year_month_day_dataframe_random_data):
         # axis=0
-        month_sums = self.ymd.sum(level="month")
-        result = month_sums.reindex(self.ymd.index, level=1)
-        expected = self.ymd.groupby(level="month").transform(np.sum)
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        month_sums = ymd.sum(level="month")
+        result = month_sums.reindex(ymd.index, level=1)
+        expected = ymd.groupby(level="month").transform(np.sum)
 
         tm.assert_frame_equal(result, expected)
 
         # Series
-        result = month_sums["A"].reindex(self.ymd.index, level=1)
-        expected = self.ymd["A"].groupby(level="month").transform(np.sum)
+        result = month_sums["A"].reindex(ymd.index, level=1)
+        expected = ymd["A"].groupby(level="month").transform(np.sum)
         tm.assert_series_equal(result, expected, check_names=False)
 
         # axis=1
-        month_sums = self.ymd.T.sum(axis=1, level="month")
-        result = month_sums.reindex(columns=self.ymd.index, level=1)
-        expected = self.ymd.groupby(level="month").transform(np.sum).T
+        month_sums = ymd.T.sum(axis=1, level="month")
+        result = month_sums.reindex(columns=ymd.index, level=1)
+        expected = ymd.groupby(level="month").transform(np.sum).T
         tm.assert_frame_equal(result, expected)
 
-    def test_binops_level(self):
+    def test_binops_level(self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
         def _check_op(opname):
             op = getattr(DataFrame, opname)
-            month_sums = self.ymd.sum(level="month")
-            result = op(self.ymd, month_sums, level="month")
+            month_sums = ymd.sum(level="month")
+            result = op(ymd, month_sums, level="month")
 
-            broadcasted = self.ymd.groupby(level="month").transform(np.sum)
-            expected = op(self.ymd, broadcasted)
+            broadcasted = ymd.groupby(level="month").transform(np.sum)
+            expected = op(ymd, broadcasted)
             tm.assert_frame_equal(result, expected)
 
             # Series
             op = getattr(Series, opname)
-            result = op(self.ymd["A"], month_sums["A"], level="month")
-            broadcasted = self.ymd["A"].groupby(level="month").transform(np.sum)
-            expected = op(self.ymd["A"], broadcasted)
+            result = op(ymd["A"], month_sums["A"], level="month")
+            broadcasted = ymd["A"].groupby(level="month").transform(np.sum)
+            expected = op(ymd["A"], broadcasted)
             expected.name = "A"
             tm.assert_series_equal(result, expected)
 
@@ -146,47 +126,67 @@ class TestMultiLevel(Base):
         _check_op("mul")
         _check_op("div")
 
-    def test_pickle(self):
+    def test_pickle(
+        self,
+        multiindex_year_month_day_dataframe_random_data,
+        multiindex_dataframe_random_data,
+    ):
+        ymd = multiindex_year_month_day_dataframe_random_data
+        frame = multiindex_dataframe_random_data
+
         def _test_roundtrip(frame):
             unpickled = tm.round_trip_pickle(frame)
             tm.assert_frame_equal(frame, unpickled)
 
-        _test_roundtrip(self.frame)
-        _test_roundtrip(self.frame.T)
-        _test_roundtrip(self.ymd)
-        _test_roundtrip(self.ymd.T)
+        _test_roundtrip(frame)
+        _test_roundtrip(frame.T)
+        _test_roundtrip(ymd)
+        _test_roundtrip(ymd.T)
 
-    def test_reindex(self):
-        expected = self.frame.iloc[[0, 3]]
-        reindexed = self.frame.loc[[("foo", "one"), ("bar", "one")]]
+    def test_reindex(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        expected = frame.iloc[[0, 3]]
+        reindexed = frame.loc[[("foo", "one"), ("bar", "one")]]
         tm.assert_frame_equal(reindexed, expected)
 
-    def test_reindex_preserve_levels(self):
-        new_index = self.ymd.index[::10]
-        chunk = self.ymd.reindex(new_index)
+    def test_reindex_preserve_levels(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        new_index = ymd.index[::10]
+        chunk = ymd.reindex(new_index)
         assert chunk.index is new_index
 
-        chunk = self.ymd.loc[new_index]
+        chunk = ymd.loc[new_index]
         assert chunk.index is new_index
 
-        ymdT = self.ymd.T
+        ymdT = ymd.T
         chunk = ymdT.reindex(columns=new_index)
         assert chunk.columns is new_index
 
         chunk = ymdT.loc[:, new_index]
         assert chunk.columns is new_index
 
-    def test_repr_to_string(self):
-        repr(self.frame)
-        repr(self.ymd)
-        repr(self.frame.T)
-        repr(self.ymd.T)
+    def test_repr_to_string(
+        self,
+        multiindex_year_month_day_dataframe_random_data,
+        multiindex_dataframe_random_data,
+    ):
+        ymd = multiindex_year_month_day_dataframe_random_data
+        frame = multiindex_dataframe_random_data
+
+        repr(frame)
+        repr(ymd)
+        repr(frame.T)
+        repr(ymd.T)
 
         buf = StringIO()
-        self.frame.to_string(buf=buf)
-        self.ymd.to_string(buf=buf)
-        self.frame.T.to_string(buf=buf)
-        self.ymd.T.to_string(buf=buf)
+        frame.to_string(buf=buf)
+        ymd.to_string(buf=buf)
+        frame.T.to_string(buf=buf)
+        ymd.T.to_string(buf=buf)
 
     def test_repr_name_coincide(self):
         index = MultiIndex.from_tuples(
@@ -206,10 +206,14 @@ class TestMultiLevel(Base):
         assert is_integer_dtype(deleveled["prm1"])
         assert is_float_dtype(deleveled["prm2"])
 
-    def test_reset_index_with_drop(self):
-        deleveled = self.ymd.reset_index(drop=True)
-        assert len(deleveled.columns) == len(self.ymd.columns)
-        assert deleveled.index.name == self.ymd.index.name
+    def test_reset_index_with_drop(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        deleveled = ymd.reset_index(drop=True)
+        assert len(deleveled.columns) == len(ymd.columns)
+        assert deleveled.index.name == ymd.index.name
 
         deleveled = self.series.reset_index()
         assert isinstance(deleveled, DataFrame)
@@ -220,7 +224,14 @@ class TestMultiLevel(Base):
         assert isinstance(deleveled, Series)
         assert deleveled.index.name == self.series.index.name
 
-    def test_count_level(self):
+    def test_count_level(
+        self,
+        multiindex_year_month_day_dataframe_random_data,
+        multiindex_dataframe_random_data,
+    ):
+        ymd = multiindex_year_month_day_dataframe_random_data
+        frame = multiindex_dataframe_random_data
+
         def _check_counts(frame, axis=0):
             index = frame._get_axis(axis)
             for i in range(index.nlevels):
@@ -229,23 +240,23 @@ class TestMultiLevel(Base):
                 expected = expected.reindex_like(result).astype("i8")
                 tm.assert_frame_equal(result, expected)
 
-        self.frame.iloc[1, [1, 2]] = np.nan
-        self.frame.iloc[7, [0, 1]] = np.nan
-        self.ymd.iloc[1, [1, 2]] = np.nan
-        self.ymd.iloc[7, [0, 1]] = np.nan
+        frame.iloc[1, [1, 2]] = np.nan
+        frame.iloc[7, [0, 1]] = np.nan
+        ymd.iloc[1, [1, 2]] = np.nan
+        ymd.iloc[7, [0, 1]] = np.nan
 
-        _check_counts(self.frame)
-        _check_counts(self.ymd)
-        _check_counts(self.frame.T, axis=1)
-        _check_counts(self.ymd.T, axis=1)
+        _check_counts(frame)
+        _check_counts(ymd)
+        _check_counts(frame.T, axis=1)
+        _check_counts(ymd.T, axis=1)
 
         # can't call with level on regular DataFrame
         df = tm.makeTimeDataFrame()
         with pytest.raises(TypeError, match="hierarchical"):
             df.count(level=0)
 
-        self.frame["D"] = "foo"
-        result = self.frame.count(level=0, numeric_only=True)
+        frame["D"] = "foo"
+        result = frame.count(level=0, numeric_only=True)
         tm.assert_index_equal(result.columns, Index(list("ABC"), name="exp"))
 
     def test_count_index_with_nan(self):
@@ -296,13 +307,15 @@ class TestMultiLevel(Base):
             result.astype("f8"), expected.reindex(result.index).fillna(0)
         )
 
-    def test_count_level_corner(self):
-        s = self.frame["A"][:0]
+    def test_count_level_corner(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        s = frame["A"][:0]
         result = s.count(level=0)
         expected = Series(0, index=s.index.levels[0], name="A")
         tm.assert_series_equal(result, expected)
 
-        df = self.frame[:0]
+        df = frame[:0]
         result = df.count(level=0)
         expected = (
             DataFrame(index=s.index.levels[0].set_names(["first"]), columns=df.columns)
@@ -311,22 +324,26 @@ class TestMultiLevel(Base):
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_get_level_number_out_of_bounds(self):
-        with pytest.raises(IndexError, match="Too many levels"):
-            self.frame.index._get_level_number(2)
-        with pytest.raises(IndexError, match="not a valid level number"):
-            self.frame.index._get_level_number(-3)
+    def test_get_level_number_out_of_bounds(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
 
-    def test_unstack(self):
+        with pytest.raises(IndexError, match="Too many levels"):
+            frame.index._get_level_number(2)
+        with pytest.raises(IndexError, match="not a valid level number"):
+            frame.index._get_level_number(-3)
+
+    def test_unstack(self, multiindex_year_month_day_dataframe_random_data):
         # just check that it works for now
-        unstacked = self.ymd.unstack()
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        unstacked = ymd.unstack()
         unstacked.unstack()
 
         # test that ints work
-        self.ymd.astype(int).unstack()
+        ymd.astype(int).unstack()
 
         # test that int32 work
-        self.ymd.astype(np.int32).unstack()
+        ymd.astype(np.int32).unstack()
 
     @pytest.mark.parametrize(
         "result_rows,result_columns,index_product,expected_row",
@@ -382,58 +399,60 @@ class TestMultiLevel(Base):
         expected = unstacked.dropna(axis=1, how="all")
         tm.assert_frame_equal(unstacked, expected)
 
-    def test_stack(self):
-        # regular roundtrip
-        unstacked = self.ymd.unstack()
-        restacked = unstacked.stack()
-        tm.assert_frame_equal(restacked, self.ymd)
+    def test_stack(self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
 
-        unlexsorted = self.ymd.sort_index(level=2)
+        # regular roundtrip
+        unstacked = ymd.unstack()
+        restacked = unstacked.stack()
+        tm.assert_frame_equal(restacked, ymd)
+
+        unlexsorted = ymd.sort_index(level=2)
 
         unstacked = unlexsorted.unstack(2)
         restacked = unstacked.stack()
-        tm.assert_frame_equal(restacked.sort_index(level=0), self.ymd)
+        tm.assert_frame_equal(restacked.sort_index(level=0), ymd)
 
         unlexsorted = unlexsorted[::-1]
         unstacked = unlexsorted.unstack(1)
         restacked = unstacked.stack().swaplevel(1, 2)
-        tm.assert_frame_equal(restacked.sort_index(level=0), self.ymd)
+        tm.assert_frame_equal(restacked.sort_index(level=0), ymd)
 
         unlexsorted = unlexsorted.swaplevel(0, 1)
         unstacked = unlexsorted.unstack(0).swaplevel(0, 1, axis=1)
         restacked = unstacked.stack(0).swaplevel(1, 2)
-        tm.assert_frame_equal(restacked.sort_index(level=0), self.ymd)
+        tm.assert_frame_equal(restacked.sort_index(level=0), ymd)
 
         # columns unsorted
-        unstacked = self.ymd.unstack()
+        unstacked = ymd.unstack()
         unstacked = unstacked.sort_index(axis=1, ascending=False)
         restacked = unstacked.stack()
-        tm.assert_frame_equal(restacked, self.ymd)
+        tm.assert_frame_equal(restacked, ymd)
 
         # more than 2 levels in the columns
-        unstacked = self.ymd.unstack(1).unstack(1)
+        unstacked = ymd.unstack(1).unstack(1)
 
         result = unstacked.stack(1)
-        expected = self.ymd.unstack()
+        expected = ymd.unstack()
         tm.assert_frame_equal(result, expected)
 
         result = unstacked.stack(2)
-        expected = self.ymd.unstack(1)
+        expected = ymd.unstack(1)
         tm.assert_frame_equal(result, expected)
 
         result = unstacked.stack(0)
-        expected = self.ymd.stack().unstack(1).unstack(1)
+        expected = ymd.stack().unstack(1).unstack(1)
         tm.assert_frame_equal(result, expected)
 
         # not all levels present in each echelon
-        unstacked = self.ymd.unstack(2).loc[:, ::3]
+        unstacked = ymd.unstack(2).loc[:, ::3]
         stacked = unstacked.stack().stack()
-        ymd_stacked = self.ymd.stack()
+        ymd_stacked = ymd.stack()
         tm.assert_series_equal(stacked, ymd_stacked.reindex(stacked.index))
 
         # stack with negative number
-        result = self.ymd.unstack(0).stack(-2)
-        expected = self.ymd.unstack(0).stack(0)
+        result = ymd.unstack(0).stack(-2)
+        expected = ymd.unstack(0).stack(0)
 
         # GH10417
         def check(left, right):
@@ -501,8 +520,10 @@ Thur,Lunch,Yes,51.51,17"""
         recons = result.stack()
         tm.assert_frame_equal(recons, df)
 
-    def test_stack_mixed_dtype(self):
-        df = self.frame.T
+    def test_stack_mixed_dtype(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        df = frame.T
         df["foo", "four"] = "foo"
         df = df.sort_index(level=1, axis=1)
 
@@ -529,20 +550,25 @@ Thur,Lunch,Yes,51.51,17"""
         restacked = unstacked.stack()
         tm.assert_series_equal(restacked, result.reindex(restacked.index).astype(float))
 
-    def test_stack_unstack_preserve_names(self):
-        unstacked = self.frame.unstack()
+    def test_stack_unstack_preserve_names(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        unstacked = frame.unstack()
         assert unstacked.index.name == "first"
         assert unstacked.columns.names == ["exp", "second"]
 
         restacked = unstacked.stack()
-        assert restacked.index.names == self.frame.index.names
+        assert restacked.index.names == frame.index.names
 
     @pytest.mark.parametrize("method", ["stack", "unstack"])
-    def test_stack_unstack_wrong_level_name(self, method):
+    def test_stack_unstack_wrong_level_name(
+        self, method, multiindex_dataframe_random_data
+    ):
         # GH 18303 - wrong level name should raise
+        frame = multiindex_dataframe_random_data
 
         # A DataFrame with flat axes:
-        df = self.frame.loc["foo"]
+        df = frame.loc["foo"]
 
         with pytest.raises(KeyError, match="does not match index name"):
             getattr(df, method)("mistake")
@@ -564,29 +590,37 @@ Thur,Lunch,Yes,51.51,17"""
         with pytest.raises(KeyError, match="notevenone"):
             df["notevenone"]
 
-    def test_unstack_level_name(self):
-        result = self.frame.unstack("second")
-        expected = self.frame.unstack(level=1)
+    def test_unstack_level_name(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        result = frame.unstack("second")
+        expected = frame.unstack(level=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_stack_level_name(self):
-        unstacked = self.frame.unstack("second")
+    def test_stack_level_name(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        unstacked = frame.unstack("second")
         result = unstacked.stack("exp")
-        expected = self.frame.unstack().stack(0)
+        expected = frame.unstack().stack(0)
         tm.assert_frame_equal(result, expected)
 
-        result = self.frame.stack("exp")
-        expected = self.frame.stack()
+        result = frame.stack("exp")
+        expected = frame.stack()
         tm.assert_series_equal(result, expected)
 
-    def test_stack_unstack_multiple(self):
-        unstacked = self.ymd.unstack(["year", "month"])
-        expected = self.ymd.unstack("year").unstack("month")
+    def test_stack_unstack_multiple(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        unstacked = ymd.unstack(["year", "month"])
+        expected = ymd.unstack("year").unstack("month")
         tm.assert_frame_equal(unstacked, expected)
         assert unstacked.columns.names == expected.columns.names
 
         # series
-        s = self.ymd["A"]
+        s = ymd["A"]
         s_unstacked = s.unstack(["year", "month"])
         tm.assert_frame_equal(s_unstacked, expected["A"])
 
@@ -594,28 +628,36 @@ Thur,Lunch,Yes,51.51,17"""
         restacked = restacked.swaplevel(0, 1).swaplevel(1, 2)
         restacked = restacked.sort_index(level=0)
 
-        tm.assert_frame_equal(restacked, self.ymd)
-        assert restacked.index.names == self.ymd.index.names
+        tm.assert_frame_equal(restacked, ymd)
+        assert restacked.index.names == ymd.index.names
 
         # GH #451
-        unstacked = self.ymd.unstack([1, 2])
-        expected = self.ymd.unstack(1).unstack(1).dropna(axis=1, how="all")
+        unstacked = ymd.unstack([1, 2])
+        expected = ymd.unstack(1).unstack(1).dropna(axis=1, how="all")
         tm.assert_frame_equal(unstacked, expected)
 
-        unstacked = self.ymd.unstack([2, 1])
-        expected = self.ymd.unstack(2).unstack(1).dropna(axis=1, how="all")
+        unstacked = ymd.unstack([2, 1])
+        expected = ymd.unstack(2).unstack(1).dropna(axis=1, how="all")
         tm.assert_frame_equal(unstacked, expected.loc[:, unstacked.columns])
 
-    def test_stack_names_and_numbers(self):
-        unstacked = self.ymd.unstack(["year", "month"])
+    def test_stack_names_and_numbers(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        unstacked = ymd.unstack(["year", "month"])
 
         # Can't use mixture of names and numbers to stack
         with pytest.raises(ValueError, match="level should contain"):
             unstacked.stack([0, "month"])
 
-    def test_stack_multiple_out_of_bounds(self):
+    def test_stack_multiple_out_of_bounds(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
         # nlevels == 3
-        unstacked = self.ymd.unstack(["year", "month"])
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        unstacked = ymd.unstack(["year", "month"])
 
         with pytest.raises(IndexError, match="Too many levels"):
             unstacked.stack([2, 3])
@@ -783,8 +825,10 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         df.unstack(["b", "c"])
 
-    def test_groupby_transform(self):
-        s = self.frame["A"]
+    def test_groupby_transform(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        s = frame["A"]
         grouper = s.index.get_level_values(0)
 
         grouped = s.groupby(grouper)
@@ -926,12 +970,14 @@ Thur,Lunch,Yes,51.51,17"""
         result = grouped.sum()
         assert (result.columns == ["f2", "f3"]).all()
 
-    def test_join(self):
-        a = self.frame.loc[self.frame.index[:5], ["A"]]
-        b = self.frame.loc[self.frame.index[2:], ["B", "C"]]
+    def test_join(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
 
-        joined = a.join(b, how="outer").reindex(self.frame.index)
-        expected = self.frame.copy()
+        a = frame.loc[frame.index[:5], ["A"]]
+        b = frame.loc[frame.index[2:], ["B", "C"]]
+
+        joined = a.join(b, how="outer").reindex(frame.index)
+        expected = frame.copy()
         expected.values[np.isnan(joined.values)] = np.nan
 
         assert not np.isnan(joined.values).all()
@@ -939,12 +985,14 @@ Thur,Lunch,Yes,51.51,17"""
         # TODO what should join do with names ?
         tm.assert_frame_equal(joined, expected, check_names=False)
 
-    def test_swaplevel(self):
-        swapped = self.frame["A"].swaplevel()
-        swapped2 = self.frame["A"].swaplevel(0)
-        swapped3 = self.frame["A"].swaplevel(0, 1)
-        swapped4 = self.frame["A"].swaplevel("first", "second")
-        assert not swapped.index.equals(self.frame.index)
+    def test_swaplevel(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        swapped = frame["A"].swaplevel()
+        swapped2 = frame["A"].swaplevel(0)
+        swapped3 = frame["A"].swaplevel(0, 1)
+        swapped4 = frame["A"].swaplevel("first", "second")
+        assert not swapped.index.equals(frame.index)
         tm.assert_series_equal(swapped, swapped2)
         tm.assert_series_equal(swapped, swapped3)
         tm.assert_series_equal(swapped, swapped4)
@@ -953,22 +1001,24 @@ Thur,Lunch,Yes,51.51,17"""
         back2 = swapped.swaplevel(0)
         back3 = swapped.swaplevel(0, 1)
         back4 = swapped.swaplevel("second", "first")
-        assert back.index.equals(self.frame.index)
+        assert back.index.equals(frame.index)
         tm.assert_series_equal(back, back2)
         tm.assert_series_equal(back, back3)
         tm.assert_series_equal(back, back4)
 
-        ft = self.frame.T
+        ft = frame.T
         swapped = ft.swaplevel("first", "second", axis=1)
-        exp = self.frame.swaplevel("first", "second").T
+        exp = frame.swaplevel("first", "second").T
         tm.assert_frame_equal(swapped, exp)
 
         msg = "Can only swap levels on a hierarchical axis."
         with pytest.raises(TypeError, match=msg):
             DataFrame(range(3)).swaplevel()
 
-    def test_insert_index(self):
-        df = self.ymd[:5].T
+    def test_insert_index(self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        df = ymd[:5].T
         df[2000, 1, 10] = df[2000, 1, 7]
         assert isinstance(df.columns, MultiIndex)
         assert (df[2000, 1, 10] == df[2000, 1, 7]).all()
@@ -993,16 +1043,18 @@ Thur,Lunch,Yes,51.51,17"""
         exp = x.reindex(exp_index) - y.reindex(exp_index)
         tm.assert_series_equal(res, exp)
 
-    def test_count(self):
-        frame = self.frame.copy()
+    def test_count(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        frame = frame.copy()
         frame.index.names = ["a", "b"]
 
         result = frame.count(level="b")
-        expect = self.frame.count(level=1)
+        expect = frame.count(level=1)
         tm.assert_frame_equal(result, expect, check_names=False)
 
         result = frame.count(level="a")
-        expect = self.frame.count(level=0)
+        expect = frame.count(level=0)
         tm.assert_frame_equal(result, expect, check_names=False)
 
         series = self.series.copy()
@@ -1041,17 +1093,21 @@ Thur,Lunch,Yes,51.51,17"""
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("sort", [True, False])
-    def test_frame_group_ops(self, op, level, axis, skipna, sort):
+    def test_frame_group_ops(
+        self, op, level, axis, skipna, sort, multiindex_dataframe_random_data
+    ):
         # GH 17537
-        self.frame.iloc[1, [1, 2]] = np.nan
-        self.frame.iloc[7, [0, 1]] = np.nan
+        frame = multiindex_dataframe_random_data
 
-        level_name = self.frame.index.names[level]
+        frame.iloc[1, [1, 2]] = np.nan
+        frame.iloc[7, [0, 1]] = np.nan
+
+        level_name = frame.index.names[level]
 
         if axis == 0:
-            frame = self.frame
+            frame = frame
         else:
-            frame = self.frame.T
+            frame = frame.T
 
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
 
@@ -1134,28 +1190,34 @@ Thur,Lunch,Yes,51.51,17"""
             expected = df.groupby(level=0).agg(alt)
             tm.assert_frame_equal(result, expected)
 
-    def test_frame_series_agg_multiple_levels(self):
-        result = self.ymd.sum(level=["year", "month"])
-        expected = self.ymd.groupby(level=["year", "month"]).sum()
+    def test_frame_series_agg_multiple_levels(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        result = ymd.sum(level=["year", "month"])
+        expected = ymd.groupby(level=["year", "month"]).sum()
         tm.assert_frame_equal(result, expected)
 
-        result = self.ymd["A"].sum(level=["year", "month"])
-        expected = self.ymd["A"].groupby(level=["year", "month"]).sum()
+        result = ymd["A"].sum(level=["year", "month"])
+        expected = ymd["A"].groupby(level=["year", "month"]).sum()
         tm.assert_series_equal(result, expected)
 
-    def test_groupby_multilevel(self):
-        result = self.ymd.groupby(level=[0, 1]).mean()
+    def test_groupby_multilevel(self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
 
-        k1 = self.ymd.index.get_level_values(0)
-        k2 = self.ymd.index.get_level_values(1)
+        result = ymd.groupby(level=[0, 1]).mean()
 
-        expected = self.ymd.groupby([k1, k2]).mean()
+        k1 = ymd.index.get_level_values(0)
+        k2 = ymd.index.get_level_values(1)
+
+        expected = ymd.groupby([k1, k2]).mean()
 
         # TODO groupby with level_values drops names
         tm.assert_frame_equal(result, expected, check_names=False)
-        assert result.index.names == self.ymd.index.names[:2]
+        assert result.index.names == ymd.index.names[:2]
 
-        result2 = self.ymd.groupby(level=self.ymd.index.names[:2]).mean()
+        result2 = ymd.groupby(level=ymd.index.names[:2]).mean()
         tm.assert_frame_equal(result, result2)
 
     def test_groupby_multilevel_with_transform(self):
@@ -1169,23 +1231,28 @@ Thur,Lunch,Yes,51.51,17"""
         df["Totals", ""] = df.sum(1)
         df = df._consolidate()
 
-    def test_loc_preserve_names(self):
-        result = self.ymd.loc[2000]
-        result2 = self.ymd["A"].loc[2000]
-        assert result.index.names == self.ymd.index.names[1:]
-        assert result2.index.names == self.ymd.index.names[1:]
+    def test_loc_preserve_names(self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
 
-        result = self.ymd.loc[2000, 2]
-        result2 = self.ymd["A"].loc[2000, 2]
-        assert result.index.name == self.ymd.index.names[2]
-        assert result2.index.name == self.ymd.index.names[2]
+        result = ymd.loc[2000]
+        result2 = ymd["A"].loc[2000]
+        assert result.index.names == ymd.index.names[1:]
+        assert result2.index.names == ymd.index.names[1:]
 
-    def test_unstack_preserve_types(self):
+        result = ymd.loc[2000, 2]
+        result2 = ymd["A"].loc[2000, 2]
+        assert result.index.name == ymd.index.names[2]
+        assert result2.index.name == ymd.index.names[2]
+
+    def test_unstack_preserve_types(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
         # GH #403
-        self.ymd["E"] = "foo"
-        self.ymd["F"] = 2
+        ymd = multiindex_year_month_day_dataframe_random_data
+        ymd["E"] = "foo"
+        ymd["F"] = 2
 
-        unstacked = self.ymd.unstack("month")
+        unstacked = ymd.unstack("month")
         assert unstacked["A", 1].dtype == np.float64
         assert unstacked["E", 1].dtype == np.object_
         assert unstacked["F", 1].dtype == np.float64
@@ -1227,10 +1294,12 @@ Thur,Lunch,Yes,51.51,17"""
         result = s.unstack(4)
         assert result.shape == (500, 2)
 
-    def test_to_html(self):
-        self.ymd.columns.name = "foo"
-        self.ymd.to_html()
-        self.ymd.T.to_html()
+    def test_to_html(self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        ymd.columns.name = "foo"
+        ymd.to_html()
+        ymd.T.to_html()
 
     def test_level_with_tuples(self):
         index = MultiIndex(
@@ -1305,21 +1374,23 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(expected, result)
         tm.assert_frame_equal(df1, df2)
 
-    def test_reindex_level_partial_selection(self):
-        result = self.frame.reindex(["foo", "qux"], level=0)
-        expected = self.frame.iloc[[0, 1, 2, 7, 8, 9]]
+    def test_reindex_level_partial_selection(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        result = frame.reindex(["foo", "qux"], level=0)
+        expected = frame.iloc[[0, 1, 2, 7, 8, 9]]
         tm.assert_frame_equal(result, expected)
 
-        result = self.frame.T.reindex(["foo", "qux"], axis=1, level=0)
+        result = frame.T.reindex(["foo", "qux"], axis=1, level=0)
         tm.assert_frame_equal(result, expected.T)
 
-        result = self.frame.loc[["foo", "qux"]]
+        result = frame.loc[["foo", "qux"]]
         tm.assert_frame_equal(result, expected)
 
-        result = self.frame["A"].loc[["foo", "qux"]]
+        result = frame["A"].loc[["foo", "qux"]]
         tm.assert_series_equal(result, expected["A"])
 
-        result = self.frame.T.loc[:, ["foo", "qux"]]
+        result = frame.T.loc[:, ["foo", "qux"]]
         tm.assert_frame_equal(result, expected.T)
 
     def test_unicode_repr_level_names(self):
@@ -1742,9 +1813,11 @@ Thur,Lunch,Yes,51.51,17"""
 class TestSorted(Base):
     """ everything you wanted to test about sorting """
 
-    def test_sort_index_preserve_levels(self):
-        result = self.frame.sort_index()
-        assert result.index.names == self.frame.index.names
+    def test_sort_index_preserve_levels(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        result = frame.sort_index()
+        assert result.index.names == frame.index.names
 
     def test_sorting_repr_8017(self):
 
