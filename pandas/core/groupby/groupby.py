@@ -1925,7 +1925,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         See Also
         --------
         Series.backfill :  Backward fill the missing values in the dataset.
-        DataFrame.backfill:  Backward fill the missing values in the dataset
+        DataFrame.backfill:  Backward fill the missing values in the dataset.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
         """
