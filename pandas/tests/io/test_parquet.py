@@ -376,19 +376,6 @@ class TestBasic(Base):
         ]
         self.check_error_on_write(df, engine, ValueError)
 
-    def test_to_bytes_without_path_or_buf_provided(self, engine, df_full):
-        # GH 37105
-
-        buf = df_full.to_parquet(engine=engine)
-        assert isinstance(buf, bytes)
-
-        with tm.ensure_clean() as path:
-            with open(path, "wb") as f:
-                f.write(buf)
-            res = pd.read_parquet(path)
-
-        tm.assert_frame_equal(df_full, res)
-
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
     def test_compression(self, engine, compression):
 
@@ -524,6 +511,19 @@ class TestParquetPyArrow(Base):
             expected=df[["string", "int"]],
             read_kwargs={"columns": ["string", "int"]},
         )
+
+    def test_to_bytes_without_path_or_buf_provided(self, pa, df_full):
+        # GH 37105
+
+        buf = df_full.to_parquet(engine=pa)
+        assert isinstance(buf, bytes)
+
+        with tm.ensure_clean() as path:
+            with open(path, "wb") as f:
+                f.write(buf)
+            res = pd.read_parquet(path)
+
+        tm.assert_frame_equal(df_full, res)
 
     def test_duplicate_columns(self, pa):
         # not currently able to handle duplicate columns
