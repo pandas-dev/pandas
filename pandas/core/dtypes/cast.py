@@ -79,14 +79,10 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeArray,
     ABCDatetimeIndex,
     ABCExtensionArray,
-    ABCPeriodArray,
     ABCPeriodIndex,
     ABCSeries,
-    ABCTimedeltaArray,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import (
@@ -1309,22 +1305,6 @@ def maybe_infer_to_datetimelike(
        leave inferred dtype 'date' alone
 
     """
-    if isinstance(
-        value,
-        (
-            ABCDatetimeIndex,
-            ABCPeriodIndex,
-            ABCDatetimeArray,
-            ABCPeriodArray,
-            ABCTimedeltaIndex,
-            ABCTimedeltaArray,
-        ),
-    ):
-        return value
-    elif isinstance(value, ABCSeries):
-        if isinstance(value._values, ABCDatetimeIndex):
-            return value._values
-
     v = value
 
     if not is_list_like(v):
