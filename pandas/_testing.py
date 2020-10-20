@@ -2547,11 +2547,11 @@ with_connectivity_check = network
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning=Warning,
+    expected_warning: Optional[Union[Type[Warning], bool]] = Warning,
     filter_level="always",
-    check_stacklevel=True,
-    raise_on_extra_warnings=True,
-    match=None,
+    check_stacklevel: bool = True,
+    raise_on_extra_warnings: bool = True,
+    match: Optional[str] = None,
 ):
     """
     Context manager for running code expected to either raise a specific
@@ -2621,9 +2621,11 @@ def assert_produces_warning(
         extra_warnings = []
 
         for actual_warning in w:
-            if expected_warning and issubclass(
-                actual_warning.category, expected_warning
-            ):
+            if not expected_warning:
+                continue
+
+            expected_warning = cast(Type[Warning], expected_warning)
+            if issubclass(actual_warning.category, expected_warning):
                 saw_warning = True
 
                 if check_stacklevel and issubclass(
@@ -2631,7 +2633,7 @@ def assert_produces_warning(
                 ):
                     _assert_raised_with_correct_stacklevel(actual_warning)
 
-                if match and re.search(match, str(actual_warning.message)):
+                if match is not None and re.search(match, str(actual_warning.message)):
                     matched_message = True
 
             else:
@@ -2644,17 +2646,19 @@ def assert_produces_warning(
                     )
                 )
 
-        if expected_warning and not saw_warning:
-            raise AssertionError(
-                f"Did not see expected warning of class "
-                f"{repr(expected_warning.__name__)}"
-            )
+        if expected_warning:
+            expected_warning = cast(Type[Warning], expected_warning)
+            if not saw_warning:
+                raise AssertionError(
+                    f"Did not see expected warning of class "
+                    f"{repr(expected_warning.__name__)}"
+                )
 
-        if match and not matched_message:
-            raise AssertionError(
-                f"Did not see warning {repr(expected_warning.__name__)} "
-                f"matching {match}"
-            )
+            if match and not matched_message:
+                raise AssertionError(
+                    f"Did not see warning {repr(expected_warning.__name__)} "
+                    f"matching {match}"
+                )
 
         if raise_on_extra_warnings and extra_warnings:
             raise AssertionError(
@@ -2662,7 +2666,9 @@ def assert_produces_warning(
             )
 
 
-def _assert_raised_with_correct_stacklevel(actual_warning):
+def _assert_raised_with_correct_stacklevel(
+    actual_warning: warnings.WarningMessage,
+) -> None:
     from inspect import getframeinfo, stack
 
     caller = getframeinfo(stack()[3][0])
