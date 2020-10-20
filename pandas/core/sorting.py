@@ -327,6 +327,7 @@ def nargsort(
     ascending: bool = True,
     na_position: str = "last",
     key: Optional[Callable] = None,
+    mask: Optional[np.ndarray] = None,
 ):
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
@@ -341,19 +342,27 @@ def nargsort(
     ascending : bool, default True
     na_position : {'first', 'last'}, default 'last'
     key : Optional[Callable], default None
+    mask : Optional[np.ndarray], default None
+        Passed when called by ExtensionArray.argsort.
     """
 
     if key is not None:
         items = ensure_key_mapped(items, key)
         return nargsort(
-            items, kind=kind, ascending=ascending, na_position=na_position, key=None
+            items,
+            kind=kind,
+            ascending=ascending,
+            na_position=na_position,
+            key=None,
+            mask=mask,
         )
 
     items = extract_array(items)
-    mask = np.asarray(isna(items))
+    if mask is None:
+        mask = np.asarray(isna(items))
 
     if is_extension_array_dtype(items):
-        items = items._values_for_argsort()
+        return items.argsort(ascending=ascending, kind=kind, na_position=na_position)
     else:
         items = np.asanyarray(items)
 
