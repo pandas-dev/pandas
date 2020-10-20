@@ -446,6 +446,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _constructor(self):
         return type(self)
 
+    @final
     def _maybe_check_unique(self):
         """
         Check that an Index has no duplicates.
@@ -466,6 +467,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             raise DuplicateLabelError(msg)
 
+    @final
     def _format_duplicate_message(self):
         """
         Construct the DataFrame for a DuplicateLabelError.
@@ -495,6 +497,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Index Internals Methods
 
+    @final
     def _get_attributes_dict(self):
         """
         Return an attributes dict for my class.
@@ -523,6 +526,7 @@ class Index(IndexOpsMixin, PandasObject):
         result._cache = self._cache
         return result
 
+    @final
     def is_(self, other) -> bool:
         """
         More flexible, faster check like ``is`` but that works through views.
@@ -553,12 +557,14 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return self._id is other._id
 
+    @final
     def _reset_identity(self) -> None:
         """
         Initializes or resets ``_id`` attribute with new object.
         """
         self._id = _Identity(object())
 
+    @final
     def _cleanup(self):
         self._engine.clear_mapping()
 
@@ -618,6 +624,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data.dtype
 
+    @final
     def ravel(self, order="C"):
         """
         Return an ndarray of the flattened values of the underlying data.
@@ -872,9 +879,11 @@ class Index(IndexOpsMixin, PandasObject):
             new_index = new_index.astype(dtype)
         return new_index
 
+    @final
     def __copy__(self, **kwargs):
         return self.copy(**kwargs)
 
+    @final
     def __deepcopy__(self, memo=None):
         """
         Parameters
@@ -1243,6 +1252,7 @@ class Index(IndexOpsMixin, PandasObject):
         maybe_extract_name(value, None, type(self))
         self._name = value
 
+    @final
     def _validate_names(self, name=None, names=None, deep: bool = False) -> List[Label]:
         """
         Handles the quirks of having a singular 'name' parameter for general
@@ -1305,6 +1315,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     names = property(fset=_set_names, fget=_get_names)
 
+    @final
     def set_names(self, names, level=None, inplace: bool = False):
         """
         Set Index or MultiIndex name.
@@ -1552,6 +1563,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     get_level_values = _get_level_values
 
+    @final
     def droplevel(self, level=0):
         """
         Return index with requested level(s) removed.
@@ -2152,6 +2164,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return False
 
+    @final
     def isna(self):
         """
         Detect missing values.
@@ -2209,6 +2222,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     isnull = isna
 
+    @final
     def notna(self):
         """
         Detect existing (non-missing) values.
@@ -2487,15 +2501,19 @@ class Index(IndexOpsMixin, PandasObject):
         # alias for __add__
         return self + other
 
+    @final
     def __and__(self, other):
         return self.intersection(other)
 
+    @final
     def __or__(self, other):
         return self.union(other)
 
+    @final
     def __xor__(self, other):
         return self.symmetric_difference(other)
 
+    @final
     def __nonzero__(self):
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
@@ -4395,6 +4413,7 @@ class Index(IndexOpsMixin, PandasObject):
             and type(self) == type(other)
         )
 
+    @final
     def asof(self, label):
         """
         Return the label from the index, or, if not present, the previous one.
@@ -4583,6 +4602,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return sorted_index
 
+    @final
     def sort(self, *args, **kwargs):
         """
         Use sort_values instead.
