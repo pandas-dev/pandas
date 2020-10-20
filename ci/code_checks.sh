@@ -207,18 +207,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for wrong space after code-block directive and before colon (".. code-block ::" instead of ".. code-block::")' ; echo $MSG
-    invgrep -R --include="*.rst" ".. code-block ::" doc/source
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for wrong space after ipython directive and before colon (".. ipython ::" instead of ".. ipython::")' ; echo $MSG
-    invgrep -R --include="*.rst" ".. ipython ::" doc/source
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for extra blank lines after the class definition' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '!r}' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -242,12 +230,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
-    INVGREP_APPEND=" <- trailing whitespaces found"
-    invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    unset INVGREP_APPEND
 
     MSG='Check code for instances of os.remove' ; echo $MSG
     invgrep -R --include="*.py*" --exclude "common.py" --exclude "test_writers.py" --exclude "test_store.py" -E "os\.remove" pandas/tests/
