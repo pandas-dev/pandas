@@ -3013,6 +3013,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         .. versionchanged:: 1.0.0
            Added caption and label arguments.
 
+        .. versionchanged:: 1.2.0
+           Added position argument, changed meaning of caption argument.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -3074,10 +3077,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
-        caption : str, optional
-            The LaTeX caption to be placed inside ``\caption{{}}`` in the output.
+        caption : str or tuple, optional
+            Tuple (full_caption, short_caption),
+            which results in ``\caption[short_caption]{{full_caption}}``;
+            if a single string is passed, no short caption will be set.
 
             .. versionadded:: 1.0.0
+
+            .. versionchanged:: 1.2.0
+               Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
 
         label : str, optional
             The LaTeX label to be placed inside ``\label{{}}`` in the output.
@@ -3087,6 +3095,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{{}}`` in the output.
+
+            .. versionadded:: 1.2.0
         {returns}
         See Also
         --------
@@ -3097,8 +3107,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Examples
         --------
         >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                    mask=['red', 'purple'],
-        ...                    weapon=['sai', 'bo staff']))
+        ...                   mask=['red', 'purple'],
+        ...                   weapon=['sai', 'bo staff']))
         >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{{tabular}}{{lll}}
          \toprule
@@ -5343,7 +5353,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             A passed method name providing context on where ``__finalize__``
             was called.
 
-            .. warning:
+            .. warning::
 
                The value passed as `method` are not currently considered
                stable across pandas releases.
@@ -5354,7 +5364,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
             # For subclasses using _metadata.
-            for name in self._metadata:
+            for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
@@ -5474,7 +5484,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @property
     def _is_mixed_type(self) -> bool_t:
-        if len(self._mgr.blocks) == 1:
+        if self._mgr.is_single_block:
             return False
 
         if self._mgr.any_extension_types:
@@ -6262,7 +6272,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if value is None:
-            if len(self._mgr.blocks) > 1 and axis == 1:
+            if not self._mgr.is_single_block and axis == 1:
                 if inplace:
                     raise NotImplementedError()
                 result = self.T.fillna(method=method, limit=limit).T
@@ -7309,7 +7319,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -------
         {klass}
             Mask of bool values for each element in {klass} that
-            indicates whether an element is not an NA value.
+            indicates whether an element is an NA value.
 
         See Also
         --------
