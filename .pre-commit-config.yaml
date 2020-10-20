@@ -69,7 +69,7 @@ repos:
         language: pygrep
         entry: |
             (?x)^(
-                from\ pandas\.core\.common\ import
+                from\ pandas\.core\.common\ import|
                 from\ pandas\.core\ import\ common|
                 from\ collections\.abc\ import|
                 from\ numpy\ import\ nan
