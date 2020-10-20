@@ -3276,6 +3276,7 @@ Keep all original rows and also all original values
 
         arr = self._values
 
+        # GH 35922. Make sorting stable by leveraging nargsort
         sorted_index = nargsort(arr, kind, ascending, na_position, key)
 
         result = self._constructor(arr[sorted_index], index=self.index[sorted_index])
