@@ -638,7 +638,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     def _validate_where_value(self, other):
         if not is_list_like(other):
-            other = self._validate_scalar(other)
+            other = self._validate_scalar(other, True)
         else:
             other = self._validate_listlike(other)
 
