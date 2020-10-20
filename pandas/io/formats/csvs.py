@@ -5,7 +5,7 @@ Module for formatting output data into CSV files.
 import csv as csvlib
 from io import StringIO, TextIOWrapper
 import os
-from typing import Any, Dict, Hashable, Iterator, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -13,6 +13,7 @@ from pandas._libs import writers as libwriters
 from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
+    FloatFormatType,
     IndexLabel,
     Label,
     StorageOptions,
@@ -30,18 +31,17 @@ from pandas.core.indexes.api import Index
 
 from pandas.io.common import get_filepath_or_buffer, get_handle
 
+if TYPE_CHECKING:
+    from pandas.io.formats.format import DataFrameFormatter
+
 
 class CSVFormatter:
     def __init__(
         self,
-        obj,
+        formatter: "DataFrameFormatter",
         path_or_buf: Optional[FilePathOrBuffer[str]] = None,
         sep: str = ",",
-        na_rep: str = "",
-        float_format: Optional[str] = None,
         cols: Optional[Sequence[Label]] = None,
-        header: Union[bool, Sequence[Hashable]] = True,
-        index: bool = True,
         index_label: Optional[IndexLabel] = None,
         mode: str = "w",
         encoding: Optional[str] = None,
@@ -54,10 +54,11 @@ class CSVFormatter:
         date_format: Optional[str] = None,
         doublequote: bool = True,
         escapechar: Optional[str] = None,
-        decimal=".",
         storage_options: StorageOptions = None,
     ):
-        self.obj = obj
+        self.fmt = formatter
+
+        self.obj = self.fmt.frame
 
         self.encoding = encoding or "utf-8"
 
@@ -79,35 +80,45 @@ class CSVFormatter:
         self.mode = ioargs.mode
 
         self.sep = sep
-        self.na_rep = na_rep
-        self.float_format = float_format
-        self.decimal = decimal
-        self.header = header
-        self.index = index
-        self.index_label = index_label
+        self.index_label = self._initialize_index_label(index_label)
         self.errors = errors
         self.quoting = quoting or csvlib.QUOTE_MINIMAL
-        self.quotechar = quotechar
+        self.quotechar = self._initialize_quotechar(quotechar)
         self.doublequote = doublequote
         self.escapechar = escapechar
         self.line_terminator = line_terminator or os.linesep
         self.date_format = date_format
-        self.cols = cols  # type: ignore[assignment]
-        self.chunksize = chunksize  # type: ignore[assignment]
+        self.cols = self._initialize_columns(cols)
+        self.chunksize = self._initialize_chunksize(chunksize)
 
     @property
-    def index_label(self) -> IndexLabel:
-        return self._index_label
+    def na_rep(self) -> str:
+        return self.fmt.na_rep
 
-    @index_label.setter
-    def index_label(self, index_label: Optional[IndexLabel]) -> None:
+    @property
+    def float_format(self) -> Optional["FloatFormatType"]:
+        return self.fmt.float_format
+
+    @property
+    def decimal(self) -> str:
+        return self.fmt.decimal
+
+    @property
+    def header(self) -> Union[bool, Sequence[str]]:
+        return self.fmt.header
+
+    @property
+    def index(self) -> bool:
+        return self.fmt.index
+
+    def _initialize_index_label(self, index_label: Optional[IndexLabel]) -> IndexLabel:
         if index_label is not False:
             if index_label is None:
-                index_label = self._get_index_label_from_obj()
+                return self._get_index_label_from_obj()
             elif not isinstance(index_label, (list, tuple, np.ndarray, ABCIndexClass)):
                 # given a string for a DF with Index
-                index_label = [index_label]
-        self._index_label = index_label
+                return [index_label]
+        return index_label
 
     def _get_index_label_from_obj(self) -> List[str]:
         if isinstance(self.obj.index, ABCMultiIndex):
@@ -122,30 +133,17 @@ class CSVFormatter:
         index_label = self.obj.index.name
         return [""] if index_label is None else [index_label]
 
-    @property
-    def quotechar(self) -> Optional[str]:
+    def _initialize_quotechar(self, quotechar: Optional[str]) -> Optional[str]:
         if self.quoting != csvlib.QUOTE_NONE:
             # prevents crash in _csv
-            return self._quotechar
+            return quotechar
         return None
-
-    @quotechar.setter
-    def quotechar(self, quotechar: Optional[str]) -> None:
-        self._quotechar = quotechar
 
     @property
     def has_mi_columns(self) -> bool:
         return bool(isinstance(self.obj.columns, ABCMultiIndex))
 
-    @property
-    def cols(self) -> Sequence[Label]:
-        return self._cols
-
-    @cols.setter
-    def cols(self, cols: Optional[Sequence[Label]]) -> None:
-        self._cols = self._refine_cols(cols)
-
-    def _refine_cols(self, cols: Optional[Sequence[Label]]) -> Sequence[Label]:
+    def _initialize_columns(self, cols: Optional[Sequence[Label]]) -> Sequence[Label]:
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:
@@ -161,12 +159,16 @@ class CSVFormatter:
 
         # update columns to include possible multiplicity of dupes
         # and make sure sure cols is just a list of labels
-        cols = self.obj.columns
-        if isinstance(cols, ABCIndexClass):
-            return cols._format_native_types(**self._number_format)
+        new_cols = self.obj.columns
+        if isinstance(new_cols, ABCIndexClass):
+            return new_cols._format_native_types(**self._number_format)
         else:
-            assert isinstance(cols, Sequence)
-            return list(cols)
+            return list(new_cols)
+
+    def _initialize_chunksize(self, chunksize: Optional[int]) -> int:
+        if chunksize is None:
+            return (100000 // (len(self.cols) or 1)) or 1
+        return int(chunksize)
 
     @property
     def _number_format(self) -> Dict[str, Any]:
@@ -178,17 +180,6 @@ class CSVFormatter:
             quoting=self.quoting,
             decimal=self.decimal,
         )
-
-    @property
-    def chunksize(self) -> int:
-        return self._chunksize
-
-    @chunksize.setter
-    def chunksize(self, chunksize: Optional[int]) -> None:
-        if chunksize is None:
-            chunksize = (100000 // (len(self.cols) or 1)) or 1
-        assert chunksize is not None
-        self._chunksize = int(chunksize)
 
     @property
     def data_index(self) -> Index:
