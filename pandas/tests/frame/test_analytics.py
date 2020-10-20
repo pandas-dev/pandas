@@ -1,6 +1,5 @@
 from datetime import timedelta
 from decimal import Decimal
-import operator
 
 import numpy as np
 import pytest
@@ -1114,68 +1113,6 @@ class TestDataFrameAnalytics:
         xpr = "Must specify 'axis' when aggregating by level."
         with pytest.raises(ValueError, match=xpr):
             getattr(df, method)(axis=None, level="out")
-
-    # ---------------------------------------------------------------------
-    # Matrix-like
-
-    def test_matmul(self):
-        # matmul test is for GH 10259
-        a = DataFrame(
-            np.random.randn(3, 4), index=["a", "b", "c"], columns=["p", "q", "r", "s"]
-        )
-        b = DataFrame(
-            np.random.randn(4, 2), index=["p", "q", "r", "s"], columns=["one", "two"]
-        )
-
-        # DataFrame @ DataFrame
-        result = operator.matmul(a, b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        tm.assert_frame_equal(result, expected)
-
-        # DataFrame @ Series
-        result = operator.matmul(a, b.one)
-        expected = Series(np.dot(a.values, b.one.values), index=["a", "b", "c"])
-        tm.assert_series_equal(result, expected)
-
-        # np.array @ DataFrame
-        result = operator.matmul(a.values, b)
-        assert isinstance(result, DataFrame)
-        assert result.columns.equals(b.columns)
-        assert result.index.equals(pd.Index(range(3)))
-        expected = np.dot(a.values, b.values)
-        tm.assert_almost_equal(result.values, expected)
-
-        # nested list @ DataFrame (__rmatmul__)
-        result = operator.matmul(a.values.tolist(), b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        tm.assert_almost_equal(result.values, expected.values)
-
-        # mixed dtype DataFrame @ DataFrame
-        a["q"] = a.q.round().astype(int)
-        result = operator.matmul(a, b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        tm.assert_frame_equal(result, expected)
-
-        # different dtypes DataFrame @ DataFrame
-        a = a.astype(int)
-        result = operator.matmul(a, b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        tm.assert_frame_equal(result, expected)
-
-        # unaligned
-        df = DataFrame(np.random.randn(3, 4), index=[1, 2, 3], columns=range(4))
-        df2 = DataFrame(np.random.randn(5, 3), index=range(5), columns=[1, 2, 3])
-
-        with pytest.raises(ValueError, match="aligned"):
-            operator.matmul(df, df2)
 
     # ---------------------------------------------------------------------
     # Unsorted

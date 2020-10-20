@@ -12,7 +12,6 @@ from pandas import DataFrame, DatetimeIndex, Index, Series
 import pandas._testing as tm
 from pandas.core.window.common import flex_binary_moment
 from pandas.tests.window.common import (
-    check_pairwise_moment,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
@@ -60,7 +59,12 @@ def test_rolling_corr(series):
 
 @pytest.mark.parametrize("func", ["cov", "corr"])
 def test_rolling_pairwise_cov_corr(func, frame):
-    check_pairwise_moment(frame, "rolling", func, window=10, min_periods=5)
+    result = getattr(frame.rolling(window=10, min_periods=5), func)()
+    result = result.loc[(slice(None), 1), 5]
+    result.index = result.index.droplevel(1)
+    expected = getattr(frame[1].rolling(window=10, min_periods=5), func)(frame[5])
+    expected.index = expected.index._with_freq(None)
+    tm.assert_series_equal(result, expected, check_names=False)
 
 
 @pytest.mark.parametrize("method", ["corr", "cov"])
@@ -452,7 +456,7 @@ def test_moment_functions_zero_length():
     df2_expected = df2
 
     functions = [
-        lambda x: x.rolling(window=10).count(),
+        lambda x: x.rolling(window=10, min_periods=0).count(),
         lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=False),
         lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=False),
         lambda x: x.rolling(window=10, min_periods=5).max(),

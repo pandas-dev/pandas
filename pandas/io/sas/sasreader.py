@@ -9,7 +9,7 @@ from pandas._typing import FilePathOrBuffer, Label
 from pandas.io.common import get_filepath_or_buffer, stringify_path
 
 if TYPE_CHECKING:
-    from pandas import DataFrame  # noqa: F401
+    from pandas import DataFrame
 
 
 # TODO(PY38): replace with Protocol in Python 3.8

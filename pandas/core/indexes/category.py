@@ -24,7 +24,6 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
 
 from pandas.core import accessor
 from pandas.core.arrays.categorical import Categorical, contains
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
@@ -165,6 +164,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     codes: np.ndarray
     categories: Index
     _data: Categorical
+    _values: Categorical
 
     @property
     def _engine_type(self):
@@ -574,15 +574,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return self.get_indexer(keyarr)
 
-    @doc(Index._convert_arr_indexer)
-    def _convert_arr_indexer(self, keyarr):
-        keyarr = com.asarray_tuplesafe(keyarr)
-
-        if self.categories._defer_to_indexing:
-            return keyarr
-
-        return self._shallow_copy(keyarr)
-
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side, kind):
         if kind == "loc":
@@ -731,6 +722,3 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         name = get_op_result_name(self, other)
         cat = self._data._from_backing_data(joined)
         return type(self)._simple_new(cat, name=name)
-
-
-CategoricalIndex._add_logical_methods_disabled()

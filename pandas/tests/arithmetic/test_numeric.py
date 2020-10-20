@@ -11,9 +11,17 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Series, Timedelta, TimedeltaIndex
+from pandas import Index, Int64Index, Series, Timedelta, TimedeltaIndex, array
 import pandas._testing as tm
 from pandas.core import ops
+
+
+@pytest.fixture(params=[Index, Series, tm.to_array])
+def box_pandas_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series and tm.to_array classes
+    """
+    return request.param
 
 
 def adjust_negative_zero(zero, expected):
@@ -89,8 +97,9 @@ class TestNumericComparisons:
         b.name = pd.Timestamp("2000-01-01")
         tm.assert_series_equal(a / b, 1 / (b / a))
 
-    def test_numeric_cmp_string_numexpr_path(self, box):
+    def test_numeric_cmp_string_numexpr_path(self, box_with_array):
         # GH#36377, GH#35700
+        box = box_with_array
         xbox = box if box is not pd.Index else np.ndarray
 
         obj = pd.Series(np.random.randn(10 ** 5))
@@ -163,16 +172,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         with pytest.raises(TypeError, match=msg):
             left // right
 
-    # TODO: de-duplicate with test_numeric_arr_mul_tdscalar
-    def test_ops_series(self):
-        # regression test for G#H8813
-        td = Timedelta("1 day")
-        other = pd.Series([1, 2])
-        expected = pd.Series(pd.to_timedelta(["1 day", "2 days"]))
-        tm.assert_series_equal(expected, td * other)
-        tm.assert_series_equal(expected, other * td)
-
-    # TODO: also test non-nanosecond timedelta64 and Tick objects;
+    # TODO: also test Tick objects;
     #  see test_numeric_arr_rdiv_tdscalar for note on these failing
     @pytest.mark.parametrize(
         "scalar_td",
@@ -180,14 +180,16 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             Timedelta(days=1),
             Timedelta(days=1).to_timedelta64(),
             Timedelta(days=1).to_pytimedelta(),
+            Timedelta(days=1).to_timedelta64().astype("timedelta64[s]"),
+            Timedelta(days=1).to_timedelta64().astype("timedelta64[ms]"),
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar(self, scalar_td, numeric_idx, box):
+    def test_numeric_arr_mul_tdscalar(self, scalar_td, numeric_idx, box_with_array):
         # GH#19333
+        box = box_with_array
         index = numeric_idx
-
-        expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(5)])
+        expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(len(index))])
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -207,7 +209,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box):
+    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box_with_array):
+        box = box_with_array
+
         arr = np.arange(2 * 10 ** 4).astype(np.int64)
         obj = tm.box_expected(arr, box, transpose=False)
 
@@ -220,7 +224,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = scalar_td * obj
         tm.assert_equal(result, expected)
 
-    def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
+    def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box_with_array):
+        box = box_with_array
+
         index = numeric_idx[1:3]
 
         expected = TimedeltaIndex(["3 Days", "36 Hours"])
@@ -248,7 +254,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             pd.offsets.Second(0),
         ],
     )
-    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box):
+    def test_add_sub_timedeltalike_invalid(self, numeric_idx, other, box_with_array):
+        box = box_with_array
+
         left = tm.box_expected(numeric_idx, box)
         msg = (
             "unsupported operand type|"
@@ -276,16 +284,21 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
     )
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
-    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box):
+    def test_add_sub_datetimelike_invalid(self, numeric_idx, other, box_with_array):
         # GH#28080 numeric+datetime64 should raise; Timestamp raises
         #  NullFrequencyError instead of TypeError so is excluded.
+        box = box_with_array
         left = tm.box_expected(numeric_idx, box)
 
-        msg = (
-            "unsupported operand type|"
-            "Cannot (add|subtract) NaT (to|from) ndarray|"
-            "Addition/subtraction of integers and integer-arrays|"
-            "Concatenation operation is not implemented for NumPy arrays"
+        msg = "|".join(
+            [
+                "unsupported operand type",
+                "Cannot (add|subtract) NaT (to|from) ndarray",
+                "Addition/subtraction of integers and integer-arrays",
+                "Concatenation operation is not implemented for NumPy arrays",
+                # pd.array vs np.datetime64 case
+                r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             left + other
@@ -568,8 +581,9 @@ class TestMultiplicationDivision:
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
     # for non-timestamp/timedelta/period dtypes
 
-    def test_divide_decimal(self, box):
+    def test_divide_decimal(self, box_with_array):
         # resolves issue GH#9787
+        box = box_with_array
         ser = Series([Decimal(10)])
         expected = Series([Decimal(5)])
 
@@ -794,31 +808,45 @@ class TestAdditionSubtraction:
     # __add__, __sub__, __radd__, __rsub__, __iadd__, __isub__
     # for non-timestamp/timedelta/period dtypes
 
-    # TODO: This came from series.test.test_operators, needs cleanup
-    def test_arith_ops_df_compat(self):
+    @pytest.mark.parametrize(
+        "first, second, expected",
+        [
+            (
+                pd.Series([1, 2, 3], index=list("ABC"), name="x"),
+                pd.Series([2, 2, 2], index=list("ABD"), name="x"),
+                pd.Series([3.0, 4.0, np.nan, np.nan], index=list("ABCD"), name="x"),
+            ),
+            (
+                pd.Series([1, 2, 3], index=list("ABC"), name="x"),
+                pd.Series([2, 2, 2, 2], index=list("ABCD"), name="x"),
+                pd.Series([3, 4, 5, np.nan], index=list("ABCD"), name="x"),
+            ),
+        ],
+    )
+    def test_add_series(self, first, second, expected):
         # GH#1134
-        s1 = pd.Series([1, 2, 3], index=list("ABC"), name="x")
-        s2 = pd.Series([2, 2, 2], index=list("ABD"), name="x")
+        tm.assert_series_equal(first + second, expected)
+        tm.assert_series_equal(second + first, expected)
 
-        exp = pd.Series([3.0, 4.0, np.nan, np.nan], index=list("ABCD"), name="x")
-        tm.assert_series_equal(s1 + s2, exp)
-        tm.assert_series_equal(s2 + s1, exp)
-
-        exp = pd.DataFrame({"x": [3.0, 4.0, np.nan, np.nan]}, index=list("ABCD"))
-        tm.assert_frame_equal(s1.to_frame() + s2.to_frame(), exp)
-        tm.assert_frame_equal(s2.to_frame() + s1.to_frame(), exp)
-
-        # different length
-        s3 = pd.Series([1, 2, 3], index=list("ABC"), name="x")
-        s4 = pd.Series([2, 2, 2, 2], index=list("ABCD"), name="x")
-
-        exp = pd.Series([3, 4, 5, np.nan], index=list("ABCD"), name="x")
-        tm.assert_series_equal(s3 + s4, exp)
-        tm.assert_series_equal(s4 + s3, exp)
-
-        exp = pd.DataFrame({"x": [3, 4, 5, np.nan]}, index=list("ABCD"))
-        tm.assert_frame_equal(s3.to_frame() + s4.to_frame(), exp)
-        tm.assert_frame_equal(s4.to_frame() + s3.to_frame(), exp)
+    @pytest.mark.parametrize(
+        "first, second, expected",
+        [
+            (
+                pd.DataFrame({"x": [1, 2, 3]}, index=list("ABC")),
+                pd.DataFrame({"x": [2, 2, 2]}, index=list("ABD")),
+                pd.DataFrame({"x": [3.0, 4.0, np.nan, np.nan]}, index=list("ABCD")),
+            ),
+            (
+                pd.DataFrame({"x": [1, 2, 3]}, index=list("ABC")),
+                pd.DataFrame({"x": [2, 2, 2, 2]}, index=list("ABCD")),
+                pd.DataFrame({"x": [3, 4, 5, np.nan]}, index=list("ABCD")),
+            ),
+        ],
+    )
+    def test_add_frames(self, first, second, expected):
+        # GH#1134
+        tm.assert_frame_equal(first + second, expected)
+        tm.assert_frame_equal(second + first, expected)
 
     # TODO: This came from series.test.test_operators, needs cleanup
     def test_series_frame_radd_bug(self):
@@ -1317,3 +1345,33 @@ def test_dataframe_div_silenced():
     )
     with tm.assert_produces_warning(None):
         pdf1.div(pdf2, fill_value=0)
+
+
+@pytest.mark.parametrize(
+    "data, expected_data",
+    [([0, 1, 2], [0, 2, 4])],
+)
+def test_integer_array_add_list_like(
+    box_pandas_1d_array, box_1d_array, data, expected_data
+):
+    # GH22606 Verify operators with IntegerArray and list-likes
+    arr = array(data, dtype="Int64")
+    container = box_pandas_1d_array(arr)
+    left = container + box_1d_array(data)
+    right = box_1d_array(data) + container
+
+    if Series == box_pandas_1d_array:
+        assert_function = tm.assert_series_equal
+        expected = Series(expected_data, dtype="Int64")
+    elif Series == box_1d_array:
+        assert_function = tm.assert_series_equal
+        expected = Series(expected_data, dtype="object")
+    elif Index in (box_pandas_1d_array, box_1d_array):
+        assert_function = tm.assert_index_equal
+        expected = Int64Index(expected_data)
+    else:
+        assert_function = tm.assert_numpy_array_equal
+        expected = np.array(expected_data, dtype="object")
+
+    assert_function(left, expected)
+    assert_function(right, expected)

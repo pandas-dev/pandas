@@ -243,10 +243,10 @@ def test_union(idx, sort):
 
     # corner case, pass self or empty thing:
     the_union = idx.union(idx, sort=sort)
-    assert the_union is idx
+    tm.assert_index_equal(the_union, idx)
 
     the_union = idx.union(idx[:0], sort=sort)
-    assert the_union is idx
+    tm.assert_index_equal(the_union, idx)
 
     # FIXME: dont leave commented-out
     # won't work in python 3
@@ -278,7 +278,7 @@ def test_intersection(idx, sort):
 
     # corner case, pass self
     the_int = idx.intersection(idx, sort=sort)
-    assert the_int is idx
+    tm.assert_index_equal(the_int, idx)
 
     # empty intersection: disjoint
     empty = idx[:2].intersection(idx[2:], sort=sort)

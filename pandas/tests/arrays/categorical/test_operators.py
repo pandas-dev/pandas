@@ -179,6 +179,20 @@ class TestCategoricalOps:
         tm.assert_numpy_array_equal(cat == 4, np.array([False, False, False]))
         tm.assert_numpy_array_equal(cat != 4, np.array([True, True, True]))
 
+    def test_comparison_with_tuple(self):
+        cat = pd.Categorical(np.array(["foo", (0, 1), 3, (0, 1)], dtype=object))
+
+        result = cat == "foo"
+        expected = np.array([True, False, False, False], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = cat == (0, 1)
+        expected = np.array([False, True, False, True], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = cat != (0, 1)
+        tm.assert_numpy_array_equal(result, ~expected)
+
     def test_comparison_of_ordered_categorical_with_nan_to_scalar(
         self, compare_operators_no_eq_ne
     ):

@@ -104,22 +104,22 @@ class TestArithmetic:
         result = op(arr, other)
         tm.assert_equal(result, expected)
 
-    def test_objarr_add_str(self, box):
+    def test_objarr_add_str(self, box_with_array):
         ser = pd.Series(["x", np.nan, "x"])
         expected = pd.Series(["xa", np.nan, "xa"])
 
-        ser = tm.box_expected(ser, box)
-        expected = tm.box_expected(expected, box)
+        ser = tm.box_expected(ser, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = ser + "a"
         tm.assert_equal(result, expected)
 
-    def test_objarr_radd_str(self, box):
+    def test_objarr_radd_str(self, box_with_array):
         ser = pd.Series(["x", np.nan, "x"])
         expected = pd.Series(["ax", np.nan, "ax"])
 
-        ser = tm.box_expected(ser, box)
-        expected = tm.box_expected(expected, box)
+        ser = tm.box_expected(ser, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = "a" + ser
         tm.assert_equal(result, expected)
@@ -343,8 +343,9 @@ class MyIndex(pd.Index):
         result._index_data = values
         result._name = name
         result._calls = 0
+        result._reset_identity()
 
-        return result._reset_identity()
+        return result
 
     def __add__(self, other):
         self._calls += 1

@@ -31,7 +31,11 @@ class TestFancy:
         df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
-        with pytest.raises(ValueError):
+        msg = (
+            "cannot set using a multi-index selection "
+            "indexer with a different length than the value"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.loc[df.index[2:5], "bar"] = np.array([2.33j, 1.23 + 0.1j, 2.2, 1.0])
 
         # valid
@@ -48,7 +52,8 @@ class TestFancy:
         df["foo"] = np.zeros(10, dtype=np.float64)
         df["bar"] = np.zeros(10, dtype=complex)
 
-        with pytest.raises(ValueError):
+        msg = "Must have equal len keys and value when setting with an iterable"
+        with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
     @pytest.mark.parametrize(
@@ -554,15 +559,17 @@ class TestFancy:
         # string indexing against datetimelike with object
         # dtype should properly raises KeyError
         df = DataFrame([1], Index([pd.Timestamp("2011-01-01")], dtype=object))
-        assert df.index.is_all_dates
+        assert df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
         with pytest.raises(KeyError, match="'2011'"):
-            df.loc["2011", 0]
+            with tm.assert_produces_warning(FutureWarning):
+                # This does an is_all_dates check
+                df.loc["2011", 0]
 
         df = DataFrame()
-        assert not df.index.is_all_dates
+        assert not df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
@@ -1053,13 +1060,13 @@ def test_1tuple_without_multiindex():
 def test_duplicate_index_mistyped_key_raises_keyerror():
     # GH#29189 float_index.get_loc(None) should raise KeyError, not TypeError
     ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="None"):
         ser[None]
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="None"):
         ser.index.get_loc(None)
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="None"):
         ser.index._engine.get_loc(None)
 
 
