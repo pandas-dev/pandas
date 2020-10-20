@@ -369,8 +369,3 @@ def test_compare_ticks_to_timedeltalike(cls):
         assert not off > other
         assert off <= other
         assert off >= other
-
-
-def test_offsets_hashable():
-    # GH: 37267
-    assert offsets.Day() is not None
