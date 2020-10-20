@@ -49,3 +49,17 @@ def test_nat_multi_index(ix_data, exp_data):
 
     expected = pd.DataFrame(exp_data)
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_getitem_multiindex_nonunique_len_zero():
+    # GH#13691
+    mi = pd.MultiIndex.from_product([[0], [1, 1]])
+    ser = pd.Series(0, index=mi)
+
+    res = ser.loc[[]]
+
+    expected = ser[:0]
+    tm.assert_series_equal(res, expected)
+
+    res2 = ser.loc[ser.iloc[0:0]]
+    tm.assert_series_equal(res2, expected)
