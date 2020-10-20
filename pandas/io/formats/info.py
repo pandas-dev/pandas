@@ -340,13 +340,13 @@ class DataFrameInfo(BaseInfo):
         lines.append(top_separator)
 
         for i, col in enumerate(ids):
-            dtype = dtypes[i]
+            dtype = dtypes.iloc[i]
             col = pprint_thing(col)
 
             line_no = _put_str(f" {i}", space_num)
             count = ""
             if show_counts:
-                count = counts[i]
+                count = counts.iloc[i]
 
             lines.append(
                 line_no
