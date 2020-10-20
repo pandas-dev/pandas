@@ -707,3 +707,21 @@ def test_precision_float_conversion(strrep):
     result = to_numeric(strrep)
 
     assert result == float(strrep)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (["1", "2", None], Series([1, 2, np.nan])),
+        (["1", "2", "3"], Series([1, 2, 3])),
+        (["1", "2", 3], Series([1, 2, 3])),
+        (["1", "2", 3.5], Series([1, 2, 3.5])),
+        (["1", None, 3.5], Series([1, np.nan, 3.5])),
+        (["1", "2", "3.5"], Series([1, 2, 3.5])),
+    ],
+)
+def test_to_numeric_from_nullable_string(values, expected):
+    # https://github.com/pandas-dev/pandas/issues/37262
+    s = Series(values, dtype="string")
+    result = to_numeric(s)
+    tm.assert_series_equal(result, expected)
