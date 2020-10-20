@@ -39,10 +39,9 @@ function invgrep {
 }
 
 function check_namespace {
-    local -r CLASS="${1}" INCLUDE="${2}" EXCLUDE="${3}" ERROR_MSG="   <- do not use both ${1} and pd.${1} in the same file"
-    grep -R -l --include "${INCLUDE}" --exclude "${EXCLUDE}" " ${CLASS}(" pandas/tests | xargs grep -n "pd\.${CLASS}(" | sed "s/$/${ERROR_MSG}/"
-    local -r EXIT_STATUS=${PIPESTATUS[0]}
-    return $((! EXIT_STATUS))
+    local -r CLASS="${1}" INCLUDE="${2}" EXCLUDE="${3}"
+    grep -R -l --include "${INCLUDE}" --exclude "${EXCLUDE}" " ${CLASS}(" pandas/tests | xargs grep -n "pd\.${CLASS}("
+    test $? -gt 0
 }
 
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
