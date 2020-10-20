@@ -39,8 +39,10 @@ function invgrep {
 }
 
 function check_namespace {
-    grep -R -l --include="${2}" --exclude="${3}" " ${1}(" | xargs grep -n "pd\.${1}("
-    test $? -gt 0
+    local -r CLASS="${1}" INCLUDE="${2}" EXCLUDE="${3}" ERROR_MSG="   <- do not use both ${1} and pd.${1} in the same file"
+    grep -R -l --include "${INCLUDE}" --exclude "${EXCLUDE}" " ${CLASS}(" pandas/tests | xargs grep -n "pd\.${CLASS}(" | sed "s/$/${ERROR_MSG}/"
+    local -r EXIT_STATUS=${PIPESTATUS[0]}
+    return $((! EXIT_STATUS))
 }
 
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
@@ -259,7 +261,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for inconsistent use of pandas namespace' ; echo $MSG
-    check_namespace "Series" "test_missing.py"
+    check_namespace "Series" "test_inference.py"
     RET=$(($RET + $?))
     check_namespace "DataFrame" "test_missing.py"
     RET=$(($RET + $?))
