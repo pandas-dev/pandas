@@ -452,3 +452,15 @@ def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
     ser = Series([], dtype=float)
     result = ser.where([])
     tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize("klass", [Series, pd.DataFrame])
+def test_where_categorical(klass):
+    # https://github.com/pandas-dev/pandas/issues/18888
+    exp = klass(
+        pd.Categorical(["A", "A", "B", "B", np.nan], categories=["A", "B", "C"]),
+        dtype="category",
+    )
+    df = klass(["A", "A", "B", "B", "C"], dtype="category")
+    res = df.where(df != "C")
+    tm.assert_equal(exp, res)

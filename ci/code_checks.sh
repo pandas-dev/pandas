@@ -15,11 +15,10 @@
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
-#   $ ./ci/code_checks.sh dependencies  # check that dependencies are consistent
 #   $ ./ci/code_checks.sh typing	# run static type analysis
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "dependencies" || "$1" == "typing" ]] || \
-    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|dependencies|typing]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
+    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|typing]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
@@ -47,31 +46,6 @@ fi
 
 ### LINTING ###
 if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
-
-    echo "black --version"
-    black --version
-
-    MSG='Checking black formatting' ; echo $MSG
-    black . --check
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # `setup.cfg` contains the list of error codes that are being ignored in flake8
-
-    echo "flake8 --version"
-    flake8 --version
-
-    # pandas/_libs/src is C code, so no need to search there.
-    MSG='Linting .py code' ; echo $MSG
-    flake8 --format="$FLAKE8_FORMAT" .
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Linting .pyx and .pxd code' ; echo $MSG
-    flake8 --format="$FLAKE8_FORMAT" pandas --append-config=flake8/cython.cfg
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Linting .pxi.in' ; echo $MSG
-    flake8 --format="$FLAKE8_FORMAT" pandas/_libs --append-config=flake8/cython-template.cfg
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
     # it doesn't make a difference, but we want to be internally consistent.
@@ -122,19 +96,6 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
         $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
     else
         $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
-    fi
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    echo "isort --version-number"
-    isort --version-number
-
-    # Imports - Check formatting using isort see setup.cfg for settings
-    MSG='Check import format using isort' ; echo $MSG
-    ISORT_CMD="isort --quiet --check-only pandas asv_bench scripts web"
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        eval $ISORT_CMD | awk '{print "##[error]" $0}'; RET=$(($RET + ${PIPESTATUS[0]}))
-    else
-        eval $ISORT_CMD
     fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
@@ -207,18 +168,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -r -E --include '*.py' '(unittest(\.| import )mock|mock\.Mock\(\)|mock\.patch)' pandas/tests/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for wrong space after code-block directive and before colon (".. code-block ::" instead of ".. code-block::")' ; echo $MSG
-    invgrep -R --include="*.rst" ".. code-block ::" doc/source
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for wrong space after ipython directive and before colon (".. ipython ::" instead of ".. ipython::")' ; echo $MSG
-    invgrep -R --include="*.rst" ".. ipython ::" doc/source
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for extra blank lines after the class definition' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E 'class.*:\n\n( )+"""' .
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for use of {foo!r} instead of {repr(foo)}' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '!r}' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
@@ -242,12 +191,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
     invgrep -R --include=*.{py,pyx} '\.__class__' pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check that no file in the repo contains trailing whitespaces' ; echo $MSG
-    INVGREP_APPEND=" <- trailing whitespaces found"
-    invgrep -RI --exclude=\*.{svg,c,cpp,html,js} --exclude-dir=env "\s$" *
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    unset INVGREP_APPEND
 
     MSG='Check code for instances of os.remove' ; echo $MSG
     invgrep -R --include="*.py*" --exclude "common.py" --exclude "test_writers.py" --exclude "test_store.py" -E "os\.remove" pandas/tests/
@@ -372,15 +315,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
 fi
 
-### DEPENDENCIES ###
-if [[ -z "$CHECK" || "$CHECK" == "dependencies" ]]; then
-
-    MSG='Check that requirements-dev.txt has been generated from environment.yml' ; echo $MSG
-    $BASE_DIR/scripts/generate_pip_deps_from_conda.py --compare --azure
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-fi
-
 ### TYPING ###
 if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
 
@@ -391,6 +325,5 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
     mypy pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
-
 
 exit $RET
