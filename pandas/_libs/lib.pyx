@@ -2019,7 +2019,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
-        elif val is None:
+        elif val is None or val is C_NA:
             seen.saw_null()
             floats[i] = complexes[i] = NaN
         elif hasattr(val, '__len__') and len(val) == 0:
