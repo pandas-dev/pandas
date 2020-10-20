@@ -3013,6 +3013,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         .. versionchanged:: 1.0.0
            Added caption and label arguments.
 
+        .. versionchanged:: 1.2.0
+           Added position argument, changed meaning of caption argument.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -3074,10 +3077,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
-        caption : str, optional
-            The LaTeX caption to be placed inside ``\caption{{}}`` in the output.
+        caption : str or tuple, optional
+            Tuple (full_caption, short_caption),
+            which results in ``\caption[short_caption]{{full_caption}}``;
+            if a single string is passed, no short caption will be set.
 
             .. versionadded:: 1.0.0
+
+            .. versionchanged:: 1.2.0
+               Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
 
         label : str, optional
             The LaTeX label to be placed inside ``\label{{}}`` in the output.
@@ -3087,6 +3095,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{{}}`` in the output.
+
+            .. versionadded:: 1.2.0
         {returns}
         See Also
         --------
@@ -3097,8 +3107,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Examples
         --------
         >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                    mask=['red', 'purple'],
-        ...                    weapon=['sai', 'bo staff']))
+        ...                   mask=['red', 'purple'],
+        ...                   weapon=['sai', 'bo staff']))
         >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{{tabular}}{{lll}}
          \toprule
@@ -5354,7 +5364,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
             # For subclasses using _metadata.
-            for name in self._metadata:
+            for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
@@ -7309,7 +7319,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -------
         {klass}
             Mask of bool values for each element in {klass} that
-            indicates whether an element is not an NA value.
+            indicates whether an element is an NA value.
 
         See Also
         --------
