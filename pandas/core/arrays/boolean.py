@@ -418,7 +418,7 @@ class BooleanArray(BaseMaskedArray):
 
         See Also
         --------
-        ExtensionArray.argsort: Return the indices that would sort this array.
+        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
         data[self._mask] = -1
