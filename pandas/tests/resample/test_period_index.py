@@ -566,7 +566,7 @@ class TestPeriodIndex:
             .tz_localize("UTC")
             .tz_convert("America/Chicago")
         )
-        df = pd.DataFrame([1, 2], index=index)
+        df = DataFrame([1, 2], index=index)
         result = df.resample("12h", closed="right", label="right").last().ffill()
 
         expected_index_values = [
@@ -588,7 +588,7 @@ class TestPeriodIndex:
             "America/Chicago"
         )
         index = pd.DatetimeIndex(index, freq="12h")
-        expected = pd.DataFrame(
+        expected = DataFrame(
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0],
             index=index,
         )
@@ -816,7 +816,7 @@ class TestPeriodIndex:
     )
     def test_resample_with_offset(self, start, end, start_freq, end_freq, offset):
         # GH 23882 & 31809
-        s = pd.Series(0, index=pd.period_range(start, end, freq=start_freq))
+        s = Series(0, index=pd.period_range(start, end, freq=start_freq))
         s = s + np.arange(len(s))
         result = s.resample(end_freq, offset=offset).mean()
         result = result.to_timestamp(end_freq)
@@ -861,9 +861,9 @@ class TestPeriodIndex:
         index = pd.date_range(start="2018", freq="M", periods=6)
         data = np.ones(6)
         data[3:6] = np.nan
-        s = pd.Series(data, index).to_period()
+        s = Series(data, index).to_period()
         result = s.resample("Q").sum(min_count=1)
-        expected = pd.Series(
+        expected = Series(
             [3.0, np.nan], index=PeriodIndex(["2018Q1", "2018Q2"], freq="Q-DEC")
         )
         tm.assert_series_equal(result, expected)
