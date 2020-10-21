@@ -871,7 +871,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             other = self._na_value
         values = np.where(cond, self._values, other)
         result = IntervalArray(values)
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     def delete(self, loc):
         """
