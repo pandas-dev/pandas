@@ -512,6 +512,17 @@ class TestParquetPyArrow(Base):
             read_kwargs={"columns": ["string", "int"]},
         )
 
+    def test_to_bytes_without_path_or_buf_provided(self, pa, df_full):
+        # GH 37105
+
+        buf_bytes = df_full.to_parquet(engine=pa)
+        assert isinstance(buf_bytes, bytes)
+
+        buf_stream = BytesIO(buf_bytes)
+        res = pd.read_parquet(buf_stream)
+
+        tm.assert_frame_equal(df_full, res)
+
     def test_duplicate_columns(self, pa):
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
