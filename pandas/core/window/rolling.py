@@ -853,7 +853,8 @@ class Window(BaseWindow):
         'neither' endpoints. Defaults to 'right'.
 
         .. versionchanged:: 1.2.0
-        The closed parameter with fixed windows is now supported.
+
+            The closed parameter with fixed windows is now supported.
 
     Returns
     -------
