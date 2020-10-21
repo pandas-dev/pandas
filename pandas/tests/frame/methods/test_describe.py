@@ -300,7 +300,7 @@ class TestDataFrameDescribe:
         df = pd.DataFrame({"s1": s1, "s2": s2})
 
         s1_ = s1.describe()
-        s2_ = pd.Series(
+        s2_ = Series(
             [
                 5,
                 5,

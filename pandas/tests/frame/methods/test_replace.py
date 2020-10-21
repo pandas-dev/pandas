@@ -711,7 +711,7 @@ class TestDataFrameReplace:
 
     def test_replace_with_empty_list(self):
         # GH 21977
-        s = pd.Series([["a", "b"], [], np.nan, [1]])
+        s = Series([["a", "b"], [], np.nan, [1]])
         df = pd.DataFrame({"col": s})
         expected = df
         result = df.replace([], np.nan)

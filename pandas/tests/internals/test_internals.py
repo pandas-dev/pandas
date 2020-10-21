@@ -1216,8 +1216,8 @@ def test_validate_ndim():
 
 def test_block_shape():
     idx = pd.Index([0, 1, 2, 3, 4])
-    a = pd.Series([1, 2, 3]).reindex(idx)
-    b = pd.Series(pd.Categorical([1, 2, 3])).reindex(idx)
+    a = Series([1, 2, 3]).reindex(idx)
+    b = Series(pd.Categorical([1, 2, 3])).reindex(idx)
 
     assert a._mgr.blocks[0].mgr_locs.indexer == b._mgr.blocks[0].mgr_locs.indexer
 
@@ -1285,7 +1285,7 @@ def test_interleave_non_unique_cols():
 
 def test_single_block_manager_fastpath_deprecated():
     # GH#33092
-    ser = pd.Series(range(3))
+    ser = Series(range(3))
     blk = ser._data.blocks[0]
     with tm.assert_produces_warning(FutureWarning):
         SingleBlockManager(blk, ser.index, fastpath=True)

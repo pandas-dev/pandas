@@ -136,22 +136,20 @@ def test_closed():
 def test_closed_empty(closed, arithmetic_win_operators):
     # GH 26005
     func_name = arithmetic_win_operators
-    ser = pd.Series(
-        data=np.arange(5), index=pd.date_range("2000", periods=5, freq="2D")
-    )
+    ser = Series(data=np.arange(5), index=pd.date_range("2000", periods=5, freq="2D"))
     roll = ser.rolling("1D", closed=closed)
 
     result = getattr(roll, func_name)()
-    expected = pd.Series([np.nan] * 5, index=ser.index)
+    expected = Series([np.nan] * 5, index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
 def test_closed_one_entry(func):
     # GH24718
-    ser = pd.Series(data=[2], index=pd.date_range("2000", periods=1))
+    ser = Series(data=[2], index=pd.date_range("2000", periods=1))
     result = getattr(ser.rolling("10D", closed="left"), func)()
-    tm.assert_series_equal(result, pd.Series([np.nan], index=ser.index))
+    tm.assert_series_equal(result, Series([np.nan], index=ser.index))
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
@@ -166,7 +164,7 @@ def test_closed_one_entry_groupby(func):
     exp_idx = pd.MultiIndex.from_arrays(
         arrays=[[1, 1, 2], ser.index], names=("A", None)
     )
-    expected = pd.Series(data=[np.nan, 3, np.nan], index=exp_idx, name="B")
+    expected = Series(data=[np.nan, 3, np.nan], index=exp_idx, name="B")
     tm.assert_series_equal(result, expected)
 
 
@@ -186,23 +184,23 @@ def test_closed_one_entry_groupby(func):
 )
 def test_closed_min_max_datetime(input_dtype, func, closed, expected):
     # see gh-21704
-    ser = pd.Series(
+    ser = Series(
         data=np.arange(10).astype(input_dtype), index=pd.date_range("2000", periods=10)
     )
 
     result = getattr(ser.rolling("3D", closed=closed), func)()
-    expected = pd.Series(expected, index=ser.index)
+    expected = Series(expected, index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
 def test_closed_uneven():
     # see gh-21704
-    ser = pd.Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
+    ser = Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
 
     # uneven
     ser = ser.drop(index=ser.index[[1, 5]])
     result = ser.rolling("3D", closed="left").min()
-    expected = pd.Series([np.nan, 0, 0, 2, 3, 4, 6, 6], index=ser.index)
+    expected = Series([np.nan, 0, 0, 2, 3, 4, 6, 6], index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
@@ -221,10 +219,10 @@ def test_closed_uneven():
 )
 def test_closed_min_max_minp(func, closed, expected):
     # see gh-21704
-    ser = pd.Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
+    ser = Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
     ser[ser.index[-3:]] = np.nan
     result = getattr(ser.rolling("3D", min_periods=2, closed=closed), func)()
-    expected = pd.Series(expected, index=ser.index)
+    expected = Series(expected, index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
@@ -239,9 +237,9 @@ def test_closed_min_max_minp(func, closed, expected):
 )
 def test_closed_median_quantile(closed, expected):
     # GH 26005
-    ser = pd.Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
+    ser = Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
     roll = ser.rolling("3D", closed=closed)
-    expected = pd.Series(expected, index=ser.index)
+    expected = Series(expected, index=ser.index)
 
     result = roll.median()
     tm.assert_series_equal(result, expected)
@@ -267,8 +265,8 @@ def tests_empty_df_rolling(roller):
 
 def test_empty_window_median_quantile():
     # GH 26005
-    expected = pd.Series([np.nan, np.nan, np.nan])
-    roll = pd.Series(np.arange(3)).rolling(0)
+    expected = Series([np.nan, np.nan, np.nan])
+    roll = Series(np.arange(3)).rolling(0)
 
     result = roll.median()
     tm.assert_series_equal(result, expected)
@@ -280,27 +278,27 @@ def test_empty_window_median_quantile():
 def test_missing_minp_zero():
     # https://github.com/pandas-dev/pandas/pull/18921
     # minp=0
-    x = pd.Series([np.nan])
+    x = Series([np.nan])
     result = x.rolling(1, min_periods=0).sum()
-    expected = pd.Series([0.0])
+    expected = Series([0.0])
     tm.assert_series_equal(result, expected)
 
     # minp=1
     result = x.rolling(1, min_periods=1).sum()
-    expected = pd.Series([np.nan])
+    expected = Series([np.nan])
     tm.assert_series_equal(result, expected)
 
 
 def test_missing_minp_zero_variable():
     # https://github.com/pandas-dev/pandas/pull/18921
-    x = pd.Series(
+    x = Series(
         [np.nan] * 4,
         index=pd.DatetimeIndex(
             ["2017-01-01", "2017-01-04", "2017-01-06", "2017-01-07"]
         ),
     )
     result = x.rolling(pd.Timedelta("2d"), min_periods=0).sum()
-    expected = pd.Series(0.0, index=x.index)
+    expected = Series(0.0, index=x.index)
     tm.assert_series_equal(result, expected)
 
 
@@ -349,8 +347,8 @@ def test_readonly_array():
     # GH-27766
     arr = np.array([1, 3, np.nan, 3, 5])
     arr.setflags(write=False)
-    result = pd.Series(arr).rolling(2).mean()
-    expected = pd.Series([np.nan, 2, np.nan, np.nan, 4])
+    result = Series(arr).rolling(2).mean()
+    expected = Series([np.nan, 2, np.nan, np.nan, 4])
     tm.assert_series_equal(result, expected)
 
 
@@ -442,7 +440,7 @@ def test_min_periods1():
     # GH#6795
     df = pd.DataFrame([0, 1, 2, 1, 0], columns=["a"])
     result = df["a"].rolling(3, center=True, min_periods=1).max()
-    expected = pd.Series([1.0, 2.0, 2.0, 2.0, 1.0], name="a")
+    expected = Series([1.0, 2.0, 2.0, 2.0, 1.0], name="a")
     tm.assert_series_equal(result, expected)
 
 
@@ -741,7 +739,7 @@ def test_rolling_numerical_accuracy_kahan_sum():
     # GH: 13254
     df = pd.DataFrame([2.186, -1.647, 0.0, 0.0, 0.0, 0.0], columns=["x"])
     result = df["x"].rolling(3).sum()
-    expected = pd.Series([np.nan, np.nan, 0.539, -1.647, 0.0, 0.0], name="x")
+    expected = Series([np.nan, np.nan, 0.539, -1.647, 0.0, 0.0], name="x")
     tm.assert_series_equal(result, expected)
 
 
@@ -770,10 +768,10 @@ def test_rolling_numerical_accuracy_small_values():
 def test_rolling_numerical_too_large_numbers():
     # GH: 11645
     dates = pd.date_range("2015-01-01", periods=10, freq="D")
-    ds = pd.Series(data=range(10), index=dates, dtype=np.float64)
+    ds = Series(data=range(10), index=dates, dtype=np.float64)
     ds[2] = -9e33
     result = ds.rolling(5).mean()
-    expected = pd.Series(
+    expected = Series(
         [np.nan, np.nan, np.nan, np.nan, -1.8e33, -1.8e33, -1.8e33, 5.0, 6.0, 7.0],
         index=dates,
     )
@@ -864,9 +862,9 @@ def test_rolling_on_df_transposed():
 )
 def test_rolling_period_index(index, window, func, values):
     # GH: 34225
-    ds = pd.Series([0, 1, 2, 3, 4, 5, 6, 7, 8], index=index)
+    ds = Series([0, 1, 2, 3, 4, 5, 6, 7, 8], index=index)
     result = getattr(ds.rolling(window, closed="left"), func)()
-    expected = pd.Series(values, index=index)
+    expected = Series(values, index=index)
     tm.assert_series_equal(result, expected)
 
 
@@ -876,8 +874,8 @@ def test_rolling_sem(constructor):
     obj = getattr(pd, constructor)([0, 1, 2])
     result = obj.rolling(2, min_periods=1).sem()
     if isinstance(result, DataFrame):
-        result = pd.Series(result[0].values)
-    expected = pd.Series([np.nan] + [0.707107] * 2)
+        result = Series(result[0].values)
+    expected = Series([np.nan] + [0.707107] * 2)
     tm.assert_series_equal(result, expected)
 
 
@@ -892,7 +890,7 @@ def test_rolling_sem(constructor):
 )
 def test_rolling_var_numerical_issues(func, third_value, values):
     # GH: 37051
-    ds = pd.Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
+    ds = Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
     result = getattr(ds.rolling(2), func)()
-    expected = pd.Series([np.nan] + values)
+    expected = Series([np.nan] + values)
     tm.assert_series_equal(result, expected)

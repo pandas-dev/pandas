@@ -737,15 +737,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             pd.to_datetime(42).tz_localize("UTC"),
             pd.to_datetime(666).tz_localize("UTC"),
         ]
-        expected = pd.Series(vals, index=["foo", "bar"])
+        expected = Series(vals, index=["foo", "bar"])
 
-        ser = pd.Series(dtype=object)
+        ser = Series(dtype=object)
         ser["foo"] = vals[0]
         ser["bar"] = vals[1]
 
         tm.assert_series_equal(ser, expected)
 
-        ser = pd.Series(dtype=object)
+        ser = Series(dtype=object)
         ser.loc["foo"] = vals[0]
         ser.loc["bar"] = vals[1]
 
@@ -907,9 +907,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_loc_uint64(self):
         # GH20722
         # Test whether loc accept uint64 max value as index.
-        s = pd.Series(
-            [1, 2], index=[np.iinfo("uint64").max - 1, np.iinfo("uint64").max]
-        )
+        s = Series([1, 2], index=[np.iinfo("uint64").max - 1, np.iinfo("uint64").max])
 
         result = s.loc[np.iinfo("uint64").max - 1]
         expected = s.iloc[0]
@@ -961,7 +959,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # GH24924
         df = DataFrame([[1, 2], [3, 4]])
         result = df.loc[np.array(0)]
-        s = pd.Series([1, 2], name=0)
+        s = Series([1, 2], name=0)
         tm.assert_series_equal(result, s)
 
     def test_series_indexing_zerodim_np_array(self):
@@ -975,7 +973,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         data = [1, 2, 3, 4, 5, 6] + [None] * 4
         expected = Series(data, index=range(2010, 2020))
 
-        result = pd.Series(index=range(2010, 2020), dtype=np.float64)
+        result = Series(index=range(2010, 2020), dtype=np.float64)
         result.loc[2015:2010:-1] = [6, 5, 4, 3, 2, 1]
 
         tm.assert_series_equal(result, expected)
@@ -1054,7 +1052,7 @@ def test_loc_set_dataframe_multiindex():
 
 def test_loc_mixed_int_float():
     # GH#19456
-    ser = pd.Series(range(2), pd.Index([1, 2.0], dtype=object))
+    ser = Series(range(2), pd.Index([1, 2.0], dtype=object))
 
     result = ser.loc[1]
     assert result == 0
@@ -1062,12 +1060,12 @@ def test_loc_mixed_int_float():
 
 def test_loc_with_positional_slice_deprecation():
     # GH#31840
-    ser = pd.Series(range(4), index=["A", "B", "C", "D"])
+    ser = Series(range(4), index=["A", "B", "C", "D"])
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         ser.loc[:3] = 2
 
-    expected = pd.Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
+    expected = Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
     tm.assert_series_equal(ser, expected)
 
 

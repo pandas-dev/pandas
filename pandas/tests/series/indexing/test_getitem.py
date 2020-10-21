@@ -90,7 +90,7 @@ class TestSeriesGetitemListLike:
         ser = Series(period_range("2000-01-01", periods=10, freq="D"))
 
         result = ser[[2, 4]]
-        exp = pd.Series(
+        exp = Series(
             [pd.Period("2000-01-03", freq="D"), pd.Period("2000-01-05", freq="D")],
             index=[2, 4],
             dtype="Period[D]",
@@ -134,6 +134,6 @@ def test_getitem_generator(string_series):
 
 
 def test_getitem_ndim_deprecated():
-    s = pd.Series([0, 1])
+    s = Series([0, 1])
     with tm.assert_produces_warning(FutureWarning):
         s[:, None]
