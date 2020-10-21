@@ -18,7 +18,7 @@ class TestDataFrameCombineFirst:
         b = Series(range(2), index=range(5, 7))
         g = DataFrame({"A": a, "B": b})
 
-        exp = pd.DataFrame(
+        exp = DataFrame(
             {"A": list("abab"), "B": [0.0, 1.0, 0.0, 1.0]}, index=[0, 1, 5, 6]
         )
         combined = f.combine_first(g)
@@ -169,13 +169,13 @@ class TestDataFrameCombineFirst:
 
     def test_combine_first_align_nan(self):
         # GH 7509 (not fixed)
-        dfa = pd.DataFrame([[pd.Timestamp("2011-01-01"), 2]], columns=["a", "b"])
-        dfb = pd.DataFrame([[4], [5]], columns=["b"])
+        dfa = DataFrame([[pd.Timestamp("2011-01-01"), 2]], columns=["a", "b"])
+        dfb = DataFrame([[4], [5]], columns=["b"])
         assert dfa["a"].dtype == "datetime64[ns]"
         assert dfa["b"].dtype == "int64"
 
         res = dfa.combine_first(dfb)
-        exp = pd.DataFrame(
+        exp = DataFrame(
             {"a": [pd.Timestamp("2011-01-01"), pd.NaT], "b": [2.0, 5.0]},
             columns=["a", "b"],
         )
@@ -185,7 +185,7 @@ class TestDataFrameCombineFirst:
         assert res["b"].dtype == "float64"
 
         res = dfa.iloc[:0].combine_first(dfb)
-        exp = pd.DataFrame({"a": [np.nan, np.nan], "b": [4, 5]}, columns=["a", "b"])
+        exp = DataFrame({"a": [np.nan, np.nan], "b": [4, 5]}, columns=["a", "b"])
         tm.assert_frame_equal(res, exp)
         # ToDo: this must be datetime64
         assert res["a"].dtype == "float64"
@@ -195,21 +195,21 @@ class TestDataFrameCombineFirst:
     def test_combine_first_timezone(self):
         # see gh-7630
         data1 = pd.to_datetime("20100101 01:01").tz_localize("UTC")
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             columns=["UTCdatetime", "abc"],
             data=data1,
             index=pd.date_range("20140627", periods=1),
             dtype="object",
         )
         data2 = pd.to_datetime("20121212 12:12").tz_localize("UTC")
-        df2 = pd.DataFrame(
+        df2 = DataFrame(
             columns=["UTCdatetime", "xyz"],
             data=data2,
             index=pd.date_range("20140628", periods=1),
             dtype="object",
         )
         res = df2[["UTCdatetime"]].combine_first(df1)
-        exp = pd.DataFrame(
+        exp = DataFrame(
             {
                 "UTCdatetime": [
                     pd.Timestamp("2010-01-01 01:01", tz="UTC"),
@@ -230,9 +230,9 @@ class TestDataFrameCombineFirst:
 
         # see gh-10567
         dts1 = pd.date_range("2015-01-01", "2015-01-05", tz="UTC")
-        df1 = pd.DataFrame({"DATE": dts1})
+        df1 = DataFrame({"DATE": dts1})
         dts2 = pd.date_range("2015-01-03", "2015-01-05", tz="UTC")
-        df2 = pd.DataFrame({"DATE": dts2})
+        df2 = DataFrame({"DATE": dts2})
 
         res = df1.combine_first(df2)
         tm.assert_frame_equal(res, df1)
@@ -241,11 +241,11 @@ class TestDataFrameCombineFirst:
         dts1 = pd.DatetimeIndex(
             ["2011-01-01", "NaT", "2011-01-03", "2011-01-04"], tz="US/Eastern"
         )
-        df1 = pd.DataFrame({"DATE": dts1}, index=[1, 3, 5, 7])
+        df1 = DataFrame({"DATE": dts1}, index=[1, 3, 5, 7])
         dts2 = pd.DatetimeIndex(
             ["2012-01-01", "2012-01-02", "2012-01-03"], tz="US/Eastern"
         )
-        df2 = pd.DataFrame({"DATE": dts2}, index=[2, 4, 5])
+        df2 = DataFrame({"DATE": dts2}, index=[2, 4, 5])
 
         res = df1.combine_first(df2)
         exp_dts = pd.DatetimeIndex(
@@ -259,14 +259,14 @@ class TestDataFrameCombineFirst:
             ],
             tz="US/Eastern",
         )
-        exp = pd.DataFrame({"DATE": exp_dts}, index=[1, 2, 3, 4, 5, 7])
+        exp = DataFrame({"DATE": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
 
         # different tz
         dts1 = pd.date_range("2015-01-01", "2015-01-05", tz="US/Eastern")
-        df1 = pd.DataFrame({"DATE": dts1})
+        df1 = DataFrame({"DATE": dts1})
         dts2 = pd.date_range("2015-01-03", "2015-01-05")
-        df2 = pd.DataFrame({"DATE": dts2})
+        df2 = DataFrame({"DATE": dts2})
 
         # if df1 doesn't have NaN, keep its dtype
         res = df1.combine_first(df2)
@@ -274,9 +274,9 @@ class TestDataFrameCombineFirst:
         assert res["DATE"].dtype == "datetime64[ns, US/Eastern]"
 
         dts1 = pd.date_range("2015-01-01", "2015-01-02", tz="US/Eastern")
-        df1 = pd.DataFrame({"DATE": dts1})
+        df1 = DataFrame({"DATE": dts1})
         dts2 = pd.date_range("2015-01-01", "2015-01-03")
-        df2 = pd.DataFrame({"DATE": dts2})
+        df2 = DataFrame({"DATE": dts2})
 
         res = df1.combine_first(df2)
         exp_dts = [
@@ -284,41 +284,41 @@ class TestDataFrameCombineFirst:
             pd.Timestamp("2015-01-02", tz="US/Eastern"),
             pd.Timestamp("2015-01-03"),
         ]
-        exp = pd.DataFrame({"DATE": exp_dts})
+        exp = DataFrame({"DATE": exp_dts})
         tm.assert_frame_equal(res, exp)
         assert res["DATE"].dtype == "object"
 
     def test_combine_first_timedelta(self):
         data1 = pd.TimedeltaIndex(["1 day", "NaT", "3 day", "4day"])
-        df1 = pd.DataFrame({"TD": data1}, index=[1, 3, 5, 7])
+        df1 = DataFrame({"TD": data1}, index=[1, 3, 5, 7])
         data2 = pd.TimedeltaIndex(["10 day", "11 day", "12 day"])
-        df2 = pd.DataFrame({"TD": data2}, index=[2, 4, 5])
+        df2 = DataFrame({"TD": data2}, index=[2, 4, 5])
 
         res = df1.combine_first(df2)
         exp_dts = pd.TimedeltaIndex(
             ["1 day", "10 day", "NaT", "11 day", "3 day", "4 day"]
         )
-        exp = pd.DataFrame({"TD": exp_dts}, index=[1, 2, 3, 4, 5, 7])
+        exp = DataFrame({"TD": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
         assert res["TD"].dtype == "timedelta64[ns]"
 
     def test_combine_first_period(self):
         data1 = pd.PeriodIndex(["2011-01", "NaT", "2011-03", "2011-04"], freq="M")
-        df1 = pd.DataFrame({"P": data1}, index=[1, 3, 5, 7])
+        df1 = DataFrame({"P": data1}, index=[1, 3, 5, 7])
         data2 = pd.PeriodIndex(["2012-01-01", "2012-02", "2012-03"], freq="M")
-        df2 = pd.DataFrame({"P": data2}, index=[2, 4, 5])
+        df2 = DataFrame({"P": data2}, index=[2, 4, 5])
 
         res = df1.combine_first(df2)
         exp_dts = pd.PeriodIndex(
             ["2011-01", "2012-01", "NaT", "2012-02", "2011-03", "2011-04"], freq="M"
         )
-        exp = pd.DataFrame({"P": exp_dts}, index=[1, 2, 3, 4, 5, 7])
+        exp = DataFrame({"P": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
         assert res["P"].dtype == data1.dtype
 
         # different freq
         dts2 = pd.PeriodIndex(["2012-01-01", "2012-01-02", "2012-01-03"], freq="D")
-        df2 = pd.DataFrame({"P": dts2}, index=[2, 4, 5])
+        df2 = DataFrame({"P": dts2}, index=[2, 4, 5])
 
         res = df1.combine_first(df2)
         exp_dts = [
@@ -329,15 +329,15 @@ class TestDataFrameCombineFirst:
             pd.Period("2011-03", freq="M"),
             pd.Period("2011-04", freq="M"),
         ]
-        exp = pd.DataFrame({"P": exp_dts}, index=[1, 2, 3, 4, 5, 7])
+        exp = DataFrame({"P": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
         assert res["P"].dtype == "object"
 
     def test_combine_first_int(self):
         # GH14687 - integer series that do no align exactly
 
-        df1 = pd.DataFrame({"a": [0, 1, 3, 5]}, dtype="int64")
-        df2 = pd.DataFrame({"a": [1, 4]}, dtype="int64")
+        df1 = DataFrame({"a": [0, 1, 3, 5]}, dtype="int64")
+        df2 = DataFrame({"a": [1, 4]}, dtype="int64")
 
         res = df1.combine_first(df2)
         tm.assert_frame_equal(res, df1)
@@ -346,10 +346,10 @@ class TestDataFrameCombineFirst:
     @pytest.mark.parametrize("val", [1, 1.0])
     def test_combine_first_with_asymmetric_other(self, val):
         # see gh-20699
-        df1 = pd.DataFrame({"isNum": [val]})
-        df2 = pd.DataFrame({"isBool": [True]})
+        df1 = DataFrame({"isNum": [val]})
+        df2 = DataFrame({"isBool": [True]})
 
         res = df1.combine_first(df2)
-        exp = pd.DataFrame({"isBool": [True], "isNum": [val]})
+        exp = DataFrame({"isBool": [True], "isNum": [val]})
 
         tm.assert_frame_equal(res, exp)
