@@ -213,7 +213,7 @@ def test_append_with_timezones_pytz(setup_path):
 def test_roundtrip_tz_aware_index(setup_path):
     # GH 17618
     time = pd.Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
-    df = pd.DataFrame(data=[0], index=[time])
+    df = DataFrame(data=[0], index=[time])
 
     with ensure_clean_store(setup_path) as store:
         store.put("frame", df, format="fixed")
@@ -224,7 +224,7 @@ def test_roundtrip_tz_aware_index(setup_path):
 
 def test_store_index_name_with_tz(setup_path):
     # GH 13884
-    df = pd.DataFrame({"A": [1, 2]})
+    df = DataFrame({"A": [1, 2]})
     df.index = pd.DatetimeIndex([1234567890123456787, 1234567890123456788])
     df.index = df.index.tz_localize("UTC")
     df.index.name = "foo"
@@ -414,7 +414,7 @@ def test_read_with_where_tz_aware_index(setup_path):
     periods = 10
     dts = pd.date_range("20151201", periods=periods, freq="D", tz="UTC")
     mi = pd.MultiIndex.from_arrays([dts, range(periods)], names=["DATE", "NO"])
-    expected = pd.DataFrame({"MYCOL": 0}, index=mi)
+    expected = DataFrame({"MYCOL": 0}, index=mi)
 
     key = "mykey"
     with ensure_clean_path(setup_path) as path:

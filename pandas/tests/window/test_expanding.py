@@ -235,7 +235,7 @@ def test_iter_expanding_series(ser, expected, min_periods):
 
 def test_center_deprecate_warning():
     # GH 20647
-    df = pd.DataFrame()
+    df = DataFrame()
     with tm.assert_produces_warning(FutureWarning):
         df.expanding(center=True)
 
