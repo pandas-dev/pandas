@@ -88,9 +88,9 @@ class TestMergeOrdered:
             with pytest.raises(ValueError, match=pattern):
                 pd.concat(df_seq)
 
-        pd.concat([pd.DataFrame()])
-        pd.concat([None, pd.DataFrame()])
-        pd.concat([pd.DataFrame(), None])
+        pd.concat([DataFrame()])
+        pd.concat([None, DataFrame()])
+        pd.concat([DataFrame(), None])
 
     def test_doc_example(self):
         left = DataFrame(
