@@ -352,14 +352,6 @@ class TestDataFrameIndexingCategorical:
         df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp)
 
-    def test_functions_no_warnings(self):
-        df = DataFrame({"value": np.random.randint(0, 100, 20)})
-        labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
-        with tm.assert_produces_warning(False):
-            df["group"] = pd.cut(
-                df.value, range(0, 105, 10), right=False, labels=labels
-            )
-
     def test_setitem_single_row_categorical(self):
         # GH 25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
