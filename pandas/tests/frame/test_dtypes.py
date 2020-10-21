@@ -245,27 +245,6 @@ class TestDataFrameDataTypes:
         expected = DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
-    )
-    def test_convert_dtypes(self, convert_integer, expected):
-        # Specific types are tested in tests/series/test_dtypes.py
-        # Just check that it works for DataFrame here
-        df = DataFrame(
-            {
-                "a": Series([1, 2, 3], dtype=np.dtype("int32")),
-                "b": Series(["x", "y", "z"], dtype=np.dtype("O")),
-            }
-        )
-        result = df.convert_dtypes(True, True, convert_integer, False)
-        expected = DataFrame(
-            {
-                "a": Series([1, 2, 3], dtype=expected),
-                "b": Series(["x", "y", "z"], dtype="string"),
-            }
-        )
-        tm.assert_frame_equal(result, expected)
-
 
 class TestDataFrameDatetimeWithTZ:
     def test_interleave(self, timezone_frame):
