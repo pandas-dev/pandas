@@ -127,7 +127,7 @@ class TestDataFrameIsIn:
         df = pd.DataFrame(
             {"A": [1, 2, 3, 4], "B": [2, np.nan, 4, 4]}, index=["a", "b", "c", "d"]
         )
-        s = pd.Series([1, 3, 11, 4], index=["a", "b", "c", "d"])
+        s = Series([1, 3, 11, 4], index=["a", "b", "c", "d"])
         expected = DataFrame(False, index=df.index, columns=df.columns)
         expected["A"].loc["a"] = True
         expected.loc["d"] = True
@@ -194,7 +194,7 @@ class TestDataFrameIsIn:
         "values",
         [
             pd.DataFrame({"a": [1, 2, 3]}, dtype="category"),
-            pd.Series([1, 2, 3], dtype="category"),
+            Series([1, 2, 3], dtype="category"),
         ],
     )
     def test_isin_category_frame(self, values):

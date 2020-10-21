@@ -30,7 +30,7 @@ def test_value_counts(index_or_series_obj):
     result = obj.value_counts()
 
     counter = collections.Counter(obj)
-    expected = pd.Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
+    expected = Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
     expected.index = expected.index.astype(obj.dtype)
     if isinstance(obj, pd.MultiIndex):
         expected.index = pd.Index(expected.index)
@@ -67,7 +67,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     # because np.nan == np.nan is False, but None == None is True
     # np.nan would be duplicated, whereas None wouldn't
     counter = collections.Counter(obj.dropna())
-    expected = pd.Series(dict(counter.most_common()), dtype=np.int64)
+    expected = Series(dict(counter.most_common()), dtype=np.int64)
     expected.index = expected.index.astype(obj.dtype)
 
     result = obj.value_counts()
@@ -80,7 +80,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
 
     # can't use expected[null_obj] = 3 as
     # IntervalIndex doesn't allow assignment
-    new_entry = pd.Series({np.nan: 3}, dtype=np.int64)
+    new_entry = Series({np.nan: 3}, dtype=np.int64)
     expected = expected.append(new_entry)
 
     result = obj.value_counts(dropna=False)
