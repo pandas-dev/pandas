@@ -200,40 +200,38 @@ class TestCategoricalIndexing:
             tm.assert_numpy_array_equal(exp_miss, res_miss)
 
     def test_where_unobserved_nan(self):
-        ser = pd.Series(pd.Categorical(["a", "b"]))
+        ser = Series(pd.Categorical(["a", "b"]))
         result = ser.where([True, False])
-        expected = pd.Series(pd.Categorical(["a", None], categories=["a", "b"]))
+        expected = Series(pd.Categorical(["a", None], categories=["a", "b"]))
         tm.assert_series_equal(result, expected)
 
         # all NA
-        ser = pd.Series(pd.Categorical(["a", "b"]))
+        ser = Series(pd.Categorical(["a", "b"]))
         result = ser.where([False, False])
-        expected = pd.Series(pd.Categorical([None, None], categories=["a", "b"]))
+        expected = Series(pd.Categorical([None, None], categories=["a", "b"]))
         tm.assert_series_equal(result, expected)
 
     def test_where_unobserved_categories(self):
-        ser = pd.Series(Categorical(["a", "b", "c"], categories=["d", "c", "b", "a"]))
+        ser = Series(Categorical(["a", "b", "c"], categories=["d", "c", "b", "a"]))
         result = ser.where([True, True, False], other="b")
-        expected = pd.Series(
-            Categorical(["a", "b", "b"], categories=ser.cat.categories)
-        )
+        expected = Series(Categorical(["a", "b", "b"], categories=ser.cat.categories))
         tm.assert_series_equal(result, expected)
 
     def test_where_other_categorical(self):
-        ser = pd.Series(Categorical(["a", "b", "c"], categories=["d", "c", "b", "a"]))
+        ser = Series(Categorical(["a", "b", "c"], categories=["d", "c", "b", "a"]))
         other = Categorical(["b", "c", "a"], categories=["a", "c", "b", "d"])
         result = ser.where([True, False, True], other)
-        expected = pd.Series(Categorical(["a", "c", "c"], dtype=ser.dtype))
+        expected = Series(Categorical(["a", "c", "c"], dtype=ser.dtype))
         tm.assert_series_equal(result, expected)
 
     def test_where_new_category_raises(self):
-        ser = pd.Series(Categorical(["a", "b", "c"]))
+        ser = Series(Categorical(["a", "b", "c"]))
         msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             ser.where([True, False, True], "d")
 
     def test_where_ordered_differs_rasies(self):
-        ser = pd.Series(
+        ser = Series(
             Categorical(["a", "b", "c"], categories=["d", "c", "b", "a"], ordered=True)
         )
         other = Categorical(

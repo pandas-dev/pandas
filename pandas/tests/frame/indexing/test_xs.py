@@ -53,7 +53,7 @@ class TestXS:
         df["E"] = 3.0
 
         xs = df.xs(0)
-        exp = pd.Series([1.0, "foo", 2.0, "bar", 3.0], index=list("ABCDE"), name=0)
+        exp = Series([1.0, "foo", 2.0, "bar", 3.0], index=list("ABCDE"), name=0)
         tm.assert_series_equal(xs, exp)
 
         # no columns but Index(dtype=object)

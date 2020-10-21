@@ -1036,7 +1036,7 @@ def test_use_bottleneck():
 )
 def test_numpy_ops(numpy_op, expected):
     # GH8383
-    result = numpy_op(pd.Series([1, 2, 3, 4]))
+    result = numpy_op(Series([1, 2, 3, 4]))
     assert result == expected
 
 
@@ -1062,7 +1062,7 @@ def test_numpy_ops(numpy_op, expected):
 )
 def test_nanops_independent_of_mask_param(operation):
     # GH22764
-    s = pd.Series([1, 2, np.nan, 3, np.nan, 4])
+    s = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = s.isna()
     median_expected = operation(s)
     median_result = operation(s, mask=mask)

@@ -596,11 +596,11 @@ def test_as_index_select_column():
     # GH 5764
     df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
     result = df.groupby("A", as_index=False)["B"].get_group(1)
-    expected = pd.Series([2, 4], name="B")
+    expected = Series([2, 4], name="B")
     tm.assert_series_equal(result, expected)
 
     result = df.groupby("A", as_index=False)["B"].apply(lambda x: x.cumsum())
-    expected = pd.Series(
+    expected = Series(
         [2, 6, 6], name="B", index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
     )
     tm.assert_series_equal(result, expected)
@@ -1188,7 +1188,7 @@ def test_groupby_unit64_float_conversion():
     #  GH: 30859 groupby converts unit64 to floats sometimes
     df = pd.DataFrame({"first": [1], "second": [1], "value": [16148277970000000000]})
     result = df.groupby(["first", "second"])["value"].max()
-    expected = pd.Series(
+    expected = Series(
         [16148277970000000000],
         pd.MultiIndex.from_product([[1], [1]], names=["first", "second"]),
         name="value",
@@ -1775,7 +1775,7 @@ def test_tuple_as_grouping():
         df[["a", "b", "c"]].groupby(("a", "b"))
 
     result = df.groupby(("a", "b"))["c"].sum()
-    expected = pd.Series([4], name="c", index=pd.Index([1], name=("a", "b")))
+    expected = Series([4], name="c", index=pd.Index([1], name=("a", "b")))
     tm.assert_series_equal(result, expected)
 
 
@@ -1824,10 +1824,10 @@ def test_groupby_multiindex_nat():
         (datetime(2012, 1, 3), "a"),
     ]
     mi = pd.MultiIndex.from_tuples(values, names=["date", None])
-    ser = pd.Series([3, 2, 2.5, 4], index=mi)
+    ser = Series([3, 2, 2.5, 4], index=mi)
 
     result = ser.groupby(level=1).mean()
-    expected = pd.Series([3.0, 2.5], index=["a", "b"])
+    expected = Series([3.0, 2.5], index=["a", "b"])
     tm.assert_series_equal(result, expected)
 
 
@@ -1845,13 +1845,13 @@ def test_groupby_multiindex_series_keys_len_equal_group_axis():
     index_array = [["x", "x"], ["a", "b"], ["k", "k"]]
     index_names = ["first", "second", "third"]
     ri = pd.MultiIndex.from_arrays(index_array, names=index_names)
-    s = pd.Series(data=[1, 2], index=ri)
+    s = Series(data=[1, 2], index=ri)
     result = s.groupby(["first", "third"]).sum()
 
     index_array = [["x"], ["k"]]
     index_names = ["first", "third"]
     ei = pd.MultiIndex.from_arrays(index_array, names=index_names)
-    expected = pd.Series([3], index=ei)
+    expected = Series([3], index=ei)
 
     tm.assert_series_equal(result, expected)
 
@@ -1963,18 +1963,18 @@ def test_groupby_only_none_group():
     # this was crashing with "ValueError: Length of passed values is 1, index implies 0"
     df = pd.DataFrame({"g": [None], "x": 1})
     actual = df.groupby("g")["x"].transform("sum")
-    expected = pd.Series([np.nan], name="x")
+    expected = Series([np.nan], name="x")
 
     tm.assert_series_equal(actual, expected)
 
 
 def test_groupby_duplicate_index():
     # GH#29189 the groupby call here used to raise
-    ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    ser = Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
     gb = ser.groupby(level=0)
 
     result = gb.mean()
-    expected = pd.Series([2, 5.5, 8], index=[2.0, 4.0, 5.0])
+    expected = Series([2, 5.5, 8], index=[2.0, 4.0, 5.0])
     tm.assert_series_equal(result, expected)
 
 

@@ -482,7 +482,7 @@ class TestSeriesDtypes:
     )
     def test_values_compatibility(self, data):
         # https://github.com/pandas-dev/pandas/issues/23995
-        result = pd.Series(data).values
+        result = Series(data).values
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
 

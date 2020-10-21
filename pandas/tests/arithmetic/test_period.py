@@ -449,10 +449,10 @@ class TestPeriodIndexSeriesComparisonConsistency:
         assert isinstance(expected, (pd.Index, np.ndarray))
         tm.assert_equal(result, expected)
 
-        s = pd.Series(values)
+        s = Series(values)
         result = func(s)
 
-        exp = pd.Series(expected, name=values.name)
+        exp = Series(expected, name=values.name)
         tm.assert_series_equal(result, exp)
 
     def test_pi_comp_period(self):
@@ -1247,13 +1247,13 @@ class TestPeriodIndexArithmetic:
 class TestPeriodSeriesArithmetic:
     def test_ops_series_timedelta(self):
         # GH#13043
-        ser = pd.Series(
+        ser = Series(
             [pd.Period("2015-01-01", freq="D"), pd.Period("2015-01-02", freq="D")],
             name="xxx",
         )
         assert ser.dtype == "Period[D]"
 
-        expected = pd.Series(
+        expected = Series(
             [pd.Period("2015-01-02", freq="D"), pd.Period("2015-01-03", freq="D")],
             name="xxx",
         )
@@ -1272,7 +1272,7 @@ class TestPeriodSeriesArithmetic:
 
     def test_ops_series_period(self):
         # GH#13043
-        ser = pd.Series(
+        ser = Series(
             [pd.Period("2015-01-01", freq="D"), pd.Period("2015-01-02", freq="D")],
             name="xxx",
         )
@@ -1281,17 +1281,17 @@ class TestPeriodSeriesArithmetic:
         per = pd.Period("2015-01-10", freq="D")
         off = per.freq
         # dtype will be object because of original dtype
-        expected = pd.Series([9 * off, 8 * off], name="xxx", dtype=object)
+        expected = Series([9 * off, 8 * off], name="xxx", dtype=object)
         tm.assert_series_equal(per - ser, expected)
         tm.assert_series_equal(ser - per, -1 * expected)
 
-        s2 = pd.Series(
+        s2 = Series(
             [pd.Period("2015-01-05", freq="D"), pd.Period("2015-01-04", freq="D")],
             name="xxx",
         )
         assert s2.dtype == "Period[D]"
 
-        expected = pd.Series([4 * off, 2 * off], name="xxx", dtype=object)
+        expected = Series([4 * off, 2 * off], name="xxx", dtype=object)
         tm.assert_series_equal(s2 - ser, expected)
         tm.assert_series_equal(ser - s2, -1 * expected)
 
@@ -1304,10 +1304,10 @@ class TestPeriodIndexSeriesMethods:
         result = func(idx)
         tm.assert_equal(result, expected)
 
-        ser = pd.Series(values)
+        ser = Series(values)
         result = func(ser)
 
-        exp = pd.Series(expected, name=values.name)
+        exp = Series(expected, name=values.name)
         tm.assert_series_equal(result, exp)
 
     def test_pi_ops(self):
@@ -1455,7 +1455,7 @@ class TestPeriodIndexSeriesMethods:
             freq="D",
             name="idx",
         )
-        ser = pd.Series(idx)
+        ser = Series(idx)
 
         # Series op is applied per Period instance, thus error is raised
         # from Period

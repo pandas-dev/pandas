@@ -37,7 +37,7 @@ class TestSeries(Generic):
         assert result.index.names, ["L1", "L2"]
 
     def test_set_axis_name_raises(self):
-        s = pd.Series([1])
+        s = Series([1])
         msg = "No axis named 1 for object type Series"
         with pytest.raises(ValueError, match=msg):
             s._set_axis_name(name="a", axis=1)
@@ -166,7 +166,7 @@ class TestSeries2:
         [
             Series([np.arange(5)]),
             pd.date_range("1/1/2011", periods=24, freq="H"),
-            pd.Series(range(5), index=pd.date_range("2017", periods=5)),
+            Series(range(5), index=pd.date_range("2017", periods=5)),
         ],
     )
     @pytest.mark.parametrize("shift_size", [0, 1, 2])
@@ -177,5 +177,5 @@ class TestSeries2:
     @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1M")])
     def test_datetime_shift_always_copy(self, move_by_freq):
         # GH22397
-        s = pd.Series(range(5), index=pd.date_range("2017", periods=5))
+        s = Series(range(5), index=pd.date_range("2017", periods=5))
         assert s.shift(freq=move_by_freq) is not s

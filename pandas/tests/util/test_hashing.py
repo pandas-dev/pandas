@@ -302,12 +302,12 @@ def test_hash_with_tuple():
 
     df = pd.DataFrame({"data": [tuple("1"), tuple("2")]})
     result = hash_pandas_object(df)
-    expected = pd.Series([10345501319357378243, 8331063931016360761], dtype=np.uint64)
+    expected = Series([10345501319357378243, 8331063931016360761], dtype=np.uint64)
     tm.assert_series_equal(result, expected)
 
     df2 = pd.DataFrame({"data": [tuple([1]), tuple([2])]})
     result = hash_pandas_object(df2)
-    expected = pd.Series([9408946347443669104, 3278256261030523334], dtype=np.uint64)
+    expected = Series([9408946347443669104, 3278256261030523334], dtype=np.uint64)
     tm.assert_series_equal(result, expected)
 
     # require that the elements of such tuples are themselves hashable
@@ -319,6 +319,6 @@ def test_hash_with_tuple():
 
 def test_hash_object_none_key():
     # https://github.com/pandas-dev/pandas/issues/30887
-    result = pd.util.hash_pandas_object(pd.Series(["a", "b"]), hash_key=None)
-    expected = pd.Series([4578374827886788867, 17338122309987883691], dtype="uint64")
+    result = pd.util.hash_pandas_object(Series(["a", "b"]), hash_key=None)
+    expected = Series([4578374827886788867, 17338122309987883691], dtype="uint64")
     tm.assert_series_equal(result, expected)

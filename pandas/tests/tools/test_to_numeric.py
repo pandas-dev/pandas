@@ -571,8 +571,8 @@ def test_downcast_limits(dtype, downcast, min_max):
     "ser,expected",
     [
         (
-            pd.Series([0, 9223372036854775808]),
-            pd.Series([0, 9223372036854775808], dtype=np.uint64),
+            Series([0, 9223372036854775808]),
+            Series([0, 9223372036854775808], dtype=np.uint64),
         )
     ],
 )
@@ -647,7 +647,7 @@ def test_failure_to_convert_uint64_string_to_NaN():
     assert np.isnan(result)
 
     ser = Series([32, 64, np.nan])
-    result = to_numeric(pd.Series(["32", "64", "uint64"]), errors="coerce")
+    result = to_numeric(Series(["32", "64", "uint64"]), errors="coerce")
     tm.assert_series_equal(result, ser)
 
 

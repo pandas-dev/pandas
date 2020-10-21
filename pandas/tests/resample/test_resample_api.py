@@ -595,10 +595,10 @@ def test_resample_agg_readonly():
     arr = np.zeros_like(index)
     arr.setflags(write=False)
 
-    ser = pd.Series(arr, index=index)
+    ser = Series(arr, index=index)
     rs = ser.resample("1D")
 
-    expected = pd.Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
+    expected = Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
 
     result = rs.agg("last")
     tm.assert_series_equal(result, expected)

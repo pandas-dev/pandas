@@ -408,7 +408,7 @@ class TestGroupBy:
         df_dt["date"] = pd.to_datetime(df_dt["date"])
 
         def sumfunc_series(x):
-            return pd.Series([x["value"].sum()], ("sum",))
+            return Series([x["value"].sum()], ("sum",))
 
         expected = df.groupby(pd.Grouper(key="date")).apply(sumfunc_series)
         result = df_dt.groupby(pd.Grouper(freq="M", key="date")).apply(sumfunc_series)
@@ -754,7 +754,7 @@ class TestGroupBy:
         # Issue: 17530
         data_frame = {
             "location": ["shanghai", "beijing", "shanghai"],
-            "time": pd.Series(
+            "time": Series(
                 ["2017-08-09 13:32:23", "2017-08-11 23:23:15", "2017-08-11 22:23:15"],
                 dtype="datetime64[ns]",
             ),
@@ -776,10 +776,10 @@ class TestGroupBy:
         index = pd.period_range(
             start="2018-01", periods=periods, freq="M", name="Month"
         )
-        period_series = pd.Series(range(periods), index=index)
+        period_series = Series(range(periods), index=index)
         result = period_series.groupby(period_series.index.month).sum()
 
-        expected = pd.Series(
+        expected = Series(
             range(0, periods), index=Index(range(1, periods + 1), name=index.name)
         )
         tm.assert_series_equal(result, expected)

@@ -20,7 +20,7 @@ def test_equals(idx):
 
     if idx.nlevels == 1:
         # do not test MultiIndex
-        assert not idx.equals(pd.Series(idx))
+        assert not idx.equals(Series(idx))
 
 
 def test_equals_op(idx):
@@ -258,11 +258,11 @@ def test_multiindex_compare():
     midx = pd.MultiIndex.from_product([[0, 1]])
 
     # Equality self-test: MultiIndex object vs self
-    expected = pd.Series([True, True])
-    result = pd.Series(midx == midx)
+    expected = Series([True, True])
+    result = Series(midx == midx)
     tm.assert_series_equal(result, expected)
 
     # Greater than comparison: MultiIndex object vs self
-    expected = pd.Series([False, False])
-    result = pd.Series(midx > midx)
+    expected = Series([False, False])
+    result = Series(midx > midx)
     tm.assert_series_equal(result, expected)

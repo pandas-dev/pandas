@@ -33,10 +33,10 @@ class TestDataFrameDiff:
         tm.assert_series_equal(the_diff["A"], tf["A"] - tf["A"].shift(1))
 
         # GH#10907
-        df = pd.DataFrame({"y": pd.Series([2]), "z": pd.Series([3])})
+        df = pd.DataFrame({"y": Series([2]), "z": Series([3])})
         df.insert(0, "x", 1)
         result = df.diff(axis=1)
-        expected = pd.DataFrame({"x": np.nan, "y": pd.Series(1), "z": pd.Series(1)})
+        expected = pd.DataFrame({"x": np.nan, "y": Series(1), "z": Series(1)})
         tm.assert_frame_equal(result, expected)
 
     def test_diff_timedelta64_with_nat(self):
@@ -65,20 +65,20 @@ class TestDataFrameDiff:
     def test_diff_datetime_axis0_with_nat(self, tz):
         # GH#32441
         dti = pd.DatetimeIndex(["NaT", "2019-01-01", "2019-01-02"], tz=tz)
-        ser = pd.Series(dti)
+        ser = Series(dti)
 
         df = ser.to_frame()
 
         result = df.diff()
         ex_index = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta(days=1)])
-        expected = pd.Series(ex_index).to_frame()
+        expected = Series(ex_index).to_frame()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_diff_datetime_with_nat_zero_periods(self, tz):
         # diff on NaT values should give NaT, not timedelta64(0)
         dti = pd.date_range("2016-01-01", periods=4, tz=tz)
-        ser = pd.Series(dti)
+        ser = Series(dti)
         df = ser.to_frame()
 
         df[1] = ser.copy()

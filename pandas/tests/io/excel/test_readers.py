@@ -970,7 +970,7 @@ class TestReaders:
         f = "test_squeeze" + read_ext
 
         actual = pd.read_excel(f, sheet_name="two_columns", index_col=0, squeeze=True)
-        expected = pd.Series([2, 3, 4], [4, 5, 6], name="b")
+        expected = Series([2, 3, 4], [4, 5, 6], name="b")
         expected.index.name = "a"
         tm.assert_series_equal(actual, expected)
 
@@ -979,7 +979,7 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
         actual = pd.read_excel(f, sheet_name="one_column", squeeze=True)
-        expected = pd.Series([1, 2, 3], name="a")
+        expected = Series([1, 2, 3], name="a")
         tm.assert_series_equal(actual, expected)
 
     def test_deprecated_kwargs(self, read_ext):

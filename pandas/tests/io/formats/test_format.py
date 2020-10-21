@@ -2031,9 +2031,9 @@ c  10  11  12  13  14\
 
 
 def gen_series_formatting():
-    s1 = pd.Series(["a"] * 100)
-    s2 = pd.Series(["ab"] * 100)
-    s3 = pd.Series(["a", "ab", "abc", "abcd", "abcde", "abcdef"])
+    s1 = Series(["a"] * 100)
+    s2 = Series(["ab"] * 100)
+    s3 = Series(["a", "ab", "abc", "abcd", "abcde", "abcdef"])
     s4 = s3[::-1]
     test_sers = {"onel": s1, "twol": s2, "asc": s3, "desc": s4}
     return test_sers
@@ -2529,7 +2529,7 @@ class TestSeriesFormatting:
 
     # Make sure #8532 is fixed
     def test_consistent_format(self):
-        s = pd.Series([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9999, 1, 1] * 10)
+        s = Series([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9999, 1, 1] * 10)
         with option_context("display.max_rows", 10, "display.show_dimensions", False):
             res = repr(s)
         exp = (
@@ -2618,12 +2618,12 @@ class TestSeriesFormatting:
             assert "Length" not in repr(s)
 
     def test_repr_min_rows(self):
-        s = pd.Series(range(20))
+        s = Series(range(20))
 
         # default setting no truncation even if above min_rows
         assert ".." not in repr(s)
 
-        s = pd.Series(range(61))
+        s = Series(range(61))
 
         # default of max_rows 60 triggers truncation if above
         assert ".." in repr(s)
@@ -2671,19 +2671,19 @@ class TestSeriesFormatting:
         assert res == exp
 
     def test_to_string_na_rep(self):
-        s = pd.Series(index=range(100), dtype=np.float64)
+        s = Series(index=range(100), dtype=np.float64)
         res = s.to_string(na_rep="foo", max_rows=2)
         exp = "0    foo\n      ..\n99   foo"
         assert res == exp
 
     def test_to_string_float_format(self):
-        s = pd.Series(range(10), dtype="float64")
+        s = Series(range(10), dtype="float64")
         res = s.to_string(float_format=lambda x: f"{x:2.1f}", max_rows=2)
         exp = "0   0.0\n     ..\n9   9.0"
         assert res == exp
 
     def test_to_string_header(self):
-        s = pd.Series(range(10), dtype="int64")
+        s = Series(range(10), dtype="int64")
         s.index.name = "foo"
         res = s.to_string(header=True, max_rows=2)
         exp = "foo\n0    0\n    ..\n9    9"
@@ -2703,7 +2703,7 @@ class TestSeriesFormatting:
 
     def test_to_string_empty_col(self):
         # GH 13653
-        s = pd.Series(["", "Hello", "World", "", "", "Mooooo", "", ""])
+        s = Series(["", "Hello", "World", "", "", "Mooooo", "", ""])
         res = s.to_string(index=False)
         exp = "      \n Hello\n World\n      \n      \nMooooo\n      \n      "
         assert re.match(exp, res)
@@ -2760,7 +2760,7 @@ class TestGenericArrayFormatter:
             def dtype(self):
                 return DtypeStub()
 
-        series = pd.Series(ExtTypeStub())
+        series = Series(ExtTypeStub())
         res = repr(series)  # This line crashed before #33770 was fixed.
         expected = "0    [False  True]\n" + "1    [ True False]\n" + "dtype: DtypeStub"
         assert res == expected
@@ -2787,7 +2787,7 @@ class TestFloatArrayFormatter:
 
         # Happens when display precision is set to zero
         with pd.option_context("display.precision", 0):
-            s = pd.Series([840.0, 4200.0])
+            s = Series([840.0, 4200.0])
             expected_output = "0     840\n1    4200\ndtype: float64"
             assert str(s) == expected_output
 

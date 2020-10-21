@@ -130,11 +130,11 @@ def test_agg_dict_parameter_cast_result_dtypes():
     tm.assert_series_equal(grouped.time.agg("last"), exp["time"])
 
     # count
-    exp = pd.Series([2, 2, 2, 2], index=Index(list("ABCD"), name="class"), name="time")
+    exp = Series([2, 2, 2, 2], index=Index(list("ABCD"), name="class"), name="time")
     tm.assert_series_equal(grouped.time.agg(len), exp)
     tm.assert_series_equal(grouped.time.size(), exp)
 
-    exp = pd.Series([0, 1, 1, 2], index=Index(list("ABCD"), name="class"), name="time")
+    exp = Series([0, 1, 1, 2], index=Index(list("ABCD"), name="class"), name="time")
     tm.assert_series_equal(grouped.time.count(), exp)
 
 
@@ -443,18 +443,18 @@ def test_agg_tzaware_non_datetime_result():
 
     # Case that _does_ preserve the dtype
     result = gb["b"].agg(lambda x: x.iloc[0])
-    expected = pd.Series(dti[::2], name="b")
+    expected = Series(dti[::2], name="b")
     expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
     # Cases that do _not_ preserve the dtype
     result = gb["b"].agg(lambda x: x.iloc[0].year)
-    expected = pd.Series([2012, 2012], name="b")
+    expected = Series([2012, 2012], name="b")
     expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
     result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
-    expected = pd.Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
+    expected = Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
     expected.index.name = "a"
     tm.assert_series_equal(result, expected)
 
@@ -542,10 +542,10 @@ def test_agg_structs_dataframe(structure, expected):
 @pytest.mark.parametrize(
     "structure, expected",
     [
-        (tuple, pd.Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name="C")),
-        (list, pd.Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name="C")),
-        (lambda x: tuple(x), pd.Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name="C")),
-        (lambda x: list(x), pd.Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name="C")),
+        (tuple, Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name="C")),
+        (list, Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name="C")),
+        (lambda x: tuple(x), Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name="C")),
+        (lambda x: list(x), Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name="C")),
     ],
 )
 def test_agg_structs_series(structure, expected):
@@ -565,7 +565,7 @@ def test_agg_category_nansum(observed):
         {"A": pd.Categorical(["a", "a", "b"], categories=categories), "B": [1, 2, 3]}
     )
     result = df.groupby("A", observed=observed).B.agg(np.nansum)
-    expected = pd.Series(
+    expected = Series(
         [3, 3, 0],
         index=pd.CategoricalIndex(["a", "b", "c"], categories=categories, name="A"),
         name="B",
@@ -633,7 +633,7 @@ def test_groupby_agg_err_catching(err_cls):
         {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
     )
 
-    expected = pd.Series(to_decimal([data[0], data[3]]))
+    expected = Series(to_decimal([data[0], data[3]]))
 
     def weird_func(x):
         # weird function that raise something other than TypeError or IndexError

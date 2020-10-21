@@ -550,7 +550,7 @@ class TestGrouperGrouping:
             .rolling("3d", on="date", closed="left")["column1"]
             .count()
         )
-        expected = pd.Series(
+        expected = Series(
             [np.nan, 1.0, 1.0, np.nan, 1.0, 1.0],
             name="column1",
             index=pd.MultiIndex.from_tuples(

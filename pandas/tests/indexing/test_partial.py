@@ -664,7 +664,7 @@ class TestPartialSetting:
     def test_index_name_empty(self):
         # GH 31368
         df = pd.DataFrame({}, index=pd.RangeIndex(0, name="df_index"))
-        series = pd.Series(1.23, index=pd.RangeIndex(4, name="series_index"))
+        series = Series(1.23, index=pd.RangeIndex(4, name="series_index"))
 
         df["series"] = series
         expected = pd.DataFrame(
@@ -675,7 +675,7 @@ class TestPartialSetting:
 
         # GH 36527
         df = pd.DataFrame()
-        series = pd.Series(1.23, index=pd.RangeIndex(4, name="series_index"))
+        series = Series(1.23, index=pd.RangeIndex(4, name="series_index"))
         df["series"] = series
         expected = pd.DataFrame(
             {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="series_index")

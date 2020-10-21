@@ -297,7 +297,7 @@ class TestPeriodIndexOps:
         assert idx.astype(object).equals(idx)
         assert idx.astype(object).equals(idx.astype(object))
         assert not idx.equals(list(idx))
-        assert not idx.equals(pd.Series(idx))
+        assert not idx.equals(Series(idx))
 
         idx2 = pd.PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq="H")
         assert not idx.equals(idx2)
@@ -305,7 +305,7 @@ class TestPeriodIndexOps:
         assert not idx.equals(idx2.astype(object))
         assert not idx.astype(object).equals(idx2)
         assert not idx.equals(list(idx2))
-        assert not idx.equals(pd.Series(idx2))
+        assert not idx.equals(Series(idx2))
 
         # same internal, different tz
         idx3 = pd.PeriodIndex._simple_new(
@@ -317,7 +317,7 @@ class TestPeriodIndexOps:
         assert not idx.equals(idx3.astype(object))
         assert not idx.astype(object).equals(idx3)
         assert not idx.equals(list(idx3))
-        assert not idx.equals(pd.Series(idx3))
+        assert not idx.equals(Series(idx3))
 
     def test_freq_setter_deprecated(self):
         # GH 20678

@@ -135,14 +135,14 @@ class TestShift:
         result = ts.shift(2, fill_value=0.0)
         tm.assert_series_equal(result, exp)
 
-        ts = pd.Series([1, 2, 3])
+        ts = Series([1, 2, 3])
         res = ts.shift(2, fill_value=0)
         assert res.dtype == ts.dtype
 
     def test_shift_categorical_fill_value(self):
-        ts = pd.Series(["a", "b", "c", "d"], dtype="category")
+        ts = Series(["a", "b", "c", "d"], dtype="category")
         res = ts.shift(1, fill_value="a")
-        expected = pd.Series(
+        expected = Series(
             pd.Categorical(
                 ["a", "a", "b", "c"], categories=["a", "b", "c", "d"], ordered=False
             )
@@ -302,7 +302,7 @@ class TestShift:
 
     def test_shift_categorical(self):
         # GH#9416
-        s = pd.Series(["a", "b", "c", "d"], dtype="category")
+        s = Series(["a", "b", "c", "d"], dtype="category")
 
         tm.assert_series_equal(s.iloc[:-1], s.shift(1).shift(-1).dropna())
 
@@ -321,25 +321,25 @@ class TestShift:
 
     def test_shift_dt64values_int_fill_deprecated(self):
         # GH#31971
-        ser = pd.Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
+        ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
 
         with tm.assert_produces_warning(FutureWarning):
             result = ser.shift(1, fill_value=0)
 
-        expected = pd.Series([pd.Timestamp(0), ser[0]])
+        expected = Series([pd.Timestamp(0), ser[0]])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("periods", [1, 2, 3, 4])
     def test_shift_preserve_freqstr(self, periods):
         # GH#21275
-        ser = pd.Series(
+        ser = Series(
             range(periods),
             index=pd.date_range("2016-1-1 00:00:00", periods=periods, freq="H"),
         )
 
         result = ser.shift(1, "2H")
 
-        expected = pd.Series(
+        expected = Series(
             range(periods),
             index=pd.date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
         )
@@ -353,7 +353,7 @@ class TestShift:
         # GH21049 Verify whether non writable numpy array is shiftable
         input_data.setflags(write=False)
 
-        result = pd.Series(input_data).shift(1)
-        expected = pd.Series(output_data, dtype="float64")
+        result = Series(input_data).shift(1)
+        expected = Series(output_data, dtype="float64")
 
         tm.assert_series_equal(result, expected)

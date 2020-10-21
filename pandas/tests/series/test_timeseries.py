@@ -99,9 +99,9 @@ class TestTimeSeries:
 
     def test_view_tz(self):
         # GH#24024
-        ser = pd.Series(pd.date_range("2000", periods=4, tz="US/Central"))
+        ser = Series(pd.date_range("2000", periods=4, tz="US/Central"))
         result = ser.view("i8")
-        expected = pd.Series(
+        expected = Series(
             [
                 946706400000000000,
                 946792800000000000,
@@ -113,7 +113,7 @@ class TestTimeSeries:
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_asarray_object_dt64(self, tz):
-        ser = pd.Series(pd.date_range("2000", periods=2, tz=tz))
+        ser = Series(pd.date_range("2000", periods=2, tz=tz))
 
         with tm.assert_produces_warning(None):
             # Future behavior (for tzaware case) with no warning
@@ -126,7 +126,7 @@ class TestTimeSeries:
 
     def test_asarray_tz_naive(self):
         # This shouldn't produce a warning.
-        ser = pd.Series(pd.date_range("2000", periods=2))
+        ser = Series(pd.date_range("2000", periods=2))
         expected = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
         result = np.asarray(ser)
 
@@ -134,7 +134,7 @@ class TestTimeSeries:
 
     def test_asarray_tz_aware(self):
         tz = "US/Central"
-        ser = pd.Series(pd.date_range("2000", periods=2, tz=tz))
+        ser = Series(pd.date_range("2000", periods=2, tz=tz))
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
         result = np.asarray(ser, dtype="datetime64[ns]")
 

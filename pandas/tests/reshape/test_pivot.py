@@ -707,7 +707,7 @@ class TestPivotTable:
         [
             ["baz", "zoo"],
             np.array(["baz", "zoo"]),
-            pd.Series(["baz", "zoo"]),
+            Series(["baz", "zoo"]),
             pd.Index(["baz", "zoo"]),
         ],
     )
@@ -743,7 +743,7 @@ class TestPivotTable:
         [
             ["bar", "baz"],
             np.array(["bar", "baz"]),
-            pd.Series(["bar", "baz"]),
+            Series(["bar", "baz"]),
             pd.Index(["bar", "baz"]),
         ],
     )

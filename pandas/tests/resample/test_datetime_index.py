@@ -111,7 +111,7 @@ def test_resample_basic(series, closed, expected):
 
 def test_resample_integerarray():
     # GH 25580, resample on IntegerArray
-    ts = pd.Series(
+    ts = Series(
         range(9), index=pd.date_range("1/1/2000", periods=9, freq="T"), dtype="Int64"
     )
     result = ts.resample("3T").sum()
@@ -849,7 +849,7 @@ def test_resample_origin_epoch_with_tz_day_vs_24h():
     start, end = "2000-10-01 23:30:00+0500", "2000-12-02 00:30:00+0500"
     rng = pd.date_range(start, end, freq="7min")
     random_values = np.random.randn(len(rng))
-    ts_1 = pd.Series(random_values, index=rng)
+    ts_1 = Series(random_values, index=rng)
 
     result_1 = ts_1.resample("D", origin="epoch").mean()
     result_2 = ts_1.resample("24H", origin="epoch").mean()
@@ -865,7 +865,7 @@ def test_resample_origin_epoch_with_tz_day_vs_24h():
     # check that we have the similar results with two different timezones (+2H and +5H)
     start, end = "2000-10-01 23:30:00+0200", "2000-12-02 00:30:00+0200"
     rng = pd.date_range(start, end, freq="7min")
-    ts_2 = pd.Series(random_values, index=rng)
+    ts_2 = Series(random_values, index=rng)
     result_5 = ts_2.resample("D", origin="epoch").mean()
     result_6 = ts_2.resample("24H", origin="epoch").mean()
     tm.assert_series_equal(result_1.tz_localize(None), result_5.tz_localize(None))
@@ -877,7 +877,7 @@ def test_resample_origin_with_day_freq_on_dst():
     tz = "America/Chicago"
 
     def _create_series(values, timestamps, freq="D"):
-        return pd.Series(
+        return Series(
             values,
             index=pd.DatetimeIndex(
                 [Timestamp(t, tz=tz) for t in timestamps], freq=freq, ambiguous=True
@@ -888,7 +888,7 @@ def test_resample_origin_with_day_freq_on_dst():
     start = pd.Timestamp("2013-11-02", tz=tz)
     end = pd.Timestamp("2013-11-03 23:59", tz=tz)
     rng = pd.date_range(start, end, freq="1h")
-    ts = pd.Series(np.ones(len(rng)), index=rng)
+    ts = Series(np.ones(len(rng)), index=rng)
 
     expected = _create_series([24.0, 25.0], ["2013-11-02", "2013-11-03"])
     for origin in ["epoch", "start", "start_day", start, None]:
@@ -899,7 +899,7 @@ def test_resample_origin_with_day_freq_on_dst():
     start = pd.Timestamp("2013-11-03", tz=tz)
     end = pd.Timestamp("2013-11-03 23:59", tz=tz)
     rng = pd.date_range(start, end, freq="1h")
-    ts = pd.Series(np.ones(len(rng)), index=rng)
+    ts = Series(np.ones(len(rng)), index=rng)
 
     expected_ts = ["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"]
     expected = _create_series([23.0, 2.0], expected_ts)
@@ -1689,9 +1689,7 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    s = pd.Series(
-        0, index=pd.date_range("19910905 13:00", "19911005 07:00", freq=freq1)
-    )
+    s = Series(0, index=pd.date_range("19910905 13:00", "19911005 07:00", freq=freq1))
     s = s + range(len(s))
 
     result1 = s.resample(str(n1_) + freq1).mean()
@@ -1781,9 +1779,9 @@ def test_resample_calendar_day_with_dst(
     first: str, last: str, freq_in: str, freq_out: str, exp_last: str
 ):
     # GH 35219
-    ts = pd.Series(1.0, pd.date_range(first, last, freq=freq_in, tz="Europe/Amsterdam"))
+    ts = Series(1.0, pd.date_range(first, last, freq=freq_in, tz="Europe/Amsterdam"))
     result = ts.resample(freq_out).pad()
-    expected = pd.Series(
+    expected = Series(
         1.0, pd.date_range(first, exp_last, freq=freq_out, tz="Europe/Amsterdam")
     )
     tm.assert_series_equal(result, expected)

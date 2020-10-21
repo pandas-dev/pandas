@@ -796,7 +796,7 @@ class TestPandasContainer:
         if as_object:
             data.append("a")
 
-        ser = pd.Series(data, index=data)
+        ser = Series(data, index=data)
         result = ser.to_json(date_format=date_format)
 
         if date_format == "epoch":
@@ -1042,7 +1042,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         if as_object:
             data.append("a")
 
-        ser = pd.Series(data, index=data)
+        ser = Series(data, index=data)
         if date_format == "iso":
             expected = (
                 '{"P1DT0H0M0S":"P1DT0H0M0S","P2DT0H0M0S":"P2DT0H0M0S","null":null}'
@@ -1150,7 +1150,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = df.to_json()
         assert expected == sdf.to_json()
 
-        s = pd.Series(np.random.randn(10))
+        s = Series(np.random.randn(10))
         s.loc[:8] = np.nan
         ss = s.astype("Sparse")
 
@@ -1730,5 +1730,5 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_readjson_bool_series(self):
         # GH31464
         result = read_json("[true, true, false]", typ="series")
-        expected = pd.Series([True, True, False])
+        expected = Series([True, True, False])
         tm.assert_series_equal(result, expected)

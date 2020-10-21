@@ -88,13 +88,13 @@ def test_max_min_non_numeric():
 def test_min_date_with_nans():
     # GH26321
     dates = pd.to_datetime(
-        pd.Series(["2019-05-09", "2019-05-09", "2019-05-09"]), format="%Y-%m-%d"
+        Series(["2019-05-09", "2019-05-09", "2019-05-09"]), format="%Y-%m-%d"
     ).dt.date
     df = pd.DataFrame({"a": [np.nan, "1", np.nan], "b": [0, 1, 1], "c": dates})
 
     result = df.groupby("b", as_index=False)["c"].min()["c"]
     expected = pd.to_datetime(
-        pd.Series(["2019-05-09", "2019-05-09"], name="c"), format="%Y-%m-%d"
+        Series(["2019-05-09", "2019-05-09"], name="c"), format="%Y-%m-%d"
     ).dt.date
     tm.assert_series_equal(result, expected)
 
@@ -157,7 +157,7 @@ def test_arg_passthru():
             "int": [1, 2, 3],
             "float": [4.0, 5.0, 6.0],
             "string": list("abc"),
-            "category_string": pd.Series(list("abc")).astype("category"),
+            "category_string": Series(list("abc")).astype("category"),
             "category_int": [7, 8, 9],
             "datetime": pd.date_range("20130101", periods=3),
             "datetimetz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
@@ -695,7 +695,7 @@ def test_cummin(numpy_dtypes_for_minmax):
 
     # GH 15561
     df = pd.DataFrame(dict(a=[1], b=pd.to_datetime(["2001"])))
-    expected = pd.Series(pd.to_datetime("2001"), index=[0], name="b")
+    expected = Series(pd.to_datetime("2001"), index=[0], name="b")
 
     result = df.groupby("a")["b"].cummin()
     tm.assert_series_equal(expected, result)
@@ -703,7 +703,7 @@ def test_cummin(numpy_dtypes_for_minmax):
     # GH 15635
     df = pd.DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
     result = df.groupby("a").b.cummin()
-    expected = pd.Series([1, 2, 1], name="b")
+    expected = Series([1, 2, 1], name="b")
     tm.assert_series_equal(result, expected)
 
 
@@ -753,7 +753,7 @@ def test_cummax(numpy_dtypes_for_minmax):
 
     # GH 15561
     df = pd.DataFrame(dict(a=[1], b=pd.to_datetime(["2001"])))
-    expected = pd.Series(pd.to_datetime("2001"), index=[0], name="b")
+    expected = Series(pd.to_datetime("2001"), index=[0], name="b")
 
     result = df.groupby("a")["b"].cummax()
     tm.assert_series_equal(expected, result)
@@ -761,7 +761,7 @@ def test_cummax(numpy_dtypes_for_minmax):
     # GH 15635
     df = pd.DataFrame(dict(a=[1, 2, 1], b=[2, 1, 1]))
     result = df.groupby("a").b.cummax()
-    expected = pd.Series([2, 1, 2], name="b")
+    expected = Series([2, 1, 2], name="b")
     tm.assert_series_equal(result, expected)
 
 
@@ -803,7 +803,7 @@ def test_is_monotonic_increasing(in_vals, out_vals):
     df = pd.DataFrame(source_dict)
     result = df.groupby("B").C.is_monotonic_increasing
     index = Index(list("abcd"), name="B")
-    expected = pd.Series(index=index, data=out_vals, name="C")
+    expected = Series(index=index, data=out_vals, name="C")
     tm.assert_series_equal(result, expected)
 
     # Also check result equal to manually taking x.is_monotonic_increasing.
@@ -840,7 +840,7 @@ def test_is_monotonic_decreasing(in_vals, out_vals):
     df = pd.DataFrame(source_dict)
     result = df.groupby("B").C.is_monotonic_decreasing
     index = Index(list("abcd"), name="B")
-    expected = pd.Series(index=index, data=out_vals, name="C")
+    expected = Series(index=index, data=out_vals, name="C")
     tm.assert_series_equal(result, expected)
 
 
@@ -1054,7 +1054,7 @@ def test_groupby_sum_below_mincount_nullable_integer():
     idx = pd.Index([0, 1, 2], dtype=object, name="a")
 
     result = grouped["b"].sum(min_count=2)
-    expected = pd.Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")
+    expected = Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")
     tm.assert_series_equal(result, expected)
 
     result = grouped.sum(min_count=2)

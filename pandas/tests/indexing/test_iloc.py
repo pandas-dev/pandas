@@ -51,7 +51,7 @@ class TestiLoc2:
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesnt matter for _is_scalar_access
         index = pd.Index([1, 2, 1])
-        ser = pd.Series(range(3), index=index)
+        ser = Series(range(3), index=index)
 
         assert ser.iloc._is_scalar_access((1,))
 
@@ -699,7 +699,7 @@ class TestiLoc2:
         # GH24919
         df = DataFrame([[1, 2], [3, 4]])
         result = df.iloc[np.array(0)]
-        s = pd.Series([1, 2], name=0)
+        s = Series([1, 2], name=0)
         tm.assert_series_equal(result, s)
 
     def test_series_indexing_zerodim_np_array(self):

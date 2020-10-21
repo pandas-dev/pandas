@@ -661,7 +661,7 @@ class TestHDFStore:
             "df2": pd.DataFrame([4, 5, 6]),
             "df3": pd.DataFrame([6, 7, 8]),
             "df4": pd.DataFrame([9, 10, 11]),
-            "s1": pd.Series([10, 9, 8]),
+            "s1": Series([10, 9, 8]),
             # Next 3 items aren't pandas objects and should be ignored
             "a1": np.array([[1, 2, 3], [4, 5, 6]]),
             "tb1": np.array([(1, 2, 3), (4, 5, 6)], dtype="i,i,i"),
@@ -1113,7 +1113,7 @@ class TestHDFStore:
         key = "data"
 
         val = [x.decode(enc) if isinstance(x, bytes) else x for x in val]
-        ser = pd.Series(val, dtype=dtype)
+        ser = Series(val, dtype=dtype)
 
         with ensure_clean_path(setup_path) as store:
             ser.to_hdf(store, key, format="table", encoding=enc, nan_rep=nan_rep)
@@ -1509,7 +1509,7 @@ class TestHDFStore:
     def test_to_hdf_errors(self, format, setup_path):
 
         data = ["\ud800foo"]
-        ser = pd.Series(data, index=pd.Index(data))
+        ser = Series(data, index=pd.Index(data))
         with ensure_clean_path(setup_path) as path:
             # GH 20835
             ser.to_hdf(path, "table", format=format, errors="surrogatepass")
@@ -4502,7 +4502,7 @@ class TestHDFStore:
                 "a": ["a", "b", "c", np.nan],
                 "b": [np.nan, np.nan, np.nan, np.nan],
                 "c": [1, 2, 3, 4],
-                "d": pd.Series([None] * 4, dtype=object),
+                "d": Series([None] * 4, dtype=object),
             }
         )
         df["a"] = df.a.astype("category")

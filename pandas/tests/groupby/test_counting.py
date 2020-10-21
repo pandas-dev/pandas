@@ -303,12 +303,12 @@ def test_count_non_nulls():
 def test_count_object():
     df = pd.DataFrame({"a": ["a"] * 3 + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
-    expected = pd.Series([3, 3], index=pd.Index([2, 3], name="c"), name="a")
+    expected = Series([3, 3], index=pd.Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
     df = pd.DataFrame({"a": ["a", np.nan, np.nan] + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
-    expected = pd.Series([1, 3], index=pd.Index([2, 3], name="c"), name="a")
+    expected = Series([1, 3], index=pd.Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
 
