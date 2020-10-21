@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import Series
+from pandas import MultiIndex, Series
 import pandas._testing as tm
 
 
@@ -28,3 +28,10 @@ class TestRepeat:
         msg = "the 'axis' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
             np.repeat(ser, 2, axis=0)
+
+    def test_repeat_with_multiindex(self):
+        # GH#9361, fixed by  GH#7891
+        m_idx = MultiIndex.from_tuples([(1, 2), (3, 4), (5, 6), (7, 8)])
+        data = ["a", "b", "c", "d"]
+        m_df = Series(data, index=m_idx)
+        assert m_df.repeat(3).shape == (3 * len(data),)

@@ -1,6 +1,7 @@
 import numpy as np
+import pytest
 
-from pandas import MultiIndex, NaT, Series, date_range
+from pandas import MultiIndex, NaT, Series, date_range, period_range
 import pandas.testing as tm
 
 
@@ -26,3 +27,15 @@ class TestSetitemDT64Values:
         expected = result.copy()
         result.loc[[]] = 0
         tm.assert_series_equal(result, expected)
+
+
+class TestSetitemPeriodDtype:
+    @pytest.mark.parametrize("na_val", [None, np.nan])
+    def test_setitem_na_period_dtype_casts_to_nat(self, na_val):
+        ser = Series(period_range("2000-01-01", periods=10, freq="D"))
+
+        ser[3] = na_val
+        assert ser[3] is NaT
+
+        ser[3:5] = na_val
+        assert ser[4] is NaT

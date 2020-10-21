@@ -1195,6 +1195,40 @@ class TestDataFrameReductions:
         result = getattr(df, method)(axis=1)
         tm.assert_series_equal(result, expected)
 
+    def test_frame_any_all_with_level(self):
+        df = DataFrame(
+            {"data": [False, False, True, False, True, False, True]},
+            index=[
+                ["one", "one", "two", "one", "two", "two", "two"],
+                [0, 1, 0, 2, 1, 2, 3],
+            ],
+        )
+
+        result = df.any(level=0)
+        ex = DataFrame({"data": [False, True]}, index=["one", "two"])
+        tm.assert_frame_equal(result, ex)
+
+        result = df.all(level=0)
+        ex = DataFrame({"data": [False, False]}, index=["one", "two"])
+        tm.assert_frame_equal(result, ex)
+
+    def test_frame_any_with_timedelta(self):
+        # GH#17667
+        df = DataFrame(
+            {
+                "a": Series([0, 0]),
+                "t": Series([pd.to_timedelta(0, "s"), pd.to_timedelta(1, "ms")]),
+            }
+        )
+
+        result = df.any(axis=0)
+        expected = Series(data=[False, True], index=["a", "t"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.any(axis=1)
+        expected = Series(data=[False, True])
+        tm.assert_series_equal(result, expected)
+
 
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
