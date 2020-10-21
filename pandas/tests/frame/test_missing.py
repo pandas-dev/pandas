@@ -130,7 +130,7 @@ class TestDataFrameMissingData:
         # tst that cacher updates
         original = Series([1, 2, np.nan], name="A")
         expected = Series([1, 2], dtype=original.dtype, name="A")
-        df = pd.DataFrame({"A": original.values.copy()})
+        df = DataFrame({"A": original.values.copy()})
         df2 = df.copy()
         df["A"].dropna()
         tm.assert_series_equal(df["A"], original)
@@ -202,7 +202,7 @@ class TestDataFrameMissingData:
         # GH 25087
         ii = pd.IntervalIndex.from_breaks([0, 2.78, 3.14, 6.28])
         ci = pd.CategoricalIndex(ii)
-        df = pd.DataFrame({"A": list("abc")}, index=ci)
+        df = DataFrame({"A": list("abc")}, index=ci)
 
         expected = df
         result = df.dropna()

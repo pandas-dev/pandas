@@ -13,15 +13,15 @@ class TestDataFrameQuantile:
             [
                 pd.DataFrame(
                     {
-                        0: pd.Series(pd.arrays.SparseArray([1, 2])),
-                        1: pd.Series(pd.arrays.SparseArray([3, 4])),
+                        0: Series(pd.arrays.SparseArray([1, 2])),
+                        1: Series(pd.arrays.SparseArray([3, 4])),
                     }
                 ),
-                pd.Series([1.5, 3.5], name=0.5),
+                Series([1.5, 3.5], name=0.5),
             ],
             [
-                pd.DataFrame(pd.Series([0.0, None, 1.0, 2.0], dtype="Sparse[float]")),
-                pd.Series([1.0], name=0.5),
+                pd.DataFrame(Series([0.0, None, 1.0, 2.0], dtype="Sparse[float]")),
+                Series([1.0], name=0.5),
             ],
         ],
     )
@@ -78,11 +78,11 @@ class TestDataFrameQuantile:
         # GH 2460
 
         dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
-        ser = pd.Series(dti)
+        ser = Series(dti)
         df = pd.DataFrame(ser)
 
         result = df.quantile(numeric_only=False)
-        expected = pd.Series(
+        expected = Series(
             ["2016-01-02 00:00:00"], name=0.5, dtype="datetime64[ns, US/Pacific]"
         )
 
@@ -307,7 +307,7 @@ class TestDataFrameQuantile:
 
         res = df.quantile(0.5, numeric_only=False)
 
-        exp = pd.Series(
+        exp = Series(
             [
                 pd.Timestamp("2011-01-02"),
                 pd.Timestamp("2011-01-02", tz="US/Eastern"),
@@ -376,7 +376,7 @@ class TestDataFrameQuantile:
         )
 
         res = df.quantile(0.5, numeric_only=False)
-        exp = pd.Series(
+        exp = Series(
             [
                 pd.Timestamp("2011-01-02"),
                 pd.Timestamp("2011-01-02"),
@@ -509,7 +509,7 @@ class TestDataFrameQuantile:
         df = pd.DataFrame(pd.date_range("1/1/18", periods=5))
         df.columns.name = "captain tightpants"
         result = df.quantile(0.5)
-        expected = pd.Series([], index=[], name=0.5, dtype=np.float64)
+        expected = Series([], index=[], name=0.5, dtype=np.float64)
         expected.index.name = "captain tightpants"
         tm.assert_series_equal(result, expected)
 

@@ -169,7 +169,7 @@ class TestSeriesMissingData:
         idx = pd.DatetimeIndex(
             ["2011-01-01 10:00", pd.NaT, "2011-01-03 10:00", pd.NaT], tz="Asia/Tokyo"
         )
-        s = pd.Series(idx)
+        s = Series(idx)
         assert s.dtype == "datetime64[ns, Asia/Tokyo]"
         result = s.dropna()
         expected = Series(

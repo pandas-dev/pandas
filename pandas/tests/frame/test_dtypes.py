@@ -36,23 +36,21 @@ class TestDataFrameDataTypes:
 
     def test_empty_frame_dtypes(self):
         empty_df = pd.DataFrame()
-        tm.assert_series_equal(empty_df.dtypes, pd.Series(dtype=object))
+        tm.assert_series_equal(empty_df.dtypes, Series(dtype=object))
 
         nocols_df = pd.DataFrame(index=[1, 2, 3])
-        tm.assert_series_equal(nocols_df.dtypes, pd.Series(dtype=object))
+        tm.assert_series_equal(nocols_df.dtypes, Series(dtype=object))
 
         norows_df = pd.DataFrame(columns=list("abc"))
-        tm.assert_series_equal(norows_df.dtypes, pd.Series(object, index=list("abc")))
+        tm.assert_series_equal(norows_df.dtypes, Series(object, index=list("abc")))
 
         norows_int_df = pd.DataFrame(columns=list("abc")).astype(np.int32)
         tm.assert_series_equal(
-            norows_int_df.dtypes, pd.Series(np.dtype("int32"), index=list("abc"))
+            norows_int_df.dtypes, Series(np.dtype("int32"), index=list("abc"))
         )
 
         df = pd.DataFrame(dict([("a", 1), ("b", True), ("c", 1.0)]), index=[1, 2, 3])
-        ex_dtypes = pd.Series(
-            dict([("a", np.int64), ("b", np.bool_), ("c", np.float64)])
-        )
+        ex_dtypes = Series(dict([("a", np.int64), ("b", np.bool_), ("c", np.float64)]))
         tm.assert_series_equal(df.dtypes, ex_dtypes)
 
         # same but for empty slice of df
@@ -85,14 +83,12 @@ class TestDataFrameDataTypes:
         df = pd.DataFrame(index=range(5), columns=list("abc"), dtype=np.float_)
         tm.assert_series_equal(
             df.dtypes,
-            pd.Series(dict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
+            Series(dict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
         )
-        tm.assert_series_equal(
-            df.iloc[:, 2:].dtypes, pd.Series(dict([("c", np.float_)]))
-        )
+        tm.assert_series_equal(df.iloc[:, 2:].dtypes, Series(dict([("c", np.float_)])))
         tm.assert_series_equal(
             df.dtypes,
-            pd.Series(dict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
+            Series(dict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
         )
 
     def test_dtypes_gh8722(self, float_string_frame):
@@ -114,7 +110,7 @@ class TestDataFrameDataTypes:
         df = pd.DataFrame({"x": pd.Categorical("a b c d e".split())})
         result = df.iloc[0]
         raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
-        expected = pd.Series(raw_cat, index=["x"], name=0, dtype="category")
+        expected = Series(raw_cat, index=["x"], name=0, dtype="category")
 
         tm.assert_series_equal(result, expected)
 
@@ -257,15 +253,15 @@ class TestDataFrameDataTypes:
         # Just check that it works for DataFrame here
         df = pd.DataFrame(
             {
-                "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
-                "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
+                "a": Series([1, 2, 3], dtype=np.dtype("int32")),
+                "b": Series(["x", "y", "z"], dtype=np.dtype("O")),
             }
         )
         result = df.convert_dtypes(True, True, convert_integer, False)
         expected = pd.DataFrame(
             {
-                "a": pd.Series([1, 2, 3], dtype=expected),
-                "b": pd.Series(["x", "y", "z"], dtype="string"),
+                "a": Series([1, 2, 3], dtype=expected),
+                "b": Series(["x", "y", "z"], dtype="string"),
             }
         )
         tm.assert_frame_equal(result, expected)
