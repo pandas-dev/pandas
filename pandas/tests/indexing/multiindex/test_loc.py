@@ -528,7 +528,7 @@ def test_loc_mi_with_level1_named_0():
     # GH#37194
     dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
 
-    ser = pd.Series(range(3), index=dti)
+    ser = Series(range(3), index=dti)
     df = ser.to_frame()
     df[1] = dti
 
