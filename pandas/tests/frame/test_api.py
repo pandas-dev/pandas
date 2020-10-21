@@ -529,7 +529,7 @@ class TestDataFrameMisc:
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        code = "import pandas as pd; df = DataFrame()"
+        code = "from pandas import DataFrame; df = DataFrame()"
         await ip.run_code(code)
 
         # TODO: remove it when Ipython updates
