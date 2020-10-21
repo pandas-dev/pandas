@@ -22,7 +22,7 @@ Fixed regressions
 - Fixed regression in :class:`RollingGroupby` causing a segmentation fault with Index of dtype object (:issue:`36727`)
 - Fixed regression in :meth:`DataFrame.resample(...).apply(...)` raised ``AttributeError`` when input was a :class:`DataFrame` and only a :class:`Series` was evaluated (:issue:`36951`)
 - Fixed regression in :class:`PeriodDtype` comparing both equal and unequal to its string representation (:issue:`37265`)
-- Fixed regression where slicing :class:`DatetimeIndex` failed on irregular time series with ``pd.NaT`` or on unsorted indices (:issue:`36953` and :issue:`35509`)
+- Fixed regression where slicing :class:`DatetimeIndex` raised :exc:`AssertionError` on irregular time series with ``pd.NaT`` or on unsorted indices (:issue:`36953` and :issue:`35509`)
 
 .. ---------------------------------------------------------------------------
 
