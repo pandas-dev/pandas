@@ -4,8 +4,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.string_arrow import ArrowStringArray, ArrowStringDtype
 from pandas.tests.extension import base
+
+pytest.importorskip("pyarrow", minversion="1.0")
+
+from pandas.core.arrays.string_arrow import ArrowStringArray, ArrowStringDtype
 
 
 @pytest.fixture
