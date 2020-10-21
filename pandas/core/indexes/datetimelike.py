@@ -398,16 +398,12 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         self,
         reso: Resolution,
         parsed: datetime,
-        use_lhs: bool = True,
-        use_rhs: bool = True,
     ):
         """
         Parameters
         ----------
         reso : Resolution
         parsed : datetime
-        use_lhs : bool, default True
-        use_rhs : bool, default True
 
         Returns
         -------
@@ -422,8 +418,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         if self.is_monotonic:
 
             if len(self) and (
-                (use_lhs and t1 < self[0] and t2 < self[0])
-                or (use_rhs and t1 > self[-1] and t2 > self[-1])
+                (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
             ):
                 # we are out of range
                 raise KeyError
@@ -432,13 +427,13 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
             # a monotonic (sorted) series can be sliced
             # Use asi8.searchsorted to avoid re-validating Periods/Timestamps
-            left = i8vals.searchsorted(unbox(t1), side="left") if use_lhs else None
-            right = i8vals.searchsorted(unbox(t2), side="right") if use_rhs else None
+            left = i8vals.searchsorted(unbox(t1), side="left")
+            right = i8vals.searchsorted(unbox(t2), side="right")
             return slice(left, right)
 
         else:
-            lhs_mask = (i8vals >= unbox(t1)) if use_lhs else True
-            rhs_mask = (i8vals <= unbox(t2)) if use_rhs else True
+            lhs_mask = i8vals >= unbox(t1)
+            rhs_mask = i8vals <= unbox(t2)
 
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
@@ -489,7 +484,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
-        values = self.view("i8")
+        values = self._data._ndarray
 
         try:
             other = self._data._validate_where_value(other)
@@ -498,7 +493,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             oth = getattr(other, "dtype", other)
             raise TypeError(f"Where requires matching dtype, not {oth}") from err
 
-        result = np.where(cond, values, other).astype("i8")
+        result = np.where(cond, values, other)
         arr = self._data._from_backing_data(result)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -615,7 +610,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         -------
         new_index : Index
         """
-        item = self._data._validate_insert_value(item)
+        value = self._data._validate_insert_value(item)
+        item = self._data._box_func(value)
 
         freq = None
         if is_period_dtype(self.dtype):
@@ -635,10 +631,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                     freq = self.freq
 
         arr = self._data
-        item = arr._unbox_scalar(item)
-        item = arr._rebox_native(item)
 
-        new_values = np.concatenate([arr._ndarray[:loc], [item], arr._ndarray[loc:]])
+        new_values = np.concatenate([arr._ndarray[:loc], [value], arr._ndarray[loc:]])
         new_arr = self._data._from_backing_data(new_values)
         new_arr._freq = freq
 
@@ -668,9 +662,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
         try:
-            return self._data._validate_listlike(
-                keyarr, "convert_arr_indexer", allow_object=True
-            )
+            return self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
             return com.asarray_tuplesafe(keyarr)
 

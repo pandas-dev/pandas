@@ -352,7 +352,7 @@ class TestDataFrameSortIndex:
         expected_mi = MultiIndex.from_tuples(
             [[1, 1, 1], [2, 1, 2], [2, 1, 3]], names=list("ABC")
         )
-        expected = pd.DataFrame([[5, 6], [3, 4], [1, 2]], index=expected_mi)
+        expected = DataFrame([[5, 6], [3, 4], [1, 2]], index=expected_mi)
         result = df.sort_index(level=level)
         tm.assert_frame_equal(result, expected)
 
@@ -360,7 +360,7 @@ class TestDataFrameSortIndex:
         expected_mi = MultiIndex.from_tuples(
             [[1, 1, 1], [2, 1, 3], [2, 1, 2]], names=list("ABC")
         )
-        expected = pd.DataFrame([[5, 6], [1, 2], [3, 4]], index=expected_mi)
+        expected = DataFrame([[5, 6], [1, 2], [3, 4]], index=expected_mi)
         result = df.sort_index(level=level, sort_remaining=False)
         tm.assert_frame_equal(result, expected)
 
@@ -662,6 +662,12 @@ class TestDataFrameSortIndex:
             sorted_after.drop([("foo", "three")], axis=1),
         )
 
+    def test_sort_index_preserve_levels(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        result = frame.sort_index()
+        assert result.index.names == frame.index.names
+
 
 class TestDataFrameSortIndexKey:
     def test_sort_multi_index_key(self):
@@ -736,14 +742,14 @@ class TestDataFrameSortIndexKey:
         tm.assert_frame_equal(result, expected)
 
     def test_changes_length_raises(self):
-        df = pd.DataFrame({"A": [1, 2, 3]})
+        df = DataFrame({"A": [1, 2, 3]})
         with pytest.raises(ValueError, match="change the shape"):
             df.sort_index(key=lambda x: x[:1])
 
     def test_sort_index_multiindex_sparse_column(self):
         # GH 29735, testing that sort_index on a multiindexed frame with sparse
         # columns fills with 0.
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 i: pd.array([0.0, 0.0, 0.0, 0.0], dtype=pd.SparseDtype("float64", 0.0))
                 for i in range(0, 4)
