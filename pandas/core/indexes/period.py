@@ -214,7 +214,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             if data is None and ordinal is not None:
                 # we strangely ignore `ordinal` if data is passed.
                 ordinal = np.asarray(ordinal, dtype=np.int64)
-                data = PeriodArray(ordinal, freq)
+                data = PeriodArray(ordinal, freq=freq)
             else:
                 # don't pass copy here, since we copy later.
                 data = period_array(data=data, freq=freq)
