@@ -92,7 +92,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
 from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import ensure_key_mapped, nargsort
+from pandas.core.sorting import nargsort
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
