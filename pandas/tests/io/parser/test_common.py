@@ -719,7 +719,7 @@ baz,7,8,9
     "kwargs", [dict(iterator=True, chunksize=1), dict(iterator=True), dict(chunksize=1)]
 )
 def test_iterator_skipfooter_errors(all_parsers, kwargs):
-    msg = "'skipfooter' not supported for 'iteration'"
+    msg = "'skipfooter' not supported for iteration"
     parser = all_parsers
     data = "a\n1\n2"
 

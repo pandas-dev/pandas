@@ -65,7 +65,7 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
-from pandas.core.indexers import check_setitem_lengths
+from pandas.core.indexers import check_array_indexer, check_setitem_lengths
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
@@ -75,6 +75,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
+DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
 
 class InvalidComparison(Exception):
@@ -86,7 +87,20 @@ class InvalidComparison(Exception):
     pass
 
 
-class AttributesMixin:
+class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
+    """
+    Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
+
+    Assumes that __new__/__init__ defines:
+        _data
+        _freq
+
+    and that the inheriting class has methods:
+        _generate_range
+    """
+
+    _is_recognized_dtype: Callable[[DtypeObj], bool]
+    _recognized_scalars: Tuple[Type, ...]
     _data: np.ndarray
 
     def __init__(self, data, dtype=None, freq=None, copy=False):
@@ -184,25 +198,6 @@ class AttributesMixin:
         """
         raise AbstractMethodError(self)
 
-
-DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
-
-
-class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionArray):
-    """
-    Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
-
-    Assumes that __new__/__init__ defines:
-        _data
-        _freq
-
-    and that the inheriting class has methods:
-        _generate_range
-    """
-
-    _is_recognized_dtype: Callable[[DtypeObj], bool]
-    _recognized_scalars: Tuple[Type, ...]
-
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
@@ -231,7 +226,10 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         return lib.map_infer(values, self._box_func)
 
     def __iter__(self):
-        return (self._box_func(v) for v in self.asi8)
+        if self.ndim > 1:
+            return (self[n] for n in range(len(self)))
+        else:
+            return (self._box_func(v) for v in self.asi8)
 
     @property
     def asi8(self) -> np.ndarray:
@@ -294,7 +292,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         elif self.ndim != 1:
             freq = None
         else:
-            key = self._validate_getitem_key(key)  # maybe ndarray[bool] -> slice
+            key = check_array_indexer(self, key)  # maybe ndarray[bool] -> slice
             freq = None
             if isinstance(key, slice):
                 if self.freq is not None and key.step is not None:
@@ -446,7 +444,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
 
         else:
             try:
-                other = self._validate_listlike(other, opname, allow_object=True)
+                other = self._validate_listlike(other, allow_object=True)
                 self._check_compatible_with(other)
             except TypeError as err:
                 if is_object_dtype(getattr(other, "dtype", None)):
@@ -510,7 +508,8 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             )
             fill_value = new_fill
 
-        return self._unbox(fill_value)
+        rv = self._unbox(fill_value)
+        return self._rebox_native(rv)
 
     def _validate_scalar(self, value, msg: Optional[str] = None):
         """
@@ -550,7 +549,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
 
         return value
 
-    def _validate_listlike(self, value, opname: str, allow_object: bool = False):
+    def _validate_listlike(self, value, allow_object: bool = False):
         if isinstance(value, type(self)):
             return value
 
@@ -580,10 +579,9 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
 
         elif not type(self)._is_recognized_dtype(value.dtype):
             raise TypeError(
-                f"{opname} requires compatible dtype or scalar, "
-                f"not {type(value).__name__}"
+                f"value should be a '{self._scalar_type.__name__}', 'NaT', "
+                f"or array of those. Got '{type(value).__name__}' instead."
             )
-
         return value
 
     def _validate_searchsorted_value(self, value):
@@ -591,7 +589,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         if not is_list_like(value):
             value = self._validate_scalar(value, msg)
         else:
-            value = self._validate_listlike(value, "searchsorted")
+            value = self._validate_listlike(value)
 
         rv = self._unbox(value)
         return self._rebox_native(rv)
@@ -602,31 +600,29 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             f"or array of those. Got '{type(value).__name__}' instead."
         )
         if is_list_like(value):
-            value = self._validate_listlike(value, "setitem")
+            value = self._validate_listlike(value)
         else:
             value = self._validate_scalar(value, msg)
 
-        return self._unbox(value, setitem=True)
+        rv = self._unbox(value, setitem=True)
+        return self._rebox_native(rv)
 
     def _validate_insert_value(self, value):
         msg = f"cannot insert {type(self).__name__} with incompatible label"
         value = self._validate_scalar(value, msg)
 
-        self._check_compatible_with(value, setitem=True)
-        # TODO: if we dont have compat, should we raise or astype(object)?
-        #  PeriodIndex does astype(object)
-        return value
-        # Note: we do not unbox here because the caller needs boxed value
-        #  to check for freq.
+        rv = self._unbox(value, setitem=True)
+        return self._rebox_native(rv)
 
     def _validate_where_value(self, other):
         msg = f"Where requires matching dtype, not {type(other)}"
         if not is_list_like(other):
             other = self._validate_scalar(other, msg)
         else:
-            other = self._validate_listlike(other, "where")
+            other = self._validate_listlike(other)
 
-        return self._unbox(other, setitem=True)
+        rv = self._unbox(other, setitem=True)
+        return self._rebox_native(rv)
 
     def _unbox(self, other, setitem: bool = False) -> Union[np.int64, np.ndarray]:
         """
@@ -861,7 +857,9 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             #  comparison otherwise it would fail to raise when
             #  comparing tz-aware and tz-naive
             with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self.astype(object), other)
+                result = ops.comp_method_OBJECT_ARRAY(
+                    op, np.asarray(self.astype(object)), other
+                )
             return result
 
         other_i8 = self._unbox(other)
