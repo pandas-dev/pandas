@@ -51,6 +51,20 @@ def datetime_frame():
     return DataFrame(tm.getTimeSeriesData())
 
 
+def test_info_empty():
+    df = DataFrame()
+    buf = StringIO()
+    df.info(buf=buf)
+    result = buf.getvalue()
+    expected = textwrap.dedent(
+        """\
+        <class 'pandas.core.frame.DataFrame'>
+        Index: 0 entries
+        Empty DataFrame"""
+    )
+    assert result == expected
+
+
 def test_info_categorical_column():
 
     # make sure it works
