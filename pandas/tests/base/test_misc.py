@@ -182,7 +182,7 @@ def test_access_by_position(index):
     elif isinstance(index, pd.MultiIndex):
         pytest.skip("Can't instantiate Series from MultiIndex")
 
-    series = pd.Series(index)
+    series = Series(index)
     assert index[0] == series.iloc[0]
     assert index[5] == series.iloc[5]
     assert index[-1] == series.iloc[-1]

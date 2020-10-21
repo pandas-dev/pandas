@@ -2289,14 +2289,14 @@ class DataFrame(NDFrame, OpsMixin):
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
-        path: FilePathOrBuffer[AnyStr],
+        path: Optional[FilePathOrBuffer] = None,
         engine: str = "auto",
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
         partition_cols: Optional[List[str]] = None,
         storage_options: StorageOptions = None,
         **kwargs,
-    ) -> None:
+    ) -> Optional[bytes]:
         """
         Write a DataFrame to the binary parquet format.
 
@@ -2307,14 +2307,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        path : str or file-like object
+        path : str or file-like object, default None
             If a string, it will be used as Root Directory path
             when writing a partitioned dataset. By file-like object,
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function) or io.BytesIO. The engine
-            fastparquet does not accept file-like objects.
+            fastparquet does not accept file-like objects. If path is None,
+            a bytes object is returned.
 
-            .. versionchanged:: 1.0.0
+            .. versionchanged:: 1.2.0
 
             Previously this was "fname"
 
@@ -2357,6 +2358,10 @@ class DataFrame(NDFrame, OpsMixin):
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
 
+        Returns
+        -------
+        bytes if no path argument is provided else None
+
         See Also
         --------
         read_parquet : Read a parquet file.
@@ -2392,7 +2397,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.parquet import to_parquet
 
-        to_parquet(
+        return to_parquet(
             self,
             path,
             engine,
@@ -2605,7 +2610,7 @@ class DataFrame(NDFrame, OpsMixin):
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
     )
-    @doc(DataFrameInfo.info)
+    @doc(DataFrameInfo.to_buffer)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -2614,9 +2619,16 @@ class DataFrame(NDFrame, OpsMixin):
         memory_usage: Optional[Union[bool, str]] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
-        return DataFrameInfo(
-            self, verbose, buf, max_cols, memory_usage, null_counts
-        ).info()
+        info = DataFrameInfo(
+            data=self,
+            memory_usage=memory_usage,
+        )
+        info.to_buffer(
+            buf=buf,
+            max_cols=max_cols,
+            verbose=verbose,
+            show_counts=null_counts,
+        )
 
     def memory_usage(self, index=True, deep=False) -> Series:
         """
