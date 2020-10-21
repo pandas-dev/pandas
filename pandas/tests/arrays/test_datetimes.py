@@ -436,6 +436,18 @@ class TestDatetimeArray:
             with pytest.raises(TypeError, match="Cannot compare"):
                 dta.shift(1, fill_value=invalid)
 
+    def test_shift_requires_tzmatch(self):
+        # since filling is setitem-like, we require a matching timezone,
+        #  not just matching tzawawreness
+        dti = pd.date_range("2016-01-01", periods=3, tz="UTC")
+        dta = dti._data
+
+        fill_value = pd.Timestamp("2020-10-18 18:44", tz="US/Pacific")
+
+        msg = "Timezones don't match. 'UTC != US/Pacific'"
+        with pytest.raises(ValueError, match=msg):
+            dta.shift(1, fill_value=fill_value)
+
 
 class TestSequenceToDT64NS:
     def test_tz_dtype_mismatch_raises(self):
