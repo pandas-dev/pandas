@@ -1493,6 +1493,20 @@ class TestFrameArithmeticUnsorted:
         with pytest.raises(TypeError, match="takes 2 positional arguments"):
             getattr(df, all_arithmetic_operators)(b, 0)
 
+    def test_align_int_fill_bug(self):
+        # GH#910
+        X = np.arange(10 * 10, dtype="float64").reshape(10, 10)
+        Y = np.ones((10, 1), dtype=int)
+
+        df1 = DataFrame(X)
+        df1["0.X"] = Y.squeeze()
+
+        df2 = df1.astype(float)
+
+        result = df1 - df1.mean()
+        expected = df2 - df2.mean()
+        tm.assert_frame_equal(result, expected)
+
 
 def test_pow_with_realignment():
     # GH#32685 pow has special semantics for operating with null values
