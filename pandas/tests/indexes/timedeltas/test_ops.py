@@ -72,7 +72,7 @@ class TestTimedeltaIndexOps:
     def test_unknown_attribute(self):
         # see gh-9680
         tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
-        ts = pd.Series(np.random.normal(size=10), index=tdi)
+        ts = Series(np.random.normal(size=10), index=tdi)
         assert "foo" not in ts.__dict__.keys()
         msg = "'Series' object has no attribute 'foo'"
         with pytest.raises(AttributeError, match=msg):
@@ -237,7 +237,7 @@ class TestTimedeltaIndexOps:
         assert idx.astype(object).equals(idx)
         assert idx.astype(object).equals(idx.astype(object))
         assert not idx.equals(list(idx))
-        assert not idx.equals(pd.Series(idx))
+        assert not idx.equals(Series(idx))
 
         idx2 = pd.TimedeltaIndex(["2 days", "1 days", "NaT"])
         assert not idx.equals(idx2)
@@ -246,7 +246,7 @@ class TestTimedeltaIndexOps:
         assert not idx.astype(object).equals(idx2)
         assert not idx.astype(object).equals(idx2.astype(object))
         assert not idx.equals(list(idx2))
-        assert not idx.equals(pd.Series(idx2))
+        assert not idx.equals(Series(idx2))
 
         # Check that we dont raise OverflowError on comparisons outside the
         #  implementation range

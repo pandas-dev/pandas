@@ -3826,6 +3826,6 @@ def _validate_skipfooter(kwds: Dict[str, Any]) -> None:
     """
     if kwds.get("skipfooter"):
         if kwds.get("iterator") or kwds.get("chunksize"):
-            raise ValueError("'skipfooter' not supported for 'iteration'")
+            raise ValueError("'skipfooter' not supported for iteration")
         if kwds.get("nrows"):
             raise ValueError("'skipfooter' not supported with 'nrows'")

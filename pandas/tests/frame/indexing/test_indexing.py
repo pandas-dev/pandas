@@ -1374,7 +1374,7 @@ class TestDataFrameIndexing:
             [df.loc[r, c] for r, c in zip(df.index, "mask_" + df["label"])]
         )
 
-        tm.assert_series_equal(df["mask"], pd.Series(exp_mask, name="mask"))
+        tm.assert_series_equal(df["mask"], Series(exp_mask, name="mask"))
         assert df["mask"].dtype == np.bool_
 
     def test_lookup_raises(self, float_frame):
@@ -1922,9 +1922,7 @@ class TestDataFrameIndexing:
         # GH 12981
         # Assignment of unaligned offset-aware datetime series.
         # Make sure timezone isn't lost
-        column = pd.Series(
-            pd.date_range("2015-01-01", periods=3, tz="utc"), name="dates"
-        )
+        column = Series(pd.date_range("2015-01-01", periods=3, tz="utc"), name="dates")
         df = pd.DataFrame({"dates": column})
         df["dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
@@ -2156,9 +2154,23 @@ class TestDataFrameIndexing:
         )
 
         index_exp = pd.interval_range(start=0, periods=2, freq=1, closed="both")
-        expected = pd.Series([1, 4], index=index_exp, name="A")
+        expected = Series([1, 4], index=index_exp, name="A")
         result = df.loc[1, "A"]
         tm.assert_series_equal(result, expected)
+
+    def test_getitem_interval_index_partial_indexing(self):
+        # GH#36490
+        df = pd.DataFrame(
+            np.ones((3, 4)), columns=pd.IntervalIndex.from_breaks(np.arange(5))
+        )
+
+        expected = df.iloc[:, 0]
+
+        res = df[0.5]
+        tm.assert_series_equal(res, expected)
+
+        res = df.loc[:, 0.5]
+        tm.assert_series_equal(res, expected)
 
 
 class TestDataFrameIndexingUInt64:

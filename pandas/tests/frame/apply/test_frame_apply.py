@@ -359,7 +359,7 @@ class TestDataFrameApply:
     def test_apply_reduce_rows_to_dict(self):
         # GH 25196
         data = pd.DataFrame([[1, 2], [3, 4]])
-        expected = pd.Series([{0: 1, 1: 3}, {0: 2, 1: 4}])
+        expected = Series([{0: 1, 1: 3}, {0: 2, 1: 4}])
         result = data.apply(dict)
         tm.assert_series_equal(result, expected)
 
@@ -647,7 +647,7 @@ class TestDataFrameApply:
 
     def test_applymap_box_timestamps(self):
         # GH 2689, GH 2627
-        ser = pd.Series(date_range("1/1/2000", periods=10))
+        ser = Series(date_range("1/1/2000", periods=10))
 
         def func(x):
             return (x.hour, x.day, x.month)
@@ -815,7 +815,7 @@ class TestDataFrameApply:
         df = pd.DataFrame({"a": df_values}, dtype="category")
 
         result = df.a.apply(lambda x: x == val)
-        expected = pd.Series(
+        expected = Series(
             [np.NaN if pd.isnull(x) else x == val for x in df_values], name="a"
         )
         tm.assert_series_equal(result, expected)
@@ -1153,12 +1153,12 @@ class TestDataFrameAggregate:
 
         # result's name should be None
         result = df.agg({"name": "count"})
-        expected = pd.Series({"name": 2})
+        expected = Series({"name": 2})
         tm.assert_series_equal(result, expected)
 
         # Check if name is still preserved when aggregating series instead
         result = df["name"].agg({"name": "count"})
-        expected = pd.Series({"name": 2}, name="name")
+        expected = Series({"name": 2}, name="name")
         tm.assert_series_equal(result, expected)
 
     def test_agg_multiple_mixed_no_warning(self):
@@ -1376,7 +1376,7 @@ class TestDataFrameAggregate:
             return list(group_col.dropna().unique())
 
         result = df.agg(func)
-        expected = pd.Series([[2, 3], [1.5], ["foo", "bar"]], index=["A", "B", "C"])
+        expected = Series([[2, 3], [1.5], ["foo", "bar"]], index=["A", "B", "C"])
         tm.assert_series_equal(result, expected)
 
         result = df.agg([func])
@@ -1483,9 +1483,9 @@ class TestDataFrameAggregate:
         df = pd.DataFrame([[1, 2], [3, 4]])
 
         if axis == 0:
-            expected = pd.Series([5.0, 7.0])
+            expected = Series([5.0, 7.0])
         else:
-            expected = pd.Series([4.0, 8.0])
+            expected = Series([4.0, 8.0])
 
         result = df.agg(f, axis, *args, **kwargs)
 
@@ -1510,7 +1510,7 @@ class TestDataFrameAggregate:
         ]
         df = DataFrame(data=[0, 1, 2], index=timestamps)
         result = df.apply(lambda x: x.name, axis=1)
-        expected = pd.Series(index=timestamps, data=timestamps)
+        expected = Series(index=timestamps, data=timestamps)
 
         tm.assert_series_equal(result, expected)
 
@@ -1559,7 +1559,7 @@ def test_apply_empty_list_reduce():
     df = pd.DataFrame([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]], columns=["a", "b"])
 
     result = df.apply(lambda x: [], result_type="reduce")
-    expected = pd.Series({"a": [], "b": []}, dtype=object)
+    expected = Series({"a": [], "b": []}, dtype=object)
     tm.assert_series_equal(result, expected)
 
 
@@ -1578,5 +1578,5 @@ def test_apply_raw_returns_string():
     # https://github.com/pandas-dev/pandas/issues/35940
     df = pd.DataFrame({"A": ["aa", "bbb"]})
     result = df.apply(lambda x: x[0], axis=1, raw=True)
-    expected = pd.Series(["aa", "bbb"])
+    expected = Series(["aa", "bbb"])
     tm.assert_series_equal(result, expected)

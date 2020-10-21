@@ -1,6 +1,5 @@
 from datetime import timedelta
 from decimal import Decimal
-import operator
 
 import numpy as np
 import pytest
@@ -132,9 +131,9 @@ def assert_stat_op_calc(
         r1 = getattr(all_na, opname)(axis=1)
         if opname in ["sum", "prod"]:
             unit = 1 if opname == "prod" else 0  # result for empty sum/prod
-            expected = pd.Series(unit, index=r0.index, dtype=r0.dtype)
+            expected = Series(unit, index=r0.index, dtype=r0.dtype)
             tm.assert_series_equal(r0, expected)
-            expected = pd.Series(unit, index=r1.index, dtype=r1.dtype)
+            expected = Series(unit, index=r1.index, dtype=r1.dtype)
             tm.assert_series_equal(r1, expected)
 
 
@@ -467,7 +466,7 @@ class TestDataFrameAnalytics:
         df = pd.DataFrame({"A": [1, 1], "B": [pd.Timestamp("2000", tz=tz)] * 2})
         with tm.assert_produces_warning(FutureWarning):
             result = df.mean()
-        expected = pd.Series([1.0], index=["A"])
+        expected = Series([1.0], index=["A"])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
@@ -479,7 +478,7 @@ class TestDataFrameAnalytics:
         with tm.assert_produces_warning(FutureWarning):
             result = df.mean()
 
-        expected = pd.Series(dtype=np.float64)
+        expected = Series(dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
     def test_mean_mixed_string_decimal(self):
@@ -502,7 +501,7 @@ class TestDataFrameAnalytics:
         df = pd.DataFrame(d)
 
         result = df.mean()
-        expected = pd.Series([2.7, 681.6], index=["A", "C"])
+        expected = Series([2.7, 681.6], index=["A", "C"])
         tm.assert_series_equal(result, expected)
 
     def test_var_std(self, datetime_frame):
@@ -772,30 +771,30 @@ class TestDataFrameAnalytics:
         )
         # The default
         result = getattr(df, method)
-        expected = pd.Series([unit, unit, unit], index=idx, dtype="float64")
+        expected = Series([unit, unit, unit], index=idx, dtype="float64")
 
         # min_count=1
         result = getattr(df, method)(min_count=1)
-        expected = pd.Series([unit, unit, np.nan], index=idx)
+        expected = Series([unit, unit, np.nan], index=idx)
         tm.assert_series_equal(result, expected)
 
         # min_count=0
         result = getattr(df, method)(min_count=0)
-        expected = pd.Series([unit, unit, unit], index=idx, dtype="float64")
+        expected = Series([unit, unit, unit], index=idx, dtype="float64")
         tm.assert_series_equal(result, expected)
 
         result = getattr(df.iloc[1:], method)(min_count=1)
-        expected = pd.Series([unit, np.nan, np.nan], index=idx)
+        expected = Series([unit, np.nan, np.nan], index=idx)
         tm.assert_series_equal(result, expected)
 
         # min_count > 1
         df = pd.DataFrame({"A": [unit] * 10, "B": [unit] * 5 + [np.nan] * 5})
         result = getattr(df, method)(min_count=5)
-        expected = pd.Series(result, index=["A", "B"])
+        expected = Series(result, index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
         result = getattr(df, method)(min_count=6)
-        expected = pd.Series(result, index=["A", "B"])
+        expected = Series(result, index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
     def test_sum_nanops_timedelta(self):
@@ -807,7 +806,7 @@ class TestDataFrameAnalytics:
 
         # 0 by default
         result = df2.sum()
-        expected = pd.Series([0, 0, 0], dtype="m8[ns]", index=idx)
+        expected = Series([0, 0, 0], dtype="m8[ns]", index=idx)
         tm.assert_series_equal(result, expected)
 
         # min_count=0
@@ -816,7 +815,7 @@ class TestDataFrameAnalytics:
 
         # min_count=1
         result = df2.sum(min_count=1)
-        expected = pd.Series([0, 0, np.nan], dtype="m8[ns]", index=idx)
+        expected = Series([0, 0, np.nan], dtype="m8[ns]", index=idx)
         tm.assert_series_equal(result, expected)
 
     def test_sum_object(self, float_frame):
@@ -838,7 +837,7 @@ class TestDataFrameAnalytics:
         ).reindex([2, 3, 4])
         result = df.sum()
 
-        expected = pd.Series({"B": 7.0})
+        expected = Series({"B": 7.0})
         tm.assert_series_equal(result, expected)
 
     def test_mean_corner(self, float_frame, float_string_frame):
@@ -871,13 +870,13 @@ class TestDataFrameAnalytics:
             }
         )
         result = df.mean(numeric_only=True)
-        expected = pd.Series({"A": 1.0})
+        expected = Series({"A": 1.0})
         tm.assert_series_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning):
             # in the future datetime columns will be included
             result = df.mean()
-        expected = pd.Series({"A": 1.0, "C": df.loc[1, "C"]})
+        expected = Series({"A": 1.0, "C": df.loc[1, "C"]})
         tm.assert_series_equal(result, expected)
 
     def test_mean_datetimelike_numeric_only_false(self):
@@ -891,7 +890,7 @@ class TestDataFrameAnalytics:
 
         # datetime(tz) and timedelta work
         result = df.mean(numeric_only=False)
-        expected = pd.Series({"A": 1, "B": df.loc[1, "B"], "C": df.loc[1, "C"]})
+        expected = Series({"A": 1, "B": df.loc[1, "B"], "C": df.loc[1, "C"]})
         tm.assert_series_equal(result, expected)
 
         # mean of period is not allowed
@@ -1056,28 +1055,28 @@ class TestDataFrameAnalytics:
             (np.any, {"A": [False, False], "B": [False, True]}, True),
             (np.all, {"A": [False, False], "B": [False, True]}, False),
             # other types
-            (np.all, {"A": pd.Series([0.0, 1.0], dtype="float")}, False),
-            (np.any, {"A": pd.Series([0.0, 1.0], dtype="float")}, True),
-            (np.all, {"A": pd.Series([0, 1], dtype=int)}, False),
-            (np.any, {"A": pd.Series([0, 1], dtype=int)}, True),
-            pytest.param(np.all, {"A": pd.Series([0, 1], dtype="M8[ns]")}, False),
-            pytest.param(np.any, {"A": pd.Series([0, 1], dtype="M8[ns]")}, True),
-            pytest.param(np.all, {"A": pd.Series([1, 2], dtype="M8[ns]")}, True),
-            pytest.param(np.any, {"A": pd.Series([1, 2], dtype="M8[ns]")}, True),
-            pytest.param(np.all, {"A": pd.Series([0, 1], dtype="m8[ns]")}, False),
-            pytest.param(np.any, {"A": pd.Series([0, 1], dtype="m8[ns]")}, True),
-            pytest.param(np.all, {"A": pd.Series([1, 2], dtype="m8[ns]")}, True),
-            pytest.param(np.any, {"A": pd.Series([1, 2], dtype="m8[ns]")}, True),
-            (np.all, {"A": pd.Series([0, 1], dtype="category")}, False),
-            (np.any, {"A": pd.Series([0, 1], dtype="category")}, True),
-            (np.all, {"A": pd.Series([1, 2], dtype="category")}, True),
-            (np.any, {"A": pd.Series([1, 2], dtype="category")}, True),
+            (np.all, {"A": Series([0.0, 1.0], dtype="float")}, False),
+            (np.any, {"A": Series([0.0, 1.0], dtype="float")}, True),
+            (np.all, {"A": Series([0, 1], dtype=int)}, False),
+            (np.any, {"A": Series([0, 1], dtype=int)}, True),
+            pytest.param(np.all, {"A": Series([0, 1], dtype="M8[ns]")}, False),
+            pytest.param(np.any, {"A": Series([0, 1], dtype="M8[ns]")}, True),
+            pytest.param(np.all, {"A": Series([1, 2], dtype="M8[ns]")}, True),
+            pytest.param(np.any, {"A": Series([1, 2], dtype="M8[ns]")}, True),
+            pytest.param(np.all, {"A": Series([0, 1], dtype="m8[ns]")}, False),
+            pytest.param(np.any, {"A": Series([0, 1], dtype="m8[ns]")}, True),
+            pytest.param(np.all, {"A": Series([1, 2], dtype="m8[ns]")}, True),
+            pytest.param(np.any, {"A": Series([1, 2], dtype="m8[ns]")}, True),
+            (np.all, {"A": Series([0, 1], dtype="category")}, False),
+            (np.any, {"A": Series([0, 1], dtype="category")}, True),
+            (np.all, {"A": Series([1, 2], dtype="category")}, True),
+            (np.any, {"A": Series([1, 2], dtype="category")}, True),
             # Mix GH#21484
             pytest.param(
                 np.all,
                 {
-                    "A": pd.Series([10, 20], dtype="M8[ns]"),
-                    "B": pd.Series([10, 20], dtype="m8[ns]"),
+                    "A": Series([10, 20], dtype="M8[ns]"),
+                    "B": Series([10, 20], dtype="m8[ns]"),
                 },
                 True,
             ),
@@ -1116,82 +1115,6 @@ class TestDataFrameAnalytics:
             getattr(df, method)(axis=None, level="out")
 
     # ---------------------------------------------------------------------
-    # Matrix-like
-
-    def test_matmul(self):
-        # matmul test is for GH 10259
-        a = DataFrame(
-            np.random.randn(3, 4), index=["a", "b", "c"], columns=["p", "q", "r", "s"]
-        )
-        b = DataFrame(
-            np.random.randn(4, 2), index=["p", "q", "r", "s"], columns=["one", "two"]
-        )
-
-        # DataFrame @ DataFrame
-        result = operator.matmul(a, b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        tm.assert_frame_equal(result, expected)
-
-        # DataFrame @ Series
-        result = operator.matmul(a, b.one)
-        expected = Series(np.dot(a.values, b.one.values), index=["a", "b", "c"])
-        tm.assert_series_equal(result, expected)
-
-        # np.array @ DataFrame
-        result = operator.matmul(a.values, b)
-        assert isinstance(result, DataFrame)
-        assert result.columns.equals(b.columns)
-        assert result.index.equals(pd.Index(range(3)))
-        expected = np.dot(a.values, b.values)
-        tm.assert_almost_equal(result.values, expected)
-
-        # nested list @ DataFrame (__rmatmul__)
-        result = operator.matmul(a.values.tolist(), b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        tm.assert_almost_equal(result.values, expected.values)
-
-        # mixed dtype DataFrame @ DataFrame
-        a["q"] = a.q.round().astype(int)
-        result = operator.matmul(a, b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        tm.assert_frame_equal(result, expected)
-
-        # different dtypes DataFrame @ DataFrame
-        a = a.astype(int)
-        result = operator.matmul(a, b)
-        expected = DataFrame(
-            np.dot(a.values, b.values), index=["a", "b", "c"], columns=["one", "two"]
-        )
-        tm.assert_frame_equal(result, expected)
-
-        # unaligned
-        df = DataFrame(np.random.randn(3, 4), index=[1, 2, 3], columns=range(4))
-        df2 = DataFrame(np.random.randn(5, 3), index=range(5), columns=[1, 2, 3])
-
-        with pytest.raises(ValueError, match="aligned"):
-            operator.matmul(df, df2)
-
-    def test_matmul_message_shapes(self):
-        # GH#21581 exception message should reflect original shapes,
-        #  not transposed shapes
-        a = np.random.rand(10, 4)
-        b = np.random.rand(5, 3)
-
-        df = DataFrame(b)
-
-        msg = r"shapes \(10, 4\) and \(5, 3\) not aligned"
-        with pytest.raises(ValueError, match=msg):
-            a @ df
-        with pytest.raises(ValueError, match=msg):
-            a.tolist() @ df
-
-    # ---------------------------------------------------------------------
     # Unsorted
 
     def test_series_broadcasting(self):
@@ -1214,22 +1137,22 @@ class TestDataFrameReductions:
         df = pd.DataFrame({"foo": [pd.NaT, pd.NaT, pd.Timestamp("2012-05-01")]})
 
         res = df.min()
-        exp = pd.Series([pd.Timestamp("2012-05-01")], index=["foo"])
+        exp = Series([pd.Timestamp("2012-05-01")], index=["foo"])
         tm.assert_series_equal(res, exp)
 
         res = df.max()
-        exp = pd.Series([pd.Timestamp("2012-05-01")], index=["foo"])
+        exp = Series([pd.Timestamp("2012-05-01")], index=["foo"])
         tm.assert_series_equal(res, exp)
 
         # GH12941, only NaTs are in DataFrame.
         df = pd.DataFrame({"foo": [pd.NaT, pd.NaT]})
 
         res = df.min()
-        exp = pd.Series([pd.NaT], index=["foo"])
+        exp = Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
         res = df.max()
-        exp = pd.Series([pd.NaT], index=["foo"])
+        exp = Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
     def test_min_max_dt64_api_consistency_with_NaT(self):
@@ -1238,7 +1161,7 @@ class TestDataFrameReductions:
         # min/max calls on empty Series/DataFrames. See GH:33704 for more
         # information
         df = pd.DataFrame(dict(x=pd.to_datetime([])))
-        expected_dt_series = pd.Series(pd.to_datetime([]))
+        expected_dt_series = Series(pd.to_datetime([]))
         # check axis 0
         assert (df.min(axis=0).x is pd.NaT) == (expected_dt_series.min() is pd.NaT)
         assert (df.max(axis=0).x is pd.NaT) == (expected_dt_series.max() is pd.NaT)
@@ -1251,7 +1174,7 @@ class TestDataFrameReductions:
         # check DataFrame/Series api consistency when calling min/max on an empty
         # DataFrame/Series.
         df = pd.DataFrame(dict(x=[]))
-        expected_float_series = pd.Series([], dtype=float)
+        expected_float_series = Series([], dtype=float)
         # check axis 0
         assert np.isnan(df.min(axis=0).x) == np.isnan(expected_float_series.min())
         assert np.isnan(df.max(axis=0).x) == np.isnan(expected_float_series.max())
@@ -1278,7 +1201,7 @@ def test_mixed_frame_with_integer_sum():
     df = pd.DataFrame([["a", 1]], columns=list("ab"))
     df = df.astype({"b": "Int64"})
     result = df.sum()
-    expected = pd.Series(["a", 1], index=["a", "b"])
+    expected = Series(["a", 1], index=["a", "b"])
     tm.assert_series_equal(result, expected)
 
 
