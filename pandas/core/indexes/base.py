@@ -220,7 +220,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
-    _id: _Identity
+    _id: Optional[_Identity] = None
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
@@ -541,10 +541,10 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.identical : Works like ``Index.is_`` but also checks metadata.
         """
-        try:
-            return self._id is other._id
-        except AttributeError:
-            return False
+        if self is other:
+            return True
+        else:
+            return self._id is not None and self._id is getattr(other, "_id", Ellipsis)
 
     def _reset_identity(self) -> None:
         """
