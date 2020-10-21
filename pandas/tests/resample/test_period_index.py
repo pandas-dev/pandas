@@ -566,7 +566,7 @@ class TestPeriodIndex:
             .tz_localize("UTC")
             .tz_convert("America/Chicago")
         )
-        df = pd.DataFrame([1, 2], index=index)
+        df = DataFrame([1, 2], index=index)
         result = df.resample("12h", closed="right", label="right").last().ffill()
 
         expected_index_values = [
@@ -588,7 +588,7 @@ class TestPeriodIndex:
             "America/Chicago"
         )
         index = pd.DatetimeIndex(index, freq="12h")
-        expected = pd.DataFrame(
+        expected = DataFrame(
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0],
             index=index,
         )

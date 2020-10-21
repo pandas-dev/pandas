@@ -449,7 +449,7 @@ class TestSeriesLogicalOps:
         tm.assert_frame_equal(s1.to_frame() & s2.to_frame(), exp.to_frame())
         tm.assert_frame_equal(s2.to_frame() & s1.to_frame(), exp.to_frame())
 
-        exp = pd.DataFrame({"x": [True, True, np.nan, np.nan]}, index=list("ABCD"))
+        exp = DataFrame({"x": [True, True, np.nan, np.nan]}, index=list("ABCD"))
         tm.assert_frame_equal(s1.to_frame() | s2.to_frame(), exp_or1.to_frame())
         tm.assert_frame_equal(s2.to_frame() | s1.to_frame(), exp_or.to_frame())
 

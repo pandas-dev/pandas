@@ -235,7 +235,7 @@ class TestDataFrameJoin:
 
     def test_join_multiindex_leftright(self):
         # GH 10741
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             [
                 ["a", "x", 0.471780],
                 ["a", "y", 0.774908],
@@ -250,11 +250,11 @@ class TestDataFrameJoin:
             columns=["first", "second", "value1"],
         ).set_index(["first", "second"])
 
-        df2 = pd.DataFrame(
-            [["a", 10], ["b", 20]], columns=["first", "value2"]
-        ).set_index(["first"])
+        df2 = DataFrame([["a", 10], ["b", 20]], columns=["first", "value2"]).set_index(
+            ["first"]
+        )
 
-        exp = pd.DataFrame(
+        exp = DataFrame(
             [
                 [0.471780, 10],
                 [0.774908, 10],
@@ -277,7 +277,7 @@ class TestDataFrameJoin:
         exp_idx = pd.MultiIndex.from_product(
             [["a", "b"], ["x", "y", "z"]], names=["first", "second"]
         )
-        exp = pd.DataFrame(
+        exp = DataFrame(
             [
                 [0.471780, 10],
                 [0.774908, 10],

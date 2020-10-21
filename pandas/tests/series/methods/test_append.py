@@ -63,7 +63,7 @@ class TestSeriesAppend:
 
     def test_append_dataframe_raises(self):
         # GH 31413
-        df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
 
         msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
         with pytest.raises(TypeError, match=msg):

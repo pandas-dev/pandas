@@ -197,8 +197,8 @@ class TestDataFrameAlign:
             [range(2), range(3), range(2)], names=("a", "b", "c")
         )
         idx = pd.Index(range(2), name="b")
-        df1 = pd.DataFrame(np.arange(12, dtype="int64"), index=midx)
-        df2 = pd.DataFrame(np.arange(2, dtype="int64"), index=idx)
+        df1 = DataFrame(np.arange(12, dtype="int64"), index=midx)
+        df2 = DataFrame(np.arange(2, dtype="int64"), index=idx)
 
         # these must be the same results (but flipped)
         res1l, res1r = df1.align(df2, join="left")
@@ -207,7 +207,7 @@ class TestDataFrameAlign:
         expl = df1
         tm.assert_frame_equal(expl, res1l)
         tm.assert_frame_equal(expl, res2r)
-        expr = pd.DataFrame([0, 0, 1, 1, np.nan, np.nan] * 2, index=midx)
+        expr = DataFrame([0, 0, 1, 1, np.nan, np.nan] * 2, index=midx)
         tm.assert_frame_equal(expr, res1r)
         tm.assert_frame_equal(expr, res2l)
 
@@ -217,20 +217,20 @@ class TestDataFrameAlign:
         exp_idx = pd.MultiIndex.from_product(
             [range(2), range(2), range(2)], names=("a", "b", "c")
         )
-        expl = pd.DataFrame([0, 1, 2, 3, 6, 7, 8, 9], index=exp_idx)
+        expl = DataFrame([0, 1, 2, 3, 6, 7, 8, 9], index=exp_idx)
         tm.assert_frame_equal(expl, res1l)
         tm.assert_frame_equal(expl, res2r)
-        expr = pd.DataFrame([0, 0, 1, 1] * 2, index=exp_idx)
+        expr = DataFrame([0, 0, 1, 1] * 2, index=exp_idx)
         tm.assert_frame_equal(expr, res1r)
         tm.assert_frame_equal(expr, res2l)
 
     def test_align_series_combinations(self):
-        df = pd.DataFrame({"a": [1, 3, 5], "b": [1, 3, 5]}, index=list("ACE"))
+        df = DataFrame({"a": [1, 3, 5], "b": [1, 3, 5]}, index=list("ACE"))
         s = Series([1, 2, 4], index=list("ABD"), name="x")
 
         # frame + series
         res1, res2 = df.align(s, axis=0)
-        exp1 = pd.DataFrame(
+        exp1 = DataFrame(
             {"a": [1, np.nan, 3, np.nan, 5], "b": [1, np.nan, 3, np.nan, 5]},
             index=list("ABCDE"),
         )

@@ -293,7 +293,7 @@ def test_groupby_resample_interpolate():
     # GH 35325
     d = {"price": [10, 11, 9], "volume": [50, 60, 50]}
 
-    df = pd.DataFrame(d)
+    df = DataFrame(d)
 
     df["week_starting"] = pd.date_range("01/01/2018", periods=3, freq="W")
 
@@ -324,7 +324,7 @@ def test_groupby_resample_interpolate():
         ],
         names=["volume", "week_starting"],
     )
-    expected = pd.DataFrame(
+    expected = DataFrame(
         data={
             "price": [
                 10.0,

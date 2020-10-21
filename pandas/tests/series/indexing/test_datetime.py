@@ -109,7 +109,7 @@ def test_slicing_datetimes():
     tm.assert_frame_equal(result, expected)
 
     # duplicates
-    df = pd.DataFrame(
+    df = DataFrame(
         np.arange(5.0, dtype="float64"),
         index=[datetime(2001, 1, i, 10, 00) for i in [1, 2, 2, 3, 4]],
     )

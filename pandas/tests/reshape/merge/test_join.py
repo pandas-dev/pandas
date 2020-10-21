@@ -743,7 +743,7 @@ class TestJoin:
 
     def test_join_on_tz_aware_datetimeindex(self):
         # GH 23931, 26335
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             {
                 "date": pd.date_range(
                     start="2018-01-01", periods=5, tz="America/Chicago"
@@ -752,7 +752,7 @@ class TestJoin:
             }
         )
 
-        df2 = pd.DataFrame(
+        df2 = DataFrame(
             {
                 "date": pd.date_range(
                     start="2018-01-03", periods=5, tz="America/Chicago"

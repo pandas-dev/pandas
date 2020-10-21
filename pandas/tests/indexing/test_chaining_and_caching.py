@@ -83,7 +83,7 @@ class TestCaching:
 
     def test_altering_series_clears_parent_cache(self):
         # GH #33675
-        df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
+        df = DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
         ser = df["A"]
 
         assert "A" in df._item_cache
@@ -350,14 +350,12 @@ class TestChaining:
     def test_detect_chained_assignment_warnings_filter_and_dupe_cols(self):
         # xref gh-13017.
         with option_context("chained_assignment", "warn"):
-            df = pd.DataFrame(
-                [[1, 2, 3], [4, 5, 6], [7, 8, -9]], columns=["a", "a", "c"]
-            )
+            df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, -9]], columns=["a", "a", "c"])
 
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
                 df.c.loc[df.c > 0] = None
 
-            expected = pd.DataFrame(
+            expected = DataFrame(
                 [[1, 2, 3], [4, 5, 6], [7, 8, -9]], columns=["a", "a", "c"]
             )
             tm.assert_frame_equal(df, expected)

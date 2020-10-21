@@ -397,7 +397,7 @@ class TestDataFrameIndexingCategorical:
 
     def test_categorical_filtering(self):
         # GH22609 Verify filtering operations on DataFrames with categorical Series
-        df = pd.DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
+        df = DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
         df["b"] = df.b.astype("category")
 
         result = df.where(df.a > 0)

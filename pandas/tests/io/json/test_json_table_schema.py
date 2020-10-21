@@ -240,7 +240,7 @@ class TestTableOrient:
 
     def test_read_json_from_to_json_results(self):
         # GH32383
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "_id": {"row_0": 0},
                 "category": {"row_0": "Goods"},
@@ -616,13 +616,13 @@ class TestTableOrient:
     )
     def test_warns_non_roundtrippable_names(self, idx):
         # GH 19130
-        df = pd.DataFrame(index=idx)
+        df = DataFrame(index=idx)
         df.index.name = "index"
         with tm.assert_produces_warning():
             set_default_names(df)
 
     def test_timestamp_in_columns(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             [[1, 2]], columns=[pd.Timestamp("2016"), pd.Timedelta(10, unit="s")]
         )
         result = df.to_json(orient="table")
@@ -634,8 +634,8 @@ class TestTableOrient:
         "case",
         [
             pd.Series([1], index=pd.Index([1], name="a"), name="a"),
-            pd.DataFrame({"A": [1]}, index=pd.Index([1], name="A")),
-            pd.DataFrame(
+            DataFrame({"A": [1]}, index=pd.Index([1], name="A")),
+            DataFrame(
                 {"A": [1]},
                 index=pd.MultiIndex.from_arrays([["a"], [1]], names=["A", "a"]),
             ),
@@ -647,7 +647,7 @@ class TestTableOrient:
 
     def test_mi_falsey_name(self):
         # GH 16203
-        df = pd.DataFrame(
+        df = DataFrame(
             np.random.randn(4, 4),
             index=pd.MultiIndex.from_product([("A", "B"), ("a", "b")]),
         )
@@ -730,7 +730,7 @@ class TestTableOrientReader:
     )
     def test_multiindex(self, index_names):
         # GH 18912
-        df = pd.DataFrame(
+        df = DataFrame(
             [["Arr", "alpha", [1, 2, 3, 4]], ["Bee", "Beta", [10, 20, 30, 40]]],
             index=[["A", "B"], ["Null", "Eins"]],
             columns=["Aussprache", "Griechisch", "Args"],
@@ -742,7 +742,7 @@ class TestTableOrientReader:
 
     def test_empty_frame_roundtrip(self):
         # GH 21287
-        df = pd.DataFrame(columns=["a", "b", "c"])
+        df = DataFrame(columns=["a", "b", "c"])
         expected = df.copy()
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")

@@ -918,7 +918,7 @@ class TestSeriesReductions:
 
     def test_any_axis1_bool_only(self):
         # GH#32432
-        df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
+        df = DataFrame({"A": [True, False], "B": [1, 2]})
         result = df.any(axis=1, bool_only=True)
         expected = Series([True, False])
         tm.assert_series_equal(result, expected)
@@ -1031,9 +1031,9 @@ class TestDatetime64SeriesReductions:
     @pytest.mark.parametrize(
         "nat_df",
         [
-            pd.DataFrame([pd.NaT, pd.NaT]),
-            pd.DataFrame([pd.NaT, pd.Timedelta("nat")]),
-            pd.DataFrame([pd.Timedelta("nat"), pd.Timedelta("nat")]),
+            DataFrame([pd.NaT, pd.NaT]),
+            DataFrame([pd.NaT, pd.Timedelta("nat")]),
+            DataFrame([pd.Timedelta("nat"), pd.Timedelta("nat")]),
         ],
     )
     def test_minmax_nat_dataframe(self, nat_df):

@@ -722,14 +722,14 @@ class TestTimedeltaArraylikeAddSubOps:
 
         sn = pd.to_timedelta(Series([pd.NaT], dtype="m8[ns]"))
 
-        df1 = pd.DataFrame(["00:00:01"]).apply(pd.to_timedelta)
-        df2 = pd.DataFrame(["00:00:02"]).apply(pd.to_timedelta)
+        df1 = DataFrame(["00:00:01"]).apply(pd.to_timedelta)
+        df2 = DataFrame(["00:00:02"]).apply(pd.to_timedelta)
         with pytest.raises(TypeError, match=msg):
             # Passing datetime64-dtype data to TimedeltaIndex is no longer
             #  supported GH#29794
-            pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+            DataFrame([pd.NaT]).apply(pd.to_timedelta)
 
-        dfn = pd.DataFrame([pd.NaT.value]).apply(pd.to_timedelta)
+        dfn = DataFrame([pd.NaT.value]).apply(pd.to_timedelta)
 
         scalar1 = pd.to_timedelta("00:00:01")
         scalar2 = pd.to_timedelta("00:00:02")

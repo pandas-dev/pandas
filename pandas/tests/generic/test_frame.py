@@ -24,7 +24,7 @@ class TestDataFrame(Generic):
 
     @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
     def test_set_axis_name(self, func):
-        df = pd.DataFrame([[1, 2], [3, 4]])
+        df = DataFrame([[1, 2], [3, 4]])
 
         result = methodcaller(func, "foo")(df)
         assert df.index.name is None

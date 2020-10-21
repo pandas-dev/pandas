@@ -1442,14 +1442,14 @@ def test_groupby_with_dst_time_change():
         [1478064900001000000, 1480037118776792000], tz="UTC"
     ).tz_convert("America/Chicago")
 
-    df = pd.DataFrame([1, 2], index=index)
+    df = DataFrame([1, 2], index=index)
     result = df.groupby(pd.Grouper(freq="1d")).last()
     expected_index_values = pd.date_range(
         "2016-11-02", "2016-11-24", freq="d", tz="America/Chicago"
     )
 
     index = pd.DatetimeIndex(expected_index_values)
-    expected = pd.DataFrame([1.0] + ([np.nan] * 21) + [2.0], index=index)
+    expected = DataFrame([1.0] + ([np.nan] * 21) + [2.0], index=index)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1586,7 +1586,7 @@ def test_downsample_dst_at_midnight():
     index = pd.date_range(start, end, freq="1H")
     index = index.tz_localize("UTC").tz_convert("America/Havana")
     data = list(range(len(index)))
-    dataframe = pd.DataFrame(data, index=index)
+    dataframe = DataFrame(data, index=index)
     result = dataframe.groupby(pd.Grouper(freq="1D")).mean()
 
     dti = date_range("2018-11-03", periods=3).tz_localize(
@@ -1663,7 +1663,7 @@ def test_resample_apply_with_additional_args(series):
     tm.assert_series_equal(result, expected)
 
     # Testing dataframe
-    df = pd.DataFrame({"A": 1, "B": 2}, index=pd.date_range("2017", periods=10))
+    df = DataFrame({"A": 1, "B": 2}, index=pd.date_range("2017", periods=10))
     result = df.groupby("A").resample("D").agg(f, multiplier)
     expected = df.groupby("A").resample("D").mean().multiply(multiplier)
     tm.assert_frame_equal(result, expected)

@@ -263,7 +263,7 @@ def test_setitem_ambiguous_keyerror():
 def test_getitem_dataframe():
     rng = list(range(10))
     s = Series(10, index=rng)
-    df = pd.DataFrame(rng, index=rng)
+    df = DataFrame(rng, index=rng)
     msg = (
         "Indexing a Series with DataFrame is not supported, "
         "use the appropriate DataFrame column"

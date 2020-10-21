@@ -42,7 +42,7 @@ def test_pipe_args():
     # Test passing args to the pipe method of DataFrameGroupBy.
     # Issue #17871
 
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "group": ["A", "A", "B", "B", "C"],
             "x": [1.0, 2.0, 3.0, 2.0, 5.0],
