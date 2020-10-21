@@ -249,7 +249,7 @@ class TestDataFrameFormatting:
     def test_repr_chop_threshold_column_below(self):
         # GH 6839: validation case
 
-        df = pd.DataFrame([[10, 20, 30, 40], [8e-10, -1e-11, 2e-9, -2e-11]]).T
+        df = DataFrame([[10, 20, 30, 40], [8e-10, -1e-11, 2e-9, -2e-11]]).T
 
         with option_context("display.chop_threshold", 0):
             assert repr(df) == (
@@ -370,7 +370,7 @@ class TestDataFrameFormatting:
                 ("This is a loooooonger title with > 43 chars.", "dog"),
             ]
         )
-        df = pd.DataFrame(1, index=index, columns=columns)
+        df = DataFrame(1, index=index, columns=columns)
 
         result = repr(df)
 
@@ -381,7 +381,7 @@ class TestDataFrameFormatting:
         assert "dog" in h2
 
         # regular columns
-        df2 = pd.DataFrame({"A" * 41: [1, 2], "B" * 41: [1, 2]})
+        df2 = DataFrame({"A" * 41: [1, 2], "B" * 41: [1, 2]})
         result = repr(df2)
 
         assert df2.columns[0] in result.split("\n")[0]
@@ -389,7 +389,7 @@ class TestDataFrameFormatting:
     def test_repr_truncates_terminal_size_full(self, monkeypatch):
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
-        df = pd.DataFrame(np.random.rand(1, 7))
+        df = DataFrame(np.random.rand(1, 7))
 
         monkeypatch.setattr(
             "pandas.io.formats.format.get_terminal_size", lambda: terminal_size
@@ -399,7 +399,7 @@ class TestDataFrameFormatting:
     def test_repr_truncation_column_size(self):
         # dataframe with last column very wide -> check it is not used to
         # determine size of truncation (...) column
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "a": [108480, 30830],
                 "b": [12345, 12345],
@@ -457,13 +457,13 @@ class TestDataFrameFormatting:
                 assert has_expanded_repr(df)
 
     def test_repr_min_rows(self):
-        df = pd.DataFrame({"a": range(20)})
+        df = DataFrame({"a": range(20)})
 
         # default setting no truncation even if above min_rows
         assert ".." not in repr(df)
         assert ".." not in df._repr_html_()
 
-        df = pd.DataFrame({"a": range(61)})
+        df = DataFrame({"a": range(61)})
 
         # default of max_rows 60 triggers truncation if above
         assert ".." in repr(df)
@@ -493,7 +493,7 @@ class TestDataFrameFormatting:
 
     def test_str_max_colwidth(self):
         # GH 7856
-        df = pd.DataFrame(
+        df = DataFrame(
             [
                 {
                     "a": "foo",
@@ -689,7 +689,7 @@ class TestDataFrameFormatting:
 
         # truncate
         with option_context("display.max_rows", 3, "display.max_columns", 3):
-            df = pd.DataFrame(
+            df = DataFrame(
                 {
                     "a": ["あああああ", "い", "う", "えええ"],
                     "b": ["あ", "いいい", "う", "ええええええ"],
@@ -834,7 +834,7 @@ class TestDataFrameFormatting:
             # truncate
             with option_context("display.max_rows", 3, "display.max_columns", 3):
 
-                df = pd.DataFrame(
+                df = DataFrame(
                     {
                         "a": ["あああああ", "い", "う", "えええ"],
                         "b": ["あ", "いいい", "う", "ええええええ"],
@@ -1020,7 +1020,7 @@ class TestDataFrameFormatting:
             assert "[6 rows x 1 columns]" in result
 
         dts = [pd.Timestamp("2011-01-01", tz="US/Eastern")] * 5 + [pd.NaT] * 5
-        df = pd.DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
             expected = (
                 "                          dt   x\n"
@@ -1034,7 +1034,7 @@ class TestDataFrameFormatting:
             assert repr(df) == expected
 
         dts = [pd.NaT] * 5 + [pd.Timestamp("2011-01-01", tz="US/Eastern")] * 5
-        df = pd.DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
             expected = (
                 "                          dt   x\n"
@@ -1050,7 +1050,7 @@ class TestDataFrameFormatting:
         dts = [pd.Timestamp("2011-01-01", tz="Asia/Tokyo")] * 5 + [
             pd.Timestamp("2011-01-01", tz="US/Eastern")
         ] * 5
-        df = pd.DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
             expected = (
                 "                           dt   x\n"
@@ -2001,14 +2001,14 @@ c  10  11  12  13  14\
         # GH35439
         data = [[4, 2], [3, 2], [4, 3]]
         cols = ["aaaaaaaaa", "b"]
-        df = pd.DataFrame(data, columns=cols)
-        df_cat_cols = pd.DataFrame(data, columns=pd.CategoricalIndex(cols))
+        df = DataFrame(data, columns=cols)
+        df_cat_cols = DataFrame(data, columns=pd.CategoricalIndex(cols))
 
         assert df.to_string() == df_cat_cols.to_string()
 
     def test_period(self):
         # GH 12615
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "A": pd.period_range("2013-01", periods=4, freq="M"),
                 "B": [
@@ -2694,9 +2694,7 @@ class TestSeriesFormatting:
 
     def test_to_string_multindex_header(self):
         # GH 16718
-        df = pd.DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]}).set_index(
-            ["a", "b"]
-        )
+        df = DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]}).set_index(["a", "b"])
         res = df.to_string(header=["r1", "r2"])
         exp = "    r1 r2\na b      \n0 1  2  3"
         assert res == exp
@@ -2797,7 +2795,7 @@ class TestFloatArrayFormatter:
         # In case default display precision changes:
         with pd.option_context("display.precision", 6):
             # DataFrame example from issue #9764
-            d = pd.DataFrame(
+            d = DataFrame(
                 {
                     "col1": [
                         9.999e-8,
@@ -2869,11 +2867,11 @@ class TestFloatArrayFormatter:
         with pd.option_context("display.precision", 4):
             # need both a number > 1e6 and something that normally formats to
             # having length > display.precision + 6
-            df = pd.DataFrame(dict(x=[12345.6789]))
+            df = DataFrame(dict(x=[12345.6789]))
             assert str(df) == "            x\n0  12345.6789"
-            df = pd.DataFrame(dict(x=[2e6]))
+            df = DataFrame(dict(x=[2e6]))
             assert str(df) == "           x\n0  2000000.0"
-            df = pd.DataFrame(dict(x=[12345.6789, 2e6]))
+            df = DataFrame(dict(x=[12345.6789, 2e6]))
             assert str(df) == "            x\n0  1.2346e+04\n1  2.0000e+06"
 
 
@@ -3205,8 +3203,8 @@ def test_format_percentiles_integer_idx():
 def test_repr_html_ipython_config(ip):
     code = textwrap.dedent(
         """\
-    import pandas as pd
-    df = pd.DataFrame({"A": [1, 2]})
+    from pandas import DataFrame
+    df = DataFrame({"A": [1, 2]})
     df._repr_html_()
 
     cfg = get_ipython().config
