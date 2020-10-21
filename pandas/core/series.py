@@ -4635,7 +4635,7 @@ Keep all original rows and also all original values
             Series.memory_usage: Memory usage of Series."""
         ),
     )
-    @doc(SeriesInfo.info)
+    @doc(SeriesInfo.to_buffer)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -4649,9 +4649,11 @@ Keep all original rows and also all original values
                 "Argument `max_cols` can only be passed "
                 "in DataFrame.info, not Series.info"
             )
-        return SeriesInfo(
-            self, verbose, buf, max_cols, memory_usage, null_counts
-        ).info()
+        return SeriesInfo(self, memory_usage).to_buffer(
+            buf=buf,
+            verbose=verbose,
+            show_counts=null_counts,
+        )
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> "Series":
