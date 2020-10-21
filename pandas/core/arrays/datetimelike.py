@@ -508,7 +508,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             )
             fill_value = new_fill
 
-        return self._unbox(fill_value)
+        rv = self._unbox(fill_value)
+        return self._rebox_native(rv)
 
     def _validate_scalar(self, value, allow_listlike: bool = False):
         """
@@ -624,17 +625,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             value = self._validate_scalar(value, True)
 
-        return self._unbox(value, setitem=True)
+        rv = self._unbox(value, setitem=True)
+        return self._rebox_native(rv)
 
     def _validate_insert_value(self, value):
         value = self._validate_scalar(value)
 
-        self._check_compatible_with(value, setitem=True)
-        # TODO: if we dont have compat, should we raise or astype(object)?
-        #  PeriodIndex does astype(object)
-        return value
-        # Note: we do not unbox here because the caller needs boxed value
-        #  to check for freq.
+        rv = self._unbox(value, setitem=True)
+        return self._rebox_native(rv)
 
     def _validate_where_value(self, other):
         if not is_list_like(other):
@@ -642,7 +640,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             other = self._validate_listlike(other)
 
-        return self._unbox(other, setitem=True)
+        rv = self._unbox(other, setitem=True)
+        return self._rebox_native(rv)
 
     def _unbox(self, other, setitem: bool = False) -> Union[np.int64, np.ndarray]:
         """

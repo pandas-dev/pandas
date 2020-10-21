@@ -788,10 +788,8 @@ class DataFrame(NDFrame, OpsMixin):
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
                 decimal=".",
-                table_id=None,
-                render_links=False,
             )
-            return formatter.to_html(notebook=True)
+            return fmt.DataFrameRenderer(formatter).to_html(notebook=True)
         else:
             return None
 
@@ -874,9 +872,12 @@ class DataFrame(NDFrame, OpsMixin):
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
                 decimal=decimal,
+            )
+            return fmt.DataFrameRenderer(formatter).to_string(
+                buf=buf,
+                encoding=encoding,
                 line_width=line_width,
             )
-            return formatter.to_string(buf=buf, encoding=encoding)
 
     # ----------------------------------------------------------------------
 
@@ -2476,29 +2477,29 @@ class DataFrame(NDFrame, OpsMixin):
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
+            header=header,
+            index=index,
             formatters=formatters,
             float_format=float_format,
+            bold_rows=bold_rows,
             sparsify=sparsify,
             justify=justify,
             index_names=index_names,
-            header=header,
-            index=index,
-            bold_rows=bold_rows,
             escape=escape,
+            decimal=decimal,
             max_rows=max_rows,
             max_cols=max_cols,
             show_dimensions=show_dimensions,
-            decimal=decimal,
-            table_id=table_id,
-            render_links=render_links,
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
-        return formatter.to_html(
+        return fmt.DataFrameRenderer(formatter).to_html(
             buf=buf,
             classes=classes,
             notebook=notebook,
             border=border,
             encoding=encoding,
+            table_id=table_id,
+            render_links=render_links,
         )
 
     # ----------------------------------------------------------------------
@@ -2604,7 +2605,7 @@ class DataFrame(NDFrame, OpsMixin):
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
     )
-    @doc(DataFrameInfo.info)
+    @doc(DataFrameInfo.to_buffer)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -2613,9 +2614,16 @@ class DataFrame(NDFrame, OpsMixin):
         memory_usage: Optional[Union[bool, str]] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
-        return DataFrameInfo(
-            self, verbose, buf, max_cols, memory_usage, null_counts
-        ).info()
+        info = DataFrameInfo(
+            data=self,
+            memory_usage=memory_usage,
+        )
+        info.to_buffer(
+            buf=buf,
+            max_cols=max_cols,
+            verbose=verbose,
+            show_counts=null_counts,
+        )
 
     def memory_usage(self, index=True, deep=False) -> Series:
         """

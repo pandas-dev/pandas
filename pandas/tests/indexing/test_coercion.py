@@ -124,7 +124,7 @@ class TestSetitemCoercion(CoercionBase):
             exp = pd.Series([1, 0, 3, 4], dtype=np.int8)
             self._assert_setitem_series_conversion(obj, val, exp, np.int8)
             mark = pytest.mark.xfail(
-                reason="BUG: it must be Series([1, 1, 3, 4], dtype=np.int16"
+                reason="BUG: it must be pd.Series([1, 1, 3, 4], dtype=np.int16"
             )
             request.node.add_marker(mark)
 
