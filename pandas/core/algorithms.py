@@ -822,9 +822,19 @@ def value_counts_arraylike(values, dropna: bool):
 
         mask = isna(values)
         if not dropna and mask.any():
+                # GH 35922. Series.sort_values is stable now, so need to
+                # append NaN counts or move to the end to make sure they are
+                # sorted toward the end when calling value_counts
             if not isna(keys).any():
-                keys = np.insert(keys, 0, np.NaN)
-                counts = np.insert(counts, 0, mask.sum())
+                keys = np.append(keys, np.NaN)
+                counts = np.append(counts, mask.sum())
+            else:
+                nan_pos = np.where(np.isnan(keys))
+                keys[nan_pos] = keys[-1]
+                keys[-1] = np.NaN
+                tmp = counts[nan_pos]
+                counts[nan_pos] = counts[-1]
+                counts[-1] = tmp
 
     keys = _reconstruct_data(keys, original.dtype, original)
 
