@@ -73,9 +73,11 @@ repos:
             (?x)
             # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
             from\ pandas\.core\.common\ import|
-            # Check for imports from collections.abc instead of `from collections import abc`
             from\ pandas\.core\ import\ common|
+
+            # Check for imports from collections.abc instead of `from collections import abc`
             from\ collections\.abc\ import|
+
             from\ numpy\ import\ nan
         types: [python]
     -   id: non-standard-imports-in-tests
@@ -86,6 +88,7 @@ repos:
             # Check for imports from pandas._testing instead of `import pandas._testing as tm`
             from\ pandas\._testing\ import|
             from\ pandas\ import\ _testing\ as\ tm|
+
             # No direct imports from conftest
             conftest\ import|
             import\ conftest
