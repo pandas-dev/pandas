@@ -429,7 +429,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)  # type: ignore[call-arg]
+            other = self._scalar_type(other)
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
