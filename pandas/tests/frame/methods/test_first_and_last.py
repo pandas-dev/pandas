@@ -31,7 +31,8 @@ class TestFirst:
     def test_first_raises(self):
         # GH#20725
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
-        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+        msg = "'first' only supports a DatetimeIndex index"
+        with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
             df.first("1D")
 
     def test_last_subset(self):
@@ -57,5 +58,6 @@ class TestFirst:
     def test_last_raises(self):
         # GH20725
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
-        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+        msg = "'last' only supports a DatetimeIndex index"
+        with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
             df.last("1D")

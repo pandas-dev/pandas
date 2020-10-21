@@ -184,7 +184,9 @@ class TestSeriesRepr:
         index = Index(
             [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)], dtype=object
         )
-        ts = Series(np.random.randn(len(index)), index)
+        with tm.assert_produces_warning(FutureWarning):
+            # Index.is_all_dates deprecated
+            ts = Series(np.random.randn(len(index)), index)
         repr(ts)
 
         ts = tm.makeTimeSeries(1000)
@@ -270,7 +272,7 @@ class TestCategoricalRepr:
             "0     a\n1     b\n"
             + "     ..\n"
             + "48    a\n49    b\n"
-            + "Length: 50, dtype: category\nCategories (2, object): [a, b]"
+            + "Length: 50, dtype: category\nCategories (2, object): ['a', 'b']"
         )
         with option_context("display.max_rows", 5):
             assert exp == repr(a)
@@ -279,7 +281,7 @@ class TestCategoricalRepr:
         a = Series(Categorical(["a", "b"], categories=levs, ordered=True))
         exp = (
             "0    a\n1    b\n" + "dtype: category\n"
-            "Categories (26, object): [a < b < c < d ... w < x < y < z]"
+            "Categories (26, object): ['a' < 'b' < 'c' < 'd' ... 'w' < 'x' < 'y' < 'z']"
         )
         assert exp == a.__str__()
 
@@ -484,7 +486,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:0
 3   4 days
 4   5 days
 dtype: category
-Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa
+Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 
         assert repr(s) == exp
 

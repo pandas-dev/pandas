@@ -51,11 +51,7 @@ class TestSeriesGetitemSlices:
     def test_getitem_slice_2d(self, datetime_series):
         # GH#30588 multi-dimensional indexing deprecated
 
-        # This is currently failing because the test was relying on
-        # the DeprecationWarning coming through Index.__getitem__.
-        # We want to implement a warning specifically for Series.__getitem__
-        # at which point this will become a Deprecation/FutureWarning
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#30867 Don't want to support this long-term, but
             # for now ensure that the warning from Index
             # doesn't comes through via Series.__getitem__.
@@ -94,7 +90,7 @@ class TestSeriesGetitemListLike:
         ser = Series(period_range("2000-01-01", periods=10, freq="D"))
 
         result = ser[[2, 4]]
-        exp = pd.Series(
+        exp = Series(
             [pd.Period("2000-01-03", freq="D"), pd.Period("2000-01-05", freq="D")],
             index=[2, 4],
             dtype="Period[D]",
@@ -105,7 +101,7 @@ class TestSeriesGetitemListLike:
     @pytest.mark.parametrize("box", [list, np.array, pd.Index])
     def test_getitem_intlist_intervalindex_non_int(self, box):
         # GH#33404 fall back to positional since ints are unambiguous
-        dti = date_range("2000-01-03", periods=3)
+        dti = date_range("2000-01-03", periods=3)._with_freq(None)
         ii = pd.IntervalIndex.from_breaks(dti)
         ser = Series(range(len(ii)), index=ii)
 
@@ -135,3 +131,9 @@ def test_getitem_generator(string_series):
     expected = string_series[string_series > 0]
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
+
+
+def test_getitem_ndim_deprecated():
+    s = Series([0, 1])
+    with tm.assert_produces_warning(FutureWarning):
+        s[:, None]

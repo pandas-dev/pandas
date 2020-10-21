@@ -206,12 +206,16 @@ def test_constructor_raises():
 
 @pytest.mark.parametrize("copy", [True, False])
 def test_from_sequence_no_mutate(copy):
-    a = np.array(["a", np.nan], dtype=object)
-    original = a.copy()
-    result = pd.arrays.StringArray._from_sequence(a, copy=copy)
-    expected = pd.arrays.StringArray(np.array(["a", pd.NA], dtype=object))
+    nan_arr = np.array(["a", np.nan], dtype=object)
+    na_arr = np.array(["a", pd.NA], dtype=object)
+
+    result = pd.arrays.StringArray._from_sequence(nan_arr, copy=copy)
+    expected = pd.arrays.StringArray(na_arr)
+
     tm.assert_extension_array_equal(result, expected)
-    tm.assert_numpy_array_equal(a, original)
+
+    expected = nan_arr if copy else na_arr
+    tm.assert_numpy_array_equal(nan_arr, expected)
 
 
 def test_astype_int():
@@ -332,3 +336,12 @@ def test_memory_usage():
     series = pd.Series(["a", "b", "c"], dtype="string")
 
     assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
+
+
+@pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
+def test_astype_from_float_dtype(dtype):
+    # https://github.com/pandas-dev/pandas/issues/36451
+    s = pd.Series([0.1], dtype=dtype)
+    result = s.astype("string")
+    expected = pd.Series(["0.1"], dtype="string")
+    tm.assert_series_equal(result, expected)

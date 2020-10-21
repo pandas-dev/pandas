@@ -51,6 +51,20 @@ def datetime_frame():
     return DataFrame(tm.getTimeSeriesData())
 
 
+def test_info_empty():
+    df = DataFrame()
+    buf = StringIO()
+    df.info(buf=buf)
+    result = buf.getvalue()
+    expected = textwrap.dedent(
+        """\
+        <class 'pandas.core.frame.DataFrame'>
+        Index: 0 entries
+        Empty DataFrame"""
+    )
+    assert result == expected
+
+
 def test_info_categorical_column():
 
     # make sure it works
@@ -87,7 +101,7 @@ def test_info_verbose():
     frame.info(verbose=True, buf=buf)
 
     res = buf.getvalue()
-    header = " #    Column  Dtype  \n---   ------  -----  "
+    header = " #     Column  Dtype  \n---    ------  -----  "
     assert header in res
 
     frame.info(verbose=True, buf=buf)
@@ -99,6 +113,64 @@ def test_info_verbose():
         if i >= start and i < start + size:
             line_nr = f" {i - start} "
             assert line.startswith(line_nr)
+
+
+@pytest.mark.parametrize(
+    "size, header_exp, separator_exp, first_line_exp, last_line_exp",
+    [
+        (
+            4,
+            " #   Column  Non-Null Count  Dtype  ",
+            "---  ------  --------------  -----  ",
+            " 0   0       3 non-null      float64",
+            " 3   3       3 non-null      float64",
+        ),
+        (
+            11,
+            " #   Column  Non-Null Count  Dtype  ",
+            "---  ------  --------------  -----  ",
+            " 0   0       3 non-null      float64",
+            " 10  10      3 non-null      float64",
+        ),
+        (
+            101,
+            " #    Column  Non-Null Count  Dtype  ",
+            "---   ------  --------------  -----  ",
+            " 0    0       3 non-null      float64",
+            " 100  100     3 non-null      float64",
+        ),
+        (
+            1001,
+            " #     Column  Non-Null Count  Dtype  ",
+            "---    ------  --------------  -----  ",
+            " 0     0       3 non-null      float64",
+            " 1000  1000    3 non-null      float64",
+        ),
+        (
+            10001,
+            " #      Column  Non-Null Count  Dtype  ",
+            "---     ------  --------------  -----  ",
+            " 0      0       3 non-null      float64",
+            " 10000  10000   3 non-null      float64",
+        ),
+    ],
+)
+def test_info_verbose_with_counts_spacing(
+    size, header_exp, separator_exp, first_line_exp, last_line_exp
+):
+    """Test header column, spacer, first line and last line in verbose mode."""
+    frame = DataFrame(np.random.randn(3, size))
+    buf = StringIO()
+    frame.info(verbose=True, null_counts=True, buf=buf)
+    all_lines = buf.getvalue().splitlines()
+    # Here table would contain only header, separator and table lines
+    # dframe repr, index summary, memory usage and dtypes are excluded
+    table = all_lines[3:-2]
+    header, separator, first_line, *rest, last_line = table
+    assert header == header_exp
+    assert separator == separator_exp
+    assert first_line == first_line_exp
+    assert last_line == last_line_exp
 
 
 def test_info_memory():
@@ -299,7 +371,7 @@ def test_info_memory_usage():
     DataFrame(1, index=["a"], columns=["A"]).memory_usage(index=True)
     DataFrame(1, index=["a"], columns=["A"]).index.nbytes
     df = DataFrame(
-        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"],
+        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
     )
     df.index.nbytes
     df.memory_usage(index=True)
@@ -336,7 +408,7 @@ def test_info_memory_usage_deep_pypy():
 @pytest.mark.skipif(PYPY, reason="PyPy getsizeof() fails by design")
 def test_usage_via_getsizeof():
     df = DataFrame(
-        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"],
+        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
     )
     mem = df.memory_usage(deep=True).sum()
     # sys.getsizeof will call the .memory_usage with
@@ -359,16 +431,14 @@ def test_info_memory_usage_qualified():
 
     buf = StringIO()
     df = DataFrame(
-        1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)]),
+        1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)])
     )
     df.info(buf=buf)
     assert "+" not in buf.getvalue()
 
     buf = StringIO()
     df = DataFrame(
-        1,
-        columns=list("ab"),
-        index=MultiIndex.from_product([range(3), ["foo", "bar"]]),
+        1, columns=list("ab"), index=MultiIndex.from_product([range(3), ["foo", "bar"]])
     )
     df.info(buf=buf)
     assert "+" in buf.getvalue()
@@ -384,7 +454,7 @@ def test_info_memory_usage_bug_on_multiindex():
     N = 100
     M = len(uppercase)
     index = MultiIndex.from_product(
-        [list(uppercase), date_range("20160101", periods=N)], names=["id", "date"],
+        [list(uppercase), date_range("20160101", periods=N)], names=["id", "date"]
     )
     df = DataFrame({"value": np.random.randn(N * M)}, index=index)
 
@@ -403,3 +473,25 @@ def test_info_categorical():
 
     buf = StringIO()
     df.info(buf=buf)
+
+
+def test_info_int_columns():
+    # GH#37245
+    df = DataFrame({1: [1, 2], 2: [2, 3]}, index=["A", "B"])
+    buf = StringIO()
+    df.info(null_counts=True, buf=buf)
+    result = buf.getvalue()
+    expected = textwrap.dedent(
+        """\
+        <class 'pandas.core.frame.DataFrame'>
+        Index: 2 entries, A to B
+        Data columns (total 2 columns):
+         #   Column  Non-Null Count  Dtype
+        ---  ------  --------------  -----
+         0   1       2 non-null      int64
+         1   2       2 non-null      int64
+        dtypes: int64(2)
+        memory usage: 48.0+ bytes
+        """
+    )
+    assert result == expected

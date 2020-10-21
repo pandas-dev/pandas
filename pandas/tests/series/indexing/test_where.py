@@ -222,12 +222,14 @@ def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment
 
-    msg = "cannot set using a {} indexer with a different length than the value"
-
+    msg = (
+        lambda x: f"cannot set using a {x} indexer with a "
+        "different length than the value"
+    )
     # slice
     s = Series(list("abc"))
 
-    with pytest.raises(ValueError, match=msg.format("slice")):
+    with pytest.raises(ValueError, match=msg("slice")):
         s[0:3] = list(range(27))
 
     s[0:3] = list(range(3))
@@ -237,7 +239,7 @@ def test_where_setitem_invalid():
     # slice with step
     s = Series(list("abcdef"))
 
-    with pytest.raises(ValueError, match=msg.format("slice")):
+    with pytest.raises(ValueError, match=msg("slice")):
         s[0:4:2] = list(range(27))
 
     s = Series(list("abcdef"))
@@ -248,7 +250,7 @@ def test_where_setitem_invalid():
     # neg slices
     s = Series(list("abcdef"))
 
-    with pytest.raises(ValueError, match=msg.format("slice")):
+    with pytest.raises(ValueError, match=msg("slice")):
         s[:-1] = list(range(27))
 
     s[-3:-1] = list(range(2))
@@ -258,12 +260,12 @@ def test_where_setitem_invalid():
     # list
     s = Series(list("abc"))
 
-    with pytest.raises(ValueError, match=msg.format("list-like")):
+    with pytest.raises(ValueError, match=msg("list-like")):
         s[[0, 1, 2]] = list(range(27))
 
     s = Series(list("abc"))
 
-    with pytest.raises(ValueError, match=msg.format("list-like")):
+    with pytest.raises(ValueError, match=msg("list-like")):
         s[[0, 1, 2]] = list(range(2))
 
     # scalar
@@ -278,7 +280,7 @@ def test_where_setitem_invalid():
     "mask", [[True, False, False, False, False], [True, False], [False]]
 )
 @pytest.mark.parametrize(
-    "item", [2.0, np.nan, np.finfo(np.float).max, np.finfo(np.float).min]
+    "item", [2.0, np.nan, np.finfo(float).max, np.finfo(float).min]
 )
 # Test numpy arrays, lists and tuples as the input to be
 # broadcast
@@ -347,7 +349,7 @@ def test_where_dups():
 
 def test_where_numeric_with_string():
     # GH 9280
-    s = pd.Series([1, 2, 3])
+    s = Series([1, 2, 3])
     w = s.where(s > 1, "X")
 
     assert not is_integer(w[0])
@@ -423,15 +425,15 @@ def test_where_datetime_conversion():
 
 
 def test_where_dt_tz_values(tz_naive_fixture):
-    ser1 = pd.Series(
+    ser1 = Series(
         pd.DatetimeIndex(["20150101", "20150102", "20150103"], tz=tz_naive_fixture)
     )
-    ser2 = pd.Series(
+    ser2 = Series(
         pd.DatetimeIndex(["20160514", "20160515", "20160516"], tz=tz_naive_fixture)
     )
-    mask = pd.Series([True, True, False])
+    mask = Series([True, True, False])
     result = ser1.where(mask, ser2)
-    exp = pd.Series(
+    exp = Series(
         pd.DatetimeIndex(["20150101", "20150102", "20160516"], tz=tz_naive_fixture)
     )
     tm.assert_series_equal(exp, result)
@@ -439,7 +441,26 @@ def test_where_dt_tz_values(tz_naive_fixture):
 
 def test_where_sparse():
     # GH#17198 make sure we dont get an AttributeError for sp_index
-    ser = pd.Series(pd.arrays.SparseArray([1, 2]))
+    ser = Series(pd.arrays.SparseArray([1, 2]))
     result = ser.where(ser >= 2, 0)
-    expected = pd.Series(pd.arrays.SparseArray([0, 2]))
+    expected = Series(pd.arrays.SparseArray([0, 2]))
     tm.assert_series_equal(result, expected)
+
+
+def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
+    # https://github.com/pandas-dev/pandas/issues/34592
+    ser = Series([], dtype=float)
+    result = ser.where([])
+    tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize("klass", [Series, pd.DataFrame])
+def test_where_categorical(klass):
+    # https://github.com/pandas-dev/pandas/issues/18888
+    exp = klass(
+        pd.Categorical(["A", "A", "B", "B", np.nan], categories=["A", "B", "C"]),
+        dtype="category",
+    )
+    df = klass(["A", "A", "B", "B", "C"], dtype="category")
+    res = df.where(df != "C")
+    tm.assert_equal(exp, res)

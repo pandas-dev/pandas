@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p16
-
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -215,7 +213,7 @@ class TestCategoricalConstructors:
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
         with tm.assert_produces_warning(None):
-            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])  # noqa
+            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])
 
         with tm.assert_produces_warning(None):
             c_old = Categorical([0, 1, 2, 0, 1, 2], categories=[3, 4, 5])  # noqa
@@ -279,7 +277,7 @@ class TestCategoricalConstructors:
         # returned a scalar for a generator
 
         exp = Categorical([0, 1, 2])
-        cat = Categorical((x for x in [0, 1, 2]))
+        cat = Categorical(x for x in [0, 1, 2])
         tm.assert_categorical_equal(cat, exp)
         cat = Categorical(range(3))
         tm.assert_categorical_equal(cat, exp)
@@ -637,9 +635,50 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(c1.categories, Index(values))
         tm.assert_numpy_array_equal(np.array(c1), np.array(values))
 
-    @pytest.mark.skipif(_np_version_under1p16, reason="Skipping for NumPy <1.16")
     def test_constructor_string_and_tuples(self):
         # GH 21416
         c = pd.Categorical(np.array(["c", ("a", "b"), ("b", "a"), "c"], dtype=object))
         expected_index = pd.Index([("a", "b"), ("b", "a"), "c"])
         assert c.categories.equals(expected_index)
+
+    def test_interval(self):
+        idx = pd.interval_range(0, 10, periods=10)
+        cat = pd.Categorical(idx, categories=idx)
+        expected_codes = np.arange(10, dtype="int8")
+        tm.assert_numpy_array_equal(cat.codes, expected_codes)
+        tm.assert_index_equal(cat.categories, idx)
+
+        # infer categories
+        cat = pd.Categorical(idx)
+        tm.assert_numpy_array_equal(cat.codes, expected_codes)
+        tm.assert_index_equal(cat.categories, idx)
+
+        # list values
+        cat = pd.Categorical(list(idx))
+        tm.assert_numpy_array_equal(cat.codes, expected_codes)
+        tm.assert_index_equal(cat.categories, idx)
+
+        # list values, categories
+        cat = pd.Categorical(list(idx), categories=list(idx))
+        tm.assert_numpy_array_equal(cat.codes, expected_codes)
+        tm.assert_index_equal(cat.categories, idx)
+
+        # shuffled
+        values = idx.take([1, 2, 0])
+        cat = pd.Categorical(values, categories=idx)
+        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="int8"))
+        tm.assert_index_equal(cat.categories, idx)
+
+        # extra
+        values = pd.interval_range(8, 11, periods=3)
+        cat = pd.Categorical(values, categories=idx)
+        expected_codes = np.array([8, 9, -1], dtype="int8")
+        tm.assert_numpy_array_equal(cat.codes, expected_codes)
+        tm.assert_index_equal(cat.categories, idx)
+
+        # overlapping
+        idx = pd.IntervalIndex([pd.Interval(0, 2), pd.Interval(0, 1)])
+        cat = pd.Categorical(idx, categories=idx)
+        expected_codes = np.array([0, 1], dtype="int8")
+        tm.assert_numpy_array_equal(cat.codes, expected_codes)
+        tm.assert_index_equal(cat.categories, idx)

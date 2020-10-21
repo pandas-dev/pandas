@@ -2,7 +2,7 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas._libs import join as libjoin
+from pandas._libs.join import inner_join, left_outer_join
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
@@ -48,7 +48,7 @@ class TestJoin:
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        ls, rs = libjoin.left_outer_join(left, right, max_group)
+        ls, rs = left_outer_join(left, right, max_group)
 
         exp_ls = left.argsort(kind="mergesort")
         exp_rs = right.argsort(kind="mergesort")
@@ -70,7 +70,7 @@ class TestJoin:
         right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
         max_group = 5
 
-        rs, ls = libjoin.left_outer_join(right, left, max_group)
+        rs, ls = left_outer_join(right, left, max_group)
 
         exp_ls = left.argsort(kind="mergesort")
         exp_rs = right.argsort(kind="mergesort")
@@ -116,7 +116,7 @@ class TestJoin:
         right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
         max_group = 5
 
-        ls, rs = libjoin.inner_join(left, right, max_group)
+        ls, rs = inner_join(left, right, max_group)
 
         exp_ls = left.argsort(kind="mergesort")
         exp_rs = right.argsort(kind="mergesort")
@@ -162,7 +162,7 @@ class TestJoin:
         _check_join(self.df, self.df2, joined_both, ["key1", "key2"], how="inner")
 
     def test_handle_overlap(self):
-        joined = merge(self.df, self.df2, on="key2", suffixes=[".foo", ".bar"])
+        joined = merge(self.df, self.df2, on="key2", suffixes=(".foo", ".bar"))
 
         assert "key1.foo" in joined
         assert "key1.bar" in joined
@@ -173,7 +173,7 @@ class TestJoin:
             self.df2,
             left_on="key2",
             right_on="key1",
-            suffixes=[".foo", ".bar"],
+            suffixes=(".foo", ".bar"),
         )
         assert "key1.foo" in joined
         assert "key2.bar" in joined
@@ -743,7 +743,7 @@ class TestJoin:
 
     def test_join_on_tz_aware_datetimeindex(self):
         # GH 23931, 26335
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             {
                 "date": pd.date_range(
                     start="2018-01-01", periods=5, tz="America/Chicago"
@@ -752,7 +752,7 @@ class TestJoin:
             }
         )
 
-        df2 = pd.DataFrame(
+        df2 = DataFrame(
             {
                 "date": pd.date_range(
                     start="2018-01-03", periods=5, tz="America/Chicago"
@@ -762,7 +762,7 @@ class TestJoin:
         )
         result = df1.join(df2.set_index("date"), on="date")
         expected = df1.copy()
-        expected["vals_2"] = pd.Series([np.nan] * 2 + list("tuv"), dtype=object)
+        expected["vals_2"] = Series([np.nan] * 2 + list("tuv"), dtype=object)
         tm.assert_frame_equal(result, expected)
 
     def test_join_datetime_string(self):

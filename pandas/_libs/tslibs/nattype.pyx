@@ -1,3 +1,10 @@
+from cpython.datetime cimport (
+    PyDateTime_Check,
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    datetime,
+    timedelta,
+)
 from cpython.object cimport (
     Py_EQ,
     Py_GE,
@@ -8,28 +15,19 @@ from cpython.object cimport (
     PyObject_RichCompare,
 )
 
-from cpython.datetime cimport (
-    PyDateTime_Check,
-    PyDateTime_IMPORT,
-    PyDelta_Check,
-    datetime,
-    timedelta,
-)
 PyDateTime_IMPORT
 
 from cpython.version cimport PY_MINOR_VERSION
 
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport int64_t
+
 cnp.import_array()
 
-from pandas._libs.tslibs.np_datetime cimport (
-    get_datetime64_value,
-    get_timedelta64_value,
-)
 cimport pandas._libs.tslibs.util as util
-
+from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
 
 # ----------------------------------------------------------------------
 # Constants
@@ -50,7 +48,7 @@ _nat_scalar_rules[Py_GE] = False
 # ----------------------------------------------------------------------
 
 
-def _make_nan_func(func_name, doc):
+def _make_nan_func(func_name: str, doc: str):
     def f(*args, **kwargs):
         return np.nan
     f.__name__ = func_name
@@ -58,7 +56,7 @@ def _make_nan_func(func_name, doc):
     return f
 
 
-def _make_nat_func(func_name, doc):
+def _make_nat_func(func_name: str, doc: str):
     def f(*args, **kwargs):
         return c_NaT
     f.__name__ = func_name
@@ -66,7 +64,7 @@ def _make_nat_func(func_name, doc):
     return f
 
 
-def _make_error_func(func_name, cls):
+def _make_error_func(func_name: str, cls):
     def f(*args, **kwargs):
         raise ValueError(f"NaTType does not support {func_name}")
 
@@ -109,30 +107,25 @@ cdef class _NaT(datetime):
     __array_priority__ = 100
 
     def __richcmp__(_NaT self, object other, int op):
-        cdef:
-            int ndim = getattr(other, "ndim", -1)
+        if util.is_datetime64_object(other) or PyDateTime_Check(other):
+            # We treat NaT as datetime-like for this comparison
+            return _nat_scalar_rules[op]
 
-        if ndim == -1:
+        elif util.is_timedelta64_object(other) or PyDelta_Check(other):
+            # We treat NaT as timedelta-like for this comparison
             return _nat_scalar_rules[op]
 
         elif util.is_array(other):
-            result = np.empty(other.shape, dtype=np.bool_)
-            result.fill(_nat_scalar_rules[op])
+            if other.dtype.kind in "mM":
+                result = np.empty(other.shape, dtype=np.bool_)
+                result.fill(_nat_scalar_rules[op])
+            elif other.dtype.kind == "O":
+                result = np.array([PyObject_RichCompare(self, x, op) for x in other])
+            else:
+                return NotImplemented
             return result
 
-        elif ndim == 0:
-            if util.is_datetime64_object(other):
-                return _nat_scalar_rules[op]
-            else:
-                raise TypeError(
-                    f"Cannot compare type {type(self).__name__} "
-                    f"with type {type(other).__name__}"
-                )
-
-        # Note: instead of passing "other, self, _reverse_ops[op]", we observe
-        # that `_nat_scalar_rules` is invariant under `_reverse_ops`,
-        # rendering it unnecessary.
-        return PyObject_RichCompare(other, self, op)
+        return NotImplemented
 
     def __add__(self, other):
         if self is not c_NaT:
@@ -221,9 +214,6 @@ cdef class _NaT(datetime):
     def __neg__(self):
         return NaT
 
-    def __div__(self, other):
-        return _nat_divide_op(self, other)
-
     def __truediv__(self, other):
         return _nat_divide_op(self, other)
 
@@ -285,31 +275,31 @@ cdef class _NaT(datetime):
         return NPY_NAT
 
     @property
-    def is_leap_year(self):
+    def is_leap_year(self) -> bool:
         return False
 
     @property
-    def is_month_start(self):
+    def is_month_start(self) -> bool:
         return False
 
     @property
-    def is_quarter_start(self):
+    def is_quarter_start(self) -> bool:
         return False
 
     @property
-    def is_year_start(self):
+    def is_year_start(self) -> bool:
         return False
 
     @property
-    def is_month_end(self):
+    def is_month_end(self) -> bool:
         return False
 
     @property
-    def is_quarter_end(self):
+    def is_quarter_end(self) -> bool:
         return False
 
     @property
-    def is_year_end(self):
+    def is_year_end(self) -> bool:
         return False
 
 
@@ -397,14 +387,12 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the month name.
 
         Returns
         -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """,
     )
     day_name = _make_nan_func(
@@ -414,14 +402,12 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        locale : string, default None (English locale)
+        locale : str, default None (English locale)
             Locale determining the language in which to return the day name.
 
         Returns
         -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """,
     )
     # _nat_methods

@@ -167,9 +167,9 @@ def test_aggregate_normal(resample_method):
     ],
 )
 def test_resample_entirely_nat_window(method, method_args, unit):
-    s = pd.Series([0] * 2 + [np.nan] * 2, index=pd.date_range("2017", periods=4))
+    s = Series([0] * 2 + [np.nan] * 2, index=pd.date_range("2017", periods=4))
     result = methodcaller(method, **method_args)(s.resample("2d"))
-    expected = pd.Series(
+    expected = Series(
         [0.0, unit], index=pd.DatetimeIndex(["2017-01-01", "2017-01-03"], freq="2D")
     )
     tm.assert_series_equal(result, expected)
@@ -278,12 +278,74 @@ def test_repr():
     ],
 )
 def test_upsample_sum(method, method_args, expected_values):
-    s = pd.Series(1, index=pd.date_range("2017", periods=2, freq="H"))
+    s = Series(1, index=pd.date_range("2017", periods=2, freq="H"))
     resampled = s.resample("30T")
     index = pd.DatetimeIndex(
         ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"],
         freq="30T",
     )
     result = methodcaller(method, **method_args)(resampled)
-    expected = pd.Series(expected_values, index=index)
+    expected = Series(expected_values, index=index)
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_resample_interpolate():
+    # GH 35325
+    d = {"price": [10, 11, 9], "volume": [50, 60, 50]}
+
+    df = DataFrame(d)
+
+    df["week_starting"] = pd.date_range("01/01/2018", periods=3, freq="W")
+
+    result = (
+        df.set_index("week_starting")
+        .groupby("volume")
+        .resample("1D")
+        .interpolate(method="linear")
+    )
+    expected_ind = pd.MultiIndex.from_tuples(
+        [
+            (50, "2018-01-07"),
+            (50, pd.Timestamp("2018-01-08")),
+            (50, pd.Timestamp("2018-01-09")),
+            (50, pd.Timestamp("2018-01-10")),
+            (50, pd.Timestamp("2018-01-11")),
+            (50, pd.Timestamp("2018-01-12")),
+            (50, pd.Timestamp("2018-01-13")),
+            (50, pd.Timestamp("2018-01-14")),
+            (50, pd.Timestamp("2018-01-15")),
+            (50, pd.Timestamp("2018-01-16")),
+            (50, pd.Timestamp("2018-01-17")),
+            (50, pd.Timestamp("2018-01-18")),
+            (50, pd.Timestamp("2018-01-19")),
+            (50, pd.Timestamp("2018-01-20")),
+            (50, pd.Timestamp("2018-01-21")),
+            (60, pd.Timestamp("2018-01-14")),
+        ],
+        names=["volume", "week_starting"],
+    )
+    expected = DataFrame(
+        data={
+            "price": [
+                10.0,
+                9.928571428571429,
+                9.857142857142858,
+                9.785714285714286,
+                9.714285714285714,
+                9.642857142857142,
+                9.571428571428571,
+                9.5,
+                9.428571428571429,
+                9.357142857142858,
+                9.285714285714286,
+                9.214285714285714,
+                9.142857142857142,
+                9.071428571428571,
+                9.0,
+                11.0,
+            ],
+            "volume": [50.0] * 15 + [60],
+        },
+        index=expected_ind,
+    )
+    tm.assert_frame_equal(result, expected)

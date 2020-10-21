@@ -6,11 +6,12 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.compat import PY37
+from pandas.compat import IS64, is_platform_windows
+import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark, skip_if_no
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
+from pandas import Categorical, DataFrame, Series, date_range, timedelta_range
 import pandas._testing as tm
 
 
@@ -101,14 +102,14 @@ class TestDataFrameMisc:
 
     def test_tab_completion(self):
         # DataFrame whose columns are identifiers shall have them in __dir__.
-        df = pd.DataFrame([list("abcd"), list("efgh")], columns=list("ABCD"))
+        df = DataFrame([list("abcd"), list("efgh")], columns=list("ABCD"))
         for key in list("ABCD"):
             assert key in dir(df)
         assert isinstance(df.__getitem__("A"), pd.Series)
 
         # DataFrame whose first-level columns are identifiers shall have
         # them in __dir__.
-        df = pd.DataFrame(
+        df = DataFrame(
             [list("abcd"), list("efgh")],
             columns=pd.MultiIndex.from_tuples(list(zip("ABCD", "EFGH"))),
         )
@@ -254,7 +255,7 @@ class TestDataFrameMisc:
         assert list(dfaa.itertuples()) == [(0, 1, 1), (1, 2, 2), (2, 3, 3)]
 
         # repr with int on 32-bit/windows
-        if not (compat.is_platform_windows() or compat.is_platform_32bit()):
+        if not (is_platform_windows() or not IS64):
             assert (
                 repr(list(df.itertuples(name=None)))
                 == "[(0, 1, 4), (1, 2, 5), (2, 3, 6)]"
@@ -274,10 +275,7 @@ class TestDataFrameMisc:
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
         assert isinstance(tup3, tuple)
-        if PY37:
-            assert hasattr(tup3, "_fields")
-        else:
-            assert not hasattr(tup3, "_fields")
+        assert hasattr(tup3, "_fields")
 
         # GH 28282
         df_254_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(254)}])
@@ -288,12 +286,7 @@ class TestDataFrameMisc:
         df_255_columns = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(255)}])
         result_255_columns = next(df_255_columns.itertuples(index=False))
         assert isinstance(result_255_columns, tuple)
-
-        # Dataframes with >=255 columns will fallback to regular tuples on python < 3.7
-        if PY37:
-            assert hasattr(result_255_columns, "_fields")
-        else:
-            assert not hasattr(result_255_columns, "_fields")
+        assert hasattr(result_255_columns, "_fields")
 
     def test_sequence_like_with_categorical(self):
 
@@ -349,23 +342,30 @@ class TestDataFrameMisc:
         tm.assert_almost_equal(arr, expected)
 
     def test_to_numpy(self):
-        df = pd.DataFrame({"A": [1, 2], "B": [3, 4.5]})
+        df = DataFrame({"A": [1, 2], "B": [3, 4.5]})
         expected = np.array([[1, 3], [2, 4.5]])
         result = df.to_numpy()
         tm.assert_numpy_array_equal(result, expected)
 
     def test_to_numpy_dtype(self):
-        df = pd.DataFrame({"A": [1, 2], "B": [3, 4.5]})
+        df = DataFrame({"A": [1, 2], "B": [3, 4.5]})
         expected = np.array([[1, 3], [2, 4]], dtype="int64")
         result = df.to_numpy(dtype="int64")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_to_numpy_copy(self):
         arr = np.random.randn(4, 3)
-        df = pd.DataFrame(arr)
+        df = DataFrame(arr)
         assert df.values.base is arr
         assert df.to_numpy(copy=False).base is arr
         assert df.to_numpy(copy=True).base is not arr
+
+    def test_to_numpy_mixed_dtype_to_str(self):
+        # https://github.com/pandas-dev/pandas/issues/35455
+        df = DataFrame([[pd.Timestamp("2020-01-01 00:00:00"), 100.0]])
+        result = df.to_numpy(dtype=str)
+        expected = np.array([["2020-01-01 00:00:00", "100.0"]], dtype=str)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
@@ -523,12 +523,13 @@ class TestDataFrameMisc:
         _check_f(d.copy(), f)
 
     @async_mark()
+    @td.check_file_leaks
     async def test_tab_complete_warning(self, ip):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        code = "import pandas as pd; df = pd.DataFrame()"
+        code = "from pandas import DataFrame; df = DataFrame()"
         await ip.run_code(code)
 
         # TODO: remove it when Ipython updates
@@ -546,12 +547,39 @@ class TestDataFrameMisc:
                 list(ip.Completer.completions("df.", 1))
 
     def test_attrs(self):
-        df = pd.DataFrame({"A": [2, 3]})
+        df = DataFrame({"A": [2, 3]})
         assert df.attrs == {}
         df.attrs["version"] = 1
 
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
+
+    @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
+    def test_set_flags(self, allows_duplicate_labels):
+        df = DataFrame({"A": [1, 2]})
+        result = df.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+        if allows_duplicate_labels is None:
+            # We don't update when it's not provided
+            assert result.flags.allows_duplicate_labels is True
+        else:
+            assert result.flags.allows_duplicate_labels is allows_duplicate_labels
+
+        # We made a copy
+        assert df is not result
+
+        # We didn't mutate df
+        assert df.flags.allows_duplicate_labels is True
+
+        # But we didn't copy data
+        result.iloc[0, 0] = 0
+        assert df.iloc[0, 0] == 0
+
+        # Now we do copy.
+        result = df.set_flags(
+            copy=True, allows_duplicate_labels=allows_duplicate_labels
+        )
+        result.iloc[0, 0] = 10
+        assert df.iloc[0, 0] == 0
 
     def test_cache_on_copy(self):
         # GH 31784 _item_cache not cleared on copy causes incorrect reads after updates
@@ -577,7 +605,9 @@ class TestDataFrameMisc:
         #  raise NotImplementedError
         df = DataFrame()
 
-        inspect.getmembers(df)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # _AXIS_NUMBERS, _AXIS_NAMES lookups
+            inspect.getmembers(df)
 
         with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))

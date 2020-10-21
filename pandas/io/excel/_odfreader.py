@@ -1,26 +1,34 @@
-from typing import List
+from typing import List, cast
 
-from pandas._typing import FilePathOrBuffer, Scalar
+import numpy as np
+
+from pandas._typing import FilePathOrBuffer, Scalar, StorageOptions
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 
-from pandas.io.excel._base import _BaseExcelReader
+from pandas.io.excel._base import BaseExcelReader
 
 
-class _ODFReader(_BaseExcelReader):
+class ODFReader(BaseExcelReader):
     """
     Read tables out of OpenDocument formatted files.
 
     Parameters
     ----------
-    filepath_or_buffer: string, path to be parsed or
+    filepath_or_buffer : string, path to be parsed or
         an open readable stream.
+    storage_options : dict, optional
+        passed to fsspec for appropriate URLs (see ``get_filepath_or_buffer``)
     """
 
-    def __init__(self, filepath_or_buffer: FilePathOrBuffer):
+    def __init__(
+        self,
+        filepath_or_buffer: FilePathOrBuffer,
+        storage_options: StorageOptions = None,
+    ):
         import_optional_dependency("odf")
-        super().__init__(filepath_or_buffer)
+        super().__init__(filepath_or_buffer, storage_options=storage_options)
 
     @property
     def _workbook_class(self):
@@ -148,6 +156,9 @@ class _ODFReader(_BaseExcelReader):
     def _get_cell_value(self, cell, convert_float: bool) -> Scalar:
         from odf.namespaces import OFFICENS
 
+        if str(cell) == "#N/A":
+            return np.nan
+
         cell_type = cell.attributes.get((OFFICENS, "value-type"))
         if cell_type == "boolean":
             if str(cell) == "TRUE":
@@ -158,10 +169,6 @@ class _ODFReader(_BaseExcelReader):
         elif cell_type == "float":
             # GH5394
             cell_value = float(cell.attributes.get((OFFICENS, "value")))
-
-            if cell_value == 0.0:  # NA handling
-                return str(cell)
-
             if convert_float:
                 val = int(cell_value)
                 if val == cell_value:
@@ -179,7 +186,9 @@ class _ODFReader(_BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.to_datetime(cell_value)
         elif cell_type == "time":
-            return pd.to_datetime(str(cell)).time()
+            result = pd.to_datetime(str(cell))
+            result = cast(pd.Timestamp, result)
+            return result.time()
         else:
             raise ValueError(f"Unrecognized type {cell_type}")
 
@@ -188,22 +197,24 @@ class _ODFReader(_BaseExcelReader):
         Find and decode OpenDocument text:s tags that represent
         a run length encoded sequence of space characters.
         """
-        from odf.element import Text, Element
-        from odf.text import S, P
+        from odf.element import Element
         from odf.namespaces import TEXTNS
+        from odf.text import S
 
-        text_p = P().qname
         text_s = S().qname
 
-        p = cell.childNodes[0]
-
         value = []
-        if p.qname == text_p:
-            for k, fragment in enumerate(p.childNodes):
-                if isinstance(fragment, Text):
-                    value.append(fragment.data)
-                elif isinstance(fragment, Element):
-                    if fragment.qname == text_s:
-                        spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
+
+        for fragment in cell.childNodes:
+            if isinstance(fragment, Element):
+                if fragment.qname == text_s:
+                    spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
                     value.append(" " * spaces)
+                else:
+                    # recursive impl needed in case of nested fragments
+                    # with multiple spaces
+                    # https://github.com/pandas-dev/pandas/pull/36175#discussion_r484639704
+                    value.append(self._get_cell_string_value(fragment))
+            else:
+                value.append(str(fragment))
         return "".join(value)

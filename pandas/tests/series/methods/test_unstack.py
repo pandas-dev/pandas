@@ -41,7 +41,7 @@ def test_unstack():
 
     # GH5873
     idx = pd.MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
-    ts = pd.Series([1, 2], index=idx)
+    ts = Series([1, 2], index=idx)
     left = ts.unstack()
     right = DataFrame(
         [[np.nan, 1], [2, np.nan]], index=[101, 102], columns=[np.nan, 3.5]
@@ -55,7 +55,7 @@ def test_unstack():
             [1, 2, 1, 1, np.nan],
         ]
     )
-    ts = pd.Series([1.0, 1.1, 1.2, 1.3, 1.4], index=idx)
+    ts = Series([1.0, 1.1, 1.2, 1.3, 1.4], index=idx)
     right = DataFrame(
         [[1.0, 1.3], [1.1, np.nan], [np.nan, 1.4], [1.2, np.nan]],
         columns=["cat", "dog"],
@@ -70,14 +70,12 @@ def test_unstack_tuplename_in_multiindex():
     idx = pd.MultiIndex.from_product(
         [["a", "b", "c"], [1, 2, 3]], names=[("A", "a"), ("B", "b")]
     )
-    ser = pd.Series(1, index=idx)
+    ser = Series(1, index=idx)
     result = ser.unstack(("A", "a"))
 
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-        columns=pd.MultiIndex.from_tuples(
-            [("a",), ("b",), ("c",)], names=[("A", "a")],
-        ),
+        columns=pd.MultiIndex.from_tuples([("a",), ("b",), ("c",)], names=[("A", "a")]),
         index=pd.Index([1, 2, 3], name=("B", "b")),
     )
     tm.assert_frame_equal(result, expected)
@@ -111,11 +109,11 @@ def test_unstack_mixed_type_name_in_multiindex(
     idx = pd.MultiIndex.from_product(
         [["a", "b"], [1, 2], [3, 4]], names=[("A", "a"), "B", "C"]
     )
-    ser = pd.Series(1, index=idx)
+    ser = Series(1, index=idx)
     result = ser.unstack(unstack_idx)
 
-    expected = pd.DataFrame(
-        expected_values, columns=expected_columns, index=expected_index,
+    expected = DataFrame(
+        expected_values, columns=expected_columns, index=expected_index
     )
     tm.assert_frame_equal(result, expected)
 
@@ -123,7 +121,7 @@ def test_unstack_mixed_type_name_in_multiindex(
 def test_unstack_multi_index_categorical_values():
 
     mi = tm.makeTimeDataFrame().stack().index.rename(["major", "minor"])
-    ser = pd.Series(["foo"] * len(mi), index=mi, name="category", dtype="category")
+    ser = Series(["foo"] * len(mi), index=mi, name="category", dtype="category")
 
     result = ser.unstack()
 

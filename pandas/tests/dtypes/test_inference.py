@@ -709,6 +709,9 @@ class TestTypeInference:
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "mixed"
 
+        result = lib.infer_dtype(arr[::-1], skipna=True)
+        assert result == "mixed"
+
         arr = np.array([Decimal(1), Decimal("NaN"), Decimal(3)])
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "decimal"
@@ -727,6 +730,9 @@ class TestTypeInference:
 
         arr = np.array([1.0, 2.0, 1 + 1j], dtype="O")
         result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == "mixed"
+
+        result = lib.infer_dtype(arr[::-1], skipna=skipna)
         assert result == "mixed"
 
         # gets cast to complex on array construction
@@ -1217,7 +1223,7 @@ class TestTypeInference:
         inferred = lib.infer_dtype(idx._data, skipna=False)
         assert inferred == "interval"
 
-        inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
+        inferred = lib.infer_dtype(Series(idx), skipna=False)
         assert inferred == "interval"
 
     @pytest.mark.parametrize("klass", [pd.array, pd.Series])
@@ -1246,7 +1252,6 @@ class TestNumberScalar:
         assert is_number(1)
         assert is_number(1.1)
         assert is_number(1 + 3j)
-        assert is_number(np.bool(False))
         assert is_number(np.int64(1))
         assert is_number(np.float64(1.1))
         assert is_number(np.complex128(1 + 3j))
@@ -1267,7 +1272,7 @@ class TestNumberScalar:
 
     def test_is_bool(self):
         assert is_bool(True)
-        assert is_bool(np.bool(False))
+        assert is_bool(False)
         assert is_bool(np.bool_(False))
 
         assert not is_bool(1)
@@ -1294,7 +1299,7 @@ class TestNumberScalar:
         assert not is_integer(True)
         assert not is_integer(1.1)
         assert not is_integer(1 + 3j)
-        assert not is_integer(np.bool(False))
+        assert not is_integer(False)
         assert not is_integer(np.bool_(False))
         assert not is_integer(np.float64(1.1))
         assert not is_integer(np.complex128(1 + 3j))
@@ -1317,7 +1322,7 @@ class TestNumberScalar:
         assert not is_float(True)
         assert not is_float(1)
         assert not is_float(1 + 3j)
-        assert not is_float(np.bool(False))
+        assert not is_float(False)
         assert not is_float(np.bool_(False))
         assert not is_float(np.int64(1))
         assert not is_float(np.complex128(1 + 3j))
@@ -1496,7 +1501,7 @@ def test_nan_to_nat_conversions():
 
 @td.skip_if_no_scipy
 @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
-def test_is_scipy_sparse(spmatrix):  # noqa: F811
+def test_is_scipy_sparse(spmatrix):
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
 

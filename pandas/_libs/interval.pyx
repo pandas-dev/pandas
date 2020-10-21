@@ -1,7 +1,8 @@
 import numbers
 from operator import le, lt
 
-from cpython.datetime cimport PyDelta_Check, PyDateTime_IMPORT
+from cpython.datetime cimport PyDateTime_IMPORT, PyDelta_Check
+
 PyDateTime_IMPORT
 
 from cpython.object cimport (
@@ -16,8 +17,8 @@ from cpython.object cimport (
 
 import cython
 from cython import Py_ssize_t
-
 import numpy as np
+
 cimport numpy as cnp
 from numpy cimport (
     NPY_QUICKSORT,
@@ -30,23 +31,22 @@ from numpy cimport (
     ndarray,
     uint64_t,
 )
+
 cnp.import_array()
 
 
 from pandas._libs cimport util
-
 from pandas._libs.hashtable cimport Int64Vector
+from pandas._libs.tslibs.timedeltas cimport _Timedelta
+from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 from pandas._libs.tslibs.util cimport (
-    is_integer_object,
     is_float_object,
+    is_integer_object,
     is_timedelta64_object,
 )
 
-from pandas._libs.tslibs.base cimport ABCTimedelta
-from pandas._libs.tslibs.timezones cimport tz_compare
-from pandas._libs.tslibs.timestamps cimport _Timestamp
-
-_VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
+VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
 cdef class IntervalMixin:
@@ -291,12 +291,6 @@ cdef class Interval(IntervalMixin):
     True
     >>> year_2017.length
     Timedelta('365 days 00:00:00')
-
-    And also you can create string intervals
-
-    >>> volume_1 = pd.Interval('Ant', 'Dog', closed='both')
-    >>> 'Bee' in volume_1
-    True
     """
     _typ = "interval"
     __array_priority__ = 1000
@@ -324,7 +318,7 @@ cdef class Interval(IntervalMixin):
         self._validate_endpoint(left)
         self._validate_endpoint(right)
 
-        if closed not in _VALID_CLOSED:
+        if closed not in VALID_CLOSED:
             raise ValueError(f"invalid option for 'closed': {closed}")
         if not left <= right:
             raise ValueError("left side of interval must be <= right side")
@@ -340,7 +334,7 @@ cdef class Interval(IntervalMixin):
     def _validate_endpoint(self, endpoint):
         # GH 23013
         if not (is_integer_object(endpoint) or is_float_object(endpoint) or
-                isinstance(endpoint, (_Timestamp, ABCTimedelta))):
+                isinstance(endpoint, (_Timestamp, _Timedelta))):
             raise ValueError("Only numeric, Timestamp and Timedelta endpoints "
                              "are allowed when constructing an Interval.")
 
@@ -358,6 +352,11 @@ cdef class Interval(IntervalMixin):
             self_tuple = (self.left, self.right, self.closed)
             other_tuple = (other.left, other.right, other.closed)
             return PyObject_RichCompare(self_tuple, other_tuple, op)
+        elif util.is_array(other):
+            return np.array(
+                [PyObject_RichCompare(self, x, op) for x in other],
+                dtype=bool,
+            )
 
         return NotImplemented
 
@@ -422,11 +421,6 @@ cdef class Interval(IntervalMixin):
             return Interval(self.left * y, self.right * y, closed=self.closed)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
             return Interval(y.left * self, y.right * self, closed=y.closed)
-        return NotImplemented
-
-    def __div__(self, y):
-        if isinstance(y, numbers.Number):
-            return Interval(self.left / y, self.right / y, closed=self.closed)
         return NotImplemented
 
     def __truediv__(self, y):

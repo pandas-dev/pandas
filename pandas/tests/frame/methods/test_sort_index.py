@@ -218,25 +218,29 @@ class TestDataFrameSortIndex:
         unordered = frame.loc[[3, 2, 4, 1]]
         a_id = id(unordered["A"])
         df = unordered.copy()
-        df.sort_index(inplace=True)
+        return_value = df.sort_index(inplace=True)
+        assert return_value is None
         expected = frame
         tm.assert_frame_equal(df, expected)
         assert a_id != id(df["A"])
 
         df = unordered.copy()
-        df.sort_index(ascending=False, inplace=True)
+        return_value = df.sort_index(ascending=False, inplace=True)
+        assert return_value is None
         expected = frame[::-1]
         tm.assert_frame_equal(df, expected)
 
         # axis=1
         unordered = frame.loc[:, ["D", "B", "C", "A"]]
         df = unordered.copy()
-        df.sort_index(axis=1, inplace=True)
+        return_value = df.sort_index(axis=1, inplace=True)
+        assert return_value is None
         expected = frame
         tm.assert_frame_equal(df, expected)
 
         df = unordered.copy()
-        df.sort_index(axis=1, ascending=False, inplace=True)
+        return_value = df.sort_index(axis=1, ascending=False, inplace=True)
+        assert return_value is None
         expected = frame.iloc[:, ::-1]
         tm.assert_frame_equal(df, expected)
 
@@ -348,7 +352,7 @@ class TestDataFrameSortIndex:
         expected_mi = MultiIndex.from_tuples(
             [[1, 1, 1], [2, 1, 2], [2, 1, 3]], names=list("ABC")
         )
-        expected = pd.DataFrame([[5, 6], [3, 4], [1, 2]], index=expected_mi)
+        expected = DataFrame([[5, 6], [3, 4], [1, 2]], index=expected_mi)
         result = df.sort_index(level=level)
         tm.assert_frame_equal(result, expected)
 
@@ -356,7 +360,7 @@ class TestDataFrameSortIndex:
         expected_mi = MultiIndex.from_tuples(
             [[1, 1, 1], [2, 1, 3], [2, 1, 2]], names=list("ABC")
         )
-        expected = pd.DataFrame([[5, 6], [1, 2], [3, 4]], index=expected_mi)
+        expected = DataFrame([[5, 6], [1, 2], [3, 4]], index=expected_mi)
         result = df.sort_index(level=level, sort_remaining=False)
         tm.assert_frame_equal(result, expected)
 
@@ -551,8 +555,8 @@ class TestDataFrameSortIndex:
             ),
         )
 
-        df.columns.set_levels(
-            pd.to_datetime(df.columns.levels[1]), level=1, inplace=True
+        df.columns = df.columns.set_levels(
+            pd.to_datetime(df.columns.levels[1]), level=1
         )
         assert not df.columns.is_lexsorted()
         assert not df.columns.is_monotonic
@@ -589,7 +593,8 @@ class TestDataFrameSortIndex:
 
         # inplace
         rs = frame.copy()
-        rs.sort_index(level=0, inplace=True)
+        return_value = rs.sort_index(level=0, inplace=True)
+        assert return_value is None
         tm.assert_frame_equal(rs, frame.sort_index(level=0))
 
     def test_sort_index_level_large_cardinality(self):
@@ -656,6 +661,12 @@ class TestDataFrameSortIndex:
             sorted_before.drop([("foo", "three")], axis=1),
             sorted_after.drop([("foo", "three")], axis=1),
         )
+
+    def test_sort_index_preserve_levels(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        result = frame.sort_index()
+        assert result.index.names == frame.index.names
 
 
 class TestDataFrameSortIndexKey:
@@ -731,6 +742,21 @@ class TestDataFrameSortIndexKey:
         tm.assert_frame_equal(result, expected)
 
     def test_changes_length_raises(self):
-        df = pd.DataFrame({"A": [1, 2, 3]})
+        df = DataFrame({"A": [1, 2, 3]})
         with pytest.raises(ValueError, match="change the shape"):
             df.sort_index(key=lambda x: x[:1])
+
+    def test_sort_index_multiindex_sparse_column(self):
+        # GH 29735, testing that sort_index on a multiindexed frame with sparse
+        # columns fills with 0.
+        expected = DataFrame(
+            {
+                i: pd.array([0.0, 0.0, 0.0, 0.0], dtype=pd.SparseDtype("float64", 0.0))
+                for i in range(0, 4)
+            },
+            index=pd.MultiIndex.from_product([[1, 2], [1, 2]]),
+        )
+
+        result = expected.sort_index(level=0)
+
+        tm.assert_frame_equal(result, expected)
