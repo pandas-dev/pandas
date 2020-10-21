@@ -769,6 +769,10 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa, write_kwargs={"version": "2.0"})
 
     def test_timezone_aware_index(self, pa, timezone_aware_date_list):
+        if LooseVersion(pyarrow.__version__) >= LooseVersion("2.0.0"):
+            # temporary skip this test until it is properly resolved
+            # https://github.com/pandas-dev/pandas/issues/37286
+            pytest.skip()
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
 
