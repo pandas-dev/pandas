@@ -131,9 +131,9 @@ class TestIntervalIndexInsideMultiIndex:
         )
 
         idx.names = ["Item", "RID", "MP"]
-        df = pd.DataFrame({"value": [1, 2, 3, 4, 5, 6, 7, 8]})
+        df = DataFrame({"value": [1, 2, 3, 4, 5, 6, 7, 8]})
         df.index = idx
-        query_df = pd.DataFrame(
+        query_df = DataFrame(
             {
                 "Item": ["FC", "OWNER", "FC", "OWNER", "OWNER"],
                 "RID": ["RID1", "RID1", "RID1", "RID2", "RID2"],

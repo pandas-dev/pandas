@@ -41,7 +41,7 @@ def test_deprecating_on_loffset_and_base():
     # GH 31809
 
     idx = pd.date_range("2001-01-01", periods=4, freq="T")
-    df = pd.DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
+    df = DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
 
     with tm.assert_produces_warning(FutureWarning):
         pd.Grouper(freq="10s", base=0)

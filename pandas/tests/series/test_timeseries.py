@@ -82,7 +82,7 @@ class TestTimeSeries:
     def test_asfreq_resample_set_correct_freq(self):
         # GH5613
         # we test if .asfreq() and .resample() set the correct value for .freq
-        df = pd.DataFrame(
+        df = DataFrame(
             {"date": ["2012-01-01", "2012-01-02", "2012-01-03"], "col": [1, 2, 3]}
         )
         df = df.set_index(pd.to_datetime(df.date))
