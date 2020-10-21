@@ -809,9 +809,18 @@ def value_counts_arraylike(values, dropna: bool):
 
         keys, counts = htable.value_count_int64(values, dropna)
 
+        msk = keys != iNaT
         if dropna:
-            msk = keys != iNaT
             keys, counts = keys[msk], counts[msk]
+        # GH 35922. Since sort_values is stable now, move NaT to the end
+        # to make sure NaT count is sorted toward the end.
+        if msk.sum() != len(keys):
+            nat_pos = np.where(~msk)
+            keys[nat_pos] = keys[-1]
+            keys[-1] = iNaT
+            tmp = counts[nat_pos]
+            counts[nat_pos] = counts[-1]
+            counts[-1] = tmp
 
     else:
         # ndarray like
