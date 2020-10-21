@@ -515,13 +515,11 @@ class TestParquetPyArrow(Base):
     def test_to_bytes_without_path_or_buf_provided(self, pa, df_full):
         # GH 37105
 
-        buf = df_full.to_parquet(engine=pa)
-        assert isinstance(buf, bytes)
+        buf_bytes = df_full.to_parquet(engine=pa)
+        assert isinstance(buf_bytes, bytes)
 
-        with tm.ensure_clean() as path:
-            with open(path, "wb") as f:
-                f.write(buf)
-            res = pd.read_parquet(path)
+        buf_stream = BytesIO(buf_bytes)
+        res = pd.read_parquet(buf_stream)
 
         tm.assert_frame_equal(df_full, res)
 
