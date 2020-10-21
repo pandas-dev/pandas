@@ -130,7 +130,7 @@ class TestDataFrameSortValues:
         # GH#9918
         # uint64 multicolumn sort
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "a": pd.Series([18446637057563306014, 1162265347240853609]),
                 "b": pd.Series([1, 2]),
@@ -139,7 +139,7 @@ class TestDataFrameSortValues:
         df["a"] = df["a"].astype(np.uint64)
         result = df.sort_values(["a", "b"])
 
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "a": pd.Series([18446637057563306014, 1162265347240853609]),
                 "b": pd.Series([1, 2]),
@@ -355,14 +355,14 @@ class TestDataFrameSortValues:
             Timestamp(x)
             for x in ["2017-01-01", "2014-01-01", "2016-01-01", "2015-01-01"]
         ]
-        df = pd.DataFrame({"a": d1, "b": d2}, index=[0, 1, 2, 3])
+        df = DataFrame({"a": d1, "b": d2}, index=[0, 1, 2, 3])
 
         d3 = [Timestamp(x) for x in ["2015-01-01", "2016-01-01", "2016-01-01", np.nan]]
         d4 = [
             Timestamp(x)
             for x in ["2014-01-01", "2015-01-01", "2017-01-01", "2016-01-01"]
         ]
-        expected = pd.DataFrame({"a": d3, "b": d4}, index=[1, 3, 0, 2])
+        expected = DataFrame({"a": d3, "b": d4}, index=[1, 3, 0, 2])
         sorted_df = df.sort_values(by=["a", "b"])
         tm.assert_frame_equal(sorted_df, expected)
 
@@ -381,7 +381,7 @@ class TestDataFrameSortValues:
         reversed_category_indices = sorted(category_indices, reverse=True)
         reversed_na_indices = sorted(na_indices)
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 column_name: pd.Categorical(
                     ["A", np.nan, "B", np.nan, "C"], categories=categories, ordered=True
@@ -461,19 +461,19 @@ class TestDataFrameSortValues:
             Timestamp(x)
             for x in ["2017-01-01", "2014-01-01", "2016-01-01", "2015-01-01"]
         ]
-        df = pd.DataFrame({"a": d1, "b": d2}, index=[0, 1, 2, 3])
+        df = DataFrame({"a": d1, "b": d2}, index=[0, 1, 2, 3])
 
         d3 = [Timestamp(x) for x in ["2015-01-01", "2016-01-01", "2016-01-01", np.nan]]
         d4 = [
             Timestamp(x)
             for x in ["2014-01-01", "2015-01-01", "2017-01-01", "2016-01-01"]
         ]
-        expected = pd.DataFrame({"a": d3, "b": d4}, index=[1, 3, 0, 2])
+        expected = DataFrame({"a": d3, "b": d4}, index=[1, 3, 0, 2])
         sorted_df = df.sort_values(by=["a", "b"])
         tm.assert_frame_equal(sorted_df, expected)
 
     def test_sort_values_na_position_with_categories_raises(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "c": pd.Categorical(
                     ["A", np.nan, "B", np.nan, "C"],
@@ -525,7 +525,7 @@ class TestDataFrameSortValues:
 
     def test_sort_values_nat_na_position_default(self):
         # GH 13230
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "A": [1, 2, 3, 4, 4],
                 "date": pd.DatetimeIndex(
@@ -666,7 +666,7 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         df.sort_index(key=sort_by_key)
 
     def test_changes_length_raises(self):
-        df = pd.DataFrame({"A": [1, 2, 3]})
+        df = DataFrame({"A": [1, 2, 3]})
         with pytest.raises(ValueError, match="change the shape"):
             df.sort_values("A", key=lambda x: x[:1])
 
@@ -696,7 +696,7 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_key_casts_to_categorical(self, ordered):
         # https://github.com/pandas-dev/pandas/issues/36383
         categories = ["c", "b", "a"]
-        df = pd.DataFrame({"x": [1, 1, 1], "y": ["a", "b", "c"]})
+        df = DataFrame({"x": [1, 1, 1], "y": ["a", "b", "c"]})
 
         def sorter(key):
             if key.name == "y":
@@ -706,7 +706,7 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
             return key
 
         result = df.sort_values(by=["x", "y"], key=sorter)
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {"x": [1, 1, 1], "y": ["c", "b", "a"]}, index=pd.Index([2, 1, 0])
         )
 

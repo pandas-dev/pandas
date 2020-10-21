@@ -407,7 +407,7 @@ class Generic:
     def test_sample_upsampling_without_replacement(self):
         # GH27451
 
-        df = pd.DataFrame({"A": list("abc")})
+        df = DataFrame({"A": list("abc")})
         msg = (
             "Replace has to be set to `True` when "
             "upsampling the population `frac` > 1."
@@ -418,7 +418,7 @@ class Generic:
     def test_sample_is_copy(self):
         # GH-27357, GH-30784: ensure the result of sample is an actual copy and
         # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
-        df = pd.DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
+        df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
         df2 = df.sample(3)
 
         with tm.assert_produces_warning(None):
@@ -542,7 +542,7 @@ class TestNDFrame:
         easy_weight_list = [0] * 10
         easy_weight_list[5] = 1
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "col1": range(10, 20),
                 "col2": range(20, 30),
@@ -578,7 +578,7 @@ class TestNDFrame:
         ###
 
         # Test axis argument
-        df = pd.DataFrame({"col1": range(10), "col2": ["a"] * 10})
+        df = DataFrame({"col1": range(10), "col2": ["a"] * 10})
         second_column_weight = [0, 1]
         tm.assert_frame_equal(
             df.sample(n=1, axis=1, weights=second_column_weight), df[["col2"]]
@@ -615,7 +615,7 @@ class TestNDFrame:
         easy_weight_list = [0] * 3
         easy_weight_list[2] = 1
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {"col1": range(10, 20), "col2": range(20, 30), "colString": ["a"] * 10}
         )
         sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
@@ -663,7 +663,7 @@ class TestNDFrame:
     )
     def test_sample_random_state(self, func_str, arg):
         # GH32503
-        df = pd.DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
+        df = DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
         result = df.sample(n=3, random_state=eval(func_str)(arg))
         expected = df.sample(n=3, random_state=com.random_state(eval(func_str)(arg)))
         tm.assert_frame_equal(result, expected)
