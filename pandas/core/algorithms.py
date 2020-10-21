@@ -697,6 +697,8 @@ def factorize(
 
     # return original tenor
     if isinstance(original, ABCIndexClass):
+        if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
+            uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
         uniques = original._shallow_copy(uniques, name=None)
     elif isinstance(original, ABCSeries):
         from pandas import Index
@@ -1651,7 +1653,8 @@ def take_nd(
     """
     mask_info = None
 
-    if is_extension_array_dtype(arr):
+    if isinstance(arr, ABCExtensionArray):
+        # Check for EA to catch DatetimeArray, TimedeltaArray
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = extract_array(arr)
@@ -1909,6 +1912,8 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     if is_extension_array_dtype(dtype):
         if hasattr(arr, f"__{op.__name__}__"):
+            if axis != 0:
+                raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
             warn(
@@ -1923,17 +1928,25 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     is_timedelta = False
     is_bool = False
     if needs_i8_conversion(arr.dtype):
-        dtype = np.float64
+        dtype = np.int64
         arr = arr.view("i8")
         na = iNaT
         is_timedelta = True
 
     elif is_bool_dtype(dtype):
+        # We have to cast in order to be able to hold np.nan
         dtype = np.object_
         is_bool = True
 
     elif is_integer_dtype(dtype):
+        # We have to cast in order to be able to hold np.nan
         dtype = np.float64
+
+    orig_ndim = arr.ndim
+    if orig_ndim == 1:
+        # reshape so we can always use algos.diff_2d
+        arr = arr.reshape(-1, 1)
+        # TODO: require axis == 0
 
     dtype = np.dtype(dtype)
     out_arr = np.empty(arr.shape, dtype=dtype)
@@ -1945,7 +1958,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
         # TODO: can diff_2d dtype specialization troubles be fixed by defining
         #  out_arr inside diff_2d?
-        algos.diff_2d(arr, out_arr, n, axis)
+        algos.diff_2d(arr, out_arr, n, axis, datetimelike=is_timedelta)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.
@@ -1979,8 +1992,10 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
     if is_timedelta:
-        out_arr = out_arr.astype("int64").view("timedelta64[ns]")
+        out_arr = out_arr.view("timedelta64[ns]")
 
+    if orig_ndim == 1:
+        out_arr = out_arr[:, 0]
     return out_arr
 
 
@@ -2044,7 +2059,7 @@ def safe_sort(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
 
-    if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):
+    if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         values = np.asarray(values, dtype=dtype)
