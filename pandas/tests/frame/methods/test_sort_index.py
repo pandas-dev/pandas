@@ -662,6 +662,12 @@ class TestDataFrameSortIndex:
             sorted_after.drop([("foo", "three")], axis=1),
         )
 
+    def test_sort_index_preserve_levels(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        result = frame.sort_index()
+        assert result.index.names == frame.index.names
+
 
 class TestDataFrameSortIndexKey:
     def test_sort_multi_index_key(self):

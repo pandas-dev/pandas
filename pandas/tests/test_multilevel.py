@@ -224,69 +224,6 @@ class TestMultiLevel(Base):
         assert isinstance(deleveled, Series)
         assert deleveled.index.name == self.series.index.name
 
-    def test_count_level(
-        self,
-        multiindex_year_month_day_dataframe_random_data,
-        multiindex_dataframe_random_data,
-    ):
-        ymd = multiindex_year_month_day_dataframe_random_data
-        frame = multiindex_dataframe_random_data
-
-        def _check_counts(frame, axis=0):
-            index = frame._get_axis(axis)
-            for i in range(index.nlevels):
-                result = frame.count(axis=axis, level=i)
-                expected = frame.groupby(axis=axis, level=i).count()
-                expected = expected.reindex_like(result).astype("i8")
-                tm.assert_frame_equal(result, expected)
-
-        frame.iloc[1, [1, 2]] = np.nan
-        frame.iloc[7, [0, 1]] = np.nan
-        ymd.iloc[1, [1, 2]] = np.nan
-        ymd.iloc[7, [0, 1]] = np.nan
-
-        _check_counts(frame)
-        _check_counts(ymd)
-        _check_counts(frame.T, axis=1)
-        _check_counts(ymd.T, axis=1)
-
-        # can't call with level on regular DataFrame
-        df = tm.makeTimeDataFrame()
-        with pytest.raises(TypeError, match="hierarchical"):
-            df.count(level=0)
-
-        frame["D"] = "foo"
-        result = frame.count(level=0, numeric_only=True)
-        tm.assert_index_equal(result.columns, Index(list("ABC"), name="exp"))
-
-    def test_count_index_with_nan(self):
-        # https://github.com/pandas-dev/pandas/issues/21824
-        df = DataFrame(
-            {
-                "Person": ["John", "Myla", None, "John", "Myla"],
-                "Age": [24.0, 5, 21.0, 33, 26],
-                "Single": [False, True, True, True, False],
-            }
-        )
-
-        # count on row labels
-        res = df.set_index(["Person", "Single"]).count(level="Person")
-        expected = DataFrame(
-            index=Index(["John", "Myla"], name="Person"),
-            columns=Index(["Age"]),
-            data=[2, 2],
-        )
-        tm.assert_frame_equal(res, expected)
-
-        # count on column labels
-        res = df.set_index(["Person", "Single"]).T.count(level="Person", axis=1)
-        expected = DataFrame(
-            columns=Index(["John", "Myla"], name="Person"),
-            index=Index(["Age"]),
-            data=[[2, 2]],
-        )
-        tm.assert_frame_equal(res, expected)
-
     def test_count_level_series(self):
         index = MultiIndex(
             levels=[["foo", "bar", "baz"], ["one", "two", "three", "four"]],
@@ -306,23 +243,6 @@ class TestMultiLevel(Base):
         tm.assert_series_equal(
             result.astype("f8"), expected.reindex(result.index).fillna(0)
         )
-
-    def test_count_level_corner(self, multiindex_dataframe_random_data):
-        frame = multiindex_dataframe_random_data
-
-        s = frame["A"][:0]
-        result = s.count(level=0)
-        expected = Series(0, index=s.index.levels[0], name="A")
-        tm.assert_series_equal(result, expected)
-
-        df = frame[:0]
-        result = df.count(level=0)
-        expected = (
-            DataFrame(index=s.index.levels[0].set_names(["first"]), columns=df.columns)
-            .fillna(0)
-            .astype(np.int64)
-        )
-        tm.assert_frame_equal(result, expected)
 
     def test_get_level_number_out_of_bounds(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
@@ -1517,88 +1437,6 @@ Thur,Lunch,Yes,51.51,17"""
         # it works!
         df.set_index(index)
 
-    def test_set_index_datetime(self):
-        # GH 3950
-        df = DataFrame(
-            {
-                "label": ["a", "a", "a", "b", "b", "b"],
-                "datetime": [
-                    "2011-07-19 07:00:00",
-                    "2011-07-19 08:00:00",
-                    "2011-07-19 09:00:00",
-                    "2011-07-19 07:00:00",
-                    "2011-07-19 08:00:00",
-                    "2011-07-19 09:00:00",
-                ],
-                "value": range(6),
-            }
-        )
-        df.index = pd.to_datetime(df.pop("datetime"), utc=True)
-        df.index = df.index.tz_convert("US/Pacific")
-
-        expected = pd.DatetimeIndex(
-            ["2011-07-19 07:00:00", "2011-07-19 08:00:00", "2011-07-19 09:00:00"],
-            name="datetime",
-        )
-        expected = expected.tz_localize("UTC").tz_convert("US/Pacific")
-
-        df = df.set_index("label", append=True)
-        tm.assert_index_equal(df.index.levels[0], expected)
-        tm.assert_index_equal(df.index.levels[1], Index(["a", "b"], name="label"))
-        assert df.index.names == ["datetime", "label"]
-
-        df = df.swaplevel(0, 1)
-        tm.assert_index_equal(df.index.levels[0], Index(["a", "b"], name="label"))
-        tm.assert_index_equal(df.index.levels[1], expected)
-        assert df.index.names == ["label", "datetime"]
-
-        df = DataFrame(np.random.random(6))
-        idx1 = pd.DatetimeIndex(
-            [
-                "2011-07-19 07:00:00",
-                "2011-07-19 08:00:00",
-                "2011-07-19 09:00:00",
-                "2011-07-19 07:00:00",
-                "2011-07-19 08:00:00",
-                "2011-07-19 09:00:00",
-            ],
-            tz="US/Eastern",
-        )
-        idx2 = pd.DatetimeIndex(
-            [
-                "2012-04-01 09:00",
-                "2012-04-01 09:00",
-                "2012-04-01 09:00",
-                "2012-04-02 09:00",
-                "2012-04-02 09:00",
-                "2012-04-02 09:00",
-            ],
-            tz="US/Eastern",
-        )
-        idx3 = pd.date_range("2011-01-01 09:00", periods=6, tz="Asia/Tokyo")
-        idx3 = idx3._with_freq(None)
-
-        df = df.set_index(idx1)
-        df = df.set_index(idx2, append=True)
-        df = df.set_index(idx3, append=True)
-
-        expected1 = pd.DatetimeIndex(
-            ["2011-07-19 07:00:00", "2011-07-19 08:00:00", "2011-07-19 09:00:00"],
-            tz="US/Eastern",
-        )
-        expected2 = pd.DatetimeIndex(
-            ["2012-04-01 09:00", "2012-04-02 09:00"], tz="US/Eastern"
-        )
-
-        tm.assert_index_equal(df.index.levels[0], expected1)
-        tm.assert_index_equal(df.index.levels[1], expected2)
-        tm.assert_index_equal(df.index.levels[2], idx3)
-
-        # GH 7092
-        tm.assert_index_equal(df.index.get_level_values(0), idx1)
-        tm.assert_index_equal(df.index.get_level_values(1), idx2)
-        tm.assert_index_equal(df.index.get_level_values(2), idx3)
-
     def test_reset_index_datetime(self):
         # GH 3950
         for tz in ["UTC", "Asia/Tokyo", "US/Eastern"]:
@@ -1768,38 +1606,6 @@ Thur,Lunch,Yes,51.51,17"""
         result = df2.rename_axis([("c", "ii")]).reset_index(col_level=1, col_fill="C")
         tm.assert_frame_equal(result, expected)
 
-    def test_set_index_period(self):
-        # GH 6631
-        df = DataFrame(np.random.random(6))
-        idx1 = pd.period_range("2011-01-01", periods=3, freq="M")
-        idx1 = idx1.append(idx1)
-        idx2 = pd.period_range("2013-01-01 09:00", periods=2, freq="H")
-        idx2 = idx2.append(idx2).append(idx2)
-        idx3 = pd.period_range("2005", periods=6, freq="A")
-
-        df = df.set_index(idx1)
-        df = df.set_index(idx2, append=True)
-        df = df.set_index(idx3, append=True)
-
-        expected1 = pd.period_range("2011-01-01", periods=3, freq="M")
-        expected2 = pd.period_range("2013-01-01 09:00", periods=2, freq="H")
-
-        tm.assert_index_equal(df.index.levels[0], expected1)
-        tm.assert_index_equal(df.index.levels[1], expected2)
-        tm.assert_index_equal(df.index.levels[2], idx3)
-
-        tm.assert_index_equal(df.index.get_level_values(0), idx1)
-        tm.assert_index_equal(df.index.get_level_values(1), idx2)
-        tm.assert_index_equal(df.index.get_level_values(2), idx3)
-
-    def test_repeat(self):
-        # GH 9361
-        # fixed by # GH 7891
-        m_idx = MultiIndex.from_tuples([(1, 2), (3, 4), (5, 6), (7, 8)])
-        data = ["a", "b", "c", "d"]
-        m_df = Series(data, index=m_idx)
-        assert m_df.repeat(3).shape == (3 * len(data),)
-
     def test_subsets_multiindex_dtype(self):
         # GH 20757
         data = [["x", 1]]
@@ -1813,18 +1619,9 @@ Thur,Lunch,Yes,51.51,17"""
 class TestSorted(Base):
     """ everything you wanted to test about sorting """
 
-    def test_sort_index_preserve_levels(self, multiindex_dataframe_random_data):
-        frame = multiindex_dataframe_random_data
-
-        result = frame.sort_index()
-        assert result.index.names == frame.index.names
-
-    def test_sorting_repr_8017(self):
-
-        np.random.seed(0)
-        data = np.random.randn(3, 4)
-
-        for gen, extra in [
+    @pytest.mark.parametrize(
+        "gen,extra",
+        [
             ([1.0, 3.0, 2.0, 5.0], 4.0),
             ([1, 3, 2, 5], 4),
             (
@@ -1837,44 +1634,50 @@ class TestSorted(Base):
                 Timestamp("20130104"),
             ),
             (["1one", "3one", "2one", "5one"], "4one"),
-        ]:
-            columns = MultiIndex.from_tuples([("red", i) for i in gen])
-            df = DataFrame(data, index=list("def"), columns=columns)
-            df2 = pd.concat(
-                [
-                    df,
-                    DataFrame(
-                        "world",
-                        index=list("def"),
-                        columns=MultiIndex.from_tuples([("red", extra)]),
-                    ),
-                ],
-                axis=1,
-            )
+        ],
+    )
+    def test_sorting_repr_8017(self, gen, extra):
 
-            # check that the repr is good
-            # make sure that we have a correct sparsified repr
-            # e.g. only 1 header of read
-            assert str(df2).splitlines()[0].split() == ["red"]
+        np.random.seed(0)
+        data = np.random.randn(3, 4)
 
-            # GH 8017
-            # sorting fails after columns added
+        columns = MultiIndex.from_tuples([("red", i) for i in gen])
+        df = DataFrame(data, index=list("def"), columns=columns)
+        df2 = pd.concat(
+            [
+                df,
+                DataFrame(
+                    "world",
+                    index=list("def"),
+                    columns=MultiIndex.from_tuples([("red", extra)]),
+                ),
+            ],
+            axis=1,
+        )
 
-            # construct single-dtype then sort
-            result = df.copy().sort_index(axis=1)
-            expected = df.iloc[:, [0, 2, 1, 3]]
-            tm.assert_frame_equal(result, expected)
+        # check that the repr is good
+        # make sure that we have a correct sparsified repr
+        # e.g. only 1 header of read
+        assert str(df2).splitlines()[0].split() == ["red"]
 
-            result = df2.sort_index(axis=1)
-            expected = df2.iloc[:, [0, 2, 1, 4, 3]]
-            tm.assert_frame_equal(result, expected)
+        # GH 8017
+        # sorting fails after columns added
 
-            # setitem then sort
-            result = df.copy()
-            result[("red", extra)] = "world"
+        # construct single-dtype then sort
+        result = df.copy().sort_index(axis=1)
+        expected = df.iloc[:, [0, 2, 1, 3]]
+        tm.assert_frame_equal(result, expected)
 
-            result = result.sort_index(axis=1)
-            tm.assert_frame_equal(result, expected)
+        result = df2.sort_index(axis=1)
+        expected = df2.iloc[:, [0, 2, 1, 4, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        # setitem then sort
+        result = df.copy()
+        result[("red", extra)] = "world"
+
+        result = result.sort_index(axis=1)
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_non_lexsorted(self):
         # degenerate case where we sort but don't
