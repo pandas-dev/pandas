@@ -1,16 +1,296 @@
 from datetime import datetime
+from itertools import permutations
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, Series, date_range, isna
+from pandas import Categorical, DataFrame, Index, MultiIndex, Series, date_range, isna
 import pandas._testing as tm
+import pandas.core.common as com
 
 
 class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
+
+    def test_reindex_with_multi_index(self):
+        # https://github.com/pandas-dev/pandas/issues/29896
+        # tests for reindexing a multi-indexed DataFrame with a new MultiIndex
+        #
+        # confirms that we can reindex a multi-indexed DataFrame with a new
+        # MultiIndex object correctly when using no filling, backfilling, and
+        # padding
+        #
+        # The DataFrame, `df`, used in this test is:
+        #       c
+        #  a b
+        # -1 0  A
+        #    1  B
+        #    2  C
+        #    3  D
+        #    4  E
+        #    5  F
+        #    6  G
+        #  0 0  A
+        #    1  B
+        #    2  C
+        #    3  D
+        #    4  E
+        #    5  F
+        #    6  G
+        #  1 0  A
+        #    1  B
+        #    2  C
+        #    3  D
+        #    4  E
+        #    5  F
+        #    6  G
+        #
+        # and the other MultiIndex, `new_multi_index`, is:
+        # 0: 0 0.5
+        # 1:   2.0
+        # 2:   5.0
+        # 3:   5.8
+        df = DataFrame(
+            {
+                "a": [-1] * 7 + [0] * 7 + [1] * 7,
+                "b": list(range(7)) * 3,
+                "c": ["A", "B", "C", "D", "E", "F", "G"] * 3,
+            }
+        ).set_index(["a", "b"])
+        new_index = [0.5, 2.0, 5.0, 5.8]
+        new_multi_index = MultiIndex.from_product([[0], new_index], names=["a", "b"])
+
+        # reindexing w/o a `method` value
+        reindexed = df.reindex(new_multi_index)
+        expected = DataFrame(
+            {"a": [0] * 4, "b": new_index, "c": [np.nan, "C", "F", np.nan]}
+        ).set_index(["a", "b"])
+        tm.assert_frame_equal(expected, reindexed)
+
+        # reindexing with backfilling
+        expected = DataFrame(
+            {"a": [0] * 4, "b": new_index, "c": ["B", "C", "F", "G"]}
+        ).set_index(["a", "b"])
+        reindexed_with_backfilling = df.reindex(new_multi_index, method="bfill")
+        tm.assert_frame_equal(expected, reindexed_with_backfilling)
+
+        reindexed_with_backfilling = df.reindex(new_multi_index, method="backfill")
+        tm.assert_frame_equal(expected, reindexed_with_backfilling)
+
+        # reindexing with padding
+        expected = DataFrame(
+            {"a": [0] * 4, "b": new_index, "c": ["A", "C", "F", "F"]}
+        ).set_index(["a", "b"])
+        reindexed_with_padding = df.reindex(new_multi_index, method="pad")
+        tm.assert_frame_equal(expected, reindexed_with_padding)
+
+        reindexed_with_padding = df.reindex(new_multi_index, method="ffill")
+        tm.assert_frame_equal(expected, reindexed_with_padding)
+
+    @pytest.mark.parametrize(
+        "method,expected_values",
+        [
+            ("nearest", [0, 1, 1, 2]),
+            ("pad", [np.nan, 0, 1, 1]),
+            ("backfill", [0, 1, 2, 2]),
+        ],
+    )
+    def test_reindex_methods(self, method, expected_values):
+        df = DataFrame({"x": list(range(5))})
+        target = np.array([-0.1, 0.9, 1.1, 1.5])
+
+        expected = DataFrame({"x": expected_values}, index=target)
+        actual = df.reindex(target, method=method)
+        tm.assert_frame_equal(expected, actual)
+
+        actual = df.reindex(target, method=method, tolerance=1)
+        tm.assert_frame_equal(expected, actual)
+        actual = df.reindex(target, method=method, tolerance=[1, 1, 1, 1])
+        tm.assert_frame_equal(expected, actual)
+
+        e2 = expected[::-1]
+        actual = df.reindex(target[::-1], method=method)
+        tm.assert_frame_equal(e2, actual)
+
+        new_order = [3, 0, 2, 1]
+        e2 = expected.iloc[new_order]
+        actual = df.reindex(target[new_order], method=method)
+        tm.assert_frame_equal(e2, actual)
+
+        switched_method = (
+            "pad" if method == "backfill" else "backfill" if method == "pad" else method
+        )
+        actual = df[::-1].reindex(target, method=switched_method)
+        tm.assert_frame_equal(expected, actual)
+
+    def test_reindex_methods_nearest_special(self):
+        df = DataFrame({"x": list(range(5))})
+        target = np.array([-0.1, 0.9, 1.1, 1.5])
+
+        expected = DataFrame({"x": [0, 1, 1, np.nan]}, index=target)
+        actual = df.reindex(target, method="nearest", tolerance=0.2)
+        tm.assert_frame_equal(expected, actual)
+
+        expected = DataFrame({"x": [0, np.nan, 1, np.nan]}, index=target)
+        actual = df.reindex(target, method="nearest", tolerance=[0.5, 0.01, 0.4, 0.1])
+        tm.assert_frame_equal(expected, actual)
+
+    def test_reindex_nearest_tz(self, tz_aware_fixture):
+        # GH26683
+        tz = tz_aware_fixture
+        idx = pd.date_range("2019-01-01", periods=5, tz=tz)
+        df = DataFrame({"x": list(range(5))}, index=idx)
+
+        expected = df.head(3)
+        actual = df.reindex(idx[:3], method="nearest")
+        tm.assert_frame_equal(expected, actual)
+
+    def test_reindex_nearest_tz_empty_frame(self):
+        # https://github.com/pandas-dev/pandas/issues/31964
+        dti = pd.DatetimeIndex(["2016-06-26 14:27:26+00:00"])
+        df = DataFrame(index=pd.DatetimeIndex(["2016-07-04 14:00:59+00:00"]))
+        expected = DataFrame(index=dti)
+        result = df.reindex(dti, method="nearest")
+        tm.assert_frame_equal(result, expected)
+
+    def test_reindex_frame_add_nat(self):
+        rng = date_range("1/1/2000 00:00:00", periods=10, freq="10s")
+        df = DataFrame({"A": np.random.randn(len(rng)), "B": rng})
+
+        result = df.reindex(range(15))
+        assert np.issubdtype(result["B"].dtype, np.dtype("M8[ns]"))
+
+        mask = com.isna(result)["B"]
+        assert mask[-5:].all()
+        assert not mask[:-5].any()
+
+    def test_reindex_limit(self):
+        # GH 28631
+        data = [["A", "A", "A"], ["B", "B", "B"], ["C", "C", "C"], ["D", "D", "D"]]
+        exp_data = [
+            ["A", "A", "A"],
+            ["B", "B", "B"],
+            ["C", "C", "C"],
+            ["D", "D", "D"],
+            ["D", "D", "D"],
+            [np.nan, np.nan, np.nan],
+        ]
+        df = DataFrame(data)
+        result = df.reindex([0, 1, 2, 3, 4, 5], method="ffill", limit=1)
+        expected = DataFrame(exp_data)
+        tm.assert_frame_equal(result, expected)
+
+    def test_reindex_level(self):
+        icol = ["jim", "joe", "jolie"]
+
+        def verify_first_level(df, level, idx, check_index_type=True):
+            def f(val):
+                return np.nonzero((df[level] == val).to_numpy())[0]
+
+            i = np.concatenate(list(map(f, idx)))
+            left = df.set_index(icol).reindex(idx, level=level)
+            right = df.iloc[i].set_index(icol)
+            tm.assert_frame_equal(left, right, check_index_type=check_index_type)
+
+        def verify(df, level, idx, indexer, check_index_type=True):
+            left = df.set_index(icol).reindex(idx, level=level)
+            right = df.iloc[indexer].set_index(icol)
+            tm.assert_frame_equal(left, right, check_index_type=check_index_type)
+
+        df = DataFrame(
+            {
+                "jim": list("B" * 4 + "A" * 2 + "C" * 3),
+                "joe": list("abcdeabcd")[::-1],
+                "jolie": [10, 20, 30] * 3,
+                "joline": np.random.randint(0, 1000, 9),
+            }
+        )
+
+        target = [
+            ["C", "B", "A"],
+            ["F", "C", "A", "D"],
+            ["A"],
+            ["A", "B", "C"],
+            ["C", "A", "B"],
+            ["C", "B"],
+            ["C", "A"],
+            ["A", "B"],
+            ["B", "A", "C"],
+        ]
+
+        for idx in target:
+            verify_first_level(df, "jim", idx)
+
+        # reindex by these causes different MultiIndex levels
+        for idx in [["D", "F"], ["A", "C", "B"]]:
+            verify_first_level(df, "jim", idx, check_index_type=False)
+
+        verify(df, "joe", list("abcde"), [3, 2, 1, 0, 5, 4, 8, 7, 6])
+        verify(df, "joe", list("abcd"), [3, 2, 1, 0, 5, 8, 7, 6])
+        verify(df, "joe", list("abc"), [3, 2, 1, 8, 7, 6])
+        verify(df, "joe", list("eca"), [1, 3, 4, 6, 8])
+        verify(df, "joe", list("edc"), [0, 1, 4, 5, 6])
+        verify(df, "joe", list("eadbc"), [3, 0, 2, 1, 4, 5, 8, 7, 6])
+        verify(df, "joe", list("edwq"), [0, 4, 5])
+        verify(df, "joe", list("wq"), [], check_index_type=False)
+
+        df = DataFrame(
+            {
+                "jim": ["mid"] * 5 + ["btm"] * 8 + ["top"] * 7,
+                "joe": ["3rd"] * 2
+                + ["1st"] * 3
+                + ["2nd"] * 3
+                + ["1st"] * 2
+                + ["3rd"] * 3
+                + ["1st"] * 2
+                + ["3rd"] * 3
+                + ["2nd"] * 2,
+                # this needs to be jointly unique with jim and joe or
+                # reindexing will fail ~1.5% of the time, this works
+                # out to needing unique groups of same size as joe
+                "jolie": np.concatenate(
+                    [
+                        np.random.choice(1000, x, replace=False)
+                        for x in [2, 3, 3, 2, 3, 2, 3, 2]
+                    ]
+                ),
+                "joline": np.random.randn(20).round(3) * 10,
+            }
+        )
+
+        for idx in permutations(df["jim"].unique()):
+            for i in range(3):
+                verify_first_level(df, "jim", idx[: i + 1])
+
+        i = [2, 3, 4, 0, 1, 8, 9, 5, 6, 7, 10, 11, 12, 13, 14, 18, 19, 15, 16, 17]
+        verify(df, "joe", ["1st", "2nd", "3rd"], i)
+
+        i = [0, 1, 2, 3, 4, 10, 11, 12, 5, 6, 7, 8, 9, 15, 16, 17, 18, 19, 13, 14]
+        verify(df, "joe", ["3rd", "2nd", "1st"], i)
+
+        i = [0, 1, 5, 6, 7, 10, 11, 12, 18, 19, 15, 16, 17]
+        verify(df, "joe", ["2nd", "3rd"], i)
+
+        i = [0, 1, 2, 3, 4, 10, 11, 12, 8, 9, 15, 16, 17, 13, 14]
+        verify(df, "joe", ["3rd", "1st"], i)
+
+    def test_non_monotonic_reindex_methods(self):
+        dr = date_range("2013-08-01", periods=6, freq="B")
+        data = np.random.randn(6, 1)
+        df = DataFrame(data, index=dr, columns=list("A"))
+        df_rev = DataFrame(data, index=dr[[3, 4, 5] + [0, 1, 2]], columns=list("A"))
+        # index is not monotonic increasing or decreasing
+        msg = "index must be monotonic increasing or decreasing"
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method="pad")
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method="ffill")
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method="bfill")
+        with pytest.raises(ValueError, match=msg):
+            df_rev.reindex(df.index, method="nearest")
 
     def test_reindex_sparse(self):
         # https://github.com/pandas-dev/pandas/issues/35286
