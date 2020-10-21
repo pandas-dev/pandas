@@ -1166,12 +1166,12 @@ class TestValueCounts:
             s_typed = s.astype(t)
             result = s_typed.value_counts(normalize=True, dropna=False)
             expected = Series(
-                [0.6, 0.2, 0.2], index=Series([np.nan, 2.0, 1.0], dtype=t)
+                [0.6, 0.2, 0.2], index=Series([np.nan, 1.0, 2.0], dtype=t)
             )
             tm.assert_series_equal(result, expected)
 
             result = s_typed.value_counts(normalize=True, dropna=True)
-            expected = Series([0.5, 0.5], index=Series([2.0, 1.0], dtype=t))
+            expected = Series([0.5, 0.5], index=Series([1.0, 2.0], dtype=t))
             tm.assert_series_equal(result, expected)
 
     def test_value_counts_uint64(self):
@@ -1182,7 +1182,7 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2 ** 63], dtype=object)
-        expected = Series([1, 1], index=[-1, 2 ** 63])
+        expected = Series([1, 1], index=[2 ** 63, -1])
         result = algos.value_counts(arr)
 
         # 32-bit linux has a different ordering
