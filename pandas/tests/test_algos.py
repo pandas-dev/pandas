@@ -851,10 +851,10 @@ class TestIsin:
     def test_same_nan_is_in_large_series(self):
         # https://github.com/pandas-dev/pandas/issues/22205
         s = np.tile(1.0, 1_000_001)
-        series = pd.Series(s)
+        series = Series(s)
         s[0] = np.nan
         result = series.isin([np.nan, 1])
-        expected = pd.Series(np.ones(len(s), dtype=bool))
+        expected = Series(np.ones(len(s), dtype=bool))
         tm.assert_series_equal(result, expected)
 
     def test_same_object_is_in(self):
