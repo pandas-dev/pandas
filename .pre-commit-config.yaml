@@ -57,7 +57,9 @@ repos:
         name: Check for incorrect Sphinx directives
         language: pygrep
         entry: |
-            (?x)\.\.\ (
+            (?x)
+            # Check for cases of e.g. .. warning: instead of .. warning::
+            \.\.\ (
                 autosummary|contents|currentmodule|deprecated|
                 function|image|important|include|ipython|literalinclude|
                 math|module|note|raw|seealso|toctree|versionadded|
@@ -69,7 +71,9 @@ repos:
         language: pygrep
         entry: |
             (?x)^(
+                # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
                 from\ pandas\.core\.common\ import|
+                # Check for imports from collections.abc instead of `from collections import abc`
                 from\ pandas\.core\ import\ common|
                 from\ collections\.abc\ import|
                 from\ numpy\ import\ nan
@@ -80,8 +84,10 @@ repos:
         language: pygrep
         entry: |
             (?x)^(
+                # Check for imports from pandas._testing instead of `import pandas._testing as tm`
                 from\ pandas\._testing\ import|
                 from\ pandas\ import\ _testing\ as\ tm|
+                # No direct imports from conftest
                 conftest\ import|
                 import\ conftest
             )
