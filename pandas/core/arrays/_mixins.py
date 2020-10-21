@@ -180,12 +180,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return self._validate_fill_value(fill_value)
 
     def __setitem__(self, key, value):
-        key = self._validate_setitem_key(key)
+        key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
         self._ndarray[key] = value
-
-    def _validate_setitem_key(self, key):
-        return check_array_indexer(self, key)
 
     def _validate_setitem_value(self, value):
         return value
@@ -198,17 +195,14 @@ class NDArrayBackedExtensionArray(ExtensionArray):
                 return self._box_func(result)
             return self._from_backing_data(result)
 
-        key = self._validate_getitem_key(key)
+        key = extract_array(key, extract_numpy=True)
+        key = check_array_indexer(self, key)
         result = self._ndarray[key]
         if lib.is_scalar(result):
             return self._box_func(result)
 
         result = self._from_backing_data(result)
         return result
-
-    def _validate_getitem_key(self, key):
-        key = extract_array(key, extract_numpy=True)
-        return check_array_indexer(self, key)
 
     @doc(ExtensionArray.fillna)
     def fillna(self: _T, value=None, method=None, limit=None) -> _T:

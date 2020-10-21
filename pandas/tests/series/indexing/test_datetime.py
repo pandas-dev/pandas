@@ -109,7 +109,7 @@ def test_slicing_datetimes():
     tm.assert_frame_equal(result, expected)
 
     # duplicates
-    df = pd.DataFrame(
+    df = DataFrame(
         np.arange(5.0, dtype="float64"),
         index=[datetime(2001, 1, i, 10, 00) for i in [1, 2, 2, 3, 4]],
     )
@@ -237,23 +237,38 @@ def test_getitem_setitem_datetimeindex():
     expected = ts[4:8]
     tm.assert_series_equal(result, expected)
 
-    # repeat all the above with naive datetimes
-    result = ts[datetime(1990, 1, 1, 4)]
+    # But we do not give datetimes a pass on tzawareness compat
+    # TODO: do the same with Timestamps and dt64
+    msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+    naive = datetime(1990, 1, 1, 4)
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#36148 will require tzawareness compat
+        result = ts[naive]
     expected = ts[4]
     assert result == expected
 
     result = ts.copy()
-    result[datetime(1990, 1, 1, 4)] = 0
-    result[datetime(1990, 1, 1, 4)] = ts[4]
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36148 will require tzawareness compat
+        result[datetime(1990, 1, 1, 4)] = 0
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36148 will require tzawareness compat
+        result[datetime(1990, 1, 1, 4)] = ts[4]
     tm.assert_series_equal(result, ts)
 
-    result = ts[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)]
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36148 will require tzawareness compat
+        result = ts[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)]
     expected = ts[4:8]
     tm.assert_series_equal(result, expected)
 
     result = ts.copy()
-    result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = 0
-    result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = ts[4:8]
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36148 will require tzawareness compat
+        result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = 0
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36148 will require tzawareness compat
+        result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = ts[4:8]
     tm.assert_series_equal(result, ts)
 
     lb = datetime(1990, 1, 1, 4)
@@ -537,7 +552,7 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
     idx = pd.period_range("1/1/2000", freq="T", periods=n)
     assert idx._engine.over_size_threshold
 
-    s = pd.Series(np.random.randn(len(idx)), index=idx)
+    s = Series(np.random.randn(len(idx)), index=idx)
 
     pos = n - 1
     timestamp = idx[pos]

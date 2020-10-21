@@ -67,15 +67,15 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import transform
+from pandas.core.aggregation import aggregate, transform
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
+    array as pd_array,
     create_series_with_explicit_dtype,
     extract_array,
     is_empty_data,
@@ -1194,7 +1194,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        Series or DataFrame
+        Series or DataFrame or None
             When `drop` is False (the default), a DataFrame is returned.
             The newly created columns will come first in the DataFrame,
             followed by the original Series values.
@@ -1472,6 +1472,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         str
             {klass} in Markdown-friendly format.
+
+        Notes
+        -----
+        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
 
         Examples
         --------
@@ -1790,12 +1794,17 @@ Name: Max Speed, dtype: float64
         """
         if level is None:
             return notna(self.array).sum()
+        elif not isinstance(self.index, MultiIndex):
+            raise ValueError("Series.count level is only valid with a MultiIndex")
+
+        index = self.index
+        assert isinstance(index, MultiIndex)  # for mypy
 
         if isinstance(level, str):
-            level = self.index._get_level_number(level)
+            level = index._get_level_number(level)
 
-        lev = self.index.levels[level]
-        level_codes = np.array(self.index.codes[level], subok=False, copy=True)
+        lev = index.levels[level]
+        level_codes = np.array(index.codes[level], subok=False, copy=True)
 
         mask = level_codes == -1
         if mask.any():
@@ -1913,8 +1922,8 @@ Name: Max Speed, dtype: float64
 
         Returns
         -------
-        Series
-            Series with duplicates dropped.
+        Series or None
+            Series with duplicates dropped or None if ``inplace=True``.
 
         See Also
         --------
@@ -2054,7 +2063,9 @@ Name: Max Speed, dtype: float64
         4     True
         dtype: bool
         """
-        return super().duplicated(keep=keep)
+        res = base.IndexOpsMixin.duplicated(self, keep=keep)
+        result = self._constructor(res, index=self.index)
+        return result.__finalize__(self, method="duplicated")
 
     def idxmin(self, axis=0, skipna=True, *args, **kwargs):
         """
@@ -3131,8 +3142,8 @@ Keep all original rows and also all original values
 
         Returns
         -------
-        Series
-            Series ordered by values.
+        Series or None
+            Series ordered by values or None if ``inplace=True``.
 
         See Also
         --------
@@ -3377,8 +3388,8 @@ Keep all original rows and also all original values
 
         Returns
         -------
-        Series
-            The original Series sorted by the labels.
+        Series or None
+            The original Series sorted by the labels or None if ``inplace=True``.
 
         See Also
         --------
@@ -4018,7 +4029,7 @@ Keep all original rows and also all original values
         if func is None:
             func = dict(kwargs.items())
 
-        result, how = self._aggregate(func, *args, **kwargs)
+        result, how = aggregate(self, func, *args, **kwargs)
         if result is None:
 
             # we can be called from an inner function which
@@ -4187,7 +4198,7 @@ Keep all original rows and also all original values
         if len(mapped) and isinstance(mapped[0], Series):
             # GH 25959 use pd.array instead of tolist
             # so extension arrays can be used
-            return self._constructor_expanddim(pd.array(mapped), index=self.index)
+            return self._constructor_expanddim(pd_array(mapped), index=self.index)
         else:
             return self._constructor(mapped, index=self.index).__finalize__(
                 self, method="apply"
@@ -4306,8 +4317,8 @@ Keep all original rows and also all original values
 
         Returns
         -------
-        Series
-            Series with index labels or name altered.
+        Series or None
+            Series with index labels or name altered or None if ``inplace=True``.
 
         See Also
         --------
@@ -4420,8 +4431,8 @@ Keep all original rows and also all original values
 
         Returns
         -------
-        Series
-            Series with specified index labels removed.
+        Series or None
+            Series with specified index labels removed or None if ``inplace=True``.
 
         Raises
         ------
@@ -4865,7 +4876,7 @@ Keep all original rows and also all original values
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> "Series":
-        return super().isna()
+        return generic.NDFrame.isna(self)
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> "Series":
@@ -4897,8 +4908,8 @@ Keep all original rows and also all original values
 
         Returns
         -------
-        Series
-            Series with NA entries dropped from it.
+        Series or None
+            Series with NA entries dropped from it or None if ``inplace=True``.
 
         See Also
         --------
@@ -5067,9 +5078,28 @@ Keep all original rows and also all original values
 
         return self._construct_result(res_values, name=res_name)
 
+    def _logical_method(self, other, op):
+        res_name = ops.get_op_result_name(self, other)
+        self, other = ops.align_method_SERIES(self, other, align_asobject=True)
+
+        lvalues = extract_array(self, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True)
+
+        res_values = ops.logical_op(lvalues, rvalues, op)
+        return self._construct_result(res_values, name=res_name)
+
+    def _arith_method(self, other, op):
+        res_name = ops.get_op_result_name(self, other)
+        self, other = ops.align_method_SERIES(self, other)
+
+        lvalues = extract_array(self, extract_numpy=True)
+        rvalues = extract_array(other, extract_numpy=True)
+        result = ops.arithmetic_op(lvalues, rvalues, op)
+
+        return self._construct_result(result, name=res_name)
+
 
 Series._add_numeric_operations()
 
 # Add arithmetic!
 ops.add_flex_arithmetic_methods(Series)
-ops.add_special_arithmetic_methods(Series)

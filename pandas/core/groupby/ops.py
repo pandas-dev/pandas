@@ -7,7 +7,17 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import Dict, Generic, Hashable, List, Optional, Sequence, Tuple, Type
+from typing import (
+    Dict,
+    Generic,
+    Hashable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+)
 
 import numpy as np
 
@@ -116,7 +126,9 @@ class BaseGrouper:
     def nkeys(self) -> int:
         return len(self.groupings)
 
-    def get_iterator(self, data: FrameOrSeries, axis: int = 0):
+    def get_iterator(
+        self, data: FrameOrSeries, axis: int = 0
+    ) -> Iterator[Tuple[Label, FrameOrSeries]]:
         """
         Groupby iterator
 

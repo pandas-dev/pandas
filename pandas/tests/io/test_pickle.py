@@ -12,6 +12,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 """
 import bz2
 import datetime
+import functools
 import glob
 import gzip
 import io
@@ -24,7 +25,7 @@ import zipfile
 
 import pytest
 
-from pandas.compat import get_lzma_file, import_lzma, is_platform_little_endian
+from pandas.compat import PY38, get_lzma_file, import_lzma, is_platform_little_endian
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -155,28 +156,43 @@ def test_pickles(current_pickle_data, legacy_pickle):
         compare(current_pickle_data, legacy_pickle, version)
 
 
-def test_round_trip_current(current_pickle_data):
-    def python_pickler(obj, path):
-        with open(path, "wb") as fh:
-            pickle.dump(obj, fh, protocol=-1)
+def python_pickler(obj, path):
+    with open(path, "wb") as fh:
+        pickle.dump(obj, fh, protocol=-1)
 
-    def python_unpickler(path):
-        with open(path, "rb") as fh:
-            fh.seek(0)
-            return pickle.load(fh)
 
+def python_unpickler(path):
+    with open(path, "rb") as fh:
+        fh.seek(0)
+        return pickle.load(fh)
+
+
+@pytest.mark.parametrize(
+    "pickle_writer",
+    [
+        pytest.param(python_pickler, id="python"),
+        pytest.param(pd.to_pickle, id="pandas_proto_default"),
+        pytest.param(
+            functools.partial(pd.to_pickle, protocol=pickle.HIGHEST_PROTOCOL),
+            id="pandas_proto_highest",
+        ),
+        pytest.param(functools.partial(pd.to_pickle, protocol=4), id="pandas_proto_4"),
+        pytest.param(
+            functools.partial(pd.to_pickle, protocol=5),
+            id="pandas_proto_5",
+            marks=pytest.mark.skipif(not PY38, reason="protocol 5 not supported"),
+        ),
+    ],
+)
+def test_round_trip_current(current_pickle_data, pickle_writer):
     data = current_pickle_data
     for typ, dv in data.items():
         for dt, expected in dv.items():
 
             for writer in [pd.to_pickle, python_pickler]:
-                if writer is None:
-                    continue
-
                 with tm.ensure_clean() as path:
-
                     # test writing with each pickler
-                    writer(expected, path)
+                    pickle_writer(expected, path)
 
                     # test reading with each unpickler
                     result = pd.read_pickle(path)

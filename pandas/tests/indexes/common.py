@@ -613,8 +613,6 @@ class Base:
     def test_equals_op(self):
         # GH9947, GH10637
         index_a = self.create_index()
-        if isinstance(index_a, PeriodIndex):
-            pytest.skip("Skip check for PeriodIndex")
 
         n = len(index_a)
         index_b = index_a[0:-1]
@@ -805,7 +803,7 @@ class Base:
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index),
+            lambda values, index: Series(values, index),
         ],
     )
     def test_map_dictlike(self, mapper):

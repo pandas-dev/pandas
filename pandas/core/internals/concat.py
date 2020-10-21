@@ -115,7 +115,7 @@ def _get_mgr_concatenation_plan(mgr, indexers):
         blklocs = algos.take_1d(mgr.blklocs, ax0_indexer, fill_value=-1)
     else:
 
-        if mgr._is_single_block:
+        if mgr.is_single_block:
             blk = mgr.blocks[0]
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 
@@ -187,7 +187,7 @@ class JoinUnit:
         return f"{type(self).__name__}({repr(self.block)}, {self.indexers})"
 
     @cache_readonly
-    def needs_filling(self):
+    def needs_filling(self) -> bool:
         for indexer in self.indexers.values():
             # FIXME: cache results of indexer == -1 checks.
             if (indexer == -1).any():
@@ -206,7 +206,7 @@ class JoinUnit:
             return get_dtype(maybe_promote(self.block.dtype, self.block.fill_value)[0])
 
     @cache_readonly
-    def is_na(self):
+    def is_na(self) -> bool:
         if self.block is None:
             return True
 
@@ -217,9 +217,7 @@ class JoinUnit:
         # a block is NOT null, chunks should help in such cases.  1000 value
         # was chosen rather arbitrarily.
         values = self.block.values
-        if self.block.is_categorical:
-            values_flat = values.categories
-        elif is_sparse(self.block.values.dtype):
+        if is_sparse(self.block.values.dtype):
             return False
         elif self.block.is_extension:
             # TODO(EA2D): no need for special case with 2D EAs
