@@ -680,7 +680,8 @@ class TestCommon(Base):
 
     def test_offsets_hashable(self, offset_types):
         # GH: 37267
-        assert hash(offset_types) is not None
+        off = self._get_offset(offset_types)
+        assert hash(off) is not None
 
 
 class TestDateOffset(Base):

@@ -752,9 +752,6 @@ cdef class Tick(SingleConstructorOffset):
                 "Tick offset with `normalize=True` are not allowed."
             )
 
-    def __hash__(self) -> int:
-        return hash(self._params)
-
     # FIXME: Without making this cpdef, we get AttributeError when calling
     #  from __mul__
     cpdef Tick _next_higher_resolution(Tick self):
@@ -794,6 +791,10 @@ cdef class Tick(SingleConstructorOffset):
     def is_anchored(self) -> bool:
         return False
 
+    # This is identical to DateOffset.__hash__, but has to be redefined here
+    # for Python 3, because we've redefined __eq__.
+    def __hash__(self) -> int:
+        return hash(self._params)
     # --------------------------------------------------------------------
     # Comparison and Arithmetic Methods
 
