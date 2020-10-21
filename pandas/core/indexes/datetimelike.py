@@ -484,7 +484,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
-        values = self.view("i8")
+        values = self._data._ndarray
 
         try:
             other = self._data._validate_where_value(other)
@@ -493,7 +493,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             oth = getattr(other, "dtype", other)
             raise TypeError(f"Where requires matching dtype, not {oth}") from err
 
-        result = np.where(cond, values, other).astype("i8")
+        result = np.where(cond, values, other)
         arr = self._data._from_backing_data(result)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -610,7 +610,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         -------
         new_index : Index
         """
-        item = self._data._validate_insert_value(item)
+        value = self._data._validate_insert_value(item)
+        item = self._data._box_func(value)
 
         freq = None
         if is_period_dtype(self.dtype):
@@ -630,10 +631,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                     freq = self.freq
 
         arr = self._data
-        item = arr._unbox_scalar(item)
-        item = arr._rebox_native(item)
 
-        new_values = np.concatenate([arr._ndarray[:loc], [item], arr._ndarray[loc:]])
+        new_values = np.concatenate([arr._ndarray[:loc], [value], arr._ndarray[loc:]])
         new_arr = self._data._from_backing_data(new_values)
         new_arr._freq = freq
 
