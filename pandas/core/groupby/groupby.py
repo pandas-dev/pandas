@@ -81,7 +81,7 @@ _common_see_also = """
         --------
         Series.%(name)s : Apply a function %(name)s to a Series.
         DataFrame.%(name)s : Apply a function %(name)s
-         to each row or column of a DataFrame.
+            to each row or column of a DataFrame.
 """
 
 _apply_docs = dict(
@@ -320,11 +320,11 @@ Returns
 See Also
 --------
 %(klass)s.groupby.apply : Apply function func group-wise
- and combine the results together.
+    and combine the results together.
 %(klass)s.groupby.aggregate : Aggregate using one or more
- operations over the specified axis.
+    operations over the specified axis.
 %(klass)s.transform : Transforms the Series on each group
- based on the given function.
+    based on the given function.
 
 Notes
 -----
@@ -432,11 +432,11 @@ Returns
 See Also
 --------
 {klass}.groupby.apply : Apply function func group-wise
- and combine the results together.
+    and combine the results together.
 {klass}.groupby.transform : Aggregate using one or more
- operations over the specified axis.
+    operations over the specified axis.
 {klass}.aggregate : Transforms the Series on each group
- based on the given function.
+    based on the given function.
 
 Notes
 -----

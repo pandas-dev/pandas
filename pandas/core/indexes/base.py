@@ -706,7 +706,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         numpy.ndarray.take: Return an array formed from the
-         elements of a at the given indices.
+            elements of a at the given indices.
         """
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
@@ -3939,7 +3939,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        values
+        values : Values
         """
         return self._data
 
@@ -4231,7 +4231,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         numpy.ndarray.putmask : Changes elements of an array
-         based on conditional and input values.
+            based on conditional and input values.
         """
         values = self.values.copy()
         try:

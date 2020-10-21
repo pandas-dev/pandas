@@ -236,11 +236,11 @@ class Resampler(BaseGroupBy, ShallowMixin):
     See Also
     --------
     DataFrame.groupby.aggregate : Aggregate using callable, string, dict,
-            or list of string/callables.
+        or list of string/callables.
     DataFrame.resample.transform : Transforms the Series on each group
-            based on the given function.
+        based on the given function.
     DataFrame.aggregate: Aggregate using one or more
-            operations over the specified axis.
+        operations over the specified axis.
     """
     )
 

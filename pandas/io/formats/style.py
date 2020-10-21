@@ -830,7 +830,7 @@ class Styler:
         See Also
         --------
         Styler.where: Updates the HTML representation with a style which is
-         selected in accordance with the return value of a function.
+            selected in accordance with the return value of a function.
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
