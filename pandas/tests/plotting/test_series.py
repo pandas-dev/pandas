@@ -901,7 +901,7 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_xtick_barPlot(self):
         # GH28172
-        s = pd.Series(range(10), index=[f"P{i:02d}" for i in range(10)])
+        s = Series(range(10), index=[f"P{i:02d}" for i in range(10)])
         ax = s.plot.bar(xticks=range(0, 11, 2))
         exp = np.array(list(range(0, 11, 2)))
         tm.assert_numpy_array_equal(exp, ax.get_xticks())
@@ -947,7 +947,7 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_plot_no_rows(self):
         # GH 27758
-        df = pd.Series(dtype=int)
+        df = Series(dtype=int)
         assert df.empty
         ax = df.plot()
         assert len(ax.get_lines()) == 1
@@ -956,12 +956,12 @@ class TestSeriesPlots(TestPlotBase):
         assert len(line.get_ydata()) == 0
 
     def test_plot_no_numeric_data(self):
-        df = pd.Series(["a", "b", "c"])
+        df = Series(["a", "b", "c"])
         with pytest.raises(TypeError):
             df.plot()
 
     def test_style_single_ok(self):
-        s = pd.Series([1, 2])
+        s = Series([1, 2])
         ax = s.plot(style="s", color="C3")
         assert ax.lines[0].get_color() == "C3"
 
@@ -972,7 +972,7 @@ class TestSeriesPlots(TestPlotBase):
     @pytest.mark.parametrize("kind", ["line", "area", "bar"])
     def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
         # GH 9093
-        ser = pd.Series([1, 2, 3, 4])
+        ser = Series([1, 2, 3, 4])
         ser.index.name = index_name
 
         # default is the ylabel is not shown and xlabel is index name

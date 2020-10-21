@@ -743,7 +743,7 @@ class TestJoin:
 
     def test_join_on_tz_aware_datetimeindex(self):
         # GH 23931, 26335
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             {
                 "date": pd.date_range(
                     start="2018-01-01", periods=5, tz="America/Chicago"
@@ -752,7 +752,7 @@ class TestJoin:
             }
         )
 
-        df2 = pd.DataFrame(
+        df2 = DataFrame(
             {
                 "date": pd.date_range(
                     start="2018-01-03", periods=5, tz="America/Chicago"
@@ -762,7 +762,7 @@ class TestJoin:
         )
         result = df1.join(df2.set_index("date"), on="date")
         expected = df1.copy()
-        expected["vals_2"] = pd.Series([np.nan] * 2 + list("tuv"), dtype=object)
+        expected["vals_2"] = Series([np.nan] * 2 + list("tuv"), dtype=object)
         tm.assert_frame_equal(result, expected)
 
     def test_join_datetime_string(self):

@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime, tzinfo
-from typing import Any, List, Optional, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union, cast
 
 import numpy as np
 
@@ -16,6 +16,7 @@ from pandas.util._decorators import Appender, cache_readonly, doc
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool_dtype,
+    is_categorical_dtype,
     is_dtype_equal,
     is_integer,
     is_list_like,
@@ -40,6 +41,9 @@ from pandas.core.indexes.extension import (
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
+
+if TYPE_CHECKING:
+    from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -137,14 +141,31 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         elif other.dtype.kind in ["f", "i", "u", "c"]:
             return False
         elif not isinstance(other, type(self)):
-            try:
-                other = type(self)(other)
-            except (ValueError, TypeError, OverflowError):
-                # e.g.
-                #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
-                #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
-                #  OverflowError -> Index([very_large_timedeltas])
-                return False
+            inferrable = [
+                "timedelta",
+                "timedelta64",
+                "datetime",
+                "datetime64",
+                "date",
+                "period",
+            ]
+
+            should_try = False
+            if other.dtype == object:
+                should_try = other.inferred_type in inferrable
+            elif is_categorical_dtype(other.dtype):
+                other = cast("CategoricalIndex", other)
+                should_try = other.categories.inferred_type in inferrable
+
+            if should_try:
+                try:
+                    other = type(self)(other)
+                except (ValueError, TypeError, OverflowError):
+                    # e.g.
+                    #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
+                    #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
+                    #  OverflowError -> Index([very_large_timedeltas])
+                    return False
 
         if not is_dtype_equal(self.dtype, other.dtype):
             # have different timezone
@@ -169,12 +190,14 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         indices = ensure_int64(indices)
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
-        if isinstance(maybe_slice, slice):
-            return self[maybe_slice]
 
-        return ExtensionIndex.take(
+        result = ExtensionIndex.take(
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
+        if isinstance(maybe_slice, slice):
+            freq = self._data._get_getitem_freq(maybe_slice)
+            result._data._freq = freq
+        return result
 
     @doc(IndexOpsMixin.searchsorted, klass="Datetime-like Index")
     def searchsorted(self, value, side="left", sorter=None):
@@ -375,16 +398,12 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         self,
         reso: Resolution,
         parsed: datetime,
-        use_lhs: bool = True,
-        use_rhs: bool = True,
     ):
         """
         Parameters
         ----------
         reso : Resolution
         parsed : datetime
-        use_lhs : bool, default True
-        use_rhs : bool, default True
 
         Returns
         -------
@@ -399,8 +418,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         if self.is_monotonic:
 
             if len(self) and (
-                (use_lhs and t1 < self[0] and t2 < self[0])
-                or (use_rhs and t1 > self[-1] and t2 > self[-1])
+                (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
             ):
                 # we are out of range
                 raise KeyError
@@ -409,13 +427,13 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
             # a monotonic (sorted) series can be sliced
             # Use asi8.searchsorted to avoid re-validating Periods/Timestamps
-            left = i8vals.searchsorted(unbox(t1), side="left") if use_lhs else None
-            right = i8vals.searchsorted(unbox(t2), side="right") if use_rhs else None
+            left = i8vals.searchsorted(unbox(t1), side="left")
+            right = i8vals.searchsorted(unbox(t2), side="right")
             return slice(left, right)
 
         else:
-            lhs_mask = (i8vals >= unbox(t1)) if use_lhs else True
-            rhs_mask = (i8vals <= unbox(t2)) if use_rhs else True
+            lhs_mask = i8vals >= unbox(t1)
+            rhs_mask = i8vals <= unbox(t2)
 
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
@@ -466,7 +484,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
-        values = self.view("i8")
+        values = self._data._ndarray
 
         try:
             other = self._data._validate_where_value(other)
@@ -475,7 +493,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             oth = getattr(other, "dtype", other)
             raise TypeError(f"Where requires matching dtype, not {oth}") from err
 
-        result = np.where(cond, values, other).astype("i8")
+        result = np.where(cond, values, other)
         arr = self._data._from_backing_data(result)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -592,7 +610,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         -------
         new_index : Index
         """
-        item = self._data._validate_insert_value(item)
+        value = self._data._validate_insert_value(item)
+        item = self._data._box_func(value)
 
         freq = None
         if is_period_dtype(self.dtype):
@@ -612,10 +631,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                     freq = self.freq
 
         arr = self._data
-        item = arr._unbox_scalar(item)
-        item = arr._rebox_native(item)
 
-        new_values = np.concatenate([arr._ndarray[:loc], [item], arr._ndarray[loc:]])
+        new_values = np.concatenate([arr._ndarray[:loc], [value], arr._ndarray[loc:]])
         new_arr = self._data._from_backing_data(new_values)
         new_arr._freq = freq
 
@@ -645,9 +662,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
         try:
-            return self._data._validate_listlike(
-                keyarr, "convert_arr_indexer", allow_object=True
-            )
+            return self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
             return com.asarray_tuplesafe(keyarr)
 
@@ -673,9 +688,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         name = self.name if name is lib.no_default else name
 
         if values is not None:
-            # TODO: We would rather not get here
-            if isinstance(values, np.ndarray):
-                values = type(self._data)(values, dtype=self.dtype)
             return self._simple_new(values, name=name)
 
         result = self._simple_new(self._data, name=name)
@@ -719,15 +731,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        res_name = get_op_result_name(self, other)
 
         if self.equals(other):
             return self._get_reconciled_name_object(other)
 
         if len(self) == 0:
-            return self.copy()
+            return self.copy()._get_reconciled_name_object(other)
         if len(other) == 0:
-            return other.copy()
+            return other.copy()._get_reconciled_name_object(self)
 
         if not isinstance(other, type(self)):
             result = Index.intersection(self, other, sort=sort)
@@ -735,7 +746,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 if result.freq is None:
                     # TODO: no tests rely on this; needed?
                     result = result._with_freq("infer")
-            result.name = res_name
             return result
 
         elif not self._can_fast_intersect(other):
@@ -743,9 +753,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # We need to invalidate the freq because Index.intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
             #  self.freq if we're not careful.
-            result = result._with_freq(None)._with_freq("infer")
-            result.name = res_name
-            return result
+            return result._with_freq(None)._with_freq("infer")
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -759,11 +767,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            return type(self)(data=[], dtype=self.dtype, freq=self.freq, name=res_name)
+            result = type(self)(data=[], dtype=self.dtype, freq=self.freq)
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left._values[lslice]
-            return type(self)._simple_new(left_chunk, name=res_name)
+            result = type(self)._simple_new(left_chunk)
+
+        return self._wrap_setop_result(other, result)
 
     def _can_fast_intersect(self: _T, other: _T) -> bool:
         if self.freq is None:
@@ -858,7 +868,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
             dates = type(self._data)(dates, freq=self.freq)
-            result = type(self)._simple_new(dates, name=self.name)
+            result = type(self)._simple_new(dates)
             return result
         else:
             return left
@@ -883,8 +893,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 result = result._with_freq("infer")
             return result
         else:
-            i8self = Int64Index._simple_new(self.asi8, name=self.name)
-            i8other = Int64Index._simple_new(other.asi8, name=other.name)
+            i8self = Int64Index._simple_new(self.asi8)
+            i8other = Int64Index._simple_new(other.asi8)
             i8result = i8self._union(i8other, sort=sort)
             result = type(self)(i8result, dtype=self.dtype, freq="infer")
             return result

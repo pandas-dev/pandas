@@ -417,11 +417,16 @@ def hist_frame(
         if not isinstance(column, (list, np.ndarray, ABCIndexClass)):
             column = [column]
         data = data[column]
-    data = data._get_numeric_data()
+    # GH32590
+    data = data.select_dtypes(
+        include=(np.number, "datetime64", "datetimetz"), exclude="timedelta"
+    )
     naxes = len(data.columns)
 
     if naxes == 0:
-        raise ValueError("hist method requires numerical columns, nothing to plot.")
+        raise ValueError(
+            "hist method requires numerical or datetime columns, nothing to plot."
+        )
 
     fig, axes = create_subplots(
         naxes=naxes,
