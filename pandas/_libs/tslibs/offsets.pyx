@@ -795,6 +795,7 @@ cdef class Tick(SingleConstructorOffset):
     # for Python 3, because we've redefined __eq__.
     def __hash__(self) -> int:
         return hash(self._params)
+
     # --------------------------------------------------------------------
     # Comparison and Arithmetic Methods
 
