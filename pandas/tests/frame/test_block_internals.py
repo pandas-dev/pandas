@@ -64,7 +64,7 @@ class TestDataFrameBlockInternals:
         float_frame["F"] = 8.0
         assert len(float_frame._mgr.blocks) == 3
 
-        return_value = float_frame._consolidate(inplace=True)
+        return_value = float_frame._consolidate_inplace()
         assert return_value is None
         assert len(float_frame._mgr.blocks) == 1
 
@@ -78,7 +78,7 @@ class TestDataFrameBlockInternals:
     def test_values_consolidate(self, float_frame):
         float_frame["E"] = 7.0
         assert not float_frame._mgr.is_consolidated()
-        _ = float_frame.values  # noqa
+        _ = float_frame.values
         assert float_frame._mgr.is_consolidated()
 
     def test_modify_values(self, float_frame):
@@ -606,7 +606,7 @@ class TestDataFrameBlockInternals:
     def test_constructor_no_pandas_array(self):
         # Ensure that PandasArray isn't allowed inside Series
         # See https://github.com/pandas-dev/pandas/issues/23995 for more.
-        arr = pd.Series([1, 2, 3]).array
+        arr = Series([1, 2, 3]).array
         result = pd.DataFrame({"A": arr})
         expected = pd.DataFrame({"A": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
@@ -648,7 +648,7 @@ def test_to_dict_of_blocks_item_cache():
 
 def test_update_inplace_sets_valid_block_values():
     # https://github.com/pandas-dev/pandas/issues/33457
-    df = pd.DataFrame({"a": pd.Series([1, 2, None], dtype="category")})
+    df = pd.DataFrame({"a": Series([1, 2, None], dtype="category")})
 
     # inplace update of a single column
     df["a"].fillna(1, inplace=True)
@@ -658,3 +658,26 @@ def test_update_inplace_sets_valid_block_values():
 
     # smoketest for OP bug from GH#35731
     assert df.isnull().sum().sum() == 0
+
+
+def test_nonconsolidated_item_cache_take():
+    # https://github.com/pandas-dev/pandas/issues/35521
+
+    # create non-consolidated dataframe with object dtype columns
+    df = pd.DataFrame()
+    df["col1"] = Series(["a"], dtype=object)
+    df["col2"] = Series([0], dtype=object)
+
+    # access column (item cache)
+    df["col1"] == "A"
+    # take operation
+    # (regression was that this consolidated but didn't reset item cache,
+    # resulting in an invalid cache and the .at operation not working properly)
+    df[df["col2"] == 0]
+
+    # now setting value should update actual dataframe
+    df.at[0, "col1"] = "A"
+
+    expected = pd.DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+    assert df.at[0, "col1"] == "A"

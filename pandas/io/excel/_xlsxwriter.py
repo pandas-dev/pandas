@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 import pandas._libs.json as json
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import _validate_freeze_panes
+from pandas.io.excel._util import validate_freeze_panes
 
 
 class _XlsxStyler:
@@ -158,7 +158,7 @@ class _XlsxStyler:
         return props
 
 
-class _XlsxWriter(ExcelWriter):
+class XlsxWriter(ExcelWriter):
     engine = "xlsxwriter"
     supported_extensions = (".xlsx",)
 
@@ -208,7 +208,7 @@ class _XlsxWriter(ExcelWriter):
 
         style_dict = {"null": None}
 
-        if _validate_freeze_panes(freeze_panes):
+        if validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
 
         for cell in cells:

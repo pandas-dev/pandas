@@ -192,7 +192,7 @@ class TestSeriesDatetimeValues:
         exp = Series(np.array([0, 1, 2], dtype="int64"), index=index, name="xxx")
         tm.assert_series_equal(s.dt.second, exp)
 
-        exp = pd.Series([s[0]] * 3, index=index, name="xxx")
+        exp = Series([s[0]] * 3, index=index, name="xxx")
         tm.assert_series_equal(s.dt.normalize(), exp)
 
         # periodindex
@@ -350,7 +350,7 @@ class TestSeriesDatetimeValues:
     def test_dt_tz_localize_categorical(self, tz_aware_fixture):
         # GH 27952
         tz = tz_aware_fixture
-        datetimes = pd.Series(
+        datetimes = Series(
             ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns]"
         )
         categorical = datetimes.astype("category")
@@ -361,7 +361,7 @@ class TestSeriesDatetimeValues:
     def test_dt_tz_convert_categorical(self, tz_aware_fixture):
         # GH 27952
         tz = tz_aware_fixture
-        datetimes = pd.Series(
+        datetimes = Series(
             ["2019-01-01", "2019-01-01", "2019-01-02"], dtype="datetime64[ns, MET]"
         )
         categorical = datetimes.astype("category")
@@ -372,7 +372,7 @@ class TestSeriesDatetimeValues:
     @pytest.mark.parametrize("accessor", ["year", "month", "day"])
     def test_dt_other_accessors_categorical(self, accessor):
         # GH 27952
-        datetimes = pd.Series(
+        datetimes = Series(
             ["2018-01-01", "2018-01-01", "2019-01-02"], dtype="datetime64[ns]"
         )
         categorical = datetimes.astype("category")
@@ -657,16 +657,16 @@ class TestSeriesDatetimeValues:
 
     def test_setitem_with_string_index(self):
         # GH 23451
-        x = pd.Series([1, 2, 3], index=["Date", "b", "other"])
+        x = Series([1, 2, 3], index=["Date", "b", "other"])
         x["Date"] = date.today()
         assert x.Date == date.today()
         assert x["Date"] == date.today()
 
     def test_setitem_with_different_tz(self):
         # GH#24024
-        ser = pd.Series(pd.date_range("2000", periods=2, tz="US/Central"))
+        ser = Series(pd.date_range("2000", periods=2, tz="US/Central"))
         ser[0] = pd.Timestamp("2000", tz="US/Eastern")
-        expected = pd.Series(
+        expected = Series(
             [
                 pd.Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
                 pd.Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
@@ -682,10 +682,13 @@ class TestSeriesDatetimeValues:
             [[pd.NaT], [[np.NaN, np.NaN, np.NaN]]],
             [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
             [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]]],
+            # see GH#36032
+            [["2016-01-08", "2016-01-04"], [[2016, 1, 5], [2016, 1, 1]]],
+            [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
         ],
     )
     def test_isocalendar(self, input_series, expected_output):
-        result = pd.to_datetime(pd.Series(input_series)).dt.isocalendar()
+        result = pd.to_datetime(Series(input_series)).dt.isocalendar()
         expected_frame = pd.DataFrame(
             expected_output, columns=["year", "week", "day"], dtype="UInt32"
         )
@@ -694,8 +697,16 @@ class TestSeriesDatetimeValues:
 
 def test_week_and_weekofyear_are_deprecated():
     # GH#33595 Deprecate week and weekofyear
-    series = pd.to_datetime(pd.Series(["2020-01-01"]))
+    series = pd.to_datetime(Series(["2020-01-01"]))
     with tm.assert_produces_warning(FutureWarning):
         series.dt.week
     with tm.assert_produces_warning(FutureWarning):
         series.dt.weekofyear
+
+
+def test_normalize_pre_epoch_dates():
+    # GH: 36294
+    s = pd.to_datetime(Series(["1969-01-01 09:00:00", "2016-01-01 09:00:00"]))
+    result = s.dt.normalize()
+    expected = pd.to_datetime(Series(["1969-01-01", "2016-01-01"]))
+    tm.assert_series_equal(result, expected)

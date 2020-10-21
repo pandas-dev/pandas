@@ -66,12 +66,11 @@ class TestSeriesToCSV:
             tm.assert_series_equal(check_series, series)
 
     def test_to_csv(self, datetime_series):
-        import io
 
         with tm.ensure_clean() as path:
             datetime_series.to_csv(path, header=False)
 
-            with io.open(path, newline=None) as f:
+            with open(path, newline=None) as f:
                 lines = f.readlines()
             assert lines[1] != "\n"
 

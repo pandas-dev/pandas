@@ -6,7 +6,7 @@ from pandas.errors import UnsortedIndexError
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
 import pandas._testing as tm
-from pandas.core.indexing import _non_reducing_slice
+from pandas.core.indexing import non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
 
@@ -528,7 +528,7 @@ class TestMultiIndexSlicers:
         # test single level indexing on single index column data frame
         df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=["a", "b", "c"])
         result = df.loc(axis=1)["a"]
-        expected = pd.Series(np.array([0, 3, 6]), name="a")
+        expected = Series(np.array([0, 3, 6]), name="a")
         tm.assert_series_equal(result, expected)
 
     def test_per_axis_per_level_setitem(self):
@@ -739,7 +739,7 @@ class TestMultiIndexSlicers:
         df = pd.DataFrame(dic, index=[0, 1])
         idx = pd.IndexSlice
         slice_ = idx[:, idx["b", "d"]]
-        tslice_ = _non_reducing_slice(slice_)
+        tslice_ = non_reducing_slice(slice_)
 
         result = df.loc[tslice_]
         expected = pd.DataFrame({("b", "d"): [4, 1]})

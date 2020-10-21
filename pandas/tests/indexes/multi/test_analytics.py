@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import np_version_under1p17
 
 import pandas as pd
 from pandas import Index, MultiIndex, date_range, period_range
@@ -240,7 +240,7 @@ def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
-    if _np_version_under1p17:
+    if np_version_under1p17:
         expected_exception = AttributeError
         msg = f"'tuple' object has no attribute '{func.__name__}'"
     else:

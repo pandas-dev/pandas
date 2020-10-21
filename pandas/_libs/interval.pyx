@@ -46,7 +46,7 @@ from pandas._libs.tslibs.util cimport (
     is_timedelta64_object,
 )
 
-_VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
+VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
 cdef class IntervalMixin:
@@ -318,7 +318,7 @@ cdef class Interval(IntervalMixin):
         self._validate_endpoint(left)
         self._validate_endpoint(right)
 
-        if closed not in _VALID_CLOSED:
+        if closed not in VALID_CLOSED:
             raise ValueError(f"invalid option for 'closed': {closed}")
         if not left <= right:
             raise ValueError("left side of interval must be <= right side")

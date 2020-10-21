@@ -108,7 +108,7 @@ class TestDataFrameSetItem:
         df["now"] = Timestamp("20130101", tz="UTC")
 
         expected = DataFrame(
-            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"],
+            [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
         )
         tm.assert_frame_equal(df, expected)
 
@@ -158,11 +158,7 @@ class TestDataFrameSetItem:
             }
         )
         for idx, b in enumerate([1, 2, 3]):
-            df.loc[df.shape[0]] = {
-                "a": int(idx),
-                "b": float(b),
-                "c": float(b),
-            }
+            df.loc[df.shape[0]] = {"a": int(idx), "b": float(b), "c": float(b)}
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(

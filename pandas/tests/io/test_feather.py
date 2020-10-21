@@ -9,7 +9,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
-from pandas.io.feather_format import read_feather, to_feather  # noqa: E402 isort:skip
+from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
 pyarrow = pytest.importorskip("pyarrow")
 
@@ -76,7 +76,7 @@ class TestFeather:
                     pd.Timestamp("20130103"),
                 ],
                 "dtns": pd.DatetimeIndex(
-                    list(pd.date_range("20130101", periods=3, freq="ns")), freq=None,
+                    list(pd.date_range("20130101", periods=3, freq="ns")), freq=None
                 ),
             }
         )

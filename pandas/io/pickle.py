@@ -49,7 +49,7 @@ def to_pickle(
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -92,16 +92,13 @@ def to_pickle(
         mode="wb",
         storage_options=storage_options,
     )
-    compression = ioargs.compression
-    if not isinstance(ioargs.filepath_or_buffer, str) and compression == "infer":
-        compression = None
     f, fh = get_handle(
-        ioargs.filepath_or_buffer, "wb", compression=compression, is_text=False
+        ioargs.filepath_or_buffer, "wb", compression=ioargs.compression, is_text=False
     )
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
-        f.write(pickle.dumps(obj, protocol=protocol))
+        pickle.dump(obj, f, protocol=protocol)
     finally:
         if f != filepath_or_buffer:
             # do not close user-provided file objects GH 35679
@@ -149,7 +146,7 @@ def read_pickle(
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -196,11 +193,8 @@ def read_pickle(
     ioargs = get_filepath_or_buffer(
         filepath_or_buffer, compression=compression, storage_options=storage_options
     )
-    compression = ioargs.compression
-    if not isinstance(ioargs.filepath_or_buffer, str) and compression == "infer":
-        compression = None
     f, fh = get_handle(
-        ioargs.filepath_or_buffer, "rb", compression=compression, is_text=False
+        ioargs.filepath_or_buffer, "rb", compression=ioargs.compression, is_text=False
     )
 
     # 1) try standard library Pickle

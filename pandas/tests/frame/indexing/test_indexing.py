@@ -1091,7 +1091,7 @@ class TestDataFrameIndexing:
             cp.iloc[1.0:5] = 0
 
         with pytest.raises(TypeError, match=msg):
-            result = cp.iloc[1.0:5] == 0  # noqa
+            result = cp.iloc[1.0:5] == 0
 
         assert result.values.all()
         assert (cp.iloc[0:1] == df.iloc[0:1]).values.all()
@@ -1340,7 +1340,8 @@ class TestDataFrameIndexing:
         df = float_frame
         rows = list(df.index) * len(df.columns)
         cols = list(df.columns) * len(df.index)
-        result = df.lookup(rows, cols)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.lookup(rows, cols)
 
         expected = np.array([df.loc[r, c] for r, c in zip(rows, cols)])
         tm.assert_numpy_array_equal(result, expected)
@@ -1349,7 +1350,8 @@ class TestDataFrameIndexing:
         df = float_string_frame
         rows = list(df.index) * len(df.columns)
         cols = list(df.columns) * len(df.index)
-        result = df.lookup(rows, cols)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.lookup(rows, cols)
 
         expected = np.array(
             [df.loc[r, c] for r, c in zip(rows, cols)], dtype=np.object_
@@ -1365,24 +1367,28 @@ class TestDataFrameIndexing:
                 "mask_c": [False, True, False, True],
             }
         )
-        df["mask"] = df.lookup(df.index, "mask_" + df["label"])
+        with tm.assert_produces_warning(FutureWarning):
+            df["mask"] = df.lookup(df.index, "mask_" + df["label"])
 
         exp_mask = np.array(
             [df.loc[r, c] for r, c in zip(df.index, "mask_" + df["label"])]
         )
 
-        tm.assert_series_equal(df["mask"], pd.Series(exp_mask, name="mask"))
+        tm.assert_series_equal(df["mask"], Series(exp_mask, name="mask"))
         assert df["mask"].dtype == np.bool_
 
     def test_lookup_raises(self, float_frame):
         with pytest.raises(KeyError, match="'One or more row labels was not found'"):
-            float_frame.lookup(["xyz"], ["A"])
+            with tm.assert_produces_warning(FutureWarning):
+                float_frame.lookup(["xyz"], ["A"])
 
         with pytest.raises(KeyError, match="'One or more column labels was not found'"):
-            float_frame.lookup([float_frame.index[0]], ["xyz"])
+            with tm.assert_produces_warning(FutureWarning):
+                float_frame.lookup([float_frame.index[0]], ["xyz"])
 
         with pytest.raises(ValueError, match="same size"):
-            float_frame.lookup(["a", "b", "c"], ["a"])
+            with tm.assert_produces_warning(FutureWarning):
+                float_frame.lookup(["a", "b", "c"], ["a"])
 
     def test_lookup_requires_unique_axes(self):
         # GH#33041 raise with a helpful error message
@@ -1393,14 +1399,17 @@ class TestDataFrameIndexing:
 
         # homogeneous-dtype case
         with pytest.raises(ValueError, match="requires unique index and columns"):
-            df.lookup(rows, cols)
+            with tm.assert_produces_warning(FutureWarning):
+                df.lookup(rows, cols)
         with pytest.raises(ValueError, match="requires unique index and columns"):
-            df.T.lookup(cols, rows)
+            with tm.assert_produces_warning(FutureWarning):
+                df.T.lookup(cols, rows)
 
         # heterogeneous dtype
         df["B"] = 0
         with pytest.raises(ValueError, match="requires unique index and columns"):
-            df.lookup(rows, cols)
+            with tm.assert_produces_warning(FutureWarning):
+                df.lookup(rows, cols)
 
     def test_set_value(self, float_frame):
         for idx in float_frame.index:
@@ -1913,9 +1922,7 @@ class TestDataFrameIndexing:
         # GH 12981
         # Assignment of unaligned offset-aware datetime series.
         # Make sure timezone isn't lost
-        column = pd.Series(
-            pd.date_range("2015-01-01", periods=3, tz="utc"), name="dates"
-        )
+        column = Series(pd.date_range("2015-01-01", periods=3, tz="utc"), name="dates")
         df = pd.DataFrame({"dates": column})
         df["dates"] = column[[1, 0, 2]]
         tm.assert_series_equal(df["dates"], column)
@@ -2111,7 +2118,7 @@ class TestDataFrameIndexing:
         )
         dg = df.pivot_table(index="i", columns="c", values=["x", "y"])
 
-        with pytest.raises(TypeError, match="is an invalid key"):
+        with pytest.raises(TypeError, match="unhashable type"):
             dg[:, 0]
 
         index = Index(range(2), name="i")
@@ -2147,9 +2154,23 @@ class TestDataFrameIndexing:
         )
 
         index_exp = pd.interval_range(start=0, periods=2, freq=1, closed="both")
-        expected = pd.Series([1, 4], index=index_exp, name="A")
+        expected = Series([1, 4], index=index_exp, name="A")
         result = df.loc[1, "A"]
         tm.assert_series_equal(result, expected)
+
+    def test_getitem_interval_index_partial_indexing(self):
+        # GH#36490
+        df = pd.DataFrame(
+            np.ones((3, 4)), columns=pd.IntervalIndex.from_breaks(np.arange(5))
+        )
+
+        expected = df.iloc[:, 0]
+
+        res = df[0.5]
+        tm.assert_series_equal(res, expected)
+
+        res = df.loc[:, 0.5]
+        tm.assert_series_equal(res, expected)
 
 
 class TestDataFrameIndexingUInt64:
@@ -2232,3 +2253,12 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert blk.dtype == "m8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)
+
+
+def test_lookup_deprecated():
+    # GH18262
+    df = pd.DataFrame(
+        {"col": ["A", "A", "B", "B"], "A": [80, 23, np.nan, 22], "B": [80, 55, 76, 67]}
+    )
+    with tm.assert_produces_warning(FutureWarning):
+        df.lookup(df.index, df["col"])

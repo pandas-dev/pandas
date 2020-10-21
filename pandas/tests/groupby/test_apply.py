@@ -381,6 +381,16 @@ def test_apply_frame_to_series(df):
     tm.assert_numpy_array_equal(result.values, expected.values)
 
 
+def test_apply_frame_not_as_index_column_name(df):
+    # GH 35964 - path within _wrap_applied_output not hit by a test
+    grouped = df.groupby(["A", "B"], as_index=False)
+    result = grouped.apply(len)
+    expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
+    # TODO: Use assert_frame_equal when column name is not np.nan (GH 36306)
+    tm.assert_index_equal(result.index, expected.index)
+    tm.assert_numpy_array_equal(result.values, expected.values)
+
+
 def test_apply_frame_concat_series():
     def trans(group):
         return group.groupby("B")["C"].sum().sort_values()[:2]
@@ -558,7 +568,7 @@ def test_apply_reindex_values():
     df = pd.DataFrame(
         {"group": ["Group1", "Group2"] * 2, "value": values}, index=indices
     )
-    expected = pd.Series(values, index=indices, name="value")
+    expected = Series(values, index=indices, name="value")
 
     def reindex_helper(x):
         return x.reindex(np.arange(x.index.min(), x.index.max() + 1))
@@ -621,7 +631,7 @@ def test_apply_numeric_coercion_when_datetime():
 
     # GH 14423
     def predictions(tool):
-        out = pd.Series(index=["p1", "p2", "useTime"], dtype=object)
+        out = Series(index=["p1", "p2", "useTime"], dtype=object)
         if "step1" in list(tool.State):
             out["p1"] = str(tool[tool.State == "step1"].Machine.values[0])
         if "step2" in list(tool.State):
@@ -656,7 +666,7 @@ def test_apply_aggregating_timedelta_and_datetime():
     )
     df["time_delta_zero"] = df.datetime - df.datetime
     result = df.groupby("clientid").apply(
-        lambda ddf: pd.Series(
+        lambda ddf: Series(
             dict(clientid_age=ddf.time_delta_zero.min(), date=ddf.datetime.min())
         )
     )
@@ -671,6 +681,23 @@ def test_apply_aggregating_timedelta_and_datetime():
     tm.assert_frame_equal(result, expected)
 
 
+def test_apply_groupby_datetimeindex():
+    # GH 26182
+    # groupby apply failed on dataframe with DatetimeIndex
+
+    data = [["A", 10], ["B", 20], ["B", 30], ["C", 40], ["C", 50]]
+    df = pd.DataFrame(
+        data, columns=["Name", "Value"], index=pd.date_range("2020-09-01", "2020-09-05")
+    )
+
+    result = df.groupby("Name").sum()
+
+    expected = pd.DataFrame({"Name": ["A", "B", "C"], "Value": [10, 50, 90]})
+    expected.set_index("Name", inplace=True)
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_time_field_bug():
     # Test a fix for the following error related to GH issue 11324 When
     # non-key fields in a group-by dataframe contained time-based fields
@@ -680,10 +707,10 @@ def test_time_field_bug():
     df = pd.DataFrame({"a": 1, "b": [datetime.now() for nn in range(10)]})
 
     def func_with_no_date(batch):
-        return pd.Series({"c": 2})
+        return Series({"c": 2})
 
     def func_with_date(batch):
-        return pd.Series({"b": datetime(2015, 1, 1), "c": 2})
+        return Series({"b": datetime(2015, 1, 1), "c": 2})
 
     dfg_no_conversion = df.groupby(by=["a"]).apply(func_with_no_date)
     dfg_no_conversion_expected = pd.DataFrame({"c": 2}, index=[1])
@@ -764,7 +791,7 @@ def test_groupby_apply_return_empty_chunk():
     df = pd.DataFrame(dict(value=[0, 1], group=["filled", "empty"]))
     groups = df.groupby("group")
     result = groups.apply(lambda group: group[group.value != 1]["value"])
-    expected = pd.Series(
+    expected = Series(
         [0],
         name="value",
         index=MultiIndex.from_product(
@@ -809,7 +836,7 @@ def test_apply_datetime_issue(group_column_dtlike):
     #   standard int values in range(len(num_columns))
 
     df = pd.DataFrame({"a": ["foo"], "b": [group_column_dtlike]})
-    result = df.groupby("a").apply(lambda x: pd.Series(["spam"], index=[42]))
+    result = df.groupby("a").apply(lambda x: Series(["spam"], index=[42]))
 
     expected = pd.DataFrame(
         ["spam"], Index(["foo"], dtype="object", name="a"), columns=[42]
@@ -849,7 +876,7 @@ def test_apply_series_return_dataframe_groups():
         return Series({c: s.value_counts().index[0] for c, s in df.iteritems()})
 
     result = tdf.groupby("day").apply(most_common_values)["userId"]
-    expected = pd.Series(
+    expected = Series(
         ["17661101"], index=pd.DatetimeIndex(["2015-02-24"], name="day"), name="userId"
     )
     tm.assert_series_equal(result, expected)
@@ -928,7 +955,7 @@ def test_apply_function_returns_non_pandas_non_scalar(function, expected_values)
     # GH 31441
     df = pd.DataFrame(["A", "A", "B", "B"], columns=["groups"])
     result = df.groupby("groups").apply(function)
-    expected = pd.Series(expected_values, index=pd.Index(["A", "B"], name="groups"))
+    expected = Series(expected_values, index=pd.Index(["A", "B"], name="groups"))
     tm.assert_series_equal(result, expected)
 
 
@@ -940,7 +967,7 @@ def test_apply_function_returns_numpy_array():
     df = pd.DataFrame({"A": ["a", "a", "b", "none"], "B": [1, 2, 3, np.nan]})
 
     result = df.groupby("A").apply(fct)
-    expected = pd.Series(
+    expected = Series(
         [[1.0, 2.0], [3.0], [np.nan]], index=pd.Index(["a", "b", "none"], name="A")
     )
     tm.assert_series_equal(result, expected)
@@ -951,7 +978,7 @@ def test_apply_function_index_return(function):
     # GH: 22541
     df = pd.DataFrame([1, 2, 2, 2, 1, 2, 3, 1, 3, 1], columns=["id"])
     result = df.groupby("id").apply(function)
-    expected = pd.Series(
+    expected = Series(
         [pd.Index([0, 4, 7, 9]), pd.Index([1, 2, 3, 5]), pd.Index([6, 8])],
         index=pd.Index([1, 2, 3], name="id"),
     )
@@ -969,7 +996,7 @@ def test_apply_function_with_indexing():
         return x.col2
 
     result = df.groupby(["col1"], as_index=False).apply(fn)
-    expected = pd.Series(
+    expected = Series(
         [1, 2, 0, 4, 5, 0],
         index=pd.MultiIndex.from_tuples(
             [(0, 0), (0, 1), (0, 2), (1, 3), (1, 4), (1, 5)]

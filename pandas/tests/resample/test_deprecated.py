@@ -226,7 +226,7 @@ def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
 )
 def test_resample_with_non_zero_base(start, end, start_freq, end_freq, base, offset):
     # GH 23882
-    s = pd.Series(0, index=pd.period_range(start, end, freq=start_freq))
+    s = Series(0, index=pd.period_range(start, end, freq=start_freq))
     s = s + np.arange(len(s))
     with tm.assert_produces_warning(FutureWarning):
         result = s.resample(end_freq, base=base).mean()

@@ -71,7 +71,7 @@ class TestDataFrameConstructors:
             lambda: DataFrame({}),
             lambda: DataFrame(()),
             lambda: DataFrame([]),
-            lambda: DataFrame((_ for _ in [])),
+            lambda: DataFrame(_ for _ in []),
             lambda: DataFrame(range(0)),
             lambda: DataFrame(data=None),
             lambda: DataFrame(data={}),
@@ -716,6 +716,24 @@ class TestDataFrameConstructors:
         df = DataFrame({"a": a.astype(object).tolist(), "b": b.astype(object).tolist()})
         assert df["a"].dtype == a.dtype
         assert df["b"].dtype == b.dtype
+
+    @pytest.mark.parametrize(
+        "data,dtype",
+        [
+            (pd.Period("2012-01", freq="M"), "period[M]"),
+            (pd.Period("2012-02-01", freq="D"), "period[D]"),
+            (Interval(left=0, right=5), IntervalDtype("int64")),
+            (Interval(left=0.1, right=0.5), IntervalDtype("float64")),
+        ],
+    )
+    def test_constructor_period_dict_scalar(self, data, dtype):
+        # scalar periods
+        df = DataFrame({"a": data}, index=[0])
+        assert df["a"].dtype == dtype
+
+        expected = DataFrame(index=[0], columns=["a"], data=data)
+
+        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
         "data,dtype",
@@ -1619,8 +1637,8 @@ class TestDataFrameConstructors:
         "name_in1,name_in2,name_in3,name_out",
         [
             ("idx", "idx", "idx", "idx"),
-            ("idx", "idx", None, "idx"),
-            ("idx", None, None, "idx"),
+            ("idx", "idx", None, None),
+            ("idx", None, None, None),
             ("idx1", "idx2", None, None),
             ("idx1", "idx1", "idx2", None),
             ("idx1", "idx2", "idx3", None),
@@ -1635,7 +1653,7 @@ class TestDataFrameConstructors:
             pd.Index(["c", "d", "e"], name=name_in3),
         ]
         series = {
-            c: pd.Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
+            c: Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
         }
         result = pd.DataFrame(series)
 
@@ -2548,7 +2566,7 @@ class TestDataFrameConstructors:
         index = CategoricalIndex(
             [pd.Interval(-20, -10), pd.Interval(-10, 0), pd.Interval(0, 10)]
         )
-        series_of_dicts = pd.Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
+        series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
         frame = pd.DataFrame.from_records(series_of_dicts, index=index)
         expected = DataFrame(
             {"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3]}, index=index
@@ -2570,6 +2588,7 @@ class TestDataFrameConstructors:
         result = DataFrame(Series(name=0, dtype=object)).dtypes
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.arm_slow
     @pytest.mark.parametrize("dtype", [None, "uint8", "category"])
     def test_constructor_range_dtype(self, dtype):
         expected = DataFrame({"A": [0, 1, 2, 3, 4]}, dtype=dtype or "int64")
@@ -2657,6 +2676,13 @@ class TestDataFrameConstructors:
         dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
         with pytest.raises(ValueError, match="Shape of passed values"):
             DataFrame(dti, index=range(4))
+
+    def test_frame_ctor_datetime64_column(self):
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        dates = np.asarray(rng)
+
+        df = DataFrame({"A": np.random.randn(len(rng)), "B": dates})
+        assert np.issubdtype(df["B"].dtype, np.dtype("M8[ns]"))
 
 
 class TestDataFrameConstructorWithDatetimeTZ:

@@ -125,7 +125,8 @@ class TestSeriesFillNA:
         data = ["a", np.nan, "b", np.nan, np.nan]
         ser = Series(Categorical(data, categories=["a", "b"]))
 
-        with pytest.raises(ValueError, match="fill value must be in categories"):
+        msg = "'fill_value=d' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
             ser.fillna("d")
 
         with pytest.raises(ValueError, match="fill value must be in categories"):

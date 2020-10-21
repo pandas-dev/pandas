@@ -762,7 +762,7 @@ class TestJoin:
         )
         result = df1.join(df2.set_index("date"), on="date")
         expected = df1.copy()
-        expected["vals_2"] = pd.Series([np.nan] * 2 + list("tuv"), dtype=object)
+        expected["vals_2"] = Series([np.nan] * 2 + list("tuv"), dtype=object)
         tm.assert_frame_equal(result, expected)
 
     def test_join_datetime_string(self):

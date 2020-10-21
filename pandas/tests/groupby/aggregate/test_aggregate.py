@@ -213,14 +213,10 @@ def test_aggregate_item_by_item(df):
 
     # GH5782
     # odd comparisons can result here, so cast to make easy
-    exp = pd.Series(
-        np.array([foo] * K), index=list("BCD"), dtype=np.float64, name="foo"
-    )
+    exp = Series(np.array([foo] * K), index=list("BCD"), dtype=np.float64, name="foo")
     tm.assert_series_equal(result.xs("foo"), exp)
 
-    exp = pd.Series(
-        np.array([bar] * K), index=list("BCD"), dtype=np.float64, name="bar"
-    )
+    exp = Series(np.array([bar] * K), index=list("BCD"), dtype=np.float64, name="bar")
     tm.assert_almost_equal(result.xs("bar"), exp)
 
     def aggfun(ser):
@@ -518,7 +514,7 @@ def test_agg_split_object_part_datetime():
 
 class TestNamedAggregationSeries:
     def test_series_named_agg(self):
-        df = pd.Series([1, 2, 3, 4])
+        df = Series([1, 2, 3, 4])
         gr = df.groupby([0, 0, 1, 1])
         result = gr.agg(a="sum", b="min")
         expected = pd.DataFrame(
@@ -531,7 +527,7 @@ class TestNamedAggregationSeries:
         tm.assert_frame_equal(result, expected)
 
     def test_no_args_raises(self):
-        gr = pd.Series([1, 2]).groupby([0, 1])
+        gr = Series([1, 2]).groupby([0, 1])
         with pytest.raises(TypeError, match="Must provide"):
             gr.agg()
 
@@ -542,13 +538,13 @@ class TestNamedAggregationSeries:
 
     def test_series_named_agg_duplicates_no_raises(self):
         # GH28426
-        gr = pd.Series([1, 2, 3]).groupby([0, 0, 1])
+        gr = Series([1, 2, 3]).groupby([0, 0, 1])
         grouped = gr.agg(a="sum", b="sum")
         expected = pd.DataFrame({"a": [3, 3], "b": [3, 3]})
         tm.assert_frame_equal(expected, grouped)
 
     def test_mangled(self):
-        gr = pd.Series([1, 2, 3]).groupby([0, 0, 1])
+        gr = Series([1, 2, 3]).groupby([0, 0, 1])
         result = gr.agg(a=lambda x: 0, b=lambda x: 1)
         expected = pd.DataFrame({"a": [0, 0], "b": [1, 1]})
         tm.assert_frame_equal(result, expected)
@@ -563,8 +559,8 @@ class TestNamedAggregationSeries:
     )
     def test_named_agg_nametuple(self, inp):
         # GH34422
-        s = pd.Series([1, 1, 2, 2, 3, 3, 4, 5])
-        msg = f"func is expected but recieved {type(inp).__name__}"
+        s = Series([1, 1, 2, 2, 3, 3, 4, 5])
+        msg = f"func is expected but received {type(inp).__name__}"
         with pytest.raises(TypeError, match=msg):
             s.groupby(s.values).agg(a=inp)
 
@@ -916,7 +912,7 @@ def test_groupby_aggregate_period_column(func):
 
     result = getattr(df.groupby("a")["b"], func)()
     idx = pd.Int64Index([1, 2], name="a")
-    expected = pd.Series(periods, index=idx, name="b")
+    expected = Series(periods, index=idx, name="b")
 
     tm.assert_series_equal(result, expected)
 
@@ -947,7 +943,7 @@ class TestLambdaMangling:
         tm.assert_frame_equal(result, expected)
 
     def test_mangle_series_groupby(self):
-        gr = pd.Series([1, 2, 3, 4]).groupby([0, 0, 1, 1])
+        gr = Series([1, 2, 3, 4]).groupby([0, 0, 1, 1])
         result = gr.agg([lambda x: 0, lambda x: 1])
         expected = pd.DataFrame({"<lambda_0>": [0, 0], "<lambda_1>": [1, 1]})
         tm.assert_frame_equal(result, expected)
@@ -956,11 +952,11 @@ class TestLambdaMangling:
     def test_with_kwargs(self):
         f1 = lambda x, y, b=1: x.sum() + y + b
         f2 = lambda x, y, b=2: x.sum() + y * b
-        result = pd.Series([1, 2]).groupby([0, 0]).agg([f1, f2], 0)
+        result = Series([1, 2]).groupby([0, 0]).agg([f1, f2], 0)
         expected = pd.DataFrame({"<lambda_0>": [4], "<lambda_1>": [6]})
         tm.assert_frame_equal(result, expected)
 
-        result = pd.Series([1, 2]).groupby([0, 0]).agg([f1, f2], 0, b=10)
+        result = Series([1, 2]).groupby([0, 0]).agg([f1, f2], 0, b=10)
         expected = pd.DataFrame({"<lambda_0>": [13], "<lambda_1>": [30]})
         tm.assert_frame_equal(result, expected)
 
@@ -1153,3 +1149,18 @@ def test_nonagg_agg():
     expected = g.agg("cumsum")
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_agg_no_suffix_index():
+    # GH36189
+    df = pd.DataFrame([[4, 9]] * 3, columns=["A", "B"])
+    result = df.agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    expected = pd.DataFrame(
+        {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # test Series case
+    result = df["A"].agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    expected = Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"], name="A")
+    tm.assert_series_equal(result, expected)

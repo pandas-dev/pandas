@@ -392,9 +392,7 @@ class NaTType(_NaT):
 
         Returns
         -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """,
     )
     day_name = _make_nan_func(
@@ -409,9 +407,7 @@ class NaTType(_NaT):
 
         Returns
         -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """,
     )
     # _nat_methods

@@ -92,8 +92,8 @@ class TestDataFrameShift:
 
     def test_shift_categorical(self):
         # GH#9416
-        s1 = pd.Series(["a", "b", "c"], dtype="category")
-        s2 = pd.Series(["A", "B", "C"], dtype="category")
+        s1 = Series(["a", "b", "c"], dtype="category")
+        s2 = Series(["A", "B", "C"], dtype="category")
         df = DataFrame({"one": s1, "two": s2})
         rs = df.shift(1)
         xp = DataFrame({"one": s1.shift(1), "two": s2.shift(1)})
@@ -274,13 +274,13 @@ class TestDataFrameShift:
 
     def test_shift_dt64values_int_fill_deprecated(self):
         # GH#31971
-        ser = pd.Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
+        ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
         df = ser.to_frame()
 
         with tm.assert_produces_warning(FutureWarning):
             result = df.shift(1, fill_value=0)
 
-        expected = pd.Series([pd.Timestamp(0), ser[0]]).to_frame()
+        expected = Series([pd.Timestamp(0), ser[0]]).to_frame()
         tm.assert_frame_equal(result, expected)
 
         # axis = 1

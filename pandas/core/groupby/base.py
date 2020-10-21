@@ -13,7 +13,22 @@ from pandas.core.base import PandasObject
 OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
 
 
-class GroupByMixin(PandasObject):
+class ShallowMixin(PandasObject):
+    _attributes: List[str] = []
+
+    def _shallow_copy(self, obj, **kwargs):
+        """
+        return a new object with the replacement attributes
+        """
+        if isinstance(obj, self._constructor):
+            obj = obj.obj
+        for attr in self._attributes:
+            if attr not in kwargs:
+                kwargs[attr] = getattr(self, attr)
+        return self._constructor(obj, **kwargs)
+
+
+class GotItemMixin(PandasObject):
     """
     Provide the groupby facilities to the mixed object.
     """
@@ -78,15 +93,8 @@ common_apply_allowlist = (
 )
 
 series_apply_allowlist = (
-    (
-        common_apply_allowlist
-        | {
-            "nlargest",
-            "nsmallest",
-            "is_monotonic_increasing",
-            "is_monotonic_decreasing",
-        }
-    )
+    common_apply_allowlist
+    | {"nlargest", "nsmallest", "is_monotonic_increasing", "is_monotonic_decreasing"}
 ) | frozenset(["dtype", "unique"])
 
 dataframe_apply_allowlist = common_apply_allowlist | frozenset(["dtypes", "corrwith"])

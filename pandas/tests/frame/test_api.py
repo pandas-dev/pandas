@@ -6,11 +6,12 @@ import pydoc
 import numpy as np
 import pytest
 
+from pandas.compat import IS64, is_platform_windows
 import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark, skip_if_no
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, compat, date_range, timedelta_range
+from pandas import Categorical, DataFrame, Series, date_range, timedelta_range
 import pandas._testing as tm
 
 
@@ -254,7 +255,7 @@ class TestDataFrameMisc:
         assert list(dfaa.itertuples()) == [(0, 1, 1), (1, 2, 2), (2, 3, 3)]
 
         # repr with int on 32-bit/windows
-        if not (compat.is_platform_windows() or compat.is_platform_32bit()):
+        if not (is_platform_windows() or not IS64):
             assert (
                 repr(list(df.itertuples(name=None)))
                 == "[(0, 1, 4), (1, 2, 5), (2, 3, 6)]"
@@ -604,7 +605,9 @@ class TestDataFrameMisc:
         #  raise NotImplementedError
         df = DataFrame()
 
-        inspect.getmembers(df)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # _AXIS_NUMBERS, _AXIS_NAMES lookups
+            inspect.getmembers(df)
 
         with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))

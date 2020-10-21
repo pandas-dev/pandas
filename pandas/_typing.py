@@ -15,6 +15,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Sequence,
     Type,
     TypeVar,
     Union,
@@ -26,16 +27,18 @@ import numpy as np
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from pandas._libs import Period, Timedelta, Timestamp  # noqa: F401
+    from pandas._libs import Period, Timedelta, Timestamp
 
-    from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa: F401
+    from pandas.core.dtypes.dtypes import ExtensionDtype
 
-    from pandas import Interval  # noqa: F401
+    from pandas import Interval
     from pandas.core.arrays.base import ExtensionArray  # noqa: F401
-    from pandas.core.frame import DataFrame  # noqa: F401
+    from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame  # noqa: F401
-    from pandas.core.indexes.base import Index  # noqa: F401
-    from pandas.core.series import Series  # noqa: F401
+    from pandas.core.indexes.base import Index
+    from pandas.core.series import Series
+
+    from pandas.io.formats.format import EngFormatter
 
 # array-like
 
@@ -62,7 +65,7 @@ Timezone = Union[str, tzinfo]
 # other
 
 Dtype = Union[
-    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool]]
+    "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
 ]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
 FilePathOrBuffer = Union[str, Path, IO[AnyStr], IOBase]
@@ -82,6 +85,7 @@ FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
 
 Axis = Union[str, int]
 Label = Optional[Hashable]
+IndexLabel = Union[Label, Sequence[Label]]
 Level = Union[Label, int]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
@@ -116,13 +120,17 @@ StorageOptions = Optional[Dict[str, Any]]
 
 
 # compression keywords and compression
-CompressionDict = Mapping[str, Optional[Union[str, int, bool]]]
+CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[Union[str, CompressionDict]]
 
 
 # let's bind types
 ModeVar = TypeVar("ModeVar", str, None, Optional[str])
 EncodingVar = TypeVar("EncodingVar", str, None, Optional[str])
+
+
+# type of float formatter in DataFrameFormatter
+FloatFormatType = Union[str, Callable, "EngFormatter"]
 
 
 @dataclass
@@ -138,6 +146,6 @@ class IOargs(Generic[ModeVar, EncodingVar]):
 
     filepath_or_buffer: FileOrBuffer
     encoding: EncodingVar
-    compression: CompressionOptions
+    compression: CompressionDict
     should_close: bool
     mode: Union[ModeVar, str]

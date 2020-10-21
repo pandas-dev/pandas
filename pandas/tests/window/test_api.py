@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import numpy as np
 import pytest
 
@@ -335,8 +333,6 @@ def test_multiple_agg_funcs(func, window_size, expected_vals):
     )
     expected = pd.DataFrame(expected_vals, index=index, columns=columns)
 
-    result = window.agg(
-        OrderedDict((("low", ["mean", "max"]), ("high", ["mean", "min"])))
-    )
+    result = window.agg(dict((("low", ["mean", "max"]), ("high", ["mean", "min"]))))
 
     tm.assert_frame_equal(result, expected)

@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.compat import IS64, is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -41,7 +41,7 @@ import pandas._testing as tm
 import pandas.io.formats.format as fmt
 import pandas.io.formats.printing as printing
 
-use_32bit_repr = is_platform_windows() or is_platform_32bit()
+use_32bit_repr = is_platform_windows() or not IS64
 
 
 @pytest.fixture(params=["string", "pathlike", "buffer"])
@@ -158,16 +158,6 @@ def has_expanded_repr(df):
 
 @pytest.mark.filterwarnings("ignore::FutureWarning:.*format")
 class TestDataFrameFormatting:
-    def test_repr_embedded_ndarray(self):
-        arr = np.empty(10, dtype=[("err", object)])
-        for i in range(len(arr)):
-            arr["err"][i] = np.random.randn(i)
-
-        df = DataFrame(arr)
-        repr(df["err"])
-        repr(df)
-        df.to_string()
-
     def test_eng_float_formatter(self, float_frame):
         df = float_frame
         df.loc[5] = 0
@@ -204,13 +194,6 @@ class TestDataFrameFormatting:
             check(True, False)
             check(False, False)
 
-    def test_repr_tuples(self):
-        buf = StringIO()
-
-        df = DataFrame({"tups": list(zip(range(10), range(10)))})
-        repr(df)
-        df.to_string(col_space=10, buf=buf)
-
     def test_repr_truncation(self):
         max_len = 20
         with option_context("display.max_colwidth", max_len):
@@ -226,7 +209,7 @@ class TestDataFrameFormatting:
             r = repr(df)
             r = r[r.find("\n") + 1 :]
 
-            adj = fmt._get_adjustment()
+            adj = fmt.get_adjustment()
 
             for line, value in zip(r.split("\n"), df["B"]):
                 if adj.len(value) + 1 > max_len:
@@ -534,45 +517,6 @@ class TestDataFrameFormatting:
                 "1  foo  bar                stuff  1"
             )
 
-    def test_to_string_truncate(self):
-        # GH 9784 - dont truncate when calling DataFrame.to_string
-        df = pd.DataFrame(
-            [
-                {
-                    "a": "foo",
-                    "b": "bar",
-                    "c": "let's make this a very VERY long line that is longer "
-                    "than the default 50 character limit",
-                    "d": 1,
-                },
-                {"a": "foo", "b": "bar", "c": "stuff", "d": 1},
-            ]
-        )
-        df.set_index(["a", "b", "c"])
-        assert df.to_string() == (
-            "     a    b                                         "
-            "                                                c  d\n"
-            "0  foo  bar  let's make this a very VERY long line t"
-            "hat is longer than the default 50 character limit  1\n"
-            "1  foo  bar                                         "
-            "                                            stuff  1"
-        )
-        with option_context("max_colwidth", 20):
-            # the display option has no effect on the to_string method
-            assert df.to_string() == (
-                "     a    b                                         "
-                "                                                c  d\n"
-                "0  foo  bar  let's make this a very VERY long line t"
-                "hat is longer than the default 50 character limit  1\n"
-                "1  foo  bar                                         "
-                "                                            stuff  1"
-            )
-        assert df.to_string(max_colwidth=20) == (
-            "     a    b                    c  d\n"
-            "0  foo  bar  let's make this ...  1\n"
-            "1  foo  bar                stuff  1"
-        )
-
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
         fac = 1.05  # Arbitrary large factor to exceed term width
@@ -632,95 +576,6 @@ class TestDataFrameFormatting:
             repr(df)
         finally:
             sys.stdin = _stdin
-
-    def test_to_string_unicode_columns(self, float_frame):
-        df = DataFrame({"\u03c3": np.arange(10.0)})
-
-        buf = StringIO()
-        df.to_string(buf=buf)
-        buf.getvalue()
-
-        buf = StringIO()
-        df.info(buf=buf)
-        buf.getvalue()
-
-        result = float_frame.to_string()
-        assert isinstance(result, str)
-
-    def test_to_string_utf8_columns(self):
-        n = "\u05d0".encode("utf-8")
-
-        with option_context("display.max_rows", 1):
-            df = DataFrame([1, 2], columns=[n])
-            repr(df)
-
-    def test_to_string_unicode_two(self):
-        dm = DataFrame({"c/\u03c3": []})
-        buf = StringIO()
-        dm.to_string(buf)
-
-    def test_to_string_unicode_three(self):
-        dm = DataFrame(["\xc2"])
-        buf = StringIO()
-        dm.to_string(buf)
-
-    def test_to_string_with_formatters(self):
-        df = DataFrame(
-            {
-                "int": [1, 2, 3],
-                "float": [1.0, 2.0, 3.0],
-                "object": [(1, 2), True, False],
-            },
-            columns=["int", "float", "object"],
-        )
-
-        formatters = [
-            ("int", lambda x: f"0x{x:x}"),
-            ("float", lambda x: f"[{x: 4.1f}]"),
-            ("object", lambda x: f"-{x!s}-"),
-        ]
-        result = df.to_string(formatters=dict(formatters))
-        result2 = df.to_string(formatters=list(zip(*formatters))[1])
-        assert result == (
-            "  int  float    object\n"
-            "0 0x1 [ 1.0]  -(1, 2)-\n"
-            "1 0x2 [ 2.0]    -True-\n"
-            "2 0x3 [ 3.0]   -False-"
-        )
-        assert result == result2
-
-    def test_to_string_with_datetime64_monthformatter(self):
-        months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
-        x = DataFrame({"months": months})
-
-        def format_func(x):
-            return x.strftime("%Y-%m")
-
-        result = x.to_string(formatters={"months": format_func})
-        expected = "months\n0 2016-01\n1 2016-02"
-        assert result.strip() == expected
-
-    def test_to_string_with_datetime64_hourformatter(self):
-
-        x = DataFrame(
-            {
-                "hod": pd.to_datetime(
-                    ["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f"
-                )
-            }
-        )
-
-        def format_func(x):
-            return x.strftime("%H:%M")
-
-        result = x.to_string(formatters={"hod": format_func})
-        expected = "hod\n0 10:10\n1 12:12"
-        assert result.strip() == expected
-
-    def test_to_string_with_formatters_unicode(self):
-        df = DataFrame({"c/\u03c3": [1, 2, 3]})
-        result = df.to_string(formatters={"c/\u03c3": str})
-        assert result == "  c/\u03c3\n" + "0   1\n1   2\n2   3"
 
     def test_east_asian_unicode_false(self):
         # not aligned properly because of east asian width
@@ -1546,11 +1401,11 @@ class TestDataFrameFormatting:
 
         df_s = df.to_string(index=False)
         # Leading space is expected for positive numbers.
-        expected = "  x   y    z\n 11  33  AAA\n 22 -44     "
+        expected = " x   y   z\n11  33 AAA\n22 -44    "
         assert df_s == expected
 
         df_s = df[["y", "x", "z"]].to_string(index=False)
-        expected = "  y   x    z\n 33  11  AAA\n-44  22     "
+        expected = "  y  x   z\n 33 11 AAA\n-44 22    "
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
@@ -1565,7 +1420,7 @@ class TestDataFrameFormatting:
         df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "  x  \\\n 11   \n 22   \n 33   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x  \\\n11   \n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
@@ -2176,9 +2031,9 @@ c  10  11  12  13  14\
 
 
 def gen_series_formatting():
-    s1 = pd.Series(["a"] * 100)
-    s2 = pd.Series(["ab"] * 100)
-    s3 = pd.Series(["a", "ab", "abc", "abcd", "abcde", "abcdef"])
+    s1 = Series(["a"] * 100)
+    s2 = Series(["ab"] * 100)
+    s3 = Series(["a", "ab", "abc", "abcd", "abcde", "abcdef"])
     s4 = s3[::-1]
     test_sers = {"onel": s1, "twol": s2, "asc": s3, "desc": s4}
     return test_sers
@@ -2269,7 +2124,7 @@ class TestSeriesFormatting:
         # GH 11729 Test index=False option
         s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = " 1\n" + " 2\n" + " 3\n" + " 4"
+        expected = "1\n" + "2\n" + "3\n" + "4"
         assert result == expected
 
     def test_unicode_name_in_footer(self):
@@ -2674,7 +2529,7 @@ class TestSeriesFormatting:
 
     # Make sure #8532 is fixed
     def test_consistent_format(self):
-        s = pd.Series([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9999, 1, 1] * 10)
+        s = Series([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9999, 1, 1] * 10)
         with option_context("display.max_rows", 10, "display.show_dimensions", False):
             res = repr(s)
         exp = (
@@ -2763,12 +2618,12 @@ class TestSeriesFormatting:
             assert "Length" not in repr(s)
 
     def test_repr_min_rows(self):
-        s = pd.Series(range(20))
+        s = Series(range(20))
 
         # default setting no truncation even if above min_rows
         assert ".." not in repr(s)
 
-        s = pd.Series(range(61))
+        s = Series(range(61))
 
         # default of max_rows 60 triggers truncation if above
         assert ".." in repr(s)
@@ -2816,19 +2671,19 @@ class TestSeriesFormatting:
         assert res == exp
 
     def test_to_string_na_rep(self):
-        s = pd.Series(index=range(100), dtype=np.float64)
+        s = Series(index=range(100), dtype=np.float64)
         res = s.to_string(na_rep="foo", max_rows=2)
         exp = "0    foo\n      ..\n99   foo"
         assert res == exp
 
     def test_to_string_float_format(self):
-        s = pd.Series(range(10), dtype="float64")
+        s = Series(range(10), dtype="float64")
         res = s.to_string(float_format=lambda x: f"{x:2.1f}", max_rows=2)
         exp = "0   0.0\n     ..\n9   9.0"
         assert res == exp
 
     def test_to_string_header(self):
-        s = pd.Series(range(10), dtype="int64")
+        s = Series(range(10), dtype="int64")
         s.index.name = "foo"
         res = s.to_string(header=True, max_rows=2)
         exp = "foo\n0    0\n    ..\n9    9"
@@ -2845,6 +2700,13 @@ class TestSeriesFormatting:
         res = df.to_string(header=["r1", "r2"])
         exp = "    r1 r2\na b      \n0 1  2  3"
         assert res == exp
+
+    def test_to_string_empty_col(self):
+        # GH 13653
+        s = Series(["", "Hello", "World", "", "", "Mooooo", "", ""])
+        res = s.to_string(index=False)
+        exp = "      \n Hello\n World\n      \n      \nMooooo\n      \n      "
+        assert re.match(exp, res)
 
 
 class TestGenericArrayFormatter:
@@ -2898,7 +2760,7 @@ class TestGenericArrayFormatter:
             def dtype(self):
                 return DtypeStub()
 
-        series = pd.Series(ExtTypeStub())
+        series = Series(ExtTypeStub())
         res = repr(series)  # This line crashed before #33770 was fixed.
         expected = "0    [False  True]\n" + "1    [ True False]\n" + "dtype: DtypeStub"
         assert res == expected
@@ -2925,7 +2787,7 @@ class TestFloatArrayFormatter:
 
         # Happens when display precision is set to zero
         with pd.option_context("display.precision", 0):
-            s = pd.Series([840.0, 4200.0])
+            s = Series([840.0, 4200.0])
             expected_output = "0     840\n1    4200\ndtype: float64"
             assert str(s) == expected_output
 

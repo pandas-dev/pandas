@@ -649,8 +649,8 @@ def test_is_complex_dtype():
         (IntervalDtype(), IntervalDtype()),
     ],
 )
-def test__get_dtype(input_param, result):
-    assert com._get_dtype(input_param) == result
+def test_get_dtype(input_param, result):
+    assert com.get_dtype(input_param) == result
 
 
 @pytest.mark.parametrize(
@@ -664,12 +664,12 @@ def test__get_dtype(input_param, result):
         (pd.DataFrame([1, 2]), "data type not understood"),
     ],
 )
-def test__get_dtype_fails(input_param, expected_error_message):
+def test_get_dtype_fails(input_param, expected_error_message):
     # python objects
     # 2020-02-02 npdev changed error message
     expected_error_message += f"|Cannot interpret '{input_param}' as a data type"
     with pytest.raises(TypeError, match=expected_error_message):
-        com._get_dtype(input_param)
+        com.get_dtype(input_param)
 
 
 @pytest.mark.parametrize(

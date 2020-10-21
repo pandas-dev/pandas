@@ -615,15 +615,15 @@ class TestGrouping:
         [
             (
                 "transform",
-                pd.Series(name=2, dtype=np.float64, index=pd.RangeIndex(0, 0, 1)),
+                Series(name=2, dtype=np.float64, index=pd.RangeIndex(0, 0, 1)),
             ),
             (
                 "agg",
-                pd.Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+                Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
             ),
             (
                 "apply",
-                pd.Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+                Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
             ),
         ],
     )
@@ -639,7 +639,7 @@ class TestGrouping:
 
     def test_groupby_empty(self):
         # https://github.com/pandas-dev/pandas/issues/27190
-        s = pd.Series([], name="name", dtype="float64")
+        s = Series([], name="name", dtype="float64")
         gr = s.groupby([])
 
         result = gr.mean()
@@ -739,7 +739,7 @@ class TestGetGroup:
         with pytest.raises(ValueError, match=msg):
             g.get_group("foo")
         with pytest.raises(ValueError, match=msg):
-            g.get_group(("foo"))
+            g.get_group("foo")
         msg = "must supply a same-length tuple to get_group with multiple grouping keys"
         with pytest.raises(ValueError, match=msg):
             g.get_group(("foo", "bar", "baz"))
@@ -778,7 +778,7 @@ class TestGetGroup:
     def test_groupby_with_empty(self):
         index = pd.DatetimeIndex(())
         data = ()
-        series = pd.Series(data, index, dtype=object)
+        series = Series(data, index, dtype=object)
         grouper = pd.Grouper(freq="D")
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None

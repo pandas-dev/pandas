@@ -1059,7 +1059,7 @@ class TestStata:
                     (col, pd.Categorical.from_codes(codes, labels, ordered=True))
                 )
             else:
-                cols.append((col, pd.Series(labels, dtype=np.float32)))
+                cols.append((col, Series(labels, dtype=np.float32)))
         expected = DataFrame.from_dict(dict(cols))
 
         # Read with and with out categoricals, ensure order is identical
@@ -1089,7 +1089,7 @@ class TestStata:
         cat = pd.Categorical.from_codes(
             codes=codes, categories=categories, ordered=True
         )
-        expected = pd.Series(cat, name="srh")
+        expected = Series(cat, name="srh")
         tm.assert_series_equal(expected, parsed["srh"])
 
     @pytest.mark.parametrize("file", ["dta19_115", "dta19_117"])
@@ -1153,7 +1153,7 @@ class TestStata:
             from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
             from_frame = self._convert_categorical(from_frame)
             tm.assert_frame_equal(
-                from_frame, chunk, check_dtype=False, check_datetimelike_compat=True,
+                from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
             )
 
             pos += chunksize
@@ -1251,7 +1251,7 @@ class TestStata:
             from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
             from_frame = self._convert_categorical(from_frame)
             tm.assert_frame_equal(
-                from_frame, chunk, check_dtype=False, check_datetimelike_compat=True,
+                from_frame, chunk, check_dtype=False, check_datetimelike_compat=True
             )
 
             pos += chunksize

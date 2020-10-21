@@ -236,3 +236,44 @@ def test_cython_with_timestamp_and_nat(op, data):
 
     result = df.groupby("a").aggregate(op)
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize(
+    "agg",
+    [
+        "min",
+        "max",
+        "count",
+        "sum",
+        "prod",
+        "var",
+        "mean",
+        "median",
+        "ohlc",
+        "cumprod",
+        "cumsum",
+        "shift",
+        "any",
+        "all",
+        "quantile",
+        "first",
+        "last",
+        "rank",
+        "cummin",
+        "cummax",
+    ],
+)
+def test_read_only_buffer_source_agg(agg):
+    # https://github.com/pandas-dev/pandas/issues/36014
+    df = DataFrame(
+        {
+            "sepal_length": [5.1, 4.9, 4.7, 4.6, 5.0],
+            "species": ["setosa", "setosa", "setosa", "setosa", "setosa"],
+        }
+    )
+    df._mgr.blocks[0].values.flags.writeable = False
+
+    result = df.groupby(["species"]).agg({"sepal_length": agg})
+    expected = df.copy().groupby(["species"]).agg({"sepal_length": agg})
+
+    tm.assert_equal(result, expected)

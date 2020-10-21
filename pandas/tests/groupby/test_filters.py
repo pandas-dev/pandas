@@ -7,9 +7,9 @@ import pandas._testing as tm
 
 
 def test_filter_series():
-    s = pd.Series([1, 3, 20, 5, 22, 24, 7])
-    expected_odd = pd.Series([1, 3, 5, 7], index=[0, 1, 3, 6])
-    expected_even = pd.Series([20, 22, 24], index=[2, 4, 5])
+    s = Series([1, 3, 20, 5, 22, 24, 7])
+    expected_odd = Series([1, 3, 5, 7], index=[0, 1, 3, 6])
+    expected_even = Series([20, 22, 24], index=[2, 4, 5])
     grouper = s.apply(lambda x: x % 2)
     grouped = s.groupby(grouper)
     tm.assert_series_equal(grouped.filter(lambda x: x.mean() < 10), expected_odd)
@@ -63,7 +63,7 @@ def test_filter_mixed_df():
 
 
 def test_filter_out_all_groups():
-    s = pd.Series([1, 3, 20, 5, 22, 24, 7])
+    s = Series([1, 3, 20, 5, 22, 24, 7])
     grouper = s.apply(lambda x: x % 2)
     grouped = s.groupby(grouper)
     tm.assert_series_equal(grouped.filter(lambda x: x.mean() > 1000), s[[]])
@@ -74,7 +74,7 @@ def test_filter_out_all_groups():
 
 
 def test_filter_out_no_groups():
-    s = pd.Series([1, 3, 20, 5, 22, 24, 7])
+    s = Series([1, 3, 20, 5, 22, 24, 7])
     grouper = s.apply(lambda x: x % 2)
     grouped = s.groupby(grouper)
     filtered = grouped.filter(lambda x: x.mean() > 0)
@@ -108,7 +108,7 @@ def test_filter_condition_raises():
         else:
             return x.sum() > 0
 
-    s = pd.Series([-1, 0, 1, 2])
+    s = Series([-1, 0, 1, 2])
     grouper = s.apply(lambda x: x % 2)
     grouped = s.groupby(grouper)
     msg = "the filter must return a boolean result"
@@ -586,12 +586,12 @@ def test_filter_non_bool_raises():
 
 def test_filter_dropna_with_empty_groups():
     # GH 10780
-    data = pd.Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))
+    data = Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))
     groupped = data.groupby(level=0)
     result_false = groupped.filter(lambda x: x.mean() > 1, dropna=False)
-    expected_false = pd.Series([np.nan] * 9, index=np.repeat([1, 2, 3], 3))
+    expected_false = Series([np.nan] * 9, index=np.repeat([1, 2, 3], 3))
     tm.assert_series_equal(result_false, expected_false)
 
     result_true = groupped.filter(lambda x: x.mean() > 1, dropna=True)
-    expected_true = pd.Series(index=pd.Index([], dtype=int), dtype=np.float64)
+    expected_true = Series(index=pd.Index([], dtype=int), dtype=np.float64)
     tm.assert_series_equal(result_true, expected_true)

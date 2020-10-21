@@ -191,6 +191,23 @@ class TestDataFrameCorr:
         expected = pd.DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
+    def test_corr_item_cache(self):
+        # Check that corr does not lead to incorrect entries in item_cache
+
+        df = pd.DataFrame({"A": range(10)})
+        df["B"] = range(10)[::-1]
+
+        ser = df["A"]  # populate item_cache
+        assert len(df._mgr.blocks) == 2
+
+        _ = df.corr()
+
+        # Check that the corr didnt break link between ser and df
+        ser.values[0] = 99
+        assert df.loc[0, "A"] == 99
+        assert df["A"] is ser
+        assert df.values[0, 0] == 99
+
 
 class TestDataFrameCorrWith:
     def test_corrwith(self, datetime_frame):
@@ -261,10 +278,10 @@ class TestDataFrameCorrWith:
         df = pd.DataFrame(
             {"a": [1, 4, 3, 2], "b": [4, 6, 7, 3], "c": ["a", "b", "c", "d"]}
         )
-        s = pd.Series([0, 6, 7, 3])
+        s = Series([0, 6, 7, 3])
         result = df.corrwith(s)
         corrs = [df["a"].corr(s), df["b"].corr(s)]
-        expected = pd.Series(data=corrs, index=["a", "b"])
+        expected = Series(data=corrs, index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
     def test_corrwith_index_intersection(self):
@@ -290,7 +307,7 @@ class TestDataFrameCorrWith:
         df2 = pd.concat((df2, df2[0]), axis=1)
 
         result = df1.corrwith(df2)
-        expected = pd.Series(np.ones(4), index=[0, 0, 1, 2])
+        expected = Series(np.ones(4), index=[0, 0, 1, 2])
         tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy

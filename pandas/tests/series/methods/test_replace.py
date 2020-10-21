@@ -218,8 +218,9 @@ class TestSeriesReplace:
 
     def test_replace_with_dict_with_bool_keys(self):
         s = pd.Series([True, False, True])
-        with pytest.raises(TypeError, match="Cannot compare types .+"):
-            s.replace({"asdf": "asdb", True: "yes"})
+        result = s.replace({"asdf": "asdb", True: "yes"})
+        expected = pd.Series(["yes", False, "yes"])
+        tm.assert_series_equal(result, expected)
 
     def test_replace2(self):
         N = 100
@@ -448,3 +449,14 @@ class TestSeriesReplace:
         result = s.replace({regex: "z"}, regex=True)
         expected = pd.Series(["z", "b", "c"])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("pattern", ["^.$", "."])
+    def test_str_replace_regex_default_raises_warning(self, pattern):
+        # https://github.com/pandas-dev/pandas/pull/24809
+        s = pd.Series(["a", "b", "c"])
+        msg = r"The default value of regex will change from True to False"
+        if len(pattern) == 1:
+            msg += r".*single character regular expressions.*not.*literal strings"
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
+            s.str.replace(pattern, "")
+            assert re.match(msg, str(w[0].message))

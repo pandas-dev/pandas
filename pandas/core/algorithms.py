@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import operator
 from textwrap import dedent
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, cast
 from warnings import catch_warnings, simplefilter, warn
 
 import numpy as np
@@ -60,7 +60,7 @@ from pandas.core.construction import array, extract_array
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import Categorical, DataFrame, Series
 
 _shared_docs: Dict[str, str] = {}
 
@@ -262,7 +262,7 @@ def _get_values_for_rank(values):
     return values
 
 
-def _get_data_algo(values):
+def get_data_algo(values):
     values = _get_values_for_rank(values)
 
     ndtype = _check_object_for_strings(values)
@@ -278,7 +278,6 @@ def _check_object_for_strings(values) -> str:
     Parameters
     ----------
     values : ndarray
-    ndtype : str
 
     Returns
     -------
@@ -429,8 +428,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if is_categorical_dtype(comps):
         # TODO(extension)
         # handle categoricals
-        # error: "ExtensionArray" has no attribute "isin"  [attr-defined]
-        return comps.isin(values)  # type: ignore[attr-defined]
+        return cast("Categorical", comps).isin(values)
 
     comps, dtype = _ensure_data(comps)
     values, _ = _ensure_data(values, dtype=dtype)
@@ -441,7 +439,12 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     if len(comps) > 1_000_000 and not is_object_dtype(comps):
-        f = np.in1d
+        # If the the values include nan we need to check for nan explicitly
+        # since np.nan it not equal to np.nan
+        if np.isnan(values).any():
+            f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
+        else:
+            f = np.in1d
     elif is_integer_dtype(comps):
         try:
             values = values.astype("int64", copy=False)
@@ -463,7 +466,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     return f(comps, values)
 
 
-def _factorize_array(
+def factorize_array(
     values, na_sentinel: int = -1, size_hint=None, na_value=None, mask=None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -492,7 +495,7 @@ def _factorize_array(
     codes : ndarray
     uniques : ndarray
     """
-    hash_klass, values = _get_data_algo(values)
+    hash_klass, values = get_data_algo(values)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
@@ -672,7 +675,7 @@ def factorize(
         else:
             na_value = None
 
-        codes, uniques = _factorize_array(
+        codes, uniques = factorize_array(
             values, na_sentinel=na_sentinel, size_hint=size_hint, na_value=na_value
         )
 
@@ -693,6 +696,8 @@ def factorize(
 
     # return original tenor
     if isinstance(original, ABCIndexClass):
+        if original.dtype.kind in ["m", "M"] and isinstance(uniques, np.ndarray):
+            uniques = type(original._data)._simple_new(uniques, dtype=original.dtype)
         uniques = original._shallow_copy(uniques, name=None)
     elif isinstance(original, ABCSeries):
         from pandas import Index
@@ -768,7 +773,7 @@ def value_counts(
             counts = result._values
 
         else:
-            keys, counts = _value_counts_arraylike(values, dropna)
+            keys, counts = value_counts_arraylike(values, dropna)
 
             result = Series(counts, index=keys, name=name)
 
@@ -781,8 +786,8 @@ def value_counts(
     return result
 
 
-# Called once from SparseArray
-def _value_counts_arraylike(values, dropna: bool):
+# Called once from SparseArray, otherwise could be private
+def value_counts_arraylike(values, dropna: bool):
     """
     Parameters
     ----------
@@ -1019,11 +1024,10 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
     else:
         to_raise = (
-            ((np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any()
-            or (
-                (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
-            ).any()
-        )
+            (np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]
+        ).any() or (
+            (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
+        ).any()
 
     if to_raise:
         raise OverflowError("Overflow in int64 addition")
@@ -1525,8 +1529,6 @@ def take(arr, indices, axis: int = 0, allow_fill: bool = False, fill_value=None)
     """
     Take elements from an array.
 
-    .. versionadded:: 0.23.0
-
     Parameters
     ----------
     arr : sequence
@@ -1650,7 +1652,8 @@ def take_nd(
     """
     mask_info = None
 
-    if is_extension_array_dtype(arr):
+    if isinstance(arr, ABCExtensionArray):
+        # Check for EA to catch DatetimeArray, TimedeltaArray
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = extract_array(arr)
@@ -1908,6 +1911,8 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
 
     if is_extension_array_dtype(dtype):
         if hasattr(arr, f"__{op.__name__}__"):
+            if axis != 0:
+                raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:
             warn(
@@ -1922,17 +1927,25 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     is_timedelta = False
     is_bool = False
     if needs_i8_conversion(arr.dtype):
-        dtype = np.float64
+        dtype = np.int64
         arr = arr.view("i8")
         na = iNaT
         is_timedelta = True
 
     elif is_bool_dtype(dtype):
+        # We have to cast in order to be able to hold np.nan
         dtype = np.object_
         is_bool = True
 
     elif is_integer_dtype(dtype):
+        # We have to cast in order to be able to hold np.nan
         dtype = np.float64
+
+    orig_ndim = arr.ndim
+    if orig_ndim == 1:
+        # reshape so we can always use algos.diff_2d
+        arr = arr.reshape(-1, 1)
+        # TODO: require axis == 0
 
     dtype = np.dtype(dtype)
     out_arr = np.empty(arr.shape, dtype=dtype)
@@ -1944,7 +1957,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
     if arr.ndim == 2 and arr.dtype.name in _diff_special:
         # TODO: can diff_2d dtype specialization troubles be fixed by defining
         #  out_arr inside diff_2d?
-        algos.diff_2d(arr, out_arr, n, axis)
+        algos.diff_2d(arr, out_arr, n, axis, datetimelike=is_timedelta)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.
@@ -1978,8 +1991,10 @@ def diff(arr, n: int, axis: int = 0, stacklevel=3):
             out_arr[res_indexer] = arr[res_indexer] - arr[lag_indexer]
 
     if is_timedelta:
-        out_arr = out_arr.astype("int64").view("timedelta64[ns]")
+        out_arr = out_arr.view("timedelta64[ns]")
 
+    if orig_ndim == 1:
+        out_arr = out_arr[:, 0]
     return out_arr
 
 
@@ -2043,7 +2058,7 @@ def safe_sort(
             "Only list-like objects are allowed to be passed to safe_sort as values"
         )
 
-    if not isinstance(values, np.ndarray) and not is_extension_array_dtype(values):
+    if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
         values = np.asarray(values, dtype=dtype)
@@ -2087,7 +2102,7 @@ def safe_sort(
 
     if sorter is None:
         # mixed types
-        hash_klass, values = _get_data_algo(values)
+        hash_klass, values = get_data_algo(values)
         t = hash_klass(len(values))
         t.map_locations(values)
         sorter = ensure_platform_int(t.lookup(ordered))

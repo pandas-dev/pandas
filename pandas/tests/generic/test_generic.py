@@ -3,7 +3,7 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import np_version_under1p17
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -604,7 +604,7 @@ class TestNDFrame:
             df.sample(n=1, axis="not_a_name")
 
         with pytest.raises(ValueError):
-            s = pd.Series(range(10))
+            s = Series(range(10))
             s.sample(n=1, axis=1)
 
         # Test weight length compared to correct axis
@@ -652,12 +652,12 @@ class TestNDFrame:
             pytest.param(
                 "np.random.MT19937",
                 3,
-                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
             ),
             pytest.param(
                 "np.random.PCG64",
                 11,
-                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
             ),
         ],
     )
@@ -890,7 +890,7 @@ class TestNDFrame:
 
     @pytest.mark.parametrize("as_frame", [True, False])
     def test_flags_identity(self, as_frame):
-        s = pd.Series([1, 2])
+        s = Series([1, 2])
         if as_frame:
             s = s.to_frame()
 

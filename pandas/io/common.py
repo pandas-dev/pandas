@@ -40,12 +40,12 @@ from pandas._typing import (
     ModeVar,
     StorageOptions,
 )
-from pandas.compat import _get_lzma_file, _import_lzma
+from pandas.compat import get_lzma_file, import_lzma
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
@@ -53,7 +53,7 @@ _VALID_URLS.discard("")
 
 
 if TYPE_CHECKING:
-    from io import IOBase  # noqa: F401
+    from io import IOBase
 
 
 def is_url(url) -> bool:
@@ -165,11 +165,16 @@ def is_fsspec_url(url: FilePathOrBuffer) -> bool:
     )
 
 
-def get_filepath_or_buffer(  # type: ignore[assignment]
+# https://github.com/python/mypy/issues/8708
+# error: Incompatible default for argument "encoding" (default has type "None",
+# argument has type "str")
+# error: Incompatible default for argument "mode" (default has type "None",
+# argument has type "str")
+def get_filepath_or_buffer(
     filepath_or_buffer: FilePathOrBuffer,
-    encoding: EncodingVar = None,
+    encoding: EncodingVar = None,  # type: ignore[assignment]
     compression: CompressionOptions = None,
-    mode: ModeVar = None,
+    mode: ModeVar = None,  # type: ignore[assignment]
     storage_options: StorageOptions = None,
 ) -> IOargs[ModeVar, EncodingVar]:
     """
@@ -200,11 +205,28 @@ def get_filepath_or_buffer(  # type: ignore[assignment]
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
+    # handle compression dict
+    compression_method, compression = get_compression_method(compression)
+    compression_method = infer_compression(filepath_or_buffer, compression_method)
+
+    # GH21227 internal compression is not used for non-binary handles.
+    if (
+        compression_method
+        and hasattr(filepath_or_buffer, "write")
+        and mode
+        and "b" not in mode
+    ):
+        warnings.warn(
+            "compression has no effect when passing a non-binary object as input.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        compression_method = None
+
+    compression = dict(compression, method=compression_method)
+
     # bz2 and xz do not write the byte order mark for utf-16 and utf-32
     # print a warning when writing such files
-    compression_method = infer_compression(
-        filepath_or_buffer, get_compression_method(compression)[0]
-    )
     if (
         mode
         and "w" in mode
@@ -233,7 +255,7 @@ def get_filepath_or_buffer(  # type: ignore[assignment]
         content_encoding = req.headers.get("Content-Encoding", None)
         if content_encoding == "gzip":
             # Override compression based on Content-Encoding header
-            compression = "gzip"
+            compression = {"method": "gzip"}
         reader = BytesIO(req.read())
         req.close()
         return IOargs(
@@ -369,7 +391,7 @@ def get_compression_method(
     if isinstance(compression, Mapping):
         compression_args = dict(compression)
         try:
-            compression_method = compression_args.pop("method")  # type: ignore
+            compression_method = compression_args.pop("method")
         except KeyError as err:
             raise ValueError("If mapping, compression must have key 'method'") from err
     else:
@@ -555,7 +577,7 @@ def get_handle(
 
         # XZ Compression
         elif compression == "xz":
-            f = _get_lzma_file(lzma)(path_or_buf, mode)
+            f = get_lzma_file(lzma)(path_or_buf, mode)
 
         # Unrecognized Compression
         else:
@@ -643,12 +665,8 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
     def write(self, data):
-        archive_name = self.filename
-        if self.archive_name is not None:
-            archive_name = self.archive_name
-        if archive_name is None:
-            # ZipFile needs a non-empty string
-            archive_name = "zip"
+        # ZipFile needs a non-empty string
+        archive_name = self.archive_name or self.filename or "zip"
         super().writestr(archive_name, data)
 
     @property

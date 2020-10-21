@@ -182,7 +182,7 @@ class TestDataFrameReshape:
         unstacked = df.unstack(["x", "y"], fill_value=0)
         key = ("w", "b", "j")
         expected = unstacked[key]
-        result = pd.Series([0, 0, 2], index=unstacked.index, name=key)
+        result = Series([0, 0, 2], index=unstacked.index, name=key)
         tm.assert_series_equal(result, expected)
 
         stacked = unstacked.stack(["x", "y"])
@@ -315,7 +315,7 @@ class TestDataFrameReshape:
     def test_unstack_fill_frame_categorical(self):
 
         # Test unstacking with categorical
-        data = pd.Series(["a", "b", "c", "a"], dtype="category")
+        data = Series(["a", "b", "c", "a"], dtype="category")
         data.index = pd.MultiIndex.from_tuples(
             [("x", "a"), ("x", "b"), ("y", "b"), ("z", "a")]
         )
@@ -427,15 +427,15 @@ class TestDataFrameReshape:
             dict(
                 state=["IL", "MI", "NC"],
                 index=["a", "b", "c"],
-                some_categories=pd.Series(["a", "b", "c"]).astype("category"),
+                some_categories=Series(["a", "b", "c"]).astype("category"),
                 A=np.random.rand(3),
                 B=1,
                 C="foo",
                 D=pd.Timestamp("20010102"),
-                E=pd.Series([1.0, 50.0, 100.0]).astype("float32"),
-                F=pd.Series([3.0, 4.0, 5.0]).astype("float64"),
+                E=Series([1.0, 50.0, 100.0]).astype("float32"),
+                F=Series([3.0, 4.0, 5.0]).astype("float64"),
                 G=False,
-                H=pd.Series([1, 200, 923442], dtype="int8"),
+                H=Series([1, 200, 923442], dtype="int8"),
             )
         )
 
@@ -586,7 +586,7 @@ class TestDataFrameReshape:
             codes=[[0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]],
             names=["first", "second", "third"],
         )
-        s = pd.Series(0, index=mi)
+        s = Series(0, index=mi)
         result = s.unstack([1, 2]).stack(0)
 
         expected_mi = pd.MultiIndex(
@@ -1144,7 +1144,7 @@ class TestDataFrameReshape:
         df = pd.DataFrame({"A": cat, "B": cat})
         result = df.stack()
         index = pd.MultiIndex.from_product([[0, 1, 2, 3], ["A", "B"]])
-        expected = pd.Series(
+        expected = Series(
             pd.Categorical(["a", "a", "a", "a", "b", "b", "c", "c"]), index=index
         )
         tm.assert_series_equal(result, expected)
@@ -1186,7 +1186,7 @@ class TestDataFrameReshape:
         result = df.unstack(level=level)
         expected = df.astype(object).unstack(level=level)
 
-        expected_dtypes = pd.Series(
+        expected_dtypes = Series(
             [df.A.dtype] * 2 + [df.B.dtype] * 2, index=result.columns
         )
         tm.assert_series_equal(result.dtypes, expected_dtypes)
@@ -1213,7 +1213,7 @@ class TestDataFrameReshape:
 
 def test_unstack_fill_frame_object():
     # GH12815 Test unstacking with object.
-    data = pd.Series(["a", "b", "c", "a"], dtype="object")
+    data = Series(["a", "b", "c", "a"], dtype="object")
     data.index = pd.MultiIndex.from_tuples(
         [("x", "a"), ("x", "b"), ("y", "b"), ("z", "a")]
     )
@@ -1264,7 +1264,7 @@ def test_stack_timezone_aware_values():
     )
     df = pd.DataFrame({"A": ts}, index=["a", "b", "c"])
     result = df.stack()
-    expected = pd.Series(
+    expected = Series(
         ts,
         index=pd.MultiIndex(
             levels=[["a", "b", "c"], ["A"]], codes=[[0, 1, 2], [0, 0, 0]]
@@ -1301,4 +1301,17 @@ def test_unstacking_multi_index_df():
             names=[None, "gender", "employed", "kids"],
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_stack_positional_level_duplicate_column_names():
+    # https://github.com/pandas-dev/pandas/issues/36353
+    columns = pd.MultiIndex.from_product([("x", "y"), ("y", "z")], names=["a", "a"])
+    df = pd.DataFrame([[1, 1, 1, 1]], columns=columns)
+    result = df.stack(0)
+
+    new_columns = pd.Index(["y", "z"], name="a")
+    new_index = pd.MultiIndex.from_tuples([(0, "x"), (0, "y")], names=[None, "a"])
+    expected = pd.DataFrame([[1, 1], [1, 1]], index=new_index, columns=new_columns)
+
     tm.assert_frame_equal(result, expected)

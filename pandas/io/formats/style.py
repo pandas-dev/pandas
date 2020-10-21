@@ -18,7 +18,7 @@ from typing import (
     Tuple,
     Union,
 )
-from uuid import uuid1
+from uuid import uuid4
 
 import numpy as np
 
@@ -36,7 +36,7 @@ from pandas.api.types import is_dict_like, is_list_like
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
+from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 
@@ -88,6 +88,12 @@ class Styler:
         If ``na_rep`` is None, no special formatting is applied.
 
         .. versionadded:: 1.0.0
+
+    uuid_len : int, default 5
+        If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate
+        expressed in hex characters, in range [0, 32].
+
+        .. versionadded:: 1.2.0
 
     Attributes
     ----------
@@ -144,6 +150,7 @@ class Styler:
         table_attributes: Optional[str] = None,
         cell_ids: bool = True,
         na_rep: Optional[str] = None,
+        uuid_len: int = 5,
     ):
         self.ctx: DefaultDict[Tuple[int, int], List[str]] = defaultdict(list)
         self._todo: List[Tuple[Callable, Tuple, Dict]] = []
@@ -159,7 +166,10 @@ class Styler:
         self.index = data.index
         self.columns = data.columns
 
-        self.uuid = uuid
+        if not isinstance(uuid_len, int) or not uuid_len >= 0:
+            raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
+        self.uuid_len = min(32, uuid_len)
+        self.uuid = (uuid or uuid4().hex[: self.uuid_len]) + "_"
         self.table_styles = table_styles
         self.caption = caption
         if precision is None:
@@ -170,6 +180,8 @@ class Styler:
         self.hidden_columns: Sequence[int] = []
         self.cell_ids = cell_ids
         self.na_rep = na_rep
+
+        self.cell_context: Dict[str, Any] = {}
 
         # display_funcs maps (row, col) -> formatting function
 
@@ -246,7 +258,7 @@ class Styler:
         precision = self.precision
         hidden_index = self.hidden_index
         hidden_columns = self.hidden_columns
-        uuid = self.uuid or str(uuid1()).replace("-", "_")
+        uuid = self.uuid
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
@@ -262,7 +274,7 @@ class Styler:
         idx_lengths = _get_level_lengths(self.index)
         col_lengths = _get_level_lengths(self.columns, hidden_columns)
 
-        cell_context = dict()
+        cell_context = self.cell_context
 
         n_rlvls = self.data.index.nlevels
         n_clvls = self.data.columns.nlevels
@@ -327,7 +339,7 @@ class Styler:
                     colspan = col_lengths.get((r, c), 0)
                     if colspan > 1:
                         es["attributes"] = [
-                            format_attr({"key": "colspan", "value": colspan})
+                            format_attr({"key": "colspan", "value": f'"{colspan}"'})
                         ]
                     row_es.append(es)
                 head.append(row_es)
@@ -475,7 +487,7 @@ class Styler:
             row_locs = range(len(self.data))
             col_locs = range(len(self.data.columns))
         else:
-            subset = _non_reducing_slice(subset)
+            subset = non_reducing_slice(subset)
             if len(subset) == 1:
                 subset = subset, self.data.columns
 
@@ -497,6 +509,70 @@ class Styler:
             locs = product(*(row_locs, col_locs))
             for i, j in locs:
                 self._display_funcs[(i, j)] = formatter
+        return self
+
+    def set_td_classes(self, classes: DataFrame) -> "Styler":
+        """
+        Add string based CSS class names to data cells that will appear within the
+        `Styler` HTML result. These classes are added within specified `<td>` elements.
+
+        Parameters
+        ----------
+        classes : DataFrame
+            DataFrame containing strings that will be translated to CSS classes,
+            mapped by identical column and index values that must exist on the
+            underlying `Styler` data. None, NaN values, and empty strings will
+            be ignored and not affect the rendered HTML.
+
+        Returns
+        -------
+        self : Styler
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(data=[[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
+        >>> classes = pd.DataFrame([
+        ...     ["min-val red", "", "blue"],
+        ...     ["red", None, "blue max-val"]
+        ... ], index=df.index, columns=df.columns)
+        >>> df.style.set_td_classes(classes)
+
+        Using `MultiIndex` columns and a `classes` `DataFrame` as a subset of the
+        underlying,
+
+        >>> df = pd.DataFrame([[1,2],[3,4]], index=["a", "b"],
+        ...     columns=[["level0", "level0"], ["level1a", "level1b"]])
+        >>> classes = pd.DataFrame(["min-val"], index=["a"],
+        ...     columns=[["level0"],["level1a"]])
+        >>> df.style.set_td_classes(classes)
+
+        Form of the output with new additional css classes,
+
+        >>> df = pd.DataFrame([[1]])
+        >>> css = pd.DataFrame(["other-class"])
+        >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
+        >>> s.hide_index().render()
+        '<style  type="text/css" ></style>'
+        '<table id="T__" >'
+        '  <thead>'
+        '    <tr><th class="col_heading level0 col0" >0</th></tr>'
+        '  </thead>'
+        '  <tbody>'
+        '    <tr><td  class="data row0 col0 other-class" >1</td></tr>'
+        '  </tbody>'
+        '</table>'
+
+        """
+        classes = classes.reindex_like(self.data)
+
+        mask = (classes.isna()) | (classes.eq(""))
+        self.cell_context["data"] = {
+            r: {c: [str(classes.iloc[r, c])]}
+            for r, rn in enumerate(classes.index)
+            for c, cn in enumerate(classes.columns)
+            if not mask.iloc[r, c]
+        }
+
         return self
 
     def render(self, **kwargs) -> str:
@@ -609,6 +685,7 @@ class Styler:
         Returns None.
         """
         self.ctx.clear()
+        self.cell_context = {}
         self._todo = []
 
     def _compute(self):
@@ -633,7 +710,7 @@ class Styler:
         **kwargs,
     ) -> "Styler":
         subset = slice(None) if subset is None else subset
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
             result = data.apply(func, axis=axis, result_type="expand", **kwargs)
@@ -725,7 +802,7 @@ class Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
             subset = pd.IndexSlice[:]
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
         return self
@@ -960,8 +1037,6 @@ class Styler:
         """
         Hide any indices from rendering.
 
-        .. versionadded:: 0.23.0
-
         Returns
         -------
         self : Styler
@@ -973,8 +1048,6 @@ class Styler:
         """
         Hide columns from rendering.
 
-        .. versionadded:: 0.23.0
-
         Parameters
         ----------
         subset : IndexSlice
@@ -985,7 +1058,7 @@ class Styler:
         -------
         self : Styler
         """
-        subset = _non_reducing_slice(subset)
+        subset = non_reducing_slice(subset)
         hidden_df = self.data.loc[subset]
         self.hidden_columns = self.columns.get_indexer_for(hidden_df.columns)
         return self
@@ -1087,8 +1160,8 @@ class Styler:
         of the data is extended by ``low * (x.max() - x.min())`` and ``high *
         (x.max() - x.min())`` before normalizing.
         """
-        subset = _maybe_numeric_slice(self.data, subset)
-        subset = _non_reducing_slice(subset)
+        subset = maybe_numeric_slice(self.data, subset)
+        subset = non_reducing_slice(subset)
         self.apply(
             self._background_gradient,
             cmap=cmap,
@@ -1322,8 +1395,8 @@ class Styler:
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
-        subset = _maybe_numeric_slice(self.data, subset)
-        subset = _non_reducing_slice(subset)
+        subset = maybe_numeric_slice(self.data, subset)
+        subset = non_reducing_slice(subset)
         self.apply(
             self._bar,
             subset=subset,
@@ -1390,7 +1463,7 @@ class Styler:
         axis: Optional[Axis] = None,
         max_: bool = True,
     ) -> "Styler":
-        subset = _non_reducing_slice(_maybe_numeric_slice(self.data, subset))
+        subset = non_reducing_slice(maybe_numeric_slice(self.data, subset))
         self.apply(
             self._highlight_extrema, color=color, axis=axis, subset=subset, max_=max_
         )
@@ -1438,7 +1511,10 @@ class Styler:
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
-        class MyStyler(cls):
+        # mypy doesnt like dynamically-defined class
+        # error: Variable "cls" is not valid as a type  [valid-type]
+        # error: Invalid base class "cls"  [misc]
+        class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
             template = env.get_template(name)
 

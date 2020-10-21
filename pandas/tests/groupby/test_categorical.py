@@ -470,13 +470,13 @@ def test_observed_groups_with_nan(observed):
 def test_observed_nth():
     # GH 26385
     cat = pd.Categorical(["a", np.nan, np.nan], categories=["a", "b", "c"])
-    ser = pd.Series([1, 2, 3])
+    ser = Series([1, 2, 3])
     df = pd.DataFrame({"cat": cat, "ser": ser})
 
     result = df.groupby("cat", observed=False)["ser"].nth(0)
 
     index = pd.Categorical(["a", "b", "c"], categories=["a", "b", "c"])
-    expected = pd.Series([1, np.nan, np.nan], index=index, name="ser")
+    expected = Series([1, np.nan, np.nan], index=index, name="ser")
     expected.index.name = "cat"
 
     tm.assert_series_equal(result, expected)
@@ -772,7 +772,7 @@ def test_preserve_on_ordered_ops(func, values):
     g = df.groupby("payload")
     result = getattr(g, func)()
     expected = pd.DataFrame(
-        {"payload": [-2, -1], "col": pd.Series(values, dtype=c.dtype)}
+        {"payload": [-2, -1], "col": Series(values, dtype=c.dtype)}
     ).set_index("payload")
     tm.assert_frame_equal(result, expected)
 
@@ -822,9 +822,9 @@ def test_groupby_empty_with_category():
         {"A": [None] * 3, "B": pd.Categorical(["train", "train", "test"])}
     )
     result = df.groupby("A").first()["B"]
-    expected = pd.Series(
+    expected = Series(
         pd.Categorical([], categories=["test", "train"]),
-        index=pd.Series([], dtype="object", name="A"),
+        index=Series([], dtype="object", name="A"),
         name="B",
     )
     tm.assert_series_equal(result, expected)
@@ -1472,11 +1472,11 @@ def test_groupy_first_returned_categorical_instead_of_dataframe(func):
     # GH 28641: groupby drops index, when grouping over categorical column with
     # first/last. Renamed Categorical instead of DataFrame previously.
     df = pd.DataFrame(
-        {"A": [1997], "B": pd.Series(["b"], dtype="category").cat.as_ordered()}
+        {"A": [1997], "B": Series(["b"], dtype="category").cat.as_ordered()}
     )
     df_grouped = df.groupby("A")["B"]
     result = getattr(df_grouped, func)()
-    expected = pd.Series(["b"], index=pd.Index([1997], name="A"), name="B")
+    expected = Series(["b"], index=pd.Index([1997], name="A"), name="B")
     tm.assert_series_equal(result, expected)
 
 
@@ -1543,7 +1543,7 @@ def test_agg_cython_category_not_implemented_fallback():
     df["col_cat"] = df["col_num"].astype("category")
 
     result = df.groupby("col_num").col_cat.first()
-    expected = pd.Series(
+    expected = Series(
         [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
     )
     tm.assert_series_equal(result, expected)
@@ -1556,7 +1556,7 @@ def test_agg_cython_category_not_implemented_fallback():
 @pytest.mark.parametrize("func", ["min", "max"])
 def test_aggregate_categorical_lost_index(func: str):
     # GH: 28641 groupby drops index, when grouping over categorical column with min/max
-    ds = pd.Series(["b"], dtype="category").cat.as_ordered()
+    ds = Series(["b"], dtype="category").cat.as_ordered()
     df = pd.DataFrame({"A": [1997], "B": ds})
     result = df.groupby("A").agg({"B": func})
     expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
@@ -1652,8 +1652,8 @@ def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     idx = pd.Categorical([0, 1])
     idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
     expected_dict = {
-        "first": pd.Series([0, np.NaN, np.NaN, 1], idx, name="c"),
-        "last": pd.Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+        "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
+        "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
     }
 
     expected = expected_dict[func]
@@ -1677,8 +1677,8 @@ def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     idx = pd.Categorical([0, 1])
     idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
     expected_dict = {
-        "first": pd.Series([0, np.NaN, np.NaN, 1], idx, name="c"),
-        "last": pd.Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+        "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
+        "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
     }
 
     expected = expected_dict[func].to_frame()
