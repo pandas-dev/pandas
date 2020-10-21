@@ -375,11 +375,11 @@ class TestMultiLevel(Base):
         # https://github.com/pandas-dev/pandas/issues/19351
         # make sure DataFrame.unstack() works when its run on a subset of the DataFrame
         # and the Index levels contain values that are not present in the subset
-        result = pd.DataFrame(result_rows, columns=result_columns).set_index(
+        result = DataFrame(result_rows, columns=result_columns).set_index(
             ["ix1", "ix2"]
         )
         result = result.iloc[1:2].unstack("ix2")
-        expected = pd.DataFrame(
+        expected = DataFrame(
             [expected_row],
             columns=pd.MultiIndex.from_product(
                 [result_columns[2:], [index_product]], names=[None, "ix2"]
@@ -925,7 +925,7 @@ Thur,Lunch,Yes,51.51,17"""
                 [f"a{x}" for x in values],  # a0, a1, ..
             ]
         )
-        df = pd.DataFrame(data.T, columns=["b", "a"])
+        df = DataFrame(data.T, columns=["b", "a"])
         df.columns.name = "first"
         second_level_dict = {"x": df}
         multi_level_df = pd.concat(second_level_dict, axis=1)
@@ -1919,7 +1919,7 @@ class TestSorted(Base):
         # GH 22797
         # Try to respect order of keys given for MultiIndex.loc
         kwargs = {dim: [["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]]}
-        df = pd.DataFrame(np.arange(25).reshape(5, 5), **kwargs)
+        df = DataFrame(np.arange(25).reshape(5, 5), **kwargs)
         exp_index = MultiIndex.from_arrays(expected)
         if dim == "index":
             res = df.loc[keys, :]

@@ -205,6 +205,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     MSG='Check for inconsistent use of pandas namespace in tests' ; echo $MSG
     check_namespace "Series"
     RET=$(($RET + $?))
+    check_namespace "DataFrame"
+    RET=$(($RET + $?))
     echo $MSG "DONE"
 fi
 

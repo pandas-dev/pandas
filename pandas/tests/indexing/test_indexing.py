@@ -991,7 +991,7 @@ class TestDataframeNoneCoercion:
 
 def test_extension_array_cross_section():
     # A cross-section of a homogeneous EA should be an EA
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "A": pd.core.arrays.integer_array([1, 2]),
             "B": pd.core.arrays.integer_array([3, 4]),
@@ -1008,7 +1008,7 @@ def test_extension_array_cross_section():
 
 def test_extension_array_cross_section_converts():
     # all numeric columns -> numeric series
-    df = pd.DataFrame(
+    df = DataFrame(
         {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"]
     )
     result = df.loc["a"]
@@ -1019,7 +1019,7 @@ def test_extension_array_cross_section_converts():
     tm.assert_series_equal(result, expected)
 
     # mixed columns -> object series
-    df = pd.DataFrame(
+    df = DataFrame(
         {"A": pd.array([1, 2], dtype="Int64"), "B": np.array(["a", "b"])},
         index=["a", "b"],
     )
@@ -1033,7 +1033,7 @@ def test_extension_array_cross_section_converts():
 
 def test_readonly_indices():
     # GH#17192 iloc with read-only array raising TypeError
-    df = pd.DataFrame({"data": np.ones(100, dtype="float64")})
+    df = DataFrame({"data": np.ones(100, dtype="float64")})
     indices = np.array([1, 3, 6])
     indices.flags.writeable = False
 
@@ -1109,9 +1109,9 @@ def test_long_text_missing_labels_inside_loc_error_message_limited():
 
 def test_setitem_categorical():
     # https://github.com/pandas-dev/pandas/issues/35369
-    df = pd.DataFrame({"h": Series(list("mn")).astype("category")})
+    df = DataFrame({"h": Series(list("mn")).astype("category")})
     df.h = df.h.cat.reorder_categories(["n", "m"])
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"h": pd.Categorical(["m", "n"]).reorder_categories(["n", "m"])}
     )
     tm.assert_frame_equal(df, expected)
