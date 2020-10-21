@@ -1,14 +1,15 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
 import cython
-from cython import Py_ssize_t
+
+from cython.parallel cimport prange
 
 from libcpp.deque cimport deque
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float32_t, float64_t, int64_t, ndarray, uint8_t
+from numpy cimport float32_t, float64_t, int64_t, ndarray
 
 cnp.import_array()
 
@@ -1410,7 +1411,7 @@ def ewma_time(ndarray[float64_t] vals, int minp, ndarray[int64_t] times,
 
                 weights_sum = 0
                 weights_dot = 0
-                for j in range(num_not_nan):
+                for j in prange(num_not_nan):
                     weight = 0.5 ** (<float>(time - times_masked[j]) / halflife)
                     weights_sum += weight
                     weights_dot += weight * observations[j]
