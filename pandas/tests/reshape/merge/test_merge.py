@@ -46,22 +46,22 @@ def get_test_data(ngroups=NGROUPS, n=N):
 
 def get_series():
     return [
-        pd.Series([1], dtype="int64"),
-        pd.Series([1], dtype="Int64"),
-        pd.Series([1.23]),
-        pd.Series(["foo"]),
-        pd.Series([True]),
-        pd.Series([pd.Timestamp("2018-01-01")]),
-        pd.Series([pd.Timestamp("2018-01-01", tz="US/Eastern")]),
+        Series([1], dtype="int64"),
+        Series([1], dtype="Int64"),
+        Series([1.23]),
+        Series(["foo"]),
+        Series([True]),
+        Series([pd.Timestamp("2018-01-01")]),
+        Series([pd.Timestamp("2018-01-01", tz="US/Eastern")]),
     ]
 
 
 def get_series_na():
     return [
-        pd.Series([np.nan], dtype="Int64"),
-        pd.Series([np.nan], dtype="float"),
-        pd.Series([np.nan], dtype="object"),
-        pd.Series([pd.NaT]),
+        Series([np.nan], dtype="Int64"),
+        Series([np.nan], dtype="float"),
+        Series([np.nan], dtype="object"),
+        Series([pd.NaT]),
     ]
 
 
@@ -253,16 +253,16 @@ class TestMerge:
             right, left_on="lkey", right_on="rkey", how="outer", sort=True
         )
 
-        exp = pd.Series(["bar", "baz", "foo", "foo", "foo", "foo", np.nan], name="lkey")
+        exp = Series(["bar", "baz", "foo", "foo", "foo", "foo", np.nan], name="lkey")
         tm.assert_series_equal(merged["lkey"], exp)
 
-        exp = pd.Series(["bar", np.nan, "foo", "foo", "foo", "foo", "qux"], name="rkey")
+        exp = Series(["bar", np.nan, "foo", "foo", "foo", "foo", "qux"], name="rkey")
         tm.assert_series_equal(merged["rkey"], exp)
 
-        exp = pd.Series([2, 3, 1, 1, 4, 4, np.nan], name="value_x")
+        exp = Series([2, 3, 1, 1, 4, 4, np.nan], name="value_x")
         tm.assert_series_equal(merged["value_x"], exp)
 
-        exp = pd.Series([6, np.nan, 5, 8, 5, 8, 7], name="value_y")
+        exp = Series([6, np.nan, 5, 8, 5, 8, 7], name="value_y")
         tm.assert_series_equal(merged["value_y"], exp)
 
     def test_merge_copy(self):
@@ -541,9 +541,9 @@ class TestMerge:
         df_empty = df[:0]
         expected = pd.DataFrame(
             {
-                "value_x": pd.Series(dtype=df.dtypes["value"]),
-                "key": pd.Series(dtype=df.dtypes["key"]),
-                "value_y": pd.Series(dtype=df.dtypes["value"]),
+                "value_x": Series(dtype=df.dtypes["value"]),
+                "key": Series(dtype=df.dtypes["key"]),
+                "value_y": Series(dtype=df.dtypes["value"]),
             },
             columns=["value_x", "key", "value_y"],
         )
@@ -676,7 +676,7 @@ class TestMerge:
     def test_other_datetime_unit(self):
         # GH 13389
         df1 = pd.DataFrame({"entity_id": [101, 102]})
-        s = pd.Series([None, None], index=[101, 102], name="days")
+        s = Series([None, None], index=[101, 102], name="days")
 
         for dtype in [
             "datetime64[D]",
@@ -707,7 +707,7 @@ class TestMerge:
     def test_other_timedelta_unit(self, unit):
         # GH 13389
         df1 = pd.DataFrame({"entity_id": [101, 102]})
-        s = pd.Series([None, None], index=[101, 102], name="days")
+        s = Series([None, None], index=[101, 102], name="days")
 
         dtype = f"m8[{unit}]"
         df2 = s.astype(dtype).to_frame("days")
@@ -812,11 +812,11 @@ class TestMerge:
         result = left.merge(right, on="date")
         expected = pd.DataFrame(
             {
-                "value_x": pd.Series(dtype=float),
-                "date2_x": pd.Series(dtype=dtz),
-                "date": pd.Series(dtype=dtz),
-                "value_y": pd.Series(dtype=float),
-                "date2_y": pd.Series(dtype=dtz),
+                "value_x": Series(dtype=float),
+                "date2_x": Series(dtype=dtz),
+                "date": Series(dtype=dtz),
+                "value_y": Series(dtype=float),
+                "date2_y": Series(dtype=dtz),
             },
             columns=["value_x", "date2_x", "date", "value_y", "date2_y"],
         )
@@ -1521,8 +1521,8 @@ class TestMergeDtypes:
             ([0, 1, 2], Series(["a", "b", "a"]).astype("category")),
             ([0.0, 1.0, 2.0], Series(["a", "b", "a"]).astype("category")),
             # no not infer
-            ([0, 1], pd.Series([False, True], dtype=object)),
-            ([0, 1], pd.Series([False, True], dtype=bool)),
+            ([0, 1], Series([False, True], dtype=object)),
+            ([0, 1], Series([False, True], dtype=bool)),
         ],
     )
     def test_merge_incompat_dtypes_are_ok(self, df1_vals, df2_vals):
@@ -1836,10 +1836,10 @@ class TestMergeCategorical:
 
     def test_merge_on_int_array(self):
         # GH 23020
-        df = pd.DataFrame({"A": pd.Series([1, 2, np.nan], dtype="Int64"), "B": 1})
+        df = pd.DataFrame({"A": Series([1, 2, np.nan], dtype="Int64"), "B": 1})
         result = pd.merge(df, df, on="A")
         expected = pd.DataFrame(
-            {"A": pd.Series([1, 2, np.nan], dtype="Int64"), "B_x": 1, "B_y": 1}
+            {"A": Series([1, 2, np.nan], dtype="Int64"), "B_x": 1, "B_y": 1}
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1956,7 +1956,7 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
             [["a", "b"], [0, 1]], names=["outer", "inner"]
         ),
     )
-    b = pd.Series(
+    b = Series(
         [1, 2, 3, 4],
         index=pd.MultiIndex.from_product(
             [["a", "b"], [1, 2]], names=["outer", "inner"]

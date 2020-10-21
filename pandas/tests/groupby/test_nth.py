@@ -142,7 +142,7 @@ def test_first_last_nth_dtypes(df_mixed_floats):
 
 def test_first_last_nth_nan_dtype():
     # GH 33591
-    df = pd.DataFrame({"data": ["A"], "nans": pd.Series([np.nan], dtype=object)})
+    df = pd.DataFrame({"data": ["A"], "nans": Series([np.nan], dtype=object)})
 
     grouped = df.groupby("data")
     expected = df.set_index("data").nans
@@ -386,7 +386,7 @@ def test_first_last_tz(data, expected_first, expected_last):
 )
 def test_first_last_tz_multi_column(method, ts, alpha):
     # GH 21603
-    category_string = pd.Series(list("abc")).astype("category")
+    category_string = Series(list("abc")).astype("category")
     df = pd.DataFrame(
         {
             "group": [1, 1, 2],
