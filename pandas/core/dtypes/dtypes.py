@@ -894,6 +894,9 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
 
         return isinstance(other, PeriodDtype) and self.freq == other.freq
 
+    def __ne__(self, other: Any) -> bool:
+        return not self.__eq__(other)
+
     def __setstate__(self, state):
         # for pickle compat. __getstate__ is defined in the
         # PandasExtensionDtype superclass and uses the public properties to
