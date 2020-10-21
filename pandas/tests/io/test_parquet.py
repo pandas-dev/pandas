@@ -196,6 +196,7 @@ def check_round_trip(
                 check_names=check_names,
                 check_like=check_like,
                 check_dtype=check_dtype,
+                check_categorical=check_dtype,
             )
 
     if path is None:
