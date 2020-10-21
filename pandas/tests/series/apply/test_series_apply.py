@@ -156,7 +156,7 @@ class TestSeriesApply:
 
     def test_apply_dict_depr(self):
 
-        tsdf = pd.DataFrame(
+        tsdf = DataFrame(
             np.random.randn(10, 3),
             columns=["A", "B", "C"],
             index=pd.date_range("1/1/2000", periods=10),
@@ -566,7 +566,7 @@ class TestSeriesMap:
         from being mapped properly.
         """
         # GH 18496
-        df = pd.DataFrame({"a": [(1,), (2,), (3, 4), (5, 6)]})
+        df = DataFrame({"a": [(1,), (2,), (3, 4), (5, 6)]})
         label_mappings = {(1,): "A", (2,): "B", (3, 4): "A", (5, 6): "B"}
 
         df["labels"] = df["a"].map(label_mappings)

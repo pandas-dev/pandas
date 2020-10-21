@@ -76,14 +76,14 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         converted to ordinals without inference or copy (PeriodArray,
         ndarray[int64]), or a box around such an array (Series[period],
         PeriodIndex).
+    dtype : PeriodDtype, optional
+        A PeriodDtype instance from which to extract a `freq`. If both
+        `freq` and `dtype` are specified, then the frequencies must match.
     freq : str or DateOffset
         The `freq` to use for the array. Mostly applicable when `values`
         is an ndarray of integers, when `freq` is required. When `values`
         is a PeriodArray (or box around), it's checked that ``values.freq``
         matches `freq`.
-    dtype : PeriodDtype, optional
-        A PeriodDtype instance from which to extract a `freq`. If both
-        `freq` and `dtype` are specified, then the frequencies must match.
     copy : bool, default False
         Whether to copy the ordinals before storing.
 
@@ -148,7 +148,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # --------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values, freq=None, dtype=None, copy=False):
+    def __init__(self, values, dtype=None, freq=None, copy=False):
         freq = validate_dtype_freq(dtype, freq)
 
         if freq is not None:
@@ -882,7 +882,7 @@ def period_array(
     if is_datetime64_dtype(data_dtype):
         return PeriodArray._from_datetime64(data, freq)
     if is_period_dtype(data_dtype):
-        return PeriodArray(data, freq)
+        return PeriodArray(data, freq=freq)
 
     # other iterable of some kind
     if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
