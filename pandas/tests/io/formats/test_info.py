@@ -493,7 +493,7 @@ class TestSeriesInfo:
     def test_info_categorical(self):
         # GH14298
         idx = CategoricalIndex(["a", "b"])
-        s = Series(np.zeros((2)), index=idx)
+        s = Series(np.zeros(2), index=idx)
         buf = StringIO()
         s.info(buf=buf)
 
