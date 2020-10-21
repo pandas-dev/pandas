@@ -131,7 +131,7 @@ class TestDataFrameMissingData:
         # tst that cacher updates
         original = Series([1, 2, np.nan], name="A")
         expected = Series([1, 2], dtype=original.dtype, name="A")
-        df = pd.DataFrame({"A": original.values.copy()})
+        df = DataFrame({"A": original.values.copy()})
         df2 = df.copy()
         df["A"].dropna()
         tm.assert_series_equal(df["A"], original)
@@ -203,7 +203,7 @@ class TestDataFrameMissingData:
         # GH 25087
         ii = pd.IntervalIndex.from_breaks([0, 2.78, 3.14, 6.28])
         ci = pd.CategoricalIndex(ii)
-        df = pd.DataFrame({"A": list("abc")}, index=ci)
+        df = DataFrame({"A": list("abc")}, index=ci)
 
         expected = df
         result = df.dropna()
@@ -303,8 +303,8 @@ class TestDataFrameMissingData:
     def test_fillna_tzaware(self):
         # with timezone
         # GH#15855
-        df = pd.DataFrame({"A": [pd.Timestamp("2012-11-11 00:00:00+01:00"), pd.NaT]})
-        exp = pd.DataFrame(
+        df = DataFrame({"A": [pd.Timestamp("2012-11-11 00:00:00+01:00"), pd.NaT]})
+        exp = DataFrame(
             {
                 "A": [
                     pd.Timestamp("2012-11-11 00:00:00+01:00"),
@@ -314,8 +314,8 @@ class TestDataFrameMissingData:
         )
         tm.assert_frame_equal(df.fillna(method="pad"), exp)
 
-        df = pd.DataFrame({"A": [pd.NaT, pd.Timestamp("2012-11-11 00:00:00+01:00")]})
-        exp = pd.DataFrame(
+        df = DataFrame({"A": [pd.NaT, pd.Timestamp("2012-11-11 00:00:00+01:00")]})
+        exp = DataFrame(
             {
                 "A": [
                     pd.Timestamp("2012-11-11 00:00:00+01:00"),
@@ -328,14 +328,14 @@ class TestDataFrameMissingData:
     def test_fillna_tzaware_different_column(self):
         # with timezone in another column
         # GH#15522
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "A": pd.date_range("20130101", periods=4, tz="US/Eastern"),
                 "B": [1, 2, np.nan, np.nan],
             }
         )
         result = df.fillna(method="pad")
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "A": pd.date_range("20130101", periods=4, tz="US/Eastern"),
                 "B": [1.0, 2.0, 2.0, 2.0],
@@ -378,7 +378,7 @@ class TestDataFrameMissingData:
 
         # make sure that fillna takes missing values into account
         c = Categorical([np.nan, "b", np.nan], categories=["a", "b"])
-        df = pd.DataFrame({"cats": c, "vals": [1, 2, 3]})
+        df = DataFrame({"cats": c, "vals": [1, 2, 3]})
 
         cat_exp = Categorical(["a", "b", "a"], categories=["a", "b"])
         df_exp = DataFrame({"cats": cat_exp, "vals": [1, 2, 3]})
@@ -427,15 +427,15 @@ class TestDataFrameMissingData:
     def test_fillna_downcast(self):
         # GH 15277
         # infer int64 from float64
-        df = pd.DataFrame({"a": [1.0, np.nan]})
+        df = DataFrame({"a": [1.0, np.nan]})
         result = df.fillna(0, downcast="infer")
-        expected = pd.DataFrame({"a": [1, 0]})
+        expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
         # infer int64 from float64 when fillna value is a dict
-        df = pd.DataFrame({"a": [1.0, np.nan]})
+        df = DataFrame({"a": [1.0, np.nan]})
         result = df.fillna({"a": 0}, downcast="infer")
-        expected = pd.DataFrame({"a": [1, 0]})
+        expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_dtype_conversion(self):
@@ -464,7 +464,7 @@ class TestDataFrameMissingData:
 
     def test_fillna_datetime_columns(self):
         # GH 7095
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "A": [-1, -2, np.nan],
                 "B": date_range("20130101", periods=3),
@@ -474,7 +474,7 @@ class TestDataFrameMissingData:
             index=date_range("20130110", periods=3),
         )
         result = df.fillna("?")
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "A": [-1, -2, "?"],
                 "B": date_range("20130101", periods=3),
@@ -485,7 +485,7 @@ class TestDataFrameMissingData:
         )
         tm.assert_frame_equal(result, expected)
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "A": [-1, -2, np.nan],
                 "B": [pd.Timestamp("2013-01-01"), pd.Timestamp("2013-01-02"), pd.NaT],
@@ -495,7 +495,7 @@ class TestDataFrameMissingData:
             index=date_range("20130110", periods=3),
         )
         result = df.fillna("?")
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "A": [-1, -2, "?"],
                 "B": [pd.Timestamp("2013-01-01"), pd.Timestamp("2013-01-02"), "?"],

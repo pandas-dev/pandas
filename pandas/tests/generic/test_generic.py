@@ -604,7 +604,7 @@ class TestNDFrame:
             df.sample(n=1, axis="not_a_name")
 
         with pytest.raises(ValueError):
-            s = pd.Series(range(10))
+            s = Series(range(10))
             s.sample(n=1, axis=1)
 
         # Test weight length compared to correct axis
@@ -890,7 +890,7 @@ class TestNDFrame:
 
     @pytest.mark.parametrize("as_frame", [True, False])
     def test_flags_identity(self, as_frame):
-        s = pd.Series([1, 2])
+        s = Series([1, 2])
         if as_frame:
             s = s.to_frame()
 

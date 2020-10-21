@@ -1653,7 +1653,7 @@ class TestDataFrameConstructors:
             pd.Index(["c", "d", "e"], name=name_in3),
         ]
         series = {
-            c: pd.Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
+            c: Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
         }
         result = pd.DataFrame(series)
 
@@ -2566,7 +2566,7 @@ class TestDataFrameConstructors:
         index = CategoricalIndex(
             [pd.Interval(-20, -10), pd.Interval(-10, 0), pd.Interval(0, 10)]
         )
-        series_of_dicts = pd.Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
+        series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
         frame = pd.DataFrame.from_records(series_of_dicts, index=index)
         expected = DataFrame(
             {"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3]}, index=index

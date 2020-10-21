@@ -172,7 +172,7 @@ class TestSeriesMissingData:
                 pd.NaT,
             ]
         )
-        null_loc = pd.Series([False, True, False, True])
+        null_loc = Series([False, True, False, True])
 
         result = s.fillna(pd.Timestamp("2011-01-02 10:00"))
         expected = Series(
@@ -247,7 +247,7 @@ class TestSeriesMissingData:
         idx = pd.DatetimeIndex(
             ["2011-01-01 10:00", pd.NaT, "2011-01-03 10:00", pd.NaT], tz=tz
         )
-        s = pd.Series(idx)
+        s = Series(idx)
         assert s.dtype == f"datetime64[ns, {tz}]"
         tm.assert_series_equal(pd.isna(s), null_loc)
 
@@ -366,8 +366,8 @@ class TestSeriesMissingData:
     def test_fillna_dt64tz_with_method(self):
         # with timezone
         # GH 15855
-        ser = pd.Series([pd.Timestamp("2012-11-11 00:00:00+01:00"), pd.NaT])
-        exp = pd.Series(
+        ser = Series([pd.Timestamp("2012-11-11 00:00:00+01:00"), pd.NaT])
+        exp = Series(
             [
                 pd.Timestamp("2012-11-11 00:00:00+01:00"),
                 pd.Timestamp("2012-11-11 00:00:00+01:00"),
@@ -375,8 +375,8 @@ class TestSeriesMissingData:
         )
         tm.assert_series_equal(ser.fillna(method="pad"), exp)
 
-        ser = pd.Series([pd.NaT, pd.Timestamp("2012-11-11 00:00:00+01:00")])
-        exp = pd.Series(
+        ser = Series([pd.NaT, pd.Timestamp("2012-11-11 00:00:00+01:00")])
+        exp = Series(
             [
                 pd.Timestamp("2012-11-11 00:00:00+01:00"),
                 pd.Timestamp("2012-11-11 00:00:00+01:00"),
@@ -421,13 +421,13 @@ class TestSeriesMissingData:
     def test_datetime64tz_fillna_round_issue(self):
         # GH 14872
 
-        data = pd.Series(
+        data = Series(
             [pd.NaT, pd.NaT, datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc)]
         )
 
         filled = data.fillna(method="bfill")
 
-        expected = pd.Series(
+        expected = Series(
             [
                 datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc),
                 datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc),
@@ -440,15 +440,15 @@ class TestSeriesMissingData:
     def test_fillna_downcast(self):
         # GH 15277
         # infer int64 from float64
-        s = pd.Series([1.0, np.nan])
+        s = Series([1.0, np.nan])
         result = s.fillna(0, downcast="infer")
-        expected = pd.Series([1, 0])
+        expected = Series([1, 0])
         tm.assert_series_equal(result, expected)
 
         # infer int64 from float64 when fillna value is a dict
-        s = pd.Series([1.0, np.nan])
+        s = Series([1.0, np.nan])
         result = s.fillna({1: 0}, downcast="infer")
-        expected = pd.Series([1, 0])
+        expected = Series([1, 0])
         tm.assert_series_equal(result, expected)
 
     def test_fillna_int(self):
@@ -627,7 +627,7 @@ class TestSeriesMissingData:
 
     def test_ffill_mixed_dtypes_without_missing_data(self):
         # GH14956
-        series = pd.Series([datetime(2015, 1, 1, tzinfo=pytz.utc), 1])
+        series = Series([datetime(2015, 1, 1, tzinfo=pytz.utc), 1])
         result = series.ffill()
         tm.assert_series_equal(series, result)
 
@@ -710,7 +710,7 @@ class TestSeriesMissingData:
         idx = pd.DatetimeIndex(
             ["2011-01-01 10:00", pd.NaT, "2011-01-03 10:00", pd.NaT], tz="Asia/Tokyo"
         )
-        s = pd.Series(idx)
+        s = Series(idx)
         assert s.dtype == "datetime64[ns, Asia/Tokyo]"
         result = s.dropna()
         expected = Series(

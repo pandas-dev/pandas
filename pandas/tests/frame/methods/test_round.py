@@ -178,7 +178,7 @@ class TestDataFrameRound:
         rounded = dfs.round()
         tm.assert_index_equal(rounded.index, dfs.index)
 
-        decimals = pd.Series([1, 0, 2], index=["A", "B", "A"])
+        decimals = Series([1, 0, 2], index=["A", "B", "A"])
         msg = "Index of decimals must be unique"
         with pytest.raises(ValueError, match=msg):
             df.round(decimals)
