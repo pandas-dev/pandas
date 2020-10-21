@@ -417,7 +417,7 @@ Strings
 Interval
 ^^^^^^^^
 
-- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` where :class:`Interval` dtypes would be converted to object dytpes (:issue:34871)
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` where :class:`Interval` dtypes would be converted to object dtypes (:issue:34871)
 -
 
 Indexing
