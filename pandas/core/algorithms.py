@@ -816,11 +816,8 @@ def value_counts_arraylike(values, dropna: bool):
         # to make sure NaT count is sorted toward the end.
         if msk.sum() != len(keys):
             nat_pos = np.where(~msk)
-            keys[nat_pos] = keys[-1]
-            keys[-1] = iNaT
-            tmp = counts[nat_pos]
-            counts[nat_pos] = counts[-1]
-            counts[-1] = tmp
+            keys[nat_pos], keys[-1] = keys[-1], keys[nat_pos]
+            counts[nat_pos], counts[-1] = counts[-1], counts[nat_pos]
 
     else:
         # ndarray like
@@ -839,11 +836,8 @@ def value_counts_arraylike(values, dropna: bool):
                 counts = np.append(counts, mask.sum())
             else:
                 nan_pos = np.where(np.isnan(keys))
-                keys[nan_pos] = keys[-1]
-                keys[-1] = np.NaN
-                tmp = counts[nan_pos]
-                counts[nan_pos] = counts[-1]
-                counts[-1] = tmp
+                keys[nan_pos], keys[-1] = keys[-1], keys[nan_pos]
+                counts[nan_pos], counts[-1] = counts[-1], counts[nan_pos]
 
     keys = _reconstruct_data(keys, original.dtype, original)
 
