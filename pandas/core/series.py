@@ -47,6 +47,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
+    is_bool,
     is_categorical_dtype,
     is_dict_like,
     is_extension_array_dtype,
@@ -3272,6 +3273,16 @@ Keep all original rows and also all original values
                 "This Series is a view of some other array, to "
                 "sort in-place you must create a copy"
             )
+
+        if is_list_like(ascending):
+            if len(ascending) != 1:
+                raise ValueError(
+                    f"Length of ascending ({len(ascending)}) must be 1 for Series"
+                )
+            ascending = ascending[0]
+
+        if not is_bool(ascending):
+            raise ValueError("ascending must be boolean")
 
         arr = self._values
 
