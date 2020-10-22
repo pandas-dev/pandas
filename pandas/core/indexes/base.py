@@ -749,7 +749,7 @@ class Index(IndexOpsMixin, PandasObject):
                 values, indices, allow_fill=allow_fill, fill_value=na_value
             )
         else:
-            taken = values.take(indices)
+            taken = algos.take(values, indices, allow_fill=False, fill_value=na_value)
         return taken
 
     _index_shared_docs[
