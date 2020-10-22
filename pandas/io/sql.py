@@ -1011,8 +1011,8 @@ class SQLTable(PandasObject):
 
                 elif len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
-                    if col_type is np.dtype("int64")
-                        or col_type is np.dtype("int32")
+                    if col_type is np.dtype("int64") \
+                        or col_type is np.dtype("int32") \
                         or col_type is bool:
                         self.frame[col_name] = df_col.astype(col_type, copy=False)
             except KeyError:
