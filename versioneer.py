@@ -349,7 +349,7 @@ import subprocess
 import sys
 
 
-class VersioneerConfig(object):
+class VersioneerConfig:
     pass
 
 
@@ -398,7 +398,7 @@ def get_config_from_root(root):
     # the top of versioneer.py for instructions on writing your setup.cfg .
     setup_cfg = os.path.join(root, "setup.cfg")
     parser = configparser.SafeConfigParser()
-    with open(setup_cfg, "r") as f:
+    with open(setup_cfg) as f:
         parser.readfp(f)
     VCS = parser.get("versioneer", "VCS")  # mandatory
 
@@ -451,7 +451,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
                 stderr=(subprocess.PIPE if hide_stderr else None),
             )
             break
-        except EnvironmentError:
+        except OSError:
             e = sys.exc_info()[1]
             if e.errno == errno.ENOENT:
                 continue
@@ -461,7 +461,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
             return None
     else:
         if verbose:
-            print("unable to find command, tried %s" % (commands,))
+            print(f"unable to find command, tried {commands}")
         return None
 
     stdout = p.communicate()[0].strip().decode()
@@ -946,7 +946,7 @@ def git_get_keywords(versionfile_abs):
     # _version.py.
     keywords = {}
     try:
-        f = open(versionfile_abs, "r")
+        f = open(versionfile_abs)
         for line in f.readlines():
             if line.strip().startswith("git_refnames ="):
                 mo = re.search(r'=\s*"(.*)"', line)
@@ -957,7 +957,7 @@ def git_get_keywords(versionfile_abs):
                 if mo:
                     keywords["full"] = mo.group(1)
         f.close()
-    except EnvironmentError:
+    except OSError:
         pass
     return keywords
 
@@ -1072,9 +1072,8 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
             if verbose:
                 fmt = "tag '%s' doesn't start with prefix '%s'"
                 print(fmt % (full_tag, tag_prefix))
-            pieces["error"] = "tag '%s' doesn't start with prefix '%s'" % (
-                full_tag,
-                tag_prefix,
+            pieces["error"] = "tag '{}' doesn't start with prefix '{}'".format(
+                full_tag, tag_prefix
             )
             return pieces
         pieces["closest-tag"] = full_tag[len(tag_prefix) :]
@@ -1111,13 +1110,13 @@ def do_vcs_install(manifest_in, versionfile_source, ipy):
     files.append(versioneer_file)
     present = False
     try:
-        f = open(".gitattributes", "r")
+        f = open(".gitattributes")
         for line in f.readlines():
             if line.strip().startswith(versionfile_source):
                 if "export-subst" in line.strip().split()[1:]:
                     present = True
         f.close()
-    except EnvironmentError:
+    except OSError:
         pass
     if not present:
         f = open(".gitattributes", "a+")
@@ -1171,7 +1170,7 @@ def versions_from_file(filename):
     try:
         with open(filename) as f:
             contents = f.read()
-    except EnvironmentError:
+    except OSError:
         raise NotThisMethod("unable to read _version.py")
     mo = re.search(
         r"version_json = '''\n(.*)'''  # END VERSION_JSON", contents, re.M | re.S
@@ -1187,7 +1186,7 @@ def write_to_version_file(filename, versions):
     with open(filename, "w") as f:
         f.write(SHORT_VERSION_PY % contents)
 
-    print("set %s to '%s'" % (filename, versions["version"]))
+    print("set {} to '{}'".format(filename, versions["version"]))
 
 
 def plus_or_dot(pieces):
@@ -1399,7 +1398,7 @@ def get_versions(verbose=False):
     try:
         ver = versions_from_file(versionfile_abs)
         if verbose:
-            print("got version from file %s %s" % (versionfile_abs, ver))
+            print(f"got version from file {versionfile_abs} {ver}")
         return ver
     except NotThisMethod:
         pass
@@ -1619,11 +1618,7 @@ def do_setup():
     root = get_root()
     try:
         cfg = get_config_from_root(root)
-    except (
-        EnvironmentError,
-        configparser.NoSectionError,
-        configparser.NoOptionError,
-    ) as e:
+    except (OSError, configparser.NoSectionError, configparser.NoOptionError) as e:
         if isinstance(e, (EnvironmentError, configparser.NoSectionError)):
             print("Adding sample versioneer config to setup.cfg", file=sys.stderr)
             with open(os.path.join(root, "setup.cfg"), "a") as f:
@@ -1648,9 +1643,9 @@ def do_setup():
     ipy = os.path.join(os.path.dirname(cfg.versionfile_source), "__init__.py")
     if os.path.exists(ipy):
         try:
-            with open(ipy, "r") as f:
+            with open(ipy) as f:
                 old = f.read()
-        except EnvironmentError:
+        except OSError:
             old = ""
         if INIT_PY_SNIPPET not in old:
             print(" appending to %s" % ipy)
@@ -1669,12 +1664,12 @@ def do_setup():
     manifest_in = os.path.join(root, "MANIFEST.in")
     simple_includes = set()
     try:
-        with open(manifest_in, "r") as f:
+        with open(manifest_in) as f:
             for line in f:
                 if line.startswith("include "):
                     for include in line.split()[1:]:
                         simple_includes.add(include)
-    except EnvironmentError:
+    except OSError:
         pass
     # That doesn't cover everything MANIFEST.in can do
     # (https://docs.python.org/2/distutils/sourcedist.html#commands), so
@@ -1707,7 +1702,7 @@ def scan_setup_py():
     found = set()
     setters = False
     errors = 0
-    with open("setup.py", "r") as f:
+    with open("setup.py") as f:
         for line in f.readlines():
             if "import versioneer" in line:
                 found.add("import")

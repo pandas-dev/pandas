@@ -3,6 +3,7 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -17,6 +18,7 @@ test_frame = DataFrame(
 
 
 @async_mark()
+@td.check_file_leaks
 async def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 
@@ -124,7 +126,7 @@ def test_getitem_multiple():
 
 def test_groupby_resample_on_api_with_getitem():
     # GH 17813
-    df = pd.DataFrame(
+    df = DataFrame(
         {"id": list("aabbb"), "date": pd.date_range("1-1-2016", periods=5), "data": 1}
     )
     exp = df.set_index("date").groupby("id").resample("2D")["data"].sum()
@@ -140,7 +142,7 @@ def test_groupby_with_origin():
     middle = "1/15/2000 00:00:00"
 
     rng = pd.date_range(start, end, freq="1231min")  # prime number
-    ts = pd.Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.randn(len(rng)), index=rng)
     ts2 = ts[middle:end]
 
     # proves that grouper without a fixed origin does not work
@@ -345,3 +347,18 @@ def test_median_duplicate_columns():
     result = df.resample("5s").median()
     expected.columns = result.columns
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_to_one_column_of_df():
+    # GH: 36951
+    df = DataFrame(
+        {"col": range(10), "col1": range(10, 20)},
+        index=pd.date_range("2012-01-01", periods=10, freq="20min"),
+    )
+    result = df.resample("H").apply(lambda group: group.col.sum())
+    expected = Series(
+        [3, 12, 21, 9], index=pd.date_range("2012-01-01", periods=4, freq="H")
+    )
+    tm.assert_series_equal(result, expected)
+    result = df.resample("H").apply(lambda group: group["col"].sum())
+    tm.assert_series_equal(result, expected)

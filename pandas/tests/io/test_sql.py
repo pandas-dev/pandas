@@ -48,10 +48,10 @@ from pandas.io.sql import read_sql_query, read_sql_table
 
 try:
     import sqlalchemy
-    import sqlalchemy.schema
-    import sqlalchemy.sql.sqltypes as sqltypes
     from sqlalchemy.ext import declarative
     from sqlalchemy.orm import session as sa_session
+    import sqlalchemy.schema
+    import sqlalchemy.sql.sqltypes as sqltypes
 
     SQLALCHEMY_INSTALLED = True
 except ImportError:
@@ -263,7 +263,8 @@ class SQLAlchemyMixIn(MixInBase):
         return table_list
 
     def _close_conn(self):
-        pass
+        # https://docs.sqlalchemy.org/en/13/core/connections.html#engine-disposal
+        self.conn.dispose()
 
 
 class PandasSQLTest:
@@ -280,7 +281,6 @@ class PandasSQLTest:
 
     @pytest.fixture(params=[("io", "data", "csv", "iris.csv")])
     def load_iris_data(self, datapath, request):
-        import io
 
         iris_csv_file = datapath(*request.param)
 
@@ -290,7 +290,7 @@ class PandasSQLTest:
         self.drop_table("iris")
         self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
-        with io.open(iris_csv_file, mode="r", newline=None) as iris_csv:
+        with open(iris_csv_file, mode="r", newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
@@ -1242,7 +1242,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_class(cls):
         cls.setup_import()
         cls.setup_driver()
-        conn = cls.connect()
+        conn = cls.conn = cls.connect()
         conn.connect()
 
     def load_test_data_and_sql(self):
@@ -1490,10 +1490,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_out_of_bounds_datetime(self):
         # GH 26761
-        data = pd.DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
+        data = DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
         data.to_sql("test_datetime_obb", self.conn, index=False)
         result = sql.read_sql_table("test_datetime_obb", self.conn)
-        expected = pd.DataFrame([pd.NaT], columns=["date"])
+        expected = DataFrame([pd.NaT], columns=["date"])
         tm.assert_frame_equal(result, expected)
 
     def test_naive_datetimeindex_roundtrip(self):
@@ -1812,6 +1812,24 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
+
+    @pytest.mark.parametrize(
+        "input",
+        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
+    )
+    def test_to_sql_with_negative_npinf(self, input):
+        # GH 34431
+
+        df = DataFrame(input)
+
+        if self.flavor == "mysql":
+            msg = "inf cannot be used with MySQL"
+            with pytest.raises(ValueError, match=msg):
+                df.to_sql("foobar", self.conn, index=False)
+        else:
+            df.to_sql("foobar", self.conn, index=False)
+            res = sql.read_sql_table("foobar", self.conn)
+            tm.assert_equal(df, res)
 
     def test_temporary_table(self):
         test_data = "Hello, World!"
@@ -2330,9 +2348,6 @@ _formatters = {
 
 
 def format_query(sql, *args):
-    """
-
-    """
     processed_args = []
     for arg in args:
         if isinstance(arg, float) and isna(arg):

@@ -174,9 +174,6 @@ class TestPeriodIndexOps:
 
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
-
-            exp = np.array([2, 1, 3, 4, 0])
-            tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             _check_freq(ordered, idx)
 
         pidx = PeriodIndex(["2011", "2013", "NaT", "2011"], name="pidx", freq="D")
@@ -300,7 +297,7 @@ class TestPeriodIndexOps:
         assert idx.astype(object).equals(idx)
         assert idx.astype(object).equals(idx.astype(object))
         assert not idx.equals(list(idx))
-        assert not idx.equals(pd.Series(idx))
+        assert not idx.equals(Series(idx))
 
         idx2 = pd.PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq="H")
         assert not idx.equals(idx2)
@@ -308,7 +305,7 @@ class TestPeriodIndexOps:
         assert not idx.equals(idx2.astype(object))
         assert not idx.astype(object).equals(idx2)
         assert not idx.equals(list(idx2))
-        assert not idx.equals(pd.Series(idx2))
+        assert not idx.equals(Series(idx2))
 
         # same internal, different tz
         idx3 = pd.PeriodIndex._simple_new(
@@ -320,7 +317,7 @@ class TestPeriodIndexOps:
         assert not idx.equals(idx3.astype(object))
         assert not idx.astype(object).equals(idx3)
         assert not idx.equals(list(idx3))
-        assert not idx.equals(pd.Series(idx3))
+        assert not idx.equals(Series(idx3))
 
     def test_freq_setter_deprecated(self):
         # GH 20678
@@ -333,3 +330,16 @@ class TestPeriodIndexOps:
         # warning for setter
         with pytest.raises(AttributeError, match="can't set attribute"):
             idx.freq = pd.offsets.Day()
+
+
+@pytest.mark.xfail(reason="Datetime-like sort_values currently unstable (GH 35922)")
+def test_order_stability_compat():
+    # GH 35584. The new implementation of sort_values for Index.sort_values
+    # is stable when sorting in descending order. Datetime-like sort_values
+    # currently aren't stable. xfail should be removed after
+    # the implementations' behavior is synchronized (xref GH 35922)
+    pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="A")
+    iidx = Index([2011, 2013, 2015, 2012, 2011], name="idx")
+    ordered1, indexer1 = pidx.sort_values(return_indexer=True, ascending=False)
+    ordered2, indexer2 = iidx.sort_values(return_indexer=True, ascending=False)
+    tm.assert_numpy_array_equal(indexer1, indexer2)

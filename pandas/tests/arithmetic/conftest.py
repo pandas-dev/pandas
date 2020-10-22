@@ -56,7 +56,7 @@ def one(request):
 
 zeros = [
     box_cls([0] * 5, dtype=dtype)
-    for box_cls in [pd.Index, np.array]
+    for box_cls in [pd.Index, np.array, pd.array]
     for dtype in [np.int64, np.uint64, np.float64]
 ]
 zeros.extend(
@@ -222,19 +222,19 @@ def mismatched_freq(request):
 # ------------------------------------------------------------------
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame], ids=id_func)
-def box(request):
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, pd.array], ids=id_func)
+def box_with_array(request):
     """
-    Several array-like containers that should have effectively identical
-    behavior with respect to arithmetic operations.
+    Fixture to test behavior for Index, Series, DataFrame, and pandas Array
+    classes
     """
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array], ids=id_func)
-def box_with_array(request):
+@pytest.fixture(params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=id_func)
+def box_1d_array(request):
     """
-    Fixture to test behavior for Index, Series, DataFrame, and pandas Array
+    Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
     classes
     """
     return request.param

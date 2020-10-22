@@ -3,12 +3,12 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import np_version_under1p17
 
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, date_range
+from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -407,7 +407,7 @@ class Generic:
     def test_sample_upsampling_without_replacement(self):
         # GH27451
 
-        df = pd.DataFrame({"A": list("abc")})
+        df = DataFrame({"A": list("abc")})
         msg = (
             "Replace has to be set to `True` when "
             "upsampling the population `frac` > 1."
@@ -418,7 +418,7 @@ class Generic:
     def test_sample_is_copy(self):
         # GH-27357, GH-30784: ensure the result of sample is an actual copy and
         # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
-        df = pd.DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
+        df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
         df2 = df.sample(3)
 
         with tm.assert_produces_warning(None):
@@ -542,7 +542,7 @@ class TestNDFrame:
         easy_weight_list = [0] * 10
         easy_weight_list[5] = 1
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "col1": range(10, 20),
                 "col2": range(20, 30),
@@ -578,7 +578,7 @@ class TestNDFrame:
         ###
 
         # Test axis argument
-        df = pd.DataFrame({"col1": range(10), "col2": ["a"] * 10})
+        df = DataFrame({"col1": range(10), "col2": ["a"] * 10})
         second_column_weight = [0, 1]
         tm.assert_frame_equal(
             df.sample(n=1, axis=1, weights=second_column_weight), df[["col2"]]
@@ -604,7 +604,7 @@ class TestNDFrame:
             df.sample(n=1, axis="not_a_name")
 
         with pytest.raises(ValueError):
-            s = pd.Series(range(10))
+            s = Series(range(10))
             s.sample(n=1, axis=1)
 
         # Test weight length compared to correct axis
@@ -615,7 +615,7 @@ class TestNDFrame:
         easy_weight_list = [0] * 3
         easy_weight_list[2] = 1
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {"col1": range(10, 20), "col2": range(20, 30), "colString": ["a"] * 10}
         )
         sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
@@ -652,18 +652,18 @@ class TestNDFrame:
             pytest.param(
                 "np.random.MT19937",
                 3,
-                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
             ),
             pytest.param(
                 "np.random.PCG64",
                 11,
-                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
             ),
         ],
     )
     def test_sample_random_state(self, func_str, arg):
         # GH32503
-        df = pd.DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
+        df = DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
         result = df.sample(n=3, random_state=eval(func_str)(arg))
         expected = df.sample(n=3, random_state=com.random_state(eval(func_str)(arg)))
         tm.assert_frame_equal(result, expected)
@@ -785,26 +785,6 @@ class TestNDFrame:
             s.take([0, 1], is_copy=is_copy)
 
     def test_equals(self):
-        s1 = pd.Series([1, 2, 3], index=[0, 2, 1])
-        s2 = s1.copy()
-        assert s1.equals(s2)
-
-        s1[1] = 99
-        assert not s1.equals(s2)
-
-        # NaNs compare as equal
-        s1 = pd.Series([1, np.nan, 3, np.nan], index=[0, 2, 1, 3])
-        s2 = s1.copy()
-        assert s1.equals(s2)
-
-        s2[0] = 9.9
-        assert not s1.equals(s2)
-
-        idx = MultiIndex.from_tuples([(0, "a"), (1, "b"), (2, "c")])
-        s1 = Series([1, 2, np.nan], index=idx)
-        s2 = s1.copy()
-        assert s1.equals(s2)
-
         # Add object dtype column with nans
         index = np.random.random(10)
         df1 = DataFrame(np.random.random(10), index=index, columns=["floats"])
@@ -857,21 +837,6 @@ class TestNDFrame:
         df2 = df1.set_index(["floats"], append=True)
         assert df3.equals(df2)
 
-        # GH 8437
-        a = pd.Series([False, np.nan])
-        b = pd.Series([False, np.nan])
-        c = pd.Series(index=range(2), dtype=object)
-        d = c.copy()
-        e = c.copy()
-        f = c.copy()
-        c[:-1] = d[:-1] = e[0] = f[0] = False
-        assert a.equals(a)
-        assert a.equals(b)
-        assert a.equals(c)
-        assert a.equals(d)
-        assert a.equals(e)
-        assert e.equals(f)
-
     def test_pipe(self):
         df = DataFrame({"A": [1, 2, 3]})
         f = lambda x, y: x ** y
@@ -922,3 +887,13 @@ class TestNDFrame:
         obj = box(dtype=object)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             obj._AXIS_NUMBERS
+
+    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_flags_identity(self, as_frame):
+        s = Series([1, 2])
+        if as_frame:
+            s = s.to_frame()
+
+        assert s.flags is s.flags
+        s2 = s.copy()
+        assert s2.flags is not s.flags

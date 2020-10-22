@@ -256,7 +256,7 @@ class TestPeriodIndex(DatetimeLike):
         ]
 
         periods = list(periodindex)
-        s = pd.Series(periodindex)
+        s = Series(periodindex)
 
         for field in fields:
             field_idx = getattr(periodindex, field)
@@ -307,9 +307,9 @@ class TestPeriodIndex(DatetimeLike):
         period_index = PeriodIndex(p_values)
         object_index = Index(o_values)
 
-        s = pd.Series(values, index=period_index)
+        s = Series(values, index=period_index)
         result = s.reindex(object_index)
-        expected = pd.Series(expected_values, index=object_index)
+        expected = Series(expected_values, index=object_index)
         tm.assert_series_equal(result, expected)
 
     def test_is_(self):
@@ -535,6 +535,12 @@ class TestPeriodIndex(DatetimeLike):
         ).set_index(["A", "B", "C"])
         with pytest.raises(KeyError, match=msg):
             df.loc[key]
+
+    def test_format_empty(self):
+        # GH35712
+        empty_idx = self._holder([], freq="A")
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]
 
 
 def test_maybe_convert_timedelta():

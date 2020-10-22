@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import is_numpy_dev
+
 import pandas as pd
 from pandas import DataFrame, Series, Timestamp, date_range
 import pandas._testing as tm
@@ -27,13 +29,11 @@ class TestLoc(Base):
 
         # out of range label
         self.check_result(
-            "loc", "f", typs=["ints", "uints", "labels", "mixed", "ts"], fails=KeyError,
+            "loc", "f", typs=["ints", "uints", "labels", "mixed", "ts"], fails=KeyError
         )
         self.check_result("loc", "f", typs=["floats"], fails=KeyError)
         self.check_result("loc", "f", typs=["floats"], fails=KeyError)
-        self.check_result(
-            "loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError,
-        )
+        self.check_result("loc", 20, typs=["ints", "uints", "mixed"], fails=KeyError)
         self.check_result("loc", 20, typs=["labels"], fails=KeyError)
         self.check_result("loc", 20, typs=["ts"], axes=0, fails=KeyError)
         self.check_result("loc", 20, typs=["floats"], axes=0, fails=KeyError)
@@ -44,26 +44,24 @@ class TestLoc(Base):
         pass
 
     def test_loc_getitem_label_list_with_missing(self):
+        self.check_result("loc", [0, 1, 2], typs=["empty"], fails=KeyError)
         self.check_result(
-            "loc", [0, 1, 2], typs=["empty"], fails=KeyError,
-        )
-        self.check_result(
-            "loc", [0, 2, 10], typs=["ints", "uints", "floats"], axes=0, fails=KeyError,
+            "loc", [0, 2, 10], typs=["ints", "uints", "floats"], axes=0, fails=KeyError
         )
 
         self.check_result(
-            "loc", [3, 6, 7], typs=["ints", "uints", "floats"], axes=1, fails=KeyError,
+            "loc", [3, 6, 7], typs=["ints", "uints", "floats"], axes=1, fails=KeyError
         )
 
         # GH 17758 - MultiIndex and missing keys
         self.check_result(
-            "loc", [(1, 3), (1, 4), (2, 5)], typs=["multi"], axes=0, fails=KeyError,
+            "loc", [(1, 3), (1, 4), (2, 5)], typs=["multi"], axes=0, fails=KeyError
         )
 
     def test_loc_getitem_label_list_fails(self):
         # fails
         self.check_result(
-            "loc", [20, 30, 40], typs=["ints", "uints"], axes=1, fails=KeyError,
+            "loc", [20, 30, 40], typs=["ints", "uints"], axes=1, fails=KeyError
         )
 
     def test_loc_getitem_label_array_like(self):
@@ -93,18 +91,14 @@ class TestLoc(Base):
         )
 
         self.check_result(
-            "loc", slice("20130102", "20130104"), typs=["ts"], axes=1, fails=TypeError,
+            "loc", slice("20130102", "20130104"), typs=["ts"], axes=1, fails=TypeError
         )
 
-        self.check_result(
-            "loc", slice(2, 8), typs=["mixed"], axes=0, fails=TypeError,
-        )
-        self.check_result(
-            "loc", slice(2, 8), typs=["mixed"], axes=1, fails=KeyError,
-        )
+        self.check_result("loc", slice(2, 8), typs=["mixed"], axes=0, fails=TypeError)
+        self.check_result("loc", slice(2, 8), typs=["mixed"], axes=1, fails=KeyError)
 
         self.check_result(
-            "loc", slice(2, 4, 2), typs=["mixed"], axes=0, fails=TypeError,
+            "loc", slice(2, 4, 2), typs=["mixed"], axes=0, fails=TypeError
         )
 
     def test_setitem_from_duplicate_axis(self):
@@ -638,7 +632,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
-        df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         df.loc[0, indexer] = value
         result = df.loc[0, "A"]
 
@@ -650,7 +644,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             (
                 ([0, 2], ["A", "B", "C", "D"]),
                 7,
-                pd.DataFrame(
+                DataFrame(
                     [[7, 7, 7, 7], [3, 4, np.nan, np.nan], [7, 7, 7, 7]],
                     columns=["A", "B", "C", "D"],
                 ),
@@ -658,7 +652,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             (
                 (1, ["C", "D"]),
                 [7, 8],
-                pd.DataFrame(
+                DataFrame(
                     [[1, 2, np.nan, np.nan], [3, 4, 7, 8], [5, 6, np.nan, np.nan]],
                     columns=["A", "B", "C", "D"],
                 ),
@@ -666,15 +660,14 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             (
                 (1, ["A", "B", "C"]),
                 np.array([7, 8, 9], dtype=np.int64),
-                pd.DataFrame(
-                    [[1, 2, np.nan], [7, 8, 9], [5, 6, np.nan]],
-                    columns=["A", "B", "C"],
+                DataFrame(
+                    [[1, 2, np.nan], [7, 8, 9], [5, 6, np.nan]], columns=["A", "B", "C"]
                 ),
             ),
             (
                 (slice(1, 3, None), ["B", "C", "D"]),
                 [[7, 8, 9], [10, 11, 12]],
-                pd.DataFrame(
+                DataFrame(
                     [[1, 2, np.nan, np.nan], [3, 7, 8, 9], [5, 10, 11, 12]],
                     columns=["A", "B", "C", "D"],
                 ),
@@ -682,15 +675,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             (
                 (slice(1, 3, None), ["C", "A", "D"]),
                 np.array([[7, 8, 9], [10, 11, 12]], dtype=np.int64),
-                pd.DataFrame(
+                DataFrame(
                     [[1, 2, np.nan, np.nan], [8, 4, 7, 9], [11, 6, 10, 12]],
                     columns=["A", "B", "C", "D"],
                 ),
             ),
             (
                 (slice(None, None, None), ["A", "C"]),
-                pd.DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
-                pd.DataFrame(
+                DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
+                DataFrame(
                     [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
                 ),
             ),
@@ -698,7 +691,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     )
     def test_loc_setitem_missing_columns(self, index, box, expected):
         # GH 29334
-        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
         df.loc[index] = box
         tm.assert_frame_equal(df, expected)
 
@@ -744,15 +737,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             pd.to_datetime(42).tz_localize("UTC"),
             pd.to_datetime(666).tz_localize("UTC"),
         ]
-        expected = pd.Series(vals, index=["foo", "bar"])
+        expected = Series(vals, index=["foo", "bar"])
 
-        ser = pd.Series(dtype=object)
+        ser = Series(dtype=object)
         ser["foo"] = vals[0]
         ser["bar"] = vals[1]
 
         tm.assert_series_equal(ser, expected)
 
-        ser = pd.Series(dtype=object)
+        ser = Series(dtype=object)
         ser.loc["foo"] = vals[0]
         ser.loc["bar"] = vals[1]
 
@@ -792,6 +785,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame({"A": [2, 4, 5], "B": [4, 6, 7]}, index=[1, 1, 2])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.arm_slow
     def test_loc_non_unique_memory_error(self):
 
         # GH 4280
@@ -894,12 +888,26 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         original_series[:3] = [7, 8, 9]
         assert all(sliced_series[:3] == [7, 8, 9])
 
+    def test_loc_copy_vs_view(self):
+        # GH 15631
+        x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
+
+        y = x.copy()
+        q = y.loc[:, "a"]
+        q += 2
+
+        tm.assert_frame_equal(x, y)
+
+        z = x.copy()
+        q = z.loc[x.index, "a"]
+        q += 2
+
+        tm.assert_frame_equal(x, z)
+
     def test_loc_uint64(self):
         # GH20722
         # Test whether loc accept uint64 max value as index.
-        s = pd.Series(
-            [1, 2], index=[np.iinfo("uint64").max - 1, np.iinfo("uint64").max]
-        )
+        s = Series([1, 2], index=[np.iinfo("uint64").max - 1, np.iinfo("uint64").max])
 
         result = s.loc[np.iinfo("uint64").max - 1]
         expected = s.iloc[0]
@@ -929,6 +937,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[0, "x"] = expected.loc[0, "x"]
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.xfail(is_numpy_dev, reason="gh-35481")
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 
@@ -950,7 +959,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # GH24924
         df = DataFrame([[1, 2], [3, 4]])
         result = df.loc[np.array(0)]
-        s = pd.Series([1, 2], name=0)
+        s = Series([1, 2], name=0)
         tm.assert_series_equal(result, s)
 
     def test_series_indexing_zerodim_np_array(self):
@@ -964,7 +973,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         data = [1, 2, 3, 4, 5, 6] + [None] * 4
         expected = Series(data, index=range(2010, 2020))
 
-        result = pd.Series(index=range(2010, 2020), dtype=np.float64)
+        result = Series(index=range(2010, 2020), dtype=np.float64)
         result.loc[2015:2010:-1] = [6, 5, 4, 3, 2, 1]
 
         tm.assert_series_equal(result, expected)
@@ -1001,13 +1010,13 @@ def test_loc_getitem_label_list_integer_labels(
 def test_loc_setitem_float_intindex():
     # GH 8720
     rand_data = np.random.randn(8, 4)
-    result = pd.DataFrame(rand_data)
+    result = DataFrame(rand_data)
     result.loc[:, 0.5] = np.nan
     expected_data = np.hstack((rand_data, np.array([np.nan] * 8).reshape(8, 1)))
-    expected = pd.DataFrame(expected_data, columns=[0.0, 1.0, 2.0, 3.0, 0.5])
+    expected = DataFrame(expected_data, columns=[0.0, 1.0, 2.0, 3.0, 0.5])
     tm.assert_frame_equal(result, expected)
 
-    result = pd.DataFrame(rand_data)
+    result = DataFrame(rand_data)
     result.loc[:, 0.5] = np.nan
     tm.assert_frame_equal(result, expected)
 
@@ -1015,13 +1024,13 @@ def test_loc_setitem_float_intindex():
 def test_loc_axis_1_slice():
     # GH 10586
     cols = [(yr, m) for yr in [2014, 2015] for m in [7, 8, 9, 10]]
-    df = pd.DataFrame(
+    df = DataFrame(
         np.ones((10, 8)),
         index=tuple("ABCDEFGHIJ"),
         columns=pd.MultiIndex.from_tuples(cols),
     )
     result = df.loc(axis=1)[(2014, 9):(2015, 8)]
-    expected = pd.DataFrame(
+    expected = DataFrame(
         np.ones((10, 4)),
         index=tuple("ABCDEFGHIJ"),
         columns=pd.MultiIndex.from_tuples(
@@ -1033,7 +1042,7 @@ def test_loc_axis_1_slice():
 
 def test_loc_set_dataframe_multiindex():
     # GH 14592
-    expected = pd.DataFrame(
+    expected = DataFrame(
         "a", index=range(2), columns=pd.MultiIndex.from_product([range(2), range(2)])
     )
     result = expected.copy()
@@ -1043,7 +1052,7 @@ def test_loc_set_dataframe_multiindex():
 
 def test_loc_mixed_int_float():
     # GH#19456
-    ser = pd.Series(range(2), pd.Index([1, 2.0], dtype=object))
+    ser = Series(range(2), pd.Index([1, 2.0], dtype=object))
 
     result = ser.loc[1]
     assert result == 0
@@ -1051,19 +1060,19 @@ def test_loc_mixed_int_float():
 
 def test_loc_with_positional_slice_deprecation():
     # GH#31840
-    ser = pd.Series(range(4), index=["A", "B", "C", "D"])
+    ser = Series(range(4), index=["A", "B", "C", "D"])
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         ser.loc[:3] = 2
 
-    expected = pd.Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
+    expected = Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
     tm.assert_series_equal(ser, expected)
 
 
 def test_loc_slice_disallows_positional():
     # GH#16121, GH#24612, GH#31810
     dti = pd.date_range("2016-01-01", periods=3)
-    df = pd.DataFrame(np.random.random((3, 2)), index=dti)
+    df = DataFrame(np.random.random((3, 2)), index=dti)
 
     ser = df[0]
 
@@ -1091,7 +1100,7 @@ def test_loc_slice_disallows_positional():
 def test_loc_datetimelike_mismatched_dtypes():
     # GH#32650 dont mix and match datetime/timedelta/period dtypes
 
-    df = pd.DataFrame(
+    df = DataFrame(
         np.random.randn(5, 3),
         columns=["a", "b", "c"],
         index=pd.date_range("2012", freq="H", periods=5),
@@ -1113,7 +1122,7 @@ def test_loc_datetimelike_mismatched_dtypes():
 def test_loc_with_period_index_indexer():
     # GH#4125
     idx = pd.period_range("2002-01", "2003-12", freq="M")
-    df = pd.DataFrame(np.random.randn(24, 10), index=idx)
+    df = DataFrame(np.random.randn(24, 10), index=idx)
     tm.assert_frame_equal(df, df.loc[idx])
     tm.assert_frame_equal(df, df.loc[list(idx)])
     tm.assert_frame_equal(df, df.loc[list(idx)])

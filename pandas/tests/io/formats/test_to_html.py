@@ -137,7 +137,7 @@ def test_to_html_encoding(float_frame, tmp_path):
     # GH 28663
     path = tmp_path / "test.html"
     float_frame.to_html(path, encoding="gbk")
-    with open(str(path), "r", encoding="gbk") as f:
+    with open(str(path), encoding="gbk") as f:
         assert float_frame.to_html() == f.read()
 
 
@@ -787,13 +787,13 @@ def test_html_repr_min_rows_default(datapath):
     # gh-27991
 
     # default setting no truncation even if above min_rows
-    df = pd.DataFrame({"a": range(20)})
+    df = DataFrame({"a": range(20)})
     result = df._repr_html_()
     expected = expected_html(datapath, "html_repr_min_rows_default_no_truncation")
     assert result == expected
 
     # default of max_rows 60 triggers truncation if above
-    df = pd.DataFrame({"a": range(61)})
+    df = DataFrame({"a": range(61)})
     result = df._repr_html_()
     expected = expected_html(datapath, "html_repr_min_rows_default_truncated")
     assert result == expected
@@ -815,7 +815,7 @@ def test_html_repr_min_rows_default(datapath):
 def test_html_repr_min_rows(datapath, max_rows, min_rows, expected):
     # gh-27991
 
-    df = pd.DataFrame({"a": range(61)})
+    df = DataFrame({"a": range(61)})
     expected = expected_html(datapath, expected)
     with option_context("display.max_rows", max_rows, "display.min_rows", min_rows):
         result = df._repr_html_()

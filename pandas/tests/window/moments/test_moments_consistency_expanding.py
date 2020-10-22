@@ -119,8 +119,8 @@ def test_expanding_corr_pairwise(frame):
     ids=["sum", "mean", "max", "min"],
 )
 def test_expanding_func(func, static_comp, has_min_periods, series, frame, nan_locs):
-    def expanding_func(x, min_periods=1, center=False, axis=0):
-        exp = x.expanding(min_periods=min_periods, center=center, axis=axis)
+    def expanding_func(x, min_periods=1, axis=0):
+        exp = x.expanding(min_periods=min_periods, axis=axis)
         return getattr(exp, func)()
 
     _check_expanding(
@@ -166,7 +166,7 @@ def test_expanding_apply_consistency(
 
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning,
+            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning
         )
         # test consistency between expanding_xyz() and either (a)
         # expanding_apply of Series.xyz(), or (b) expanding_apply of
@@ -267,7 +267,7 @@ def test_expanding_consistency(consistency_data, min_periods):
     # with empty/0-length Series/DataFrames
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning,
+            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning
         )
 
         # test consistency between different expanding_* moments
@@ -454,7 +454,7 @@ def test_expanding_cov_pairwise_diff_length():
 def test_expanding_corr_pairwise_diff_length():
     # GH 7512
     df1 = DataFrame(
-        [[1, 2], [3, 2], [3, 4]], columns=["A", "B"], index=Index(range(3), name="bar"),
+        [[1, 2], [3, 2], [3, 4]], columns=["A", "B"], index=Index(range(3), name="bar")
     )
     df1a = DataFrame(
         [[1, 2], [3, 4]], index=Index([0, 2], name="bar"), columns=["A", "B"]

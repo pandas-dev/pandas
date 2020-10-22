@@ -84,8 +84,6 @@ def cut(
         Whether the first interval should be left-inclusive or not.
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
-
-        .. versionadded:: 0.23.0
     ordered : bool, default True
         Whether the labels are ordered or not. Applies to returned types
         Categorical and Series (with Categorical dtype). If True,
@@ -381,7 +379,7 @@ def _bins_to_cuts(
     duplicates: str = "raise",
     ordered: bool = True,
 ):
-    if not ordered and not labels:
+    if not ordered and labels is None:
         raise ValueError("'labels' must be provided if 'ordered = False'")
 
     if duplicates not in ["raise", "drop"]:

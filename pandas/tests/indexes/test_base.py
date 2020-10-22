@@ -56,16 +56,11 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["datetime"], indirect=True)
     def test_new_axis(self, index):
-        with tm.assert_produces_warning(DeprecationWarning):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#30588 multi-dimensional indexing deprecated
             new_index = index[None, :]
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
-
-    @pytest.mark.parametrize("index", ["int", "uint", "float"], indirect=True)
-    def test_copy_and_deepcopy(self, index):
-        new_copy2 = index.copy(dtype=int)
-        assert new_copy2.dtype.kind == "i"
 
     def test_constructor_regular(self, index):
         tm.assert_contains_all(index, index)
@@ -142,7 +137,7 @@ class TestIndex(Base):
         ],
     )
     def test_constructor_from_series_dtlike(self, index, has_tz):
-        result = pd.Index(pd.Series(index))
+        result = pd.Index(Series(index))
         tm.assert_index_equal(result, index)
 
         if has_tz:
@@ -173,7 +168,7 @@ class TestIndex(Base):
         expected.name = "date"
         tm.assert_index_equal(result, expected)
 
-        expected = pd.Series(dts, name="date")
+        expected = Series(dts, name="date")
         tm.assert_series_equal(df["date"], expected)
 
         # GH 6274
@@ -220,7 +215,7 @@ class TestIndex(Base):
             Index(data, dtype=dtype)
 
     def test_constructor_no_pandas_array(self):
-        ser = pd.Series([1, 2, 3])
+        ser = Series([1, 2, 3])
         result = pd.Index(ser.array)
         expected = pd.Index([1, 2, 3])
         tm.assert_index_equal(result, expected)
@@ -884,7 +879,7 @@ class TestIndex(Base):
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index),
+            lambda values, index: Series(values, index),
         ],
     )
     def test_map_dictlike_simple(self, mapper):
@@ -898,7 +893,7 @@ class TestIndex(Base):
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index),
+            lambda values, index: Series(values, index),
         ],
     )
     def test_map_dictlike(self, index, mapper):
@@ -1158,7 +1153,8 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_all_dates(self, index, expected):
-        assert index.is_all_dates is expected
+        with tm.assert_produces_warning(FutureWarning):
+            assert index.is_all_dates is expected
 
     def test_summary(self, index):
         self._check_method_works(Index._summary, index)
@@ -1171,8 +1167,11 @@ class TestIndex(Base):
         assert "~:{range}:0" in result
         assert "{other}%s" in result
 
-    def test_format(self, index):
-        self._check_method_works(Index.format, index)
+    def test_format_different_scalar_lengths(self):
+        # GH35439
+        idx = Index(["aaaaaaaaa", "b"])
+        expected = ["aaaaaaaaa", "b"]
+        assert idx.format() == expected
 
     def test_format_bug(self):
         # GH 14626
@@ -1362,7 +1361,7 @@ class TestIndex(Base):
     def test_get_indexer_numeric_index_boolean_target(self, idx_class):
         # GH 16877
 
-        numeric_index = idx_class(RangeIndex((4)))
+        numeric_index = idx_class(RangeIndex(4))
         result = numeric_index.get_indexer([True, False, True])
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -1511,23 +1510,24 @@ class TestIndex(Base):
     @pytest.mark.parametrize(
         "in_slice,expected",
         [
+            # error: Slice index must be an integer or None
             (pd.IndexSlice[::-1], "yxdcb"),
-            (pd.IndexSlice["b":"y":-1], ""),  # type: ignore
-            (pd.IndexSlice["b"::-1], "b"),  # type: ignore
-            (pd.IndexSlice[:"b":-1], "yxdcb"),  # type: ignore
-            (pd.IndexSlice[:"y":-1], "y"),  # type: ignore
-            (pd.IndexSlice["y"::-1], "yxdcb"),  # type: ignore
-            (pd.IndexSlice["y"::-4], "yb"),  # type: ignore
+            (pd.IndexSlice["b":"y":-1], ""),  # type: ignore[misc]
+            (pd.IndexSlice["b"::-1], "b"),  # type: ignore[misc]
+            (pd.IndexSlice[:"b":-1], "yxdcb"),  # type: ignore[misc]
+            (pd.IndexSlice[:"y":-1], "y"),  # type: ignore[misc]
+            (pd.IndexSlice["y"::-1], "yxdcb"),  # type: ignore[misc]
+            (pd.IndexSlice["y"::-4], "yb"),  # type: ignore[misc]
             # absent labels
-            (pd.IndexSlice[:"a":-1], "yxdcb"),  # type: ignore
-            (pd.IndexSlice[:"a":-2], "ydb"),  # type: ignore
-            (pd.IndexSlice["z"::-1], "yxdcb"),  # type: ignore
-            (pd.IndexSlice["z"::-3], "yc"),  # type: ignore
-            (pd.IndexSlice["m"::-1], "dcb"),  # type: ignore
-            (pd.IndexSlice[:"m":-1], "yx"),  # type: ignore
-            (pd.IndexSlice["a":"a":-1], ""),  # type: ignore
-            (pd.IndexSlice["z":"z":-1], ""),  # type: ignore
-            (pd.IndexSlice["m":"m":-1], ""),  # type: ignore
+            (pd.IndexSlice[:"a":-1], "yxdcb"),  # type: ignore[misc]
+            (pd.IndexSlice[:"a":-2], "ydb"),  # type: ignore[misc]
+            (pd.IndexSlice["z"::-1], "yxdcb"),  # type: ignore[misc]
+            (pd.IndexSlice["z"::-3], "yc"),  # type: ignore[misc]
+            (pd.IndexSlice["m"::-1], "dcb"),  # type: ignore[misc]
+            (pd.IndexSlice[:"m":-1], "yx"),  # type: ignore[misc]
+            (pd.IndexSlice["a":"a":-1], ""),  # type: ignore[misc]
+            (pd.IndexSlice["z":"z":-1], ""),  # type: ignore[misc]
+            (pd.IndexSlice["m":"m":-1], ""),  # type: ignore[misc]
         ],
     )
     def test_slice_locs_negative_step(self, in_slice, expected):
@@ -2222,6 +2222,31 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             with pytest.raises(AttributeError, match=msg):
                 index.contains(1)
 
+    def test_sortlevel(self):
+        index = pd.Index([5, 4, 3, 2, 1])
+        with pytest.raises(Exception, match="ascending must be a single bool value or"):
+            index.sortlevel(ascending="True")
+
+        with pytest.raises(
+            Exception, match="ascending must be a list of bool values of length 1"
+        ):
+            index.sortlevel(ascending=[True, True])
+
+        with pytest.raises(Exception, match="ascending must be a bool value"):
+            index.sortlevel(ascending=["True"])
+
+        expected = pd.Index([1, 2, 3, 4, 5])
+        result = index.sortlevel(ascending=[True])
+        tm.assert_index_equal(result[0], expected)
+
+        expected = pd.Index([1, 2, 3, 4, 5])
+        result = index.sortlevel(ascending=True)
+        tm.assert_index_equal(result[0], expected)
+
+        expected = pd.Index([5, 4, 3, 2, 1])
+        result = index.sortlevel(ascending=False)
+        tm.assert_index_equal(result[0], expected)
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
@@ -2427,7 +2452,7 @@ class TestMixedIntIndex(Base):
         # TODO: remove tupleize_cols=False once correct behaviour is restored
         # TODO: also this op right now produces FutureWarning from numpy
         idx = Index([("a", "b"), ("b", "c"), ("c", "a")], tupleize_cols=False)
-        result = idx == ("c", "a",)
+        result = idx == ("c", "a")
         expected = np.array([False, False, True])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -2531,7 +2556,7 @@ def test_shape_of_invalid_index():
     # that the returned shape is consistent with this underlying array for
     # compat with matplotlib (see https://github.com/pandas-dev/pandas/issues/27775)
     idx = pd.Index([0, 1, 2, 3])
-    with tm.assert_produces_warning(DeprecationWarning):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#30588 multi-dimensional indexing deprecated
         assert idx[:, None].shape == (4, 1)
 
@@ -2559,7 +2584,7 @@ def test_validate_1d_input():
 
     # GH#13601 trying to assign a multi-dimensional array to an index is not
     #  allowed
-    ser = pd.Series(0, range(4))
+    ser = Series(0, range(4))
     with pytest.raises(ValueError, match=msg):
         ser.index = np.array([[2, 3]] * 4)
 
@@ -2608,7 +2633,7 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
         ex1 = np.array([0, 3, 1, 4, 2, 5] * 2, dtype=np.intp)
         ex2 = np.array([], dtype=np.intp)
         tm.assert_numpy_array_equal(result[0], ex1)
-        tm.assert_numpy_array_equal(result[1], ex2.astype(np.int64))
+        tm.assert_numpy_array_equal(result[1], ex2)
 
     else:
         no_matches = np.array([-1] * 6, dtype=np.intp)

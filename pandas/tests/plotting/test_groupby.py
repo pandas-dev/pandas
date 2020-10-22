@@ -4,6 +4,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import PY38, is_platform_windows
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, Series
@@ -13,6 +14,11 @@ from pandas.tests.plotting.common import TestPlotBase
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
+    @pytest.mark.xfail(
+        is_platform_windows() and not PY38,
+        reason="Looks like LinePlot._is_ts_plot is wrong",
+        strict=False,
+    )
     def test_series_groupby_plotting_nominally_works(self):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))

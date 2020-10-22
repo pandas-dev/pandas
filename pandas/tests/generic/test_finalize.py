@@ -115,15 +115,12 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("notnull")),
     (pd.DataFrame, frame_data, operator.methodcaller("dropna")),
     (pd.DataFrame, frame_data, operator.methodcaller("drop_duplicates")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("duplicated")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("duplicated")),
     (pd.DataFrame, frame_data, operator.methodcaller("sort_values", by="A")),
     (pd.DataFrame, frame_data, operator.methodcaller("sort_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("nlargest", 1, "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("nsmallest", 1, "A")),
-    (pd.DataFrame, frame_mi_data, operator.methodcaller("swaplevel"),),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("swaplevel")),
     pytest.param(
         (
             pd.DataFrame,
@@ -169,16 +166,13 @@ _all_methods = [
         ),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("stack")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("stack")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack"),),
+        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
         marks=not_implemented_mark,
     ),
     pytest.param(
@@ -317,7 +311,7 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.Series, ([1, 2],), operator.methodcaller("squeeze")),
+        (pd.Series, ([1, 2],), operator.methodcaller("squeeze"))
         # marks=not_implemented_mark,
     ),
     (pd.Series, ([1, 2],), operator.methodcaller("rename_axis", index="a")),
@@ -598,22 +592,13 @@ def test_binops(args, annotate, all_arithmetic_functions):
     [
         operator.methodcaller("capitalize"),
         operator.methodcaller("casefold"),
-        pytest.param(
-            operator.methodcaller("cat", ["a"]),
-            marks=pytest.mark.xfail(reason="finalize not called."),
-        ),
+        operator.methodcaller("cat", ["a"]),
         operator.methodcaller("contains", "a"),
         operator.methodcaller("count", "a"),
         operator.methodcaller("encode", "utf-8"),
         operator.methodcaller("endswith", "a"),
-        pytest.param(
-            operator.methodcaller("extract", r"(\w)(\d)"),
-            marks=pytest.mark.xfail(reason="finalize not called."),
-        ),
-        pytest.param(
-            operator.methodcaller("extract", r"(\w)(\d)"),
-            marks=pytest.mark.xfail(reason="finalize not called."),
-        ),
+        operator.methodcaller("extract", r"(\w)(\d)"),
+        operator.methodcaller("extract", r"(\w)(\d)", expand=False),
         operator.methodcaller("find", "a"),
         operator.methodcaller("findall", "a"),
         operator.methodcaller("get", 0),
@@ -655,7 +640,6 @@ def test_binops(args, annotate, all_arithmetic_functions):
     ],
     ids=idfn,
 )
-@not_implemented_mark
 def test_string_method(method):
     s = pd.Series(["a1"])
     s.attrs = {"a": 1}
@@ -678,7 +662,6 @@ def test_string_method(method):
     ],
     ids=idfn,
 )
-@not_implemented_mark
 def test_datetime_method(method):
     s = pd.Series(pd.date_range("2000", periods=4))
     s.attrs = {"a": 1}
@@ -714,7 +697,6 @@ def test_datetime_method(method):
         "days_in_month",
     ],
 )
-@not_implemented_mark
 def test_datetime_property(attr):
     s = pd.Series(pd.date_range("2000", periods=4))
     s.attrs = {"a": 1}
@@ -725,7 +707,6 @@ def test_datetime_property(attr):
 @pytest.mark.parametrize(
     "attr", ["days", "seconds", "microseconds", "nanoseconds", "components"]
 )
-@not_implemented_mark
 def test_timedelta_property(attr):
     s = pd.Series(pd.timedelta_range("2000", periods=4))
     s.attrs = {"a": 1}
@@ -733,10 +714,7 @@ def test_timedelta_property(attr):
     assert result.attrs == {"a": 1}
 
 
-@pytest.mark.parametrize(
-    "method", [operator.methodcaller("total_seconds")],
-)
-@not_implemented_mark
+@pytest.mark.parametrize("method", [operator.methodcaller("total_seconds")])
 def test_timedelta_methods(method):
     s = pd.Series(pd.timedelta_range("2000", periods=4))
     s.attrs = {"a": 1}
@@ -778,13 +756,35 @@ def test_categorical_accessor(method):
     [
         operator.methodcaller("sum"),
         lambda x: x.agg("sum"),
+    ],
+)
+def test_groupby_finalize(obj, method):
+    obj.attrs = {"a": 1}
+    result = method(obj.groupby([0, 0]))
+    assert result.attrs == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
+)
+@pytest.mark.parametrize(
+    "method",
+    [
         lambda x: x.agg(["sum", "count"]),
         lambda x: x.transform(lambda y: y),
         lambda x: x.apply(lambda y: y),
     ],
 )
 @not_implemented_mark
-def test_groupby(obj, method):
+def test_groupby_finalize_not_implemented(obj, method):
     obj.attrs = {"a": 1}
     result = method(obj.groupby([0, 0]))
     assert result.attrs == {"a": 1}
+
+
+def test_finalize_frame_series_name():
+    # https://github.com/pandas-dev/pandas/pull/37186/files#r506978889
+    # ensure we don't copy the column `name` to the Series.
+    df = pd.DataFrame({"name": [1, 2]})
+    result = pd.Series([1, 2]).__finalize__(df)
+    assert result.name is None
