@@ -709,6 +709,9 @@ class TestTypeInference:
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "mixed"
 
+        result = lib.infer_dtype(arr[::-1], skipna=True)
+        assert result == "mixed"
+
         arr = np.array([Decimal(1), Decimal("NaN"), Decimal(3)])
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "decimal"
@@ -727,6 +730,9 @@ class TestTypeInference:
 
         arr = np.array([1.0, 2.0, 1 + 1j], dtype="O")
         result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == "mixed"
+
+        result = lib.infer_dtype(arr[::-1], skipna=skipna)
         assert result == "mixed"
 
         # gets cast to complex on array construction
@@ -1217,7 +1223,7 @@ class TestTypeInference:
         inferred = lib.infer_dtype(idx._data, skipna=False)
         assert inferred == "interval"
 
-        inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
+        inferred = lib.infer_dtype(Series(idx), skipna=False)
         assert inferred == "interval"
 
     @pytest.mark.parametrize("klass", [pd.array, pd.Series])

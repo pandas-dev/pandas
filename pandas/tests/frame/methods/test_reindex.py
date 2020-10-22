@@ -4,37 +4,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, date_range, isna
+from pandas import Categorical, DataFrame, Index, Series, date_range, isna
 import pandas._testing as tm
 
 
 class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
-
-    def test_merge_join_different_levels(self):
-        # GH 9455
-
-        # first dataframe
-        df1 = DataFrame(columns=["a", "b"], data=[[1, 11], [0, 22]])
-
-        # second dataframe
-        columns = MultiIndex.from_tuples([("a", ""), ("c", "c1")])
-        df2 = DataFrame(columns=columns, data=[[1, 33], [0, 44]])
-
-        # merge
-        columns = ["a", "b", ("c", "c1")]
-        expected = DataFrame(columns=columns, data=[[1, 11, 33], [0, 22, 44]])
-        with tm.assert_produces_warning(UserWarning):
-            result = pd.merge(df1, df2, on="a")
-        tm.assert_frame_equal(result, expected)
-
-        # join, see discussion in GH 12219
-        columns = ["a", "b", ("a", ""), ("c", "c1")]
-        expected = DataFrame(columns=columns, data=[[1, 11, 0, 44], [0, 22, 1, 33]])
-        with tm.assert_produces_warning(UserWarning):
-            result = df1.join(df2, on="a")
-        tm.assert_frame_equal(result, expected)
 
     def test_reindex(self, float_frame):
         datetime_series = tm.makeTimeSeries(nper=30)
@@ -100,7 +76,7 @@ class TestDataFrameSelectReindex:
         assert result is not float_frame
 
     def test_reindex_nan(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             [[1, 2], [3, 5], [7, 11], [9, 23]],
             index=[2, np.nan, 1, 5],
             columns=["joe", "jim"],
@@ -113,7 +89,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(df.reindex(i), df.iloc[j], check_index_type=False)
 
         # GH10388
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "other": ["a", "b", np.nan, "c"],
                 "date": ["2015-03-22", np.nan, "2012-01-08", np.nan],
@@ -287,8 +263,8 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_axis_style(self):
         # https://github.com/pandas-dev/pandas/issues/12392
-        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        expected = pd.DataFrame(
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        expected = DataFrame(
             {"A": [1, 2, np.nan], "B": [4, 5, np.nan]}, index=[0, 1, 3]
         )
         result = df.reindex([0, 1, 3])
@@ -302,8 +278,8 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_positional_warns(self):
         # https://github.com/pandas-dev/pandas/issues/12392
-        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        expected = pd.DataFrame({"A": [1.0, 2], "B": [4.0, 5], "C": [np.nan, np.nan]})
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        expected = DataFrame({"A": [1.0, 2], "B": [4.0, 5], "C": [np.nan, np.nan]})
         with tm.assert_produces_warning(FutureWarning):
             result = df.reindex([0, 1], ["A", "B", "C"])
 
@@ -311,7 +287,7 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
-        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex([0, 1], ["A"], axis=1)
 
@@ -346,9 +322,9 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_single_named_indexer(self):
         # https://github.com/pandas-dev/pandas/issues/12392
-        df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]})
+        df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]})
         result = df.reindex([0, 1], columns=["A"])
-        expected = pd.DataFrame({"A": [1, 2]})
+        expected = DataFrame({"A": [1, 2]})
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_api_equivalence(self):
@@ -381,20 +357,6 @@ class TestDataFrameSelectReindex:
         res3 = df.reindex(labels=["b", "a"], axis=0).reindex(labels=["e", "d"], axis=1)
         for res in [res2, res3]:
             tm.assert_frame_equal(res1, res)
-
-    def test_align_int_fill_bug(self):
-        # GH #910
-        X = np.arange(10 * 10, dtype="float64").reshape(10, 10)
-        Y = np.ones((10, 1), dtype=int)
-
-        df1 = DataFrame(X)
-        df1["0.X"] = Y.squeeze()
-
-        df2 = df1.astype(float)
-
-        result = df1 - df1.mean()
-        expected = df2 - df2.mean()
-        tm.assert_frame_equal(result, expected)
 
     def test_reindex_boolean(self):
         frame = DataFrame(
@@ -482,30 +444,9 @@ class TestDataFrameSelectReindex:
                 Categorical(date_range("2012-01-01", periods=3, freq="H")),
             ]
         )
-        df = pd.DataFrame({"a": range(len(midx))}, index=midx)
+        df = DataFrame({"a": range(len(midx))}, index=midx)
         df2 = df.iloc[[0, 1, 2, 3, 4, 5, 6, 8]]
 
         result = df2.reindex(midx)
-        expected = pd.DataFrame({"a": [0, 1, 2, 3, 4, 5, 6, np.nan, 8]}, index=midx)
+        expected = DataFrame({"a": [0, 1, 2, 3, 4, 5, 6, np.nan, 8]}, index=midx)
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "operation", ["__iadd__", "__isub__", "__imul__", "__ipow__"]
-    )
-    @pytest.mark.parametrize("inplace", [False, True])
-    def test_inplace_drop_and_operation(self, operation, inplace):
-        # GH 30484
-        df = pd.DataFrame({"x": range(5)})
-        expected = df.copy()
-        df["y"] = range(5)
-        y = df["y"]
-
-        with tm.assert_produces_warning(None):
-            if inplace:
-                df.drop("y", axis=1, inplace=inplace)
-            else:
-                df = df.drop("y", axis=1, inplace=inplace)
-
-            # Perform operation and check result
-            getattr(y, operation)(1)
-            tm.assert_frame_equal(df, expected)

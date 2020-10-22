@@ -15,7 +15,7 @@ class TestSeriesPeriod:
         series = Series(list(period_range("2000-01-01", periods=10, freq="D")))
         assert series.dtype == "Period[D]"
 
-        series = pd.Series(
+        series = Series(
             [pd.Period("2011-01-01", freq="D"), pd.Period("2011-02-01", freq="D")]
         )
         assert series.dtype == "Period[D]"
@@ -48,21 +48,6 @@ class TestSeriesPeriod:
         result = Series([np.nan]).astype("period[D]")
         expected = Series([pd.NaT], dtype="period[D]")
         tm.assert_series_equal(result, expected)
-
-    def test_set_none(self):
-        self.series[3] = None
-        assert self.series[3] is pd.NaT
-
-        self.series[3:5] = None
-        assert self.series[4] is pd.NaT
-
-    def test_set_nan(self):
-        # Do we want to allow this?
-        self.series[5] = np.nan
-        assert self.series[5] is pd.NaT
-
-        self.series[5:7] = np.nan
-        assert self.series[6] is pd.NaT
 
     def test_intercept_astype_object(self):
         expected = self.series.astype("object")

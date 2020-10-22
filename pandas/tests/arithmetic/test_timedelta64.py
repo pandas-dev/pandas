@@ -77,10 +77,10 @@ class TestTimedelta64ArrayLikeComparisons:
         box = box_with_array
         xbox = box if box not in [pd.Index, pd.array] else np.ndarray
 
-        ser = pd.Series([timedelta(days=1), timedelta(days=2)])
+        ser = Series([timedelta(days=1), timedelta(days=2)])
         ser = tm.box_expected(ser, box)
         actual = ser > td_scalar
-        expected = pd.Series([False, True])
+        expected = Series([False, True])
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(actual, expected)
 
@@ -722,14 +722,14 @@ class TestTimedeltaArraylikeAddSubOps:
 
         sn = pd.to_timedelta(Series([pd.NaT], dtype="m8[ns]"))
 
-        df1 = pd.DataFrame(["00:00:01"]).apply(pd.to_timedelta)
-        df2 = pd.DataFrame(["00:00:02"]).apply(pd.to_timedelta)
+        df1 = DataFrame(["00:00:01"]).apply(pd.to_timedelta)
+        df2 = DataFrame(["00:00:02"]).apply(pd.to_timedelta)
         with pytest.raises(TypeError, match=msg):
             # Passing datetime64-dtype data to TimedeltaIndex is no longer
             #  supported GH#29794
-            pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+            DataFrame([pd.NaT]).apply(pd.to_timedelta)
 
-        dfn = pd.DataFrame([pd.NaT.value]).apply(pd.to_timedelta)
+        dfn = DataFrame([pd.NaT.value]).apply(pd.to_timedelta)
 
         scalar1 = pd.to_timedelta("00:00:01")
         scalar2 = pd.to_timedelta("00:00:02")
@@ -1104,7 +1104,7 @@ class TestTimedeltaArraylikeAddSubOps:
     )
     def test_td64arr_addsub_numeric_scalar_invalid(self, box_with_array, other):
         # vector-like others are tested in test_td64arr_add_sub_numeric_arr_invalid
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdarr = tm.box_expected(tdser, box_with_array)
 
         assert_invalid_addsub_type(tdarr, other)
@@ -1122,7 +1122,7 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_td64arr_addsub_numeric_arr_invalid(
         self, box_with_array, vec, any_real_dtype
     ):
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdarr = tm.box_expected(tdser, box_with_array)
 
         vector = vec.astype(any_real_dtype)
@@ -1556,7 +1556,7 @@ class TestTimedeltaArraylikeMulDivOps:
         idx = tm.box_expected(idx, box)
         expected = tm.box_expected(expected, xbox)
 
-        result = idx * pd.Series(np.arange(5, dtype="int64"))
+        result = idx * Series(np.arange(5, dtype="int64"))
         tm.assert_equal(result, expected)
 
     def test_tdi_mul_float_series(self, box_with_array):
@@ -1765,8 +1765,8 @@ class TestTimedeltaArraylikeMulDivOps:
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
 
-        left = pd.Series([1000, 222330, 30], dtype="timedelta64[ns]")
-        right = pd.Series([1000, 222330, None], dtype="timedelta64[ns]")
+        left = Series([1000, 222330, 30], dtype="timedelta64[ns]")
+        right = Series([1000, 222330, None], dtype="timedelta64[ns]")
 
         left = tm.box_expected(left, box)
         right = tm.box_expected(right, box)
@@ -1900,10 +1900,13 @@ class TestTimedeltaArraylikeMulDivOps:
         result = tdarr % three_days
         tm.assert_equal(result, expected)
 
-        if box_with_array is pd.DataFrame:
-            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
+        warn = None
+        if box_with_array is pd.DataFrame and isinstance(three_days, pd.DateOffset):
+            warn = PerformanceWarning
 
-        result = divmod(tdarr, three_days)
+        with tm.assert_produces_warning(warn):
+            result = divmod(tdarr, three_days)
+
         tm.assert_equal(result[1], expected)
         tm.assert_equal(result[0], tdarr // three_days)
 
@@ -1921,9 +1924,6 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(TypeError, match=msg):
             2 % tdarr
 
-        if box_with_array is pd.DataFrame:
-            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
-
         result = divmod(tdarr, 2)
         tm.assert_equal(result[1], expected)
         tm.assert_equal(result[0], tdarr // 2)
@@ -1938,9 +1938,6 @@ class TestTimedeltaArraylikeMulDivOps:
 
         result = three_days % tdarr
         tm.assert_equal(result, expected)
-
-        if box_with_array is pd.DataFrame:
-            pytest.xfail("DataFrame does not have __divmod__ or __rdivmod__")
 
         result = divmod(three_days, tdarr)
         tm.assert_equal(result[1], expected)
@@ -1991,7 +1988,7 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_numeric_scalar(self, box_with_array, one):
         # GH#4521
         # divide/multiply by integers
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         expected = Series(["-59 Days", "-59 Days", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)
@@ -2014,7 +2011,7 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_div_numeric_scalar(self, box_with_array, two):
         # GH#4521
         # divide/multiply by integers
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         expected = Series(["29.5D", "29.5D", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)
@@ -2036,7 +2033,7 @@ class TestTimedeltaArraylikeMulDivOps:
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
 
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         vector = vector.astype(any_real_dtype)
 
         expected = Series(["1180 Days", "1770 Days", "NaT"], dtype="timedelta64[ns]")
@@ -2060,7 +2057,7 @@ class TestTimedeltaArraylikeMulDivOps:
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
 
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         vector = vector.astype(any_real_dtype)
 
         expected = Series(["2.95D", "1D 23H 12m", "NaT"], dtype="timedelta64[ns]")
