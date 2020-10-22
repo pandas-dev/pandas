@@ -239,6 +239,11 @@ def test_value_counts_datetime64(index_or_series):
     tm.assert_series_equal(result, expected_s)
 
     result = s.value_counts(dropna=False)
+    # GH 35922. NaN-like now sorts to the beginning of duplicate counts
+    idx = pd.to_datetime(
+        ["2010-01-01 00:00:00", "2008-09-09 00:00:00", pd.NaT, "2009-01-01 00:00:00"]
+    )
+    expected_s = Series([3, 2, 1, 1], index=idx)
     expected_s[pd.NaT] = 1
     tm.assert_series_equal(result, expected_s)
 
