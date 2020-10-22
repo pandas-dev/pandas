@@ -110,31 +110,6 @@ fi
 ### PATTERNS ###
 if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
-    # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
-    # Check for imports from collections.abc instead of `from collections import abc`
-    MSG='Check for non-standard imports' ; echo $MSG
-    invgrep -R --include="*.py*" -E "from pandas.core.common import" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from pandas.core import common" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from collections.abc import" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from numpy import nan" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # Checks for test suite
-    # Check for imports from pandas._testing instead of `import pandas._testing as tm`
-    invgrep -R --include="*.py*" -E "from pandas._testing import" pandas/tests
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from pandas import _testing as tm" pandas/tests
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # No direct imports from conftest
-    invgrep -R --include="*.py*" -E "conftest import" pandas/tests
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "import conftest" pandas/tests
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for use of exec' ; echo $MSG
     invgrep -R --include="*.py*" -E "[^a-zA-Z0-9_]exec\(" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
