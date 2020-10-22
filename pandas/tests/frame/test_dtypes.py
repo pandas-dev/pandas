@@ -6,7 +6,7 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, option_context
+from pandas import DataFrame, Series, date_range, option_context
 import pandas._testing as tm
 
 
@@ -18,22 +18,6 @@ def _check_cast(df, v):
 
 
 class TestDataFrameDataTypes:
-    def test_concat_empty_dataframe_dtypes(self):
-        df = DataFrame(columns=list("abc"))
-        df["a"] = df["a"].astype(np.bool_)
-        df["b"] = df["b"].astype(np.int32)
-        df["c"] = df["c"].astype(np.float64)
-
-        result = pd.concat([df, df])
-        assert result["a"].dtype == np.bool_
-        assert result["b"].dtype == np.int32
-        assert result["c"].dtype == np.float64
-
-        result = pd.concat([df, df.astype(np.float64)])
-        assert result["a"].dtype == np.object_
-        assert result["b"].dtype == np.float64
-        assert result["c"].dtype == np.float64
-
     def test_empty_frame_dtypes(self):
         empty_df = DataFrame()
         tm.assert_series_equal(empty_df.dtypes, Series(dtype=object))
@@ -244,56 +228,3 @@ class TestDataFrameDataTypes:
         result.loc[result.index, "A"] = [float(x) for x in col_data]
         expected = DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
-
-
-class TestDataFrameDatetimeWithTZ:
-    def test_interleave(self, timezone_frame):
-
-        # interleave with object
-        result = timezone_frame.assign(D="foo").values
-        expected = np.array(
-            [
-                [
-                    Timestamp("2013-01-01 00:00:00"),
-                    Timestamp("2013-01-02 00:00:00"),
-                    Timestamp("2013-01-03 00:00:00"),
-                ],
-                [
-                    Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern"),
-                    pd.NaT,
-                    Timestamp("2013-01-03 00:00:00-0500", tz="US/Eastern"),
-                ],
-                [
-                    Timestamp("2013-01-01 00:00:00+0100", tz="CET"),
-                    pd.NaT,
-                    Timestamp("2013-01-03 00:00:00+0100", tz="CET"),
-                ],
-                ["foo", "foo", "foo"],
-            ],
-            dtype=object,
-        ).T
-        tm.assert_numpy_array_equal(result, expected)
-
-        # interleave with only datetime64[ns]
-        result = timezone_frame.values
-        expected = np.array(
-            [
-                [
-                    Timestamp("2013-01-01 00:00:00"),
-                    Timestamp("2013-01-02 00:00:00"),
-                    Timestamp("2013-01-03 00:00:00"),
-                ],
-                [
-                    Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern"),
-                    pd.NaT,
-                    Timestamp("2013-01-03 00:00:00-0500", tz="US/Eastern"),
-                ],
-                [
-                    Timestamp("2013-01-01 00:00:00+0100", tz="CET"),
-                    pd.NaT,
-                    Timestamp("2013-01-03 00:00:00+0100", tz="CET"),
-                ],
-            ],
-            dtype=object,
-        ).T
-        tm.assert_numpy_array_equal(result, expected)

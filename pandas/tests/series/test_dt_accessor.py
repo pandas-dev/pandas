@@ -655,26 +655,6 @@ class TestSeriesDatetimeValues:
         result = s.dt.timetz
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_with_string_index(self):
-        # GH 23451
-        x = Series([1, 2, 3], index=["Date", "b", "other"])
-        x["Date"] = date.today()
-        assert x.Date == date.today()
-        assert x["Date"] == date.today()
-
-    def test_setitem_with_different_tz(self):
-        # GH#24024
-        ser = Series(pd.date_range("2000", periods=2, tz="US/Central"))
-        ser[0] = pd.Timestamp("2000", tz="US/Eastern")
-        expected = Series(
-            [
-                pd.Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
-                pd.Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
-            ],
-            dtype=object,
-        )
-        tm.assert_series_equal(ser, expected)
-
     @pytest.mark.parametrize(
         "input_series, expected_output",
         [
