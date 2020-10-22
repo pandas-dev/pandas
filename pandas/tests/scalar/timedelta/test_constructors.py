@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas import Timedelta, offsets, to_timedelta
-import pandas._testing as tm
 
 
 def test_construction():
@@ -41,9 +40,8 @@ def test_construction():
     assert Timedelta("1 hr") == timedelta(hours=1)
     assert Timedelta("1 hours") == timedelta(hours=1)
     assert Timedelta("-1 hours") == -timedelta(hours=1)
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert Timedelta("1 m") == timedelta(minutes=1)
-        assert Timedelta("1.5 m") == timedelta(seconds=90)
+    assert Timedelta("1 min") == timedelta(minutes=1)
+    assert Timedelta("1.5 min") == timedelta(seconds=90)
     assert Timedelta("1 minute") == timedelta(minutes=1)
     assert Timedelta("1 minutes") == timedelta(minutes=1)
     assert Timedelta("1 s") == timedelta(seconds=1)

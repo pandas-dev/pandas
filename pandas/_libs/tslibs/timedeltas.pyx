@@ -299,14 +299,6 @@ cdef inline int64_t parse_timedelta_string(str ts) except? -1:
     if len(ts) == 0 or ts in nat_strings:
         return NPY_NAT
 
-    if re.search(r"^\d+\s?[M|Y|m|y]$", ts):
-        warnings.warn(
-            "Units 'M', 'Y', 'm' and 'y' do not represent unambiguous "
-            "timedelta values and will be removed in a future version",
-            FutureWarning,
-            stacklevel=2,
-        )
-
     for c in ts:
 
         # skip whitespace / commas
@@ -476,6 +468,15 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
 
     try:
         unit = ''.join(unit)
+
+        if unit in ["M", "Y", "m", "y"]:
+            warnings.warn(
+                "Units 'M', 'Y', 'm' and 'y' do not represent unambiguous "
+                "timedelta values and will be removed in a future version",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if unit == 'M':
             # To parse ISO 8601 string, 'M' should be treated as minute,
             # not month

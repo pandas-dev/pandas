@@ -752,8 +752,7 @@ def test_resample_origin():
     resampled = ts.resample("5min", origin=offset_timestamp).mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
+    resampled = ts.resample("5min", origin="epoch", offset="2min").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
     # origin of '1999-31-12 12:02:00' should be equivalent for this case
