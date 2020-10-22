@@ -332,12 +332,8 @@ class TestPeriodIndexOps:
             idx.freq = pd.offsets.Day()
 
 
-@pytest.mark.xfail(reason="Datetime-like sort_values currently unstable (GH 35922)")
 def test_order_stability_compat():
-    # GH 35584. The new implementation of sort_values for Index.sort_values
-    # is stable when sorting in descending order. Datetime-like sort_values
-    # currently aren't stable. xfail should be removed after
-    # the implementations' behavior is synchronized (xref GH 35922)
+    # GH 35922. sort_values is stable both for normal and datetime-like Index
     pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="A")
     iidx = Index([2011, 2013, 2015, 2012, 2011], name="idx")
     ordered1, indexer1 = pidx.sort_values(return_indexer=True, ascending=False)
