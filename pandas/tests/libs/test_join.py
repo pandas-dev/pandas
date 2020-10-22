@@ -335,8 +335,8 @@ def test_left_join_indexer():
 
 
 def test_left_join_indexer2():
-    idx = np.array([1, 1, 2, 5])
-    idx2 = np.array([1, 2, 5, 7, 9])
+    idx = np.array([1, 1, 2, 5], dtype=np.int64)
+    idx2 = np.array([1, 2, 5, 7, 9], dtype=np.int64)
 
     res, lidx, ridx = libjoin.left_join_indexer(idx2, idx)
 
@@ -351,8 +351,8 @@ def test_left_join_indexer2():
 
 
 def test_outer_join_indexer2():
-    idx = np.array([1, 1, 2, 5])
-    idx2 = np.array([1, 2, 5, 7, 9])
+    idx = np.array([1, 1, 2, 5], dtype=np.int64)
+    idx2 = np.array([1, 2, 5, 7, 9], dtype=np.int64)
 
     res, lidx, ridx = libjoin.outer_join_indexer(idx2, idx)
 
@@ -367,8 +367,8 @@ def test_outer_join_indexer2():
 
 
 def test_inner_join_indexer2():
-    idx = np.array([1, 1, 2, 5])
-    idx2 = np.array([1, 2, 5, 7, 9])
+    idx = np.array([1, 1, 2, 5], dtype=np.int64)
+    idx2 = np.array([1, 2, 5, 7, 9], dtype=np.int64)
 
     res, lidx, ridx = libjoin.inner_join_indexer(idx2, idx)
 
