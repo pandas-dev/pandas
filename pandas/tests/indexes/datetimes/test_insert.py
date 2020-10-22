@@ -21,7 +21,8 @@ class TestInsert:
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_invalid_na(self, tz):
         idx = DatetimeIndex(["2017-01-01"], tz=tz)
-        with pytest.raises(TypeError, match="incompatible label"):
+        msg = "value should be a 'Timestamp' or 'NaT'. Got 'timedelta64' instead."
+        with pytest.raises(TypeError, match=msg):
             idx.insert(0, np.timedelta64("NaT"))
 
     def test_insert_empty_preserves_freq(self, tz_naive_fixture):
@@ -174,7 +175,7 @@ class TestInsert:
         tz = tz_aware_fixture
         dti = date_range("2019-11-04", periods=9, freq="-1D", name=9, tz=tz)
 
-        msg = "incompatible label"
+        msg = "value should be a 'Timestamp' or 'NaT'. Got '.*' instead"
         with pytest.raises(TypeError, match=msg):
             dti.insert(1, item)
 

@@ -335,7 +335,7 @@ class TestPartialSetting:
         df = orig.copy()
 
         # don't allow not string inserts
-        msg = "cannot insert DatetimeArray with incompatible label"
+        msg = r"value should be a 'Timestamp' or 'NaT'\. Got '.*' instead\."
 
         with pytest.raises(TypeError, match=msg):
             df.loc[100.0, :] = df.iloc[0]

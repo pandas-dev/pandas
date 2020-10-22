@@ -1095,7 +1095,7 @@ class TestCanHoldElement:
         assert not block._can_hold_element(val)
 
         msg = (
-            "'value' should be a 'Timestamp', 'NaT', "
+            "value should be a 'Timestamp', 'NaT', "
             "or array of those. Got 'date' instead."
         )
         with pytest.raises(TypeError, match=msg):
