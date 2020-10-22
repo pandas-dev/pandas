@@ -2003,6 +2003,8 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
         return self.values.astype(object)
 
     def _can_hold_element(self, element: Any) -> bool:
+        if is_valid_nat_for_dtype(element, self.dtype):
+            return True
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, self.dtype.type)
