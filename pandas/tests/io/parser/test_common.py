@@ -23,6 +23,9 @@ import pandas._testing as tm
 
 from pandas.io.parsers import CParserWrapper, TextFileReader, TextParser
 
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+
 
 def test_override_set_noconvert_columns():
     # see gh-17351
@@ -84,7 +87,8 @@ def test_empty_decimal_marker(all_parsers, pyarrow_xfail):
         parser.read_csv(StringIO(data), decimal="")
 
 
-def test_bad_stream_exception(all_parsers, csv_dir_path, pyarrow_xfail):
+@skip_pyarrow
+def test_bad_stream_exception(all_parsers, csv_dir_path):
     # see gh-13652
     #
     # This test validates that both the Python engine and C engine will
@@ -139,6 +143,7 @@ def test_read_csv_local(all_parsers, csv1):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_1000_sep(all_parsers):
     parser = all_parsers
     data = """A|B|C
@@ -232,6 +237,7 @@ c,4,5
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_read_csv_low_memory_no_rows_with_index(all_parsers):
     # see gh-21141
     parser = all_parsers
@@ -280,6 +286,7 @@ def test_read_csv_dataframe(all_parsers, csv1):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_read_csv_no_index_name(all_parsers, csv_dir_path):
     parser = all_parsers
     csv2 = os.path.join(csv_dir_path, "test2.csv")
@@ -348,6 +355,7 @@ bar,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_read_duplicate_index_implicit(all_parsers):
     data = """A,B,C,D
 foo,2,3,4,5
@@ -728,7 +736,7 @@ def test_iterator_skipfooter_errors(all_parsers, kwargs, pyarrow_xfail):
         parser.read_csv(StringIO(data), skipfooter=1, **kwargs)
 
 
-def test_nrows_skipfooter_errors(all_parsers, pyarrow_xfail):
+def test_nrows_skipfooter_errors(all_parsers):
     msg = "'skipfooter' not supported with 'nrows'"
     data = "a\n1\n2\n3\n4\n5\n6"
     parser = all_parsers
@@ -799,6 +807,7 @@ def test_pass_names_with_index(all_parsers, data, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("index_col", [[0, 1], [1, 0]])
 def test_multi_index_no_level_names(all_parsers, index_col):
     data = """index1,index2,A,B,C,D
@@ -823,6 +832,7 @@ bar,two,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_multi_index_no_level_names_implicit(all_parsers):
     parser = all_parsers
     data = """A,B,C,D
@@ -856,6 +866,7 @@ bar,two,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,expected,header",
     [
@@ -877,6 +888,7 @@ def test_multi_index_blank_df(all_parsers, data, expected, header, round_trip):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_no_unnamed_index(all_parsers):
     parser = all_parsers
     data = """ id c0 c1 c2
@@ -939,6 +951,7 @@ def test_local_file(all_parsers, csv_dir_path):
         pytest.skip("Failing on: " + " ".join(platform.uname()))
 
 
+@xfail_pyarrow
 def test_path_path_lib(all_parsers):
     parser = all_parsers
     df = tm.makeDataFrame()
@@ -946,6 +959,7 @@ def test_path_path_lib(all_parsers):
     tm.assert_frame_equal(df, result)
 
 
+@xfail_pyarrow
 def test_path_local_path(all_parsers):
     parser = all_parsers
     df = tm.makeDataFrame()
@@ -955,6 +969,7 @@ def test_path_local_path(all_parsers):
     tm.assert_frame_equal(df, result)
 
 
+@xfail_pyarrow
 def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError
@@ -968,6 +983,7 @@ def test_nonexistent_path(all_parsers):
     assert path == e.value.filename
 
 
+@xfail_pyarrow
 @td.skip_if_windows  # os.chmod does not work in windows
 def test_no_permission(all_parsers):
     # GH 23784
@@ -990,6 +1006,7 @@ def test_no_permission(all_parsers):
         assert path == e.value.filename
 
 
+@xfail_pyarrow
 def test_missing_trailing_delimiters(all_parsers):
     parser = all_parsers
     data = """A,B,C,D
@@ -1005,6 +1022,7 @@ def test_missing_trailing_delimiters(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_skip_initial_space(all_parsers):
     data = (
         '"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
@@ -1065,6 +1083,7 @@ def test_skip_initial_space(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_trailing_delimiters(all_parsers):
     # see gh-2442
     data = """A,B,C
@@ -1168,6 +1187,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     assert df.a.dtype == object
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("sep", [" ", r"\s+"])
 def test_integer_overflow_bug(all_parsers, sep):
     # see gh-2601
@@ -1179,6 +1199,7 @@ def test_integer_overflow_bug(all_parsers, sep):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_catch_too_many_names(all_parsers):
     # see gh-5156
     data = """\
@@ -1198,6 +1219,7 @@ def test_catch_too_many_names(all_parsers):
         parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
 
 
+@xfail_pyarrow
 def test_ignore_leading_whitespace(all_parsers):
     # see gh-3374, gh-6607
     parser = all_parsers
@@ -1218,6 +1240,7 @@ def test_chunk_begins_with_newline_whitespace(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_empty_with_index(all_parsers):
     # see gh-10184
     data = "x,y"
@@ -1228,6 +1251,7 @@ def test_empty_with_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_empty_with_multi_index(all_parsers):
     # see gh-10467
     data = "x,y,z"
@@ -1240,6 +1264,7 @@ def test_empty_with_multi_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_empty_with_reversed_multi_index(all_parsers):
     data = "x,y,z"
     parser = all_parsers
@@ -1251,6 +1276,7 @@ def test_empty_with_reversed_multi_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_float_parser(all_parsers):
     # see gh-9565
     parser = all_parsers
@@ -1272,6 +1298,7 @@ def test_scientific_no_exponent(all_parsers):
         tm.assert_frame_equal(df_roundtrip, df)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("conv", [None, np.int64, np.uint64])
 def test_int64_overflow(all_parsers, conv):
     data = """ID
@@ -1315,6 +1342,7 @@ def test_int64_overflow(all_parsers, conv):
             parser.read_csv(StringIO(data), converters={"ID": conv})
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max, np.iinfo(np.int64).max, np.iinfo(np.int64).min]
 )
@@ -1328,6 +1356,7 @@ def test_int64_uint64_range(all_parsers, val):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max + 1, np.iinfo(np.int64).min - 1]
 )
@@ -1341,6 +1370,7 @@ def test_outside_int64_uint64_range(all_parsers, val):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("exp_data", [[str(-1), str(2 ** 63)], [str(2 ** 63), str(-1)]])
 def test_numeric_range_too_wide(all_parsers, exp_data):
     # No numerical dtype can hold both negative and uint64
@@ -1353,6 +1383,7 @@ def test_numeric_range_too_wide(all_parsers, exp_data):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("iterator", [True, False])
 def test_empty_with_nrows_chunksize(all_parsers, iterator):
     # see gh-9535
@@ -1370,6 +1401,7 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,kwargs,expected,msg",
     [
@@ -1477,6 +1509,7 @@ def test_eof_states(all_parsers, data, kwargs, expected, msg):
         tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("usecols", [None, [0, 1], ["a", "b"]])
 def test_uneven_lines_with_usecols(all_parsers, usecols):
     # see gh-12203
@@ -1531,6 +1564,7 @@ def test_read_empty_with_usecols(all_parsers, data, kwargs, expected, pyarrow_xf
         tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -1562,7 +1596,7 @@ def test_trailing_spaces(all_parsers, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_raise_on_sep_with_delim_whitespace(all_parsers, pyarrow_xfail):
+def test_raise_on_sep_with_delim_whitespace(all_parsers):
     # see gh-6607
     data = "a b c\n1 2 3"
     parser = all_parsers
@@ -1571,6 +1605,7 @@ def test_raise_on_sep_with_delim_whitespace(all_parsers, pyarrow_xfail):
         parser.read_csv(StringIO(data), sep=r"\s", delim_whitespace=True)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("delim_whitespace", [True, False])
 def test_single_char_leading_whitespace(all_parsers, delim_whitespace):
     # see gh-9710
@@ -1589,6 +1624,7 @@ b\n"""
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "sep,skip_blank_lines,exp_data",
     [
@@ -1628,6 +1664,7 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_whitespace_lines(all_parsers):
     parser = all_parsers
     data = """
@@ -1643,6 +1680,7 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -1671,6 +1709,7 @@ def test_whitespace_regex_separator(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_verbose_read(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
@@ -1694,6 +1733,7 @@ two,1,2,3"""
         assert captured.out == "Filled 3 NA values in column a\n"
 
 
+@xfail_pyarrow
 def test_verbose_read2(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
@@ -1735,6 +1775,7 @@ def test_iteration_open_handle(all_parsers):
             tm.assert_series_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,thousands,decimal",
     [
@@ -1766,6 +1807,7 @@ def test_1000_sep_with_decimal(all_parsers, data, thousands, decimal):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_euro_decimal_format(all_parsers):
     parser = all_parsers
     data = """Id;Number1;Number2;Text1;Text2;Number3
@@ -1785,6 +1827,7 @@ def test_euro_decimal_format(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("na_filter", [True, False])
 def test_inf_parsing(all_parsers, na_filter):
     parser = all_parsers
@@ -1808,6 +1851,7 @@ j,-inF"""
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("na_filter", [True, False])
 def test_infinity_parsing(all_parsers, na_filter):
     parser = all_parsers
@@ -1825,6 +1869,7 @@ c,+Infinity
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
@@ -1835,6 +1880,7 @@ def test_raise_on_no_columns(all_parsers, nrows):
         parser.read_csv(StringIO(data))
 
 
+@xfail_pyarrow
 @td.check_file_leaks
 def test_memory_map(all_parsers, csv_dir_path):
     mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
@@ -1848,6 +1894,7 @@ def test_memory_map(all_parsers, csv_dir_path):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_null_byte_char(all_parsers):
     # see gh-2741
     data = "\x00,foo"
@@ -1864,6 +1911,7 @@ def test_null_byte_char(all_parsers):
             parser.read_csv(StringIO(data), names=names)
 
 
+@xfail_pyarrow
 def test_temporary_file(all_parsers):
     # see gh-13398
     parser = all_parsers
@@ -1985,6 +2033,7 @@ def test_valid_file_buffer_seems_invalid(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [dict(), dict(error_bad_lines=True)],  # Default is True.  # Explicitly pass in.
@@ -2003,6 +2052,7 @@ def test_error_bad_lines(all_parsers, kwargs, warn_kwargs):
         parser.read_csv(StringIO(data), **kwargs)
 
 
+@xfail_pyarrow
 def test_warn_bad_lines(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers
@@ -2017,6 +2067,7 @@ def test_warn_bad_lines(all_parsers, capsys):
     assert "Skipping line 5" in captured.err
 
 
+@xfail_pyarrow
 def test_suppress_error_output(all_parsers, capsys):
     # see gh-15925
     parser = all_parsers
@@ -2045,6 +2096,7 @@ def test_filename_with_special_chars(all_parsers, filename):
         tm.assert_frame_equal(result, df)
 
 
+@xfail_pyarrow
 def test_read_csv_memory_growth_chunksize(all_parsers):
     # see gh-24805
     #
@@ -2127,6 +2179,7 @@ def test_first_row_bom(all_parsers, pyarrow_xfail):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_first_row_bom_unquoted(all_parsers):
     # see gh-36343
     parser = all_parsers
@@ -2147,6 +2200,7 @@ def test_integer_precision(all_parsers):
     tm.assert_series_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_file_descriptor_leak(all_parsers):
     # GH 31488
 
@@ -2160,6 +2214,7 @@ def test_file_descriptor_leak(all_parsers):
         td.check_file_leaks(test)()
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("nrows", range(1, 6))
 def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     # GH 28071
@@ -2173,6 +2228,7 @@ def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     tm.assert_frame_equal(df, ref[:nrows])
 
 
+@xfail_pyarrow
 def test_no_header_two_extra_columns(all_parsers):
     # GH 26218
     column_names = ["one", "two", "three"]
@@ -2203,6 +2259,7 @@ def test_read_csv_with_use_inf_as_na(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_read_table_delim_whitespace_default_sep(all_parsers):
     # GH: 35958
     f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
@@ -2244,6 +2301,7 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
         parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
 
 
+@xfail_pyarrow
 def test_dict_keys_as_names(all_parsers):
     # GH: 36928
     data = "1,2"

@@ -142,4 +142,16 @@ def pyarrow_xfail(request):
     if "all_parsers" in request.fixturenames:
         parser = request.getfixturevalue("all_parsers")
         if parser.engine == "pyarrow":
-            pytest.xfail("pyarrow doesn't support this.")
+            mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
+            request.node.add_marker(mark)
+
+
+@pytest.fixture
+def pyarrow_skip(request):
+    """
+    Fixture that skips a test if the engine is pyarrow.
+    """
+    if "all_parsers" in request.fixturenames:
+        parser = request.getfixturevalue("all_parsers")
+        if parser.engine == "pyarrow":
+            pytest.skip("pyarrow doesn't support this.")
