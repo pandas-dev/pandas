@@ -92,7 +92,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_bool_indexer
 from pandas.core.internals import SingleBlockManager
 from pandas.core.shared_docs import _shared_docs
-from pandas.core.sorting import nargsort
+from pandas.core.sorting import ensure_key_mapped, nargsort
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
@@ -3286,8 +3286,14 @@ Keep all original rows and also all original values
 
         arr = self._values
 
+        if key:
+            bad = isna(arr)
+            good = ~isna(arr)
+            
+            arr = np.concatenate([arr[bad], ensure_key_mapped(self[good], key)])
+
         # GH 35922. Make sorting stable by leveraging nargsort
-        sorted_index = nargsort(arr, kind, ascending, na_position, key)
+        sorted_index = nargsort(arr, kind, ascending, na_position)
 
         result = self._constructor(arr[sorted_index], index=self.index[sorted_index])
 
