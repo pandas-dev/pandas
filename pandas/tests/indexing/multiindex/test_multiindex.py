@@ -102,7 +102,7 @@ def test_combine_first_with_nan_multiindex():
         [["a", "b", "c", "a", "b", "d"], [1, 1, 1, 1, 1, 1]], names=["a", "b"]
     )
     s = Series([1, 2, 3, 4, 5, 6], index=mi2)
-    res = df.combine_first(pd.DataFrame({"d": s}))
+    res = df.combine_first(DataFrame({"d": s}))
     mi_expected = MultiIndex.from_arrays(
         [
             ["a", "a", "a", "b", "b", "b", "b", "c", "c", "d", np.nan],
