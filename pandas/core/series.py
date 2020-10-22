@@ -47,7 +47,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_bool,
     is_categorical_dtype,
     is_dict_like,
     is_extension_array_dtype,
