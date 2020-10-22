@@ -580,7 +580,7 @@ def test_downcast_uint64(ser, expected):
     # see gh-14422:
     # BUG: to_numeric doesn't work uint64 numbers
 
-    result = pd.to_numeric(ser, downcast="unsigned")
+    result = to_numeric(ser, downcast="unsigned")
 
     tm.assert_series_equal(result, expected)
 
@@ -635,8 +635,8 @@ def test_downcast_empty(dc1, dc2):
     # GH32493
 
     tm.assert_numpy_array_equal(
-        pd.to_numeric([], downcast=dc1),
-        pd.to_numeric([], downcast=dc2),
+        to_numeric([], downcast=dc1),
+        to_numeric([], downcast=dc2),
         check_dtype=False,
     )
 

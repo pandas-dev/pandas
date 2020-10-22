@@ -78,14 +78,14 @@ def test_constructor_with_timedelta_window(window):
     # GH 15440
     n = 10
     df = DataFrame(
-        {"value": np.arange(n)}, index=pd.date_range("2015-12-24", periods=n, freq="D")
+        {"value": np.arange(n)}, index=date_range("2015-12-24", periods=n, freq="D")
     )
     expected_data = np.append([0.0, 1.0], np.arange(3.0, 27.0, 3))
 
     result = df.rolling(window=window).sum()
     expected = DataFrame(
         {"value": expected_data},
-        index=pd.date_range("2015-12-24", periods=n, freq="D"),
+        index=date_range("2015-12-24", periods=n, freq="D"),
     )
     tm.assert_frame_equal(result, expected)
     expected = df.rolling("3D").sum()
@@ -97,11 +97,11 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
     # GH 15305
     n = 10
     df = DataFrame(
-        {"value": np.arange(n)}, index=pd.date_range("2017-08-08", periods=n, freq="D")
+        {"value": np.arange(n)}, index=date_range("2017-08-08", periods=n, freq="D")
     )
     expected = DataFrame(
         {"value": np.append([np.NaN, 1.0], np.arange(3.0, 27.0, 3))},
-        index=pd.date_range("2017-08-08", periods=n, freq="D"),
+        index=date_range("2017-08-08", periods=n, freq="D"),
     )
     result_roll_sum = df.rolling(window=window, min_periods=2).sum()
     result_roll_generic = df.rolling(window=window, min_periods=2).apply(sum, raw=raw)
@@ -136,7 +136,7 @@ def test_closed():
 def test_closed_empty(closed, arithmetic_win_operators):
     # GH 26005
     func_name = arithmetic_win_operators
-    ser = Series(data=np.arange(5), index=pd.date_range("2000", periods=5, freq="2D"))
+    ser = Series(data=np.arange(5), index=date_range("2000", periods=5, freq="2D"))
     roll = ser.rolling("1D", closed=closed)
 
     result = getattr(roll, func_name)()
@@ -147,7 +147,7 @@ def test_closed_empty(closed, arithmetic_win_operators):
 @pytest.mark.parametrize("func", ["min", "max"])
 def test_closed_one_entry(func):
     # GH24718
-    ser = Series(data=[2], index=pd.date_range("2000", periods=1))
+    ser = Series(data=[2], index=date_range("2000", periods=1))
     result = getattr(ser.rolling("10D", closed="left"), func)()
     tm.assert_series_equal(result, Series([np.nan], index=ser.index))
 
@@ -156,7 +156,7 @@ def test_closed_one_entry(func):
 def test_closed_one_entry_groupby(func):
     # GH24718
     ser = DataFrame(
-        data={"A": [1, 1, 2], "B": [3, 2, 1]}, index=pd.date_range("2000", periods=3)
+        data={"A": [1, 1, 2], "B": [3, 2, 1]}, index=date_range("2000", periods=3)
     )
     result = getattr(
         ser.groupby("A", sort=False)["B"].rolling("10D", closed="left"), func
@@ -185,7 +185,7 @@ def test_closed_one_entry_groupby(func):
 def test_closed_min_max_datetime(input_dtype, func, closed, expected):
     # see gh-21704
     ser = Series(
-        data=np.arange(10).astype(input_dtype), index=pd.date_range("2000", periods=10)
+        data=np.arange(10).astype(input_dtype), index=date_range("2000", periods=10)
     )
 
     result = getattr(ser.rolling("3D", closed=closed), func)()
@@ -195,7 +195,7 @@ def test_closed_min_max_datetime(input_dtype, func, closed, expected):
 
 def test_closed_uneven():
     # see gh-21704
-    ser = Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
+    ser = Series(data=np.arange(10), index=date_range("2000", periods=10))
 
     # uneven
     ser = ser.drop(index=ser.index[[1, 5]])
@@ -219,7 +219,7 @@ def test_closed_uneven():
 )
 def test_closed_min_max_minp(func, closed, expected):
     # see gh-21704
-    ser = Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
+    ser = Series(data=np.arange(10), index=date_range("2000", periods=10))
     ser[ser.index[-3:]] = np.nan
     result = getattr(ser.rolling("3D", min_periods=2, closed=closed), func)()
     expected = Series(expected, index=ser.index)
@@ -237,7 +237,7 @@ def test_closed_min_max_minp(func, closed, expected):
 )
 def test_closed_median_quantile(closed, expected):
     # GH 26005
-    ser = Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
+    ser = Series(data=np.arange(10), index=date_range("2000", periods=10))
     roll = ser.rolling("3D", closed=closed)
     expected = Series(expected, index=ser.index)
 
@@ -356,7 +356,7 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     # GH-28192
     tz = tz_naive_fixture
     df = DataFrame(
-        {i: [1] * 2 for i in pd.date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)}
+        {i: [1] * 2 for i in date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)}
     )
     if axis_frame in [0, "index"]:
         result = df.T.rolling("2D", axis=axis_frame).sum().T
@@ -366,11 +366,11 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
         {
             **{
                 i: [1.0] * 2
-                for i in pd.date_range("2019-8-01", periods=1, freq="D", tz=tz)
+                for i in date_range("2019-8-01", periods=1, freq="D", tz=tz)
             },
             **{
                 i: [2.0] * 2
-                for i in pd.date_range("2019-8-02", "2019-8-03", freq="D", tz=tz)
+                for i in date_range("2019-8-02", "2019-8-03", freq="D", tz=tz)
             },
         }
     )
@@ -380,7 +380,7 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
 def test_rolling_window_as_string():
     # see gh-22590
     date_today = datetime.now()
-    days = pd.date_range(date_today, date_today + timedelta(365), freq="D")
+    days = date_range(date_today, date_today + timedelta(365), freq="D")
 
     npr = np.random.RandomState(seed=421)
 
@@ -717,7 +717,7 @@ def test_rolling_numerical_accuracy_kahan_mean(add):
     result = (
         df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
     )
-    dates = pd.date_range("19700101 09:00:00", periods=7, freq="S")
+    dates = date_range("19700101 09:00:00", periods=7, freq="S")
     expected = DataFrame(
         {
             "A": [
@@ -745,7 +745,7 @@ def test_rolling_numerical_accuracy_kahan_sum():
 
 def test_rolling_numerical_accuracy_jump():
     # GH: 32761
-    index = pd.date_range(start="2020-01-01", end="2020-01-02", freq="60s").append(
+    index = date_range(start="2020-01-01", end="2020-01-02", freq="60s").append(
         pd.DatetimeIndex(["2020-01-03"])
     )
     data = np.random.rand(len(index))
@@ -767,7 +767,7 @@ def test_rolling_numerical_accuracy_small_values():
 
 def test_rolling_numerical_too_large_numbers():
     # GH: 11645
-    dates = pd.date_range("2015-01-01", periods=10, freq="D")
+    dates = date_range("2015-01-01", periods=10, freq="D")
     ds = Series(data=range(10), index=dates, dtype=np.float64)
     ds[2] = -9e33
     result = ds.rolling(5).mean()
