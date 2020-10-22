@@ -2,8 +2,6 @@ import numpy as np
 from numpy.random import randn
 import pytest
 
-from pandas._libs.join import inner_join, left_outer_join
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
 import pandas._testing as tm
@@ -42,96 +40,6 @@ class TestJoin:
         self.source = DataFrame(
             {"MergedA": data["A"], "MergedD": data["D"]}, index=data["C"]
         )
-
-    def test_cython_left_outer_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
-        max_group = 5
-
-        ls, rs = left_outer_join(left, right, max_group)
-
-        exp_ls = left.argsort(kind="mergesort")
-        exp_rs = right.argsort(kind="mergesort")
-
-        exp_li = a_([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10])
-        exp_ri = a_([0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 4, 5, 4, 5, -1, -1])
-
-        exp_ls = exp_ls.take(exp_li)
-        exp_ls[exp_li == -1] = -1
-
-        exp_rs = exp_rs.take(exp_ri)
-        exp_rs[exp_ri == -1] = -1
-
-        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
-
-    def test_cython_right_outer_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
-        max_group = 5
-
-        rs, ls = left_outer_join(right, left, max_group)
-
-        exp_ls = left.argsort(kind="mergesort")
-        exp_rs = right.argsort(kind="mergesort")
-
-        #            0        1        1        1
-        exp_li = a_(
-            [
-                0,
-                1,
-                2,
-                3,
-                4,
-                5,
-                3,
-                4,
-                5,
-                3,
-                4,
-                5,
-                #            2        2        4
-                6,
-                7,
-                8,
-                6,
-                7,
-                8,
-                -1,
-            ]
-        )
-        exp_ri = a_([0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6])
-
-        exp_ls = exp_ls.take(exp_li)
-        exp_ls[exp_li == -1] = -1
-
-        exp_rs = exp_rs.take(exp_ri)
-        exp_rs[exp_ri == -1] = -1
-
-        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
-
-    def test_cython_inner_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
-        max_group = 5
-
-        ls, rs = inner_join(left, right, max_group)
-
-        exp_ls = left.argsort(kind="mergesort")
-        exp_rs = right.argsort(kind="mergesort")
-
-        exp_li = a_([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8])
-        exp_ri = a_([0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 4, 5, 4, 5])
-
-        exp_ls = exp_ls.take(exp_li)
-        exp_ls[exp_li == -1] = -1
-
-        exp_rs = exp_rs.take(exp_ri)
-        exp_rs[exp_ri == -1] = -1
-
-        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_left_outer_join(self):
         joined_key2 = merge(self.df, self.df2, on="key2")
