@@ -2,7 +2,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalDtype, DataFrame, Index, IntervalIndex, MultiIndex, Series
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+    Index,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -667,6 +675,66 @@ class TestDataFrameSortIndex:
 
         result = frame.sort_index()
         assert result.index.names == frame.index.names
+
+    @pytest.mark.parametrize(
+        "gen,extra",
+        [
+            ([1.0, 3.0, 2.0, 5.0], 4.0),
+            ([1, 3, 2, 5], 4),
+            (
+                [
+                    Timestamp("20130101"),
+                    Timestamp("20130103"),
+                    Timestamp("20130102"),
+                    Timestamp("20130105"),
+                ],
+                Timestamp("20130104"),
+            ),
+            (["1one", "3one", "2one", "5one"], "4one"),
+        ],
+    )
+    def test_sort_index_multilevel_repr_8017(self, gen, extra):
+
+        np.random.seed(0)
+        data = np.random.randn(3, 4)
+
+        columns = MultiIndex.from_tuples([("red", i) for i in gen])
+        df = DataFrame(data, index=list("def"), columns=columns)
+        df2 = pd.concat(
+            [
+                df,
+                DataFrame(
+                    "world",
+                    index=list("def"),
+                    columns=MultiIndex.from_tuples([("red", extra)]),
+                ),
+            ],
+            axis=1,
+        )
+
+        # check that the repr is good
+        # make sure that we have a correct sparsified repr
+        # e.g. only 1 header of read
+        assert str(df2).splitlines()[0].split() == ["red"]
+
+        # GH 8017
+        # sorting fails after columns added
+
+        # construct single-dtype then sort
+        result = df.copy().sort_index(axis=1)
+        expected = df.iloc[:, [0, 2, 1, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        result = df2.sort_index(axis=1)
+        expected = df2.iloc[:, [0, 2, 1, 4, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        # setitem then sort
+        result = df.copy()
+        result[("red", extra)] = "world"
+
+        result = result.sort_index(axis=1)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameSortIndexKey:

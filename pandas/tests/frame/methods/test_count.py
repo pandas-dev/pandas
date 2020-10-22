@@ -6,6 +6,24 @@ import pandas._testing as tm
 
 
 class TestDataFrameCount:
+    def test_count_multiindex(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        frame = frame.copy()
+        frame.index.names = ["a", "b"]
+
+        result = frame.count(level="b")
+        expected = frame.count(level=1)
+        tm.assert_frame_equal(result, expected, check_names=False)
+
+        result = frame.count(level="a")
+        expected = frame.count(level=0)
+        tm.assert_frame_equal(result, expected, check_names=False)
+
+        msg = "Level x not found"
+        with pytest.raises(KeyError, match=msg):
+            frame.count(level="x")
+
     def test_count(self):
         # corner case
         frame = DataFrame()

@@ -111,6 +111,18 @@ class TestResetIndex:
         with pytest.raises(KeyError, match="not found"):
             s.reset_index("wrong", drop=True)
 
+    def test_reset_index_with_drop(self, series_with_multilevel_index):
+        ser = series_with_multilevel_index
+
+        deleveled = ser.reset_index()
+        assert isinstance(deleveled, DataFrame)
+        assert len(deleveled.columns) == len(ser.index.levels) + 1
+        assert deleveled.index.name == ser.index.name
+
+        deleveled = ser.reset_index(drop=True)
+        assert isinstance(deleveled, Series)
+        assert deleveled.index.name == ser.index.name
+
 
 @pytest.mark.parametrize(
     "array, dtype",
