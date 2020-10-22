@@ -206,6 +206,9 @@ class TestEvalNumexprPandas:
             self.check_simple_cmp_op(lhs, cmp_op, rhs)
 
     @pytest.mark.slow
+    @pytest.mark.xfail(
+        not compat.is_platform_mac(), reason="Numeric imprecision GH#37328"
+    )
     def test_binary_arith_ops(self):
         for lhs, op, rhs in product(self.lhses, self.arith_ops, self.rhses):
             self.check_binary_arith_op(lhs, op, rhs)
