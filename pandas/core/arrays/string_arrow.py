@@ -8,7 +8,6 @@ import pyarrow.compute as pc
 from pandas._libs import missing as libmissing
 from pandas._typing import ArrayLike
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 import pandas as pd
@@ -19,6 +18,7 @@ from pandas.api.types import (
     is_integer_dtype,
     is_scalar,
 )
+from pandas.core.arrays._mixins import StringArrayBase, StringDtypeBase
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import check_array_indexer
 
@@ -32,7 +32,7 @@ def _as_pandas_scalar(arrow_scalar: pa.Scalar) -> Optional[str]:
 
 
 @register_extension_dtype
-class ArrowStringDtype(ExtensionDtype):
+class ArrowStringDtype(StringDtypeBase):
     """
     Extension dtype for string data in a ``pyarrow.ChunkedArray``.
 
@@ -115,7 +115,7 @@ class ArrowStringDtype(ExtensionDtype):
             return False
 
 
-class ArrowStringArray(ExtensionArray):
+class ArrowStringArray(StringArrayBase):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 

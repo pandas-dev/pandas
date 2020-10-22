@@ -8,6 +8,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly, doc
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import array_equivalent
@@ -240,3 +241,11 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         else:
             msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
             raise TypeError(msg)
+
+
+class StringArrayBase(ExtensionArray):
+    pass
+
+
+class StringDtypeBase(ExtensionDtype):
+    pass

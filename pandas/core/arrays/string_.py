@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 
-from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
+from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -21,12 +21,14 @@ from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
 
+from pandas.core.arrays._mixins import StringArrayBase, StringDtypeBase
+
 if TYPE_CHECKING:
     import pyarrow
 
 
 @register_extension_dtype
-class StringDtype(ExtensionDtype):
+class StringDtype(StringDtypeBase):
     """
     Extension dtype for string data.
 
@@ -100,7 +102,7 @@ class StringDtype(ExtensionDtype):
         return StringArray._concat_same_type(results)
 
 
-class StringArray(PandasArray):
+class StringArray(StringArrayBase, PandasArray):
     """
     Extension array for string data.
 

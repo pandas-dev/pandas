@@ -454,8 +454,7 @@ class ExtensionArray:
         array : ndarray
             NumPy ndarray with 'dtype' for its dtype.
         """
-        from pandas.core.arrays.string_ import StringDtype
-        from pandas.core.arrays.string_arrow import ArrowStringDtype
+        from pandas.core.arrays._mixins import StringDtypeBase
 
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, self.dtype):
@@ -465,9 +464,7 @@ class ExtensionArray:
                 return self.copy()
 
         # FIXME: Really hard-code here?
-        if isinstance(
-            dtype, (ArrowStringDtype, StringDtype)
-        ):  # allow conversion to StringArrays
+        if isinstance(dtype, StringDtypeBase):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         return np.array(self, dtype=dtype, copy=copy)
