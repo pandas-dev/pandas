@@ -122,14 +122,37 @@ def test_numpy_compat(method):
         getattr(r, method)(dtype=np.float64)
 
 
-def test_closed():
-    df = DataFrame({"A": [0, 1, 2, 3, 4]})
-    # closed only allowed for datetimelike
+@pytest.mark.parametrize("closed", ["left", "right", "both", "neither"])
+def test_closed_fixed(closed, arithmetic_win_operators):
+    # GH 34315
+    func_name = arithmetic_win_operators
+    df_fixed = DataFrame({"A": [0, 1, 2, 3, 4]})
+    df_time = DataFrame({"A": [0, 1, 2, 3, 4]}, index=date_range("2020", periods=5))
 
-    msg = "closed only implemented for datetimelike and offset based windows"
+    result = getattr(df_fixed.rolling(2, closed=closed, min_periods=1), func_name)()
+    expected = getattr(df_time.rolling("2D", closed=closed), func_name)().reset_index(
+        drop=True
+    )
 
-    with pytest.raises(ValueError, match=msg):
-        df.rolling(window=3, closed="neither")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_closed_fixed_binary_col():
+    # GH 34315
+    data = [0, 1, 1, 0, 0, 1, 0, 1]
+    df = DataFrame(
+        {"binary_col": data},
+        index=pd.date_range(start="2020-01-01", freq="min", periods=len(data)),
+    )
+
+    rolling = df.rolling(window=len(df), closed="left", min_periods=1)
+    result = rolling.mean()
+    expected = DataFrame(
+        [np.nan, 0, 0.5, 2 / 3, 0.5, 0.4, 0.5, 0.428571],
+        columns=["binary_col"],
+        index=pd.date_range(start="2020-01-01", freq="min", periods=len(data)),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("closed", ["neither", "left"])

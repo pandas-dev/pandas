@@ -6,7 +6,7 @@ import pytest
 
 from pandas._libs import iNaT
 
-from pandas.core.dtypes.common import is_float_dtype, is_integer
+from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
 from pandas import (
@@ -1327,120 +1327,6 @@ class TestDataFrameIndexing:
         expected = df.iloc[:, 2:]
         tm.assert_frame_equal(result, expected)
 
-    def test_get_value(self, float_frame):
-        for idx in float_frame.index:
-            for col in float_frame.columns:
-                result = float_frame._get_value(idx, col)
-                expected = float_frame[col][idx]
-                assert result == expected
-
-    def test_lookup_float(self, float_frame):
-        df = float_frame
-        rows = list(df.index) * len(df.columns)
-        cols = list(df.columns) * len(df.index)
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.lookup(rows, cols)
-
-        expected = np.array([df.loc[r, c] for r, c in zip(rows, cols)])
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_lookup_mixed(self, float_string_frame):
-        df = float_string_frame
-        rows = list(df.index) * len(df.columns)
-        cols = list(df.columns) * len(df.index)
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.lookup(rows, cols)
-
-        expected = np.array(
-            [df.loc[r, c] for r, c in zip(rows, cols)], dtype=np.object_
-        )
-        tm.assert_almost_equal(result, expected)
-
-    def test_lookup_bool(self):
-        df = DataFrame(
-            {
-                "label": ["a", "b", "a", "c"],
-                "mask_a": [True, True, False, True],
-                "mask_b": [True, False, False, False],
-                "mask_c": [False, True, False, True],
-            }
-        )
-        with tm.assert_produces_warning(FutureWarning):
-            df["mask"] = df.lookup(df.index, "mask_" + df["label"])
-
-        exp_mask = np.array(
-            [df.loc[r, c] for r, c in zip(df.index, "mask_" + df["label"])]
-        )
-
-        tm.assert_series_equal(df["mask"], Series(exp_mask, name="mask"))
-        assert df["mask"].dtype == np.bool_
-
-    def test_lookup_raises(self, float_frame):
-        with pytest.raises(KeyError, match="'One or more row labels was not found'"):
-            with tm.assert_produces_warning(FutureWarning):
-                float_frame.lookup(["xyz"], ["A"])
-
-        with pytest.raises(KeyError, match="'One or more column labels was not found'"):
-            with tm.assert_produces_warning(FutureWarning):
-                float_frame.lookup([float_frame.index[0]], ["xyz"])
-
-        with pytest.raises(ValueError, match="same size"):
-            with tm.assert_produces_warning(FutureWarning):
-                float_frame.lookup(["a", "b", "c"], ["a"])
-
-    def test_lookup_requires_unique_axes(self):
-        # GH#33041 raise with a helpful error message
-        df = DataFrame(np.random.randn(6).reshape(3, 2), columns=["A", "A"])
-
-        rows = [0, 1]
-        cols = ["A", "A"]
-
-        # homogeneous-dtype case
-        with pytest.raises(ValueError, match="requires unique index and columns"):
-            with tm.assert_produces_warning(FutureWarning):
-                df.lookup(rows, cols)
-        with pytest.raises(ValueError, match="requires unique index and columns"):
-            with tm.assert_produces_warning(FutureWarning):
-                df.T.lookup(cols, rows)
-
-        # heterogeneous dtype
-        df["B"] = 0
-        with pytest.raises(ValueError, match="requires unique index and columns"):
-            with tm.assert_produces_warning(FutureWarning):
-                df.lookup(rows, cols)
-
-    def test_set_value(self, float_frame):
-        for idx in float_frame.index:
-            for col in float_frame.columns:
-                float_frame._set_value(idx, col, 1)
-                assert float_frame[col][idx] == 1
-
-    def test_set_value_resize(self, float_frame):
-
-        res = float_frame._set_value("foobar", "B", 0)
-        assert res is None
-        assert float_frame.index[-1] == "foobar"
-        assert float_frame._get_value("foobar", "B") == 0
-
-        float_frame.loc["foobar", "qux"] = 0
-        assert float_frame._get_value("foobar", "qux") == 0
-
-        res = float_frame.copy()
-        res._set_value("foobar", "baz", "sam")
-        assert res["baz"].dtype == np.object_
-
-        res = float_frame.copy()
-        res._set_value("foobar", "baz", True)
-        assert res["baz"].dtype == np.object_
-
-        res = float_frame.copy()
-        res._set_value("foobar", "baz", 5)
-        assert is_float_dtype(res["baz"])
-        assert isna(res["baz"].drop(["foobar"])).all()
-        msg = "could not convert string to float: 'sam'"
-        with pytest.raises(ValueError, match=msg):
-            res._set_value("foobar", "baz", "sam")
-
     def test_set_value_with_index_dtype_change(self):
         df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
 
@@ -1466,13 +1352,6 @@ class TestDataFrameIndexing:
         df.loc["C", "D"] = 1.0
         assert list(df.index) == list(df_orig.index) + ["C"]
         assert list(df.columns) == list(df_orig.columns) + ["D"]
-
-    def test_get_set_value_no_partial_indexing(self):
-        # partial w/ MultiIndex raise exception
-        index = MultiIndex.from_tuples([(0, 1), (0, 2), (1, 1), (1, 2)])
-        df = DataFrame(index=index, columns=range(4))
-        with pytest.raises(KeyError, match=r"^0$"):
-            df._get_value(0, 1)
 
     # TODO: rename?  remove?
     def test_single_element_ix_dont_upcast(self, float_frame):
@@ -1959,12 +1838,3 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert blk.dtype == "m8[ns]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)
-
-
-def test_lookup_deprecated():
-    # GH18262
-    df = DataFrame(
-        {"col": ["A", "A", "B", "B"], "A": [80, 23, np.nan, 22], "B": [80, 55, 76, 67]}
-    )
-    with tm.assert_produces_warning(FutureWarning):
-        df.lookup(df.index, df["col"])
