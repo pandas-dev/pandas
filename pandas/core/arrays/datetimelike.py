@@ -480,8 +480,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             fill_value = self._validate_scalar(fill_value, msg)
         except TypeError as err:
             raise ValueError(msg) from err
-        rv = self._unbox(fill_value)
-        return self._rebox_native(rv)
+        return self._unbox(fill_value)
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
@@ -508,8 +507,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             )
             fill_value = new_fill
 
-        rv = self._unbox(fill_value)
-        return self._rebox_native(rv)
+        return self._unbox(fill_value)
 
     def _validate_scalar(self, value, msg: Optional[str] = None):
         """
@@ -591,8 +589,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             value = self._validate_listlike(value)
 
-        rv = self._unbox(value)
-        return self._rebox_native(rv)
+        return self._unbox(value)
 
     def _validate_setitem_value(self, value):
         msg = (
@@ -604,15 +601,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             value = self._validate_scalar(value, msg)
 
-        rv = self._unbox(value, setitem=True)
-        return self._rebox_native(rv)
+        return self._unbox(value, setitem=True)
 
     def _validate_insert_value(self, value):
         msg = f"cannot insert {type(self).__name__} with incompatible label"
         value = self._validate_scalar(value, msg)
 
-        rv = self._unbox(value, setitem=True)
-        return self._rebox_native(rv)
+        return self._unbox(value, setitem=True)
 
     def _validate_where_value(self, other):
         msg = f"Where requires matching dtype, not {type(other)}"
@@ -621,19 +616,21 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             other = self._validate_listlike(other)
 
-        rv = self._unbox(other, setitem=True)
-        return self._rebox_native(rv)
+        return self._unbox(other, setitem=True)
 
-    def _unbox(self, other, setitem: bool = False) -> Union[np.int64, np.ndarray]:
+    def _unbox(
+        self, other, setitem: bool = False
+    ) -> Union[np.int64, np.datetime64, np.timedelta64, np.ndarray]:
         """
         Unbox either a scalar with _unbox_scalar or an instance of our own type.
         """
         if lib.is_scalar(other):
             other = self._unbox_scalar(other, setitem=setitem)
+            other = self._rebox_native(other)
         else:
             # same type as self
             self._check_compatible_with(other, setitem=setitem)
-            other = other.view("i8")
+            other = other._ndarray
         return other
 
     # ------------------------------------------------------------------
@@ -862,8 +859,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 )
             return result
 
-        other_i8 = self._unbox(other)
-        result = op(self.asi8, other_i8)
+        other_vals = self._unbox(other)
+        result = op(self._ndarray, other_vals)
 
         o_mask = isna(other)
         if self._hasnans | np.any(o_mask):
