@@ -207,7 +207,8 @@ class TestEvalNumexprPandas:
 
     @pytest.mark.slow
     @pytest.mark.xfail(
-        not compat.is_platform_mac(), reason="Numeric imprecision GH#37328"
+        compat.PY38 and not compat.is_platform_mac(),
+        reason="Numeric imprecision GH#37328",
     )
     def test_binary_arith_ops(self):
         for lhs, op, rhs in product(self.lhses, self.arith_ops, self.rhses):
