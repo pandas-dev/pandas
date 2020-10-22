@@ -508,7 +508,10 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
             result = Index(result)
         else:
             type_of_values = type(values)
-            result = type_of_values(result)  # try to revert to original type otherwise
+            # GH 35922. Support sorting objects that raise when cast to their type
+            if not isinstance(result, type_of_values):
+                # try to revert to original type otherwise
+                result = type_of_values(result)
     except TypeError:
         raise TypeError(
             f"User-provided `key` function returned an invalid type {type(result)} \

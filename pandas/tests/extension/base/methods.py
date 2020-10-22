@@ -126,7 +126,7 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = ser.iloc[[2, 0, 1]]
         # GH 35922. Expect stable sort.
         if not ascending:
-            expected = ser.iloc[[0, 1, 2]]
+            expected = ser.iloc[[1, 0, 2]]
 
         self.assert_series_equal(result, expected)
 
