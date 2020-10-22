@@ -543,8 +543,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if self is other:
             return True
+        elif not hasattr(other, "_id"):
+            return False
+        elif com.any_none(self._id, other._id):
+            return False
         else:
-            return self._id is not None and self._id is getattr(other, "_id", Ellipsis)
+            return self._id is other._id
 
     def _reset_identity(self) -> None:
         """
