@@ -271,7 +271,7 @@ class TestReductions:
         assert result is pd.NaT
 
     def test_median(self):
-        tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06m", "0H", "2H"])
+        tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06min", "0H", "2H"])
         arr = tdi.array
 
         result = arr.median(skipna=True)

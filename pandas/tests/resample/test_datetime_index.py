@@ -759,7 +759,7 @@ def test_resample_origin():
     resampled = ts.resample("5min", origin="1999-12-31 12:02:00").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
-    resampled = ts.resample("5min", offset="-3m").mean()
+    resampled = ts.resample("5min", offset="-3min").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
 
@@ -831,8 +831,7 @@ def test_resample_origin_with_tz():
     resampled = ts.resample("5min", origin="1999-12-31 12:02:00+03:00").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
+    resampled = ts.resample("5min", origin="epoch", offset="2min").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
     with pytest.raises(ValueError, match=msg):

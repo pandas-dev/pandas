@@ -163,7 +163,7 @@ Access fields for a ``Timedelta``
 
 .. ipython:: python
 
-   td = pd.Timedelta('1 hour 3m 15.5us')
+   td = pd.Timedelta('1 hour 3min 15.5us')
    td.seconds
    td.microseconds
    td.nanoseconds
@@ -1030,12 +1030,11 @@ Other:
   If ``Period`` freq is ``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``, ``Timedelta``-like can be added if the result can have same freq. Otherwise, only the same ``offsets`` can be added.
 
   .. ipython:: python
-    :okwarning:
 
      idx = pd.period_range('2014-07-01 09:00', periods=5, freq='H')
      idx
      idx + pd.offsets.Hour(2)
-     idx + pd.Timedelta('120m')
+     idx + pd.Timedelta('120min')
 
      idx = pd.period_range('2014-07', periods=5, freq='M')
      idx
