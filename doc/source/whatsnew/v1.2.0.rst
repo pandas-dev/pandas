@@ -221,6 +221,8 @@ Other enhancements
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
 - :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
 - :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
+- :meth:`DataFrame.to_parquet` now returns a ``bytes`` object when no ``path`` argument is passed (:issue:`37105`)
+- :class:`Rolling` now supports the ``closed`` argument for fixed windows (:issue:`34315`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -410,7 +412,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.to_string`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` adding a leading space when ``index=False`` (:issue:`24980`)
--
+- Bug in :func:`to_numeric` raising a ``TypeError`` when attempting to convert a string dtype :class:`Series` containing only numeric strings and ``NA`` (:issue:`37262`)
 -
 
 
@@ -517,7 +519,7 @@ ExtensionArray
 - Fixed Bug where :class:`DataFrame` column set to scalar extension type via a dict instantion was considered an object type rather than the extension type (:issue:`35965`)
 - Fixed bug where ``astype()`` with equal dtype and ``copy=False`` would return a new object (:issue:`284881`)
 - Fixed bug when applying a NumPy ufunc with multiple outputs to a :class:`pandas.arrays.IntegerArray` returning None (:issue:`36913`)
-
+- Fixed an inconsistency in :class:`PeriodArray`'s ``__init__`` signature to those of :class:`DatetimeArray` and :class:`TimedeltaArray` (:issue:`37289`)
 
 Other
 ^^^^^
