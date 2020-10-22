@@ -490,6 +490,8 @@ if "-Werror" in extra_compile_args:
         if np.__version__ < LooseVersion("1.16.0"):
             extra_compile_args.remove("-Werror")
 
+extra_compile_args.append('-fopenmp')
+extra_link_args.append('-fopenmp')
 
 # ----------------------------------------------------------------------
 # Specification of Dependencies
