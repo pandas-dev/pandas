@@ -222,6 +222,7 @@ Other enhancements
 - :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
 - :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
 - :meth:`DataFrame.to_parquet` now returns a ``bytes`` object when no ``path`` argument is passed (:issue:`37105`)
+- :class:`Rolling` now supports the ``closed`` argument for fixed windows (:issue:`34315`)
 - :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
 
 .. _whatsnew_120.api_breaking.python:
