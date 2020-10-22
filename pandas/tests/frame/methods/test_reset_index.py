@@ -21,6 +21,30 @@ import pandas._testing as tm
 
 
 class TestResetIndex:
+    def test_set_reset(self):
+
+        idx = Index([2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10], name="foo")
+
+        # set/reset
+        df = DataFrame({"A": [0, 1, 2]}, index=idx)
+        result = df.reset_index()
+        assert result["foo"].dtype == np.dtype("uint64")
+
+        df = result.set_index("foo")
+        tm.assert_index_equal(df.index, idx)
+
+    def test_set_index_reset_index_dt64tz(self):
+
+        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+
+        # set/reset
+        df = DataFrame({"A": [0, 1, 2]}, index=idx)
+        result = df.reset_index()
+        assert result["foo"].dtype == "datetime64[ns, US/Eastern]"
+
+        df = result.set_index("foo")
+        tm.assert_index_equal(df.index, idx)
+
     def test_reset_index_tz(self, tz_aware_fixture):
         # GH 3950
         # reset_index with single level

@@ -27,7 +27,7 @@ class TestSparseDataFrameIndexing:
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
     @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
     @td.skip_if_no_scipy
-    def test_locindexer_from_spmatrix(self, spmatrix_t, dtype):
+    def test_loc_getitem_from_spmatrix(self, spmatrix_t, dtype):
         import scipy.sparse
 
         spmatrix_t = getattr(scipy.sparse, spmatrix_t)
@@ -49,21 +49,6 @@ class TestSparseDataFrameIndexing:
         result = df.loc[itr_idx].dtypes.values
         expected = np.full(cols, SparseDtype(dtype, fill_value=0))
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_reindex(self):
-        # https://github.com/pandas-dev/pandas/issues/35286
-        df = pd.DataFrame(
-            {"A": [0, 1], "B": pd.array([0, 1], dtype=pd.SparseDtype("int64", 0))}
-        )
-        result = df.reindex([0, 2])
-        expected = pd.DataFrame(
-            {
-                "A": [0.0, np.nan],
-                "B": pd.array([0.0, np.nan], dtype=pd.SparseDtype("float64", 0.0)),
-            },
-            index=[0, 2],
-        )
-        tm.assert_frame_equal(result, expected)
 
     def test_all_sparse(self):
         df = pd.DataFrame({"A": pd.array([0, 0], dtype=pd.SparseDtype("int64"))})
