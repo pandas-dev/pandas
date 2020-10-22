@@ -2289,14 +2289,14 @@ class DataFrame(NDFrame, OpsMixin):
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
-        path: FilePathOrBuffer[AnyStr],
+        path: Optional[FilePathOrBuffer] = None,
         engine: str = "auto",
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
         partition_cols: Optional[List[str]] = None,
         storage_options: StorageOptions = None,
         **kwargs,
-    ) -> None:
+    ) -> Optional[bytes]:
         """
         Write a DataFrame to the binary parquet format.
 
@@ -2307,14 +2307,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        path : str or file-like object
+        path : str or file-like object, default None
             If a string, it will be used as Root Directory path
             when writing a partitioned dataset. By file-like object,
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function) or io.BytesIO. The engine
-            fastparquet does not accept file-like objects.
+            fastparquet does not accept file-like objects. If path is None,
+            a bytes object is returned.
 
-            .. versionchanged:: 1.0.0
+            .. versionchanged:: 1.2.0
 
             Previously this was "fname"
 
@@ -2357,6 +2358,10 @@ class DataFrame(NDFrame, OpsMixin):
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
 
+        Returns
+        -------
+        bytes if no path argument is provided else None
+
         See Also
         --------
         read_parquet : Read a parquet file.
@@ -2392,7 +2397,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.parquet import to_parquet
 
-        to_parquet(
+        return to_parquet(
             self,
             path,
             engine,
@@ -7437,9 +7442,9 @@ NaN 12.3   33.0
 
     >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
             A    B
-    max   NaN  8.0
-    min   1.0  2.0
     sum  12.0  NaN
+    min   1.0  2.0
+    max   NaN  8.0
 
     Aggregate different functions over the columns and rename the index of the resulting
     DataFrame.
