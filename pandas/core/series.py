@@ -3289,8 +3289,7 @@ Keep all original rows and also all original values
         if key:
             bad = isna(arr)
             good = ~isna(arr)
-            
-            arr = np.concatenate([arr[bad], ensure_key_mapped(self[good], key)])
+            arr[good] = ensure_key_mapped(self[good], key)
 
         # GH 35922. Make sorting stable by leveraging nargsort
         sorted_index = nargsort(arr, kind, ascending, na_position)
