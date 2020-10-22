@@ -667,7 +667,7 @@ class TestEvalNumexprPandas:
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_float_comparison_bin_op(self, dtype):
         # GH 16363
-        df = pd.DataFrame({"x": np.array([0], dtype=dtype)})
+        df = DataFrame({"x": np.array([0], dtype=dtype)})
         res = df.eval("x < -0.1")
         assert res.values == np.array([False])
 
@@ -734,7 +734,7 @@ class TestEvalNumexprPandas:
         expected = np.float64(exp)
         assert result == expected
 
-        df = pd.DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
+        df = DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
         cutoff = 1000000000.0006
         result = df.query(f"A < {cutoff:.4f}")
         assert result.empty
@@ -751,12 +751,12 @@ class TestEvalNumexprPandas:
 
     def test_disallow_python_keywords(self):
         # GH 18221
-        df = pd.DataFrame([[0, 0, 0]], columns=["foo", "bar", "class"])
+        df = DataFrame([[0, 0, 0]], columns=["foo", "bar", "class"])
         msg = "Python keyword not valid identifier in numexpr query"
         with pytest.raises(SyntaxError, match=msg):
             df.query("class == 0")
 
-        df = pd.DataFrame()
+        df = DataFrame()
         df.index.name = "lambda"
         with pytest.raises(SyntaxError, match=msg):
             df.query("lambda == 0")
@@ -1366,7 +1366,7 @@ class TestOperationsNumExprPandas:
 
     def test_multi_line_expression(self):
         # GH 11149
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
 
         expected["c"] = expected["a"] + expected["b"]
@@ -1403,7 +1403,7 @@ class TestOperationsNumExprPandas:
 
     def test_multi_line_expression_not_inplace(self):
         # GH 11149
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
 
         expected["c"] = expected["a"] + expected["b"]
@@ -1428,7 +1428,7 @@ class TestOperationsNumExprPandas:
 
     def test_multi_line_expression_local_variable(self):
         # GH 15342
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
 
         local_var = 7
@@ -1446,7 +1446,7 @@ class TestOperationsNumExprPandas:
 
     def test_multi_line_expression_callable_local_variable(self):
         # 26426
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
         def local_func(a, b):
             return b
@@ -1466,7 +1466,7 @@ class TestOperationsNumExprPandas:
 
     def test_multi_line_expression_callable_local_variable_with_kwargs(self):
         # 26426
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
         def local_func(a, b):
             return b
@@ -1486,7 +1486,7 @@ class TestOperationsNumExprPandas:
 
     def test_assignment_in_query(self):
         # GH 8664
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df_orig = df.copy()
         msg = "cannot assign without a target object"
         with pytest.raises(ValueError, match=msg):
@@ -1495,7 +1495,7 @@ class TestOperationsNumExprPandas:
 
     def test_query_inplace(self):
         # see gh-11149
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
         expected = expected[expected["a"] == 2]
         df.query("a == 2", inplace=True)
@@ -2052,7 +2052,7 @@ def test_truediv_deprecated(engine, parser):
 
 
 def test_negate_lt_eq_le(engine, parser):
-    df = pd.DataFrame([[0, 10], [1, 20]], columns=["cat", "count"])
+    df = DataFrame([[0, 10], [1, 20]], columns=["cat", "count"])
     expected = df[~(df.cat > 0)]
 
     result = df.query("~(cat > 0)", engine=engine, parser=parser)

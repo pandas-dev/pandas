@@ -62,6 +62,11 @@ repos:
             |math|module|note|raw|seealso|toctree|versionadded
             |versionchanged|warning):[^:]
         files: \.(py|pyx|rst)$
+    -   id: incorrect-code-directives
+        name: Check for incorrect code block or IPython directives
+        language: pygrep
+        entry: (\.\. code-block ::|\.\. ipython ::)
+        files: \.(py|pyx|rst)$
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
@@ -71,3 +76,5 @@ repos:
     hooks:
     -   id: end-of-file-fixer
         exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$
+    -   id: trailing-whitespace
+        exclude: \.(html|svg)$

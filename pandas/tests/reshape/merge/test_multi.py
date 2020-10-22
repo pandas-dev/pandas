@@ -200,11 +200,9 @@ class TestMergeMulti:
             pd.MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
             name="Amount",
         )
-        df = pd.DataFrame(
-            {"lev1": list("AAABBB"), "lev2": [1, 2, 3, 1, 2, 3], "col": 0}
-        )
+        df = DataFrame({"lev1": list("AAABBB"), "lev2": [1, 2, 3, 1, 2, 3], "col": 0})
         result = pd.merge(df, s.reset_index(), on=["lev1", "lev2"])
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "lev1": list("AAABBB"),
                 "lev2": [1, 2, 3, 1, 2, 3],
@@ -801,7 +799,7 @@ class TestJoinMultiMulti:
             [("K0", "X0"), ("K0", "X1"), ("K1", "X2")], names=["key", "X"]
         )
 
-        left = pd.DataFrame(
+        left = DataFrame(
             {"A": ["A0", "A1", "A2"], "B": ["B0", "B1", "B2"]}, index=index_left
         )
 
@@ -809,7 +807,7 @@ class TestJoinMultiMulti:
             [("K0", "Y0"), ("K1", "Y1"), ("K2", "Y2"), ("K2", "Y3")], names=["key", "Y"]
         )
 
-        right = pd.DataFrame(
+        right = DataFrame(
             {"C": ["C0", "C1", "C2", "C3"], "D": ["D0", "D1", "D2", "D3"]},
             index=index_right,
         )
@@ -828,12 +826,12 @@ class TestJoinMultiMulti:
         midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
         midx3 = pd.MultiIndex.from_tuples([(4, 1), (3, 2), (3, 1)], names=["b", "a"])
 
-        left = pd.DataFrame(index=midx1, data={"x": [10, 20, 30, 40]})
-        right = pd.DataFrame(index=midx3, data={"y": ["foo", "bar", "fing"]})
+        left = DataFrame(index=midx1, data={"x": [10, 20, 30, 40]})
+        right = DataFrame(index=midx3, data={"y": ["foo", "bar", "fing"]})
 
         result = left.join(right)
 
-        expected = pd.DataFrame(
+        expected = DataFrame(
             index=midx1,
             data={"x": [10, 20, 30, 40], "y": ["fing", "foo", "bar", np.nan]},
         )
