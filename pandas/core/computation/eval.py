@@ -212,7 +212,8 @@ def eval(
 
     truediv : bool, optional
         Whether to use true division, like in Python >= 3.
-        deprecated:: 1.0.0
+
+        .. deprecated:: 1.0.0
 
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
@@ -241,7 +242,8 @@ def eval(
 
     Returns
     -------
-    ndarray, numeric scalar, DataFrame, Series
+    ndarray, numeric scalar, DataFrame, Series, or None
+        The completion value of evaluating the given code or None if ``inplace=True``.
 
     Raises
     ------

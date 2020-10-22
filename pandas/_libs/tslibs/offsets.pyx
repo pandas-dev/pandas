@@ -791,6 +791,11 @@ cdef class Tick(SingleConstructorOffset):
     def is_anchored(self) -> bool:
         return False
 
+    # This is identical to BaseOffset.__hash__, but has to be redefined here
+    # for Python 3, because we've redefined __eq__.
+    def __hash__(self) -> int:
+        return hash(self._params)
+
     # --------------------------------------------------------------------
     # Comparison and Arithmetic Methods
 
@@ -1212,9 +1217,8 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + DateOffset(months=2)
     Timestamp('2017-03-01 09:10:11')
     """
-
-    pass
-
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
 
 # --------------------------------------------------------------------
 

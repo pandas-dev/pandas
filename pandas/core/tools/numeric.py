@@ -186,7 +186,7 @@ def to_numeric(arg, errors="raise", downcast=None):
                         break
 
     if is_series:
-        return pd.Series(values, index=arg.index, name=arg.name)
+        return arg._constructor(values, index=arg.index, name=arg.name)
     elif is_index:
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy

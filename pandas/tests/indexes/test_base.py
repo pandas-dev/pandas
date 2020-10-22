@@ -137,7 +137,7 @@ class TestIndex(Base):
         ],
     )
     def test_constructor_from_series_dtlike(self, index, has_tz):
-        result = pd.Index(pd.Series(index))
+        result = pd.Index(Series(index))
         tm.assert_index_equal(result, index)
 
         if has_tz:
@@ -168,7 +168,7 @@ class TestIndex(Base):
         expected.name = "date"
         tm.assert_index_equal(result, expected)
 
-        expected = pd.Series(dts, name="date")
+        expected = Series(dts, name="date")
         tm.assert_series_equal(df["date"], expected)
 
         # GH 6274
@@ -215,7 +215,7 @@ class TestIndex(Base):
             Index(data, dtype=dtype)
 
     def test_constructor_no_pandas_array(self):
-        ser = pd.Series([1, 2, 3])
+        ser = Series([1, 2, 3])
         result = pd.Index(ser.array)
         expected = pd.Index([1, 2, 3])
         tm.assert_index_equal(result, expected)
@@ -879,7 +879,7 @@ class TestIndex(Base):
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index),
+            lambda values, index: Series(values, index),
         ],
     )
     def test_map_dictlike_simple(self, mapper):
@@ -893,7 +893,7 @@ class TestIndex(Base):
         "mapper",
         [
             lambda values, index: {i: e for e, i in zip(values, index)},
-            lambda values, index: pd.Series(values, index),
+            lambda values, index: Series(values, index),
         ],
     )
     def test_map_dictlike(self, index, mapper):
@@ -1153,7 +1153,8 @@ class TestIndex(Base):
         indirect=["index"],
     )
     def test_is_all_dates(self, index, expected):
-        assert index.is_all_dates is expected
+        with tm.assert_produces_warning(FutureWarning):
+            assert index.is_all_dates is expected
 
     def test_summary(self, index):
         self._check_method_works(Index._summary, index)
@@ -2221,6 +2222,31 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             with pytest.raises(AttributeError, match=msg):
                 index.contains(1)
 
+    def test_sortlevel(self):
+        index = pd.Index([5, 4, 3, 2, 1])
+        with pytest.raises(Exception, match="ascending must be a single bool value or"):
+            index.sortlevel(ascending="True")
+
+        with pytest.raises(
+            Exception, match="ascending must be a list of bool values of length 1"
+        ):
+            index.sortlevel(ascending=[True, True])
+
+        with pytest.raises(Exception, match="ascending must be a bool value"):
+            index.sortlevel(ascending=["True"])
+
+        expected = pd.Index([1, 2, 3, 4, 5])
+        result = index.sortlevel(ascending=[True])
+        tm.assert_index_equal(result[0], expected)
+
+        expected = pd.Index([1, 2, 3, 4, 5])
+        result = index.sortlevel(ascending=True)
+        tm.assert_index_equal(result[0], expected)
+
+        expected = pd.Index([5, 4, 3, 2, 1])
+        result = index.sortlevel(ascending=False)
+        tm.assert_index_equal(result[0], expected)
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
@@ -2558,7 +2584,7 @@ def test_validate_1d_input():
 
     # GH#13601 trying to assign a multi-dimensional array to an index is not
     #  allowed
-    ser = pd.Series(0, range(4))
+    ser = Series(0, range(4))
     with pytest.raises(ValueError, match=msg):
         ser.index = np.array([[2, 3]] * 4)
 

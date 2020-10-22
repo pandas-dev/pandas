@@ -21,7 +21,7 @@ def test_get_callable_name():
     def fn(x):
         return x
 
-    lambda_ = lambda x: x  # noqa: E731
+    lambda_ = lambda x: x
     part1 = partial(fn)
     part2 = partial(part1)
 
@@ -106,7 +106,7 @@ def test_random_state():
     ],
 )
 def test_maybe_match_name(left, right, expected):
-    assert ops._maybe_match_name(left, right) == expected
+    assert ops.common._maybe_match_name(left, right) == expected
 
 
 def test_dict_compat():

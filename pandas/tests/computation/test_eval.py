@@ -48,7 +48,7 @@ from pandas.core.computation.ops import (
         )
         for engine in ENGINES
     )
-)  # noqa
+)
 def engine(request):
     return request.param
 
@@ -667,7 +667,7 @@ class TestEvalNumexprPandas:
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_float_comparison_bin_op(self, dtype):
         # GH 16363
-        df = pd.DataFrame({"x": np.array([0], dtype=dtype)})
+        df = DataFrame({"x": np.array([0], dtype=dtype)})
         res = df.eval("x < -0.1")
         assert res.values == np.array([False])
 
@@ -734,7 +734,7 @@ class TestEvalNumexprPandas:
         expected = np.float64(exp)
         assert result == expected
 
-        df = pd.DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
+        df = DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
         cutoff = 1000000000.0006
         result = df.query(f"A < {cutoff:.4f}")
         assert result.empty
@@ -751,12 +751,12 @@ class TestEvalNumexprPandas:
 
     def test_disallow_python_keywords(self):
         # GH 18221
-        df = pd.DataFrame([[0, 0, 0]], columns=["foo", "bar", "class"])
+        df = DataFrame([[0, 0, 0]], columns=["foo", "bar", "class"])
         msg = "Python keyword not valid identifier in numexpr query"
         with pytest.raises(SyntaxError, match=msg):
             df.query("class == 0")
 
-        df = pd.DataFrame()
+        df = DataFrame()
         df.index.name = "lambda"
         with pytest.raises(SyntaxError, match=msg):
             df.query("lambda == 0")
@@ -1054,15 +1054,15 @@ class TestAlignment:
                     m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
                 )
                 index = getattr(locals().get(obj_name), index_name)
-                s = Series(np.random.randn(n), index[:n])
+                ser = Series(np.random.randn(n), index[:n])
 
                 if r2 == "dt" or c2 == "dt":
                     if engine == "numexpr":
-                        expected2 = df2.add(s)
+                        expected2 = df2.add(ser)
                     else:
-                        expected2 = df2 + s
+                        expected2 = df2 + ser
                 else:
-                    expected2 = df2 + s
+                    expected2 = df2 + ser
 
                 if r1 == "dt" or c1 == "dt":
                     if engine == "numexpr":
@@ -1072,11 +1072,11 @@ class TestAlignment:
                 else:
                     expected = expected2 + df
 
-                if should_warn(df2.index, s.index, df.index):
+                if should_warn(df2.index, ser.index, df.index):
                     with tm.assert_produces_warning(RuntimeWarning):
-                        res = pd.eval("df2 + s + df", engine=engine, parser=parser)
+                        res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
                 else:
-                    res = pd.eval("df2 + s + df", engine=engine, parser=parser)
+                    res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
                 assert res.shape == expected.shape
                 tm.assert_frame_equal(res, expected)
 
@@ -1366,7 +1366,7 @@ class TestOperationsNumExprPandas:
 
     def test_multi_line_expression(self):
         # GH 11149
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
 
         expected["c"] = expected["a"] + expected["b"]
@@ -1403,7 +1403,7 @@ class TestOperationsNumExprPandas:
 
     def test_multi_line_expression_not_inplace(self):
         # GH 11149
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
 
         expected["c"] = expected["a"] + expected["b"]
@@ -1428,7 +1428,7 @@ class TestOperationsNumExprPandas:
 
     def test_multi_line_expression_local_variable(self):
         # GH 15342
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
 
         local_var = 7
@@ -1446,7 +1446,7 @@ class TestOperationsNumExprPandas:
 
     def test_multi_line_expression_callable_local_variable(self):
         # 26426
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
         def local_func(a, b):
             return b
@@ -1466,7 +1466,7 @@ class TestOperationsNumExprPandas:
 
     def test_multi_line_expression_callable_local_variable_with_kwargs(self):
         # 26426
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
         def local_func(a, b):
             return b
@@ -1486,7 +1486,7 @@ class TestOperationsNumExprPandas:
 
     def test_assignment_in_query(self):
         # GH 8664
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df_orig = df.copy()
         msg = "cannot assign without a target object"
         with pytest.raises(ValueError, match=msg):
@@ -1495,7 +1495,7 @@ class TestOperationsNumExprPandas:
 
     def test_query_inplace(self):
         # see gh-11149
-        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
         expected = expected[expected["a"] == 2]
         df.query("a == 2", inplace=True)
@@ -1885,7 +1885,7 @@ class TestScope:
         )
 
     def test_no_new_locals(self, engine, parser):
-        x = 1  # noqa
+        x = 1
         lcls = locals().copy()
         pd.eval("x + 1", local_dict=lcls, engine=engine, parser=parser)
         lcls2 = locals().copy()
@@ -1995,8 +1995,8 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
     mid = gen[lhs]()  # noqa
-    lhs = gen[lhs]()  # noqa
-    rhs = gen[rhs]()  # noqa
+    lhs = gen[lhs]()
+    rhs = gen[rhs]()
 
     ex1 = f"lhs {cmp} mid {cmp} rhs"
     ex2 = f"lhs {cmp} mid and mid {cmp} rhs"
@@ -2052,7 +2052,7 @@ def test_truediv_deprecated(engine, parser):
 
 
 def test_negate_lt_eq_le(engine, parser):
-    df = pd.DataFrame([[0, 10], [1, 20]], columns=["cat", "count"])
+    df = DataFrame([[0, 10], [1, 20]], columns=["cat", "count"])
     expected = df[~(df.cat > 0)]
 
     result = df.query("~(cat > 0)", engine=engine, parser=parser)

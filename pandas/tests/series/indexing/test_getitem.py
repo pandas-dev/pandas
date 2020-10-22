@@ -90,7 +90,7 @@ class TestSeriesGetitemListLike:
         ser = Series(period_range("2000-01-01", periods=10, freq="D"))
 
         result = ser[[2, 4]]
-        exp = pd.Series(
+        exp = Series(
             [pd.Period("2000-01-03", freq="D"), pd.Period("2000-01-05", freq="D")],
             index=[2, 4],
             dtype="Period[D]",
@@ -101,7 +101,7 @@ class TestSeriesGetitemListLike:
     @pytest.mark.parametrize("box", [list, np.array, pd.Index])
     def test_getitem_intlist_intervalindex_non_int(self, box):
         # GH#33404 fall back to positional since ints are unambiguous
-        dti = date_range("2000-01-03", periods=3)
+        dti = date_range("2000-01-03", periods=3)._with_freq(None)
         ii = pd.IntervalIndex.from_breaks(dti)
         ser = Series(range(len(ii)), index=ii)
 
@@ -134,6 +134,6 @@ def test_getitem_generator(string_series):
 
 
 def test_getitem_ndim_deprecated():
-    s = pd.Series([0, 1])
+    s = Series([0, 1])
     with tm.assert_produces_warning(FutureWarning):
         s[:, None]

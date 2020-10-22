@@ -46,7 +46,7 @@ def test_join_level_corner_case(idx):
 
 def test_join_self(idx, join_type):
     joined = idx.join(idx, how=join_type)
-    assert idx is joined
+    tm.assert_index_equal(joined, idx)
 
 
 def test_join_multi():
