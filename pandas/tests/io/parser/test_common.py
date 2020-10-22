@@ -1240,7 +1240,7 @@ def test_chunk_begins_with_newline_whitespace(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_empty_with_index(all_parsers):
     # see gh-10184
     data = "x,y"
@@ -1264,7 +1264,7 @@ def test_empty_with_multi_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_empty_with_reversed_multi_index(all_parsers):
     data = "x,y,z"
     parser = all_parsers
@@ -1869,7 +1869,7 @@ c,+Infinity
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
@@ -2301,7 +2301,7 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
         parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_dict_keys_as_names(all_parsers):
     # GH: 36928
     data = "1,2"

@@ -12,6 +12,8 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_xfail")
+
 
 def _construct_dataframe(num_rows):
     """

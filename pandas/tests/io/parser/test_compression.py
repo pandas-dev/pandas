@@ -11,6 +11,8 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.fixture(params=[True, False])
 def buffer(request):
@@ -80,6 +82,7 @@ def test_zip_error_invalid_zip(parser_and_data, pyarrow_xfail):
                 parser.read_csv(f, compression="zip")
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
 def test_compression(
     parser_and_data, compression_only, buffer, filename, pyarrow_xfail
@@ -147,7 +150,7 @@ def test_compression_utf_encoding(
 
 
 @pytest.mark.parametrize("invalid_compression", ["sfark", "bz3", "zipper"])
-def test_invalid_compression(all_parsers, invalid_compression, pyarrow_xfail):
+def test_invalid_compression(all_parsers, invalid_compression):
     parser = all_parsers
     compress_kwargs = dict(compression=invalid_compression)
 

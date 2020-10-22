@@ -14,7 +14,11 @@ from pandas.errors import ParserError
 from pandas import DataFrame, Index, MultiIndex
 import pandas._testing as tm
 
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
+
+@xfail_pyarrow
 def test_read_with_bad_header(all_parsers):
     parser = all_parsers
     msg = r"but only \d+ lines in file"
@@ -82,6 +86,7 @@ def test_no_header_prefix(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_header_with_index_col(all_parsers):
     parser = all_parsers
     data = """foo,1,2,3
@@ -119,6 +124,7 @@ baz,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_header_multi_index(all_parsers):
     parser = all_parsers
     expected = tm.makeCustomDataframe(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
@@ -184,6 +190,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 _TestTuple = namedtuple("names", ["first", "second"])
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -231,6 +238,7 @@ two,7,8,9,10,11,12"""
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -277,6 +285,7 @@ two,7,8,9,10,11,12"""
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -324,6 +333,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_header_multi_index_common_format_malformed1(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -344,6 +354,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@xfail_pyarrow
 def test_header_multi_index_common_format_malformed2(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -365,6 +376,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@xfail_pyarrow
 def test_header_multi_index_common_format_malformed3(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -385,6 +397,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,header", [("1,2,3\n4,5,6", None), ("foo,bar,baz\n1,2,3\n4,5,6", 0)]
 )
@@ -397,6 +410,7 @@ def test_header_names_backward_compat(all_parsers, data, header):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("kwargs", [dict(), dict(index_col=False)])
 def test_read_only_header_no_rows(all_parsers, kwargs):
     # See gh-7773
@@ -442,6 +456,7 @@ def test_non_int_header(all_parsers, header):
         parser.read_csv(StringIO(data), header=header)
 
 
+@xfail_pyarrow
 def test_singleton_header(all_parsers):
     # see gh-7757
     data = """a,b,c\n0,1,2\n1,2,3"""
@@ -452,6 +467,7 @@ def test_singleton_header(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -498,6 +514,7 @@ def test_mangles_multi_index(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("index_col", [None, [0]])
 @pytest.mark.parametrize(
     "columns", [None, (["", "Unnamed"]), (["Unnamed", ""]), (["Unnamed", "NotUnnamed"])]
@@ -541,6 +558,7 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
         tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_read_csv_multiindex_columns(all_parsers):
     # GH#6051
     parser = all_parsers

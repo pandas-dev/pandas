@@ -12,6 +12,9 @@ from pandas._libs.tslib import Timestamp
 from pandas import DataFrame, Index
 import pandas._testing as tm
 
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+
 _msg_validate_usecols_arg = (
     "'usecols' must either be list-like "
     "of all strings, all unicode, all "
@@ -22,6 +25,7 @@ _msg_validate_usecols_names = (
 )
 
 
+@skip_pyarrow
 def test_raise_on_mixed_dtype_usecols(all_parsers):
     # See gh-12678
     data = """a,b,c
@@ -35,6 +39,7 @@ def test_raise_on_mixed_dtype_usecols(all_parsers):
         parser.read_csv(StringIO(data), usecols=usecols)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("usecols", [(1, 2), ("b", "c")])
 def test_usecols(all_parsers, usecols):
     data = """\
@@ -50,6 +55,7 @@ a,b,c
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_usecols_with_names(all_parsers):
     data = """\
 a,b,c
@@ -65,6 +71,7 @@ a,b,c
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "names,usecols", [(["b", "c"], [1, 2]), (["a", "b", "c"], ["b", "c"])]
 )
@@ -81,6 +88,7 @@ def test_usecols_relative_to_names(all_parsers, names, usecols):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_usecols_relative_to_names2(all_parsers):
     # see gh-5766
     data = """\
@@ -97,6 +105,7 @@ def test_usecols_relative_to_names2(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_usecols_name_length_conflict(all_parsers):
     data = """\
 1,2,3
@@ -125,6 +134,7 @@ def test_usecols_single_string(all_parsers):
         parser.read_csv(StringIO(data), usecols="foo")
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data", ["a,b,c,d\n1,2,3,4\n5,6,7,8", "a,b,c,d\n1,2,3,4,\n5,6,7,8,"]
 )
@@ -138,6 +148,7 @@ def test_usecols_index_col_false(all_parsers, data):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("index_col", ["b", 0])
 @pytest.mark.parametrize("usecols", [["b", "c"], [1, 2]])
 def test_usecols_index_col_conflict(all_parsers, usecols, index_col):
@@ -164,6 +175,7 @@ def test_usecols_index_col_conflict2(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_usecols_implicit_index_col(all_parsers):
     # see gh-2654
     parser = all_parsers
@@ -174,6 +186,7 @@ def test_usecols_implicit_index_col(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_usecols_regex_sep(all_parsers):
     # see gh-2733
     parser = all_parsers
@@ -184,6 +197,7 @@ def test_usecols_regex_sep(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_usecols_with_whitespace(all_parsers):
     parser = all_parsers
     data = "a  b  c\n4  apple  bat  5.7\n8  orange  cow  10"
@@ -193,6 +207,7 @@ def test_usecols_with_whitespace(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "usecols,expected",
     [
@@ -212,6 +227,7 @@ def test_usecols_with_integer_like_header(all_parsers, usecols, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("usecols", [[0, 2, 3], [3, 0, 2]])
 def test_usecols_with_parse_dates(all_parsers, usecols):
     # see gh-9755
@@ -230,6 +246,7 @@ def test_usecols_with_parse_dates(all_parsers, usecols):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_usecols_with_parse_dates2(all_parsers):
     # see gh-13604
     parser = all_parsers
@@ -290,6 +307,7 @@ def test_usecols_with_parse_dates3(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_usecols_with_parse_dates4(all_parsers):
     data = "a,b,c,d,e,f,g,h,i,j\n2016/09/21,1,1,2,3,4,5,6,7,8"
     usecols = list("abcdefghij")
@@ -313,6 +331,7 @@ def test_usecols_with_parse_dates4(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("usecols", [[0, 2, 3], [3, 0, 2]])
 @pytest.mark.parametrize(
     "names",
@@ -406,6 +425,7 @@ def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_empty_usecols(all_parsers):
     data = "a,b,c\n1,2,3\n4,5,6"
     expected = DataFrame()
@@ -426,6 +446,7 @@ def test_np_array_usecols(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "usecols,expected",
     [
@@ -458,6 +479,7 @@ def test_callable_usecols(all_parsers, usecols, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("usecols", [["a", "c"], lambda x: x in ["a", "c"]])
 def test_incomplete_first_row(all_parsers, usecols):
     # see gh-6710
@@ -470,6 +492,7 @@ def test_incomplete_first_row(all_parsers, usecols):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,usecols,kwargs,expected",
     [
@@ -502,6 +525,7 @@ def test_uneven_length_cols(all_parsers, data, usecols, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "usecols,kwargs,expected,msg",
     [
@@ -558,6 +582,7 @@ def test_raises_on_usecols_names_mismatch(all_parsers, usecols, kwargs, expected
         tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("usecols", [["A", "C"], [0, 2]])
 def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, request):
     if all_parsers.engine != "c":

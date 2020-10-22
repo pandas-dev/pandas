@@ -11,7 +11,11 @@ import pytest
 from pandas import DataFrame, Index, MultiIndex
 import pandas._testing as tm
 
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
+
+@skip_pyarrow
 @pytest.mark.parametrize("with_header", [True, False])
 def test_index_col_named(all_parsers, with_header):
     parser = all_parsers
@@ -66,6 +70,7 @@ def test_index_col_is_true(all_parsers):
         parser.read_csv(StringIO(data), index_col=True)
 
 
+@xfail_pyarrow
 def test_infer_index_col(all_parsers):
     data = """A,B,C
 foo,1,2,3
@@ -83,6 +88,7 @@ baz,7,8,9
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "index_col,kwargs",
     [
@@ -127,6 +133,7 @@ def test_index_col_empty_data(all_parsers, index_col, kwargs):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_empty_with_index_col_false(all_parsers):
     # see gh-10413
     data = "x,y"
@@ -137,6 +144,7 @@ def test_empty_with_index_col_false(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "index_names",
     [
@@ -161,6 +169,7 @@ def test_multi_index_naming(all_parsers, index_names):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_multi_index_naming_not_all_at_beginning(all_parsers):
     parser = all_parsers
     data = ",Unnamed: 2,\na,c,1\na,d,2\nb,c,3\nb,d,4"
@@ -175,6 +184,7 @@ def test_multi_index_naming_not_all_at_beginning(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_no_multi_index_level_names_empty(all_parsers):
     # GH 10984
     parser = all_parsers
@@ -186,6 +196,7 @@ def test_no_multi_index_level_names_empty(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_header_with_index_col(all_parsers):
     # GH 33476
     parser = all_parsers

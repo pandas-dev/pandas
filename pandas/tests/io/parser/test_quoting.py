@@ -13,7 +13,11 @@ from pandas.errors import ParserError
 from pandas import DataFrame
 import pandas._testing as tm
 
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
+
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "kwargs,msg",
     [
@@ -33,6 +37,7 @@ def test_bad_quote_char(all_parsers, kwargs, msg):
         parser.read_csv(StringIO(data), **kwargs)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "quoting,msg",
     [
@@ -57,6 +62,7 @@ def test_quote_char_basic(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("quote_char", ["~", "*", "%", "$", "@", "P"])
 def test_quote_char_various(all_parsers, quote_char):
     parser = all_parsers
@@ -69,6 +75,7 @@ def test_quote_char_various(all_parsers, quote_char):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 @pytest.mark.parametrize("quote_char", ["", None])
 def test_null_quote_char(all_parsers, quoting, quote_char):
@@ -88,6 +95,7 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
         tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "kwargs,exp_data",
     [
@@ -114,6 +122,7 @@ def test_quoting_various(all_parsers, kwargs, exp_data):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "doublequote,exp_data", [(True, [[3, '4 " 5']]), (False, [[3, '4 " 5"']])]
 )
@@ -137,6 +146,7 @@ def test_quotechar_unicode(all_parsers, quotechar):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("balanced", [True, False])
 def test_unbalanced_quoting(all_parsers, balanced):
     # see gh-22789.
