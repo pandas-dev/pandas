@@ -2635,7 +2635,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
-            values are 0, 1, 2, 3, 4. A negative value for the protocol
+            values are 0, 1, 2, 3, 4, 5. A negative value for the protocol
             parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html.
