@@ -809,15 +809,9 @@ def value_counts_arraylike(values, dropna: bool):
 
         keys, counts = htable.value_count_int64(values, dropna)
 
-        msk = keys != iNaT
         if dropna:
+            msk = keys != iNaT
             keys, counts = keys[msk], counts[msk]
-        # GH 35922. Since Series.sort_values is stable now, move NaT to the end
-        # to make sure NaT count is the last among duplicate counts.
-        if msk.sum() != len(keys):
-            nat_pos = np.where(~msk)
-            keys[nat_pos], keys[-1] = keys[-1], keys[nat_pos]
-            counts[nat_pos], counts[-1] = counts[-1], counts[nat_pos]
 
     else:
         # ndarray like
@@ -828,15 +822,9 @@ def value_counts_arraylike(values, dropna: bool):
 
         mask = isna(values)
         if not dropna and mask.any():
-        # GH 35922. Since Series.sort_values is stable now, move NaT to the end
-        # to make sure NaT count is the last among duplicate counts.
             if not isna(keys).any():
-                keys = np.append(keys, np.NaN)
-                counts = np.append(counts, mask.sum())
-            else:
-                nan_pos = np.where(np.isnan(keys))
-                keys[nan_pos], keys[-1] = keys[-1], keys[nan_pos]
-                counts[nan_pos], counts[-1] = counts[-1], counts[nan_pos]
+                keys = np.insert(keys, 0, np.NaN)
+                counts = np.insert(counts, 0, mask.sum())
 
     keys = _reconstruct_data(keys, original.dtype, original)
 
