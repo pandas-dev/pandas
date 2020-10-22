@@ -2,7 +2,7 @@ from distutils.version import LooseVersion
 from functools import reduce
 from itertools import product
 import operator
-from typing import Dict, Type
+from typing import Dict, List, Type
 import warnings
 
 import numpy as np
@@ -143,8 +143,8 @@ midhs = lhs
 
 @td.skip_if_no_ne
 class TestEvalNumexprPandas:
-    exclude_cmp = []
-    exclude_bool = []
+    exclude_cmp: List[str] = []
+    exclude_bool: List[str] = []
 
     engine = "numexpr"
     parser = "pandas"
@@ -1118,7 +1118,7 @@ class TestAlignment:
 
 @td.skip_if_no_ne
 class TestOperationsNumExprPandas:
-    exclude_arith = []
+    exclude_arith: List[str] = []
 
     engine = "numexpr"
     parser = "pandas"
@@ -1622,7 +1622,7 @@ class TestOperationsNumExprPandas:
 
 @td.skip_if_no_ne
 class TestOperationsNumExprPython(TestOperationsNumExprPandas):
-    exclude_arith = ["in", "not in"]
+    exclude_arith: List[str] = ["in", "not in"]
 
     engine = "numexpr"
     parser = "python"
@@ -1716,7 +1716,7 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
 
 
 class TestOperationsPythonPandas(TestOperationsNumExprPandas):
-    exclude_arith = []
+    exclude_arith: List[str] = []
 
     engine = "python"
     parser = "pandas"
