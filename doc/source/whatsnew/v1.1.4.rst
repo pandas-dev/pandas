@@ -23,6 +23,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.resample(...).apply(...)` raised ``AttributeError`` when input was a :class:`DataFrame` and only a :class:`Series` was evaluated (:issue:`36951`)
 - Fixed regression in :class:`PeriodDtype` comparing both equal and unequal to its string representation (:issue:`37265`)
 - Fixed regression where slicing :class:`DatetimeIndex` raised :exc:`AssertionError` on irregular time series with ``pd.NaT`` or on unsorted indices (:issue:`36953` and :issue:`35509`)
+- Fixed regression in certain offsets (:meth:`pd.offsets.Day() <pandas.tseries.offsets.Day>` and below) no longer being hashable (:issue:`37267`)
 
 .. ---------------------------------------------------------------------------
 
