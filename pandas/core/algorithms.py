@@ -812,8 +812,8 @@ def value_counts_arraylike(values, dropna: bool):
         msk = keys != iNaT
         if dropna:
             keys, counts = keys[msk], counts[msk]
-        # GH 35922. Since sort_values is stable now, move NaT to the end
-        # to make sure NaT count is sorted toward the end.
+        # GH 35922. Since Series.sort_values is stable now, move NaT to the end
+        # to make sure NaT count is the last among duplicate counts.
         if msk.sum() != len(keys):
             nat_pos = np.where(~msk)
             keys[nat_pos], keys[-1] = keys[-1], keys[nat_pos]
@@ -828,9 +828,8 @@ def value_counts_arraylike(values, dropna: bool):
 
         mask = isna(values)
         if not dropna and mask.any():
-            # GH 35922. Series.sort_values is stable now, so need to
-            # append NaN counts or move to the end to make sure they are
-            # sorted toward the end when calling value_counts
+        # GH 35922. Since Series.sort_values is stable now, move NaT to the end
+        # to make sure NaT count is the last among duplicate counts.
             if not isna(keys).any():
                 keys = np.append(keys, np.NaN)
                 counts = np.append(counts, mask.sum())
