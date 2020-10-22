@@ -1086,13 +1086,13 @@ class SQLTable(PandasObject):
     def _get_dtype(self, sqltype):
         from sqlalchemy.types import (
             TIMESTAMP,
+            BigInteger,
             Boolean,
             Date,
             DateTime,
             Float,
             Integer,
-            BigInteger,
-            SmallInteger
+            SmallInteger,
         )
 
         if isinstance(sqltype, Float):
