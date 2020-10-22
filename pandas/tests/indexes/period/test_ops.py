@@ -178,7 +178,7 @@ class TestPeriodIndexOps:
 
         pidx = PeriodIndex(["2011", "2013", "NaT", "2011"], name="pidx", freq="D")
 
-        result = pidx.sort_values()
+        result = pidx.sort_values(na_position="first")
         expected = PeriodIndex(["NaT", "2011", "2011", "2013"], name="pidx", freq="D")
         tm.assert_index_equal(result, expected)
         assert result.freq == "D"
@@ -247,7 +247,7 @@ class TestPeriodIndexOps:
         )
 
         for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
-            ordered = idx.sort_values()
+            ordered = idx.sort_values(na_position="first")
             tm.assert_index_equal(ordered, expected)
             assert ordered.freq == "D"
 
@@ -255,7 +255,7 @@ class TestPeriodIndexOps:
             tm.assert_index_equal(ordered, expected[::-1])
             assert ordered.freq == "D"
 
-            ordered, indexer = idx.sort_values(return_indexer=True)
+            ordered, indexer = idx.sort_values(return_indexer=True, na_position="first")
             tm.assert_index_equal(ordered, expected)
 
             exp = np.array([0, 4, 3, 1, 2])
@@ -265,7 +265,7 @@ class TestPeriodIndexOps:
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
 
-            exp = np.array([2, 1, 3, 4, 0])
+            exp = np.array([2, 1, 3, 0, 4])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq == "D"
 
