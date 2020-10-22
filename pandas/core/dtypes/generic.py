@@ -53,6 +53,7 @@ ABCIndexClass = create_pandas_abc_type(
     },
 )
 
+ABCNDFrame = create_pandas_abc_type("ABCNDFrame", "_typ", ("series", "dataframe"))
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series",))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
 
