@@ -169,12 +169,12 @@ def test_resample_with_timedelta_yields_no_empty_groups():
 
 def test_resample_quantile_timedelta():
     # GH: 29485
-    df = pd.DataFrame(
+    df = DataFrame(
         {"value": pd.to_timedelta(np.arange(4), unit="s")},
         index=pd.date_range("20200101", periods=4, tz="UTC"),
     )
     result = df.resample("2D").quantile(0.99)
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             "value": [
                 pd.Timedelta("0 days 00:00:00.990000"),

@@ -240,11 +240,11 @@ def test_groupby_quantile_skips_invalid_dtype(q):
 
 def test_groupby_timedelta_quantile():
     # GH: 29485
-    df = pd.DataFrame(
+    df = DataFrame(
         {"value": pd.to_timedelta(np.arange(4), unit="s"), "group": [1, 1, 2, 2]}
     )
     result = df.groupby("group").quantile(0.99)
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             "value": [
                 pd.Timedelta("0 days 00:00:00.990000"),
