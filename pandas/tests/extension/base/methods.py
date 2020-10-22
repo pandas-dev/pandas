@@ -124,8 +124,9 @@ class BaseMethodsTests(BaseExtensionTests):
         ser = pd.Series(data_for_sorting)
         result = ser.sort_values(ascending=ascending, key=sort_by_key)
         expected = ser.iloc[[2, 0, 1]]
+        # GH 35922. Expect stable sort.
         if not ascending:
-            expected = expected[::-1]
+            expected = ser.iloc[[0, 1, 2]]
 
         self.assert_series_equal(result, expected)
 
