@@ -249,7 +249,7 @@ class TestDatetimeIndexOps:
         ordered, indexer = index.sort_values(return_indexer=True, ascending=False)
         tm.assert_index_equal(ordered, expected[::-1])
 
-        exp = np.array([2, 1, 3, 4, 0])
+        exp = np.array([2, 1, 3, 0, 4])
         tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
         assert ordered.freq is None
 
