@@ -1223,7 +1223,7 @@ class TestTypeInference:
         inferred = lib.infer_dtype(idx._data, skipna=False)
         assert inferred == "interval"
 
-        inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
+        inferred = lib.infer_dtype(Series(idx), skipna=False)
         assert inferred == "interval"
 
     @pytest.mark.parametrize("klass", [pd.array, pd.Series])
