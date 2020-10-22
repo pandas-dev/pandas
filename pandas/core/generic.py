@@ -66,6 +66,7 @@ from pandas.core.dtypes.common import (
     ensure_str,
     is_bool,
     is_bool_dtype,
+    is_categorical,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_dict_like,
@@ -5793,6 +5794,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self.iloc[:, i].astype(dtype, copy=copy)
                 for i in range(len(self.columns))
             ]
+
+        elif is_categorical(self):
+            new_data = pd.Categorical.from_codes(
+                self.cat.codes, categories=self.cat.categories.astype(dtype)
+            )
+            return self._constructor(new_data).__finalize__(self, method="astype")
 
         else:
             # else, only a single dtype is given
