@@ -1136,7 +1136,7 @@ class TestValueCounts:
         )
         tm.assert_series_equal(
             Series([True, True, False, None]).value_counts(dropna=False),
-            Series([2, 1, 1], index=[True, False, np.nan]),
+            Series([2, 1, 1], index=[True, np.nan, False]),
         )
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0]).value_counts(dropna=True),
@@ -1155,7 +1155,7 @@ class TestValueCounts:
         # 32-bit linux has a different ordering
         if IS64:
             result = Series([10.3, 5.0, 5.0, None]).value_counts(dropna=False)
-            expected = Series([2, 1, 1], index=[5.0, 10.3, np.nan])
+            expected = Series([2, 1, 1], index=[5.0, np.nan, 10.3])
             tm.assert_series_equal(result, expected)
 
     def test_value_counts_normalized(self):
