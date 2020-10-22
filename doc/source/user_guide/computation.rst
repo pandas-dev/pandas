@@ -652,9 +652,9 @@ parameter:
     :header: "``closed``", "Description", "Default for"
     :widths: 20, 30, 30
 
-    ``right``, close right endpoint, time-based windows
+    ``right``, close right endpoint,
     ``left``, close left endpoint,
-    ``both``, close both endpoints, fixed windows
+    ``both``, close both endpoints,
     ``neither``, open endpoints,
 
 For example, having the right endpoint open is useful in many problems that require that there is no contamination
@@ -680,9 +680,6 @@ from present information back to past information. This allows the rolling windo
    df["neither"] = df.rolling("2s", closed="neither").x.sum()
 
    df
-
-Currently, this feature is only implemented for time-based windows.
-For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
 
 .. _stats.iter_rolling_window:
 
