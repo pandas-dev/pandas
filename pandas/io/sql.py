@@ -1011,7 +1011,7 @@ class SQLTable(PandasObject):
 
                 elif len(df_col) == df_col.count():
                     # No NA values, can convert ints and bools
-                    if col_type is np.dtype("int64") or col_type is bool:
+                    if col_type is np.dtype("int64") or col_type is np.dtype("int32") or col_type is bool:
                         self.frame[col_name] = df_col.astype(col_type, copy=False)
             except KeyError:
                 pass  # this column not in results
@@ -1080,13 +1080,16 @@ class SQLTable(PandasObject):
         return Text
 
     def _get_dtype(self, sqltype):
-        from sqlalchemy.types import TIMESTAMP, Boolean, Date, DateTime, Float, Integer
+        from sqlalchemy.types import TIMESTAMP, Boolean, Date, DateTime, Float, Integer, BigInteger, SmallInteger
 
         if isinstance(sqltype, Float):
             return float
-        elif isinstance(sqltype, Integer):
-            # TODO: Refine integer size.
+        elif isinstance(sqltype, BigInteger):
             return np.dtype("int64")
+        elif isinstance(sqltype, Integer):
+            return np.dtype("int32")
+        elif isinstance(sqltype, SmallInteger):
+            return np.dtype("int16")
         elif isinstance(sqltype, TIMESTAMP):
             # we have a timezone capable type
             if not sqltype.timezone:
