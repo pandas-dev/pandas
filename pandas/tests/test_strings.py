@@ -641,7 +641,9 @@ class TestStringMethods:
         u = np.array(["A", "B", "C", "D"])
         expected_outer = Series(["aaA", "bbB", "c-C", "ddD", "-e-"])
         # joint index of rhs [t, u]; u will be forced have index of s
-        rhs_idx = t.index & s.index if join == "inner" else t.index | s.index
+        rhs_idx = (
+            t.index.intersection(s.index) if join == "inner" else t.index.union(s.index)
+        )
 
         expected = expected_outer.loc[s.index.join(rhs_idx, how=join)]
         result = s.str.cat([t, u], join=join, na_rep="-")

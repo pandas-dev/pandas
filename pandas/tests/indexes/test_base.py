@@ -1010,7 +1010,8 @@ class TestIndex(Base):
         tm.assert_index_equal(result, expected)
 
         # __xor__ syntax
-        expected = index1 ^ index2
+        with tm.assert_produces_warning(FutureWarning):
+            expected = index1 ^ index2
         assert tm.equalContents(result, expected)
         assert result.name is None
 

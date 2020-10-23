@@ -93,5 +93,5 @@ def test_union_dtypes(left, right, expected):
     right = pandas_dtype(right)
     a = pd.Index([], dtype=left)
     b = pd.Index([], dtype=right)
-    result = (a | b).dtype
+    result = a.union(b).dtype
     assert result == expected

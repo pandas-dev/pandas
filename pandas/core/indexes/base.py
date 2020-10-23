@@ -2468,12 +2468,33 @@ class Index(IndexOpsMixin, PandasObject):
         return self + other
 
     def __and__(self, other):
+        warnings.warn(
+            "Index.__and__ operating as a set operation is deprecated, "
+            "in the future this will be a logical operation matching "
+            "Series.__and__.  Use index.intersection(other) instead",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.intersection(other)
 
     def __or__(self, other):
+        warnings.warn(
+            "Index.__or__ operating as a set operation is deprecated, "
+            "in the future this will be a logical operation matching "
+            "Series.__or__.  Use index.union(other) instead",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.union(other)
 
     def __xor__(self, other):
+        warnings.warn(
+            "Index.__xor__ operating as a set operation is deprecated, "
+            "in the future this will be a logical operation matching "
+            "Series.__xor__.  Use index.symmetric_difference(other) instead",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.symmetric_difference(other)
 
     def __nonzero__(self):
