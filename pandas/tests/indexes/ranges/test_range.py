@@ -105,7 +105,7 @@ class TestRangeIndex(Numeric):
             tm.assert_index_equal(result, expected)
 
         result = RangeIndex(5).insert(1, pd.NaT)
-        expected = pd.Index([0, pd.NaT, 1, 2, 3, 4], dtype=object)
+        expected = Index([0, pd.NaT, 1, 2, 3, 4], dtype=object)
         tm.assert_index_equal(result, expected)
 
     def test_delete(self):

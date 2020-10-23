@@ -132,7 +132,7 @@ def test_agg_apply_corner(ts, tsframe):
     assert ts.dtype == np.float64
 
     # groupby float64 values results in Float64Index
-    exp = Series([], dtype=np.float64, index=pd.Index([], dtype=np.float64))
+    exp = Series([], dtype=np.float64, index=Index([], dtype=np.float64))
     tm.assert_series_equal(grouped.sum(), exp)
     tm.assert_series_equal(grouped.agg(np.sum), exp)
     tm.assert_series_equal(grouped.apply(np.sum), exp, check_index_type=False)
@@ -140,7 +140,7 @@ def test_agg_apply_corner(ts, tsframe):
     # DataFrame
     grouped = tsframe.groupby(tsframe["A"] * np.nan)
     exp_df = DataFrame(
-        columns=tsframe.columns, dtype=float, index=pd.Index([], dtype=np.float64)
+        columns=tsframe.columns, dtype=float, index=Index([], dtype=np.float64)
     )
     tm.assert_frame_equal(grouped.sum(), exp_df, check_names=False)
     tm.assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
@@ -427,7 +427,7 @@ def test_order_aggregate_multiple_funcs():
     res = df.groupby("A").agg(["sum", "max", "mean", "ohlc", "min"])
     result = res.columns.levels[1]
 
-    expected = pd.Index(["sum", "max", "mean", "ohlc", "min"])
+    expected = Index(["sum", "max", "mean", "ohlc", "min"])
 
     tm.assert_index_equal(result, expected)
 
@@ -481,7 +481,7 @@ def test_agg_split_block():
     result = df.groupby("key1").min()
     expected = DataFrame(
         {"key2": ["one", "one"], "key3": ["six", "six"]},
-        index=pd.Index(["a", "b"], name="key1"),
+        index=Index(["a", "b"], name="key1"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -573,7 +573,7 @@ class TestNamedAggregationDataFrame:
         result = df.groupby("group").agg(a_max=("A", "max"), b_max=("B", "max"))
         expected = DataFrame(
             {"a_max": [1, 3], "b_max": [6, 8]},
-            index=pd.Index(["a", "b"], name="group"),
+            index=Index(["a", "b"], name="group"),
             columns=["a_max", "b_max"],
         )
         tm.assert_frame_equal(result, expected)
@@ -597,7 +597,7 @@ class TestNamedAggregationDataFrame:
                 "b_max": [6, 8],
                 "a_98": [0.98, 2.98],
             },
-            index=pd.Index(["a", "b"], name="group"),
+            index=Index(["a", "b"], name="group"),
             columns=["b_min", "a_min", "a_mean", "a_max", "b_max", "a_98"],
         )
         tm.assert_frame_equal(result, expected)
@@ -608,9 +608,7 @@ class TestNamedAggregationDataFrame:
         )
 
         result = df.groupby("group").agg(**{"my col": ("A", "max")})
-        expected = DataFrame(
-            {"my col": [1, 3]}, index=pd.Index(["a", "b"], name="group")
-        )
+        expected = DataFrame({"my col": [1, 3]}, index=Index(["a", "b"], name="group"))
         tm.assert_frame_equal(result, expected)
 
     def test_duplicate_no_raises(self):
@@ -619,9 +617,7 @@ class TestNamedAggregationDataFrame:
         df = DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
 
         grouped = df.groupby("A").agg(a=("B", "min"), b=("B", "min"))
-        expected = DataFrame(
-            {"a": [1, 3], "b": [1, 3]}, index=pd.Index([0, 1], name="A")
-        )
+        expected = DataFrame({"a": [1, 3], "b": [1, 3]}, index=Index([0, 1], name="A"))
         tm.assert_frame_equal(grouped, expected)
 
         quant50 = functools.partial(np.percentile, q=50)
@@ -636,7 +632,7 @@ class TestNamedAggregationDataFrame:
         )
         expected = DataFrame(
             {"quantile_50": [1.5, 4.0], "quantile_70": [1.7, 4.4]},
-            index=pd.Index(["a", "b"], name="col1"),
+            index=Index(["a", "b"], name="col1"),
         )
         tm.assert_frame_equal(grouped, expected)
 
@@ -682,9 +678,7 @@ class TestNamedAggregationDataFrame:
     def test_mangled(self):
         df = DataFrame({"A": [0, 1], "B": [1, 2], "C": [3, 4]})
         result = df.groupby("A").agg(b=("B", lambda x: 0), c=("C", lambda x: 1))
-        expected = DataFrame(
-            {"b": [0, 0], "c": [1, 1]}, index=pd.Index([0, 1], name="A")
-        )
+        expected = DataFrame({"b": [0, 0], "c": [1, 1]}, index=Index([0, 1], name="A"))
         tm.assert_frame_equal(result, expected)
 
 
@@ -725,7 +719,7 @@ def test_agg_relabel_multiindex_column(
         {"group": ["a", "a", "b", "b"], "A": [0, 1, 2, 3], "B": [5, 6, 7, 8]}
     )
     df.columns = pd.MultiIndex.from_tuples([("x", "group"), ("y", "A"), ("y", "B")])
-    idx = pd.Index(["a", "b"], name=("x", "group"))
+    idx = Index(["a", "b"], name=("x", "group"))
 
     result = df.groupby(("x", "group")).agg(a_max=(("y", "A"), "max"))
     expected = DataFrame({"a_max": [1, 3]}, index=idx)
@@ -763,7 +757,7 @@ def test_agg_relabel_multiindex_duplicates():
     result = df.groupby(("x", "group")).agg(
         a=(("y", "A"), "min"), b=(("y", "A"), "min")
     )
-    idx = pd.Index(["a", "b"], name=("x", "group"))
+    idx = Index(["a", "b"], name=("x", "group"))
     expected = DataFrame({"a": [0, 2], "b": [0, 2]}, index=idx)
     tm.assert_frame_equal(result, expected)
 
@@ -775,7 +769,7 @@ def test_groupby_aggregate_empty_key(kwargs):
     result = df.groupby("a").agg(kwargs)
     expected = DataFrame(
         [1, 4],
-        index=pd.Index([1, 2], dtype="int64", name="a"),
+        index=Index([1, 2], dtype="int64", name="a"),
         columns=pd.MultiIndex.from_tuples([["c", "min"]]),
     )
     tm.assert_frame_equal(result, expected)
@@ -936,7 +930,7 @@ class TestLambdaMangling:
 
         expected = DataFrame(
             {("B", "<lambda_0>"): [0, 0], ("B", "<lambda_1>"): [1, 1]},
-            index=pd.Index([0, 1], name="A"),
+            index=Index([0, 1], name="A"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -975,7 +969,7 @@ class TestLambdaMangling:
                 "height_max": [9.5, 34.0],
                 "weight_max": [9.9, 198.0],
             },
-            index=pd.Index(["cat", "dog"], name="kind"),
+            index=Index(["cat", "dog"], name="kind"),
             columns=columns,
         )
 
@@ -1022,7 +1016,7 @@ class TestLambdaMangling:
                 "height_max_2": [9.5, 34.0],
                 "weight_min": [7.9, 7.5],
             },
-            index=pd.Index(["cat", "dog"], name="kind"),
+            index=Index(["cat", "dog"], name="kind"),
             columns=columns,
         )
 
