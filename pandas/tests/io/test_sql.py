@@ -96,7 +96,9 @@ SQL_STRINGS = {
                     "IntCol" INTEGER,
                     "BoolCol" INTEGER,
                     "IntColWithNull" INTEGER,
-                    "BoolColWithNull" INTEGER
+                    "BoolColWithNull" INTEGER,
+                    'BigIntCol' BIGINT,
+                    'SmallIntCol' SMALLINT
                 )""",
         "mysql": """CREATE TABLE types_test_data (
                     `TextCol` TEXT,
@@ -107,7 +109,9 @@ SQL_STRINGS = {
                     `IntCol` INTEGER,
                     `BoolCol` BOOLEAN,
                     `IntColWithNull` INTEGER,
-                    `BoolColWithNull` BOOLEAN
+                    `BoolColWithNull` BOOLEAN,
+                    'BigIntCol' BIGINT,
+                    'SmallIntCol' SMALLINT
                 )""",
         "postgresql": """CREATE TABLE types_test_data (
                     "TextCol" TEXT,
@@ -119,7 +123,9 @@ SQL_STRINGS = {
                     "IntCol" INTEGER,
                     "BoolCol" BOOLEAN,
                     "IntColWithNull" INTEGER,
-                    "BoolColWithNull" BOOLEAN
+                    "BoolColWithNull" BOOLEAN,
+                    'BigIntCol' BIGINT,
+                    'SmallIntCol' SMALLINT
                 )""",
     },
     "insert_test_types": {
@@ -138,6 +144,8 @@ SQL_STRINGS = {
                 "BoolCol",
                 "IntColWithNull",
                 "BoolColWithNull",
+                "BigIntCol",
+                "SmallIntCol"
             ),
         },
         "mysql": {
@@ -155,6 +163,8 @@ SQL_STRINGS = {
                 "BoolCol",
                 "IntColWithNull",
                 "BoolColWithNull",
+                "BigIntCol",
+                "SmallIntCol"
             ),
         },
         "postgresql": {
@@ -173,6 +183,8 @@ SQL_STRINGS = {
                 "BoolCol",
                 "IntColWithNull",
                 "BoolColWithNull",
+                "BigIntCol",
+                "SmallIntCol"
             ),
         },
     },
@@ -385,6 +397,8 @@ class PandasSQLTest:
                 "BoolCol": False,
                 "IntColWithNull": 1,
                 "BoolColWithNull": False,
+                "BigIntCol": 9223372036854775,
+                "SmallIntCol": 12767,
             },
             {
                 "TextCol": "first",
@@ -397,6 +411,8 @@ class PandasSQLTest:
                 "BoolCol": False,
                 "IntColWithNull": None,
                 "BoolColWithNull": None,
+                "BigIntCol": 15283478493716013,
+                "SmallIntCol": 2696,
             },
         ]
 
@@ -1373,6 +1389,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         result = sql.read_sql_table("test_bigint", self.conn)
 
         tm.assert_frame_equal(df, result)
+
+    def test_reading_ints(self):
+        # BigInt should be read as int64, Int should be read as int32, and SmallInt should be read as int16
+        df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
+        assert issubclass(df.BigIntCol.dtype.type, np.int64)
+        assert issubclass(df.IntCol.dtype.type, np.int32)
+        assert issubclass(df.SmallIntCol.dtype.type, np.int16)
 
     def test_default_date_load(self):
         df = sql.read_sql_table("types_test_data", self.conn)
