@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, period_range
+from pandas import DataFrame, Index, MultiIndex, period_range
 import pandas._testing as tm
 
 
@@ -235,7 +235,7 @@ class TestDataFrameJoin:
 
     def test_join_multiindex_leftright(self):
         # GH 10741
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             [
                 ["a", "x", 0.471780],
                 ["a", "y", 0.774908],
@@ -250,11 +250,11 @@ class TestDataFrameJoin:
             columns=["first", "second", "value1"],
         ).set_index(["first", "second"])
 
-        df2 = pd.DataFrame(
-            [["a", 10], ["b", 20]], columns=["first", "value2"]
-        ).set_index(["first"])
+        df2 = DataFrame([["a", 10], ["b", 20]], columns=["first", "value2"]).set_index(
+            ["first"]
+        )
 
-        exp = pd.DataFrame(
+        exp = DataFrame(
             [
                 [0.471780, 10],
                 [0.774908, 10],
@@ -277,7 +277,7 @@ class TestDataFrameJoin:
         exp_idx = pd.MultiIndex.from_product(
             [["a", "b"], ["x", "y", "z"]], names=["first", "second"]
         )
-        exp = pd.DataFrame(
+        exp = DataFrame(
             [
                 [0.471780, 10],
                 [0.774908, 10],
@@ -292,3 +292,27 @@ class TestDataFrameJoin:
 
         tm.assert_frame_equal(df1.join(df2, how="right"), exp)
         tm.assert_frame_equal(df2.join(df1, how="left"), exp[["value2", "value1"]])
+
+    def test_merge_join_different_levels(self):
+        # GH#9455
+
+        # first dataframe
+        df1 = DataFrame(columns=["a", "b"], data=[[1, 11], [0, 22]])
+
+        # second dataframe
+        columns = MultiIndex.from_tuples([("a", ""), ("c", "c1")])
+        df2 = DataFrame(columns=columns, data=[[1, 33], [0, 44]])
+
+        # merge
+        columns = ["a", "b", ("c", "c1")]
+        expected = DataFrame(columns=columns, data=[[1, 11, 33], [0, 22, 44]])
+        with tm.assert_produces_warning(UserWarning):
+            result = pd.merge(df1, df2, on="a")
+        tm.assert_frame_equal(result, expected)
+
+        # join, see discussion in GH#12219
+        columns = ["a", "b", ("a", ""), ("c", "c1")]
+        expected = DataFrame(columns=columns, data=[[1, 11, 0, 44], [0, 22, 1, 33]])
+        with tm.assert_produces_warning(UserWarning):
+            result = df1.join(df2, on="a")
+        tm.assert_frame_equal(result, expected)

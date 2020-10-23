@@ -201,7 +201,7 @@ class TestDatetimeIndexSetOps:
 
         third = Index(["a", "b", "c"])
         result = first.intersection(third)
-        expected = pd.Index([], dtype=object)
+        expected = Index([], dtype=object)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(

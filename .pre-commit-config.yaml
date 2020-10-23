@@ -56,11 +56,48 @@ repos:
     -   id: incorrect-sphinx-directives
         name: Check for incorrect Sphinx directives
         language: pygrep
-        entry: >-
-            \.\. (autosummary|contents|currentmodule|deprecated
-            |function|image|important|include|ipython|literalinclude
-            |math|module|note|raw|seealso|toctree|versionadded
-            |versionchanged|warning):[^:]
+        entry: |
+            (?x)
+            # Check for cases of e.g. .. warning: instead of .. warning::
+            \.\.\ (
+                autosummary|contents|currentmodule|deprecated|
+                function|image|important|include|ipython|literalinclude|
+                math|module|note|raw|seealso|toctree|versionadded|
+                versionchanged|warning
+            ):[^:]
+        files: \.(py|pyx|rst)$
+    -   id: non-standard-imports
+        name: Check for non-standard imports
+        language: pygrep
+        entry: |
+            (?x)
+            # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
+            from\ pandas\.core\.common\ import|
+            from\ pandas\.core\ import\ common|
+
+            # Check for imports from collections.abc instead of `from collections import abc`
+            from\ collections\.abc\ import|
+
+            from\ numpy\ import\ nan
+        types: [python]
+    -   id: non-standard-imports-in-tests
+        name: Check for non-standard imports in test suite
+        language: pygrep
+        entry: |
+            (?x)
+            # Check for imports from pandas._testing instead of `import pandas._testing as tm`
+            from\ pandas\._testing\ import|
+            from\ pandas\ import\ _testing\ as\ tm|
+
+            # No direct imports from conftest
+            conftest\ import|
+            import\ conftest
+        types: [python]
+        files: ^pandas/tests/
+    -   id: incorrect-code-directives
+        name: Check for incorrect code block or IPython directives
+        language: pygrep
+        entry: (\.\. code-block ::|\.\. ipython ::)
         files: \.(py|pyx|rst)$
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2

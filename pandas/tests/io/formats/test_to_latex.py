@@ -157,7 +157,7 @@ class TestToLatex:
 
     def test_to_latex_midrule_location(self):
         # GH 18326
-        df = pd.DataFrame({"a": [1, 2]})
+        df = DataFrame({"a": [1, 2]})
         df.index.name = "foo"
         result = df.to_latex(index_names=False)
         expected = _dedent(
@@ -373,7 +373,7 @@ class TestToLatexHeader:
 class TestToLatexBold:
     def test_to_latex_bold_rows(self):
         # GH 16707
-        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(bold_rows=True)
         expected = _dedent(
             r"""
@@ -391,7 +391,7 @@ class TestToLatexBold:
 
     def test_to_latex_no_bold_rows(self):
         # GH 16707
-        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(bold_rows=False)
         expected = _dedent(
             r"""
@@ -572,7 +572,7 @@ class TestToLatexCaptionLabel:
     )
     def test_to_latex_bad_caption_raises(self, bad_caption):
         # test that wrong number of params is raised
-        df = pd.DataFrame({"a": [1]})
+        df = DataFrame({"a": [1]})
         msg = "caption must be either a string or a tuple of two strings"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(caption=bad_caption)
@@ -979,18 +979,18 @@ class TestToLatexMultiindex:
         """Multiindex dataframe for testing multirow LaTeX macros."""
         yield DataFrame.from_dict(
             {
-                ("c1", 0): pd.Series({x: x for x in range(4)}),
-                ("c1", 1): pd.Series({x: x + 4 for x in range(4)}),
-                ("c2", 0): pd.Series({x: x for x in range(4)}),
-                ("c2", 1): pd.Series({x: x + 4 for x in range(4)}),
-                ("c3", 0): pd.Series({x: x for x in range(4)}),
+                ("c1", 0): Series({x: x for x in range(4)}),
+                ("c1", 1): Series({x: x + 4 for x in range(4)}),
+                ("c2", 0): Series({x: x for x in range(4)}),
+                ("c2", 1): Series({x: x + 4 for x in range(4)}),
+                ("c3", 0): Series({x: x for x in range(4)}),
             }
         ).T
 
     @pytest.fixture
     def multicolumn_frame(self):
         """Multicolumn dataframe for testing multicolumn LaTeX macros."""
-        yield pd.DataFrame(
+        yield DataFrame(
             {
                 ("c1", 0): {x: x for x in range(5)},
                 ("c1", 1): {x: x + 5 for x in range(5)},
@@ -1002,7 +1002,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_multindex_header(self):
         # GH 16718
-        df = pd.DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]})
+        df = DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]})
         df = df.set_index(["a", "b"])
         observed = df.to_latex(header=["r1", "r2"])
         expected = _dedent(
@@ -1022,7 +1022,7 @@ class TestToLatexMultiindex:
     def test_to_latex_multiindex_empty_name(self):
         # GH 18669
         mi = pd.MultiIndex.from_product([[1, 2]], names=[""])
-        df = pd.DataFrame(-1, index=mi, columns=range(4))
+        df = DataFrame(-1, index=mi, columns=range(4))
         observed = df.to_latex()
         expected = _dedent(
             r"""
@@ -1115,7 +1115,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_index_has_name_tabular(self):
         # GH 10660
-        df = pd.DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
+        df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
         result = df.set_index(["a", "b"]).to_latex()
         expected = _dedent(
             r"""
@@ -1136,7 +1136,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_groupby_tabular(self):
         # GH 10660
-        df = pd.DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
+        df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
         result = df.groupby("a").describe().to_latex()
         expected = _dedent(
             r"""
@@ -1162,7 +1162,7 @@ class TestToLatexMultiindex:
         # ONLY happen if all higher order indices (to the left) are
         # equal too. In this test, 'c' has to be printed both times
         # because the higher order index 'A' != 'B'.
-        df = pd.DataFrame(
+        df = DataFrame(
             index=pd.MultiIndex.from_tuples([("A", "c"), ("B", "c")]), columns=["col"]
         )
         result = df.to_latex()
@@ -1275,7 +1275,7 @@ class TestToLatexMultiindex:
         # GH 18667
         names = [name0, name1]
         mi = pd.MultiIndex.from_product([[1, 2], [3, 4]])
-        df = pd.DataFrame(-1, index=mi.copy(), columns=mi.copy())
+        df = DataFrame(-1, index=mi.copy(), columns=mi.copy())
         for idx in axes:
             df.axes[idx].names = names
 
@@ -1307,7 +1307,7 @@ class TestToLatexMultiindex:
     @pytest.mark.parametrize("one_row", [True, False])
     def test_to_latex_multiindex_nans(self, one_row):
         # GH 14249
-        df = pd.DataFrame({"a": [None, 1], "b": [2, 3], "c": [4, 5]})
+        df = DataFrame({"a": [None, 1], "b": [2, 3], "c": [4, 5]})
         if one_row:
             df = df.iloc[[0]]
         observed = df.set_index(["a", "b"]).to_latex()
@@ -1331,7 +1331,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_non_string_index(self):
         # GH 19981
-        df = pd.DataFrame([[1, 2, 3]] * 2).set_index([0, 1])
+        df = DataFrame([[1, 2, 3]] * 2).set_index([0, 1])
         result = df.to_latex()
         expected = _dedent(
             r"""
