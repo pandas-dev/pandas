@@ -19,7 +19,7 @@ repos:
           - file
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.6.3
+    rev: 5.6.4
     hooks:
     -   id: isort
         name: isort (python)
@@ -27,7 +27,7 @@ repos:
         name: isort (cython)
         types: [cython]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.2
+    rev: v2.7.3
     hooks:
     -   id: pyupgrade
         args: [--py37-plus]
@@ -104,7 +104,7 @@ repos:
     hooks:
     -   id: yesqa
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v3.3.0
     hooks:
     -   id: end-of-file-fixer
         exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$
