@@ -3288,7 +3288,7 @@ Keep all original rows and also all original values
 
         if key:
             good = ~isna(arr)
-            arr[good] = ensure_key_mapped(self[good], key)
+            arr[good] = ensure_key_mapped(self[good], key).values
 
         # GH 35922. Make sorting stable by leveraging nargsort
         sorted_index = nargsort(arr, kind, ascending, na_position)
