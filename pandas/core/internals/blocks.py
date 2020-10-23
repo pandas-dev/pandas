@@ -46,6 +46,7 @@ from pandas.core.dtypes.common import (
     is_re,
     is_re_compilable,
     is_sparse,
+    is_string_like_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
 )
@@ -598,7 +599,7 @@ class Block(PandasObject):
 
         elif (  # GH8628
             is_categorical_dtype(self.values.dtype)
-            and not is_object_dtype(dtype)
+            and not (is_object_dtype(dtype) or is_string_like_dtype(dtype))
             and copy is True
         ):
             return self.make_block(
