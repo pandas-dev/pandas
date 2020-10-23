@@ -256,7 +256,7 @@ class TestPeriodIndex(DatetimeLike):
         ]
 
         periods = list(periodindex)
-        s = pd.Series(periodindex)
+        s = Series(periodindex)
 
         for field in fields:
             field_idx = getattr(periodindex, field)
@@ -307,9 +307,9 @@ class TestPeriodIndex(DatetimeLike):
         period_index = PeriodIndex(p_values)
         object_index = Index(o_values)
 
-        s = pd.Series(values, index=period_index)
+        s = Series(values, index=period_index)
         result = s.reindex(object_index)
-        expected = pd.Series(expected_values, index=object_index)
+        expected = Series(expected_values, index=object_index)
         tm.assert_series_equal(result, expected)
 
     def test_is_(self):

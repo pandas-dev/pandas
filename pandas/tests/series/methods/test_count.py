@@ -7,8 +7,26 @@ import pandas._testing as tm
 
 
 class TestSeriesCount:
+    def test_count_multiindex(self, series_with_multilevel_index):
+        ser = series_with_multilevel_index
+
+        series = ser.copy()
+        series.index.names = ["a", "b"]
+
+        result = series.count(level="b")
+        expect = ser.count(level=1).rename_axis("b")
+        tm.assert_series_equal(result, expect)
+
+        result = series.count(level="a")
+        expect = ser.count(level=0).rename_axis("a")
+        tm.assert_series_equal(result, expect)
+
+        msg = "Level x not found"
+        with pytest.raises(KeyError, match=msg):
+            series.count("x")
+
     def test_count_level_without_multiindex(self):
-        ser = pd.Series(range(3))
+        ser = Series(range(3))
 
         msg = "Series.count level is only valid with a MultiIndex"
         with pytest.raises(ValueError, match=msg):
@@ -33,7 +51,7 @@ class TestSeriesCount:
 
         # GH#29478
         with pd.option_context("use_inf_as_na", True):
-            assert pd.Series([pd.Timestamp("1990/1/1")]).count() == 1
+            assert Series([pd.Timestamp("1990/1/1")]).count() == 1
 
     def test_count_categorical(self):
 
