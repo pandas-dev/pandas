@@ -15,11 +15,8 @@ from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 import pandas as pd
 from pandas import (
     CategoricalIndex,
-    DatetimeIndex,
     MultiIndex,
-    PeriodIndex,
     RangeIndex,
-    TimedeltaIndex,
 )
 import pandas._testing as tm
 
