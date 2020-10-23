@@ -592,7 +592,12 @@ class Block(PandasObject):
 
             if is_categorical_dtype(self.values.dtype):
                 # GH 10696/18593: update an existing categorical efficiently
-                return self.make_block(self.values.astype(dtype, copy=copy))
+                return self.make_block(
+                    Categorical.from_codes(
+                        self.cat.codes, categories=self.cat.categories.astype(dtype)
+                    ),
+                    copy=copy,
+                )
 
             return self.make_block(Categorical(self.values, dtype=dtype))
 
