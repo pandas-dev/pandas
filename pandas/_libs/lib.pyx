@@ -651,6 +651,7 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
 
+    arr = np.asarray(arr)  # PERF: need a numpy array to ensure fast access
     result = np.asarray(arr, dtype="object")
 
     if copy and result is arr:
