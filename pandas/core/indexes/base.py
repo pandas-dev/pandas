@@ -3597,8 +3597,12 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
         # figure out join names
-        self_names = set(com.not_none(*self.names))
-        other_names = set(com.not_none(*other.names))
+        self_names_list = list(com.not_none(*self.names))
+        other_names_list = list(com.not_none(*other.names))
+        self_names_order = self_names_list.index
+        other_names_order = other_names_list.index
+        self_names = set(self_names_list)
+        other_names = set(other_names_list)
         overlap = self_names & other_names
 
         # need at least 1 in common
@@ -3608,8 +3612,8 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
 
             # Drop the non-matching levels from left and right respectively
-            ldrop_names = list(self_names - overlap)
-            rdrop_names = list(other_names - overlap)
+            ldrop_names = sorted(self_names - overlap, key=self_names_order)
+            rdrop_names = sorted(other_names - overlap, key=other_names_order)
 
             # if only the order differs
             if not len(ldrop_names + rdrop_names):
