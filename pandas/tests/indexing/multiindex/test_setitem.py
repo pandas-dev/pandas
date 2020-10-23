@@ -429,9 +429,9 @@ class TestMultiIndexSetItem:
         index = pd.MultiIndex.from_tuples(
             [("a", "c"), ("b", "x"), ("a", "d")], names=["l1", "l2"]
         )
-        df = pd.DataFrame(data=[0, 1, 2], index=index, columns=["e"])
+        df = DataFrame(data=[0, 1, 2], index=index, columns=["e"])
         df.loc["a", "e"] = np.arange(99, 101, dtype="int64")
-        expected = pd.DataFrame({"e": [99, 1, 100]}, index=index)
+        expected = DataFrame({"e": [99, 1, 100]}, index=index)
         tm.assert_frame_equal(df, expected)
 
 

@@ -30,7 +30,7 @@ def arrays_for_binary_ufunc():
 @pytest.mark.parametrize("ufunc", UNARY_UFUNCS)
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 def test_unary_ufunc(ufunc, sparse):
-    # Test that ufunc(Series) == Series(ufunc)
+    # Test that ufunc(pd.Series) == pd.Series(ufunc)
     array = np.random.randint(0, 10, 10, dtype="int64")
     array[::2] = 0
     if sparse:
@@ -49,13 +49,13 @@ def test_unary_ufunc(ufunc, sparse):
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("flip", [True, False], ids=["flipped", "straight"])
 def test_binary_ufunc_with_array(flip, sparse, ufunc, arrays_for_binary_ufunc):
-    # Test that ufunc(Series(a), array) == Series(ufunc(a, b))
+    # Test that ufunc(pd.Series(a), array) == pd.Series(ufunc(a, b))
     a1, a2 = arrays_for_binary_ufunc
     if sparse:
         a1 = SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
         a2 = SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
 
-    name = "name"  # op(Series, array) preserves the name.
+    name = "name"  # op(pd.Series, array) preserves the name.
     series = pd.Series(a1, name=name)
     other = a2
 
@@ -76,14 +76,14 @@ def test_binary_ufunc_with_array(flip, sparse, ufunc, arrays_for_binary_ufunc):
 @pytest.mark.parametrize("flip", [True, False], ids=["flipped", "straight"])
 def test_binary_ufunc_with_index(flip, sparse, ufunc, arrays_for_binary_ufunc):
     # Test that
-    #   * func(Series(a), Series(b)) == Series(ufunc(a, b))
-    #   * ufunc(Index, Series) dispatches to Series (returns a Series)
+    #   * func(pd.Series(a), pd.Series(b)) == pd.Series(ufunc(a, b))
+    #   * ufunc(Index, pd.Series) dispatches to pd.Series (returns a pd.Series)
     a1, a2 = arrays_for_binary_ufunc
     if sparse:
         a1 = SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
         a2 = SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
 
-    name = "name"  # op(Series, array) preserves the name.
+    name = "name"  # op(pd.Series, array) preserves the name.
     series = pd.Series(a1, name=name)
     other = pd.Index(a2, name=name).astype("int64")
 
@@ -107,14 +107,14 @@ def test_binary_ufunc_with_series(
     flip, shuffle, sparse, ufunc, arrays_for_binary_ufunc
 ):
     # Test that
-    #   * func(Series(a), Series(b)) == Series(ufunc(a, b))
+    #   * func(pd.Series(a), pd.Series(b)) == pd.Series(ufunc(a, b))
     #   with alignment between the indices
     a1, a2 = arrays_for_binary_ufunc
     if sparse:
         a1 = SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
         a2 = SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
 
-    name = "name"  # op(Series, array) preserves the name.
+    name = "name"  # op(pd.Series, array) preserves the name.
     series = pd.Series(a1, name=name)
     other = pd.Series(a2, name=name)
 
@@ -146,8 +146,8 @@ def test_binary_ufunc_with_series(
 @pytest.mark.parametrize("flip", [True, False])
 def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
     # Test that
-    #   * ufunc(Series, scalar) == Series(ufunc(array, scalar))
-    #   * ufunc(Series, scalar) == ufunc(scalar, Series)
+    #   * ufunc(pd.Series, scalar) == pd.Series(ufunc(array, scalar))
+    #   * ufunc(pd.Series, scalar) == ufunc(scalar, pd.Series)
     array, _ = arrays_for_binary_ufunc
     if sparse:
         array = SparseArray(array)
