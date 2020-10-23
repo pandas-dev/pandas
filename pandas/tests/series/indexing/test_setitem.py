@@ -4,7 +4,10 @@ import numpy as np
 import pytest
 
 from pandas import MultiIndex, NaT, Series, Timestamp, date_range, period_range
+from pandas.core.indexing import IndexingError
 import pandas.testing as tm
+
+from pandas.tseries.offsets import BDay
 
 
 class TestSetitemDT64Values:
@@ -61,3 +64,46 @@ class TestSetitemPeriodDtype:
 
         ser[3:5] = na_val
         assert ser[4] is NaT
+
+
+class TestSetitemBooleanMask:
+    def test_setitem_boolean(self, string_series):
+        mask = string_series > string_series.median()
+
+        # similar indexed series
+        result = string_series.copy()
+        result[mask] = string_series * 2
+        expected = string_series * 2
+        tm.assert_series_equal(result[mask], expected[mask])
+
+        # needs alignment
+        result = string_series.copy()
+        result[mask] = (string_series * 2)[0:5]
+        expected = (string_series * 2)[0:5].reindex_like(string_series)
+        expected[-mask] = string_series[mask]
+        tm.assert_series_equal(result[mask], expected[mask])
+
+    def test_setitem_boolean_corner(self, datetime_series):
+        ts = datetime_series
+        mask_shifted = ts.shift(1, freq=BDay()) > ts.median()
+
+        msg = (
+            r"Unalignable boolean Series provided as indexer \(index of "
+            r"the boolean Series and of the indexed object do not match"
+        )
+        with pytest.raises(IndexingError, match=msg):
+            ts[mask_shifted] = 1
+
+        with pytest.raises(IndexingError, match=msg):
+            ts.loc[mask_shifted] = 1
+
+    def test_setitem_boolean_different_order(self, string_series):
+        ordered = string_series.sort_values()
+
+        copy = string_series.copy()
+        copy[ordered > 0] = 0
+
+        expected = string_series.copy()
+        expected[expected > 0] = 0
+
+        tm.assert_series_equal(copy, expected)

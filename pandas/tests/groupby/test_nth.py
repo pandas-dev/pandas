@@ -66,7 +66,7 @@ def test_first_last_with_na_object(method, nulls_fixture):
         values = [2, 3]
 
     values = np.array(values, dtype=result["b"].dtype)
-    idx = pd.Index([1, 2], name="a")
+    idx = Index([1, 2], name="a")
     expected = DataFrame({"b": values}, index=idx)
 
     tm.assert_frame_equal(result, expected)
@@ -84,7 +84,7 @@ def test_nth_with_na_object(index, nulls_fixture):
         values = [2, nulls_fixture]
 
     values = np.array(values, dtype=result["b"].dtype)
-    idx = pd.Index([1, 2], name="a")
+    idx = Index([1, 2], name="a")
     expected = DataFrame({"b": values}, index=idx)
 
     tm.assert_frame_equal(result, expected)
@@ -398,7 +398,7 @@ def test_first_last_tz_multi_column(method, ts, alpha):
             ),
             "datetimetz": [ts, Timestamp("2013-01-03", tz="US/Eastern")],
         },
-        index=pd.Index([1, 2], name="group"),
+        index=Index([1, 2], name="group"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -496,9 +496,7 @@ def test_groupby_head_tail():
     tm.assert_frame_equal(df.loc[[0, 2]], g_not_as.head(1))
     tm.assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
 
-    empty_not_as = DataFrame(
-        columns=df.columns, index=pd.Index([], dtype=df.index.dtype)
-    )
+    empty_not_as = DataFrame(columns=df.columns, index=Index([], dtype=df.index.dtype))
     empty_not_as["A"] = empty_not_as["A"].astype(df.A.dtype)
     empty_not_as["B"] = empty_not_as["B"].astype(df.B.dtype)
     tm.assert_frame_equal(empty_not_as, g_not_as.head(0))
