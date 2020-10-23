@@ -971,7 +971,6 @@ class DataFrame(NDFrame, OpsMixin):
         data : Series
             The data of the row as a Series.
 
-
         See Also
         --------
         DataFrame.itertuples : Iterate over DataFrame rows as namedtuples of the values.
