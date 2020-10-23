@@ -65,21 +65,6 @@ def test_dti_reset_index_round_trip():
     assert df.reset_index()["Date"][0] == stamp
 
 
-def test_series_set_value():
-    # #1561
-
-    dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
-    index = DatetimeIndex(dates)
-
-    s = Series(dtype=object)
-    s._set_value(dates[0], 1.0)
-    s._set_value(dates[1], np.nan)
-
-    expected = Series([1.0, np.nan], index=index)
-
-    tm.assert_series_equal(s, expected)
-
-
 @pytest.mark.slow
 def test_slice_locs_indexerror():
     times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10) for i in range(100000)]

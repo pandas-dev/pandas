@@ -2780,7 +2780,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
-            values are 0, 1, 2, 3, 4. A negative value for the protocol
+            values are 0, 1, 2, 3, 4, 5. A negative value for the protocol
             parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html.
@@ -3684,7 +3684,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index = self.index
         if isinstance(index, MultiIndex):
             try:
-                loc, new_index = self.index.get_loc_level(key, drop_level=drop_level)
+                loc, new_index = self.index._get_loc_level(
+                    key, level=0, drop_level=drop_level
+                )
             except TypeError as e:
                 raise TypeError(f"Expected label or tuple of labels, got {key}") from e
         else:
