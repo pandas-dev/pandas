@@ -1095,7 +1095,7 @@ class TestCanHoldElement:
         assert not block._can_hold_element(val)
 
         msg = (
-            "'value' should be a 'Timestamp', 'NaT', "
+            "value should be a 'Timestamp', 'NaT', "
             "or array of those. Got 'date' instead."
         )
         with pytest.raises(TypeError, match=msg):
@@ -1140,7 +1140,7 @@ class TestCanHoldElement:
             pytest.skip(f"Invalid combination {op},{dtype}")
 
         e = DummyElement(value, dtype)
-        s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+        s = DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
 
         invalid = {
             (operator.pow, "<M8[ns]"),
@@ -1176,7 +1176,7 @@ class TestCanHoldElement:
 class TestShouldStore:
     def test_should_store_categorical(self):
         cat = pd.Categorical(["A", "B", "C"])
-        df = pd.DataFrame(cat)
+        df = DataFrame(cat)
         blk = df._mgr.blocks[0]
 
         # matching dtype
@@ -1216,8 +1216,8 @@ def test_validate_ndim():
 
 def test_block_shape():
     idx = pd.Index([0, 1, 2, 3, 4])
-    a = pd.Series([1, 2, 3]).reindex(idx)
-    b = pd.Series(pd.Categorical([1, 2, 3])).reindex(idx)
+    a = Series([1, 2, 3]).reindex(idx)
+    b = Series(pd.Categorical([1, 2, 3])).reindex(idx)
 
     assert a._mgr.blocks[0].mgr_locs.indexer == b._mgr.blocks[0].mgr_locs.indexer
 
@@ -1244,8 +1244,8 @@ def test_make_block_no_pandas_array():
 
 def test_dataframe_not_equal():
     # see GH28839
-    df1 = pd.DataFrame({"a": [1, 2], "b": ["s", "d"]})
-    df2 = pd.DataFrame({"a": ["s", "d"], "b": [1, 2]})
+    df1 = DataFrame({"a": [1, 2], "b": ["s", "d"]})
+    df2 = DataFrame({"a": ["s", "d"], "b": [1, 2]})
     assert df1.equals(df2) is False
 
 
@@ -1285,7 +1285,7 @@ def test_interleave_non_unique_cols():
 
 def test_single_block_manager_fastpath_deprecated():
     # GH#33092
-    ser = pd.Series(range(3))
+    ser = Series(range(3))
     blk = ser._data.blocks[0]
     with tm.assert_produces_warning(FutureWarning):
         SingleBlockManager(blk, ser.index, fastpath=True)

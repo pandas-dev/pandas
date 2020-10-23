@@ -133,7 +133,7 @@ class TestDataFrameToCSV:
         with tm.ensure_clean("__tmp_to_csv_from_csv4__") as path:
             # GH 10833 (TimedeltaIndex formatting)
             dt = pd.Timedelta(seconds=1)
-            df = pd.DataFrame(
+            df = DataFrame(
                 {"dt_data": [i * dt for i in range(3)]},
                 index=pd.Index([i * dt for i in range(3)], name="dt_index"),
             )
@@ -1257,7 +1257,7 @@ class TestDataFrameToCSV:
 
         # xref gh-7791: make sure the quoting parameter is passed through
         # with multi-indexes
-        df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]})
+        df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]})
         df = df.set_index(["a", "b"])
 
         expected_rows = ['"a","b","c"', '"1","3","5"', '"2","4","6"']
@@ -1270,7 +1270,7 @@ class TestDataFrameToCSV:
         dates = ["1990-01-01", "2000-01-01", "3005-01-01"]
         index = pd.PeriodIndex(dates, freq="D")
 
-        df = pd.DataFrame([4, 5, 6], index=index)
+        df = DataFrame([4, 5, 6], index=index)
         result = df.to_csv()
 
         expected_rows = [",0", "1990-01-01,4", "2000-01-01,5", "3005-01-01,6"]
@@ -1288,7 +1288,7 @@ class TestDataFrameToCSV:
         dates = ["1990-01-01", pd.NaT, "3005-01-01"]
         index = pd.PeriodIndex(dates, freq="D")
 
-        df = pd.DataFrame([4, 5, 6], index=index)
+        df = DataFrame([4, 5, 6], index=index)
         result = df.to_csv()
 
         expected_rows = [",0", "1990-01-01,4", ",5", "3005-01-01,6"]
@@ -1298,7 +1298,7 @@ class TestDataFrameToCSV:
     def test_multi_index_header(self):
         # see gh-5539
         columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1), ("b", 2)])
-        df = pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
+        df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
         df.columns = columns
 
         header = ["a", "b", "c", "d"]
@@ -1311,7 +1311,7 @@ class TestDataFrameToCSV:
     def test_to_csv_single_level_multi_index(self):
         # see gh-26303
         index = pd.Index([(1,), (2,), (3,)])
-        df = pd.DataFrame([[1, 2, 3]], columns=index)
+        df = DataFrame([[1, 2, 3]], columns=index)
         df = df.reindex(columns=[(1,), (3,)])
         expected = ",1,3\n0,1,3\n"
         result = df.to_csv(line_terminator="\n")
@@ -1319,7 +1319,7 @@ class TestDataFrameToCSV:
 
     def test_gz_lineend(self):
         # GH 25311
-        df = pd.DataFrame({"a": [1, 2]})
+        df = DataFrame({"a": [1, 2]})
         expected_rows = ["a", "1", "2"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         with tm.ensure_clean("__test_gz_lineend.csv.gz") as path:

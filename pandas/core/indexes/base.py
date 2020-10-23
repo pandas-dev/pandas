@@ -65,7 +65,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
-    ABCCategorical,
     ABCDatetimeIndex,
     ABCMultiIndex,
     ABCPandasArray,
@@ -83,6 +82,7 @@ from pandas.core.arrays import Categorical, ExtensionArray
 from pandas.core.arrays.datetimes import tz_to_dtype, validate_tz_from_dtype
 from pandas.core.base import IndexOpsMixin, PandasObject
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.ops import get_op_result_name
@@ -220,7 +220,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ = "index"
     _data: Union[ExtensionArray, np.ndarray]
-    _id: _Identity
+    _id: Optional[_Identity] = None
     _name: Label = None
     # MultiIndex.levels previously allowed setting the index name. We
     # don't allow this anymore, and raise if it happens rather than
@@ -541,10 +541,14 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.identical : Works like ``Index.is_`` but also checks metadata.
         """
-        try:
-            return self._id is other._id
-        except AttributeError:
+        if self is other:
+            return True
+        elif not hasattr(other, "_id"):
             return False
+        elif com.any_none(self._id, other._id):
+            return False
+        else:
+            return self._id is other._id
 
     def _reset_identity(self) -> None:
         """
@@ -1552,12 +1556,19 @@ class Index(IndexOpsMixin, PandasObject):
 
         levnums = sorted(self._get_level_number(lev) for lev in level)[::-1]
 
-        if len(level) == 0:
+        return self._drop_level_numbers(levnums)
+
+    def _drop_level_numbers(self, levnums: List[int]):
+        """
+        Drop MultiIndex levels by level _number_, not name.
+        """
+
+        if len(levnums) == 0:
             return self
-        if len(level) >= self.nlevels:
+        if len(levnums) >= self.nlevels:
             raise ValueError(
-                f"Cannot remove {len(level)} levels from an index with {self.nlevels} "
-                "levels: at least one level must be left."
+                f"Cannot remove {len(levnums)} levels from an index with "
+                f"{self.nlevels} levels: at least one level must be left."
             )
         # The two checks above guarantee that here self is a MultiIndex
         self = cast("MultiIndex", self)
@@ -3586,8 +3597,12 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.core.reshape.merge import restore_dropped_levels_multijoin
 
         # figure out join names
-        self_names = set(com.not_none(*self.names))
-        other_names = set(com.not_none(*other.names))
+        self_names_list = list(com.not_none(*self.names))
+        other_names_list = list(com.not_none(*other.names))
+        self_names_order = self_names_list.index
+        other_names_order = other_names_list.index
+        self_names = set(self_names_list)
+        other_names = set(other_names_list)
         overlap = self_names & other_names
 
         # need at least 1 in common
@@ -3597,8 +3612,8 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
 
             # Drop the non-matching levels from left and right respectively
-            ldrop_names = list(self_names - overlap)
-            rdrop_names = list(other_names - overlap)
+            ldrop_names = sorted(self_names - overlap, key=self_names_order)
+            rdrop_names = sorted(other_names - overlap, key=other_names_order)
 
             # if only the order differs
             if not len(ldrop_names + rdrop_names):
@@ -4994,7 +5009,7 @@ class Index(IndexOpsMixin, PandasObject):
             self._validate_index_level(level)
         return algos.isin(self, values)
 
-    def _get_string_slice(self, key: str_t, use_lhs: bool = True, use_rhs: bool = True):
+    def _get_string_slice(self, key: str_t):
         # this is for partial string indexing,
         # overridden in DatetimeIndex, TimedeltaIndex and PeriodIndex
         raise NotImplementedError
@@ -5376,11 +5391,13 @@ class Index(IndexOpsMixin, PandasObject):
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
-        if is_object_dtype(self.dtype) and isinstance(other, ABCCategorical):
-            left = type(other)(self._values, dtype=other.dtype)
-            return op(left, other)
-        elif is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
-            # e.g. PeriodArray
+        if not isinstance(other, ABCMultiIndex):
+            other = extract_array(other, extract_numpy=True)
+        else:
+            other = np.asarray(other)
+
+        if is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
+            # e.g. PeriodArray, Categorical
             with np.errstate(all="ignore"):
                 result = op(self._values, other)
 
@@ -5395,7 +5412,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             with np.errstate(all="ignore"):
-                result = ops.comparison_op(self._values, np.asarray(other), op)
+                result = ops.comparison_op(self._values, other, op)
 
         return result
 
