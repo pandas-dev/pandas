@@ -791,15 +791,15 @@ def _join_by_hand(a, b, how="left"):
 
 def test_join_inner_multiindex_deterministic_order():
     # GH: 36910
-    left = pd.DataFrame(
+    left = DataFrame(
         data={"e": 5},
         index=pd.MultiIndex.from_tuples([(1, 2, 4)], names=("a", "b", "d")),
     )
-    right = pd.DataFrame(
+    right = DataFrame(
         data={"f": 6}, index=pd.MultiIndex.from_tuples([(2, 3)], names=("b", "c"))
     )
     result = left.join(right, how="inner")
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"e": [5], "f": [6]},
         index=pd.MultiIndex.from_tuples([(2, 1, 4, 3)], names=("b", "a", "d", "c")),
     )
