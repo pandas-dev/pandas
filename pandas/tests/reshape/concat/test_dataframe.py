@@ -1,10 +1,8 @@
-from datetime import datetime
-
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, date_range
+from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 
 
@@ -20,67 +18,6 @@ class TestDataFrameConcat:
             index=["foo", "bar", 0, 1],
         )
         tm.assert_series_equal(results, expected)
-
-    def test_concat_multiple_tzs(self):
-        # GH#12467
-        # combining datetime tz-aware and naive DataFrames
-        ts1 = Timestamp("2015-01-01", tz=None)
-        ts2 = Timestamp("2015-01-01", tz="UTC")
-        ts3 = Timestamp("2015-01-01", tz="EST")
-
-        df1 = DataFrame(dict(time=[ts1]))
-        df2 = DataFrame(dict(time=[ts2]))
-        df3 = DataFrame(dict(time=[ts3]))
-
-        results = pd.concat([df1, df2]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts1, ts2]), dtype=object)
-        tm.assert_frame_equal(results, expected)
-
-        results = pd.concat([df1, df3]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts1, ts3]), dtype=object)
-        tm.assert_frame_equal(results, expected)
-
-        results = pd.concat([df2, df3]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts2, ts3]))
-        tm.assert_frame_equal(results, expected)
-
-    @pytest.mark.parametrize(
-        "t1",
-        [
-            "2015-01-01",
-            pytest.param(
-                pd.NaT,
-                marks=pytest.mark.xfail(
-                    reason="GH23037 incorrect dtype when concatenating"
-                ),
-            ),
-        ],
-    )
-    def test_concat_tz_NaT(self, t1):
-        # GH#22796
-        # Concating tz-aware multicolumn DataFrames
-        ts1 = Timestamp(t1, tz="UTC")
-        ts2 = Timestamp("2015-01-01", tz="UTC")
-        ts3 = Timestamp("2015-01-01", tz="UTC")
-
-        df1 = DataFrame([[ts1, ts2]])
-        df2 = DataFrame([[ts3]])
-
-        result = pd.concat([df1, df2])
-        expected = DataFrame([[ts1, ts2], [ts3, pd.NaT]], index=[0, 0])
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_concat_tz_not_aligned(self):
-        # GH#22796
-        ts = pd.to_datetime([1, 2]).tz_localize("UTC")
-        a = DataFrame({"A": ts})
-        b = DataFrame({"A": ts, "B": ts})
-        result = pd.concat([a, b], sort=True, ignore_index=True)
-        expected = DataFrame(
-            {"A": list(ts) + list(ts), "B": [pd.NaT, pd.NaT] + list(ts)}
-        )
-        tm.assert_frame_equal(result, expected)
 
     def test_concat_tuple_keys(self):
         # GH#14438
@@ -220,17 +157,3 @@ class TestDataFrameConcat:
             np.array(["b", "b"]).reshape(1, 2), columns=["a", "a"]
         ).astype("category")
         tm.assert_frame_equal(result, expected)
-
-    def test_concat_datetime_datetime64_frame(self):
-        # GH#2624
-        rows = []
-        rows.append([datetime(2010, 1, 1), 1])
-        rows.append([datetime(2010, 1, 2), "hi"])
-
-        df2_obj = DataFrame.from_records(rows, columns=["date", "test"])
-
-        ind = date_range(start="2000/1/1", freq="D", periods=10)
-        df1 = DataFrame({"date": ind, "test": range(10)})
-
-        # it works!
-        pd.concat([df1, df2_obj])
