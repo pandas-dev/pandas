@@ -25,7 +25,7 @@ class TestSeriesApply:
             )
 
         # empty series
-        s = Series(dtype=object, name="foo", index=pd.Index([], name="bar"))
+        s = Series(dtype=object, name="foo", index=Index([], name="bar"))
         rs = s.apply(lambda x: x)
         tm.assert_series_equal(s, rs)
 
