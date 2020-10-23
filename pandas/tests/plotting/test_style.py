@@ -1,16 +1,11 @@
-from contextlib import suppress
-
 import pytest
-
-import pandas.util._test_decorators as td
 
 from pandas import Series
 
-with suppress(ImportError):
-    from pandas.plotting._matplotlib.style import get_standard_colors
+pytest.importorskip("matplotlib")
+from pandas.plotting._matplotlib.style import get_standard_colors
 
 
-@td.skip_if_no_mpl
 class TestGetStandardColors:
     @pytest.mark.parametrize(
         "num_colors, expected",
