@@ -2,12 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    Series,
-)
+from pandas import Categorical, DataFrame, Index, Series
 import pandas._testing as tm
 
 
