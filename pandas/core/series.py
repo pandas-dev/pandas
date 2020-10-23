@@ -4640,7 +4640,7 @@ Keep all original rows and also all original values
             Series.memory_usage: Memory usage of Series."""
         ),
     )
-    @doc(BaseInfo.to_buffer)
+    @doc(BaseInfo.render)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -4649,13 +4649,9 @@ Keep all original rows and also all original values
         memory_usage: Optional[Union[bool, str]] = None,
         null_counts: bool = True,
     ) -> None:
-        if max_cols is not None:
-            raise ValueError(
-                "Argument `max_cols` can only be passed "
-                "in DataFrame.info, not Series.info"
-            )
-        return SeriesInfo(self, memory_usage).to_buffer(
+        return SeriesInfo(self, memory_usage).render(
             buf=buf,
+            max_cols=max_cols,
             verbose=verbose,
             show_counts=null_counts,
         )

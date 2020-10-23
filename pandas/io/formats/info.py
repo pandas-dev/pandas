@@ -160,7 +160,14 @@ class BaseInfo(ABC):
         return size_qualifier
 
     @abstractmethod
-    def to_buffer():
+    def render(
+        self,
+        *,
+        buf: Optional[IO[str]],
+        max_cols: Optional[int],
+        verbose: Optional[bool],
+        show_counts: Optional[bool],
+    ) -> None:
         """
         Print a concise summary of a %(klass)s.
 
@@ -266,7 +273,7 @@ class DataFrameInfo(BaseInfo):
             deep = False
         return self.data.memory_usage(index=True, deep=deep).sum()
 
-    def to_buffer(
+    def render(
         self,
         *,
         buf: Optional[IO[str]],
@@ -296,15 +303,19 @@ class SeriesInfo(BaseInfo):
         self.data: "Series" = data
         self.memory_usage = _initialize_memory_usage(memory_usage)
 
-    def to_buffer(
+    def render(
         self,
         *,
         buf: Optional[IO[str]],
+        max_cols: Optional[int],
         verbose: Optional[bool],
         show_counts: Optional[bool],
     ) -> None:
-        """
-        """
+        if max_cols is not None:
+            raise ValueError(
+                "Argument `max_cols` can only be passed "
+                "in DataFrame.info, not Series.info"
+            )
         printer = SeriesInfoPrinter(
             info=self,
             verbose=verbose,

@@ -2614,7 +2614,7 @@ class DataFrame(NDFrame, OpsMixin):
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
     )
-    @doc(BaseInfo.to_buffer)
+    @doc(BaseInfo.render)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -2627,7 +2627,7 @@ class DataFrame(NDFrame, OpsMixin):
             data=self,
             memory_usage=memory_usage,
         )
-        info.to_buffer(
+        info.render(
             buf=buf,
             max_cols=max_cols,
             verbose=verbose,
