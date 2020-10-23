@@ -34,7 +34,7 @@ from pytz import FixedOffset, utc
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import Index, MultiIndex
@@ -361,6 +361,19 @@ def multiindex_year_month_day_dataframe_random_data():
     return ymd
 
 
+@pytest.fixture
+def multiindex_dataframe_random_data():
+    """DataFrame with 2 level MultiIndex with random data"""
+    index = MultiIndex(
+        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+        names=["first", "second"],
+    )
+    return DataFrame(
+        np.random.randn(10, 3), index=index, columns=Index(["A", "B", "C"], name="exp")
+    )
+
+
 def _create_multiindex():
     """
     MultiIndex used to test the general functionality of this object
@@ -514,6 +527,23 @@ def series_with_simple_index(index):
     Fixture for tests on series with changing types of indices.
     """
     return _create_series(index)
+
+
+@pytest.fixture
+def series_with_multilevel_index():
+    """
+    Fixture with a Series with a 2-level MultiIndex.
+    """
+    arrays = [
+        ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
+        ["one", "two", "one", "two", "one", "two", "one", "two"],
+    ]
+    tuples = zip(*arrays)
+    index = MultiIndex.from_tuples(tuples)
+    data = np.random.randn(8)
+    ser = Series(data, index=index)
+    ser[3] = np.NaN
+    return ser
 
 
 _narrow_dtypes = [

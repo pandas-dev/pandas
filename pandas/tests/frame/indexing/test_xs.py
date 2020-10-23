@@ -3,8 +3,7 @@ import re
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
@@ -53,13 +52,13 @@ class TestXS:
         df["E"] = 3.0
 
         xs = df.xs(0)
-        exp = pd.Series([1.0, "foo", 2.0, "bar", 3.0], index=list("ABCDE"), name=0)
+        exp = Series([1.0, "foo", 2.0, "bar", 3.0], index=list("ABCDE"), name=0)
         tm.assert_series_equal(xs, exp)
 
         # no columns but Index(dtype=object)
         df = DataFrame(index=["a", "b", "c"])
         result = df.xs("a")
-        expected = Series([], name="a", index=pd.Index([]), dtype=np.float64)
+        expected = Series([], name="a", index=Index([]), dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
     def test_xs_duplicates(self):

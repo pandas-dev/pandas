@@ -2,7 +2,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalDtype, DataFrame, Index, IntervalIndex, MultiIndex, Series
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+    Index,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -352,7 +360,7 @@ class TestDataFrameSortIndex:
         expected_mi = MultiIndex.from_tuples(
             [[1, 1, 1], [2, 1, 2], [2, 1, 3]], names=list("ABC")
         )
-        expected = pd.DataFrame([[5, 6], [3, 4], [1, 2]], index=expected_mi)
+        expected = DataFrame([[5, 6], [3, 4], [1, 2]], index=expected_mi)
         result = df.sort_index(level=level)
         tm.assert_frame_equal(result, expected)
 
@@ -360,7 +368,7 @@ class TestDataFrameSortIndex:
         expected_mi = MultiIndex.from_tuples(
             [[1, 1, 1], [2, 1, 3], [2, 1, 2]], names=list("ABC")
         )
-        expected = pd.DataFrame([[5, 6], [1, 2], [3, 4]], index=expected_mi)
+        expected = DataFrame([[5, 6], [1, 2], [3, 4]], index=expected_mi)
         result = df.sort_index(level=level, sort_remaining=False)
         tm.assert_frame_equal(result, expected)
 
@@ -662,6 +670,72 @@ class TestDataFrameSortIndex:
             sorted_after.drop([("foo", "three")], axis=1),
         )
 
+    def test_sort_index_preserve_levels(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        result = frame.sort_index()
+        assert result.index.names == frame.index.names
+
+    @pytest.mark.parametrize(
+        "gen,extra",
+        [
+            ([1.0, 3.0, 2.0, 5.0], 4.0),
+            ([1, 3, 2, 5], 4),
+            (
+                [
+                    Timestamp("20130101"),
+                    Timestamp("20130103"),
+                    Timestamp("20130102"),
+                    Timestamp("20130105"),
+                ],
+                Timestamp("20130104"),
+            ),
+            (["1one", "3one", "2one", "5one"], "4one"),
+        ],
+    )
+    def test_sort_index_multilevel_repr_8017(self, gen, extra):
+
+        np.random.seed(0)
+        data = np.random.randn(3, 4)
+
+        columns = MultiIndex.from_tuples([("red", i) for i in gen])
+        df = DataFrame(data, index=list("def"), columns=columns)
+        df2 = pd.concat(
+            [
+                df,
+                DataFrame(
+                    "world",
+                    index=list("def"),
+                    columns=MultiIndex.from_tuples([("red", extra)]),
+                ),
+            ],
+            axis=1,
+        )
+
+        # check that the repr is good
+        # make sure that we have a correct sparsified repr
+        # e.g. only 1 header of read
+        assert str(df2).splitlines()[0].split() == ["red"]
+
+        # GH 8017
+        # sorting fails after columns added
+
+        # construct single-dtype then sort
+        result = df.copy().sort_index(axis=1)
+        expected = df.iloc[:, [0, 2, 1, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        result = df2.sort_index(axis=1)
+        expected = df2.iloc[:, [0, 2, 1, 4, 3]]
+        tm.assert_frame_equal(result, expected)
+
+        # setitem then sort
+        result = df.copy()
+        result[("red", extra)] = "world"
+
+        result = result.sort_index(axis=1)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSortIndexKey:
     def test_sort_multi_index_key(self):
@@ -736,14 +810,14 @@ class TestDataFrameSortIndexKey:
         tm.assert_frame_equal(result, expected)
 
     def test_changes_length_raises(self):
-        df = pd.DataFrame({"A": [1, 2, 3]})
+        df = DataFrame({"A": [1, 2, 3]})
         with pytest.raises(ValueError, match="change the shape"):
             df.sort_index(key=lambda x: x[:1])
 
     def test_sort_index_multiindex_sparse_column(self):
         # GH 29735, testing that sort_index on a multiindexed frame with sparse
         # columns fills with 0.
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 i: pd.array([0.0, 0.0, 0.0, 0.0], dtype=pd.SparseDtype("float64", 0.0))
                 for i in range(0, 4)

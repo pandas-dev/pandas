@@ -1,18 +1,11 @@
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, date_range, to_datetime
+from pandas import DataFrame, to_datetime
 import pandas._testing as tm
 
 
 class TestDataFrameTimeSeriesMethods:
-    def test_frame_ctor_datetime64_column(self):
-        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
-        dates = np.asarray(rng)
-
-        df = DataFrame({"A": np.random.randn(len(rng)), "B": dates})
-        assert np.issubdtype(df["B"].dtype, np.dtype("M8[ns]"))
-
     def test_frame_append_datetime64_col_other_units(self):
         n = 100
 
@@ -52,14 +45,10 @@ class TestDataFrameTimeSeriesMethods:
         data_ns = np.array([1, "nat"], dtype="datetime64[ns]")
         result = pd.Series(data_ns).to_frame()
         result["new"] = data_ns
-        expected = pd.DataFrame(
-            {0: [1, None], "new": [1, None]}, dtype="datetime64[ns]"
-        )
+        expected = DataFrame({0: [1, None], "new": [1, None]}, dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
         # OutOfBoundsDatetime error shouldn't occur
         data_s = np.array([1, "nat"], dtype="datetime64[s]")
         result["new"] = data_s
-        expected = pd.DataFrame(
-            {0: [1, None], "new": [1e9, None]}, dtype="datetime64[ns]"
-        )
+        expected = DataFrame({0: [1, None], "new": [1e9, None]}, dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
