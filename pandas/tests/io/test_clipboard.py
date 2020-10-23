@@ -38,11 +38,11 @@ def df(request):
     data_type = request.param
 
     if data_type == "delims":
-        return pd.DataFrame({"a": ['"a,\t"b|c', "d\tef´"], "b": ["hi'j", "k''lm"]})
+        return DataFrame({"a": ['"a,\t"b|c', "d\tef´"], "b": ["hi'j", "k''lm"]})
     elif data_type == "utf8":
-        return pd.DataFrame({"a": ["µasd", "Ωœ∑´"], "b": ["øπ∆˚¬", "œ∑´®"]})
+        return DataFrame({"a": ["µasd", "Ωœ∑´"], "b": ["øπ∆˚¬", "œ∑´®"]})
     elif data_type == "utf16":
-        return pd.DataFrame(
+        return DataFrame(
             {"a": ["\U0001f44d\U0001f44d", "\U0001f44d\U0001f44d"], "b": ["abc", "def"]}
         )
     elif data_type == "string":
@@ -61,7 +61,7 @@ def df(request):
             r_idx_names=[None],
         )
     elif data_type == "nonascii":
-        return pd.DataFrame({"en": "in English".split(), "es": "en español".split()})
+        return DataFrame({"en": "in English".split(), "es": "en español".split()})
     elif data_type == "colwidth":
         _cw = get_option("display.max_colwidth") + 1
         return tm.makeCustomDataframe(
