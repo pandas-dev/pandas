@@ -13,11 +13,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.core.dtypes.common import is_period_dtype, needs_i8_conversion
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    MultiIndex,
-    RangeIndex,
-)
+from pandas import CategoricalIndex, MultiIndex, RangeIndex
 import pandas._testing as tm
 
 
