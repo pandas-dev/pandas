@@ -3292,6 +3292,8 @@ Keep all original rows and also all original values
                 arr = ensure_key_mapped(self, key)._values
             else:
                 good = ~isna(arr)
+                keyed = ensure_key_mapped(self[good], key)._values
+                arr = arr.astype(keyed.dtype)
                 arr[good] = ensure_key_mapped(self[good], key)._values
 
         # GH 35922. Make sorting stable by leveraging nargsort
