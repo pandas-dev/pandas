@@ -1050,6 +1050,7 @@ _TYPE_MAP = {
     "M": "datetime64",
     "timedelta64[ns]": "timedelta64",
     "m": "timedelta64",
+    "period": "period",
     "interval": "interval",
 }
 
@@ -1203,9 +1204,14 @@ cdef object _try_infer_map(object dtype):
         object val
         str attr
     for attr in ["name", "kind", "base"]:
-        val = getattr(dtype, attr)
+        val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
+        # also check base name for parametrized dtypes (eg period[D])
+        if isinstance(val, str):
+            val = val.split("[")[0]
+            if val in _TYPE_MAP:
+                return _TYPE_MAP[val]
     return None
 
 
@@ -1324,12 +1330,12 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # e.g. categoricals
         dtype = value.dtype
         if not isinstance(dtype, np.dtype):
-            value = _try_infer_map(value.dtype)
-            if value is not None:
-                return value
+            inferred = _try_infer_map(value.dtype)
+            if inferred is not None:
+                return inferred
 
             # its ndarray-like but we can't handle
-            raise ValueError(f"cannot infer type for {type(value)}")
+            values = np.asarray(value)
 
         # Unwrap Series/Index
         values = np.asarray(value)

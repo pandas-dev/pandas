@@ -123,3 +123,11 @@ class BaseDtypeTests(BaseExtensionTests):
         # still testing as good practice to have this working (and it is the
         # only case we can test in general)
         assert dtype._get_common_dtype([dtype]) == dtype
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_infer_dtype(self, data, data_missing, skipna):
+        # only testing that this works without raising an error
+        res = pd.api.types.infer_dtype(data, skipna=skipna)
+        assert isinstance(res, str)
+        res = pd.api.types.infer_dtype(data_missing, skipna=skipna)
+        assert isinstance(res, str)

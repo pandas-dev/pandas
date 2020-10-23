@@ -116,6 +116,13 @@ class TestDtype(BaseDecimal, base.BaseDtypeTests):
     def test_hashable(self, dtype):
         pass
 
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_infer_dtype(self, data, data_missing, skipna):
+        # here overriding base test to ensure we fall back to inferring the
+        # array elements for external EAs (which here are recognized as decimals)
+        assert pd.api.types.infer_dtype(data, skipna=skipna) == "decimal"
+        assert pd.api.types.infer_dtype(data_missing, skipna=skipna) == "decimal"
+
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
     pass
