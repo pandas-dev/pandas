@@ -696,6 +696,7 @@ class TestDatetimeArray(SharedTests):
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
         if arr.tz is not None:
+            # GH#37356
             # Assuming here that arr1d fixture does not include Australia/Melbourne
             value = Timestamp.now().tz_localize("Australia/Melbourne")
             msg = "Timezones don't match. .* != 'Australia/Melbourne'"
