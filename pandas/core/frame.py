@@ -5535,8 +5535,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts()
         num_legs  num_wings
         4         0            2
-        6         0            1
         2         2            1
+        6         0            1
         dtype: int64
 
         >>> df.value_counts(sort=False)
