@@ -2033,9 +2033,13 @@ c  10  11  12  13  14\
         "length, max_rows, min_rows, expected",
         [
             (10, 10, 10, 10),
-            (20, 30, 10, 30),
-            (50, 30, 10, 10),
-            (100, 60, 10, 10),
+            (10, 10, None, 10),
+            (10, 8, None, 8),
+            (20, 30, 10, 30),  # max_rows > len(frame), hence max_rows
+            (50, 30, 10, 10),  # max_rows < len(frame), hence min_rows
+            (100, 60, 10, 10),  # same
+            (60, 60, 10, 60),  # edge case
+            (61, 60, 10, 10),  # edge case
         ],
     )
     def test_max_rows_fitted(self, length, min_rows, max_rows, expected):
@@ -2047,7 +2051,7 @@ c  10  11  12  13  14\
         https://pandas.pydata.org/docs/dev/user_guide/options.html#frequently-used-options
         """
         formatter = fmt.DataFrameFormatter(
-            pd.DataFrame(np.random.rand(length, 3)),
+            DataFrame(np.random.rand(length, 3)),
             max_rows=max_rows,
             min_rows=min_rows,
         )
