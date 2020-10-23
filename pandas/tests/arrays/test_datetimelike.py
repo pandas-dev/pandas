@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import OutOfBoundsDatetime
+from pandas._libs import OutOfBoundsDatetime, Timestamp
 from pandas.compat.numpy import np_version_under1p18
 
 import pandas as pd
@@ -694,6 +694,15 @@ class TestDatetimeArray(SharedTests):
         with pytest.raises(ValueError, match=msg):
             # require appropriate-dtype if we have a NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
+
+        if arr.tz is not None:
+            # GH#37356
+            # Assuming here that arr1d fixture does not include Australia/Melbourne
+            value = Timestamp.now().tz_localize("Australia/Melbourne")
+            msg = "Timezones don't match. .* != 'Australia/Melbourne'"
+            with pytest.raises(ValueError, match=msg):
+                # require tz match, not just tzawareness match
+                arr.take([-1, 1], allow_fill=True, fill_value=value)
 
     def test_concat_same_type_invalid(self, arr1d):
         # different timezones
