@@ -3297,7 +3297,9 @@ Keep all original rows and also all original values
         # GH 35922. Make sorting stable by leveraging nargsort
         sorted_index = nargsort(arr, kind, ascending, na_position)
 
-        result = self._constructor(arr[sorted_index], index=self.index[sorted_index])
+        result = self._constructor(
+            self._values[sorted_index], index=self.index[sorted_index]
+        )
 
         if ignore_index:
             result.index = ibase.default_index(len(sorted_index))
