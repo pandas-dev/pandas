@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DatetimeIndex, IntervalIndex, NaT, Series, Timestamp
+from pandas import DatetimeIndex, IntervalIndex, NaT, Period, Series, Timestamp
 import pandas._testing as tm
 
 
@@ -52,6 +52,14 @@ class TestDropna:
 
         result = ser.dropna()
         expected = ser.iloc[1:]
+        tm.assert_series_equal(result, expected)
+
+    def test_dropna_period_dtype(self):
+        # GH#13737
+        ser = Series([Period("2011-01", freq="M"), Period("NaT", freq="M")])
+        result = ser.dropna()
+        expected = Series([Period("2011-01", freq="M")])
+
         tm.assert_series_equal(result, expected)
 
     def test_datetime64_tz_dropna(self):
