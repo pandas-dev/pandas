@@ -146,26 +146,6 @@ class TestMultiLevel:
         chunk = ymdT.loc[:, new_index]
         assert chunk.columns is new_index
 
-    def test_count_level_series(self):
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz"], ["one", "two", "three", "four"]],
-            codes=[[0, 0, 0, 2, 2], [2, 0, 1, 1, 2]],
-        )
-
-        s = Series(np.random.randn(len(index)), index=index)
-
-        result = s.count(level=0)
-        expected = s.groupby(level=0).count()
-        tm.assert_series_equal(
-            result.astype("f8"), expected.reindex(result.index).fillna(0)
-        )
-
-        result = s.count(level=1)
-        expected = s.groupby(level=1).count()
-        tm.assert_series_equal(
-            result.astype("f8"), expected.reindex(result.index).fillna(0)
-        )
-
     def test_unused_level_raises(self):
         # GH 20410
         mi = MultiIndex(
@@ -218,21 +198,6 @@ class TestMultiLevel:
         grouped = df1.groupby(axis=1, level=0)
         result = grouped.sum()
         assert (result.columns == ["f2", "f3"]).all()
-
-    def test_join(self, multiindex_dataframe_random_data):
-        frame = multiindex_dataframe_random_data
-
-        a = frame.loc[frame.index[:5], ["A"]]
-        b = frame.loc[frame.index[2:], ["B", "C"]]
-
-        joined = a.join(b, how="outer").reindex(frame.index)
-        expected = frame.copy()
-        expected.values[np.isnan(joined.values)] = np.nan
-
-        assert not np.isnan(joined.values).all()
-
-        # TODO what should join do with names ?
-        tm.assert_frame_equal(joined, expected, check_names=False)
 
     def test_insert_index(self, multiindex_year_month_day_dataframe_random_data):
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -483,16 +448,6 @@ class TestMultiLevel:
         df = DataFrame(np.random.randn(2, 4), index=index)
         repr(s)
         repr(df)
-
-    def test_join_segfault(self):
-        # 1532
-        df1 = DataFrame({"a": [1, 1], "b": [1, 2], "x": [1, 2]})
-        df2 = DataFrame({"a": [2, 2], "b": [1, 2], "y": [1, 2]})
-        df1 = df1.set_index(["a", "b"])
-        df2 = df2.set_index(["a", "b"])
-        # it works!
-        for how in ["left", "right", "outer"]:
-            df1.join(df2, how=how)
 
     @pytest.mark.parametrize("d", [4, "d"])
     def test_empty_frame_groupby_dtypes_consistency(self, d):
