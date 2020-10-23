@@ -127,9 +127,9 @@ def test_append_mixed_dtypes():
             [1, 2, 3, "x", "y", "z"],
             [1.1, np.nan, 3.3, "x", "y", "z"],
             ["a", "b", "c", "x", "y", "z"],
-            dti.append(pd.Index(["x", "y", "z"])),
-            dti_tz.append(pd.Index(["x", "y", "z"])),
-            pi.append(pd.Index(["x", "y", "z"])),
+            dti.append(Index(["x", "y", "z"])),
+            dti_tz.append(Index(["x", "y", "z"])),
+            pi.append(Index(["x", "y", "z"])),
         ]
     )
     tm.assert_index_equal(res, exp)
@@ -203,7 +203,7 @@ def test_map_dictlike(idx, mapper):
     tm.assert_index_equal(result, expected)
 
     # empty mappable
-    expected = pd.Index([np.nan] * len(idx))
+    expected = Index([np.nan] * len(idx))
     result = idx.map(mapper(expected, idx))
     tm.assert_index_equal(result, expected)
 
