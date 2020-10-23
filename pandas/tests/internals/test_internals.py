@@ -635,9 +635,7 @@ class TestBlockManager:
         )
         mgr.iset(5, np.array([1, 2, 3], dtype=np.object_))
         numeric = mgr.get_numeric_data()
-        tm.assert_index_equal(
-            numeric.items, pd.Index(["int", "float", "complex", "bool"])
-        )
+        tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
         mgr_idx = mgr.items.get_loc("float")
         num_idx = numeric.items.get_loc("float")
 
@@ -654,9 +652,7 @@ class TestBlockManager:
         )
 
         numeric2 = mgr.get_numeric_data(copy=True)
-        tm.assert_index_equal(
-            numeric.items, pd.Index(["int", "float", "complex", "bool"])
-        )
+        tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
         numeric2.iget(num_idx).internal_values()[:] = [1000.0, 2000.0, 3000.0]
         tm.assert_almost_equal(
             mgr.iget(mgr_idx).internal_values(),
