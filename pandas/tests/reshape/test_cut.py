@@ -674,3 +674,10 @@ def test_cut_unordered_with_series_labels():
     result = pd.cut(s, bins=bins, labels=labels, ordered=False)
     expected = Series(["a", "a", "b", "b", "c"], dtype="category")
     tm.assert_series_equal(result, expected)
+
+
+def test_cut_no_warnings():
+    df = DataFrame({"value": np.random.randint(0, 100, 20)})
+    labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
+    with tm.assert_produces_warning(False):
+        df["group"] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
