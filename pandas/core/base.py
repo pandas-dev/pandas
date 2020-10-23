@@ -957,8 +957,8 @@ class IndexOpsMixin(OpsMixin):
         number of half-open bins.
 
         >>> s.value_counts(bins=3)
-        (2.0, 3.0]      2
         (0.996, 2.0]    2
+        (2.0, 3.0]      2
         (3.0, 4.0]      1
         dtype: int64
 
@@ -968,10 +968,10 @@ class IndexOpsMixin(OpsMixin):
 
         >>> s.value_counts(dropna=False)
         3.0    2
-        NaN    1
-        4.0    1
-        2.0    1
         1.0    1
+        2.0    1
+        4.0    1
+        NaN    1
         dtype: int64
         """
         result = value_counts(
