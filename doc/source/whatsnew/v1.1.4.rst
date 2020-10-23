@@ -23,6 +23,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.resample(...).apply(...)` raised ``AttributeError`` when input was a :class:`DataFrame` and only a :class:`Series` was evaluated (:issue:`36951`)
 - Fixed regression in :class:`PeriodDtype` comparing both equal and unequal to its string representation (:issue:`37265`)
 - Fixed regression in certain offsets (:meth:`pd.offsets.Day() <pandas.tseries.offsets.Day>` and below) no longer being hashable (:issue:`37267`)
+- Fixed regression in :class:`StataReader` which required ``chunksize`` to be manually set when using an iterator to read a dataset (:issue:`37280`)
 
 .. ---------------------------------------------------------------------------
 
