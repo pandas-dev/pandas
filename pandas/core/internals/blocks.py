@@ -602,11 +602,10 @@ class Block(PandasObject):
             and not (is_object_dtype(dtype) or is_string_like_dtype(dtype))
             and copy is True
         ):
-            return self.make_block(
-                Categorical.from_codes(
-                    self.values.codes, categories=self.values.categories.astype(dtype)
-                )
+            new_data = Categorical.from_codes(
+                self.values.codes, categories=self.values.categories.astype(dtype)
             )
+            return self.make_block(new_data)
 
         dtype = pandas_dtype(dtype)
 
