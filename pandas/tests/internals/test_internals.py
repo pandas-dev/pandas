@@ -613,7 +613,7 @@ class TestBlockManager:
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
         assert reindexed.nblocks == 2
-        tm.assert_index_equal(reindexed.items, pd.Index(["g", "c", "a", "d"]))
+        tm.assert_index_equal(reindexed.items, Index(["g", "c", "a", "d"]))
         tm.assert_almost_equal(
             mgr.iget(6).internal_values(), reindexed.iget(0).internal_values()
         )
@@ -672,7 +672,7 @@ class TestBlockManager:
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
         bools = mgr.get_bool_data()
-        tm.assert_index_equal(bools.items, pd.Index(["bool"]))
+        tm.assert_index_equal(bools.items, Index(["bool"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             bools.iget(bools.items.get_loc("bool")).internal_values(),
@@ -842,14 +842,12 @@ class TestIndexing:
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
         for ax in range(mgr.ndim):
-            assert_reindex_axis_is_ok(mgr, ax, pd.Index([]), fill_value)
+            assert_reindex_axis_is_ok(mgr, ax, Index([]), fill_value)
             assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax], fill_value)
             assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax][[0, 0, 0]], fill_value)
+            assert_reindex_axis_is_ok(mgr, ax, Index(["foo", "bar", "baz"]), fill_value)
             assert_reindex_axis_is_ok(
-                mgr, ax, pd.Index(["foo", "bar", "baz"]), fill_value
-            )
-            assert_reindex_axis_is_ok(
-                mgr, ax, pd.Index(["foo", mgr.axes[ax][0], "baz"]), fill_value
+                mgr, ax, Index(["foo", mgr.axes[ax][0], "baz"]), fill_value
             )
 
             if mgr.shape[ax] >= 3:
@@ -874,14 +872,14 @@ class TestIndexing:
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
         for ax in range(mgr.ndim):
-            assert_reindex_indexer_is_ok(mgr, ax, pd.Index([]), [], fill_value)
+            assert_reindex_indexer_is_ok(mgr, ax, Index([]), [], fill_value)
             assert_reindex_indexer_is_ok(
                 mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax]), fill_value
             )
             assert_reindex_indexer_is_ok(
                 mgr,
                 ax,
-                pd.Index(["foo"] * mgr.shape[ax]),
+                Index(["foo"] * mgr.shape[ax]),
                 np.arange(mgr.shape[ax]),
                 fill_value,
             )
@@ -892,22 +890,22 @@ class TestIndexing:
                 mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax])[::-1], fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 0, 0], fill_value
+                mgr, ax, Index(["foo", "bar", "baz"]), [0, 0, 0], fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, pd.Index(["foo", "bar", "baz"]), [-1, 0, -1], fill_value
+                mgr, ax, Index(["foo", "bar", "baz"]), [-1, 0, -1], fill_value
             )
             assert_reindex_indexer_is_ok(
                 mgr,
                 ax,
-                pd.Index(["foo", mgr.axes[ax][0], "baz"]),
+                Index(["foo", mgr.axes[ax][0], "baz"]),
                 [-1, -1, -1],
                 fill_value,
             )
 
             if mgr.shape[ax] >= 3:
                 assert_reindex_indexer_is_ok(
-                    mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value
+                    mgr, ax, Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value
                 )
 
 
@@ -1200,7 +1198,7 @@ def test_validate_ndim():
 
 
 def test_block_shape():
-    idx = pd.Index([0, 1, 2, 3, 4])
+    idx = Index([0, 1, 2, 3, 4])
     a = Series([1, 2, 3]).reindex(idx)
     b = Series(pd.Categorical([1, 2, 3])).reindex(idx)
 

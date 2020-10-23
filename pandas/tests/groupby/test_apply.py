@@ -40,7 +40,7 @@ def test_apply_issues():
     # GH 5789
     # don't auto coerce dates
     df = pd.read_csv(StringIO(s), header=None, names=["date", "time", "value"])
-    exp_idx = pd.Index(
+    exp_idx = Index(
         ["2011.05.16", "2011.05.17", "2011.05.18"], dtype=object, name="date"
     )
     expected = Series(["00:00", "02:00", "02:00"], index=exp_idx)
@@ -886,7 +886,7 @@ def test_apply_multi_level_name(category):
         b = pd.Categorical(b, categories=[1, 2, 3])
         expected_index = pd.CategoricalIndex([1, 2], categories=[1, 2, 3], name="B")
     else:
-        expected_index = pd.Index([1, 2], name="B")
+        expected_index = Index([1, 2], name="B")
     df = DataFrame(
         {"A": np.arange(10), "B": b, "C": list(range(10)), "D": list(range(10))}
     ).set_index(["A", "B"])
@@ -951,7 +951,7 @@ def test_apply_function_returns_non_pandas_non_scalar(function, expected_values)
     # GH 31441
     df = DataFrame(["A", "A", "B", "B"], columns=["groups"])
     result = df.groupby("groups").apply(function)
-    expected = Series(expected_values, index=pd.Index(["A", "B"], name="groups"))
+    expected = Series(expected_values, index=Index(["A", "B"], name="groups"))
     tm.assert_series_equal(result, expected)
 
 
@@ -964,7 +964,7 @@ def test_apply_function_returns_numpy_array():
 
     result = df.groupby("A").apply(fct)
     expected = Series(
-        [[1.0, 2.0], [3.0], [np.nan]], index=pd.Index(["a", "b", "none"], name="A")
+        [[1.0, 2.0], [3.0], [np.nan]], index=Index(["a", "b", "none"], name="A")
     )
     tm.assert_series_equal(result, expected)
 
@@ -975,8 +975,8 @@ def test_apply_function_index_return(function):
     df = DataFrame([1, 2, 2, 2, 1, 2, 3, 1, 3, 1], columns=["id"])
     result = df.groupby("id").apply(function)
     expected = Series(
-        [pd.Index([0, 4, 7, 9]), pd.Index([1, 2, 3, 5]), pd.Index([6, 8])],
-        index=pd.Index([1, 2, 3], name="id"),
+        [Index([0, 4, 7, 9]), Index([1, 2, 3, 5]), Index([6, 8])],
+        index=Index([1, 2, 3], name="id"),
     )
     tm.assert_series_equal(result, expected)
 
@@ -1023,7 +1023,7 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
 
     expected = DataFrame(
         {"a": [264, 297], "b": [15, 6], "c": [150, 60]},
-        index=pd.Index([88, 99], name="a"),
+        index=Index([88, 99], name="a"),
     )
 
     # Check output when no other methods are called before .apply()
@@ -1053,7 +1053,7 @@ def test_apply_with_date_in_multiindex_does_not_convert_to_timestamp():
             ],
             "C": [1, 2, 3, 4],
         },
-        index=pd.Index([100, 101, 102, 103], name="idx"),
+        index=Index([100, 101, 102, 103], name="idx"),
     )
 
     grp = df.groupby(["A", "B"])
