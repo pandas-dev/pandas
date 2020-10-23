@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -599,7 +600,12 @@ class Block(PandasObject):
 
         elif (  # GH8628
             is_categorical_dtype(self.values.dtype)
-            and not (is_object_dtype(dtype) or is_string_like_dtype(dtype))
+            and not (
+                is_object_dtype(dtype)
+                or is_string_like_dtype(dtype)
+                or is_extension_array_dtype(dtype)
+                or is_datetime_or_timedelta_dtype(dtype)
+            )
             and copy is True
         ):
             new_data = Categorical.from_codes(
