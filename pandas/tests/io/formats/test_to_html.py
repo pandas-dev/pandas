@@ -820,3 +820,11 @@ def test_html_repr_min_rows(datapath, max_rows, min_rows, expected):
     with option_context("display.max_rows", max_rows, "display.min_rows", min_rows):
         result = df._repr_html_()
     assert result == expected
+
+
+def test_to_html_multilevel(multiindex_year_month_day_dataframe_random_data):
+    ymd = multiindex_year_month_day_dataframe_random_data
+
+    ymd.columns.name = "foo"
+    ymd.to_html()
+    ymd.T.to_html()

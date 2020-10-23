@@ -32,7 +32,7 @@ class TestMultiLevel:
         result = a["A"].append(b["A"])
         tm.assert_series_equal(result, frame["A"])
 
-    def test_dataframe_constructor(self):
+    def test_dataframe_constructor_infer_multiindex(self):
         multi = DataFrame(
             np.random.randn(4, 4),
             index=[np.array(["a", "a", "b", "b"]), np.array(["x", "y", "x", "y"])],
@@ -45,7 +45,7 @@ class TestMultiLevel:
         )
         assert isinstance(multi.columns, MultiIndex)
 
-    def test_series_constructor(self):
+    def test_series_constructor_infer_multiindex(self):
         multi = Series(
             1.0, index=[np.array(["a", "a", "b", "b"]), np.array(["x", "y", "x", "y"])]
         )
@@ -103,23 +103,6 @@ class TestMultiLevel:
         _check_op("mul")
         _check_op("div")
 
-    def test_pickle(
-        self,
-        multiindex_year_month_day_dataframe_random_data,
-        multiindex_dataframe_random_data,
-    ):
-        ymd = multiindex_year_month_day_dataframe_random_data
-        frame = multiindex_dataframe_random_data
-
-        def _test_roundtrip(frame):
-            unpickled = tm.round_trip_pickle(frame)
-            tm.assert_frame_equal(frame, unpickled)
-
-        _test_roundtrip(frame)
-        _test_roundtrip(frame.T)
-        _test_roundtrip(ymd)
-        _test_roundtrip(ymd.T)
-
     def test_reindex(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
 
@@ -145,17 +128,6 @@ class TestMultiLevel:
 
         chunk = ymdT.loc[:, new_index]
         assert chunk.columns is new_index
-
-    def test_unused_level_raises(self):
-        # GH 20410
-        mi = MultiIndex(
-            levels=[["a_lot", "onlyone", "notevenone"], [1970, ""]],
-            codes=[[1, 0], [1, 0]],
-        )
-        df = DataFrame(-1, index=range(3), columns=mi)
-
-        with pytest.raises(KeyError, match="notevenone"):
-            df["notevenone"]
 
     def test_groupby_transform(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
@@ -288,13 +260,6 @@ class TestMultiLevel:
 
         tm.assert_frame_equal(leftside, rightside)
 
-    def test_stat_op_corner(self):
-        obj = Series([10.0], index=MultiIndex.from_tuples([(2, 3)]))
-
-        result = obj.sum(level=0)
-        expected = Series([10.0], index=[2])
-        tm.assert_series_equal(result, expected)
-
     def test_std_var_pass_ddof(self):
         index = MultiIndex.from_arrays(
             [np.arange(5).repeat(10), np.tile(np.arange(10), 5)]
@@ -353,26 +318,6 @@ class TestMultiLevel:
         df = DataFrame(np.random.randn(4, 4), index=index, columns=index)
         df["Totals", ""] = df.sum(1)
         df = df._consolidate()
-
-    def test_loc_preserve_names(self, multiindex_year_month_day_dataframe_random_data):
-        ymd = multiindex_year_month_day_dataframe_random_data
-
-        result = ymd.loc[2000]
-        result2 = ymd["A"].loc[2000]
-        assert result.index.names == ymd.index.names[1:]
-        assert result2.index.names == ymd.index.names[1:]
-
-        result = ymd.loc[2000, 2]
-        result2 = ymd["A"].loc[2000, 2]
-        assert result.index.name == ymd.index.names[2]
-        assert result2.index.name == ymd.index.names[2]
-
-    def test_to_html(self, multiindex_year_month_day_dataframe_random_data):
-        ymd = multiindex_year_month_day_dataframe_random_data
-
-        ymd.columns.name = "foo"
-        ymd.to_html()
-        ymd.T.to_html()
 
     def test_level_with_tuples(self):
         index = MultiIndex(
@@ -538,29 +483,3 @@ class TestSorted:
         )
         result = sorted.loc[pd.IndexSlice["B":"C", "a":"c"], :]
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "keys, expected",
-        [
-            (["b", "a"], [["b", "b", "a", "a"], [1, 2, 1, 2]]),
-            (["a", "b"], [["a", "a", "b", "b"], [1, 2, 1, 2]]),
-            ((["a", "b"], [1, 2]), [["a", "a", "b", "b"], [1, 2, 1, 2]]),
-            ((["a", "b"], [2, 1]), [["a", "a", "b", "b"], [2, 1, 2, 1]]),
-            ((["b", "a"], [2, 1]), [["b", "b", "a", "a"], [2, 1, 2, 1]]),
-            ((["b", "a"], [1, 2]), [["b", "b", "a", "a"], [1, 2, 1, 2]]),
-            ((["c", "a"], [2, 1]), [["c", "a", "a"], [1, 2, 1]]),
-        ],
-    )
-    @pytest.mark.parametrize("dim", ["index", "columns"])
-    def test_multilevel_index_loc_order(self, dim, keys, expected):
-        # GH 22797
-        # Try to respect order of keys given for MultiIndex.loc
-        kwargs = {dim: [["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]]}
-        df = DataFrame(np.arange(25).reshape(5, 5), **kwargs)
-        exp_index = MultiIndex.from_arrays(expected)
-        if dim == "index":
-            res = df.loc[keys, :]
-            tm.assert_index_equal(res.index, exp_index)
-        elif dim == "columns":
-            res = df.loc[:, keys]
-            tm.assert_index_equal(res.columns, exp_index)
