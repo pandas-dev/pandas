@@ -1167,7 +1167,7 @@ class TestExcelFileRead:
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, engine, filename):
         # GH 33476
-        idx = pd.Index(["Z"], name="I2")
+        idx = Index(["Z"], name="I2")
         cols = pd.MultiIndex.from_tuples(
             [("A", "B"), ("A", "B.1")], names=["I11", "I12"]
         )

@@ -167,7 +167,7 @@ class TestGrouping:
             .sum()
         )
         # reset index changes columns dtype to object
-        expected.columns = pd.Index([0], dtype="int64")
+        expected.columns = Index([0], dtype="int64")
 
         result = df.groupby(
             [pd.Grouper(level="foo", freq="W"), pd.Grouper(level="bar", freq="W")]
@@ -297,7 +297,7 @@ class TestGrouping:
 
         tm.assert_frame_equal(by_levels, by_columns, check_column_type=False)
 
-        by_columns.columns = pd.Index(by_columns.columns, dtype=np.int64)
+        by_columns.columns = Index(by_columns.columns, dtype=np.int64)
         tm.assert_frame_equal(by_levels, by_columns)
 
     def test_groupby_categorical_index_and_columns(self, observed):
@@ -602,7 +602,7 @@ class TestGrouping:
 
         # Grouper in a list grouping
         result = df.groupby([grouper])
-        expected = {pd.Timestamp("2011-01-01"): pd.Index(list(range(364)))}
+        expected = {pd.Timestamp("2011-01-01"): Index(list(range(364)))}
         tm.assert_dict_equal(result.groups, expected)
 
         # Test case without a list
@@ -787,7 +787,7 @@ class TestGetGroup:
         df = DataFrame({"a": list("abssbab")})
         tm.assert_frame_equal(df.groupby("a").get_group("a"), df.iloc[[0, 5]])
         # GH 13530
-        exp = DataFrame(index=pd.Index(["a", "b", "s"], name="a"))
+        exp = DataFrame(index=Index(["a", "b", "s"], name="a"))
         tm.assert_frame_equal(df.groupby("a").count(), exp)
         tm.assert_frame_equal(df.groupby("a").sum(), exp)
         tm.assert_frame_equal(df.groupby("a").nth(1), exp)

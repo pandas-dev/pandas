@@ -42,7 +42,7 @@ def adjust_negative_zero(zero, expected):
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
-ser_or_index: List[Any] = [Series, pd.Index]
+ser_or_index: List[Any] = [Series, Index]
 lefts: List[Any] = [pd.RangeIndex(10, 40, 10)]
 lefts.extend(
     [
@@ -100,7 +100,7 @@ class TestNumericComparisons:
     def test_numeric_cmp_string_numexpr_path(self, box_with_array):
         # GH#36377, GH#35700
         box = box_with_array
-        xbox = box if box is not pd.Index else np.ndarray
+        xbox = box if box is not Index else np.ndarray
 
         obj = Series(np.random.randn(10 ** 5))
         obj = tm.box_expected(obj, box, transpose=False)
@@ -126,7 +126,7 @@ class TestNumericComparisons:
 class TestNumericArraylikeArithmeticWithDatetimeLike:
 
     # TODO: also check name retentention
-    @pytest.mark.parametrize("box_cls", [np.array, pd.Index, Series])
+    @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
@@ -146,7 +146,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         tm.assert_equal(result, expected)
 
     # TODO: also check name retentention
-    @pytest.mark.parametrize("box_cls", [np.array, pd.Index, Series])
+    @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
     )
@@ -318,7 +318,7 @@ class TestDivisionByZero:
     def test_div_zero(self, zero, numeric_idx):
         idx = numeric_idx
 
-        expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
+        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
         # We only adjust for Index, because Series does not yet apply
         #  the adjustment correctly.
         expected2 = adjust_negative_zero(zero, expected)
@@ -331,7 +331,7 @@ class TestDivisionByZero:
     def test_floordiv_zero(self, zero, numeric_idx):
         idx = numeric_idx
 
-        expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
+        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
         # We only adjust for Index, because Series does not yet apply
         #  the adjustment correctly.
         expected2 = adjust_negative_zero(zero, expected)
@@ -344,7 +344,7 @@ class TestDivisionByZero:
     def test_mod_zero(self, zero, numeric_idx):
         idx = numeric_idx
 
-        expected = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
+        expected = Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
         result = idx % zero
         tm.assert_index_equal(result, expected)
         ser_compat = Series(idx).astype("i8") % np.array(zero).astype("i8")
@@ -353,8 +353,8 @@ class TestDivisionByZero:
     def test_divmod_zero(self, zero, numeric_idx):
         idx = numeric_idx
 
-        exleft = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
-        exright = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
+        exleft = Index([np.nan, np.inf, np.inf, np.inf, np.inf], dtype=np.float64)
+        exright = Index([np.nan, np.nan, np.nan, np.nan, np.nan], dtype=np.float64)
         exleft = adjust_negative_zero(zero, exleft)
 
         result = divmod(idx, zero)
@@ -368,9 +368,7 @@ class TestDivisionByZero:
             return
         idx = numeric_idx - 3
 
-        expected = pd.Index(
-            [-np.inf, -np.inf, -np.inf, np.nan, np.inf], dtype=np.float64
-        )
+        expected = Index([-np.inf, -np.inf, -np.inf, np.nan, np.inf], dtype=np.float64)
         expected = adjust_negative_zero(zero, expected)
 
         result = op(idx, zero)
@@ -1045,7 +1043,7 @@ class TestUFuncCompat:
         [pd.Int64Index, pd.UInt64Index, pd.Float64Index, pd.RangeIndex, Series],
     )
     def test_ufunc_compat(self, holder):
-        box = Series if holder is Series else pd.Index
+        box = Series if holder is Series else Index
 
         if holder is pd.RangeIndex:
             idx = pd.RangeIndex(0, 5)
@@ -1060,7 +1058,7 @@ class TestUFuncCompat:
     )
     def test_ufunc_coercions(self, holder):
         idx = holder([1, 2, 3, 4, 5], name="x")
-        box = Series if holder is Series else pd.Index
+        box = Series if holder is Series else Index
 
         result = np.sqrt(idx)
         assert result.dtype == "f8" and isinstance(result, box)
@@ -1104,7 +1102,7 @@ class TestUFuncCompat:
     )
     def test_ufunc_multiple_return_values(self, holder):
         obj = holder([1, 2, 3], name="x")
-        box = Series if holder is Series else pd.Index
+        box = Series if holder is Series else Index
 
         result = np.modf(obj)
         assert isinstance(result, tuple)
@@ -1299,14 +1297,14 @@ class TestNumericArithmeticUnsorted:
     def test_addsub_arithmetic(self, dtype, delta):
         # GH#8142
         delta = dtype(delta)
-        index = pd.Index([10, 11, 12], dtype=dtype)
+        index = Index([10, 11, 12], dtype=dtype)
         result = index + delta
-        expected = pd.Index(index.values + delta, dtype=dtype)
+        expected = Index(index.values + delta, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
         # this subtraction used to fail
         result = index - delta
-        expected = pd.Index(index.values - delta, dtype=dtype)
+        expected = Index(index.values - delta, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
         tm.assert_index_equal(index + index, 2 * index)

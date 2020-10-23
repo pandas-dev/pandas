@@ -1447,7 +1447,7 @@ def test_groupby_agg_categorical_columns(func, expected_values):
     result = df.groupby("groups").agg(func)
 
     expected = DataFrame(
-        {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups")
+        {"value": expected_values}, index=Index([0, 1, 2], name="groups")
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1470,7 +1470,7 @@ def test_groupy_first_returned_categorical_instead_of_dataframe(func):
     df = DataFrame({"A": [1997], "B": Series(["b"], dtype="category").cat.as_ordered()})
     df_grouped = df.groupby("A")["B"]
     result = getattr(df_grouped, func)()
-    expected = Series(["b"], index=pd.Index([1997], name="A"), name="B")
+    expected = Series(["b"], index=Index([1997], name="A"), name="B")
     tm.assert_series_equal(result, expected)
 
 
@@ -1537,9 +1537,7 @@ def test_agg_cython_category_not_implemented_fallback():
     df["col_cat"] = df["col_num"].astype("category")
 
     result = df.groupby("col_num").col_cat.first()
-    expected = Series(
-        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
-    )
+    expected = Series([1, 2, 3], index=Index([1, 2, 3], name="col_num"), name="col_cat")
     tm.assert_series_equal(result, expected)
 
     result = df.groupby("col_num").agg({"col_cat": "first"})
@@ -1553,7 +1551,7 @@ def test_aggregate_categorical_lost_index(func: str):
     ds = Series(["b"], dtype="category").cat.as_ordered()
     df = DataFrame({"A": [1997], "B": ds})
     result = df.groupby("A").agg({"B": func})
-    expected = DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
+    expected = DataFrame({"B": ["b"]}, index=Index([1997], name="A"))
     tm.assert_frame_equal(result, expected)
 
 

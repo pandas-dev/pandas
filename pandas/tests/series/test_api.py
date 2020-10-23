@@ -155,7 +155,7 @@ class TestSeriesMisc:
         _d.insert(0, ("z", d["z"]))
         result = Series(d)
         expected = Series(
-            [x[1] for x in _d], index=pd.Index([x[0] for x in _d], tupleize_cols=False)
+            [x[1] for x in _d], index=Index([x[0] for x in _d], tupleize_cols=False)
         )
         result = result.reindex(index=expected.index)
         tm.assert_series_equal(result, expected)

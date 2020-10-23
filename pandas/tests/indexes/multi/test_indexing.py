@@ -461,10 +461,10 @@ def test_getitem_group_select(idx):
     assert sorted_idx.get_loc("foo") == slice(0, 2)
 
 
-@pytest.mark.parametrize("ind1", [[True] * 5, pd.Index([True] * 5)])
+@pytest.mark.parametrize("ind1", [[True] * 5, Index([True] * 5)])
 @pytest.mark.parametrize(
     "ind2",
-    [[True, False, True, False, False], pd.Index([True, False, True, False, False])],
+    [[True, False, True, False, False], Index([True, False, True, False, False])],
 )
 def test_getitem_bool_index_all(ind1, ind2):
     # GH#22533
@@ -475,8 +475,8 @@ def test_getitem_bool_index_all(ind1, ind2):
     tm.assert_index_equal(idx[ind2], expected)
 
 
-@pytest.mark.parametrize("ind1", [[True], pd.Index([True])])
-@pytest.mark.parametrize("ind2", [[False], pd.Index([False])])
+@pytest.mark.parametrize("ind1", [[True], Index([True])])
+@pytest.mark.parametrize("ind2", [[False], Index([False])])
 def test_getitem_bool_index_single(ind1, ind2):
     # GH#22533
     idx = MultiIndex.from_tuples([(10, 1)])

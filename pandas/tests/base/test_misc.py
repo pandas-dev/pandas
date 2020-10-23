@@ -200,6 +200,6 @@ def test_access_by_position(index):
 
 def test_get_indexer_non_unique_dtype_mismatch():
     # GH 25459
-    indexes, missing = pd.Index(["A", "B"]).get_indexer_non_unique(pd.Index([0]))
+    indexes, missing = Index(["A", "B"]).get_indexer_non_unique(Index([0]))
     tm.assert_numpy_array_equal(np.array([-1], dtype=np.intp), indexes)
     tm.assert_numpy_array_equal(np.array([0], dtype=np.intp), missing)

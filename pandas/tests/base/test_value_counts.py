@@ -33,7 +33,7 @@ def test_value_counts(index_or_series_obj):
     expected = Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
     expected.index = expected.index.astype(obj.dtype)
     if isinstance(obj, pd.MultiIndex):
-        expected.index = pd.Index(expected.index)
+        expected.index = Index(expected.index)
 
     # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
     if obj.duplicated().any():

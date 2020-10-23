@@ -320,7 +320,7 @@ class TestTimeConversionFormats:
     def test_to_datetime_parse_tzname_or_tzoffset(self, fmt, dates, expected_dates):
         # GH 13486
         result = pd.to_datetime(dates, format=fmt)
-        expected = pd.Index(expected_dates)
+        expected = Index(expected_dates)
         tm.assert_equal(result, expected)
 
     def test_to_datetime_parse_tzname_or_tzoffset_different_tz_to_utc(self):
@@ -357,7 +357,7 @@ class TestTimeConversionFormats:
     def test_to_datetime_parse_timezone_keeps_name(self):
         # GH 21697
         fmt = "%Y-%m-%d %H:%M:%S %z"
-        arg = pd.Index(["2010-01-01 12:00:00 Z"], name="foo")
+        arg = Index(["2010-01-01 12:00:00 Z"], name="foo")
         result = pd.to_datetime(arg, format=fmt)
         expected = pd.DatetimeIndex(["2010-01-01 12:00:00"], tz="UTC", name="foo")
         tm.assert_index_equal(result, expected)
@@ -613,7 +613,7 @@ class TestToDatetime:
         # numpy is either a python datetime.datetime or datetime.date
         tm.assert_index_equal(
             pd.to_datetime(dts_with_oob, errors="ignore", cache=cache),
-            pd.Index([dt.item() for dt in dts_with_oob]),
+            Index([dt.item() for dt in dts_with_oob]),
         )
 
     @pytest.mark.parametrize("cache", [True, False])
@@ -650,7 +650,7 @@ class TestToDatetime:
         ts_string_1 = "March 1, 2018 12:00:00+0400"
         ts_string_2 = "March 1, 2018 12:00:00+0500"
         arr = [ts_string_1] * 5 + [ts_string_2] * 5
-        expected = pd.Index([parse(x) for x in arr])
+        expected = Index([parse(x) for x in arr])
         result = pd.to_datetime(arr, cache=cache)
         tm.assert_index_equal(result, expected)
 
@@ -876,7 +876,7 @@ class TestToDatetime:
         res = pd.to_datetime(
             values, errors="ignore", format=format, infer_datetime_format=infer
         )
-        tm.assert_index_equal(res, pd.Index(values))
+        tm.assert_index_equal(res, Index(values))
 
         res = pd.to_datetime(
             values, errors="coerce", format=format, infer_datetime_format=infer
@@ -895,7 +895,7 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("utc", [True, None])
     @pytest.mark.parametrize("format", ["%Y%m%d %H:%M:%S", None])
-    @pytest.mark.parametrize("constructor", [list, tuple, np.array, pd.Index, deque])
+    @pytest.mark.parametrize("constructor", [list, tuple, np.array, Index, deque])
     def test_to_datetime_cache(self, utc, format, constructor):
         date = "20130101 00:00:00"
         test_dates = [date] * 10 ** 5
@@ -1246,7 +1246,7 @@ class TestToDatetimeUnit:
     @pytest.mark.parametrize("cache", [True, False])
     def test_unit_ignore_keeps_name(self, cache):
         # GH 21697
-        expected = pd.Index([15e9] * 2, name="name")
+        expected = Index([15e9] * 2, name="name")
         result = pd.to_datetime(expected, errors="ignore", unit="s", cache=cache)
         tm.assert_index_equal(result, expected)
 

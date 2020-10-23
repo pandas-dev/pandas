@@ -86,7 +86,7 @@ class TestConcatAppendCommon:
         Check whether obj has expected dtype depending on label
         considering not-supported dtypes
         """
-        if isinstance(obj, pd.Index):
+        if isinstance(obj, Index):
             if label == "bool":
                 assert obj.dtype == "object"
             else:
@@ -102,7 +102,7 @@ class TestConcatAppendCommon:
     def test_dtypes(self):
         # to confirm test case covers intended dtypes
         for typ, vals in self.data.items():
-            self._check_expected_dtype(pd.Index(vals), typ)
+            self._check_expected_dtype(Index(vals), typ)
             self._check_expected_dtype(Series(vals), typ)
 
     def test_concatlike_same_dtypes(self):
@@ -122,35 +122,35 @@ class TestConcatAppendCommon:
             # ----- Index ----- #
 
             # index.append
-            res = pd.Index(vals1).append(pd.Index(vals2))
-            exp = pd.Index(exp_data)
+            res = Index(vals1).append(Index(vals2))
+            exp = Index(exp_data)
             tm.assert_index_equal(res, exp)
 
             # 3 elements
-            res = pd.Index(vals1).append([pd.Index(vals2), pd.Index(vals3)])
-            exp = pd.Index(exp_data3)
+            res = Index(vals1).append([Index(vals2), Index(vals3)])
+            exp = Index(exp_data3)
             tm.assert_index_equal(res, exp)
 
             # index.append name mismatch
-            i1 = pd.Index(vals1, name="x")
-            i2 = pd.Index(vals2, name="y")
+            i1 = Index(vals1, name="x")
+            i2 = Index(vals2, name="y")
             res = i1.append(i2)
-            exp = pd.Index(exp_data)
+            exp = Index(exp_data)
             tm.assert_index_equal(res, exp)
 
             # index.append name match
-            i1 = pd.Index(vals1, name="x")
-            i2 = pd.Index(vals2, name="x")
+            i1 = Index(vals1, name="x")
+            i2 = Index(vals2, name="x")
             res = i1.append(i2)
-            exp = pd.Index(exp_data, name="x")
+            exp = Index(exp_data, name="x")
             tm.assert_index_equal(res, exp)
 
             # cannot append non-index
             with pytest.raises(TypeError, match="all inputs must be Index"):
-                pd.Index(vals1).append(vals2)
+                Index(vals1).append(vals2)
 
             with pytest.raises(TypeError, match="all inputs must be Index"):
-                pd.Index(vals1).append([pd.Index(vals2), vals3])
+                Index(vals1).append([Index(vals2), vals3])
 
             # ----- Series ----- #
 
@@ -253,13 +253,13 @@ class TestConcatAppendCommon:
                 # ----- Index ----- #
 
                 # index.append
-                res = pd.Index(vals1).append(pd.Index(vals2))
-                exp = pd.Index(exp_data, dtype=exp_index_dtype)
+                res = Index(vals1).append(Index(vals2))
+                exp = Index(exp_data, dtype=exp_index_dtype)
                 tm.assert_index_equal(res, exp)
 
                 # 3 elements
-                res = pd.Index(vals1).append([pd.Index(vals2), pd.Index(vals3)])
-                exp = pd.Index(exp_data3, dtype=exp_index_dtype)
+                res = Index(vals1).append([Index(vals2), Index(vals3)])
+                exp = Index(exp_data3, dtype=exp_index_dtype)
                 tm.assert_index_equal(res, exp)
 
                 # ----- Series ----- #
@@ -292,7 +292,7 @@ class TestConcatAppendCommon:
         dti = pd.DatetimeIndex(["2011-01-01", "2011-01-02"])
         tdi = pd.TimedeltaIndex(["1 days", "2 days"])
 
-        exp = pd.Index(
+        exp = Index(
             [
                 pd.Timestamp("2011-01-01"),
                 pd.Timestamp("2011-01-02"),
@@ -364,7 +364,7 @@ class TestConcatAppendCommon:
         dti1 = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], tz=tz)
         dti2 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"])
 
-        exp = pd.Index(
+        exp = Index(
             [
                 pd.Timestamp("2011-01-01", tz=tz),
                 pd.Timestamp("2011-01-02", tz=tz),
@@ -388,7 +388,7 @@ class TestConcatAppendCommon:
         # different tz
         dti3 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"], tz="US/Pacific")
 
-        exp = pd.Index(
+        exp = Index(
             [
                 pd.Timestamp("2011-01-01", tz=tz),
                 pd.Timestamp("2011-01-02", tz=tz),
@@ -432,7 +432,7 @@ class TestConcatAppendCommon:
         pi1 = pd.PeriodIndex(["2011-01", "2011-02"], freq="M")
         pi2 = pd.PeriodIndex(["2012-01-01", "2012-02-01"], freq="D")
 
-        exp = pd.Index(
+        exp = Index(
             [
                 pd.Period("2011-01", freq="M"),
                 pd.Period("2011-02", freq="M"),
@@ -458,7 +458,7 @@ class TestConcatAppendCommon:
         # different datetimelike
         pi1 = pd.PeriodIndex(["2011-01", "2011-02"], freq="M")
         tdi = pd.TimedeltaIndex(["1 days", "2 days"])
-        exp = pd.Index(
+        exp = Index(
             [
                 pd.Period("2011-01", freq="M"),
                 pd.Period("2011-02", freq="M"),
@@ -480,7 +480,7 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(res, Series(exp, index=[0, 1, 0, 1]))
 
         # inverse
-        exp = pd.Index(
+        exp = Index(
             [
                 pd.Timedelta("1 days"),
                 pd.Timedelta("2 days"),
@@ -911,9 +911,9 @@ class TestAppend:
 
     indexes_can_append = [
         pd.RangeIndex(3),
-        pd.Index([4, 5, 6]),
-        pd.Index([4.5, 5.5, 6.5]),
-        pd.Index(list("abc")),
+        Index([4, 5, 6]),
+        Index([4.5, 5.5, 6.5]),
+        Index(list("abc")),
         pd.CategoricalIndex("A B C".split()),
         pd.CategoricalIndex("D E F".split(), ordered=True),
         pd.IntervalIndex.from_breaks([7, 8, 9, 10]),
@@ -1309,16 +1309,16 @@ class TestConcatenate:
     def test_concat_same_index_names(self, name_in1, name_in2, name_in3, name_out):
         # GH13475
         indices = [
-            pd.Index(["a", "b", "c"], name=name_in1),
-            pd.Index(["b", "c", "d"], name=name_in2),
-            pd.Index(["c", "d", "e"], name=name_in3),
+            Index(["a", "b", "c"], name=name_in1),
+            Index(["b", "c", "d"], name=name_in2),
+            Index(["c", "d", "e"], name=name_in3),
         ]
         frames = [
             DataFrame({c: [0, 1, 2]}, index=i) for i, c in zip(indices, ["x", "y", "z"])
         ]
         result = pd.concat(frames, axis=1)
 
-        exp_ind = pd.Index(["a", "b", "c", "d", "e"], name=name_out)
+        exp_ind = Index(["a", "b", "c", "d", "e"], name=name_out)
         expected = DataFrame(
             {
                 "x": [0, 1, 2, np.nan, np.nan],
@@ -1759,7 +1759,7 @@ class TestConcatenate:
         s2 = Series([4, 5, 6])
         result = concat([s, s2], axis=1, keys=["a", "b"], names=["A"])
         expected = DataFrame(
-            [[1, 4], [2, 5], [3, 6]], columns=pd.Index(["a", "b"], name="A")
+            [[1, 4], [2, 5], [3, 6]], columns=Index(["a", "b"], name="A")
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2223,7 +2223,7 @@ bar2,12,13,14,15
         res = pd.concat([s1, s2], axis=1)
         exp = DataFrame(
             {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan]},
-            index=pd.Index([0, 1, 2], dtype="O"),
+            index=Index([0, 1, 2], dtype="O"),
         )
         tm.assert_frame_equal(res, exp)
 
@@ -2241,7 +2241,7 @@ bar2,12,13,14,15
         exp = DataFrame(
             {"x": [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
             columns=["x", 0],
-            index=pd.Index([0, 1, 2], dtype="O"),
+            index=Index([0, 1, 2], dtype="O"),
         )
         tm.assert_frame_equal(res, exp)
 

@@ -141,7 +141,7 @@ class TestDataFrameDrop:
         tm.assert_frame_equal(nu_df.drop("b", axis="columns"), nu_df["a"])
         tm.assert_frame_equal(nu_df.drop([]), nu_df)  # GH 16398
 
-        nu_df = nu_df.set_index(pd.Index(["X", "Y", "X"]))
+        nu_df = nu_df.set_index(Index(["X", "Y", "X"]))
         nu_df.columns = list("abc")
         tm.assert_frame_equal(nu_df.drop("X", axis="rows"), nu_df.loc[["Y"], :])
         tm.assert_frame_equal(nu_df.drop(["X", "Y"], axis=0), nu_df.loc[[], :])

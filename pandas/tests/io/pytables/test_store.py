@@ -1509,7 +1509,7 @@ class TestHDFStore:
     def test_to_hdf_errors(self, format, setup_path):
 
         data = ["\ud800foo"]
-        ser = Series(data, index=pd.Index(data))
+        ser = Series(data, index=Index(data))
         with ensure_clean_path(setup_path) as path:
             # GH 20835
             ser.to_hdf(path, "table", format=format, errors="surrogatepass")
@@ -2533,11 +2533,11 @@ class TestHDFStore:
     @pytest.mark.parametrize("table_format", ["table", "fixed"])
     def test_store_index_name_numpy_str(self, table_format, setup_path):
         # GH #13492
-        idx = pd.Index(
+        idx = Index(
             pd.to_datetime([datetime.date(2000, 1, 1), datetime.date(2000, 1, 2)]),
             name="cols\u05d2",
         )
-        idx1 = pd.Index(
+        idx1 = Index(
             pd.to_datetime([datetime.date(2010, 1, 1), datetime.date(2010, 1, 2)]),
             name="rows\u05d0",
         )
@@ -4139,7 +4139,7 @@ class TestHDFStore:
             expected = DataFrame(
                 [[1, 2, 3, "D"]],
                 columns=["A", "B", "C", "D"],
-                index=pd.Index(["ABC"], name="INDEX_NAME"),
+                index=Index(["ABC"], name="INDEX_NAME"),
             )
             tm.assert_frame_equal(expected, result)
 
@@ -4154,7 +4154,7 @@ class TestHDFStore:
             expected = DataFrame(
                 [[pd.Timestamp("2020-02-06T18:00")]],
                 columns=["A"],
-                index=pd.Index(["date"]),
+                index=Index(["date"]),
             )
             tm.assert_frame_equal(expected, result)
 

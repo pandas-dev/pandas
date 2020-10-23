@@ -160,8 +160,8 @@ class TestDataFrameAlign:
         "l_ordered,r_ordered,expected",
         [
             [True, True, pd.CategoricalIndex],
-            [True, False, pd.Index],
-            [False, True, pd.Index],
+            [True, False, Index],
+            [False, True, Index],
             [False, False, pd.CategoricalIndex],
         ],
     )
@@ -196,7 +196,7 @@ class TestDataFrameAlign:
         midx = pd.MultiIndex.from_product(
             [range(2), range(3), range(2)], names=("a", "b", "c")
         )
-        idx = pd.Index(range(2), name="b")
+        idx = Index(range(2), name="b")
         df1 = DataFrame(np.arange(12, dtype="int64"), index=midx)
         df2 = DataFrame(np.arange(2, dtype="int64"), index=idx)
 

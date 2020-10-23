@@ -638,7 +638,7 @@ class TestCategoricalConstructors:
     def test_constructor_string_and_tuples(self):
         # GH 21416
         c = pd.Categorical(np.array(["c", ("a", "b"), ("b", "a"), "c"], dtype=object))
-        expected_index = pd.Index([("a", "b"), ("b", "a"), "c"])
+        expected_index = Index([("a", "b"), ("b", "a"), "c"])
         assert c.categories.equals(expected_index)
 
     def test_interval(self):

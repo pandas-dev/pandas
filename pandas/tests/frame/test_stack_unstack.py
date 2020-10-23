@@ -280,7 +280,7 @@ class TestDataFrameReshape:
                 ],
                 names=[None, ("A", "a")],
             ),
-            index=pd.Index([1, 2, 3], name=("B", "b")),
+            index=Index([1, 2, 3], name=("B", "b")),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -301,7 +301,7 @@ class TestDataFrameReshape:
             (
                 (("A", "a"), "B"),
                 [[1, 1, 1, 1, 2, 2, 2, 2], [1, 1, 1, 1, 2, 2, 2, 2]],
-                pd.Index([3, 4], name="C"),
+                Index([3, 4], name="C"),
                 pd.MultiIndex.from_tuples(
                     [
                         ("d", "a", 1),
@@ -512,7 +512,7 @@ class TestDataFrameReshape:
                 [[np.nan, 0], [0, np.nan], [np.nan, 0], [0, np.nan]], dtype=np.float64
             ),
             index=expected_mi,
-            columns=pd.Index(["a", "b"], name="third"),
+            columns=Index(["a", "b"], name="third"),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -703,7 +703,7 @@ class TestDataFrameReshape:
                 [[0, 0, 1, 0, 0, 0, 1]],
                 names=["c1", "i2", "i3", "i4", "i5", "i6", "i7"],
             ),
-            index=pd.Index([0], name="i1"),
+            index=Index([0], name="i1"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1153,7 +1153,7 @@ def test_unstack_timezone_aware_values():
     result = df.set_index(["a", "b"]).unstack()
     expected = DataFrame(
         [[pd.Timestamp("2017-08-27 01:00:00.709949+0000", tz="UTC"), "c"]],
-        index=pd.Index(["a"], name="a"),
+        index=Index(["a"], name="a"),
         columns=pd.MultiIndex(
             levels=[["timestamp", "c"], ["b"]],
             codes=[[0, 1], [0, 0]],
@@ -1216,7 +1216,7 @@ def test_stack_positional_level_duplicate_column_names():
     df = DataFrame([[1, 1, 1, 1]], columns=columns)
     result = df.stack(0)
 
-    new_columns = pd.Index(["y", "z"], name="a")
+    new_columns = Index(["y", "z"], name="a")
     new_index = pd.MultiIndex.from_tuples([(0, "x"), (0, "y")], names=[None, "a"])
     expected = DataFrame([[1, 1], [1, 1]], index=new_index, columns=new_columns)
 
@@ -1276,7 +1276,7 @@ class TestStackUnstackMultiLevel:
             columns=pd.MultiIndex.from_product(
                 [result_columns[2:], [index_product]], names=[None, "ix2"]
             ),
-            index=pd.Index([2], name="ix1"),
+            index=Index([2], name="ix1"),
         )
         tm.assert_frame_equal(result, expected)
 

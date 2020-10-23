@@ -42,7 +42,7 @@ class TestCategoricalIndex(Base):
     def test_disallow_addsub_ops(self, func, op_name):
         # GH 10039
         # set ops (+/-) raise TypeError
-        idx = pd.Index(pd.Categorical(["a", "b"]))
+        idx = Index(pd.Categorical(["a", "b"]))
         cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
         msg = "|".join(
             [

@@ -402,9 +402,9 @@ def test_tuples_with_name_string():
     li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
     msg = "Names should be list-like for a MultiIndex"
     with pytest.raises(ValueError, match=msg):
-        pd.Index(li, name="abc")
+        Index(li, name="abc")
     with pytest.raises(ValueError, match=msg):
-        pd.Index(li, name="a")
+        Index(li, name="a")
 
 
 def test_from_tuples_with_tuple_label():
@@ -429,7 +429,7 @@ def test_from_product_empty_zero_levels():
 
 def test_from_product_empty_one_level():
     result = MultiIndex.from_product([[]], names=["A"])
-    expected = pd.Index([], name="A")
+    expected = Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
     assert result.names == ["A"]
 
@@ -597,7 +597,7 @@ def test_create_index_existing_name(idx):
     # specified, the new index should inherit the previous object name
     index = idx
     index.names = ["foo", "bar"]
-    result = pd.Index(index)
+    result = Index(index)
     expected = Index(
         Index(
             [
@@ -613,7 +613,7 @@ def test_create_index_existing_name(idx):
     )
     tm.assert_index_equal(result, expected)
 
-    result = pd.Index(index, name="A")
+    result = Index(index, name="A")
     expected = Index(
         Index(
             [
@@ -652,7 +652,7 @@ def test_from_frame():
         Series([1, 2, 3, 4]),
         [1, 2, 3, 4],
         [[1, 2], [3, 4], [5, 6]],
-        pd.Index([1, 2, 3, 4]),
+        Index([1, 2, 3, 4]),
         np.array([[1, 2], [3, 4], [5, 6]]),
         27,
     ],

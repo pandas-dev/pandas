@@ -643,7 +643,7 @@ class TestDataFrameFormatting:
         # index name
         df = DataFrame(
             {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
-            index=pd.Index(["あ", "い", "うう", "え"], name="おおおお"),
+            index=Index(["あ", "い", "うう", "え"], name="おおおお"),
         )
         expected = (
             "          a       b\n"
@@ -658,7 +658,7 @@ class TestDataFrameFormatting:
         # all
         df = DataFrame(
             {"あああ": ["あああ", "い", "う", "えええええ"], "いいいいい": ["あ", "いいい", "う", "ええ"]},
-            index=pd.Index(["あ", "いいい", "うう", "え"], name="お"),
+            index=Index(["あ", "いいい", "うう", "え"], name="お"),
         )
         expected = (
             "       あああ いいいいい\n"
@@ -787,7 +787,7 @@ class TestDataFrameFormatting:
             # index name
             df = DataFrame(
                 {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
-                index=pd.Index(["あ", "い", "うう", "え"], name="おおおお"),
+                index=Index(["あ", "い", "うう", "え"], name="おおおお"),
             )
             expected = (
                 "                   a             b\n"
@@ -802,7 +802,7 @@ class TestDataFrameFormatting:
             # all
             df = DataFrame(
                 {"あああ": ["あああ", "い", "う", "えええええ"], "いいいいい": ["あ", "いいい", "う", "ええ"]},
-                index=pd.Index(["あ", "いいい", "うう", "え"], name="お"),
+                index=Index(["あ", "いいい", "うう", "え"], name="お"),
             )
             expected = (
                 "            あああ いいいいい\n"

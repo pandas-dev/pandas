@@ -135,7 +135,7 @@ class TestDataFrameToCSV:
             dt = pd.Timedelta(seconds=1)
             df = DataFrame(
                 {"dt_data": [i * dt for i in range(3)]},
-                index=pd.Index([i * dt for i in range(3)], name="dt_index"),
+                index=Index([i * dt for i in range(3)], name="dt_index"),
             )
             df.to_csv(path)
 
@@ -1310,7 +1310,7 @@ class TestDataFrameToCSV:
 
     def test_to_csv_single_level_multi_index(self):
         # see gh-26303
-        index = pd.Index([(1,), (2,), (3,)])
+        index = Index([(1,), (2,), (3,)])
         df = DataFrame([[1, 2, 3]], columns=index)
         df = df.reindex(columns=[(1,), (3,)])
         expected = ",1,3\n0,1,3\n"
