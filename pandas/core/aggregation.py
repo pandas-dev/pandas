@@ -31,7 +31,7 @@ from pandas._typing import (
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import is_dict_like, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
 
 from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
@@ -621,58 +621,27 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
         # set the final keys
         keys = list(arg.keys())
 
+        # Avoid making two isinstance calls in all and any below
+        is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
+
         # combine results
-
-        def is_any_series() -> bool:
-            # return a boolean if we have *any* nested series
-            return any(isinstance(r, ABCSeries) for r in results.values())
-
-        def is_any_frame() -> bool:
-            # return a boolean if we have *any* nested series
-            return any(isinstance(r, ABCDataFrame) for r in results.values())
-
-        if isinstance(results, list):
-            return concat(results, keys=keys, axis=1, sort=True), True
-
-        elif is_any_frame():
-            # we have a dict of DataFrames
-            # return a MI DataFrame
-
+        if all(is_ndframe):
             keys_to_use = [k for k in keys if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
             keys_to_use = keys_to_use if keys_to_use != [] else keys
-            return (
-                concat([results[k] for k in keys_to_use], keys=keys_to_use, axis=1),
-                True,
+            axis = 0 if isinstance(obj, ABCSeries) else 1
+            result = concat({k: results[k] for k in keys_to_use}, axis=axis)
+        elif any(is_ndframe):
+            # There is a mix of NDFrames and scalars
+            raise ValueError(
+                "cannot perform both aggregation "
+                "and transformation operations "
+                "simultaneously"
             )
+        else:
+            from pandas import Series
 
-        elif isinstance(obj, ABCSeries) and is_any_series():
-
-            # we have a dict of Series
-            # return a MI Series
-            try:
-                result = concat(results)
-            except TypeError as err:
-                # we want to give a nice error here if
-                # we have non-same sized objects, so
-                # we don't automatically broadcast
-
-                raise ValueError(
-                    "cannot perform both aggregation "
-                    "and transformation operations "
-                    "simultaneously"
-                ) from err
-
-            return result, True
-
-        # fall thru
-        from pandas import DataFrame, Series
-
-        try:
-            result = DataFrame(results)
-        except ValueError:
             # we have a dict of scalars
-
             # GH 36212 use name only if obj is a series
             if obj.ndim == 1:
                 obj = cast("Series", obj)

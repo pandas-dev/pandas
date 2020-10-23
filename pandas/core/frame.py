@@ -7442,9 +7442,9 @@ NaN 12.3   33.0
 
     >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
             A    B
-    max   NaN  8.0
-    min   1.0  2.0
     sum  12.0  NaN
+    min   1.0  2.0
+    max   NaN  8.0
 
     Aggregate different functions over the columns and rename the index of the resulting
     DataFrame.
@@ -8547,6 +8547,7 @@ NaN 12.3   33.0
         See Also
         --------
         Series.count: Number of non-NA elements in a Series.
+        DataFrame.value_counts: Count unique combinations of columns.
         DataFrame.shape: Number of DataFrame rows and columns (including NA
             elements).
         DataFrame.isna: Boolean same-sized DataFrame showing places of NA

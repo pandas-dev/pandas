@@ -1661,16 +1661,16 @@ class TestDataFrameConstructors:
     def test_constructor_index_names(self, name_in1, name_in2, name_in3, name_out):
         # GH13475
         indices = [
-            pd.Index(["a", "b", "c"], name=name_in1),
-            pd.Index(["b", "c", "d"], name=name_in2),
-            pd.Index(["c", "d", "e"], name=name_in3),
+            Index(["a", "b", "c"], name=name_in1),
+            Index(["b", "c", "d"], name=name_in2),
+            Index(["c", "d", "e"], name=name_in3),
         ]
         series = {
             c: Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
         }
         result = DataFrame(series)
 
-        exp_ind = pd.Index(["a", "b", "c", "d", "e"], name=name_out)
+        exp_ind = Index(["a", "b", "c", "d", "e"], name=name_out)
         expected = DataFrame(
             {
                 "x": [0, 1, 2, np.nan, np.nan],

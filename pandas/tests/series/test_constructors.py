@@ -19,6 +19,7 @@ import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
+    DatetimeIndex,
     Index,
     Interval,
     IntervalIndex,
@@ -176,7 +177,7 @@ class TestSeriesConstructors:
         "dtype",
         ["f8", "i8", "M8[ns]", "m8[ns]", "category", "object", "datetime64[ns, UTC]"],
     )
-    @pytest.mark.parametrize("index", [None, pd.Index([])])
+    @pytest.mark.parametrize("index", [None, Index([])])
     def test_constructor_dtype_only(self, dtype, index):
         # GH-20865
         result = Series(dtype=dtype, index=index)
@@ -383,12 +384,12 @@ class TestSeriesConstructors:
             ["a", "b"], dtype=CategoricalDtype(["a", "b", "c"], ordered=True)
         )
         assert is_categorical_dtype(result.dtype) is True
-        tm.assert_index_equal(result.cat.categories, pd.Index(["a", "b", "c"]))
+        tm.assert_index_equal(result.cat.categories, Index(["a", "b", "c"]))
         assert result.cat.ordered
 
         result = Series(["a", "b"], dtype=CategoricalDtype(["b", "a"]))
         assert is_categorical_dtype(result.dtype)
-        tm.assert_index_equal(result.cat.categories, pd.Index(["b", "a"]))
+        tm.assert_index_equal(result.cat.categories, Index(["b", "a"]))
         assert result.cat.ordered is False
 
         # GH 19565 - Check broadcasting of scalar with Categorical dtype
@@ -546,7 +547,7 @@ class TestSeriesConstructors:
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
-        tm.assert_index_equal(s.index, pd.Index(np.arange(3)))
+        tm.assert_index_equal(s.index, Index(np.arange(3)))
 
     @pytest.mark.parametrize(
         "input",
@@ -619,7 +620,7 @@ class TestSeriesConstructors:
             pd.date_range("20170101", periods=3),
             pd.timedelta_range("1 day", periods=3),
             pd.period_range("2012Q1", periods=3, freq="Q"),
-            pd.Index(list("abc")),
+            Index(list("abc")),
             pd.Int64Index([1, 2, 3]),
             pd.RangeIndex(0, 3),
         ],
@@ -1406,7 +1407,7 @@ class TestSeriesConstructors:
         exp = Series(index).astype(object)
         tm.assert_series_equal(s, exp)
 
-        s = Series(pd.Index(index, dtype=object), dtype=object)
+        s = Series(Index(index, dtype=object), dtype=object)
         exp = Series(index).astype(object)
         tm.assert_series_equal(s, exp)
 
@@ -1507,3 +1508,22 @@ class TestSeriesConstructors:
         result = Series(n, index=[0])
         expected = Series(n)
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_list_of_periods_infers_period_dtype(self):
+        series = Series(list(period_range("2000-01-01", periods=10, freq="D")))
+        assert series.dtype == "Period[D]"
+
+        series = Series(
+            [pd.Period("2011-01-01", freq="D"), pd.Period("2011-02-01", freq="D")]
+        )
+        assert series.dtype == "Period[D]"
+
+
+class TestSeriesConstructorIndexCoercion:
+    def test_series_constructor_datetimelike_index_coercion(self):
+        idx = tm.makeDateIndex(10000)
+        with tm.assert_produces_warning(FutureWarning):
+            ser = Series(np.random.randn(len(idx)), idx.astype(object))
+        with tm.assert_produces_warning(FutureWarning):
+            assert ser.index.is_all_dates
+        assert isinstance(ser.index, DatetimeIndex)
