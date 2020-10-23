@@ -97,7 +97,7 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
-from pandas.io.formats.info import SeriesInfo
+from pandas.io.formats.info import BaseInfo, SeriesInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -4569,8 +4569,13 @@ Keep all original rows and also all original values
         klass="Series",
         type_sub="",
         max_cols_sub="",
-        examples_sub=(
-            """
+        null_counts_sub=dedent(
+            """\
+            null_counts : bool, default True.
+                Whether to show the non-null counts."""
+        ),
+        examples_sub=dedent(
+            """\
             >>> int_values = [1, 2, 3, 4, 5]
             >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
             >>> s = pd.Series(text_values, index=int_values)
@@ -4629,20 +4634,20 @@ Keep all original rows and also all original values
             dtypes: object(1)
             memory usage: 55.3 MB"""
         ),
-        see_also_sub=(
-            """
+        see_also_sub=dedent(
+            """\
             Series.describe: Generate descriptive statistics of Series.
             Series.memory_usage: Memory usage of Series."""
         ),
     )
-    @doc(SeriesInfo.to_buffer)
+    @doc(BaseInfo.to_buffer)
     def info(
         self,
         verbose: Optional[bool] = None,
         buf: Optional[IO[str]] = None,
         max_cols: Optional[int] = None,
         memory_usage: Optional[Union[bool, str]] = None,
-        null_counts: Optional[bool] = None,
+        null_counts: bool = True,
     ) -> None:
         if max_cols is not None:
             raise ValueError(

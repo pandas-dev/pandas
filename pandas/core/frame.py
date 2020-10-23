@@ -151,7 +151,7 @@ from pandas.core.sorting import get_group_index, lexsort_indexer, nargsort
 
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.formats import console, format as fmt
-from pandas.io.formats.info import DataFrameInfo
+from pandas.io.formats.info import BaseInfo, DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -2506,16 +2506,25 @@ class DataFrame(NDFrame, OpsMixin):
     @Substitution(
         klass="DataFrame",
         type_sub=" and columns",
-        max_cols_sub=(
-            """max_cols : int, optional
+        max_cols_sub=dedent(
+            """\
+            max_cols : int, optional
                 When to switch from the verbose to the truncated output. If the
                 DataFrame has more than `max_cols` columns, the truncated output
                 is used. By default, the setting in
-                ``pandas.options.display.max_info_columns`` is used.
-            """
+                ``pandas.options.display.max_info_columns`` is used."""
         ),
-        examples_sub=(
-            """
+        null_counts_sub=dedent(
+            """\
+            null_counts : bool, optional
+                Whether to show the non-null counts. By default, this is shown
+                only if the DataFrame is smaller than
+                ``pandas.options.display.max_info_rows`` and
+                ``pandas.options.display.max_info_columns``. A value of True always
+                shows the counts, and False never shows the counts."""
+        ),
+        examples_sub=dedent(
+            """\
             >>> int_values = [1, 2, 3, 4, 5]
             >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
             >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
@@ -2598,14 +2607,14 @@ class DataFrame(NDFrame, OpsMixin):
             dtypes: object(3)
             memory usage: 165.9 MB"""
         ),
-        see_also_sub=(
-            """
+        see_also_sub=dedent(
+            """\
             DataFrame.describe: Generate descriptive statistics of DataFrame
                 columns.
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
     )
-    @doc(DataFrameInfo.to_buffer)
+    @doc(BaseInfo.to_buffer)
     def info(
         self,
         verbose: Optional[bool] = None,
