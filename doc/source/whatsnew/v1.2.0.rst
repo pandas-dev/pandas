@@ -417,7 +417,7 @@ Strings
 
 Interval
 ^^^^^^^^
-
+- Bug in :meth:`IntervalIndex.take` with negative indices and ``fill_value=None`` (:issue:`37330`)
 -
 -
 
