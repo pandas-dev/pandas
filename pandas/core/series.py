@@ -3287,7 +3287,6 @@ Keep all original rows and also all original values
         arr = self._values
 
         if key:
-            bad = isna(arr)
             good = ~isna(arr)
             arr[good] = ensure_key_mapped(self[good], key)
 
