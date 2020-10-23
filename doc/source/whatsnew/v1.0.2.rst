@@ -1,0 +1,125 @@
+.. _whatsnew_102:
+
+What's new in 1.0.2 (March 12, 2020)
+------------------------------------
+
+These are the changes in pandas 1.0.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_102.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+**Groupby**
+
+- Fixed regression in :meth:`groupby(..).agg() <pandas.core.groupby.GroupBy.agg>` which was failing on frames with :class:`MultiIndex` columns and a custom function (:issue:`31777`)
+- Fixed regression in ``groupby(..).rolling(..).apply()`` (``RollingGroupby``) where the ``raw`` parameter was ignored (:issue:`31754`)
+- Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.rolling.Rolling.corr>` when using a time offset (:issue:`31789`)
+- Fixed regression in :meth:`groupby(..).nunique() <pandas.core.groupby.DataFrameGroupBy.nunique>` which was modifying the original values if ``NaN`` values were present (:issue:`31950`)
+- Fixed regression in ``DataFrame.groupby`` raising a ``ValueError`` from an internal operation (:issue:`31802`)
+- Fixed regression in :meth:`groupby(..).agg() <pandas.core.groupby.GroupBy.agg>` calling a user-provided function an extra time on an empty input (:issue:`31760`)
+
+**I/O**
+
+- Fixed regression in :meth:`read_csv` in which the ``encoding`` option was not recognized with certain file-like objects (:issue:`31819`)
+- Fixed regression in :meth:`DataFrame.to_excel` when the ``columns`` keyword argument is passed (:issue:`31677`)
+- Fixed regression in :class:`ExcelFile` where the stream passed into the function was closed by the destructor. (:issue:`31467`)
+- Fixed regression where :func:`read_pickle` raised a ``UnicodeDecodeError`` when reading a py27 pickle with :class:`MultiIndex` column (:issue:`31988`).
+
+**Reindexing/alignment**
+
+- Fixed regression in :meth:`Series.align` when ``other`` is a :class:`DataFrame` and ``method`` is not ``None`` (:issue:`31785`)
+- Fixed regression in :meth:`DataFrame.reindex` and :meth:`Series.reindex` when reindexing with (tz-aware) index and ``method=nearest`` (:issue:`26683`)
+- Fixed regression in :meth:`DataFrame.reindex_like` on a :class:`DataFrame` subclass raised an  ``AssertionError`` (:issue:`31925`)
+- Fixed regression in :class:`DataFrame` arithmetic operations with mis-matched columns (:issue:`31623`)
+
+**Other**
+
+- Fixed regression in joining on :class:`DatetimeIndex` or :class:`TimedeltaIndex` to preserve ``freq`` in simple cases (:issue:`32166`)
+- Fixed regression in :meth:`Series.shift` with ``datetime64`` dtype when passing an integer ``fill_value`` (:issue:`32591`)
+- Fixed regression in the repr of an object-dtype :class:`Index` with bools and missing values (:issue:`32146`)
+
+
+.. ---------------------------------------------------------------------------
+
+Indexing with nullable boolean arrays
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Previously indexing with a nullable Boolean array containing ``NA`` would raise a ``ValueError``, however this is now permitted with ``NA`` being treated as ``False``. (:issue:`31503`)
+
+.. ipython:: python
+
+    s = pd.Series([1, 2, 3, 4])
+    mask = pd.array([True, True, False, None], dtype="boolean")
+    s
+    mask
+
+*pandas 1.0.0-1.0.1*
+
+.. code-block:: python
+
+    >>> s[mask]
+    Traceback (most recent call last):
+    ...
+    ValueError: cannot mask with array containing NA / NaN values
+
+*pandas 1.0.2*
+
+.. ipython:: python
+
+    s[mask]
+
+.. _whatsnew_102.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+**Datetimelike**
+
+- Bug in :meth:`Series.astype` not copying for tz-naive and tz-aware ``datetime64`` dtype (:issue:`32490`)
+- Bug where :func:`to_datetime` would raise when passed ``pd.NA`` (:issue:`32213`)
+- Improved error message when subtracting two :class:`Timestamp` that result in an out-of-bounds :class:`Timedelta` (:issue:`31774`)
+
+**Categorical**
+
+- Fixed bug where :meth:`Categorical.from_codes` improperly raised a ``ValueError`` when passed nullable integer codes. (:issue:`31779`)
+- Fixed bug where :meth:`Categorical` constructor would raise a ``TypeError`` when given a numpy array containing ``pd.NA``. (:issue:`31927`)
+- Bug in :class:`Categorical` that would ignore or crash when calling :meth:`Series.replace` with a list-like ``to_replace`` (:issue:`31720`)
+
+**I/O**
+
+- Using ``pd.NA`` with :meth:`DataFrame.to_json` now correctly outputs a null value instead of an empty object (:issue:`31615`)
+- Bug in :meth:`pandas.json_normalize` when value in meta path is not iterable (:issue:`31507`)
+- Fixed pickling of ``pandas.NA``. Previously a new object was returned, which broke computations relying on ``NA`` being a singleton (:issue:`31847`)
+- Fixed bug in parquet roundtrip with nullable unsigned integer dtypes (:issue:`31896`).
+
+**Experimental dtypes**
+
+- Fixed bug in :meth:`DataFrame.convert_dtypes` for columns that were already using the ``"string"`` dtype (:issue:`31731`).
+- Fixed bug in :meth:`DataFrame.convert_dtypes` for series with mix of integers and strings (:issue:`32117`)
+- Fixed bug in :meth:`DataFrame.convert_dtypes` where ``BooleanDtype`` columns were converted to ``Int64`` (:issue:`32287`)
+- Fixed bug in setting values using a slice indexer with string dtype (:issue:`31772`)
+- Fixed bug where :meth:`pandas.core.groupby.GroupBy.first` and :meth:`pandas.core.groupby.GroupBy.last` would raise a ``TypeError`` when groups contained ``pd.NA`` in a column of object dtype (:issue:`32123`)
+- Fixed bug where :meth:`DataFrameGroupBy.mean`, :meth:`DataFrameGroupBy.median`, :meth:`DataFrameGroupBy.var`, and :meth:`DataFrameGroupBy.std` would raise a ``TypeError`` on ``Int64`` dtype columns (:issue:`32219`)
+
+**Strings**
+
+- Using ``pd.NA`` with :meth:`Series.str.repeat` now correctly outputs a null value instead of raising error for vector inputs (:issue:`31632`)
+
+**Rolling**
+
+- Fixed rolling operations with variable window (defined by time duration) on decreasing time index (:issue:`32385`).
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_102.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.0.1..v1.0.2

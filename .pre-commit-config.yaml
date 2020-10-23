@@ -1,16 +1,112 @@
 repos:
-    - repo: https://github.com/python/black
-      rev: stable
-      hooks:
-          - id: black
-            language_version: python3.7
-    - repo: https://gitlab.com/pycqa/flake8
-      rev: 3.7.7
-      hooks:
-          - id: flake8
-            language: python_venv
-    - repo: https://github.com/pre-commit/mirrors-isort
-      rev: v4.3.20
-      hooks:
-          - id: isort
-            language: python_venv
+-   repo: https://github.com/python/black
+    rev: 20.8b1
+    hooks:
+    -   id: black
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.4
+    hooks:
+    -   id: flake8
+        additional_dependencies: [flake8-comprehensions>=3.1.0]
+    -   id: flake8
+        name: flake8 (cython)
+        types: [cython]
+        args: [--append-config=flake8/cython.cfg]
+    -   id: flake8
+        name: flake8 (cython template)
+        files: \.pxi\.in$
+        types:
+          - file
+        args: [--append-config=flake8/cython-template.cfg]
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.6.3
+    hooks:
+    -   id: isort
+        name: isort (python)
+    -   id: isort
+        name: isort (cython)
+        types: [cython]
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.7.2
+    hooks:
+    -   id: pyupgrade
+        args: [--py37-plus]
+-   repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.6.0
+    hooks:
+      - id: rst-backticks
+-   repo: local
+    hooks:
+    -   id: pip_to_conda
+        name: Generate pip dependency from conda
+        description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
+        language: python
+        entry: python -m scripts.generate_pip_deps_from_conda
+        files: ^(environment.yml|requirements-dev.txt)$
+        pass_filenames: false
+        additional_dependencies: [pyyaml]
+    -   id: flake8-rst
+        name: flake8-rst
+        description: Run flake8 on code snippets in docstrings or RST files
+        language: python
+        entry: flake8-rst
+        types: [rst]
+        args: [--filename=*.rst]
+        additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
+    -   id: incorrect-sphinx-directives
+        name: Check for incorrect Sphinx directives
+        language: pygrep
+        entry: |
+            (?x)
+            # Check for cases of e.g. .. warning: instead of .. warning::
+            \.\.\ (
+                autosummary|contents|currentmodule|deprecated|
+                function|image|important|include|ipython|literalinclude|
+                math|module|note|raw|seealso|toctree|versionadded|
+                versionchanged|warning
+            ):[^:]
+        files: \.(py|pyx|rst)$
+    -   id: non-standard-imports
+        name: Check for non-standard imports
+        language: pygrep
+        entry: |
+            (?x)
+            # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
+            from\ pandas\.core\.common\ import|
+            from\ pandas\.core\ import\ common|
+
+            # Check for imports from collections.abc instead of `from collections import abc`
+            from\ collections\.abc\ import|
+
+            from\ numpy\ import\ nan
+        types: [python]
+    -   id: non-standard-imports-in-tests
+        name: Check for non-standard imports in test suite
+        language: pygrep
+        entry: |
+            (?x)
+            # Check for imports from pandas._testing instead of `import pandas._testing as tm`
+            from\ pandas\._testing\ import|
+            from\ pandas\ import\ _testing\ as\ tm|
+
+            # No direct imports from conftest
+            conftest\ import|
+            import\ conftest
+        types: [python]
+        files: ^pandas/tests/
+    -   id: incorrect-code-directives
+        name: Check for incorrect code block or IPython directives
+        language: pygrep
+        entry: (\.\. code-block ::|\.\. ipython ::)
+        files: \.(py|pyx|rst)$
+-   repo: https://github.com/asottile/yesqa
+    rev: v1.2.2
+    hooks:
+    -   id: yesqa
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+    -   id: end-of-file-fixer
+        exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$
+    -   id: trailing-whitespace
+        exclude: \.(html|svg)$

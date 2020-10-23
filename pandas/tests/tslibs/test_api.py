@@ -6,18 +6,18 @@ from pandas._libs import tslibs
 def test_namespace():
 
     submodules = [
-        "c_timestamp",
+        "base",
         "ccalendar",
         "conversion",
+        "dtypes",
         "fields",
-        "frequencies",
         "nattype",
         "np_datetime",
         "offsets",
         "parsing",
         "period",
-        "resolution",
         "strptime",
+        "vectorized",
         "timedeltas",
         "timestamps",
         "timezones",
@@ -25,20 +25,30 @@ def test_namespace():
     ]
 
     api = [
+        "BaseOffset",
         "NaT",
         "NaTType",
         "iNaT",
         "is_null_datetimelike",
+        "nat_strings",
         "OutOfBoundsDatetime",
+        "OutOfBoundsTimedelta",
         "Period",
         "IncompatibleFrequency",
+        "Resolution",
+        "Tick",
         "Timedelta",
+        "dt64arr_to_periodarr",
         "Timestamp",
+        "is_date_array_normalized",
+        "ints_to_pydatetime",
+        "normalize_i8_timestamps",
+        "get_resolution",
         "delta_to_nanoseconds",
         "ints_to_pytimedelta",
         "localize_pydatetime",
-        "normalize_date",
-        "tz_convert_single",
+        "tz_convert_from_utc_single",
+        "to_offset",
     ]
 
     expected = set(submodules + api)

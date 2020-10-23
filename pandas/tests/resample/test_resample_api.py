@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime
 
 import numpy as np
@@ -6,9 +5,8 @@ import pytest
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="Min")
 
@@ -26,7 +24,13 @@ def test_str():
     r = test_series.resample("H")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
-        "label=left, convention=start, base=0]" in str(r)
+        "label=left, convention=start, origin=start_day]" in str(r)
+    )
+
+    r = test_series.resample("H", origin="2000-01-01")
+    assert (
+        "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
+        "label=left, convention=start, origin=2000-01-01 00:00:00]" in str(r)
     )
 
 
@@ -64,7 +68,7 @@ def test_groupby_resample_api():
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
     result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_resample_on_api():
@@ -83,7 +87,7 @@ def test_groupby_resample_on_api():
     expected = df.set_index("dates").groupby("key").resample("D").mean()
 
     result = df.groupby("key").resample("D", on="dates").mean()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_pipe(test_frame):
@@ -158,11 +162,11 @@ def tests_skip_nuisance(test_frame):
     r = df.resample("H")
     result = r[["A", "B"]].sum()
     expected = pd.concat([r.A.sum(), r.B.sum()], axis=1)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].sum()
     result = r.sum()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_downsample_but_actually_upsampling():
@@ -175,12 +179,12 @@ def test_downsample_but_actually_upsampling():
         [0, 20, 40, 60, 80],
         index=pd.date_range("2012-01-01 00:00:00", freq="20s", periods=5),
     )
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_combined_up_downsampling_of_irregular():
 
-    # since we are reallydoing an operation like this
+    # since we are really doing an operation like this
     # ts2.resample('2s').mean().ffill()
     # preserve these semantics
 
@@ -188,10 +192,50 @@ def test_combined_up_downsampling_of_irregular():
     ts = Series(np.arange(len(rng)), index=rng)
     ts2 = ts.iloc[[0, 1, 2, 3, 5, 7, 11, 15, 16, 25, 30]]
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = ts2.resample("2s", how="mean", fill_method="ffill")
-    expected = ts2.resample("2s").mean().ffill()
-    assert_series_equal(result, expected)
+    result = ts2.resample("2s").mean().ffill()
+    expected = Series(
+        [
+            0.5,
+            2.5,
+            5.0,
+            7.0,
+            7.0,
+            11.0,
+            11.0,
+            15.0,
+            16.0,
+            16.0,
+            16.0,
+            16.0,
+            25.0,
+            25.0,
+            25.0,
+            30.0,
+        ],
+        index=pd.DatetimeIndex(
+            [
+                "2012-01-01 00:00:00",
+                "2012-01-01 00:00:02",
+                "2012-01-01 00:00:04",
+                "2012-01-01 00:00:06",
+                "2012-01-01 00:00:08",
+                "2012-01-01 00:00:10",
+                "2012-01-01 00:00:12",
+                "2012-01-01 00:00:14",
+                "2012-01-01 00:00:16",
+                "2012-01-01 00:00:18",
+                "2012-01-01 00:00:20",
+                "2012-01-01 00:00:22",
+                "2012-01-01 00:00:24",
+                "2012-01-01 00:00:26",
+                "2012-01-01 00:00:28",
+                "2012-01-01 00:00:30",
+            ],
+            dtype="datetime64[ns]",
+            freq="2S",
+        ),
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_transform():
@@ -199,7 +243,7 @@ def test_transform():
     r = test_series.resample("20min")
     expected = test_series.groupby(pd.Grouper(freq="20min")).transform("mean")
     result = r.transform("mean")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_fillna():
@@ -211,15 +255,15 @@ def test_fillna():
 
     expected = r.ffill()
     result = r.fillna(method="ffill")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     expected = r.bfill()
     result = r.fillna(method="bfill")
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
     msg = (
-        r"Invalid fill method\. Expecting pad \(ffill\), backfill"
-        r" \(bfill\) or nearest\. Got 0"
+        r"Invalid fill method\. Expecting pad \(ffill\), backfill "
+        r"\(bfill\) or nearest\. Got 0"
     )
     with pytest.raises(ValueError, match=msg):
         r.fillna(0)
@@ -233,7 +277,7 @@ def test_apply_without_aggregation():
 
     for t in [g, r]:
         result = t.apply(lambda x: x)
-        assert_series_equal(result, test_series)
+        tm.assert_series_equal(result, test_series)
 
 
 def test_agg_consistency():
@@ -248,10 +292,9 @@ def test_agg_consistency():
 
     r = df.resample("3T")
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        expected = r[["A", "B", "C"]].agg({"r1": "mean", "r2": "sum"})
-        result = r.agg({"r1": "mean", "r2": "sum"})
-    assert_frame_equal(result, expected, check_like=True)
+    msg = r"Column\(s\) \['r1', 'r2'\] do not exist"
+    with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        r.agg({"r1": "mean", "r2": "sum"})
 
 
 # TODO: once GH 14008 is fixed, move these tests into
@@ -289,45 +332,42 @@ def test_agg():
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
         result = t.aggregate([np.mean, np.std])
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, b_std], axis=1)
     for t in cases:
         result = t.aggregate({"A": np.mean, "B": np.std})
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_std], axis=1)
     expected.columns = pd.MultiIndex.from_tuples([("A", "mean"), ("A", "std")])
     for t in cases:
         result = t.aggregate({"A": ["mean", "std"]})
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, a_sum], axis=1)
     expected.columns = ["mean", "sum"]
     for t in cases:
         result = t["A"].aggregate(["mean", "sum"])
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
-    expected = pd.concat([a_mean, a_sum], axis=1)
-    expected.columns = pd.MultiIndex.from_tuples([("A", "mean"), ("A", "sum")])
+    msg = "nested renamer is not supported"
     for t in cases:
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t.aggregate({"A": {"mean": "mean", "sum": "sum"}})
-        assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t.aggregate({"A": {"mean": "mean", "sum": "sum"}})
 
     expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
         [("A", "mean"), ("A", "sum"), ("B", "mean2"), ("B", "sum2")]
     )
     for t in cases:
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t.aggregate(
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t.aggregate(
                 {
                     "A": {"mean": "mean", "sum": "sum"},
                     "B": {"mean2": "mean", "sum2": "sum"},
                 }
             )
-        assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
@@ -335,7 +375,7 @@ def test_agg():
     )
     for t in cases:
         result = t.aggregate({"A": ["mean", "std"], "B": ["mean", "std"]})
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_sum, b_mean, b_sum], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
@@ -374,7 +414,7 @@ def test_agg_misc():
         result = t.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
         rcustom = t["B"].apply(lambda x: np.std(x, ddof=1))
         expected = pd.concat([r["A"].sum(), rcustom], axis=1)
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     # agg with renamers
     expected = pd.concat(
@@ -384,12 +424,10 @@ def test_agg_misc():
         [("result1", "A"), ("result1", "B"), ("result2", "A"), ("result2", "B")]
     )
 
+    msg = r"Column\(s\) \['result1', 'result2'\] do not exist"
     for t in cases:
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t[["A", "B"]].agg(
-                OrderedDict([("result1", np.sum), ("result2", np.mean)])
-            )
-        assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t[["A", "B"]].agg(dict([("result1", np.sum), ("result2", np.mean)]))
 
     # agg with different hows
     expected = pd.concat(
@@ -399,31 +437,23 @@ def test_agg_misc():
         [("A", "sum"), ("A", "std"), ("B", "mean"), ("B", "std")]
     )
     for t in cases:
-        result = t.agg(OrderedDict([("A", ["sum", "std"]), ("B", ["mean", "std"])]))
-        assert_frame_equal(result, expected, check_like=True)
+        result = t.agg(dict([("A", ["sum", "std"]), ("B", ["mean", "std"])]))
+        tm.assert_frame_equal(result, expected, check_like=True)
 
     # equivalent of using a selection list / or not
     for t in cases:
         result = t[["A", "B"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
-        assert_frame_equal(result, expected, check_like=True)
+        tm.assert_frame_equal(result, expected, check_like=True)
+
+    msg = "nested renamer is not supported"
 
     # series like aggs
     for t in cases:
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t["A"].agg({"A": ["sum", "std"]})
-        expected = pd.concat([t["A"].sum(), t["A"].std()], axis=1)
-        expected.columns = pd.MultiIndex.from_tuples([("A", "sum"), ("A", "std")])
-        assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t["A"].agg({"A": ["sum", "std"]})
 
-        expected = pd.concat(
-            [t["A"].agg(["sum", "std"]), t["A"].agg(["mean", "std"])], axis=1
-        )
-        expected.columns = pd.MultiIndex.from_tuples(
-            [("A", "sum"), ("A", "std"), ("B", "mean"), ("B", "std")]
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t["A"].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
-        assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t["A"].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
 
     # errors
     # invalid names in the agg specification
@@ -452,28 +482,20 @@ def test_agg_nested_dicts():
         df.groupby(pd.Grouper(freq="2D")),
     ]
 
-    msg = r"cannot perform renaming for r(1|2) with a nested dictionary"
+    msg = "nested renamer is not supported"
     for t in cases:
         with pytest.raises(pd.core.base.SpecificationError, match=msg):
             t.aggregate({"r1": {"A": ["mean", "sum"]}, "r2": {"B": ["mean", "sum"]}})
 
     for t in cases:
-        expected = pd.concat(
-            [t["A"].mean(), t["A"].std(), t["B"].mean(), t["B"].std()], axis=1
-        )
-        expected.columns = pd.MultiIndex.from_tuples(
-            [("ra", "mean"), ("ra", "std"), ("rb", "mean"), ("rb", "std")]
-        )
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t[["A", "B"]].agg(
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t[["A", "B"]].agg(
                 {"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}}
             )
-        assert_frame_equal(result, expected, check_like=True)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = t.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
-        assert_frame_equal(result, expected, check_like=True)
+        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+            t.agg({"A": {"ra": ["mean", "std"]}, "B": {"rb": ["mean", "std"]}})
 
 
 def test_try_aggregate_non_existing_column():
@@ -504,8 +526,8 @@ def test_selection_api_validation():
 
     # non DatetimeIndex
     msg = (
-        "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex,"
-        " but got an instance of 'Int64Index'"
+        "Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, "
+        "but got an instance of 'Int64Index'"
     )
     with pytest.raises(TypeError, match=msg):
         df.resample("2D", level="v")
@@ -524,8 +546,8 @@ def test_selection_api_validation():
 
     # upsampling not allowed
     msg = (
-        "Upsampling from level= or on= selection is not supported, use"
-        r" \.set_index\(\.\.\.\) to explicitly set index to datetime-like"
+        "Upsampling from level= or on= selection is not supported, use "
+        r"\.set_index\(\.\.\.\) to explicitly set index to datetime-like"
     )
     with pytest.raises(ValueError, match=msg):
         df.resample("2D", level="d").asfreq()
@@ -534,10 +556,10 @@ def test_selection_api_validation():
 
     exp = df_exp.resample("2D").sum()
     exp.index.name = "date"
-    assert_frame_equal(exp, df.resample("2D", on="date").sum())
+    tm.assert_frame_equal(exp, df.resample("2D", on="date").sum())
 
     exp.index.name = "d"
-    assert_frame_equal(exp, df.resample("2D", level="d").sum())
+    tm.assert_frame_equal(exp, df.resample("2D", level="d").sum())
 
 
 @pytest.mark.parametrize(
@@ -549,7 +571,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
     # date parser. Some would result in OutOfBoundsError (ValueError) while
     # others would result in OverflowError when passed into Timestamp.
     # We catch these errors and move on to the correct branch.
-    df = pd.DataFrame(
+    df = DataFrame(
         list(range(200)),
         index=pd.date_range(
             start="2017-01-01", freq="15min", periods=200, tz="Europe/Berlin"
@@ -557,11 +579,35 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         columns=[col_name],
     )
     result = df.resample("1d").aggregate(["mean"])
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [47.5, 143.5, 195.5],
         index=pd.date_range(
             start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"
         ),
         columns=pd.MultiIndex(levels=[[col_name], ["mean"]], codes=[[0], [0]]),
     )
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_agg_readonly():
+    # GH#31710 cython needs to allow readonly data
+    index = pd.date_range("2020-01-01", "2020-01-02", freq="1h")
+    arr = np.zeros_like(index)
+    arr.setflags(write=False)
+
+    ser = Series(arr, index=index)
+    rs = ser.resample("1D")
+
+    expected = Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
+
+    result = rs.agg("last")
+    tm.assert_series_equal(result, expected)
+
+    result = rs.agg("first")
+    tm.assert_series_equal(result, expected)
+
+    result = rs.agg("max")
+    tm.assert_series_equal(result, expected)
+
+    result = rs.agg("min")
+    tm.assert_series_equal(result, expected)

@@ -3,10 +3,13 @@ import pytest
 
 from pandas.errors import PerformanceWarning
 
+from pandas.core.dtypes.common import is_object_dtype
+
 import pandas as pd
-from pandas import SparseArray, SparseDtype
+from pandas import SparseDtype
+import pandas._testing as tm
+from pandas.arrays import SparseArray
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 
 def make_data(fill_value):
@@ -103,6 +106,10 @@ class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
         # __setitem__ does not work, so we only have a smoke-test
         data.copy()
 
+    def test_view(self, data):
+        # __setitem__ does not work, so we only have a smoke-test
+        data.view()
+
 
 class TestConstructors(BaseSparseTests, base.BaseConstructorsTests):
     pass
@@ -128,6 +135,10 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         self._check_unsupported(data)
         super().test_concat_columns(data, na_value)
 
+    def test_concat_extension_arrays_copy_false(self, data, na_value):
+        self._check_unsupported(data)
+        super().test_concat_extension_arrays_copy_false(data, na_value)
+
     def test_align(self, data, na_value):
         self._check_unsupported(data)
         super().test_align(data, na_value)
@@ -143,6 +154,10 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
     def test_merge(self, data, na_value):
         self._check_unsupported(data)
         super().test_merge(data, na_value)
+
+    @pytest.mark.xfail(reason="SparseArray does not support setitem")
+    def test_transpose(self, data):
+        super().test_transpose(data)
 
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
@@ -227,7 +242,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            pd.SparseArray(
+            SparseArray(
                 [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
                 fill_value=False,
             )
@@ -237,7 +252,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            pd.SparseArray([a <= val for a in list(orig_data1)], fill_value=False)
+            SparseArray([a <= val for a in list(orig_data1)], fill_value=False)
         )
         self.assert_series_equal(result, expected)
 
@@ -298,9 +313,55 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_searchsorted(data_for_sorting, as_series)
 
+    def test_shift_0_periods(self, data):
+        # GH#33856 shifting with periods=0 should return a copy, not same obj
+        result = data.shift(0)
+
+        data._sparse_values[0] = data._sparse_values[1]
+        assert result._sparse_values[0] != result._sparse_values[1]
+
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_argmin_argmax_all_na(self, method, data, na_value):
+        # overriding because Sparse[int64, 0] cannot handle na_value
+        self._check_unsupported(data)
+        super().test_argmin_argmax_all_na(method, data, na_value)
+
+    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
+    def test_equals(self, data, na_value, as_series, box):
+        self._check_unsupported(data)
+        super().test_equals(data, na_value, as_series, box)
+
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
-    pass
+    def test_astype_object_series(self, all_data):
+        # Unlike the base class, we do not expect the resulting Block
+        #  to be ObjectBlock
+        ser = pd.Series(all_data, name="A")
+        result = ser.astype(object)
+        assert is_object_dtype(result._data.blocks[0].dtype)
+
+    def test_astype_object_frame(self, all_data):
+        # Unlike the base class, we do not expect the resulting Block
+        #  to be ObjectBlock
+        df = pd.DataFrame({"A": all_data})
+
+        result = df.astype(object)
+        assert is_object_dtype(result._data.blocks[0].dtype)
+
+        # FIXME: these currently fail; dont leave commented-out
+        # check that we can compare the dtypes
+        # comp = result.dtypes.equals(df.dtypes)
+        # assert not comp.any()
+
+    def test_astype_str(self, data):
+        result = pd.Series(data[:5]).astype(str)
+        expected_dtype = pd.SparseDtype(str, str(data.fill_value))
+        expected = pd.Series([str(x) for x in data[:5]], dtype=expected_dtype)
+        self.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
+    def test_astype_string(self, data):
+        super().test_astype_string(data)
 
 
 class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
@@ -342,7 +403,7 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 
         with np.errstate(all="ignore"):
             expected = pd.Series(
-                pd.SparseArray(
+                SparseArray(
                     op(np.asarray(data), np.asarray(other)),
                     fill_value=result.values.fill_value,
                 )

@@ -3,12 +3,9 @@ import json
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
+from pandas import DataFrame, Index, Series, json_normalize
+import pandas._testing as tm
 
-from pandas import DataFrame, Index
-import pandas.util.testing as tm
-
-from pandas.io.json import json_normalize
 from pandas.io.json._normalize import nested_to_record
 
 
@@ -287,6 +284,26 @@ class TestJSONNormalize:
         expected = DataFrame(ex_data, columns=result.columns)
         tm.assert_frame_equal(result, expected)
 
+    def test_nested_meta_path_with_nested_record_path(self, state_data):
+        # GH 27220
+        result = json_normalize(
+            data=state_data,
+            record_path=["counties"],
+            meta=["state", "shortname", ["info", "governor"]],
+            errors="ignore",
+        )
+
+        ex_data = {
+            "name": ["Dade", "Broward", "Palm Beach", "Summit", "Cuyahoga"],
+            "population": [12345, 40000, 60000, 1234, 1337],
+            "state": ["Florida"] * 3 + ["Ohio"] * 2,
+            "shortname": ["FL"] * 3 + ["OH"] * 2,
+            "info.governor": ["Rick Scott"] * 3 + ["John Kasich"] * 2,
+        }
+
+        expected = DataFrame(ex_data)
+        tm.assert_frame_equal(result, expected)
+
     def test_meta_name_conflict(self):
         data = [
             {
@@ -382,7 +399,7 @@ class TestJSONNormalize:
             },
         ]
         expected = DataFrame(ex_data)
-        tm.assert_frame_equal(result, expected, check_like=not PY36)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "max_level,expected",
@@ -457,6 +474,50 @@ class TestJSONNormalize:
         expected_df = DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
 
+    def test_nested_flattening_consistent(self):
+        # see gh-21537
+        df1 = json_normalize([{"A": {"B": 1}}])
+        df2 = json_normalize({"dummy": [{"A": {"B": 1}}]}, "dummy")
+
+        # They should be the same.
+        tm.assert_frame_equal(df1, df2)
+
+    def test_nonetype_record_path(self, nulls_fixture):
+        # see gh-30148
+        # should not raise TypeError
+        result = json_normalize(
+            [
+                {"state": "Texas", "info": nulls_fixture},
+                {"state": "Florida", "info": [{"i": 2}]},
+            ],
+            record_path=["info"],
+        )
+        expected = DataFrame({"i": 2}, index=[0])
+        tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("value", ["false", "true", "{}", "1", '"text"'])
+    def test_non_list_record_path_errors(self, value):
+        # see gh-30148, GH 26284
+        parsed_value = json.loads(value)
+        test_input = {"state": "Texas", "info": parsed_value}
+        test_path = "info"
+        msg = (
+            f"{test_input} has non list value {parsed_value} for path {test_path}. "
+            "Must be list or null."
+        )
+        with pytest.raises(TypeError, match=msg):
+            json_normalize([test_input], record_path=[test_path])
+
+    def test_meta_non_iterable(self):
+        # GH 31507
+        data = """[{"id": 99, "data": [{"one": 1, "two": 2}]}]"""
+
+        result = json_normalize(json.loads(data), record_path=["data"], meta=["id"])
+        expected = DataFrame(
+            {"one": [1], "two": [2], "id": np.array([99], dtype=object)}
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
@@ -516,7 +577,7 @@ class TestNestedToRecord:
         columns = ["city", "number", "state", "street", "zip", "name"]
         columns = ["number", "street", "city", "state", "zip", "name"]
         expected = DataFrame(ex_data, columns=columns)
-        tm.assert_frame_equal(result, expected, check_like=not PY36)
+        tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
         # GH21356
@@ -546,7 +607,7 @@ class TestNestedToRecord:
 
     def test_nonetype_top_level_bottom_level(self):
         # GH21158: If inner level json has a key with a null value
-        # make sure it doesnt do a new_d.pop twice and except
+        # make sure it does not do a new_d.pop twice and except
         data = {
             "id": None,
             "location": {
@@ -578,7 +639,7 @@ class TestNestedToRecord:
 
     def test_nonetype_multiple_levels(self):
         # GH21158: If inner level json has a key with a null value
-        # make sure it doesnt do a new_d.pop twice and except
+        # make sure it does not do a new_d.pop twice and except
         data = {
             "id": None,
             "location": {
@@ -692,3 +753,31 @@ class TestNestedToRecord:
         ]
         output = nested_to_record(input_data, max_level=max_level)
         assert output == expected
+
+    def test_deprecated_import(self):
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.io.json import json_normalize
+
+            recs = [{"a": 1, "b": 2, "c": 3}, {"a": 4, "b": 5, "c": 6}]
+            json_normalize(recs)
+
+    def test_series_non_zero_index(self):
+        # GH 19020
+        data = {
+            0: {"id": 1, "name": "Foo", "elements": {"a": 1}},
+            1: {"id": 2, "name": "Bar", "elements": {"b": 2}},
+            2: {"id": 3, "name": "Baz", "elements": {"c": 3}},
+        }
+        s = Series(data)
+        s.index = [1, 2, 3]
+        result = json_normalize(s)
+        expected = DataFrame(
+            {
+                "id": [1, 2, 3],
+                "name": ["Foo", "Bar", "Baz"],
+                "elements.a": [1.0, np.nan, np.nan],
+                "elements.b": [np.nan, 2.0, np.nan],
+                "elements.c": [np.nan, np.nan, 3.0],
+            }
+        )
+        tm.assert_frame_equal(result, expected)

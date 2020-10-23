@@ -1,8 +1,10 @@
 from datetime import datetime
 
 import numpy as np
-import pandas.util.testing as tm
-from pandas import Series, date_range, NaT
+
+from pandas import NaT, Series, date_range
+
+from .pandas_vb_common import tm
 
 
 class SeriesConstructor:
@@ -56,17 +58,15 @@ class IsInFloat64:
 
 class IsInForObjects:
     def setup(self):
-        self.s_nans = Series(np.full(10 ** 4, np.nan)).astype(np.object)
-        self.vals_nans = np.full(10 ** 4, np.nan).astype(np.object)
-        self.s_short = Series(np.arange(2)).astype(np.object)
-        self.s_long = Series(np.arange(10 ** 5)).astype(np.object)
-        self.vals_short = np.arange(2).astype(np.object)
-        self.vals_long = np.arange(10 ** 5).astype(np.object)
+        self.s_nans = Series(np.full(10 ** 4, np.nan)).astype(object)
+        self.vals_nans = np.full(10 ** 4, np.nan).astype(object)
+        self.s_short = Series(np.arange(2)).astype(object)
+        self.s_long = Series(np.arange(10 ** 5)).astype(object)
+        self.vals_short = np.arange(2).astype(object)
+        self.vals_long = np.arange(10 ** 5).astype(object)
         # because of nans floats are special:
-        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float)).astype(
-            np.object
-        )
-        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float).astype(np.object)
+        self.s_long_floats = Series(np.arange(10 ** 5, dtype=np.float)).astype(object)
+        self.vals_long_floats = np.arange(10 ** 5, dtype=np.float).astype(object)
 
     def time_isin_nans(self):
         # if nan-objects are different objects,
@@ -221,27 +221,27 @@ class SeriesGetattr:
 
 class All:
 
-    params = [[10 ** 3, 10 ** 6], ["fast", "slow"]]
-    param_names = ["N", "case"]
+    params = [[10 ** 3, 10 ** 6], ["fast", "slow"], ["bool", "boolean"]]
+    param_names = ["N", "case", "dtype"]
 
-    def setup(self, N, case):
+    def setup(self, N, case, dtype):
         val = case != "fast"
-        self.s = Series([val] * N)
+        self.s = Series([val] * N, dtype=dtype)
 
-    def time_all(self, N, case):
+    def time_all(self, N, case, dtype):
         self.s.all()
 
 
 class Any:
 
-    params = [[10 ** 3, 10 ** 6], ["fast", "slow"]]
-    param_names = ["N", "case"]
+    params = [[10 ** 3, 10 ** 6], ["fast", "slow"], ["bool", "boolean"]]
+    param_names = ["N", "case", "dtype"]
 
-    def setup(self, N, case):
+    def setup(self, N, case, dtype):
         val = case == "fast"
-        self.s = Series([val] * N)
+        self.s = Series([val] * N, dtype=dtype)
 
-    def time_any(self, N, case):
+    def time_any(self, N, case, dtype):
         self.s.any()
 
 
@@ -263,11 +263,14 @@ class NanOps:
             "prod",
         ],
         [10 ** 3, 10 ** 6],
-        ["int8", "int32", "int64", "float64"],
+        ["int8", "int32", "int64", "float64", "Int64", "boolean"],
     ]
     param_names = ["func", "N", "dtype"]
 
     def setup(self, func, N, dtype):
+        if func == "argmax" and dtype in {"Int64", "boolean"}:
+            # Skip argmax for nullable int since this doesn't work yet (GH-24382)
+            raise NotImplementedError
         self.s = Series([1] * N, dtype=dtype)
         self.func = getattr(self.s, func)
 
@@ -275,4 +278,4 @@ class NanOps:
         self.func()
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

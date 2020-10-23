@@ -1,8 +1,11 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, period_range
-import pandas.util.testing as tm
+import pandas as pd
+from pandas import DataFrame, Index, MultiIndex, period_range
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -161,7 +164,7 @@ def test_join_overlap(float_frame):
 
 
 def test_join_period_index(frame_with_period_index):
-    other = frame_with_period_index.rename(columns=lambda x: "{key}{key}".format(key=x))
+    other = frame_with_period_index.rename(columns=lambda key: f"{key}{key}")
 
     joined_values = np.concatenate([frame_with_period_index.values] * 2, axis=1)
 
@@ -193,3 +196,123 @@ def test_join_left_sequence_non_unique_index():
     )
 
     tm.assert_frame_equal(joined, expected)
+
+
+@pytest.mark.parametrize("sort_kw", [True, False])
+def test_suppress_future_warning_with_sort_kw(sort_kw):
+    a = DataFrame({"col1": [1, 2]}, index=["c", "a"])
+
+    b = DataFrame({"col2": [4, 5]}, index=["b", "a"])
+
+    c = DataFrame({"col3": [7, 8]}, index=["a", "b"])
+
+    expected = DataFrame(
+        {
+            "col1": {"a": 2.0, "b": float("nan"), "c": 1.0},
+            "col2": {"a": 5.0, "b": 4.0, "c": float("nan")},
+            "col3": {"a": 7.0, "b": 8.0, "c": float("nan")},
+        }
+    )
+    if sort_kw is False:
+        expected = expected.reindex(index=["c", "a", "b"])
+
+    with tm.assert_produces_warning(None, check_stacklevel=False):
+        result = a.join([b, c], how="outer", sort=sort_kw)
+    tm.assert_frame_equal(result, expected)
+
+
+class TestDataFrameJoin:
+    def test_join_str_datetime(self):
+        str_dates = ["20120209", "20120222"]
+        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
+
+        A = DataFrame(str_dates, index=range(2), columns=["aa"])
+        C = DataFrame([[1, 2], [3, 4]], index=str_dates, columns=dt_dates)
+
+        tst = A.join(C, on="aa")
+
+        assert len(tst.columns) == 3
+
+    def test_join_multiindex_leftright(self):
+        # GH 10741
+        df1 = DataFrame(
+            [
+                ["a", "x", 0.471780],
+                ["a", "y", 0.774908],
+                ["a", "z", 0.563634],
+                ["b", "x", -0.353756],
+                ["b", "y", 0.368062],
+                ["b", "z", -1.721840],
+                ["c", "x", 1],
+                ["c", "y", 2],
+                ["c", "z", 3],
+            ],
+            columns=["first", "second", "value1"],
+        ).set_index(["first", "second"])
+
+        df2 = DataFrame([["a", 10], ["b", 20]], columns=["first", "value2"]).set_index(
+            ["first"]
+        )
+
+        exp = DataFrame(
+            [
+                [0.471780, 10],
+                [0.774908, 10],
+                [0.563634, 10],
+                [-0.353756, 20],
+                [0.368062, 20],
+                [-1.721840, 20],
+                [1.000000, np.nan],
+                [2.000000, np.nan],
+                [3.000000, np.nan],
+            ],
+            index=df1.index,
+            columns=["value1", "value2"],
+        )
+
+        # these must be the same results (but columns are flipped)
+        tm.assert_frame_equal(df1.join(df2, how="left"), exp)
+        tm.assert_frame_equal(df2.join(df1, how="right"), exp[["value2", "value1"]])
+
+        exp_idx = pd.MultiIndex.from_product(
+            [["a", "b"], ["x", "y", "z"]], names=["first", "second"]
+        )
+        exp = DataFrame(
+            [
+                [0.471780, 10],
+                [0.774908, 10],
+                [0.563634, 10],
+                [-0.353756, 20],
+                [0.368062, 20],
+                [-1.721840, 20],
+            ],
+            index=exp_idx,
+            columns=["value1", "value2"],
+        )
+
+        tm.assert_frame_equal(df1.join(df2, how="right"), exp)
+        tm.assert_frame_equal(df2.join(df1, how="left"), exp[["value2", "value1"]])
+
+    def test_merge_join_different_levels(self):
+        # GH#9455
+
+        # first dataframe
+        df1 = DataFrame(columns=["a", "b"], data=[[1, 11], [0, 22]])
+
+        # second dataframe
+        columns = MultiIndex.from_tuples([("a", ""), ("c", "c1")])
+        df2 = DataFrame(columns=columns, data=[[1, 33], [0, 44]])
+
+        # merge
+        columns = ["a", "b", ("c", "c1")]
+        expected = DataFrame(columns=columns, data=[[1, 11, 33], [0, 22, 44]])
+        with tm.assert_produces_warning(UserWarning):
+            result = pd.merge(df1, df2, on="a")
+        tm.assert_frame_equal(result, expected)
+
+        # join, see discussion in GH#12219
+        columns = ["a", "b", ("a", ""), ("c", "c1")]
+        expected = DataFrame(columns=columns, data=[[1, 11, 0, 44], [0, 22, 1, 33]])
+        with tm.assert_produces_warning(UserWarning):
+            result = df1.join(df2, on="a")
+        tm.assert_frame_equal(result, expected)

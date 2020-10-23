@@ -1,22 +1,29 @@
+"""
+These benchmarks are for Series and DataFrame indexing methods.  For the
+lower-level methods directly on Index and subclasses, see index_object.py,
+indexing_engine.py, and index_cached.py
+"""
 import warnings
 
 import numpy as np
-import pandas.util.testing as tm
+
 from pandas import (
-    Series,
-    DataFrame,
-    MultiIndex,
-    Int64Index,
-    UInt64Index,
-    Float64Index,
-    IntervalIndex,
     CategoricalIndex,
+    DataFrame,
+    Float64Index,
     IndexSlice,
+    Int64Index,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+    UInt64Index,
     concat,
     date_range,
     option_context,
     period_range,
 )
+
+from .pandas_vb_common import tm
 
 
 class NumericSeriesIndexing:
@@ -66,22 +73,6 @@ class NumericSeriesIndexing:
     def time_iloc_slice(self, index, index_structure):
         self.data.iloc[:800000]
 
-    def time_ix_array(self, index, index_structure):
-        with warnings.catch_warnings(record=True):
-            self.data.ix[self.array]
-
-    def time_ix_list_like(self, index, index_structure):
-        with warnings.catch_warnings(record=True):
-            self.data.ix[[800000]]
-
-    def time_ix_scalar(self, index, index_structure):
-        with warnings.catch_warnings(record=True):
-            self.data.ix[800000]
-
-    def time_ix_slice(self, index, index_structure):
-        with warnings.catch_warnings(record=True):
-            self.data.ix[:800000]
-
     def time_loc_array(self, index, index_structure):
         self.data.loc[self.array]
 
@@ -129,10 +120,6 @@ class NonNumericSeriesIndexing:
     def time_getitem_pos_slice(self, index, index_structure):
         self.s[:80000]
 
-    def time_get_value(self, index, index_structure):
-        with warnings.catch_warnings(record=True):
-            self.s.get_value(self.lbl)
-
     def time_getitem_scalar(self, index, index_structure):
         self.s[self.lbl]
 
@@ -150,14 +137,7 @@ class DataFrameStringIndexing:
         self.col_scalar = columns[10]
         self.bool_indexer = self.df[self.col_scalar] > 0
         self.bool_obj_indexer = self.bool_indexer.astype(object)
-
-    def time_get_value(self):
-        with warnings.catch_warnings(record=True):
-            self.df.get_value(self.idx_scalar, self.col_scalar)
-
-    def time_ix(self):
-        with warnings.catch_warnings(record=True):
-            self.df.ix[self.idx_scalar, self.col_scalar]
+        self.boolean_indexer = (self.df[self.col_scalar] > 0).astype("boolean")
 
     def time_loc(self):
         self.df.loc[self.idx_scalar, self.col_scalar]
@@ -171,13 +151,16 @@ class DataFrameStringIndexing:
     def time_boolean_rows_object(self):
         self.df[self.bool_obj_indexer]
 
+    def time_boolean_rows_boolean(self):
+        self.df[self.boolean_indexer]
+
 
 class DataFrameNumericIndexing:
     def setup(self):
         self.idx_dupe = np.array(range(30)) * 99
-        self.df = DataFrame(np.random.randn(10000, 5))
+        self.df = DataFrame(np.random.randn(100000, 5))
         self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
-        self.bool_indexer = [True] * 5000 + [False] * 5000
+        self.bool_indexer = [True] * 50000 + [False] * 50000
 
     def time_iloc_dups(self):
         self.df_dup.iloc[self.idx_dupe]
@@ -208,7 +191,7 @@ class Take:
         }
         index = indexes[index]
         self.s = Series(np.random.rand(N), index=index)
-        self.indexer = [True, False, True, True, False] * 20000
+        self.indexer = np.random.randint(0, N, size=N)
 
     def time_take(self, index):
         self.s.take(self.indexer)
@@ -234,14 +217,6 @@ class MultiIndexing:
             )
         self.idx = IndexSlice[20000:30000, 20:30, 35:45, 30000:40000]
         self.mdt = self.mdt.set_index(["A", "B", "C", "D"]).sort_index()
-
-    def time_series_ix(self):
-        with warnings.catch_warnings(record=True):
-            self.s.ix[999]
-
-    def time_frame_ix(self):
-        with warnings.catch_warnings(record=True):
-            self.df.ix[999]
 
     def time_index_slice(self):
         self.mdt.loc[self.idx, :]
@@ -317,10 +292,6 @@ class MethodLookup:
     def time_lookup_iloc(self, s):
         s.iloc
 
-    def time_lookup_ix(self, s):
-        with warnings.catch_warnings(record=True):
-            s.ix
-
     def time_lookup_loc(self, s):
         s.loc
 
@@ -335,6 +306,31 @@ class GetItemSingleColumn:
 
     def time_frame_getitem_single_column_int(self):
         self.df_int_col[0]
+
+
+class IndexSingleRow:
+    params = [True, False]
+    param_names = ["unique_cols"]
+
+    def setup(self, unique_cols):
+        arr = np.arange(10 ** 7).reshape(-1, 10)
+        df = DataFrame(arr)
+        dtypes = ["u1", "u2", "u4", "u8", "i1", "i2", "i4", "i8", "f8", "f4"]
+        for i, d in enumerate(dtypes):
+            df[i] = df[i].astype(d)
+
+        if not unique_cols:
+            # GH#33032 single-row lookups with non-unique columns were
+            #  15x slower than with unique columns
+            df.columns = ["A", "A"] + list(df.columns[2:])
+
+        self.df = df
+
+    def time_iloc_row(self, unique_cols):
+        self.df.iloc[10000]
+
+    def time_loc_row(self, unique_cols):
+        self.df.loc[10000]
 
 
 class AssignTimeseriesIndex:
@@ -379,4 +375,4 @@ class ChainIndexing:
                 df2["C"] = 1.0
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

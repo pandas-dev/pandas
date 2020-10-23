@@ -1,7 +1,8 @@
-import os
 from importlib import import_module
+import os
 
 import numpy as np
+
 import pandas as pd
 
 # Compatibility import for lib
@@ -11,6 +12,13 @@ for imp in ["pandas._libs.lib", "pandas.lib"]:
         break
     except (ImportError, TypeError, ValueError):
         pass
+
+# Compatibility import for the testing module
+try:
+    import pandas._testing as tm
+except ImportError:
+    import pandas.util.testing as tm  # noqa
+
 
 numeric_dtypes = [
     np.int64,
@@ -25,7 +33,7 @@ numeric_dtypes = [
     np.uint8,
 ]
 datetime_dtypes = [np.datetime64, np.timedelta64]
-string_dtypes = [np.object]
+string_dtypes = [object]
 try:
     extension_dtypes = [
         pd.Int8Dtype,
@@ -48,7 +56,7 @@ except AttributeError:
 def setup(*args, **kwargs):
     # This function just needs to be imported into each benchmark file to
     # set up the random seed before each function.
-    # http://asv.readthedocs.io/en/latest/writing_benchmarks.html
+    # https://asv.readthedocs.io/en/latest/writing_benchmarks.html
     np.random.seed(1234)
 
 

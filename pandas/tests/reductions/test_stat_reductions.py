@@ -10,8 +10,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
-import pandas.util.testing as tm
 
 
 class TestDatetimeLikeStatReductions:
@@ -96,7 +96,7 @@ class TestSeriesStatReductions:
             string_series_[5:15] = np.NaN
 
             # mean, idxmax, idxmin, min, and max are valid for dates
-            if name not in ["max", "min", "mean"]:
+            if name not in ["max", "min", "mean", "median"]:
                 ds = Series(pd.date_range("1/1/2001", periods=10))
                 with pytest.raises(TypeError):
                     f(ds)

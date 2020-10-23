@@ -15,13 +15,26 @@ lint-diff:
 	git diff upstream/master --name-only -- "*.py" | xargs flake8
 
 black:
-	black . --exclude '(asv_bench/env|\.egg|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist|setup.py)'
+	black .
 
 develop: build
-	python setup.py develop
+	python -m pip install --no-build-isolation -e .
 
 doc:
 	-rm -rf doc/build doc/source/generated
 	cd doc; \
 	python make.py clean; \
 	python make.py html
+
+check:
+	python3 scripts/validate_unwanted_patterns.py \
+		--validation-type="private_function_across_module" \
+		--included-file-extensions="py" \
+		--excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored \
+		pandas/
+
+	python3 scripts/validate_unwanted_patterns.py \
+		--validation-type="private_import_across_module" \
+		--included-file-extensions="py" \
+		--excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/
+		pandas/

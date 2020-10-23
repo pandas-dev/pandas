@@ -1,16 +1,20 @@
 #!/bin/bash -e
 
+if [ "$JOB" == "3.9-dev" ]; then
+    /bin/bash ci/build39.sh
+    exit 0
+fi
 
 # edit the locale file if needed
-if [ -n "$LOCALE_OVERRIDE" ]; then
+if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
     echo "Adding locale to the first line of pandas/__init__.py"
     rm -f pandas/__init__.pyc
-    SEDC="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LOCALE_OVERRIDE')\n"
+    SEDC="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LC_ALL')\n"
     sed -i "$SEDC" pandas/__init__.py
+
     echo "[head -4 pandas/__init__.py]"
     head -4 pandas/__init__.py
     echo
-    sudo locale-gen "$LOCALE_OVERRIDE"
 fi
 
 MINICONDA_DIR="$HOME/miniconda3"
@@ -37,9 +41,16 @@ else
   exit 1
 fi
 
-wget -q "https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh" -O miniconda.sh
+if [ "${TRAVIS_CPU_ARCH}" == "arm64" ]; then
+  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.5-1/Miniforge3-4.8.5-1-Linux-aarch64.sh"
+else
+  CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh"
+fi
+wget -q $CONDA_URL -O miniconda.sh
 chmod +x miniconda.sh
-./miniconda.sh -b
+
+# Installation path is required for ARM64 platform as miniforge script installs in path $HOME/miniforge3.
+./miniconda.sh -b -p $MINICONDA_DIR
 
 export PATH=$MINICONDA_DIR/bin:$PATH
 
@@ -51,6 +62,7 @@ echo
 echo "update conda"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
+conda install pip conda  # create conda to create a historical artifact for pip & setuptools
 conda update -n base conda
 
 echo "conda info -a"
@@ -86,8 +98,6 @@ echo "conda list (root environment)"
 conda list
 
 # Clean up any left-over from a previous build
-# (note workaround for https://github.com/conda/conda/issues/2679:
-#  `conda env remove` issue)
 conda remove --all -q -y -n pandas-dev
 
 echo
@@ -110,26 +120,41 @@ conda remove pandas -y --force || true
 pip uninstall -y pandas || true
 
 echo
+echo "remove postgres if has been installed with conda"
+echo "we use the one from the CI"
+conda remove postgresql -y --force || true
+
+echo
+echo "remove qt"
+echo "causes problems with the clipboard, we use xsel for that"
+conda remove qt -y --force || true
+
+echo
 echo "conda list pandas"
 conda list pandas
 
 # Make sure any error below is reported as such
 
-echo "Build extensions and install pandas"
-python setup.py build_ext -q --inplace
-python -m pip install -e .
+echo "[Build extensions]"
+python setup.py build_ext -q -i -j2
+
+echo "[Updating pip]"
+python -m pip install --no-deps -U pip wheel setuptools
+
+echo "[Install pandas]"
+python -m pip install --no-build-isolation -e .
 
 echo
 echo "conda list"
 conda list
 
 # Install DB for Linux
-if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+
+if [[ -n ${SQL:0} ]]; then
   echo "installing dbs"
   mysql -e 'create database pandas_nosetest;'
   psql -c 'create database pandas_nosetest;' -U postgres
 else
    echo "not using dbs on non-linux Travis builds or Azure Pipelines"
 fi
-
 echo "done"

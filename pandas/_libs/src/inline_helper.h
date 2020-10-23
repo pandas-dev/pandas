@@ -11,7 +11,9 @@ The full license is in the LICENSE file, distributed with this software.
 #define PANDAS__LIBS_SRC_INLINE_HELPER_H_
 
 #ifndef PANDAS_INLINE
-  #if defined(__GNUC__)
+  #if defined(__clang__)
+    #define PANDAS_INLINE static __inline__ __attribute__ ((__unused__))
+  #elif defined(__GNUC__)
     #define PANDAS_INLINE static __inline__
   #elif defined(_MSC_VER)
     #define PANDAS_INLINE static __inline

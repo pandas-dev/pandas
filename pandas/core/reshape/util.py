@@ -2,8 +2,6 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 
-from pandas.core import common as com
-
 
 def cartesian_product(X):
     """
@@ -21,8 +19,7 @@ def cartesian_product(X):
     Examples
     --------
     >>> cartesian_product([list('ABC'), [1, 2]])
-    [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='|S1'),
-    array([1, 2, 1, 2, 1, 2])]
+    [array(['A', 'A', 'B', 'B', 'C', 'C'], dtype='<U1'), array([1, 2, 1, 2, 1, 2])]
 
     See Also
     --------
@@ -42,6 +39,9 @@ def cartesian_product(X):
     lenX = np.fromiter((len(x) for x in X), dtype=np.intp)
     cumprodX = np.cumproduct(lenX)
 
+    if np.any(cumprodX < 0):
+        raise ValueError("Product space too large to allocate arrays!")
+
     a = np.roll(cumprodX, 1)
     a[0] = 1
 
@@ -51,9 +51,20 @@ def cartesian_product(X):
         # if any factor is empty, the cartesian product is empty
         b = np.zeros_like(cumprodX)
 
-    return [
-        np.tile(
-            np.repeat(np.asarray(com.values_from_object(x)), b[i]), np.product(a[i])
-        )
-        for i, x in enumerate(X)
-    ]
+    return [tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
+
+
+def tile_compat(arr, num: int):
+    """
+    Index compat for np.tile.
+
+    Notes
+    -----
+    Does not support multi-dimensional `num`.
+    """
+    if isinstance(arr, np.ndarray):
+        return np.tile(arr, num)
+
+    # Otherwise we have an Index
+    taker = np.tile(np.arange(len(arr)), num)
+    return arr.take(taker)

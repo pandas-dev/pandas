@@ -14,7 +14,6 @@ from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 from pandas import NaT, Timestamp
-import pandas.util.testing as tm
 
 
 class TestTimestampTZOperations:
@@ -24,17 +23,25 @@ class TestTimestampTZOperations:
     def test_tz_localize_pushes_out_of_bounds(self):
         # GH#12677
         # tz_localize that pushes away from the boundary is OK
+        msg = (
+            f"Converting {Timestamp.min.strftime('%Y-%m-%d %H:%M:%S')} "
+            f"underflows past {Timestamp.min}"
+        )
         pac = Timestamp.min.tz_localize("US/Pacific")
         assert pac.value > Timestamp.min.value
         pac.tz_convert("Asia/Tokyo")  # tz_convert doesn't change value
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.min.tz_localize("Asia/Tokyo")
 
         # tz_localize that pushes away from the boundary is OK
+        msg = (
+            f"Converting {Timestamp.max.strftime('%Y-%m-%d %H:%M:%S')} "
+            f"overflows past {Timestamp.max}"
+        )
         tokyo = Timestamp.max.tz_localize("Asia/Tokyo")
         assert tokyo.value < Timestamp.max.value
         tokyo.tz_convert("US/Pacific")  # tz_convert doesn't change value
-        with pytest.raises(OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.tz_localize("US/Pacific")
 
     def test_tz_localize_ambiguous_bool(self):
@@ -44,7 +51,8 @@ class TestTimestampTZOperations:
         expected0 = Timestamp("2015-11-01 01:00:03-0500", tz="US/Central")
         expected1 = Timestamp("2015-11-01 01:00:03-0600", tz="US/Central")
 
-        with pytest.raises(pytz.AmbiguousTimeError):
+        msg = "Cannot infer dst time from 2015-11-01 01:00:03"
+        with pytest.raises(pytz.AmbiguousTimeError, match=msg):
             ts.tz_localize("US/Central")
 
         result = ts.tz_localize("US/Central", ambiguous=True)
@@ -59,7 +67,8 @@ class TestTimestampTZOperations:
         ts_no_dst = ts.tz_localize("US/Eastern", ambiguous=False)
 
         assert (ts_no_dst.value - ts_dst.value) / 1e9 == 3600
-        with pytest.raises(ValueError):
+        msg = "Cannot infer offset with only one time"
+        with pytest.raises(ValueError, match=msg):
             ts.tz_localize("US/Eastern", ambiguous="infer")
 
         # GH#8025
@@ -80,44 +89,33 @@ class TestTimestampTZOperations:
             ("2015-03-29 02:30", "Europe/Belgrade"),
         ],
     )
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_tz_localize_nonexistent(self, stamp, tz):
         # GH#13057
         ts = Timestamp(stamp)
-        with pytest.raises(NonExistentTimeError):
+        with pytest.raises(NonExistentTimeError, match=stamp):
             ts.tz_localize(tz)
         # GH 22644
-        with pytest.raises(NonExistentTimeError):
-            with tm.assert_produces_warning(FutureWarning):
-                ts.tz_localize(tz, errors="raise")
-        with tm.assert_produces_warning(FutureWarning):
-            assert ts.tz_localize(tz, errors="coerce") is NaT
+        with pytest.raises(NonExistentTimeError, match=stamp):
+            ts.tz_localize(tz, nonexistent="raise")
+        assert ts.tz_localize(tz, nonexistent="NaT") is NaT
 
-    def test_tz_localize_errors_ambiguous(self):
+    def test_tz_localize_ambiguous_raise(self):
         # GH#13057
         ts = Timestamp("2015-11-1 01:00")
-        with pytest.raises(AmbiguousTimeError):
-            with tm.assert_produces_warning(FutureWarning):
-                ts.tz_localize("US/Pacific", errors="coerce")
+        msg = "Cannot infer dst time from 2015-11-01 01:00:00,"
+        with pytest.raises(AmbiguousTimeError, match=msg):
+            ts.tz_localize("US/Pacific", ambiguous="raise")
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
-    def test_tz_localize_errors_invalid_arg(self):
+    def test_tz_localize_nonexistent_invalid_arg(self):
         # GH 22644
         tz = "Europe/Warsaw"
         ts = Timestamp("2015-03-29 02:00:00")
-        with pytest.raises(ValueError):
-            with tm.assert_produces_warning(FutureWarning):
-                ts.tz_localize(tz, errors="foo")
-
-    def test_tz_localize_errors_coerce(self):
-        # GH 22644
-        # make sure errors='coerce' gets mapped correctly to nonexistent
-        tz = "Europe/Warsaw"
-        ts = Timestamp("2015-03-29 02:00:00")
-        with tm.assert_produces_warning(FutureWarning):
-            result = ts.tz_localize(tz, errors="coerce")
-        expected = ts.tz_localize(tz, nonexistent="NaT")
-        assert result is expected
+        msg = (
+            "The nonexistent argument must be one of 'raise', 'NaT', "
+            "'shift_forward', 'shift_backward' or a timedelta object"
+        )
+        with pytest.raises(ValueError, match=msg):
+            ts.tz_localize(tz, nonexistent="foo")
 
     @pytest.mark.parametrize(
         "stamp",
@@ -134,7 +132,8 @@ class TestTimestampTZOperations:
         localized = ts.tz_localize(tz)
         assert localized == Timestamp(stamp, tz=tz)
 
-        with pytest.raises(TypeError):
+        msg = "Cannot localize tz-aware Timestamp"
+        with pytest.raises(TypeError, match=msg):
             localized.tz_localize(tz)
 
         reset = localized.tz_localize(None)
@@ -157,7 +156,7 @@ class TestTimestampTZOperations:
         # see gh-14621
         assert result_pytz.to_pydatetime().tzname() == "GMT"
         assert result_dateutil.to_pydatetime().tzname() == "BST"
-        assert str(result_pytz) != str(result_dateutil)
+        assert str(result_pytz) == str(result_dateutil)
 
         # 1 hour difference
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=1)
@@ -266,9 +265,14 @@ class TestTimestampTZOperations:
     def test_timestamp_tz_localize_nonexistent_raise(self, tz):
         # GH 8917
         ts = Timestamp("2015-03-29 02:20:00")
-        with pytest.raises(pytz.NonExistentTimeError):
+        msg = "2015-03-29 02:20:00"
+        with pytest.raises(pytz.NonExistentTimeError, match=msg):
             ts.tz_localize(tz, nonexistent="raise")
-        with pytest.raises(ValueError):
+        msg = (
+            "The nonexistent argument must be one of 'raise', 'NaT', "
+            "'shift_forward', 'shift_backward' or a timedelta object"
+        )
+        with pytest.raises(ValueError, match=msg):
             ts.tz_localize(tz, nonexistent="foo")
 
     # ------------------------------------------------------------------
@@ -306,15 +310,14 @@ class TestTimestampTZOperations:
 
     @td.skip_if_windows
     def test_tz_convert_utc_with_system_utc(self):
-        from pandas._libs.tslibs.timezones import maybe_get_tz
 
         # from system utc to real utc
-        ts = Timestamp("2001-01-05 11:56", tz=maybe_get_tz("dateutil/UTC"))
+        ts = Timestamp("2001-01-05 11:56", tz=timezones.maybe_get_tz("dateutil/UTC"))
         # check that the time hasn't changed.
         assert ts == ts.tz_convert(dateutil.tz.tzutc())
 
         # from system utc to real utc
-        ts = Timestamp("2001-01-05 11:56", tz=maybe_get_tz("dateutil/UTC"))
+        ts = Timestamp("2001-01-05 11:56", tz=timezones.maybe_get_tz("dateutil/UTC"))
         # check that the time hasn't changed.
         assert ts == ts.tz_convert(dateutil.tz.tzutc())
 
@@ -338,21 +341,23 @@ class TestTimestampTZOperations:
     def test_timestamp_constructor_near_dst_boundary(self):
         # GH#11481 & GH#15777
         # Naive string timestamps were being localized incorrectly
-        # with tz_convert_single instead of tz_localize_to_utc
+        # with tz_convert_from_utc_single instead of tz_localize_to_utc
 
         for tz in ["Europe/Brussels", "Europe/Prague"]:
             result = Timestamp("2015-10-25 01:00", tz=tz)
             expected = Timestamp("2015-10-25 01:00").tz_localize(tz)
             assert result == expected
 
-            with pytest.raises(pytz.AmbiguousTimeError):
+            msg = "Cannot infer dst time from 2015-10-25 02:00:00"
+            with pytest.raises(pytz.AmbiguousTimeError, match=msg):
                 Timestamp("2015-10-25 02:00", tz=tz)
 
         result = Timestamp("2017-03-26 01:00", tz="Europe/Paris")
         expected = Timestamp("2017-03-26 01:00").tz_localize("Europe/Paris")
         assert result == expected
 
-        with pytest.raises(pytz.NonExistentTimeError):
+        msg = "2017-03-26 02:00"
+        with pytest.raises(pytz.NonExistentTimeError, match=msg):
             Timestamp("2017-03-26 02:00", tz="Europe/Paris")
 
         # GH#11708
@@ -370,7 +375,8 @@ class TestTimestampTZOperations:
         expected = Timestamp("2017-03-26 01:00:00+0100", tz="Europe/Paris")
         assert result == expected
 
-        with pytest.raises(pytz.NonExistentTimeError):
+        msg = "2017-03-26 02:00"
+        with pytest.raises(pytz.NonExistentTimeError, match=msg):
             Timestamp("2017-03-26 02:00", tz="Europe/Paris")
 
         result = Timestamp("2017-03-26 02:00:00+0100", tz="Europe/Paris")

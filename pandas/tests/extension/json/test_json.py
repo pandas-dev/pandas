@@ -3,11 +3,9 @@ import operator
 
 import pytest
 
-from pandas.compat import PY36
-
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension import base
-import pandas.util.testing as tm
 
 from .array import JSONArray, JSONDtype, make_data
 
@@ -81,7 +79,8 @@ class BaseJSON:
     # The default assert_series_equal eventually does a
     # Series.values, which raises. We work around it by
     # converting the UserDicts to dicts.
-    def assert_series_equal(self, left, right, **kwargs):
+    @classmethod
+    def assert_series_equal(cls, left, right, *args, **kwargs):
         if left.dtype.name == "json":
             assert left.dtype == right.dtype
             left = pd.Series(
@@ -92,9 +91,11 @@ class BaseJSON:
                 index=right.index,
                 name=right.name,
             )
-        tm.assert_series_equal(left, right, **kwargs)
+        tm.assert_series_equal(left, right, *args, **kwargs)
 
-    def assert_frame_equal(self, left, right, *args, **kwargs):
+    @classmethod
+    def assert_frame_equal(cls, left, right, *args, **kwargs):
+        obj_type = kwargs.get("obj", "DataFrame")
         tm.assert_index_equal(
             left.columns,
             right.columns,
@@ -102,13 +103,13 @@ class BaseJSON:
             check_names=kwargs.get("check_names", True),
             check_exact=kwargs.get("check_exact", False),
             check_categorical=kwargs.get("check_categorical", True),
-            obj="{obj}.columns".format(obj=kwargs.get("obj", "DataFrame")),
+            obj=f"{obj_type}.columns",
         )
 
         jsons = (left.dtypes == "json").index
 
         for col in jsons:
-            self.assert_series_equal(left[col], right[col], *args, **kwargs)
+            cls.assert_series_equal(left[col], right[col], *args, **kwargs)
 
         left = left.drop(columns=jsons)
         right = right.drop(columns=jsons)
@@ -135,10 +136,11 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
         self.assert_frame_equal(a.to_frame(), a.to_frame())
 
         b = pd.Series(data.take([0, 0, 1]))
-        with pytest.raises(AssertionError):
+        msg = r"ExtensionArray are different"
+        with pytest.raises(AssertionError, match=msg):
             self.assert_series_equal(a, b)
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(AssertionError, match=msg):
             self.assert_frame_equal(a.to_frame(), b.to_frame())
 
 
@@ -147,6 +149,21 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
     def test_from_dtype(self, data):
         # construct from our dtype & string dtype
         pass
+
+    @pytest.mark.xfail(reason="RecursionError, GH-33900")
+    def test_series_constructor_no_data_with_index(self, dtype, na_value):
+        # RecursionError: maximum recursion depth exceeded in comparison
+        super().test_series_constructor_no_data_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="RecursionError, GH-33900")
+    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
+        # RecursionError: maximum recursion depth exceeded in comparison
+        super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="collection as scalar, GH-33901")
+    def test_series_constructor_scalar_with_index(self, data, dtype):
+        # TypeError: All values must be of type <class 'collections.abc.Mapping'>
+        super().test_series_constructor_scalar_with_index(data, dtype)
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
@@ -180,9 +197,6 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 
 
 unhashable = pytest.mark.skip(reason="Unhashable")
-unstable = pytest.mark.skipif(
-    not PY36, reason="Dictionary order unstable"  # 3.6 or higher
-)
 
 
 class TestReduce(base.BaseNoReduceTests):
@@ -195,27 +209,31 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         pass
 
     @unhashable
+    def test_value_counts_with_normalize(self, data):
+        pass
+
+    @unhashable
     def test_sort_values_frame(self):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
 
-    @unstable
     def test_argsort(self, data_for_sorting):
         super().test_argsort(data_for_sorting)
 
-    @unstable
     def test_argsort_missing(self, data_missing_for_sorting):
         super().test_argsort_missing(data_missing_for_sorting)
 
-    @unstable
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values(self, data_for_sorting, ascending):
-        super().test_sort_values(data_for_sorting, ascending)
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
+        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
 
-    @unstable
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_missing(self, data_missing_for_sorting, ascending):
-        super().test_sort_values_missing(data_missing_for_sorting, ascending)
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
+        super().test_sort_values_missing(
+            data_missing_for_sorting, ascending, sort_by_key
+        )
 
     @pytest.mark.skip(reason="combine for JSONArray not supported")
     def test_combine_le(self, data_repeated):
@@ -243,6 +261,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     @pytest.mark.skip(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
         super().test_searchsorted(data_for_sorting)
+
+    @pytest.mark.skip(reason="Can't compare dicts.")
+    def test_equals(self, data, na_value, as_series):
+        pass
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
@@ -280,7 +302,6 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         we'll be able to dispatch unique.
         """
 
-    @unstable
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)

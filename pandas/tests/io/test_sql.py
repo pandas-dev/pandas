@@ -26,8 +26,6 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
-
 from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
 
 import pandas as pd
@@ -43,17 +41,17 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_query, read_sql_table
 
 try:
     import sqlalchemy
-    import sqlalchemy.schema
-    import sqlalchemy.sql.sqltypes as sqltypes
     from sqlalchemy.ext import declarative
     from sqlalchemy.orm import session as sa_session
+    import sqlalchemy.schema
+    import sqlalchemy.sql.sqltypes as sqltypes
 
     SQLALCHEMY_INSTALLED = True
 except ImportError:
@@ -196,6 +194,11 @@ SQL_STRINGS = {
                 "Name"=%(name)s AND "SepalLength"=%(length)s
                 """,
     },
+    "read_no_parameters_with_percent": {
+        "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
+        "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
+        "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
+    },
     "create_view": {
         "sqlite": """
                 CREATE VIEW iris_view AS
@@ -217,9 +220,7 @@ class MixInBase:
 class MySQLMixIn(MixInBase):
     def drop_table(self, table_name):
         cur = self.conn.cursor()
-        cur.execute(
-            "DROP TABLE IF EXISTS {}".format(sql._get_valid_mysql_name(table_name))
-        )
+        cur.execute(f"DROP TABLE IF EXISTS {sql._get_valid_mysql_name(table_name)}")
         self.conn.commit()
 
     def _get_all_tables(self):
@@ -239,7 +240,7 @@ class MySQLMixIn(MixInBase):
 class SQLiteMixIn(MixInBase):
     def drop_table(self, table_name):
         self.conn.execute(
-            "DROP TABLE IF EXISTS {}".format(sql._get_valid_sqlite_name(table_name))
+            f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}"
         )
         self.conn.commit()
 
@@ -262,7 +263,8 @@ class SQLAlchemyMixIn(MixInBase):
         return table_list
 
     def _close_conn(self):
-        pass
+        # https://docs.sqlalchemy.org/en/13/core/connections.html#engine-disposal
+        self.conn.dispose()
 
 
 class PandasSQLTest:
@@ -277,9 +279,8 @@ class PandasSQLTest:
         else:
             return self.conn.cursor()
 
-    @pytest.fixture(params=[("io", "data", "iris.csv")])
+    @pytest.fixture(params=[("io", "data", "csv", "iris.csv")])
     def load_iris_data(self, datapath, request):
-        import io
 
         iris_csv_file = datapath(*request.param)
 
@@ -289,7 +290,7 @@ class PandasSQLTest:
         self.drop_table("iris")
         self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
-        with io.open(iris_csv_file, mode="r", newline=None) as iris_csv:
+        with open(iris_csv_file, mode="r", newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
@@ -407,11 +408,7 @@ class PandasSQLTest:
     def _count_rows(self, table_name):
         result = (
             self._get_exec()
-            .execute(
-                "SELECT count(*) AS count_1 FROM {table_name}".format(
-                    table_name=table_name
-                )
-            )
+            .execute(f"SELECT count(*) AS count_1 FROM {table_name}")
             .fetchone()
         )
         return result[0]
@@ -430,6 +427,11 @@ class PandasSQLTest:
         query = SQL_STRINGS["read_named_parameters"][self.flavor]
         params = {"name": "Iris-setosa", "length": 5.1}
         iris_frame = self.pandasSQL.read_query(query, params=params)
+        self._check_iris_loaded_frame(iris_frame)
+
+    def _read_sql_iris_no_parameter_with_percent(self):
+        query = SQL_STRINGS["read_no_parameters_with_percent"][self.flavor]
+        iris_frame = self.pandasSQL.read_query(query, params=None)
         self._check_iris_loaded_frame(iris_frame)
 
     def _to_sql(self, method=None):
@@ -538,16 +540,19 @@ class PandasSQLTest:
         assert ix_cols == [["A"]]
 
     def _transaction_test(self):
-        self.pandasSQL.execute("CREATE TABLE test_trans (A INT, B TEXT)")
+        with self.pandasSQL.run_transaction() as trans:
+            trans.execute("CREATE TABLE test_trans (A INT, B TEXT)")
 
-        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
+        class DummyException(Exception):
+            pass
 
         # Make sure when transaction is rolled back, no rows get inserted
+        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
         try:
             with self.pandasSQL.run_transaction() as trans:
                 trans.execute(ins_sql)
-                raise Exception("error")
-        except Exception:
+                raise DummyException("error")
+        except DummyException:
             # ignore raised exception
             pass
         res = self.pandasSQL.read_query("SELECT * FROM test_trans")
@@ -565,7 +570,6 @@ class PandasSQLTest:
 
 
 class _TestSQLApi(PandasSQLTest):
-
     """
     Base class to test the public API.
 
@@ -583,7 +587,7 @@ class _TestSQLApi(PandasSQLTest):
     """
 
     flavor = "sqlite"
-    mode = None
+    mode: str
 
     def setup_connect(self):
         self.conn = self.connect()
@@ -1136,8 +1140,6 @@ class _EngineToConnMixin:
         self.conn.close()
         self.conn = self.__engine
         self.pandasSQL = sql.SQLDatabase(self.__engine)
-        # XXX:
-        # super().teardown_method(method)
 
 
 @pytest.mark.single
@@ -1207,7 +1209,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         for col in schema.split("\n"):
             if col.split()[0].strip('""') == column:
                 return col.split()[1]
-        raise ValueError("Column {column} not found".format(column=column))
+        raise ValueError(f"Column {column} not found")
 
     def test_sqlite_type_mapping(self):
 
@@ -1234,13 +1236,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     """
 
-    flavor = None
+    flavor: str
 
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
         cls.setup_import()
         cls.setup_driver()
-        conn = cls.connect()
+        conn = cls.conn = cls.connect()
         conn.connect()
 
     def load_test_data_and_sql(self):
@@ -1272,7 +1274,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # to test if connection can be made:
             self.conn.connect()
         except sqlalchemy.exc.OperationalError:
-            pytest.skip("Can't connect to {0} server".format(self.flavor))
+            pytest.skip(f"Can't connect to {self.flavor} server")
 
     def test_read_sql(self):
         self._read_sql_iris()
@@ -1362,7 +1364,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # Int column with NA values stays as float
         assert issubclass(df.IntColWithNull.dtype.type, np.floating)
         # Bool column with NA values becomes object
-        assert issubclass(df.BoolColWithNull.dtype.type, np.object)
+        assert issubclass(df.BoolColWithNull.dtype.type, object)
 
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
@@ -1414,7 +1416,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
             else:
                 raise AssertionError(
-                    "DateCol loaded with incorrect type -> {0}".format(col.dtype)
+                    f"DateCol loaded with incorrect type -> {col.dtype}"
                 )
 
         # GH11216
@@ -1486,10 +1488,18 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             result["A"] = to_datetime(result["A"])
         tm.assert_frame_equal(result, expected)
 
+    def test_out_of_bounds_datetime(self):
+        # GH 26761
+        data = DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
+        data.to_sql("test_datetime_obb", self.conn, index=False)
+        result = sql.read_sql_table("test_datetime_obb", self.conn)
+        expected = DataFrame([pd.NaT], columns=["date"])
+        tm.assert_frame_equal(result, expected)
+
     def test_naive_datetimeindex_roundtrip(self):
         # GH 23510
         # Ensure that a naive DatetimeIndex isn't converted to UTC
-        dates = date_range("2018-01-01", periods=5, freq="6H")
+        dates = date_range("2018-01-01", periods=5, freq="6H")._with_freq(None)
         expected = DataFrame({"nums": range(5)}, index=dates)
         expected.to_sql("foo_table", self.conn, index_label="info_date")
         result = sql.read_sql_table("foo_table", self.conn, index_col="info_date")
@@ -1803,6 +1813,24 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
         main(self.conn)
 
+    @pytest.mark.parametrize(
+        "input",
+        [{"foo": [np.inf]}, {"foo": [-np.inf]}, {"foo": [-np.inf], "infe0": ["bar"]}],
+    )
+    def test_to_sql_with_negative_npinf(self, input):
+        # GH 34431
+
+        df = DataFrame(input)
+
+        if self.flavor == "mysql":
+            msg = "inf cannot be used with MySQL"
+            with pytest.raises(ValueError, match=msg):
+                df.to_sql("foobar", self.conn, index=False)
+        else:
+            df.to_sql("foobar", self.conn, index=False)
+            res = sql.read_sql_table("foobar", self.conn)
+            tm.assert_equal(df, res)
+
     def test_temporary_table(self):
         test_data = "Hello, World!"
         expected = DataFrame({"spam": [test_data]})
@@ -1890,9 +1918,9 @@ class _TestMySQLAlchemy:
 
     @classmethod
     def connect(cls):
-        url = "mysql+{driver}://root@localhost/pandas_nosetest"
         return sqlalchemy.create_engine(
-            url.format(driver=cls.driver), connect_args=cls.connect_args
+            f"mysql+{cls.driver}://root@localhost/pandas_nosetest",
+            connect_args=cls.connect_args,
         )
 
     @classmethod
@@ -1959,8 +1987,9 @@ class _TestPostgreSQLAlchemy:
 
     @classmethod
     def connect(cls):
-        url = "postgresql+{driver}://postgres@localhost/pandas_nosetest"
-        return sqlalchemy.create_engine(url.format(driver=cls.driver))
+        return sqlalchemy.create_engine(
+            f"postgresql+{cls.driver}://postgres@localhost/pandas_nosetest"
+        )
 
     @classmethod
     def setup_driver(cls):
@@ -2051,15 +2080,13 @@ class _TestPostgreSQLAlchemy:
                 writer.writerows(data_iter)
                 s_buf.seek(0)
 
-                columns = ", ".join('"{}"'.format(k) for k in keys)
+                columns = ", ".join(f'"{k}"' for k in keys)
                 if table.schema:
-                    table_name = "{}.{}".format(table.schema, table.name)
+                    table_name = f"{table.schema}.{table.name}"
                 else:
                     table_name = table.name
 
-                sql_query = "COPY {} ({}) FROM STDIN WITH CSV".format(
-                    table_name, columns
-                )
+                sql_query = f"COPY {table_name} ({columns}) FROM STDIN WITH CSV"
                 cur.copy_expert(sql=sql_query, file=s_buf)
 
         expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
@@ -2156,6 +2183,10 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def test_to_sql_append(self):
         self._to_sql_append()
 
+    def test_to_sql_method_multi(self):
+        # GH 29921
+        self._to_sql(method="multi")
+
     def test_create_and_drop_table(self):
         temp_frame = DataFrame(
             {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
@@ -2199,14 +2230,12 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def _get_index_columns(self, tbl_name):
         ixs = sql.read_sql_query(
             "SELECT * FROM sqlite_master WHERE type = 'index' "
-            + "AND tbl_name = '{tbl_name}'".format(tbl_name=tbl_name),
+            + f"AND tbl_name = '{tbl_name}'",
             self.conn,
         )
         ix_cols = []
         for ix_name in ixs.name:
-            ix_info = sql.read_sql_query(
-                "PRAGMA index_info({ix_name})".format(ix_name=ix_name), self.conn
-            )
+            ix_info = sql.read_sql_query(f"PRAGMA index_info({ix_name})", self.conn)
             ix_cols.append(ix_info.name.tolist())
         return ix_cols
 
@@ -2214,20 +2243,14 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self._to_sql_save_index()
 
     def test_transactions(self):
-        if PY36:
-            pytest.skip("not working on python > 3.5")
         self._transaction_test()
 
     def _get_sqlite_column_type(self, table, column):
-        recs = self.conn.execute("PRAGMA table_info({table})".format(table=table))
+        recs = self.conn.execute(f"PRAGMA table_info({table})")
         for cid, name, ctype, not_null, default, pk in recs:
             if name == column:
                 return ctype
-        raise ValueError(
-            "Table {table}, column {column} not found".format(
-                table=table, column=column
-            )
-        )
+        raise ValueError(f"Table {table}, column {column} not found")
 
     def test_dtype(self):
         if self.flavor == "mysql":
@@ -2297,7 +2320,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
             sql.table_exists(weird_name, self.conn)
 
             df2 = DataFrame([[1, 2], [3, 4]], columns=["a", weird_name])
-            c_tbl = "test_weird_col_name{ndx:d}".format(ndx=ndx)
+            c_tbl = f"test_weird_col_name{ndx:d}"
             df2.to_sql(c_tbl, self.conn)
             sql.table_exists(c_tbl, self.conn)
 
@@ -2325,9 +2348,6 @@ _formatters = {
 
 
 def format_query(sql, *args):
-    """
-
-    """
     processed_args = []
     for arg in args:
         if isinstance(arg, float) and isna(arg):
@@ -2384,7 +2404,7 @@ class TestXSQLite(SQLiteMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame, check_less_precise=True)
+        tm.assert_frame_equal(result, frame, rtol=1e-3)
 
     def test_execute(self):
         frame = tm.makeTimeDataFrame()
@@ -2502,7 +2522,7 @@ class TestXSQLite(SQLiteMixIn):
         df_if_exists_1 = DataFrame({"col1": [1, 2], "col2": ["A", "B"]})
         df_if_exists_2 = DataFrame({"col1": [3, 4, 5], "col2": ["C", "D", "E"]})
         table_name = "table_if_exists"
-        sql_select = "SELECT * FROM {table_name}".format(table_name=table_name)
+        sql_select = f"SELECT * FROM {table_name}"
 
         def clean_up(test_table_to_drop):
             """
@@ -2587,19 +2607,19 @@ class TestXMySQL(MySQLMixIn):
         pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
         try:
             pymysql.connect(read_default_group="pandas")
-        except pymysql.ProgrammingError:
+        except pymysql.ProgrammingError as err:
             raise RuntimeError(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
-        except pymysql.Error:
+            ) from err
+        except pymysql.Error as err:
             raise RuntimeError(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
+            ) from err
 
     @pytest.fixture(autouse=True)
     def setup_method(self, request, datapath):
@@ -2607,19 +2627,19 @@ class TestXMySQL(MySQLMixIn):
         pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
         try:
             pymysql.connect(read_default_group="pandas")
-        except pymysql.ProgrammingError:
+        except pymysql.ProgrammingError as err:
             raise RuntimeError(
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
-        except pymysql.Error:
+            ) from err
+        except pymysql.Error as err:
             raise RuntimeError(
                 "Cannot connect to database. "
                 "Create a group of connection parameters under the heading "
                 "[pandas] in your system's mysql default file, "
                 "typically located at ~/.my.cnf or /etc/.my.cnf."
-            )
+            ) from err
 
         self.method = request.function
 
@@ -2644,7 +2664,9 @@ class TestXMySQL(MySQLMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame, check_less_precise=True)
+        tm.assert_frame_equal(result, frame, rtol=1e-3)
+        # GH#32571 result comes back rounded to 6 digits in some builds;
+        #  no obvious pattern
 
     def test_chunksize_read_type(self):
         frame = tm.makeTimeDataFrame()
@@ -2790,7 +2812,7 @@ class TestXMySQL(MySQLMixIn):
         df_if_exists_1 = DataFrame({"col1": [1, 2], "col2": ["A", "B"]})
         df_if_exists_2 = DataFrame({"col1": [3, 4, 5], "col2": ["C", "D", "E"]})
         table_name = "table_if_exists"
-        sql_select = "SELECT * FROM {table_name}".format(table_name=table_name)
+        sql_select = f"SELECT * FROM {table_name}"
 
         def clean_up(test_table_to_drop):
             """

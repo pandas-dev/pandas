@@ -1,12 +1,14 @@
+from datetime import timedelta
 import itertools
+from typing import Dict, List
 
 import numpy as np
 import pytest
 
-import pandas.compat as compat
+from pandas.compat import IS64, is_platform_windows
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -29,8 +31,7 @@ def check_comprehensiveness(request):
 
     for combo in combos:
         if not has_test(combo):
-            msg = "test method is not defined: {0}, {1}"
-            raise AssertionError(msg.format(cls.__name__, combo))
+            raise AssertionError(f"test method is not defined: {cls.__name__}, {combo}")
 
     yield
 
@@ -86,28 +87,28 @@ class TestSetitemCoercion(CoercionBase):
         # tm.assert_series_equal(temp, expected_series)
 
     @pytest.mark.parametrize(
-        "val,exp_dtype",
-        [(1, np.object), (1.1, np.object), (1 + 1j, np.object), (True, np.object)],
+        "val,exp_dtype", [(1, object), (1.1, object), (1 + 1j, object), (True, object)]
     )
     def test_setitem_series_object(self, val, exp_dtype):
         obj = pd.Series(list("abcd"))
-        assert obj.dtype == np.object
+        assert obj.dtype == object
 
         exp = pd.Series(["a", val, "c", "d"])
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
         "val,exp_dtype",
-        [(1, np.int64), (1.1, np.float64), (1 + 1j, np.complex128), (True, np.object)],
+        [(1, np.int64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
     )
-    def test_setitem_series_int64(self, val, exp_dtype):
+    def test_setitem_series_int64(self, val, exp_dtype, request):
         obj = pd.Series([1, 2, 3, 4])
         assert obj.dtype == np.int64
 
         if exp_dtype is np.float64:
             exp = pd.Series([1, 1, 3, 4])
             self._assert_setitem_series_conversion(obj, 1.1, exp, np.int64)
-            pytest.xfail("GH12747 The result must be float")
+            mark = pytest.mark.xfail(reason="GH12747 The result must be float")
+            request.node.add_marker(mark)
 
         exp = pd.Series([1, val, 3, 4])
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
@@ -115,26 +116,24 @@ class TestSetitemCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2 ** 9), np.int16)]
     )
-    def test_setitem_series_int8(self, val, exp_dtype):
+    def test_setitem_series_int8(self, val, exp_dtype, request):
         obj = pd.Series([1, 2, 3, 4], dtype=np.int8)
         assert obj.dtype == np.int8
 
         if exp_dtype is np.int16:
             exp = pd.Series([1, 0, 3, 4], dtype=np.int8)
             self._assert_setitem_series_conversion(obj, val, exp, np.int8)
-            pytest.xfail("BUG: it must be Series([1, 1, 3, 4], dtype=np.int16")
+            mark = pytest.mark.xfail(
+                reason="BUG: it must be pd.Series([1, 1, 3, 4], dtype=np.int16"
+            )
+            request.node.add_marker(mark)
 
         exp = pd.Series([1, val, 3, 4], dtype=np.int8)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
         "val,exp_dtype",
-        [
-            (1, np.float64),
-            (1.1, np.float64),
-            (1 + 1j, np.complex128),
-            (True, np.object),
-        ],
+        [(1, np.float64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
     )
     def test_setitem_series_float64(self, val, exp_dtype):
         obj = pd.Series([1.1, 2.2, 3.3, 4.4])
@@ -149,7 +148,7 @@ class TestSetitemCoercion(CoercionBase):
             (1, np.complex128),
             (1.1, np.complex128),
             (1 + 1j, np.complex128),
-            (True, np.object),
+            (True, object),
         ],
     )
     def test_setitem_series_complex128(self, val, exp_dtype):
@@ -166,36 +165,35 @@ class TestSetitemCoercion(CoercionBase):
             (3, np.int64),
             (1.1, np.float64),
             (1 + 1j, np.complex128),
-            (True, np.bool),
+            (True, np.bool_),
         ],
     )
-    def test_setitem_series_bool(self, val, exp_dtype):
+    def test_setitem_series_bool(self, val, exp_dtype, request):
         obj = pd.Series([True, False, True, False])
-        assert obj.dtype == np.bool
+        assert obj.dtype == np.bool_
 
+        mark = None
         if exp_dtype is np.int64:
             exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool)
-            pytest.xfail("TODO_GH12747 The result must be int")
+            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
+            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be int")
         elif exp_dtype is np.float64:
             exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool)
-            pytest.xfail("TODO_GH12747 The result must be float")
+            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
+            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
         elif exp_dtype is np.complex128:
             exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool)
-            pytest.xfail("TODO_GH12747 The result must be complex")
+            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
+            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be complex")
+        if mark is not None:
+            request.node.add_marker(mark)
 
         exp = pd.Series([True, val, True, False])
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
         "val,exp_dtype",
-        [
-            (pd.Timestamp("2012-01-01"), "datetime64[ns]"),
-            (1, np.object),
-            ("x", np.object),
-        ],
+        [(pd.Timestamp("2012-01-01"), "datetime64[ns]"), (1, object), ("x", object)],
     )
     def test_setitem_series_datetime64(self, val, exp_dtype):
         obj = pd.Series(
@@ -222,9 +220,9 @@ class TestSetitemCoercion(CoercionBase):
         "val,exp_dtype",
         [
             (pd.Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
-            (pd.Timestamp("2012-01-01", tz="US/Pacific"), np.object),
-            (pd.Timestamp("2012-01-01"), np.object),
-            (1, np.object),
+            (pd.Timestamp("2012-01-01", tz="US/Pacific"), object),
+            (pd.Timestamp("2012-01-01"), object),
+            (1, object),
         ],
     )
     def test_setitem_series_datetime64tz(self, val, exp_dtype):
@@ -251,7 +249,7 @@ class TestSetitemCoercion(CoercionBase):
 
     @pytest.mark.parametrize(
         "val,exp_dtype",
-        [(pd.Timedelta("12 day"), "timedelta64[ns]"), (1, np.object), ("x", np.object)],
+        [(pd.Timedelta("12 day"), "timedelta64[ns]"), (1, object), ("x", object)],
     )
     def test_setitem_series_timedelta64(self, val, exp_dtype):
         obj = pd.Series(
@@ -288,22 +286,23 @@ class TestSetitemCoercion(CoercionBase):
         assert temp.index.dtype == expected_dtype
 
     @pytest.mark.parametrize(
-        "val,exp_dtype", [("x", np.object), (5, IndexError), (1.1, np.object)]
+        "val,exp_dtype", [("x", object), (5, IndexError), (1.1, object)]
     )
     def test_setitem_index_object(self, val, exp_dtype):
         obj = pd.Series([1, 2, 3, 4], index=list("abcd"))
-        assert obj.index.dtype == np.object
+        assert obj.index.dtype == object
 
         if exp_dtype is IndexError:
             temp = obj.copy()
-            with pytest.raises(exp_dtype):
+            msg = "index 5 is out of bounds for axis 0 with size 4"
+            with pytest.raises(exp_dtype, match=msg):
                 temp[5] = 5
         else:
             exp_index = pd.Index(list("abcd") + [val])
             self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
     @pytest.mark.parametrize(
-        "val,exp_dtype", [(5, np.int64), (1.1, np.float64), ("x", np.object)]
+        "val,exp_dtype", [(5, np.int64), (1.1, np.float64), ("x", object)]
     )
     def test_setitem_index_int64(self, val, exp_dtype):
         obj = pd.Series([1, 2, 3, 4])
@@ -313,9 +312,9 @@ class TestSetitemCoercion(CoercionBase):
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
     @pytest.mark.parametrize(
-        "val,exp_dtype", [(5, IndexError), (5.1, np.float64), ("x", np.object)]
+        "val,exp_dtype", [(5, IndexError), (5.1, np.float64), ("x", object)]
     )
-    def test_setitem_index_float64(self, val, exp_dtype):
+    def test_setitem_index_float64(self, val, exp_dtype, request):
         obj = pd.Series([1, 2, 3, 4], index=[1.1, 2.1, 3.1, 4.1])
         assert obj.index.dtype == np.float64
 
@@ -324,31 +323,31 @@ class TestSetitemCoercion(CoercionBase):
             temp = obj.copy()
             with pytest.raises(exp_dtype):
                 temp[5] = 5
-            pytest.xfail("TODO_GH12747 The result must be float")
-
+            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
+            request.node.add_marker(mark)
         exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, val])
         self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
     def test_setitem_series_period(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_complex128(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_bool(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_datetime64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_datetime64tz(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_timedelta64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_setitem_index_period(self):
-        pass
+        pytest.xfail("Test not implemented")
 
 
 class TestInsertIndexCoercion(CoercionBase):
@@ -366,15 +365,15 @@ class TestInsertIndexCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "insert, coerced_val, coerced_dtype",
         [
-            (1, 1, np.object),
-            (1.1, 1.1, np.object),
-            (False, False, np.object),
-            ("x", "x", np.object),
+            (1, 1, object),
+            (1.1, 1.1, object),
+            (False, False, object),
+            ("x", "x", object),
         ],
     )
     def test_insert_index_object(self, insert, coerced_val, coerced_dtype):
         obj = pd.Index(list("abcd"))
-        assert obj.dtype == np.object
+        assert obj.dtype == object
 
         exp = pd.Index(["a", coerced_val, "b", "c", "d"])
         self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
@@ -385,7 +384,7 @@ class TestInsertIndexCoercion(CoercionBase):
             (1, 1, np.int64),
             (1.1, 1.1, np.float64),
             (False, 0, np.int64),
-            ("x", "x", np.object),
+            ("x", "x", object),
         ],
     )
     def test_insert_index_int64(self, insert, coerced_val, coerced_dtype):
@@ -401,7 +400,7 @@ class TestInsertIndexCoercion(CoercionBase):
             (1, 1.0, np.float64),
             (1.1, 1.1, np.float64),
             (False, 0.0, np.float64),
-            ("x", "x", np.object),
+            ("x", "x", object),
         ],
     )
     def test_insert_index_float64(self, insert, coerced_val, coerced_dtype):
@@ -431,15 +430,21 @@ class TestInsertIndexCoercion(CoercionBase):
         )
         self._assert_insert_conversion(obj, fill_val, exp, exp_dtype)
 
-        msg = "Passed item and index have different timezone"
         if fill_val.tz:
-            with pytest.raises(ValueError, match=msg):
+            msg = "Cannot compare tz-naive and tz-aware"
+            with pytest.raises(TypeError, match=msg):
                 obj.insert(1, pd.Timestamp("2012-01-01"))
 
-        with pytest.raises(ValueError, match=msg):
-            obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
+            msg = "Timezones don't match"
+            with pytest.raises(ValueError, match=msg):
+                obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
 
-        msg = "cannot insert DatetimeIndex with incompatible label"
+        else:
+            msg = "Cannot compare tz-naive and tz-aware"
+            with pytest.raises(TypeError, match=msg):
+                obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
+
+        msg = "value should be a 'Timestamp' or 'NaT'. Got 'int' instead."
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
@@ -456,12 +461,12 @@ class TestInsertIndexCoercion(CoercionBase):
         )
 
         # ToDo: must coerce to object
-        msg = "cannot insert TimedeltaIndex with incompatible label"
+        msg = "value should be a 'Timedelta' or 'NaT'. Got 'Timestamp' instead."
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, pd.Timestamp("2012-01-01"))
 
         # ToDo: must coerce to object
-        msg = "cannot insert TimedeltaIndex with incompatible label"
+        msg = "value should be a 'Timedelta' or 'NaT'. Got 'int' instead."
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
@@ -469,37 +474,35 @@ class TestInsertIndexCoercion(CoercionBase):
         "insert, coerced_val, coerced_dtype",
         [
             (pd.Period("2012-01", freq="M"), "2012-01", "period[M]"),
-            (pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01"), np.object),
-            (1, 1, np.object),
-            ("x", "x", np.object),
+            (pd.Timestamp("2012-01-01"), pd.Timestamp("2012-01-01"), object),
+            (1, 1, object),
+            ("x", "x", object),
         ],
     )
     def test_insert_index_period(self, insert, coerced_val, coerced_dtype):
         obj = pd.PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq="M")
         assert obj.dtype == "period[M]"
 
+        data = [
+            pd.Period("2011-01", freq="M"),
+            coerced_val,
+            pd.Period("2011-02", freq="M"),
+            pd.Period("2011-03", freq="M"),
+            pd.Period("2011-04", freq="M"),
+        ]
         if isinstance(insert, pd.Period):
-            index_type = pd.PeriodIndex
+            exp = pd.PeriodIndex(data, freq="M")
+            self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
         else:
-            index_type = pd.Index
-
-        exp = index_type(
-            [
-                pd.Period("2011-01", freq="M"),
-                coerced_val,
-                pd.Period("2011-02", freq="M"),
-                pd.Period("2011-03", freq="M"),
-                pd.Period("2011-04", freq="M"),
-            ],
-            freq="M",
-        )
-        self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
+            msg = r"Unexpected keyword arguments {'freq'}"
+            with pytest.raises(TypeError, match=msg):
+                pd.Index(data, freq="M")
 
     def test_insert_index_complex128(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_insert_index_bool(self):
-        pass
+        pytest.xfail("Test not implemented")
 
 
 class TestWhereCoercion(CoercionBase):
@@ -514,14 +517,14 @@ class TestWhereCoercion(CoercionBase):
         res = target.where(cond, values)
         self._assert(res, expected, expected_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val,exp_dtype",
-        [(1, np.object), (1.1, np.object), (1 + 1j, np.object), (True, np.object)],
+        [(1, object), (1.1, object), (1 + 1j, object), (True, object)],
     )
-    def test_where_object(self, klass, fill_val, exp_dtype):
+    def test_where_object(self, index_or_series, fill_val, exp_dtype):
+        klass = index_or_series
         obj = klass(list("abcd"))
-        assert obj.dtype == np.object
+        assert obj.dtype == object
         cond = klass([True, False, True, False])
 
         if fill_val is True and klass is pd.Series:
@@ -540,12 +543,12 @@ class TestWhereCoercion(CoercionBase):
         exp = klass(["a", values[1], "c", values[3]])
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val,exp_dtype",
-        [(1, np.int64), (1.1, np.float64), (1 + 1j, np.complex128), (True, np.object)],
+        [(1, np.int64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
     )
-    def test_where_int64(self, klass, fill_val, exp_dtype):
+    def test_where_int64(self, index_or_series, fill_val, exp_dtype):
+        klass = index_or_series
         if klass is pd.Index and exp_dtype is np.complex128:
             pytest.skip("Complex Index not supported")
         obj = klass([1, 2, 3, 4])
@@ -562,17 +565,12 @@ class TestWhereCoercion(CoercionBase):
         exp = klass([1, values[1], 3, values[3]])
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val, exp_dtype",
-        [
-            (1, np.float64),
-            (1.1, np.float64),
-            (1 + 1j, np.complex128),
-            (True, np.object),
-        ],
+        [(1, np.float64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
     )
-    def test_where_float64(self, klass, fill_val, exp_dtype):
+    def test_where_float64(self, index_or_series, fill_val, exp_dtype):
+        klass = index_or_series
         if klass is pd.Index and exp_dtype is np.complex128:
             pytest.skip("Complex Index not supported")
         obj = klass([1.1, 2.2, 3.3, 4.4])
@@ -595,7 +593,7 @@ class TestWhereCoercion(CoercionBase):
             (1, np.complex128),
             (1.1, np.complex128),
             (1 + 1j, np.complex128),
-            (True, np.object),
+            (True, object),
         ],
     )
     def test_where_series_complex128(self, fill_val, exp_dtype):
@@ -615,12 +613,12 @@ class TestWhereCoercion(CoercionBase):
 
     @pytest.mark.parametrize(
         "fill_val,exp_dtype",
-        [(1, np.object), (1.1, np.object), (1 + 1j, np.object), (True, np.bool)],
+        [(1, object), (1.1, object), (1 + 1j, object), (True, np.bool_)],
     )
     def test_where_series_bool(self, fill_val, exp_dtype):
 
         obj = pd.Series([True, False, True, False])
-        assert obj.dtype == np.bool
+        assert obj.dtype == np.bool_
         cond = pd.Series([True, False, True, False])
 
         exp = pd.Series([True, fill_val, True, fill_val])
@@ -637,7 +635,7 @@ class TestWhereCoercion(CoercionBase):
         "fill_val,exp_dtype",
         [
             (pd.Timestamp("2012-01-01"), "datetime64[ns]"),
-            (pd.Timestamp("2012-01-01", tz="US/Eastern"), np.object),
+            (pd.Timestamp("2012-01-01", tz="US/Eastern"), object),
         ],
         ids=["datetime64", "datetime64tz"],
     )
@@ -680,8 +678,15 @@ class TestWhereCoercion(CoercionBase):
         )
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    def test_where_index_datetime(self):
-        fill_val = pd.Timestamp("2012-01-01")
+    @pytest.mark.parametrize(
+        "fill_val",
+        [
+            pd.Timestamp("2012-01-01"),
+            pd.Timestamp("2012-01-01").to_datetime64(),
+            pd.Timestamp("2012-01-01").to_pydatetime(),
+        ],
+    )
+    def test_where_index_datetime(self, fill_val):
         exp_dtype = "datetime64[ns]"
         obj = pd.Index(
             [
@@ -694,9 +699,9 @@ class TestWhereCoercion(CoercionBase):
         assert obj.dtype == "datetime64[ns]"
         cond = pd.Index([True, False, True, False])
 
-        msg = "Index\\(\\.\\.\\.\\) must be called with a collection of some kind"
-        with pytest.raises(TypeError, match=msg):
-            obj.where(cond, fill_val)
+        result = obj.where(cond, fill_val)
+        expected = pd.DatetimeIndex([obj[0], fill_val, obj[2], fill_val])
+        tm.assert_index_equal(result, expected)
 
         values = pd.Index(pd.date_range(fill_val, periods=4))
         exp = pd.Index(
@@ -711,9 +716,9 @@ class TestWhereCoercion(CoercionBase):
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     @pytest.mark.xfail(reason="GH 22839: do not ignore timezone, must be object")
-    def test_where_index_datetimetz(self):
+    def test_where_index_datetime64tz(self):
         fill_val = pd.Timestamp("2012-01-01", tz="US/Eastern")
-        exp_dtype = np.object
+        exp_dtype = object
         obj = pd.Index(
             [
                 pd.Timestamp("2011-01-01"),
@@ -743,28 +748,58 @@ class TestWhereCoercion(CoercionBase):
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     def test_where_index_complex128(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_where_index_bool(self):
-        pass
-
-    def test_where_series_datetime64tz(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_where_series_timedelta64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_where_series_period(self):
-        pass
+        pytest.xfail("Test not implemented")
 
-    def test_where_index_datetime64tz(self):
-        pass
+    @pytest.mark.parametrize(
+        "value", [pd.Timedelta(days=9), timedelta(days=9), np.timedelta64(9, "D")]
+    )
+    def test_where_index_timedelta64(self, value):
+        tdi = pd.timedelta_range("1 Day", periods=4)
+        cond = np.array([True, False, False, True])
 
-    def test_where_index_timedelta64(self):
-        pass
+        expected = pd.TimedeltaIndex(["1 Day", value, value, "4 Days"])
+        result = tdi.where(cond, value)
+        tm.assert_index_equal(result, expected)
+
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            # wrong-dtyped NaT
+            tdi.where(cond, np.datetime64("NaT", "ns"))
 
     def test_where_index_period(self):
-        pass
+        dti = pd.date_range("2016-01-01", periods=3, freq="QS")
+        pi = dti.to_period("Q")
+
+        cond = np.array([False, True, False])
+
+        # Passinga  valid scalar
+        value = pi[-1] + pi.freq * 10
+        expected = pd.PeriodIndex([value, pi[1], value])
+        result = pi.where(cond, value)
+        tm.assert_index_equal(result, expected)
+
+        # Case passing ndarray[object] of Periods
+        other = np.asarray(pi + pi.freq * 10, dtype=object)
+        result = pi.where(cond, other)
+        expected = pd.PeriodIndex([other[0], pi[1], other[2]])
+        tm.assert_index_equal(result, expected)
+
+        # Passing a mismatched scalar
+        msg = "Where requires matching dtype"
+        with pytest.raises(TypeError, match=msg):
+            pi.where(cond, pd.Timedelta(days=4))
+
+        with pytest.raises(TypeError, match=msg):
+            pi.where(cond, pd.Period("2020-04-21", "D"))
 
 
 class TestFillnaSeriesCoercion(CoercionBase):
@@ -774,7 +809,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
     method = "fillna"
 
     def test_has_comprehensive_tests(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def _assert_fillna_conversion(self, original, value, expected, expected_dtype):
         """ test coercion triggered by fillna """
@@ -782,29 +817,24 @@ class TestFillnaSeriesCoercion(CoercionBase):
         res = target.fillna(value)
         self._assert(res, expected, expected_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val, fill_dtype",
-        [(1, np.object), (1.1, np.object), (1 + 1j, np.object), (True, np.object)],
+        [(1, object), (1.1, object), (1 + 1j, object), (True, object)],
     )
-    def test_fillna_object(self, klass, fill_val, fill_dtype):
+    def test_fillna_object(self, index_or_series, fill_val, fill_dtype):
+        klass = index_or_series
         obj = klass(["a", np.nan, "c", "d"])
-        assert obj.dtype == np.object
+        assert obj.dtype == object
 
         exp = klass(["a", fill_val, "c", "d"])
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
-        [
-            (1, np.float64),
-            (1.1, np.float64),
-            (1 + 1j, np.complex128),
-            (True, np.object),
-        ],
+        [(1, np.float64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
     )
-    def test_fillna_float64(self, klass, fill_val, fill_dtype):
+    def test_fillna_float64(self, index_or_series, fill_val, fill_dtype):
+        klass = index_or_series
         obj = klass([1.1, np.nan, 3.3, 4.4])
         assert obj.dtype == np.float64
 
@@ -813,7 +843,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
         # complex for Series,
         # object for Index
         if fill_dtype == np.complex128 and klass == pd.Index:
-            fill_dtype = np.object
+            fill_dtype = object
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.parametrize(
@@ -822,7 +852,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
             (1, np.complex128),
             (1.1, np.complex128),
             (1 + 1j, np.complex128),
-            (True, np.object),
+            (True, object),
         ],
     )
     def test_fillna_series_complex128(self, fill_val, fill_dtype):
@@ -832,18 +862,18 @@ class TestFillnaSeriesCoercion(CoercionBase):
         exp = pd.Series([1 + 1j, fill_val, 3 + 3j, 4 + 4j])
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index], ids=["series", "index"])
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
             (pd.Timestamp("2012-01-01"), "datetime64[ns]"),
-            (pd.Timestamp("2012-01-01", tz="US/Eastern"), np.object),
-            (1, np.object),
-            ("x", np.object),
+            (pd.Timestamp("2012-01-01", tz="US/Eastern"), object),
+            (1, object),
+            ("x", object),
         ],
         ids=["datetime64", "datetime64tz", "object", "object"],
     )
-    def test_fillna_datetime(self, klass, fill_val, fill_dtype):
+    def test_fillna_datetime(self, index_or_series, fill_val, fill_dtype):
+        klass = index_or_series
         obj = klass(
             [
                 pd.Timestamp("2011-01-01"),
@@ -864,18 +894,18 @@ class TestFillnaSeriesCoercion(CoercionBase):
         )
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
     @pytest.mark.parametrize(
         "fill_val,fill_dtype",
         [
             (pd.Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
-            (pd.Timestamp("2012-01-01"), np.object),
-            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), np.object),
-            (1, np.object),
-            ("x", np.object),
+            (pd.Timestamp("2012-01-01"), object),
+            (pd.Timestamp("2012-01-01", tz="Asia/Tokyo"), object),
+            (1, object),
+            ("x", object),
         ],
     )
-    def test_fillna_datetime64tz(self, klass, fill_val, fill_dtype):
+    def test_fillna_datetime64tz(self, index_or_series, fill_val, fill_dtype):
+        klass = index_or_series
         tz = "US/Eastern"
 
         obj = klass(
@@ -899,28 +929,28 @@ class TestFillnaSeriesCoercion(CoercionBase):
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     def test_fillna_series_int64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_index_int64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_series_bool(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_index_bool(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_series_timedelta64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_series_period(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_index_timedelta64(self):
-        pass
+        pytest.xfail("Test not implemented")
 
     def test_fillna_index_period(self):
-        pass
+        pytest.xfail("Test not implemented")
 
 
 class TestReplaceSeriesCoercion(CoercionBase):
@@ -928,7 +958,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
     klasses = ["series"]
     method = "replace"
 
-    rep = {}
+    rep: Dict[str, List] = {}
     rep["object"] = ["a", "b"]
     rep["int64"] = [4, 5]
     rep["float64"] = [1.1, 2.2]
@@ -938,7 +968,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     for tz in ["UTC", "US/Eastern"]:
         # to test tz => different tz replacement
-        key = "datetime64[ns, {0}]".format(tz)
+        key = f"datetime64[ns, {tz}]"
         rep[key] = [
             pd.Timestamp("2011-01-01", tz=tz),
             pd.Timestamp("2011-01-03", tz=tz),
@@ -987,10 +1017,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
         ],
     )
     def test_replace_series(self, how, to_key, from_key):
-        if from_key == "bool" and how == "series":
-            # doesn't work in PY3, though ...dict_from_bool works fine
-            pytest.skip("doesn't work as in PY3")
-
         index = pd.Index([3, 4], name="xxx")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
@@ -1015,10 +1041,8 @@ class TestReplaceSeriesCoercion(CoercionBase):
             from_key == "complex128" and to_key in ("int64", "float64")
         ):
 
-            if compat.is_platform_32bit() or compat.is_platform_windows():
-                pytest.skip(
-                    "32-bit platform buggy: {0} -> {1}".format(from_key, to_key)
-                )
+            if not IS64 or is_platform_windows():
+                pytest.skip(f"32-bit platform buggy: {from_key} -> {to_key}")
 
             # Expected: do not downcast by replacement
             exp = pd.Series(self.rep[to_key], index=index, name="yyy", dtype=from_key)
@@ -1029,22 +1053,16 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
         tm.assert_series_equal(result, exp)
 
-    # TODO(jbrockmendel) commented out to only have a single xfail printed
-    @pytest.mark.xfail(
-        reason="GH #18376, tzawareness-compat bug in BlockManager.replace_list"
+    @pytest.mark.parametrize("how", ["dict", "series"])
+    @pytest.mark.parametrize(
+        "to_key",
+        ["timedelta64[ns]", "bool", "object", "complex128", "float64", "int64"],
     )
-    # @pytest.mark.parametrize('how', ['dict', 'series'])
-    # @pytest.mark.parametrize('to_key', ['timedelta64[ns]', 'bool', 'object',
-    #                                     'complex128', 'float64', 'int64'])
-    # @pytest.mark.parametrize('from_key', ['datetime64[ns, UTC]',
-    #                                       'datetime64[ns, US/Eastern]'])
-    # def test_replace_series_datetime_tz(self, how, to_key, from_key):
-    def test_replace_series_datetime_tz(self):
-        how = "series"
-        from_key = "datetime64[ns, US/Eastern]"
-        to_key = "timedelta64[ns]"
-
-        index = pd.Index([3, 4], name="xxx")
+    @pytest.mark.parametrize(
+        "from_key", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"]
+    )
+    def test_replace_series_datetime_tz(self, how, to_key, from_key):
+        index = pd.Index([3, 4], name="xyz")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
 
@@ -1061,24 +1079,17 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
         tm.assert_series_equal(result, exp)
 
-    # TODO(jreback) commented out to only have a single xfail printed
-    @pytest.mark.xfail(
-        reason="different tz, currently mask_missing raises SystemError", strict=False
+    @pytest.mark.parametrize("how", ["dict", "series"])
+    @pytest.mark.parametrize(
+        "to_key",
+        ["datetime64[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"],
     )
-    # @pytest.mark.parametrize('how', ['dict', 'series'])
-    # @pytest.mark.parametrize('to_key', [
-    #    'datetime64[ns]', 'datetime64[ns, UTC]',
-    #    'datetime64[ns, US/Eastern]'])
-    # @pytest.mark.parametrize('from_key', [
-    #    'datetime64[ns]', 'datetime64[ns, UTC]',
-    #    'datetime64[ns, US/Eastern]'])
-    # def test_replace_series_datetime_datetime(self, how, to_key, from_key):
-    def test_replace_series_datetime_datetime(self):
-        how = "dict"
-        to_key = "datetime64[ns]"
-        from_key = "datetime64[ns]"
-
-        index = pd.Index([3, 4], name="xxx")
+    @pytest.mark.parametrize(
+        "from_key",
+        ["datetime64[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"],
+    )
+    def test_replace_series_datetime_datetime(self, how, to_key, from_key):
+        index = pd.Index([3, 4], name="xyz")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
 
@@ -1096,4 +1107,4 @@ class TestReplaceSeriesCoercion(CoercionBase):
         tm.assert_series_equal(result, exp)
 
     def test_replace_series_period(self):
-        pass
+        pytest.xfail("Test not implemented")

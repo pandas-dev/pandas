@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 # ------------------------------------------------------------------
 # Helper Functions
@@ -17,17 +17,46 @@ def id_func(x):
 
 
 # ------------------------------------------------------------------
+@pytest.fixture(
+    params=[
+        ("foo", None, None),
+        ("Egon", "Venkman", None),
+        ("NCC1701D", "NCC1701D", "NCC1701D"),
+    ]
+)
+def names(request):
+    """
+    A 3-tuple of names, the first two for operands, the last for a result.
+    """
+    return request.param
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
 def one(request):
-    # zero-dim integer array behaves like an integer
+    """
+    Several variants of integer value 1. The zero-dim integer array
+    behaves like an integer.
+
+    This fixture can be used to check that datetimelike indexes handle
+    addition and subtraction of integers and zero-dimensional arrays
+    of integers.
+
+    Examples
+    --------
+    >>> dti = pd.date_range('2016-01-01', periods=2, freq='H')
+    >>> dti
+    DatetimeIndex(['2016-01-01 00:00:00', '2016-01-01 01:00:00'],
+    dtype='datetime64[ns]', freq='H')
+    >>> dti + one
+    DatetimeIndex(['2016-01-01 01:00:00', '2016-01-01 02:00:00'],
+    dtype='datetime64[ns]', freq='H')
+    """
     return request.param
 
 
 zeros = [
     box_cls([0] * 5, dtype=dtype)
-    for box_cls in [pd.Index, np.array]
+    for box_cls in [pd.Index, np.array, pd.array]
     for dtype in [np.int64, np.uint64, np.float64]
 ]
 zeros.extend(
@@ -40,8 +69,21 @@ zeros.extend([0, 0.0, -0.0])
 
 @pytest.fixture(params=zeros)
 def zero(request):
-    # For testing division by (or of) zero for Index with length 5, this
-    # gives several scalar-zeros and length-5 vector-zeros
+    """
+    Several types of scalar zeros and length 5 vectors of zeros.
+
+    This fixture can be used to check that numeric-dtype indexes handle
+    division by any zero numeric-dtype.
+
+    Uses vector of length 5 for broadcasting with `numeric_idx` fixture,
+    which creates numeric-dtype vectors also of length 5.
+
+    Examples
+    --------
+    >>> arr = pd.RangeIndex(5)
+    >>> arr / zeros
+    Float64Index([nan, inf, inf, inf, inf], dtype='float64')
+    """
     return request.param
 
 
@@ -180,48 +222,19 @@ def mismatched_freq(request):
 # ------------------------------------------------------------------
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame], ids=id_func)
-def box(request):
-    """
-    Several array-like containers that should have effectively identical
-    behavior with respect to arithmetic operations.
-    """
-    return request.param
-
-
-@pytest.fixture(
-    params=[pd.Index, pd.Series, pytest.param(pd.DataFrame, marks=pytest.mark.xfail)],
-    ids=id_func,
-)
-def box_df_fail(request):
-    """
-    Fixture equivalent to `box` fixture but xfailing the DataFrame case.
-    """
-    return request.param
-
-
-@pytest.fixture(
-    params=[
-        (pd.Index, False),
-        (pd.Series, False),
-        (pd.DataFrame, False),
-        pytest.param((pd.DataFrame, True), marks=pytest.mark.xfail),
-    ],
-    ids=id_func,
-)
-def box_transpose_fail(request):
-    """
-    Fixture similar to `box` but testing both transpose cases for DataFrame,
-    with the tranpose=True case xfailed.
-    """
-    # GH#23620
-    return request.param
-
-
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, tm.to_array], ids=id_func)
+@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, pd.array], ids=id_func)
 def box_with_array(request):
     """
     Fixture to test behavior for Index, Series, DataFrame, and pandas Array
+    classes
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=id_func)
+def box_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
     classes
     """
     return request.param

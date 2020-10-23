@@ -1,11 +1,9 @@
-from itertools import product
-
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
+from pandas import DataFrame, Index, IndexSlice, MultiIndex, Series, concat, date_range
+import pandas._testing as tm
 import pandas.core.common as com
-from pandas.util import testing as tm
 
 
 @pytest.fixture
@@ -159,10 +157,8 @@ def test_xs_setting_with_copy_error_multiple(four_level_index_dataframe):
 def test_xs_integer_key():
     # see gh-2107
     dates = range(20111201, 20111205)
-    ids = "abcde"
-    index = MultiIndex.from_tuples(
-        [x for x in product(dates, ids)], names=["date", "secid"]
-    )
+    ids = list("abcde")
+    index = MultiIndex.from_product([dates, ids], names=["date", "secid"])
     df = DataFrame(np.random.randn(len(index), 3), index, ["X", "Y", "Z"])
 
     result = df.xs(20111201, level="date")
@@ -211,7 +207,7 @@ def test_xs_level_series_ymd(multiindex_year_month_day_dataframe_random_data):
 
 
 def test_xs_level_series_slice_not_implemented(
-    multiindex_year_month_day_dataframe_random_data
+    multiindex_year_month_day_dataframe_random_data,
 ):
     # this test is not explicitly testing .xs functionality
     # TODO: move to another module or refactor
@@ -222,6 +218,27 @@ def test_xs_level_series_slice_not_implemented(
     msg = r"\(2000, slice\(3, 4, None\)\)"
     with pytest.raises(TypeError, match=msg):
         s[2000, 3:4]
+
+
+def test_xs_IndexSlice_argument_not_implemented():
+    # GH 35301
+
+    index = MultiIndex(
+        levels=[[("foo", "bar", 0), ("foo", "baz", 0), ("foo", "qux", 0)], [0, 1]],
+        codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+    )
+
+    series = Series(np.random.randn(6), index=index)
+    frame = DataFrame(np.random.randn(6, 4), index=index)
+
+    msg = (
+        "Expected label or tuple of labels, got "
+        r"\(\('foo', 'qux', 0\), slice\(None, None, None\)\)"
+    )
+    with pytest.raises(TypeError, match=msg):
+        frame.xs(IndexSlice[("foo", "qux", 0), :])
+    with pytest.raises(TypeError, match=msg):
+        series.xs(IndexSlice[("foo", "qux", 0), :])
 
 
 def test_series_getitem_multiindex_xs():
@@ -241,9 +258,23 @@ def test_series_getitem_multiindex_xs_by_label():
         [("a", "one"), ("a", "two"), ("b", "one"), ("b", "two")]
     )
     s = Series([1, 2, 3, 4], index=idx)
-    s.index.set_names(["L1", "L2"], inplace=True)
+    return_value = s.index.set_names(["L1", "L2"], inplace=True)
+    assert return_value is None
     expected = Series([1, 3], index=["a", "b"])
-    expected.index.set_names(["L1"], inplace=True)
+    return_value = expected.index.set_names(["L1"], inplace=True)
+    assert return_value is None
 
     result = s.xs("one", level="L2")
     tm.assert_series_equal(result, expected)
+
+
+def test_xs_levels_raises():
+    df = DataFrame({"A": [1, 2, 3]})
+
+    msg = "Index must be a MultiIndex"
+    with pytest.raises(TypeError, match=msg):
+        df.xs(0, level="as")
+
+    s = df.A
+    with pytest.raises(TypeError, match=msg):
+        s.xs(0, level="as")

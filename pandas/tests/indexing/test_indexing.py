@@ -7,24 +7,19 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas.compat import PY36
-from pandas.errors import AbstractMethodError
-
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
-from pandas.core.generic import NDFrame
-from pandas.core.indexers import validate_indices
-from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
-from pandas.tests.indexing.common import Base, _mklbl
-import pandas.util.testing as tm
+import pandas._testing as tm
+from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
+from pandas.tests.indexing.common import _mklbl
 
 # ------------------------------------------------------------------------
 # Indexing test cases
 
 
-class TestFancy(Base):
+class TestFancy:
     """ pure get/set item & fancy indexing """
 
     def test_setitem_ndarray_1d(self):
@@ -33,10 +28,14 @@ class TestFancy(Base):
         # len of indexer vs length of the 1d ndarray
         df = DataFrame(index=Index(np.arange(1, 11)))
         df["foo"] = np.zeros(10, dtype=np.float64)
-        df["bar"] = np.zeros(10, dtype=np.complex)
+        df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
-        with pytest.raises(ValueError):
+        msg = (
+            "cannot set using a multi-index selection "
+            "indexer with a different length than the value"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.loc[df.index[2:5], "bar"] = np.array([2.33j, 1.23 + 0.1j, 2.2, 1.0])
 
         # valid
@@ -51,14 +50,12 @@ class TestFancy(Base):
         # dtype getting changed?
         df = DataFrame(index=Index(np.arange(1, 11)))
         df["foo"] = np.zeros(10, dtype=np.float64)
-        df["bar"] = np.zeros(10, dtype=np.complex)
+        df["bar"] = np.zeros(10, dtype=complex)
 
-        with pytest.raises(ValueError):
+        msg = "Must have equal len keys and value when setting with an iterable"
+        with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
-    @pytest.mark.parametrize(
-        "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
-    )
     @pytest.mark.parametrize(
         "obj",
         [
@@ -81,49 +78,22 @@ class TestFancy(Base):
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        msg = (
-            r"Buffer has wrong number of dimensions \(expected 1,"
-            r" got 3\)|"
-            "The truth value of an array with more than one element is"
-            " ambiguous|"
-            "Cannot index with multidimensional key|"
-            r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]|"
-            "No matching signature found|"  # TypeError
-            "unhashable type: 'numpy.ndarray'"  # TypeError
+        msg = "|".join(
+            [
+                r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
+                "Cannot index with multidimensional key",
+                r"Wrong number of dimensions. values.ndim != ndim \[3 != 1\]",
+                "Index data must be 1-dimensional",
+                "positional indexers are out-of-bounds",
+                "Indexing a MultiIndex with a multidimensional key is not implemented",
+            ]
         )
 
-        if (
-            isinstance(obj, Series)
-            and idxr_id == "getitem"
-            and index.inferred_type
-            in [
-                "string",
-                "datetime64",
-                "period",
-                "timedelta64",
-                "boolean",
-                "categorical",
-            ]
-        ):
-            idxr[nd3]
-        else:
-            if (
-                isinstance(obj, DataFrame)
-                and idxr_id == "getitem"
-                and index.inferred_type == "boolean"
-            ):
-                error = TypeError
-            elif idxr_id == "getitem" and index.inferred_type == "interval":
-                error = TypeError
-            else:
-                error = ValueError
-
-            with pytest.raises(error, match=msg):
+        potential_errors = (IndexError, ValueError, NotImplementedError)
+        with pytest.raises(potential_errors, match=msg):
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
 
-    @pytest.mark.parametrize(
-        "index", tm.all_index_generator(5), ids=lambda x: type(x).__name__
-    )
     @pytest.mark.parametrize(
         "obj",
         [
@@ -146,42 +116,39 @@ class TestFancy(Base):
         idxr = idxr(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        msg = (
-            r"Buffer has wrong number of dimensions \(expected 1,"
-            r" got 3\)|"
-            "The truth value of an array with more than one element is"
-            " ambiguous|"
-            "Only 1-dimensional input arrays are supported|"
-            "'pandas._libs.interval.IntervalTree' object has no attribute"
-            " 'set_value'|"  # AttributeError
-            "unhashable type: 'numpy.ndarray'|"  # TypeError
-            "No matching signature found|"  # TypeError
-            r"^\[\[\["  # pandas.core.indexing.IndexingError
-        )
+        if (len(index) == 0) and (idxr_id == "iloc") and isinstance(obj, pd.DataFrame):
+            # gh-32896
+            pytest.skip("This is currently failing. There's an xfailed test below.")
 
-        if (idxr_id == "iloc") or (
-            (
-                isinstance(obj, Series)
-                and idxr_id == "setitem"
-                and index.inferred_type
-                in [
-                    "floating",
-                    "string",
-                    "datetime64",
-                    "period",
-                    "timedelta64",
-                    "boolean",
-                    "categorical",
-                ]
-            )
+        if idxr_id == "iloc":
+            err = ValueError
+            msg = f"Cannot set values with ndim > {obj.ndim}"
+        elif (
+            isinstance(index, pd.IntervalIndex)
+            and idxr_id == "setitem"
+            and obj.ndim == 1
         ):
-            idxr[nd3] = 0
+            err = AttributeError
+            msg = (
+                "'pandas._libs.interval.IntervalTree' object has no attribute 'get_loc'"
+            )
         else:
-            with pytest.raises(
-                (ValueError, AttributeError, TypeError, pd.core.indexing.IndexingError),
-                match=msg,
-            ):
-                idxr[nd3] = 0
+            err = ValueError
+            msg = r"Buffer has wrong number of dimensions \(expected 1, got 3\)|"
+
+        with pytest.raises(err, match=msg):
+            idxr[nd3] = 0
+
+    @pytest.mark.xfail(reason="gh-32896")
+    def test_setitem_ndarray_3d_does_not_fail_for_iloc_empty_dataframe(self):
+        # when fixing this, please remove the pytest.skip in test_setitem_ndarray_3d
+        i = Index([])
+        obj = DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i)
+        nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        msg = f"Cannot set values with ndim > {obj.ndim}"
+        with pytest.raises(ValueError, match=msg):
+            obj.iloc[nd3] = 0
 
     def test_inf_upcast(self):
         # GH 16957
@@ -222,7 +189,7 @@ class TestFancy(Base):
         expected = DataFrame(
             [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
         )
-        tm.assert_frame_equal(df, expected, check_like=not PY36)
+        tm.assert_frame_equal(df, expected)
 
         # GH10280
         df = DataFrame(
@@ -264,9 +231,8 @@ class TestFancy(Base):
     def test_dups_fancy_indexing(self):
 
         # GH 3455
-        from pandas.util.testing import makeCustomDataframe as mkdf
 
-        df = mkdf(10, 3)
+        df = tm.makeCustomDataframe(10, 3)
         df.columns = ["a", "a", "b"]
         result = df[["b", "a"]].columns
         expected = Index(["b", "a", "a"])
@@ -301,32 +267,13 @@ class TestFancy(Base):
         tm.assert_frame_equal(result, expected)
 
         rows = ["C", "B", "E"]
-        expected = DataFrame(
-            {
-                "test": [11, 9, np.nan],
-                "test1": [7.0, 6, np.nan],
-                "other": ["d", "c", np.nan],
-            },
-            index=rows,
-        )
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[rows]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[rows]
 
         # see GH5553, make sure we use the right indexer
         rows = ["F", "G", "H", "C", "B", "E"]
-        expected = DataFrame(
-            {
-                "test": [np.nan, np.nan, np.nan, 11, 9, np.nan],
-                "test1": [np.nan, np.nan, np.nan, 7.0, 6, np.nan],
-                "other": [np.nan, np.nan, np.nan, "d", "c", np.nan],
-            },
-            index=rows,
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[rows]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[rows]
 
         # List containing only missing label
         dfnu = DataFrame(np.random.randn(5, 3), index=list("AABCD"))
@@ -342,38 +289,25 @@ class TestFancy(Base):
 
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": [0, 1, 2]})
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[[0, 8, 0]]
-        expected = DataFrame({"A": [0, np.nan, 0]}, index=[0, 8, 0])
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[[0, 8, 0]]
 
         df = DataFrame({"A": list("abc")})
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[[0, 8, 0]]
-        expected = DataFrame({"A": ["a", np.nan, "a"]}, index=[0, 8, 0])
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[[0, 8, 0]]
 
         # non unique with non unique selector
         df = DataFrame({"test": [5, 7, 9, 11]}, index=["A", "A", "B", "C"])
-        expected = DataFrame(
-            {"test": [5, 7, 5, 7, np.nan]}, index=["A", "A", "A", "A", "E"]
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[["A", "A", "E"]]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[["A", "A", "E"]]
 
     def test_dups_fancy_indexing2(self):
         # GH 5835
         # dups on index and missing values
         df = DataFrame(np.random.randn(5, 5), columns=["A", "B", "B", "B", "A"])
 
-        expected = pd.concat(
-            [df.loc[:, ["A", "B"]], DataFrame(np.nan, columns=["C"], index=df.index)],
-            axis=1,
-        )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = df.loc[:, ["A", "B", "C"]]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match="with any missing labels"):
+            df.loc[:, ["A", "B", "C"]]
 
         # GH 6504, multi-axis indexing
         df = DataFrame(
@@ -395,7 +329,7 @@ class TestFancy(Base):
     @pytest.mark.parametrize("case", [lambda s: s, lambda s: s.loc])
     def test_duplicate_int_indexing(self, case):
         # GH 17347
-        s = pd.Series(range(3), index=[1, 1, 3])
+        s = Series(range(3), index=[1, 1, 3])
         expected = s[1]
         result = case(s)[[1]]
         tm.assert_series_equal(result, expected)
@@ -592,12 +526,12 @@ class TestFancy(Base):
             def __init__(self, value):
                 self.value = value
 
-            def __str__(self):
-                return "[{0}]".format(self.value)
+            def __str__(self) -> str:
+                return f"[{self.value}]"
 
             __repr__ = __str__
 
-            def __eq__(self, other):
+            def __eq__(self, other) -> bool:
                 return self.value == other.value
 
             def view(self):
@@ -625,15 +559,17 @@ class TestFancy(Base):
         # string indexing against datetimelike with object
         # dtype should properly raises KeyError
         df = DataFrame([1], Index([pd.Timestamp("2011-01-01")], dtype=object))
-        assert df.index.is_all_dates
+        assert df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
         with pytest.raises(KeyError, match="'2011'"):
-            df.loc["2011", 0]
+            with tm.assert_produces_warning(FutureWarning):
+                # This does an is_all_dates check
+                df.loc["2011", 0]
 
         df = DataFrame()
-        assert not df.index.is_all_dates
+        assert not df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
@@ -687,69 +623,6 @@ class TestFancy(Base):
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize(
-        "index,val",
-        [
-            (Index([0, 1, 2]), 2),
-            (Index([0, 1, "2"]), "2"),
-            (Index([0, 1, 2, np.inf, 4]), 4),
-            (Index([0, 1, 2, np.nan, 4]), 4),
-            (Index([0, 1, 2, np.inf]), np.inf),
-            (Index([0, 1, 2, np.nan]), np.nan),
-        ],
-    )
-    def test_index_contains(self, index, val):
-        assert val in index
-
-    @pytest.mark.parametrize(
-        "index,val",
-        [
-            (Index([0, 1, 2]), "2"),
-            (Index([0, 1, "2"]), 2),
-            (Index([0, 1, 2, np.inf]), 4),
-            (Index([0, 1, 2, np.nan]), 4),
-            (Index([0, 1, 2, np.inf]), np.nan),
-            (Index([0, 1, 2, np.nan]), np.inf),
-            # Checking if np.inf in Int64Index should not cause an OverflowError
-            # Related to GH 16957
-            (pd.Int64Index([0, 1, 2]), np.inf),
-            (pd.Int64Index([0, 1, 2]), np.nan),
-            (pd.UInt64Index([0, 1, 2]), np.inf),
-            (pd.UInt64Index([0, 1, 2]), np.nan),
-        ],
-    )
-    def test_index_not_contains(self, index, val):
-        assert val not in index
-
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), 0), (Index([0, 1, "2"]), "2")]
-    )
-    def test_mixed_index_contains(self, index, val):
-        # GH 19860
-        assert val in index
-
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), "1"), (Index([0, 1, "2"]), 2)]
-    )
-    def test_mixed_index_not_contains(self, index, val):
-        # GH 19860
-        assert val not in index
-
-    def test_contains_with_float_index(self):
-        # GH#22085
-        integer_index = pd.Int64Index([0, 1, 2, 3])
-        uinteger_index = pd.UInt64Index([0, 1, 2, 3])
-        float_index = pd.Float64Index([0.1, 1.1, 2.2, 3.3])
-
-        for index in (integer_index, uinteger_index):
-            assert 1.1 not in index
-            assert 1.0 in index
-            assert 1 in index
-
-        assert 1.1 in float_index
-        assert 1.0 not in float_index
-        assert 1 not in float_index
-
     def test_index_type_coercion(self):
 
         # GH 11836
@@ -800,7 +673,7 @@ class TestFancy(Base):
                 assert s2.index.is_object()
 
 
-class TestMisc(Base):
+class TestMisc:
     def test_float_index_to_mixed(self):
         df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})
         df["a"] = 10
@@ -879,7 +752,7 @@ class TestMisc(Base):
         # make frames multi-type & re-run tests
         for frame in [df, rhs, right]:
             frame["joe"] = frame["joe"].astype("float64")
-            frame["jolie"] = frame["jolie"].map("@{0}".format)
+            frame["jolie"] = frame["jolie"].map("@{}".format)
 
         run_tests(df, rhs, right)
 
@@ -925,22 +798,21 @@ class TestMisc(Base):
         assert df2.loc[:, "a"].dtype == np.int64
         tm.assert_series_equal(df2.loc[:, "a"], df2.iloc[:, 0])
 
-    def test_range_in_series_indexing(self):
+    @pytest.mark.parametrize("size", [5, 999999, 1000000])
+    def test_range_in_series_indexing(self, size):
         # range can cause an indexing error
         # GH 11652
-        for x in [5, 999999, 1000000]:
-            s = Series(index=range(x))
-            s.loc[range(1)] = 42
-            tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
+        s = Series(index=range(size), dtype=np.float64)
+        s.loc[range(1)] = 42
+        tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
 
-            s.loc[range(2)] = 43
-            tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
+        s.loc[range(2)] = 43
+        tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
 
-    def test_non_reducing_slice(self):
-        df = DataFrame([[0, 1], [2, 3]])
-
-        slices = [
-            # pd.IndexSlice[:, :],
+    @pytest.mark.parametrize(
+        "slc",
+        [
+            pd.IndexSlice[:, :],
             pd.IndexSlice[:, 1],
             pd.IndexSlice[1, :],
             pd.IndexSlice[[1], [1]],
@@ -952,10 +824,13 @@ class TestMisc(Base):
             [0, 1],
             np.array([0, 1]),
             Series([0, 1]),
-        ]
-        for slice_ in slices:
-            tslice_ = _non_reducing_slice(slice_)
-            assert isinstance(df.loc[tslice_], DataFrame)
+        ],
+    )
+    def test_non_reducing_slice(self, slc):
+        df = DataFrame([[0, 1], [2, 3]])
+
+        tslice_ = non_reducing_slice(slc)
+        assert isinstance(df.loc[tslice_], DataFrame)
 
     def test_list_slice(self):
         # like dataframe getitem
@@ -963,18 +838,18 @@ class TestMisc(Base):
         df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
         expected = pd.IndexSlice[:, ["A"]]
         for subset in slices:
-            result = _non_reducing_slice(subset)
+            result = non_reducing_slice(subset)
             tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
     def test_maybe_numeric_slice(self):
         df = DataFrame({"A": [1, 2], "B": ["c", "d"], "C": [True, False]})
-        result = _maybe_numeric_slice(df, slice_=None)
+        result = maybe_numeric_slice(df, slice_=None)
         expected = pd.IndexSlice[:, ["A"]]
         assert result == expected
 
-        result = _maybe_numeric_slice(df, None, include_bool=True)
+        result = maybe_numeric_slice(df, None, include_bool=True)
         expected = pd.IndexSlice[:, ["A", "C"]]
-        result = _maybe_numeric_slice(df, [1])
+        result = maybe_numeric_slice(df, [1])
         expected = [1]
         assert result == expected
 
@@ -1015,37 +890,37 @@ class TestSeriesNoneCoercion:
         (["foo", "bar", "baz"], [None, "bar", "baz"]),
     ]
 
-    def test_coercion_with_setitem(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series[0] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_setitem(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series[0] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
-    def test_coercion_with_loc_setitem(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series.loc[0] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_loc_setitem(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series.loc[0] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
-    def test_coercion_with_setitem_and_series(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series[start_series == start_series[0]] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_setitem_and_series(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series[start_series == start_series[0]] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
-    def test_coercion_with_loc_and_series(self):
-        for start_data, expected_result in self.EXPECTED_RESULTS:
-            start_series = Series(start_data)
-            start_series.loc[start_series == start_series[0]] = None
+    @pytest.mark.parametrize("start_data,expected_result", EXPECTED_RESULTS)
+    def test_coercion_with_loc_and_series(self, start_data, expected_result):
+        start_series = Series(start_data)
+        start_series.loc[start_series == start_series[0]] = None
 
-            expected_series = Series(expected_result)
-            tm.assert_series_equal(start_series, expected_series)
+        expected_series = Series(expected_result)
+        tm.assert_series_equal(start_series, expected_series)
 
 
 class TestDataframeNoneCoercion:
@@ -1062,31 +937,35 @@ class TestDataframeNoneCoercion:
         (["foo", "bar", "baz"], [None, "bar", "baz"]),
     ]
 
-    def test_coercion_with_loc(self):
-        for start_data, expected_result in self.EXPECTED_SINGLE_ROW_RESULTS:
-            start_dataframe = DataFrame({"foo": start_data})
-            start_dataframe.loc[0, ["foo"]] = None
+    @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    def test_coercion_with_loc(self, expected):
+        start_data, expected_result = expected
 
-            expected_dataframe = DataFrame({"foo": expected_result})
-            tm.assert_frame_equal(start_dataframe, expected_dataframe)
+        start_dataframe = DataFrame({"foo": start_data})
+        start_dataframe.loc[0, ["foo"]] = None
 
-    def test_coercion_with_setitem_and_dataframe(self):
-        for start_data, expected_result in self.EXPECTED_SINGLE_ROW_RESULTS:
-            start_dataframe = DataFrame({"foo": start_data})
-            start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
+        expected_dataframe = DataFrame({"foo": expected_result})
+        tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
-            expected_dataframe = DataFrame({"foo": expected_result})
-            tm.assert_frame_equal(start_dataframe, expected_dataframe)
+    @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    def test_coercion_with_setitem_and_dataframe(self, expected):
+        start_data, expected_result = expected
 
-    def test_none_coercion_loc_and_dataframe(self):
-        for start_data, expected_result in self.EXPECTED_SINGLE_ROW_RESULTS:
-            start_dataframe = DataFrame({"foo": start_data})
-            start_dataframe.loc[
-                start_dataframe["foo"] == start_dataframe["foo"][0]
-            ] = None
+        start_dataframe = DataFrame({"foo": start_data})
+        start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
 
-            expected_dataframe = DataFrame({"foo": expected_result})
-            tm.assert_frame_equal(start_dataframe, expected_dataframe)
+        expected_dataframe = DataFrame({"foo": expected_result})
+        tm.assert_frame_equal(start_dataframe, expected_dataframe)
+
+    @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
+    def test_none_coercion_loc_and_dataframe(self, expected):
+        start_data, expected_result = expected
+
+        start_dataframe = DataFrame({"foo": start_data})
+        start_dataframe.loc[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
+
+        expected_dataframe = DataFrame({"foo": expected_result})
+        tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
     def test_none_coercion_mixed_dtypes(self):
         start_dataframe = DataFrame(
@@ -1110,42 +989,16 @@ class TestDataframeNoneCoercion:
         tm.assert_frame_equal(start_dataframe, exp)
 
 
-def test_validate_indices_ok():
-    indices = np.asarray([0, 1])
-    validate_indices(indices, 2)
-    validate_indices(indices[:0], 0)
-    validate_indices(np.array([-1, -1]), 0)
-
-
-def test_validate_indices_low():
-    indices = np.asarray([0, -2])
-    with pytest.raises(ValueError, match="'indices' contains"):
-        validate_indices(indices, 2)
-
-
-def test_validate_indices_high():
-    indices = np.asarray([0, 1, 2])
-    with pytest.raises(IndexError, match="indices are out"):
-        validate_indices(indices, 2)
-
-
-def test_validate_indices_empty():
-    with pytest.raises(IndexError, match="indices are out"):
-        validate_indices(np.array([0, 1]), 0)
-
-
 def test_extension_array_cross_section():
     # A cross-section of a homogeneous EA should be an EA
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "A": pd.core.arrays.integer_array([1, 2]),
             "B": pd.core.arrays.integer_array([3, 4]),
         },
         index=["a", "b"],
     )
-    expected = pd.Series(
-        pd.core.arrays.integer_array([1, 3]), index=["A", "B"], name="a"
-    )
+    expected = Series(pd.core.arrays.integer_array([1, 3]), index=["A", "B"], name="a")
     result = df.loc["a"]
     tm.assert_series_equal(result, expected)
 
@@ -1154,44 +1007,33 @@ def test_extension_array_cross_section():
 
 
 def test_extension_array_cross_section_converts():
-    df = pd.DataFrame(
-        {"A": pd.core.arrays.integer_array([1, 2]), "B": np.array([1, 2])},
+    # all numeric columns -> numeric series
+    df = DataFrame(
+        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"]
+    )
+    result = df.loc["a"]
+    expected = Series([1, 1], dtype="Int64", index=["A", "B"], name="a")
+    tm.assert_series_equal(result, expected)
+
+    result = df.iloc[0]
+    tm.assert_series_equal(result, expected)
+
+    # mixed columns -> object series
+    df = DataFrame(
+        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array(["a", "b"])},
         index=["a", "b"],
     )
     result = df.loc["a"]
-    expected = pd.Series([1, 1], dtype=object, index=["A", "B"], name="a")
+    expected = Series([1, "a"], dtype=object, index=["A", "B"], name="a")
     tm.assert_series_equal(result, expected)
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "idxr, error, error_message",
-    [
-        (lambda x: x, AbstractMethodError, None),
-        (
-            lambda x: x.loc,
-            AttributeError,
-            "type object 'NDFrame' has no attribute '_AXIS_ALIASES'",
-        ),
-        (
-            lambda x: x.iloc,
-            AttributeError,
-            "type object 'NDFrame' has no attribute '_AXIS_ALIASES'",
-        ),
-    ],
-)
-def test_ndframe_indexing_raises(idxr, error, error_message):
-    # GH 25567
-    frame = NDFrame(np.random.randint(5, size=(2, 2, 2)))
-    with pytest.raises(error, match=error_message):
-        idxr(frame)[0]
-
-
 def test_readonly_indices():
     # GH#17192 iloc with read-only array raising TypeError
-    df = pd.DataFrame({"data": np.ones(100, dtype="float64")})
+    df = DataFrame({"data": np.ones(100, dtype="float64")})
     indices = np.array([1, 3, 6])
     indices.flags.writeable = False
 
@@ -1202,3 +1044,74 @@ def test_readonly_indices():
     result = df["data"].iloc[indices]
     expected = df["data"].loc[[1, 3, 6]]
     tm.assert_series_equal(result, expected)
+
+
+def test_1tuple_without_multiindex():
+    ser = Series(range(5))
+    key = (slice(3),)
+
+    result = ser[key]
+    expected = ser[key[0]]
+    tm.assert_series_equal(result, expected)
+
+
+def test_duplicate_index_mistyped_key_raises_keyerror():
+    # GH#29189 float_index.get_loc(None) should raise KeyError, not TypeError
+    ser = Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    with pytest.raises(KeyError, match="None"):
+        ser[None]
+
+    with pytest.raises(KeyError, match="None"):
+        ser.index.get_loc(None)
+
+    with pytest.raises(KeyError, match="None"):
+        ser.index._engine.get_loc(None)
+
+
+def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():
+    # GH 30567
+    ser = Series([None] * 10)
+    mask = [False] * 3 + [True] * 5 + [False] * 2
+    ser[mask] = range(5)
+    result = ser
+    expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+    tm.assert_series_equal(result, expected)
+
+
+def test_missing_labels_inside_loc_matched_in_error_message():
+    # GH34272
+    s = Series({"a": 1, "b": 2, "c": 3})
+    error_message_regex = "missing_0.*missing_1.*missing_2"
+    with pytest.raises(KeyError, match=error_message_regex):
+        s.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
+
+
+def test_many_missing_labels_inside_loc_error_message_limited():
+    # GH34272
+    n = 10000
+    missing_labels = [f"missing_{label}" for label in range(n)]
+    s = Series({"a": 1, "b": 2, "c": 3})
+    # regex checks labels between 4 and 9995 are replaced with ellipses
+    error_message_regex = "missing_4.*\\.\\.\\..*missing_9995"
+    with pytest.raises(KeyError, match=error_message_regex):
+        s.loc[["a", "c"] + missing_labels]
+
+
+def test_long_text_missing_labels_inside_loc_error_message_limited():
+    # GH34272
+    s = Series({"a": 1, "b": 2, "c": 3})
+    missing_labels = [f"long_missing_label_text_{i}" * 5 for i in range(3)]
+    # regex checks for very long labels there are new lines between each
+    error_message_regex = "long_missing_label_text_0.*\\\\n.*long_missing_label_text_1"
+    with pytest.raises(KeyError, match=error_message_regex):
+        s.loc[["a", "c"] + missing_labels]
+
+
+def test_setitem_categorical():
+    # https://github.com/pandas-dev/pandas/issues/35369
+    df = DataFrame({"h": Series(list("mn")).astype("category")})
+    df.h = df.h.cat.reorder_categories(["n", "m"])
+    expected = DataFrame(
+        {"h": pd.Categorical(["m", "n"]).reorder_categories(["n", "m"])}
+    )
+    tm.assert_frame_equal(df, expected)

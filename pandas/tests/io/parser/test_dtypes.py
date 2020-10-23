@@ -14,7 +14,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import Categorical, DataFrame, Index, MultiIndex, Series, Timestamp, concat
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("dtype", [str, object])
@@ -79,7 +79,7 @@ one,two
 3,4.5
 4,5.5"""
 
-    with pytest.raises(TypeError, match="data type 'foo' not understood"):
+    with pytest.raises(TypeError, match="data type [\"']foo[\"'] not understood"):
         parser.read_csv(StringIO(data), dtype={"one": "foo", 1: "int"})
 
 
@@ -192,7 +192,7 @@ def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     pth = os.path.join(csv_dir_path, "utf16_ex.txt")
     parser = all_parsers
     encoding = "utf-16"
-    sep = ","
+    sep = "\t"
 
     expected = parser.read_csv(pth, sep=sep, encoding=encoding)
     expected = expected.apply(Categorical)
@@ -299,7 +299,8 @@ def test_categorical_coerces_numeric(all_parsers):
 
 def test_categorical_coerces_datetime(all_parsers):
     parser = all_parsers
-    dtype = {"b": CategoricalDtype(pd.date_range("2017", "2019", freq="AS"))}
+    dti = pd.DatetimeIndex(["2017-01-01", "2018-01-01", "2019-01-01"], freq=None)
+    dtype = {"b": CategoricalDtype(dti)}
 
     data = "b\n2017-01-01\n2018-01-01\n2019-01-01"
     expected = DataFrame({"b": Categorical(dtype["b"].categories)})
@@ -367,7 +368,7 @@ def test_empty_pass_dtype(all_parsers):
     result = parser.read_csv(StringIO(data), dtype={"one": "u1"})
 
     expected = DataFrame(
-        {"one": np.empty(0, dtype="u1"), "two": np.empty(0, dtype=np.object)},
+        {"one": np.empty(0, dtype="u1"), "two": np.empty(0, dtype=object)},
         index=Index([], dtype=object),
     )
     tm.assert_frame_equal(result, expected)
@@ -398,7 +399,7 @@ def test_empty_with_multi_index_pass_dtype(all_parsers):
     exp_idx = MultiIndex.from_arrays(
         [np.empty(0, dtype="u1"), np.empty(0, dtype=np.float64)], names=["one", "two"]
     )
-    expected = DataFrame({"three": np.empty(0, dtype=np.object)}, index=exp_idx)
+    expected = DataFrame({"three": np.empty(0, dtype=object)}, index=exp_idx)
     tm.assert_frame_equal(result, expected)
 
 
@@ -550,3 +551,55 @@ def test_numeric_dtype(all_parsers, dtype):
 
     result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
     tm.assert_frame_equal(expected, result)
+
+
+def test_boolean_dtype(all_parsers):
+    parser = all_parsers
+    data = "\n".join(
+        [
+            "a",
+            "True",
+            "TRUE",
+            "true",
+            "1",
+            "1.0",
+            "False",
+            "FALSE",
+            "false",
+            "0",
+            "0.0",
+            "NaN",
+            "nan",
+            "NA",
+            "null",
+            "NULL",
+        ]
+    )
+
+    result = parser.read_csv(StringIO(data), dtype="boolean")
+    expected = DataFrame(
+        {
+            "a": pd.array(
+                [
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    False,
+                    False,
+                    False,
+                    False,
+                    False,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                ],
+                dtype="boolean",
+            )
+        }
+    )
+
+    tm.assert_frame_equal(result, expected)

@@ -1,37 +1,38 @@
+import abc
 import inspect
-import warnings
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Tuple, Type
 
 import numpy as np
 
-from pandas._libs import reduction
+from pandas._config import option_context
+
+from pandas._typing import Axis, FrameOrSeriesUnion
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import (
-    is_dict_like,
-    is_extension_type,
-    is_list_like,
-    is_sequence,
-)
+from pandas.core.dtypes.common import is_dict_like, is_list_like, is_sequence
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.core.construction import create_series_with_explicit_dtype
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Index, Series
+
+ResType = Dict[int, Any]
 
 
 def frame_apply(
-    obj,
+    obj: "DataFrame",
     func,
-    axis=0,
-    broadcast=None,
-    raw=False,
-    reduce=None,
-    result_type=None,
-    ignore_failures=False,
+    axis: Axis = 0,
+    raw: bool = False,
+    result_type: Optional[str] = None,
+    ignore_failures: bool = False,
     args=None,
     kwds=None,
 ):
     """ construct and return a row or column based frame apply object """
-
     axis = obj._get_axis_number(axis)
+    klass: Type[FrameApply]
     if axis == 0:
         klass = FrameRowApply
     elif axis == 1:
@@ -40,9 +41,7 @@ def frame_apply(
     return klass(
         obj,
         func,
-        broadcast=broadcast,
         raw=raw,
-        reduce=reduce,
         result_type=result_type,
         ignore_failures=ignore_failures,
         args=args,
@@ -50,16 +49,42 @@ def frame_apply(
     )
 
 
-class FrameApply:
+class FrameApply(metaclass=abc.ABCMeta):
+
+    # ---------------------------------------------------------------
+    # Abstract Methods
+    axis: int
+
+    @property
+    @abc.abstractmethod
+    def result_index(self) -> "Index":
+        pass
+
+    @property
+    @abc.abstractmethod
+    def result_columns(self) -> "Index":
+        pass
+
+    @property
+    @abc.abstractmethod
+    def series_generator(self) -> Iterator["Series"]:
+        pass
+
+    @abc.abstractmethod
+    def wrap_results_for_axis(
+        self, results: ResType, res_index: "Index"
+    ) -> FrameOrSeriesUnion:
+        pass
+
+    # ---------------------------------------------------------------
+
     def __init__(
         self,
-        obj,
+        obj: "DataFrame",
         func,
-        broadcast,
-        raw,
-        reduce,
-        result_type,
-        ignore_failures,
+        raw: bool,
+        result_type: Optional[str],
+        ignore_failures: bool,
         args,
         kwds,
     ):
@@ -75,34 +100,6 @@ class FrameApply:
                 "of {None, 'reduce', 'broadcast', 'expand'}"
             )
 
-        if broadcast is not None:
-            warnings.warn(
-                "The broadcast argument is deprecated and will "
-                "be removed in a future version. You can specify "
-                "result_type='broadcast' to broadcast the result "
-                "to the original dimensions",
-                FutureWarning,
-                stacklevel=4,
-            )
-            if broadcast:
-                result_type = "broadcast"
-
-        if reduce is not None:
-            warnings.warn(
-                "The reduce argument is deprecated and will "
-                "be removed in a future version. You can specify "
-                "result_type='reduce' to try to reduce the result "
-                "to the original dimensions",
-                FutureWarning,
-                stacklevel=4,
-            )
-            if reduce:
-
-                if result_type is not None:
-                    raise ValueError("cannot pass both reduce=True and result_type")
-
-                result_type = "reduce"
-
         self.result_type = result_type
 
         # curry if needed
@@ -116,17 +113,16 @@ class FrameApply:
 
         self.f = f
 
-        # results
-        self.result = None
-        self.res_index = None
-        self.res_columns = None
+    @property
+    def res_columns(self) -> "Index":
+        return self.result_columns
 
     @property
-    def columns(self):
+    def columns(self) -> "Index":
         return self.obj.columns
 
     @property
-    def index(self):
+    def index(self) -> "Index":
         return self.obj.index
 
     @cache_readonly
@@ -134,16 +130,15 @@ class FrameApply:
         return self.obj.values
 
     @cache_readonly
-    def dtypes(self):
+    def dtypes(self) -> "Series":
         return self.obj.dtypes
 
     @property
-    def agg_axis(self):
+    def agg_axis(self) -> "Index":
         return self.obj._get_agg_axis(self.axis)
 
     def get_result(self):
         """ compute the results """
-
         # dispatch to agg
         if is_list_like(self.f) or is_dict_like(self.f):
             return self.obj.aggregate(self.f, axis=self.axis, *self.args, **self.kwds)
@@ -166,21 +161,20 @@ class FrameApply:
         # ufunc
         elif isinstance(self.f, np.ufunc):
             with np.errstate(all="ignore"):
-                results = self.obj._data.apply("apply", func=self.f)
-            return self.obj._constructor(
-                data=results, index=self.index, columns=self.columns, copy=False
-            )
+                results = self.obj._mgr.apply("apply", func=self.f)
+            # _constructor will retain self.index and self.columns
+            return self.obj._constructor(data=results)
 
         # broadcasting
         if self.result_type == "broadcast":
-            return self.apply_broadcast()
+            return self.apply_broadcast(self.obj)
 
         # one axis empty
         elif not all(self.obj.shape):
             return self.apply_empty_result()
 
         # raw
-        elif self.raw and not self.obj._is_mixed_type:
+        elif self.raw:
             return self.apply_raw()
 
         return self.apply_standard()
@@ -192,38 +186,53 @@ class FrameApply:
         we will try to apply the function to an empty
         series in order to see if this is a reduction function
         """
-
         # we are not asked to reduce or infer reduction
         # so just return a copy of the existing object
         if self.result_type not in ["reduce", None]:
             return self.obj.copy()
 
         # we may need to infer
-        reduce = self.result_type == "reduce"
+        should_reduce = self.result_type == "reduce"
 
         from pandas import Series
 
-        if not reduce:
-
-            EMPTY_SERIES = Series([])
+        if not should_reduce:
             try:
-                r = self.f(EMPTY_SERIES, *self.args, **self.kwds)
-                reduce = not isinstance(r, Series)
+                r = self.f(Series([], dtype=np.float64))
             except Exception:
                 pass
+            else:
+                should_reduce = not isinstance(r, Series)
 
-        if reduce:
-            return self.obj._constructor_sliced(np.nan, index=self.agg_axis)
+        if should_reduce:
+            if len(self.agg_axis):
+                r = self.f(Series([], dtype=np.float64))
+            else:
+                r = np.nan
+
+            return self.obj._constructor_sliced(r, index=self.agg_axis)
         else:
             return self.obj.copy()
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
 
-        try:
-            result = reduction.reduce(self.values, self.f, axis=self.axis)
-        except Exception:
-            result = np.apply_along_axis(self.f, self.axis, self.values)
+        def wrap_function(func):
+            """
+            Wrap user supplied function to work around numpy issue.
+
+            see https://github.com/numpy/numpy/issues/8352
+            """
+
+            def wrapper(*args, **kwargs):
+                result = func(*args, **kwargs)
+                if isinstance(result, str):
+                    result = np.array(result, dtype=object)
+                return result
+
+            return wrapper
+
+        result = np.apply_along_axis(wrap_function(self.f), self.axis, self.values)
 
         # TODO: mixed type case
         if result.ndim == 2:
@@ -231,7 +240,7 @@ class FrameApply:
         else:
             return self.obj._constructor_sliced(result, index=self.agg_axis)
 
-    def apply_broadcast(self, target):
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
         result_values = np.empty_like(target.values)
 
         # axis which we want to compare compliance
@@ -259,91 +268,63 @@ class FrameApply:
         return result
 
     def apply_standard(self):
-
-        # try to reduce first (by default)
-        # this only matters if the reduction in values is of different dtype
-        # e.g. if we want to apply to a SparseFrame, then can't directly reduce
-
-        # we cannot reduce using non-numpy dtypes,
-        # as demonstrated in gh-12244
-        if (
-            self.result_type in ["reduce", None]
-            and not self.dtypes.apply(is_extension_type).any()
-        ):
-
-            # Create a dummy Series from an empty array
-            from pandas import Series
-
-            values = self.values
-            index = self.obj._get_axis(self.axis)
-            labels = self.agg_axis
-            empty_arr = np.empty(len(index), dtype=values.dtype)
-            dummy = Series(empty_arr, index=index, dtype=values.dtype)
-
-            try:
-                result = reduction.reduce(
-                    values, self.f, axis=self.axis, dummy=dummy, labels=labels
-                )
-                return self.obj._constructor_sliced(result, index=labels)
-            except Exception:
-                pass
-
-        # compute the result using the series generator
-        self.apply_series_generator()
+        results, res_index = self.apply_series_generator()
 
         # wrap results
-        return self.wrap_results()
+        return self.wrap_results(results, res_index)
 
-    def apply_series_generator(self):
+    def apply_series_generator(self) -> Tuple[ResType, "Index"]:
         series_gen = self.series_generator
         res_index = self.result_index
 
-        i = None
-        keys = []
         results = {}
+
         if self.ignore_failures:
             successes = []
             for i, v in enumerate(series_gen):
                 try:
                     results[i] = self.f(v)
-                    keys.append(v.name)
-                    successes.append(i)
                 except Exception:
                     pass
+                else:
+                    successes.append(i)
 
             # so will work with MultiIndex
             if len(successes) < len(res_index):
                 res_index = res_index.take(successes)
 
         else:
-            try:
+            with option_context("mode.chained_assignment", None):
                 for i, v in enumerate(series_gen):
+                    # ignore SettingWithCopy here in case the user mutates
                     results[i] = self.f(v)
-                    keys.append(v.name)
-            except Exception as e:
-                if hasattr(e, "args"):
+                    if isinstance(results[i], ABCSeries):
+                        # If we have a view on v, we need to make a copy because
+                        #  series_generator will swap out the underlying data
+                        results[i] = results[i].copy(deep=False)
 
-                    # make sure i is defined
-                    if i is not None:
-                        k = res_index[i]
-                        e.args = e.args + ("occurred at index %s" % pprint_thing(k),)
-                raise
+        return results, res_index
 
-        self.results = results
-        self.res_index = res_index
-        self.res_columns = self.result_columns
-
-    def wrap_results(self):
-        results = self.results
+    def wrap_results(self, results: ResType, res_index: "Index") -> FrameOrSeriesUnion:
+        from pandas import Series
 
         # see if we can infer the results
-        if len(results) > 0 and is_sequence(results[0]):
-
-            return self.wrap_results_for_axis()
+        if len(results) > 0 and 0 in results and is_sequence(results[0]):
+            return self.wrap_results_for_axis(results, res_index)
 
         # dict of scalars
-        result = self.obj._constructor_sliced(results)
-        result.index = self.res_index
+
+        # the default dtype of an empty Series will be `object`, but this
+        # code can be hit by df.mean() where the result should have dtype
+        # float64 even if it's an empty Series.
+        constructor_sliced = self.obj._constructor_sliced
+        if constructor_sliced is Series:
+            result = create_series_with_explicit_dtype(
+                results, dtype_if_empty=np.float64
+            )
+        else:
+            result = constructor_sliced(results)
+        result.index = res_index
 
         return result
 
@@ -351,37 +332,57 @@ class FrameApply:
 class FrameRowApply(FrameApply):
     axis = 0
 
-    def apply_broadcast(self):
-        return super().apply_broadcast(self.obj)
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+        return super().apply_broadcast(target)
 
     @property
     def series_generator(self):
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @property
-    def result_index(self):
+    def result_index(self) -> "Index":
         return self.columns
 
     @property
-    def result_columns(self):
+    def result_columns(self) -> "Index":
         return self.index
 
-    def wrap_results_for_axis(self):
+    def wrap_results_for_axis(
+        self, results: ResType, res_index: "Index"
+    ) -> FrameOrSeriesUnion:
         """ return the results for the rows """
 
-        results = self.results
-        result = self.obj._constructor(data=results)
+        if self.result_type == "reduce":
+            # e.g. test_apply_dict GH#8735
+            res = self.obj._constructor_sliced(results)
+            res.index = res_index
+            return res
 
-        if not isinstance(results[0], ABCSeries):
-            try:
-                result.index = self.res_columns
-            except ValueError:
-                pass
+        elif self.result_type is None and all(
+            isinstance(x, dict) for x in results.values()
+        ):
+            # Our operation was a to_dict op e.g.
+            #  test_apply_dict GH#8735, test_apply_reduce_rows_to_dict GH#25196
+            return self.obj._constructor_sliced(results)
 
         try:
-            result.columns = self.res_index
-        except ValueError:
-            pass
+            result = self.obj._constructor(data=results)
+        except ValueError as err:
+            if "arrays must all be same length" in str(err):
+                # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
+                #  see test_agg_listlike_result GH#29587
+                res = self.obj._constructor_sliced(results)
+                res.index = res_index
+                return res
+            else:
+                raise
+
+        if not isinstance(results[0], ABCSeries):
+            if len(result.index) == len(self.res_columns):
+                result.index = self.res_columns
+
+        if len(result.columns) == len(res_index):
+            result.columns = res_index
 
         return result
 
@@ -389,56 +390,64 @@ class FrameRowApply(FrameApply):
 class FrameColumnApply(FrameApply):
     axis = 1
 
-    def apply_broadcast(self):
-        result = super().apply_broadcast(self.obj.T)
+    def apply_broadcast(self, target: "DataFrame") -> "DataFrame":
+        result = super().apply_broadcast(target.T)
         return result.T
 
     @property
     def series_generator(self):
-        constructor = self.obj._constructor_sliced
-        return (
-            constructor(arr, index=self.columns, name=name)
-            for i, (arr, name) in enumerate(zip(self.values, self.index))
-        )
+        values = self.values
+        assert len(values) > 0
+
+        # We create one Series object, and will swap out the data inside
+        #  of it.  Kids: don't do this at home.
+        ser = self.obj._ixs(0, axis=0)
+        mgr = ser._mgr
+        blk = mgr.blocks[0]
+
+        for (arr, name) in zip(values, self.index):
+            # GH#35462 re-pin mgr in case setitem changed it
+            ser._mgr = mgr
+            blk.values = arr
+            ser.name = name
+            yield ser
 
     @property
-    def result_index(self):
+    def result_index(self) -> "Index":
         return self.index
 
     @property
-    def result_columns(self):
+    def result_columns(self) -> "Index":
         return self.columns
 
-    def wrap_results_for_axis(self):
+    def wrap_results_for_axis(
+        self, results: ResType, res_index: "Index"
+    ) -> FrameOrSeriesUnion:
         """ return the results for the columns """
-        results = self.results
+        result: FrameOrSeriesUnion
 
         # we have requested to expand
         if self.result_type == "expand":
-            result = self.infer_to_same_shape()
+            result = self.infer_to_same_shape(results, res_index)
 
         # we have a non-series and don't want inference
         elif not isinstance(results[0], ABCSeries):
-            from pandas import Series
-
-            result = Series(results)
-            result.index = self.res_index
+            result = self.obj._constructor_sliced(results)
+            result.index = res_index
 
         # we may want to infer results
         else:
-            result = self.infer_to_same_shape()
+            result = self.infer_to_same_shape(results, res_index)
 
         return result
 
-    def infer_to_same_shape(self):
+    def infer_to_same_shape(self, results: ResType, res_index: "Index") -> "DataFrame":
         """ infer the results to the same shape as the input object """
-        results = self.results
-
         result = self.obj._constructor(data=results)
         result = result.T
 
         # set the index
-        result.index = self.res_index
+        result.index = res_index
 
         # infer dtypes
         result = result.infer_objects()

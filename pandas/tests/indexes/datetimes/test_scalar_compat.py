@@ -6,13 +6,12 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsDatetime, to_offset
+from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
 import pandas as pd
 from pandas import DatetimeIndex, Timestamp, date_range
-import pandas.util.testing as tm
-
-from pandas.tseries.frequencies import to_offset
+import pandas._testing as tm
 
 
 class TestDatetimeIndexOps:
@@ -40,8 +39,6 @@ class TestDatetimeIndexOps:
         [
             "dayofweek",
             "dayofyear",
-            "week",
-            "weekofyear",
             "quarter",
             "days_in_month",
             "is_month_start",
@@ -50,18 +47,19 @@ class TestDatetimeIndexOps:
             "is_quarter_end",
             "is_year_start",
             "is_year_end",
-            "weekday_name",
         ],
     )
     def test_dti_timestamp_fields(self, field):
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)
         expected = getattr(idx, field)[-1]
-        if field == "weekday_name":
-            with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-                result = getattr(Timestamp(idx[-1]), field)
-        else:
-            result = getattr(Timestamp(idx[-1]), field)
+        result = getattr(Timestamp(idx[-1]), field)
+        assert result == expected
+
+    def test_dti_timestamp_isocalendar_fields(self):
+        idx = tm.makeDateIndex(100)
+        expected = tuple(idx.isocalendar().iloc[-1].to_list())
+        result = idx[-1].isocalendar()
         assert result == expected
 
     def test_dti_timestamp_freq_fields(self):
@@ -121,7 +119,7 @@ class TestDatetimeIndexOps:
         tm.assert_index_equal(rng.round(freq="H"), expected_rng)
         assert elt.round(freq="H") == expected_elt
 
-        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
+        msg = INVALID_FREQ_ERR_MSG
         with pytest.raises(ValueError, match=msg):
             rng.round(freq="foo")
         with pytest.raises(ValueError, match=msg):
@@ -253,21 +251,21 @@ class TestDatetimeIndexOps:
         result = dt.floor(round_freq)
         diff = dt.asi8 - result.asi8
         mod = result.asi8 % unit
-        assert (mod == 0).all(), "floor not a {} multiple".format(round_freq)
+        assert (mod == 0).all(), f"floor not a {round_freq} multiple"
         assert (0 <= diff).all() and (diff < unit).all(), "floor error"
 
         # test ceil
         result = dt.ceil(round_freq)
         diff = result.asi8 - dt.asi8
         mod = result.asi8 % unit
-        assert (mod == 0).all(), "ceil not a {} multiple".format(round_freq)
+        assert (mod == 0).all(), f"ceil not a {round_freq} multiple"
         assert (0 <= diff).all() and (diff < unit).all(), "ceil error"
 
         # test round
         result = dt.round(round_freq)
         diff = abs(result.asi8 - dt.asi8)
         mod = result.asi8 % unit
-        assert (mod == 0).all(), "round not a {} multiple".format(round_freq)
+        assert (mod == 0).all(), f"round not a {round_freq} multiple"
         assert (diff <= unit // 2).all(), "round error"
         if unit % 2 == 0:
             assert (

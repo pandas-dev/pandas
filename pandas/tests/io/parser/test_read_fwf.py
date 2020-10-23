@@ -6,13 +6,14 @@ engine is set to 'python-fwf' internally.
 
 from datetime import datetime
 from io import BytesIO, StringIO
+from pathlib import Path
 
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.parsers import EmptyDataError, read_csv, read_fwf
 
@@ -173,9 +174,7 @@ A   B     C            D            E
 
 
 def test_bytes_io_input():
-    result = read_fwf(
-        BytesIO("שלום\nשלום".encode("utf8")), widths=[2, 2], encoding="utf8"
-    )
+    result = read_fwf(BytesIO("שלום\nשלום".encode()), widths=[2, 2], encoding="utf8")
     expected = DataFrame([["של", "ום"]], columns=["של", "ום"])
     tm.assert_frame_equal(result, expected)
 
@@ -260,7 +259,7 @@ def test_fwf_regression():
     # Turns out "T060" is parsable as a datetime slice!
     tz_list = [1, 10, 20, 30, 60, 80, 100]
     widths = [16] + [8] * len(tz_list)
-    names = ["SST"] + ["T{z:03d}".format(z=z) for z in tz_list[1:]]
+    names = ["SST"] + [f"T{z:03d}" for z in tz_list[1:]]
 
     data = """  2009164202000   9.5403  9.4105  8.6571  7.8372  6.0612  5.8843  5.5192
 2009164203000   9.5435  9.2010  8.6167  7.8176  6.0804  5.8728  5.4869
@@ -510,7 +509,7 @@ def test_dtype(dtype):
     colspecs = [(0, 5), (5, 10), (10, None)]
     result = read_fwf(StringIO(data), colspecs=colspecs, dtype=dtype)
 
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"a": [1, 3], "b": [2, 4], "c": [3.2, 5.2]}, columns=["a", "b", "c"]
     )
 
@@ -616,3 +615,43 @@ def test_fwf_compression(compression_only, infer):
 
         result = read_fwf(path, **kwargs)
         tm.assert_frame_equal(result, expected)
+
+
+def test_binary_mode():
+    """
+    read_fwf supports opening files in binary mode.
+
+    GH 18035.
+    """
+    data = """aas aas aas
+bba bab b a"""
+    df_reference = DataFrame(
+        [["bba", "bab", "b a"]], columns=["aas", "aas.1", "aas.2"], index=[0]
+    )
+    with tm.ensure_clean() as path:
+        Path(path).write_text(data)
+        with open(path, "rb") as file:
+            df = pd.read_fwf(file)
+            file.seek(0)
+            tm.assert_frame_equal(df, df_reference)
+
+
+@pytest.mark.parametrize("memory_map", [True, False])
+def test_encoding_mmap(memory_map):
+    """
+    encoding should be working, even when using a memory-mapped file.
+
+    GH 23254.
+    """
+    encoding = "iso8859_1"
+    data = BytesIO(" 1 A Ä 2\n".encode(encoding))
+    df = pd.read_fwf(
+        data,
+        header=None,
+        widths=[2, 2, 2, 2],
+        encoding=encoding,
+        memory_map=memory_map,
+    )
+    data.seek(0)
+    df_reference = DataFrame([[1, "A", "Ä", 2]])
+    tm.assert_frame_equal(df, df_reference)

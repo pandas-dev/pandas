@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 from cpython.datetime cimport date, datetime
+from numpy cimport int32_t, int64_t
 
-from numpy cimport int64_t, int32_t
 
 cdef extern from "numpy/ndarrayobject.h":
     ctypedef int64_t npy_timedelta
@@ -55,8 +53,6 @@ cdef extern from "src/datetime/np_datetime.h":
                                            npy_datetimestruct *result) nogil
 
 
-cdef int reverse_ops[6]
-
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
 cdef check_dts_bounds(npy_datetimestruct *dts)
@@ -67,11 +63,12 @@ cdef void td64_to_tdstruct(int64_t td64, pandas_timedeltastruct* out) nogil
 
 cdef int64_t pydatetime_to_dt64(datetime val, npy_datetimestruct *dts)
 cdef int64_t pydate_to_dt64(date val, npy_datetimestruct *dts)
+cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts)
 
 cdef npy_datetime get_datetime64_value(object obj) nogil
 cdef npy_timedelta get_timedelta64_value(object obj) nogil
 cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil
 
-cdef int _string_to_dts(object val, npy_datetimestruct* dts,
+cdef int _string_to_dts(str val, npy_datetimestruct* dts,
                         int* out_local, int* out_tzoffset,
                         bint want_exc) except? -1

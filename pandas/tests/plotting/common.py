@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import os
 import warnings
 
@@ -12,28 +9,32 @@ import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
 
-from pandas import DataFrame, Series
-import pandas.util.testing as tm
-from pandas.util.testing import assert_is_valid_plot_return_object, ensure_clean
-
-
-"""
-This is a common base class used for various plotting tests
-"""
+import pandas as pd
+from pandas import DataFrame, Series, to_datetime
+import pandas._testing as tm
 
 
 @td.skip_if_no_mpl
 class TestPlotBase:
+    """
+    This is a common base class used for various plotting tests
+    """
+
     def setup_method(self, method):
 
         import matplotlib as mpl
+
         from pandas.plotting._matplotlib import compat
 
         mpl.rcdefaults()
 
-        self.mpl_ge_2_2_3 = compat._mpl_ge_2_2_3()
-        self.mpl_ge_3_0_0 = compat._mpl_ge_3_0_0()
-        self.mpl_ge_3_1_0 = compat._mpl_ge_3_1_0()
+        self.start_date_to_int64 = 812419200000000000
+        self.end_date_to_int64 = 819331200000000000
+
+        self.mpl_ge_2_2_3 = compat.mpl_ge_2_2_3()
+        self.mpl_ge_3_0_0 = compat.mpl_ge_3_0_0()
+        self.mpl_ge_3_1_0 = compat.mpl_ge_3_1_0()
+        self.mpl_ge_3_2_0 = compat.mpl_ge_3_2_0()
 
         self.bp_n_objects = 7
         self.polycollection_factor = 2
@@ -52,6 +53,14 @@ class TestPlotBase:
                     "height": random.normal(66, 4, size=n),
                     "weight": random.normal(161, 32, size=n),
                     "category": random.randint(4, size=n),
+                    "datetime": to_datetime(
+                        random.randint(
+                            self.start_date_to_int64,
+                            self.end_date_to_int64,
+                            size=n,
+                            dtype=np.int64,
+                        )
+                    ),
                 }
             )
 
@@ -92,7 +101,6 @@ class TestPlotBase:
             expected legend visibility. labels are checked only when visible is
             True
         """
-
         if visible and (labels is None):
             raise ValueError("labels must be specified when visible is True")
         axes = self._flatten_visible(axes)
@@ -102,6 +110,28 @@ class TestPlotBase:
                 self._check_text_labels(ax.get_legend().get_texts(), labels)
             else:
                 assert ax.get_legend() is None
+
+    def _check_legend_marker(self, ax, expected_markers=None, visible=True):
+        """
+        Check ax has expected legend markers
+
+        Parameters
+        ----------
+        ax : matplotlib Axes object
+        expected_markers : list-like
+            expected legend markers
+        visible : bool
+            expected legend visibility. labels are checked only when visible is
+            True
+        """
+        if visible and (expected_markers is None):
+            raise ValueError("Markers must be specified when visible is True")
+        if visible:
+            handles, _ = ax.get_legend_handles_labels()
+            markers = [handle.get_marker() for handle in handles]
+            assert markers == expected_markers
+        else:
+            assert ax.get_legend() is None
 
     def _check_data(self, xp, rs):
         """
@@ -168,9 +198,8 @@ class TestPlotBase:
             Series used for color grouping key
             used for andrew_curves, parallel_coordinates, radviz test
         """
-
+        from matplotlib.collections import Collection, LineCollection, PolyCollection
         from matplotlib.lines import Line2D
-        from matplotlib.collections import Collection, PolyCollection, LineCollection
 
         conv = self.colorconverter
         if linecolors is not None:
@@ -254,7 +283,7 @@ class TestPlotBase:
 
         axes = self._flatten_visible(axes)
         for ax in axes:
-            if xlabelsize or xrot:
+            if xlabelsize is not None or xrot is not None:
                 if isinstance(ax.xaxis.get_minor_formatter(), NullFormatter):
                     # If minor ticks has NullFormatter, rot / fontsize are not
                     # retained
@@ -268,7 +297,7 @@ class TestPlotBase:
                     if xrot is not None:
                         tm.assert_almost_equal(label.get_rotation(), xrot)
 
-            if ylabelsize or yrot:
+            if ylabelsize is not None or yrot is not None:
                 if isinstance(ax.yaxis.get_minor_formatter(), NullFormatter):
                     labels = ax.get_yticklabels()
                 else:
@@ -289,7 +318,7 @@ class TestPlotBase:
         axes : matplotlib Axes object, or its list-like
         xaxis : {'linear', 'log'}
             expected xaxis scale
-        yaxis :  {'linear', 'log'}
+        yaxis : {'linear', 'log'}
             expected yaxis scale
         """
         axes = self._flatten_visible(axes)
@@ -307,12 +336,12 @@ class TestPlotBase:
         axes_num : number
             expected number of axes. Unnecessary axes should be set to
             invisible.
-        layout :  tuple
+        layout : tuple
             expected layout, (expected number of rows , columns)
         figsize : tuple
             expected figsize. default is matplotlib default
         """
-        from pandas.plotting._matplotlib.tools import _flatten
+        from pandas.plotting._matplotlib.tools import flatten_axes
 
         if figsize is None:
             figsize = self.default_figsize
@@ -325,7 +354,7 @@ class TestPlotBase:
                 assert len(ax.get_children()) > 0
 
         if layout is not None:
-            result = self._get_axes_layout(_flatten(axes))
+            result = self._get_axes_layout(flatten_axes(axes))
             assert result == layout
 
         tm.assert_numpy_array_equal(
@@ -352,9 +381,9 @@ class TestPlotBase:
         axes : matplotlib Axes object, or its list-like
 
         """
-        from pandas.plotting._matplotlib.tools import _flatten
+        from pandas.plotting._matplotlib.tools import flatten_axes
 
-        axes = _flatten(axes)
+        axes = flatten_axes(axes)
         axes = [ax for ax in axes if ax.get_visible()]
         return axes
 
@@ -514,20 +543,20 @@ def _check_plot_works(f, filterwarnings="always", **kwargs):
 
             plt.clf()
 
-            ax = kwargs.get("ax", fig.add_subplot(211))  # noqa
+            kwargs.get("ax", fig.add_subplot(211))
             ret = f(**kwargs)
 
-            assert_is_valid_plot_return_object(ret)
+            tm.assert_is_valid_plot_return_object(ret)
 
-            try:
-                kwargs["ax"] = fig.add_subplot(212)
-                ret = f(**kwargs)
-            except Exception:
-                pass
+            if f is pd.plotting.bootstrap_plot:
+                assert "ax" not in kwargs
             else:
-                assert_is_valid_plot_return_object(ret)
+                kwargs["ax"] = fig.add_subplot(212)
 
-            with ensure_clean(return_filelike=True) as path:
+            ret = f(**kwargs)
+            tm.assert_is_valid_plot_return_object(ret)
+
+            with tm.ensure_clean(return_filelike=True) as path:
                 plt.savefig(path)
         finally:
             tm.close(fig)

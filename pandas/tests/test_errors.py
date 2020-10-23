@@ -2,7 +2,7 @@ import pytest
 
 from pandas.errors import AbstractMethodError
 
-import pandas as pd  # noqa
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -17,42 +17,30 @@ import pandas as pd  # noqa
         "EmptyDataError",
         "ParserWarning",
         "MergeError",
+        "OptionError",
+        "NumbaUtilError",
     ],
 )
 def test_exception_importable(exc):
     from pandas import errors
 
-    e = getattr(errors, exc)
-    assert e is not None
+    err = getattr(errors, exc)
+    assert err is not None
 
     # check that we can raise on them
-    with pytest.raises(e):
-        raise e()
+
+    msg = "^$"
+
+    with pytest.raises(err, match=msg):
+        raise err()
 
 
 def test_catch_oob():
     from pandas import errors
 
-    try:
+    msg = "Out of bounds nanosecond timestamp: 1500-01-01 00:00:00"
+    with pytest.raises(errors.OutOfBoundsDatetime, match=msg):
         pd.Timestamp("15000101")
-    except errors.OutOfBoundsDatetime:
-        pass
-
-
-def test_error_rename():
-    # see gh-12665
-    from pandas.errors import ParserError
-    from pandas.io.common import CParserError
-
-    try:
-        raise CParserError()
-    except ParserError:
-        pass
-
-    try:
-        raise ParserError()
-    except CParserError:
-        pass
 
 
 class Foo:

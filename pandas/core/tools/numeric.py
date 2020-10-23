@@ -35,11 +35,12 @@ def to_numeric(arg, errors="raise", downcast=None):
     Parameters
     ----------
     arg : scalar, list, tuple, 1-d array, or Series
+        Argument to be converted.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
-        - If 'raise', then invalid parsing will raise an exception
-        - If 'coerce', then invalid parsing will be set as NaN
-        - If 'ignore', then invalid parsing will return the input
-    downcast : {'integer', 'signed', 'unsigned', 'float'} , default None
+        - If 'raise', then invalid parsing will raise an exception.
+        - If 'coerce', then invalid parsing will be set as NaN.
+        - If 'ignore', then invalid parsing will return the input.
+    downcast : {'integer', 'signed', 'unsigned', 'float'}, default None
         If not None, and if the data has been successfully cast to a
         numerical dtype (or if the data was numeric to begin with),
         downcast that resulting data to the smallest numerical dtype
@@ -61,7 +62,8 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     Returns
     -------
-    ret : numeric if parsing succeeded.
+    ret
+        Numeric if parsing succeeded.
         Return type depends on input.  Series if Series, otherwise ndarray.
 
     See Also
@@ -70,6 +72,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     to_datetime : Convert argument to datetime.
     to_timedelta : Convert argument to timedelta.
     numpy.ndarray.astype : Cast a numpy array to a specified type.
+    DataFrame.convert_dtypes : Convert dtypes.
 
     Examples
     --------
@@ -137,30 +140,30 @@ def to_numeric(arg, errors="raise", downcast=None):
     else:
         values = arg
 
-    try:
-        if is_numeric_dtype(values):
-            pass
-        elif is_datetime_or_timedelta_dtype(values):
-            values = values.astype(np.int64)
-        else:
-            values = ensure_object(values)
-            coerce_numeric = errors not in ("ignore", "raise")
+    values_dtype = getattr(values, "dtype", None)
+    if is_numeric_dtype(values_dtype):
+        pass
+    elif is_datetime_or_timedelta_dtype(values_dtype):
+        values = values.astype(np.int64)
+    else:
+        values = ensure_object(values)
+        coerce_numeric = errors not in ("ignore", "raise")
+        try:
             values = lib.maybe_convert_numeric(
                 values, set(), coerce_numeric=coerce_numeric
             )
-
-    except Exception:
-        if errors == "raise":
-            raise
+        except (ValueError, TypeError):
+            if errors == "raise":
+                raise
 
     # attempt downcast only if the data has been successfully converted
     # to a numerical dtype and if a downcast method has been specified
-    if downcast is not None and is_numeric_dtype(values):
+    if downcast is not None and is_numeric_dtype(values.dtype):
         typecodes = None
 
         if downcast in ("integer", "signed"):
             typecodes = np.typecodes["Integer"]
-        elif downcast == "unsigned" and np.min(values) >= 0:
+        elif downcast == "unsigned" and (not len(values) or np.min(values) >= 0):
             typecodes = np.typecodes["UnsignedInteger"]
         elif downcast == "float":
             typecodes = np.typecodes["Float"]
@@ -183,10 +186,10 @@ def to_numeric(arg, errors="raise", downcast=None):
                         break
 
     if is_series:
-        return pd.Series(values, index=arg.index, name=arg.name)
+        return arg._constructor(values, index=arg.index, name=arg.name)
     elif is_index:
         # because we want to coerce to numeric if possible,
-        # do not use _shallow_copy_with_infer
+        # do not use _shallow_copy
         return pd.Index(values, name=arg.name)
     elif is_scalars:
         return values[0]

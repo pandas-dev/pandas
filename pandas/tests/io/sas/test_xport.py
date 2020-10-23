@@ -3,8 +3,10 @@ import os
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.io.sas.sasreader import read_sas
 
@@ -28,6 +30,9 @@ class TestXport:
         self.file02 = os.path.join(self.dirpath, "SSHSV1_A.xpt")
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.xpt")
         self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
+
+        with td.file_leak_context():
+            yield
 
     def test1_basic(self):
         # Tests with DEMO_G.xpt (all numeric file)
@@ -104,7 +109,7 @@ class TestXport:
 
         reader = read_sas(self.file01, index="SEQN", chunksize=1000)
 
-        all_data = [x for x in reader]
+        all_data = list(reader)
         data = pd.concat(all_data, axis=0)
 
         tm.assert_frame_equal(data, data_csv, check_index_type=False)
@@ -117,6 +122,21 @@ class TestXport:
         numeric_as_float(data_csv)
 
         data = read_sas(self.file02)
+        tm.assert_frame_equal(data, data_csv)
+
+    def test2_binary(self):
+        # Test with SSHSV1_A.xpt, read as a binary file
+
+        # Compare to this
+        data_csv = pd.read_csv(self.file02.replace(".xpt", ".csv"))
+        numeric_as_float(data_csv)
+
+        with open(self.file02, "rb") as fd:
+            with td.file_leak_context():
+                # GH#35693 ensure that if we pass an open file, we
+                #  dont incorrectly close it in read_sas
+                data = read_sas(fd, format="xport")
+
         tm.assert_frame_equal(data, data_csv)
 
     def test_multiple_types(self):

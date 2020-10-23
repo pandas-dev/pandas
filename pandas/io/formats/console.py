@@ -6,14 +6,14 @@ from shutil import get_terminal_size
 
 
 def get_console_size():
-    """Return console size as tuple = (width, height).
+    """
+    Return console size as tuple = (width, height).
 
     Returns (None,None) in non-interactive session.
     """
     from pandas import get_option
 
     display_width = get_option("display.width")
-    # deprecated.
     display_height = get_option("display.max_rows")
 
     # Consider
@@ -51,9 +51,13 @@ def get_console_size():
 
 
 def in_interactive_session():
-    """ check if we're running in an interactive shell
+    """
+    Check if we're running in an interactive shell.
 
-    returns True if running under python/ipython interactive shell
+    Returns
+    -------
+    bool
+        True if running under python/ipython interactive shell.
     """
     from pandas import get_option
 
@@ -65,17 +69,21 @@ def in_interactive_session():
         return not hasattr(main, "__file__") or get_option("mode.sim_interactive")
 
     try:
-        return __IPYTHON__ or check_main()  # noqa
+        return __IPYTHON__ or check_main()
     except NameError:
         return check_main()
 
 
 def in_ipython_frontend():
     """
-    check if we're inside an an IPython zmq frontend
+    Check if we're inside an an IPython zmq frontend.
+
+    Returns
+    -------
+    bool
     """
     try:
-        ip = get_ipython()  # noqa
+        ip = get_ipython()
         return "zmq" in str(type(ip)).lower()
     except NameError:
         pass

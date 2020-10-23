@@ -1,7 +1,7 @@
 .. _whatsnew_0210:
 
-v0.21.0 (October 27, 2017)
---------------------------
+Version 0.21.0 (October 27, 2017)
+---------------------------------
 
 {{ header }}
 
@@ -20,7 +20,7 @@ Highlights include:
 - Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <whatsnew_0210.enhancements.parquet>`.
 - New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
   categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
-- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, and ``sum`` and ``prod`` on empty Series now return NaN instead of 0, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <https://bottleneck.readthedocs.io>`__ is installed, and ``sum`` and ``prod`` on empty Series now return NaN instead of 0, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
 - Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
 - Additions to the ``drop``, ``reindex`` and ``rename`` API to make them more consistent, see :ref:`here <whatsnew_0210.enhancements.drop_api>`.
 - Addition of the new methods ``DataFrame.infer_objects`` (see :ref:`here <whatsnew_0210.enhancements.infer_objects>`) and ``GroupBy.pipe`` (see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`).
@@ -55,8 +55,8 @@ For more details, see see :ref:`the IO docs on Parquet <io.parquet>`.
 
 .. _whatsnew_0210.enhancements.infer_objects:
 
-``infer_objects`` type conversion
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``infer_objects`` type conversion
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :meth:`DataFrame.infer_objects` and :meth:`Series.infer_objects`
 methods have been added to perform dtype inference on object columns, replacing
@@ -115,8 +115,8 @@ Setting a list-like data structure into a new attribute now raises a ``UserWarni
 
 .. _whatsnew_0210.enhancements.drop_api:
 
-``drop`` now also accepts index/columns keywords
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``drop`` now also accepts index/columns keywords
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :meth:`~DataFrame.drop` method has gained ``index``/``columns`` keywords as an
 alternative to specifying the ``axis``. This is similar to the behavior of ``reindex``
@@ -135,8 +135,8 @@ For example:
 
 .. _whatsnew_0210.enhancements.rename_reindex_axis:
 
-``rename``, ``reindex`` now also accept axis keyword
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Methods ``rename``, ``reindex`` now also accept axis keyword
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :meth:`DataFrame.rename` and :meth:`DataFrame.reindex` methods have gained
 the ``axis`` keyword to specify the axis to target with the operation
@@ -380,7 +380,7 @@ Additionally, support has been dropped for Python 3.4 (:issue:`15251`).
 
 .. _whatsnew_0210.api_breaking.bottleneck:
 
-Sum/Prod of all-NaN or empty Series/DataFrames is now consistently NaN
+Sum/prod of all-NaN or empty Series/DataFrames is now consistently NaN
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. note::
@@ -390,7 +390,7 @@ Sum/Prod of all-NaN or empty Series/DataFrames is now consistently NaN
 
 
 The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
-whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, and return value of ``sum`` and ``prod`` on an empty Series has changed (:issue:`9422`, :issue:`15507`).
+whether `bottleneck <https://bottleneck.readthedocs.io>`__ is installed, and return value of ``sum`` and ``prod`` on an empty Series has changed (:issue:`9422`, :issue:`15507`).
 
 Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
 
@@ -428,6 +428,7 @@ Note that this also changes the sum of an empty ``Series``. Previously this alwa
 but for consistency with the all-NaN case, this was changed to return NaN as well:
 
 .. ipython:: python
+   :okwarning:
 
    pd.Series([]).sum()
 
@@ -469,7 +470,7 @@ Current behavior
    KeyError in the future, you can use .reindex() as an alternative.
 
    See the documentation here:
-   http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike
+   https://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike
 
    Out[4]:
    1    2.0
@@ -813,7 +814,7 @@ length 2+ levels, so a :class:`MultiIndex` is always returned from all of the
 
 .. _whatsnew_0210.api.utc_localization_with_series:
 
-UTC Localization with Series
+UTC localization with Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, :func:`to_datetime` did not localize datetime ``Series`` data when ``utc=True`` was passed. Now, :func:`to_datetime` will correctly localize ``Series`` with a ``datetime64[ns, UTC]`` dtype to be consistent with how list-like and ``Index`` data are handled. (:issue:`6415`).
@@ -899,13 +900,13 @@ New behavior:
 No automatic Matplotlib converters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas no longer registers our ``date``, ``time``, ``datetime``,
+pandas no longer registers our ``date``, ``time``, ``datetime``,
 ``datetime64``, and ``Period`` converters with matplotlib when pandas is
 imported. Matplotlib plot methods (``plt.plot``, ``ax.plot``, ...), will not
 nicely format the x-axis for ``DatetimeIndex`` or ``PeriodIndex`` values. You
 must explicitly register these methods:
 
-Pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
+pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
 converters on first-use (:issue:`17710`).
 
 .. note::
@@ -926,7 +927,7 @@ Other API changes
 - :class:`pandas.HDFStore`'s string representation is now faster and less detailed. For the previous behavior, use ``pandas.HDFStore.info()``. (:issue:`16503`).
 - Compression defaults in HDF stores now follow pytables standards. Default is no compression and if ``complib`` is missing and ``complevel`` > 0 ``zlib`` is used (:issue:`15943`)
 - ``Index.get_indexer_non_unique()`` now returns a ndarray indexer rather than an ``Index``; this is consistent with ``Index.get_indexer()`` (:issue:`16819`)
-- Removed the ``@slow`` decorator from ``pandas.util.testing``, which caused issues for some downstream packages' test suites. Use ``@pytest.mark.slow`` instead, which achieves the same thing (:issue:`16850`)
+- Removed the ``@slow`` decorator from ``pandas._testing``, which caused issues for some downstream packages' test suites. Use ``@pytest.mark.slow`` instead, which achieves the same thing (:issue:`16850`)
 - Moved definition of ``MergeError`` to the ``pandas.errors`` module.
 - The signature of :func:`Series.set_axis` and :func:`DataFrame.set_axis` has been changed from ``set_axis(axis, labels)`` to ``set_axis(labels, axis=0)``, for consistency with the rest of the API. The old signature is deprecated and will show a ``FutureWarning`` (:issue:`14636`)
 - :func:`Series.argmin` and :func:`Series.argmax` will now raise a ``TypeError`` when used with ``object`` dtypes, instead of a ``ValueError`` (:issue:`13595`)
@@ -1084,8 +1085,8 @@ Indexing
 - Bug in :func:`Series.rename` when called with a callable, incorrectly alters the name of the ``Series``, rather than the name of the ``Index``. (:issue:`17407`)
 - Bug in :func:`String.str_get` raises ``IndexError`` instead of inserting NaNs when using a negative index. (:issue:`17704`)
 
-I/O
-^^^
+IO
+^^
 
 - Bug in :func:`read_hdf` when reading a timezone aware index from ``fixed`` format HDFStore (:issue:`17618`)
 - Bug in :func:`read_csv` in which columns were not being thoroughly de-duplicated (:issue:`17060`)
@@ -1114,7 +1115,7 @@ Plotting
 - Bug causing ``plotting.parallel_coordinates`` to reset the random seed when using random colors (:issue:`17525`)
 
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in ``DataFrame.resample(...).size()`` where an empty ``DataFrame`` did not return a ``Series`` (:issue:`14962`)

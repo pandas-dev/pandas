@@ -2,7 +2,16 @@ from datetime import timedelta
 
 import dateutil
 import numpy as np
-from pandas import to_datetime, date_range, Series, DataFrame, period_range
+
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    period_range,
+    timedelta_range,
+    to_datetime,
+)
+
 from pandas.tseries.frequencies import infer_freq
 
 try:
@@ -55,6 +64,9 @@ class DatetimeIndex:
     def time_to_pydatetime(self, index_type):
         self.index.to_pydatetime()
 
+    def time_is_dates_only(self, index_type):
+        self.index._is_dates_only
+
 
 class TzLocalize:
 
@@ -89,20 +101,6 @@ class ResetIndex:
         self.df.reset_index()
 
 
-class Factorize:
-
-    params = [None, "Asia/Tokyo"]
-    param_names = "tz"
-
-    def setup(self, tz):
-        N = 100000
-        self.dti = date_range("2011-01-01", freq="H", periods=N, tz=tz)
-        self.dti = self.dti.repeat(5)
-
-    def time_factorize(self, tz):
-        self.dti.factorize()
-
-
 class InferFreq:
 
     params = [None, "D", "B"]
@@ -111,7 +109,7 @@ class InferFreq:
     def setup(self, freq):
         if freq is None:
             self.idx = date_range(start="1/1/1700", freq="D", periods=10000)
-            self.idx.freq = None
+            self.idx._data._freq = None
         else:
             self.idx = date_range(start="1/1/1700", freq=freq, periods=10000)
 
@@ -130,12 +128,15 @@ class TimeDatetimeConverter:
 
 class Iteration:
 
-    params = [date_range, period_range]
+    params = [date_range, period_range, timedelta_range]
     param_names = ["time_index"]
 
     def setup(self, time_index):
         N = 10 ** 6
-        self.idx = time_index(start="20140101", freq="T", periods=N)
+        if time_index is timedelta_range:
+            self.idx = time_index(start=0, freq="T", periods=N)
+        else:
+            self.idx = time_index(start="20140101", freq="T", periods=N)
         self.exit = 10000
 
     def time_iter(self, time_index):
@@ -260,18 +261,6 @@ class SortIndex:
         self.s[:10000]
 
 
-class IrregularOps:
-    def setup(self):
-        N = 10 ** 5
-        idx = date_range(start="1/1/2000", periods=N, freq="s")
-        s = Series(np.random.randn(N), index=idx)
-        self.left = s.sample(frac=1)
-        self.right = s.sample(frac=1)
-
-    def time_add(self):
-        self.left + self.right
-
-
 class Lookup:
     def setup(self):
         N = 1500000
@@ -282,6 +271,29 @@ class Lookup:
     def time_lookup_and_cleanup(self):
         self.ts[self.lookup_val]
         self.ts.index._cleanup()
+
+
+class ToDatetimeFromIntsFloats:
+    def setup(self):
+        self.ts_sec = Series(range(1521080307, 1521685107), dtype="int64")
+        self.ts_sec_float = self.ts_sec.astype("float64")
+
+        self.ts_nanosec = 1_000_000 * self.ts_sec
+        self.ts_nanosec_float = self.ts_nanosec.astype("float64")
+
+    # speed of int64 and float64 paths should be comparable
+
+    def time_nanosec_int64(self):
+        to_datetime(self.ts_nanosec, unit="ns")
+
+    def time_nanosec_float64(self):
+        to_datetime(self.ts_nanosec_float, unit="ns")
+
+    def time_sec_int64(self):
+        to_datetime(self.ts_sec, unit="s")
+
+    def time_sec_float64(self):
+        to_datetime(self.ts_sec_float, unit="s")
 
 
 class ToDatetimeYYYYMMDD:
@@ -357,14 +369,32 @@ class ToDatetimeFormatQuarters:
 
 class ToDatetimeFormat:
     def setup(self):
-        self.s = Series(["19MAY11", "19MAY11:00:00:00"] * 100000)
+        N = 100000
+        self.s = Series(["19MAY11", "19MAY11:00:00:00"] * N)
         self.s2 = self.s.str.replace(":\\S+$", "")
+
+        self.same_offset = ["10/11/2018 00:00:00.045-07:00"] * N
+        self.diff_offset = [
+            f"10/11/2018 00:00:00.045-0{offset}:00" for offset in range(10)
+        ] * int(N / 10)
 
     def time_exact(self):
         to_datetime(self.s2, format="%d%b%y")
 
     def time_no_exact(self):
         to_datetime(self.s, format="%d%b%y", exact=False)
+
+    def time_same_offset(self):
+        to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
+
+    def time_different_offset(self):
+        to_datetime(self.diff_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
+
+    def time_same_offset_to_utc(self):
+        to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z", utc=True)
+
+    def time_different_offset_to_utc(self):
+        to_datetime(self.diff_offset, format="%m/%d/%Y %H:%M:%S.%f%z", utc=True)
 
 
 class ToDatetimeCache:
@@ -426,4 +456,4 @@ class DatetimeAccessor:
         self.series.dt.year
 
 
-from .pandas_vb_common import setup  # noqa: F401
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

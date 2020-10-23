@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, MultiIndex, Series
-from pandas.core import common as com
-import pandas.util.testing as tm
+import pandas._testing as tm
+import pandas.core.common as com
 
 
 def test_detect_chained_assignment():
     # Inplace ops, originally from:
-    # http://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
+    # https://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
     a = [12, 23]
     b = [123, None]
     c = [1234, 2345]
@@ -23,7 +23,8 @@ def test_detect_chained_assignment():
     multiind = MultiIndex.from_tuples(tuples, names=["part", "side"])
     zed = DataFrame(events, index=["a", "b"], columns=multiind)
 
-    with pytest.raises(com.SettingWithCopyError):
+    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+    with pytest.raises(com.SettingWithCopyError, match=msg):
         zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 
@@ -48,6 +49,7 @@ def test_cache_updating():
     assert result == 2
 
 
+@pytest.mark.arm_slow
 def test_indexer_caching():
     # GH5727
     # make sure that indexers are in the _internal_names_set

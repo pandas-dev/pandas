@@ -1,8 +1,16 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, Timestamp, date_range, to_datetime
-import pandas.util.testing as tm
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+    to_datetime,
+)
+import pandas._testing as tm
 
 import pandas.tseries.offsets as offsets
 
@@ -42,41 +50,55 @@ class TestRollingTS:
         df
         df.rolling("2s").sum()
 
-    def test_valid(self):
-
-        df = self.regular
+    def test_invalid_window_non_int(self):
 
         # not a valid freq
-        with pytest.raises(ValueError):
-            df.rolling(window="foobar")
-
+        msg = "passed window foobar is not compatible with a datetimelike index"
+        with pytest.raises(ValueError, match=msg):
+            self.regular.rolling(window="foobar")
         # not a datetimelike index
-        with pytest.raises(ValueError):
-            df.reset_index().rolling(window="foobar")
+        msg = "window must be an integer"
+        with pytest.raises(ValueError, match=msg):
+            self.regular.reset_index().rolling(window="foobar")
+
+    @pytest.mark.parametrize("freq", ["2MS", offsets.MonthBegin(2)])
+    def test_invalid_window_nonfixed(self, freq):
 
         # non-fixed freqs
-        for freq in ["2MS", offsets.MonthBegin(2)]:
-            with pytest.raises(ValueError):
-                df.rolling(window=freq)
+        msg = "\\<2 \\* MonthBegins\\> is a non-fixed frequency"
+        with pytest.raises(ValueError, match=msg):
+            self.regular.rolling(window=freq)
 
-        for freq in ["1D", offsets.Day(2), "2ms"]:
-            df.rolling(window=freq)
+    @pytest.mark.parametrize("freq", ["1D", offsets.Day(2), "2ms"])
+    def test_valid_window(self, freq):
+        self.regular.rolling(window=freq)
 
+    @pytest.mark.parametrize("minp", [1.0, "foo", np.array([1, 2, 3])])
+    def test_invalid_minp(self, minp):
         # non-integer min_periods
-        for minp in [1.0, "foo", np.array([1, 2, 3])]:
-            with pytest.raises(ValueError):
-                df.rolling(window="1D", min_periods=minp)
+        msg = (
+            r"local variable 'minp' referenced before assignment|"
+            "min_periods must be an integer"
+        )
+        with pytest.raises(ValueError, match=msg):
+            self.regular.rolling(window="1D", min_periods=minp)
 
+    def test_invalid_center_datetimelike(self):
         # center is not implemented
-        with pytest.raises(NotImplementedError):
-            df.rolling(window="1D", center=True)
+        msg = "center is not implemented for datetimelike and offset based windows"
+        with pytest.raises(NotImplementedError, match=msg):
+            self.regular.rolling(window="1D", center=True)
 
     def test_on(self):
 
         df = self.regular
 
         # not a valid column
-        with pytest.raises(ValueError):
+        msg = (
+            r"invalid on specified as foobar, must be a column "
+            "\\(of DataFrame\\), an Index or None"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.rolling(window="2s", on="foobar")
 
         # column is valid
@@ -85,7 +107,8 @@ class TestRollingTS:
         df.rolling(window="2d", on="C").sum()
 
         # invalid columns
-        with pytest.raises(ValueError):
+        msg = "window must be an integer"
+        with pytest.raises(ValueError, match=msg):
             df.rolling(window="2d", on="B")
 
         # ok even though on non-selected
@@ -105,15 +128,29 @@ class TestRollingTS:
         assert df.index.is_monotonic
         df.rolling("2s").sum()
 
-        # non-monotonic
-        df.index = reversed(df.index.tolist())
+    def test_non_monotonic_on(self):
+        # GH 19248
+        df = DataFrame(
+            {"A": date_range("20130101", periods=5, freq="s"), "B": range(5)}
+        )
+        df = df.set_index("A")
+        non_monotonic_index = df.index.to_list()
+        non_monotonic_index[0] = non_monotonic_index[3]
+        df.index = non_monotonic_index
+
         assert not df.index.is_monotonic
 
-        with pytest.raises(ValueError):
+        msg = "index must be monotonic"
+        with pytest.raises(ValueError, match=msg):
             df.rolling("2s").sum()
 
         df = df.reset_index()
-        with pytest.raises(ValueError):
+
+        msg = (
+            r"invalid on specified as A, must be a column "
+            "\\(of DataFrame\\), an Index or None"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.rolling("2s", on="A").sum()
 
     def test_frame_on(self):
@@ -238,7 +275,8 @@ class TestRollingTS:
         )
 
         # closed must be 'right', 'left', 'both', 'neither'
-        with pytest.raises(ValueError):
+        msg = "closed must be 'right', 'left', 'both' or 'neither'"
+        with pytest.raises(ValueError, match=msg):
             self.regular.rolling(window="2s", closed="blabla")
 
         expected = df.copy()
@@ -519,34 +557,73 @@ class TestRollingTS:
         expected["B"] = [0.0, 1, 2, 3, 4]
         tm.assert_frame_equal(result, expected)
 
-    def test_ragged_apply(self, raw):
+    @pytest.mark.parametrize(
+        "freq, op, result_data",
+        [
+            ("ms", "min", [0.0] * 10),
+            ("ms", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("ms", "max", [0.0] * 9 + [2.0]),
+            ("s", "min", [0.0] * 10),
+            ("s", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("s", "max", [0.0] * 9 + [2.0]),
+            ("min", "min", [0.0] * 10),
+            ("min", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("min", "max", [0.0] * 9 + [2.0]),
+            ("h", "min", [0.0] * 10),
+            ("h", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("h", "max", [0.0] * 9 + [2.0]),
+            ("D", "min", [0.0] * 10),
+            ("D", "mean", [0.0] * 9 + [2.0 / 9]),
+            ("D", "max", [0.0] * 9 + [2.0]),
+        ],
+    )
+    def test_freqs_ops(self, freq, op, result_data):
+        # GH 21096
+        index = date_range(start="2018-1-1 01:00:00", freq=f"1{freq}", periods=10)
+        s = Series(data=0, index=index)
+        s.iloc[1] = np.nan
+        s.iloc[-1] = 2
+        result = getattr(s.rolling(window=f"10{freq}"), op)()
+        expected = Series(data=result_data, index=index)
 
-        df = self.ragged
+        tm.assert_series_equal(result, expected)
 
-        f = lambda x: 1
-        result = df.rolling(window="1s", min_periods=1).apply(f, raw=raw)
-        expected = df.copy()
-        expected["B"] = 1.0
-        tm.assert_frame_equal(result, expected)
-
-        result = df.rolling(window="2s", min_periods=1).apply(f, raw=raw)
-        expected = df.copy()
-        expected["B"] = 1.0
-        tm.assert_frame_equal(result, expected)
-
-        result = df.rolling(window="5s", min_periods=1).apply(f, raw=raw)
-        expected = df.copy()
-        expected["B"] = 1.0
-        tm.assert_frame_equal(result, expected)
-
-    def test_all(self):
+    @pytest.mark.parametrize(
+        "f",
+        [
+            "sum",
+            "mean",
+            pytest.param(
+                "count",
+                marks=pytest.mark.filterwarnings("ignore:min_periods:FutureWarning"),
+            ),
+            "median",
+            "std",
+            "var",
+            "kurt",
+            "skew",
+            "min",
+            "max",
+        ],
+    )
+    def test_all(self, f):
 
         # simple comparison of integer vs time-based windowing
         df = self.regular * 2
         er = df.rolling(window=1)
         r = df.rolling(window="1s")
 
-        for f in [
+        result = getattr(r, f)()
+        expected = getattr(er, f)()
+        tm.assert_frame_equal(result, expected)
+
+        result = r.quantile(0.5)
+        expected = er.quantile(0.5)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "f",
+        [
             "sum",
             "mean",
             "count",
@@ -557,27 +634,9 @@ class TestRollingTS:
             "skew",
             "min",
             "max",
-        ]:
-
-            result = getattr(r, f)()
-            expected = getattr(er, f)()
-            tm.assert_frame_equal(result, expected)
-
-        result = r.quantile(0.5)
-        expected = er.quantile(0.5)
-        tm.assert_frame_equal(result, expected)
-
-    def test_all_apply(self, raw):
-
-        df = self.regular * 2
-        er = df.rolling(window=1)
-        r = df.rolling(window="1s")
-
-        result = r.apply(lambda x: 1, raw=raw)
-        expected = er.apply(lambda x: 1, raw=raw)
-        tm.assert_frame_equal(result, expected)
-
-    def test_all2(self):
+        ],
+    )
+    def test_all2(self, f):
 
         # more sophisticated comparison of integer vs.
         # time-based windowing
@@ -589,36 +648,21 @@ class TestRollingTS:
 
         r = dft.rolling(window="5H")
 
-        for f in [
-            "sum",
-            "mean",
-            "count",
-            "median",
-            "std",
-            "var",
-            "kurt",
-            "skew",
-            "min",
-            "max",
-        ]:
+        result = getattr(r, f)()
 
-            result = getattr(r, f)()
+        # we need to roll the days separately
+        # to compare with a time-based roll
+        # finally groupby-apply will return a multi-index
+        # so we need to drop the day
+        def agg_by_day(x):
+            x = x.between_time("09:00", "16:00")
+            return getattr(x.rolling(5, min_periods=1), f)()
 
-            # we need to roll the days separately
-            # to compare with a time-based roll
-            # finally groupby-apply will return a multi-index
-            # so we need to drop the day
-            def agg_by_day(x):
-                x = x.between_time("09:00", "16:00")
-                return getattr(x.rolling(5, min_periods=1), f)()
+        expected = (
+            df.groupby(df.index.day).apply(agg_by_day).reset_index(level=0, drop=True)
+        )
 
-            expected = (
-                df.groupby(df.index.day)
-                .apply(agg_by_day)
-                .reset_index(level=0, drop=True)
-            )
-
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_monotonic(self):
 
@@ -690,3 +734,39 @@ class TestRollingTS:
 
         expected2 = ss.rolling(3, min_periods=1).cov()
         tm.assert_series_equal(result, expected2)
+
+    def test_rolling_on_decreasing_index(self):
+        # GH-19248, GH-32385
+        index = [
+            Timestamp("20190101 09:00:30"),
+            Timestamp("20190101 09:00:27"),
+            Timestamp("20190101 09:00:20"),
+            Timestamp("20190101 09:00:18"),
+            Timestamp("20190101 09:00:10"),
+        ]
+
+        df = DataFrame({"column": [3, 4, 4, 5, 6]}, index=index)
+        result = df.rolling("5s").min()
+        expected = DataFrame({"column": [3.0, 3.0, 4.0, 4.0, 6.0]}, index=index)
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_on_empty(self):
+        # GH-32385
+        df = DataFrame({"column": []}, index=[])
+        result = df.rolling("5s").min()
+        expected = DataFrame({"column": []}, index=[])
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_on_multi_index_level(self):
+        # GH-15584
+        df = DataFrame(
+            {"column": range(6)},
+            index=MultiIndex.from_product(
+                [date_range("20190101", periods=3), range(2)], names=["date", "seq"]
+            ),
+        )
+        result = df.rolling("10d", on=df.index.get_level_values("date")).sum()
+        expected = DataFrame(
+            {"column": [0.0, 1.0, 3.0, 6.0, 10.0, 15.0]}, index=df.index
+        )
+        tm.assert_frame_equal(result, expected)

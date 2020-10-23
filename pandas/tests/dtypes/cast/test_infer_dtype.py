@@ -10,8 +10,16 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import is_dtype_equal
 
-from pandas import Categorical, Period, Series, Timedelta, Timestamp, date_range
-from pandas.util import testing as tm
+from pandas import (
+    Categorical,
+    Interval,
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+)
+import pandas._testing as tm
 
 
 @pytest.fixture(params=[True, False])
@@ -35,7 +43,9 @@ def test_infer_dtype_from_float_scalar(float_dtype):
     assert dtype == float_dtype
 
 
-@pytest.mark.parametrize("data,exp_dtype", [(12, np.int64), (np.float(12), np.float64)])
+@pytest.mark.parametrize(
+    "data,exp_dtype", [(12, np.int64), (np.float_(12), np.float64)]
+)
 def test_infer_dtype_from_python_scalar(data, exp_dtype):
     dtype, val = infer_dtype_from_scalar(data)
     assert dtype == exp_dtype
@@ -73,14 +83,12 @@ def test_infer_dtype_from_period(freq, pandas_dtype):
     dtype, val = infer_dtype_from_scalar(p, pandas_dtype=pandas_dtype)
 
     if pandas_dtype:
-        exp_dtype = "period[{0}]".format(freq)
-        exp_val = p.ordinal
+        exp_dtype = f"period[{freq}]"
     else:
         exp_dtype = np.object_
-        exp_val = p
 
     assert dtype == exp_dtype
-    assert val == exp_val
+    assert val == p
 
 
 @pytest.mark.parametrize(
@@ -97,7 +105,7 @@ def test_infer_from_scalar_tz(tz, pandas_dtype):
     dtype, val = infer_dtype_from_scalar(dt, pandas_dtype=pandas_dtype)
 
     if pandas_dtype:
-        exp_dtype = "datetime64[ns, {0}]".format(tz)
+        exp_dtype = f"datetime64[ns, {tz}]"
         exp_val = dt.value
     else:
         exp_dtype = np.object_
@@ -105,6 +113,25 @@ def test_infer_from_scalar_tz(tz, pandas_dtype):
 
     assert dtype == exp_dtype
     assert val == exp_val
+
+
+@pytest.mark.parametrize(
+    "left, right, subtype",
+    [
+        (0, 1, "int64"),
+        (0.0, 1.0, "float64"),
+        (Timestamp(0), Timestamp(1), "datetime64[ns]"),
+        (Timestamp(0, tz="UTC"), Timestamp(1, tz="UTC"), "datetime64[ns, UTC]"),
+        (Timedelta(0), Timedelta(1), "timedelta64[ns]"),
+    ],
+)
+def test_infer_from_interval(left, right, subtype, closed, pandas_dtype):
+    # GH 30337
+    interval = Interval(left, right, closed)
+    result_dtype, result_value = infer_dtype_from_scalar(interval, pandas_dtype)
+    expected_dtype = f"interval[{subtype}]" if pandas_dtype else np.object_
+    assert result_dtype == expected_dtype
+    assert result_value == interval
 
 
 def test_infer_dtype_from_scalar_errors():
@@ -157,8 +184,8 @@ def test_infer_dtype_from_array(arr, expected, pandas_dtype):
         (1, np.int64),
         (1.1, np.float64),
         (Timestamp("2011-01-01"), "datetime64[ns]"),
-        (Timestamp("2011-01-01", tz="US/Eastern"), np.object),
-        (Period("2011-01-01", freq="D"), np.object),
+        (Timestamp("2011-01-01", tz="US/Eastern"), object),
+        (Period("2011-01-01", freq="D"), object),
     ],
 )
 def test_cast_scalar_to_array(obj, dtype):

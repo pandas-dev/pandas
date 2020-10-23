@@ -8,20 +8,19 @@ import numpy as np
 # numpy versioning
 _np_version = np.__version__
 _nlv = LooseVersion(_np_version)
-_np_version_under1p14 = _nlv < LooseVersion("1.14")
-_np_version_under1p15 = _nlv < LooseVersion("1.15")
-_np_version_under1p16 = _nlv < LooseVersion("1.16")
-_np_version_under1p17 = _nlv < LooseVersion("1.17")
-_is_numpy_dev = ".dev" in str(_nlv)
+np_version_under1p17 = _nlv < LooseVersion("1.17")
+np_version_under1p18 = _nlv < LooseVersion("1.18")
+_np_version_under1p19 = _nlv < LooseVersion("1.19")
+_np_version_under1p20 = _nlv < LooseVersion("1.20")
+is_numpy_dev = ".dev" in str(_nlv)
+_min_numpy_ver = "1.16.5"
 
 
-if _nlv < "1.13.3":
+if _nlv < _min_numpy_ver:
     raise ImportError(
-        "this version of pandas is incompatible with "
-        "numpy < 1.13.3\n"
-        "your numpy version is {0}.\n"
-        "Please upgrade numpy to >= 1.13.3 to use "
-        "this pandas version".format(_np_version)
+        f"this version of pandas is incompatible with numpy < {_min_numpy_ver}\n"
+        f"your numpy version is {_np_version}.\n"
+        f"Please upgrade numpy to >= {_min_numpy_ver} to use this pandas version"
     )
 
 
@@ -66,9 +65,6 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
 __all__ = [
     "np",
     "_np_version",
-    "_np_version_under1p14",
-    "_np_version_under1p15",
-    "_np_version_under1p16",
-    "_np_version_under1p17",
-    "_is_numpy_dev",
+    "np_version_under1p17",
+    "is_numpy_dev",
 ]

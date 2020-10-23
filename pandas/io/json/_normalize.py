@@ -3,12 +3,15 @@
 
 from collections import defaultdict
 import copy
-from typing import DefaultDict, Dict, List, Optional, Union
+from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas._typing import Scalar
+from pandas.util._decorators import deprecate
 
+import pandas as pd
 from pandas import DataFrame
 
 
@@ -16,7 +19,6 @@ def convert_to_line_delimits(s):
     """
     Helper function that converts JSON lists to line delimited JSON.
     """
-
     # Determine we have a JSON list to turn to lines otherwise just return the
     # json object, only lists can
     if not s[0] == "[" and s[-1] == "]":
@@ -46,9 +48,6 @@ def nested_to_record(
     sep : str, default '.'
         Nested records will generate names separated by sep,
         e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
-
-        .. versionadded:: 0.20.0
-
     level: int, optional, default: 0
         The number of levels in the json string.
 
@@ -63,7 +62,6 @@ def nested_to_record(
 
     Examples
     --------
-
     IN[52]: nested_to_record(dict(flat1=1,dict1=dict(c=1,d=2),
                                   nested=dict(e=dict(c=1,d=2),d=2)))
     Out[52]:
@@ -111,16 +109,16 @@ def nested_to_record(
     return new_ds
 
 
-def json_normalize(
+def _json_normalize(
     data: Union[Dict, List[Dict]],
     record_path: Optional[Union[str, List]] = None,
-    meta: Optional[Union[str, List]] = None,
+    meta: Optional[Union[str, List[Union[str, List[str]]]]] = None,
     meta_prefix: Optional[str] = None,
     record_prefix: Optional[str] = None,
-    errors: Optional[str] = "raise",
+    errors: str = "raise",
     sep: str = ".",
     max_level: Optional[int] = None,
-):
+) -> "DataFrame":
     """
     Normalize semi-structured JSON data into a flat table.
 
@@ -146,15 +144,9 @@ def json_normalize(
           always present.
         * 'raise' : will raise KeyError if keys listed in meta are not
           always present.
-
-        .. versionadded:: 0.20.0
-
     sep : str, default '.'
         Nested records will generate names separated by sep.
         e.g., for sep='.', {'foo': {'bar': 0}} -> foo.bar.
-
-        .. versionadded:: 0.20.0
-
     max_level : int, default None
         Max number of levels(depth of dict) to normalize.
         if None, normalizes all levels.
@@ -168,16 +160,14 @@ def json_normalize(
 
     Examples
     --------
-
-    >>> from pandas.io.json import json_normalize
     >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
     ...         {'name': {'given': 'Mose', 'family': 'Regner'}},
     ...         {'id': 2, 'name': 'Faye Raker'}]
-    >>> json_normalize(data)
-        id        name name.family name.first name.given name.last
-    0  1.0         NaN         NaN     Coleen        NaN      Volk
-    1  NaN         NaN      Regner        NaN       Mose       NaN
-    2  2.0  Faye Raker         NaN        NaN        NaN       NaN
+    >>> pd.json_normalize(data)
+        id name.first name.last name.given name.family        name
+    0  1.0     Coleen      Volk        NaN         NaN         NaN
+    1  NaN        NaN       NaN       Mose      Regner         NaN
+    2  2.0        NaN       NaN        NaN         NaN  Faye Raker
 
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
@@ -186,13 +176,13 @@ def json_normalize(
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
-    >>> json_normalize(data, max_level=0)
-                fitness                 id        name
-    0   {'height': 130, 'weight': 60}  1.0   Cole Volk
-    1   {'height': 130, 'weight': 60}  NaN    Mose Reg
-    2   {'height': 130, 'weight': 60}  2.0  Faye Raker
+    >>> pd.json_normalize(data, max_level=0)
+        id        name                        fitness
+    0  1.0   Cole Volk  {'height': 130, 'weight': 60}
+    1  NaN    Mose Reg  {'height': 130, 'weight': 60}
+    2  2.0  Faye Raker  {'height': 130, 'weight': 60}
 
-    Normalizes nested data upto level 1.
+    Normalizes nested data up to level 1.
 
     >>> data = [{'id': 1,
     ...          'name': "Cole Volk",
@@ -201,11 +191,11 @@ def json_normalize(
     ...          'fitness': {'height': 130, 'weight': 60}},
     ...         {'id': 2, 'name': 'Faye Raker',
     ...          'fitness': {'height': 130, 'weight': 60}}]
-    >>> json_normalize(data, max_level=1)
-      fitness.height  fitness.weight   id    name
-    0   130              60          1.0    Cole Volk
-    1   130              60          NaN    Mose Reg
-    2   130              60          2.0    Faye Raker
+    >>> pd.json_normalize(data, max_level=1)
+        id        name  fitness.height  fitness.weight
+    0  1.0   Cole Volk             130              60
+    1  NaN    Mose Reg             130              60
+    2  2.0  Faye Raker             130              60
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
@@ -218,7 +208,7 @@ def json_normalize(
     ...          'info': {'governor': 'John Kasich'},
     ...          'counties': [{'name': 'Summit', 'population': 1234},
     ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
-    >>> result = json_normalize(data, 'counties', ['state', 'shortname',
+    >>> result = pd.json_normalize(data, 'counties', ['state', 'shortname',
     ...                                            ['info', 'governor']])
     >>> result
              name  population    state shortname info.governor
@@ -229,7 +219,7 @@ def json_normalize(
     4    Cuyahoga        1337   Ohio       OH    John Kasich
 
     >>> data = {'A': [1, 2]}
-    >>> json_normalize(data, 'A', record_prefix='Prefix.')
+    >>> pd.json_normalize(data, 'A', record_prefix='Prefix.')
         Prefix.0
     0          1
     1          2
@@ -237,14 +227,36 @@ def json_normalize(
     Returns normalized data with columns prefixed with the given string.
     """
 
-    def _pull_field(js, spec):
+    def _pull_field(
+        js: Dict[str, Any], spec: Union[List, str]
+    ) -> Union[Scalar, Iterable]:
+        """Internal function to pull field"""
         result = js
         if isinstance(spec, list):
             for field in spec:
                 result = result[field]
         else:
             result = result[spec]
+        return result
 
+    def _pull_records(js: Dict[str, Any], spec: Union[List, str]) -> List:
+        """
+        Internal function to pull field for records, and similar to
+        _pull_field, but require to return list. And will raise error
+        if has non iterable value.
+        """
+        result = _pull_field(js, spec)
+
+        # GH 31507 GH 30145, GH 26284 if result is not list, raise TypeError if not
+        # null, otherwise return an empty list
+        if not isinstance(result, list):
+            if pd.isnull(result):
+                result = []
+            else:
+                raise TypeError(
+                    f"{js} has non list value {result} for path {spec}. "
+                    "Must be list or null."
+                )
         return result
 
     if isinstance(data, list) and not data:
@@ -273,28 +285,28 @@ def json_normalize(
     elif not isinstance(meta, list):
         meta = [meta]
 
-    meta = [m if isinstance(m, list) else [m] for m in meta]
+    _meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records = []  # type: List
+    records: List = []
     lengths = []
 
-    meta_vals = defaultdict(list)  # type: DefaultDict
-    meta_keys = [sep.join(val) for val in meta]
+    meta_vals: DefaultDict = defaultdict(list)
+    meta_keys = [sep.join(val) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(meta, meta_keys):
+                for val, key in zip(_meta, meta_keys):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
             for obj in data:
-                recs = _pull_field(obj, path[0])
+                recs = _pull_records(obj, path[0])
                 recs = [
                     nested_to_record(r, sep=sep, max_level=max_level)
                     if isinstance(r, dict)
@@ -304,7 +316,7 @@ def json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(meta, meta_keys):
+                for val, key in zip(_meta, meta_keys):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
@@ -315,10 +327,9 @@ def json_normalize(
                                 meta_val = np.nan
                             else:
                                 raise KeyError(
-                                    "Try running with "
-                                    "errors='ignore' as key "
-                                    "{err} is not always present".format(err=e)
-                                )
+                                    "Try running with errors='ignore' as key "
+                                    f"{e} is not always present"
+                                ) from e
                     meta_vals[key].append(meta_val)
                 records.extend(recs)
 
@@ -327,7 +338,7 @@ def json_normalize(
     result = DataFrame(records)
 
     if record_prefix is not None:
-        result = result.rename(columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
+        result = result.rename(columns=lambda x: f"{record_prefix}{x}")
 
     # Data types, a problem
     for k, v in meta_vals.items():
@@ -336,8 +347,12 @@ def json_normalize(
 
         if k in result:
             raise ValueError(
-                "Conflicting metadata name {name}, "
-                "need distinguishing prefix ".format(name=k)
+                f"Conflicting metadata name {k}, need distinguishing prefix "
             )
         result[k] = np.array(v, dtype=object).repeat(lengths)
     return result
+
+
+json_normalize = deprecate(
+    "pandas.io.json.json_normalize", _json_normalize, "1.0.0", "pandas.json_normalize"
+)

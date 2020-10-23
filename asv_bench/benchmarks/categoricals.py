@@ -1,7 +1,10 @@
-import numpy as np
-import pandas as pd
-import pandas.util.testing as tm
 import warnings
+
+import numpy as np
+
+import pandas as pd
+
+from .pandas_vb_common import tm
 
 try:
     from pandas.api.types import union_categoricals
@@ -10,21 +13,6 @@ except ImportError:
         from pandas.types.concat import union_categoricals
     except ImportError:
         pass
-
-
-class Concat:
-    def setup(self):
-        N = 10 ** 5
-        self.s = pd.Series(list("aabbcd") * N).astype("category")
-
-        self.a = pd.Categorical(list("aabbcd") * N)
-        self.b = pd.Categorical(list("bbcdjk") * N)
-
-    def time_concat(self):
-        pd.concat([self.s, self.s])
-
-    def time_union(self):
-        union_categoricals([self.a, self.b])
 
 
 class Constructor:
@@ -46,6 +34,7 @@ class Constructor:
         self.values_all_int8 = np.ones(N, "int8")
         self.categorical = pd.Categorical(self.values, self.categories)
         self.series = pd.Series(self.categorical)
+        self.intervals = pd.interval_range(0, 1, periods=N // 10)
 
     def time_regular(self):
         pd.Categorical(self.values, self.categories)
@@ -55,6 +44,9 @@ class Constructor:
 
     def time_datetimes(self):
         pd.Categorical(self.datetimes)
+
+    def time_interval(self):
+        pd.Categorical(self.datetimes, categories=self.datetimes)
 
     def time_datetimes_with_nat(self):
         pd.Categorical(self.datetimes_with_nat)
@@ -75,6 +67,21 @@ class Constructor:
         pd.Categorical(self.series)
 
 
+class Concat:
+    def setup(self):
+        N = 10 ** 5
+        self.s = pd.Series(list("aabbcd") * N).astype("category")
+
+        self.a = pd.Categorical(list("aabbcd") * N)
+        self.b = pd.Categorical(list("bbcdjk") * N)
+
+    def time_concat(self):
+        pd.concat([self.s, self.s])
+
+    def time_union(self):
+        union_categoricals([self.a, self.b])
+
+
 class ValueCounts:
 
     params = [True, False]
@@ -82,7 +89,7 @@ class ValueCounts:
 
     def setup(self, dropna):
         n = 5 * 10 ** 5
-        arr = ["s{:04d}".format(i) for i in np.random.randint(0, n // 10, size=n)]
+        arr = [f"s{i:04d}" for i in np.random.randint(0, n // 10, size=n)]
         self.ts = pd.Series(arr).astype("category")
 
     def time_value_counts(self, dropna):
@@ -100,7 +107,7 @@ class Repr:
 class SetCategories:
     def setup(self):
         n = 5 * 10 ** 5
-        arr = ["s{:04d}".format(i) for i in np.random.randint(0, n // 10, size=n)]
+        arr = [f"s{i:04d}" for i in np.random.randint(0, n // 10, size=n)]
         self.ts = pd.Series(arr).astype("category")
 
     def time_set_categories(self):
@@ -110,7 +117,7 @@ class SetCategories:
 class RemoveCategories:
     def setup(self):
         n = 5 * 10 ** 5
-        arr = ["s{:04d}".format(i) for i in np.random.randint(0, n // 10, size=n)]
+        arr = [f"s{i:04d}" for i in np.random.randint(0, n // 10, size=n)]
         self.ts = pd.Series(arr).astype("category")
 
     def time_remove_categories(self):
@@ -162,9 +169,9 @@ class Isin:
         np.random.seed(1234)
         n = 5 * 10 ** 5
         sample_size = 100
-        arr = [i for i in np.random.randint(0, n // 10, size=n)]
+        arr = list(np.random.randint(0, n // 10, size=n))
         if dtype == "object":
-            arr = ["s{:04d}".format(i) for i in arr]
+            arr = [f"s{i:04d}" for i in arr]
         self.sample = np.random.choice(arr, sample_size)
         self.series = pd.Series(arr).astype("category")
 
@@ -223,7 +230,7 @@ class CategoricalSlicing:
         elif index == "non_monotonic":
             self.data = pd.Categorical.from_codes([0, 1, 2] * N, categories=categories)
         else:
-            raise ValueError("Invalid index param: {}".format(index))
+            raise ValueError(f"Invalid index param: {index}")
 
         self.scalar = 10000
         self.list = list(range(10000))
@@ -255,9 +262,6 @@ class Indexing:
     def time_get_loc(self):
         self.index.get_loc(self.category)
 
-    def time_shape(self):
-        self.index.shape
-
     def time_shallow_copy(self):
         self.index._shallow_copy()
 
@@ -280,4 +284,18 @@ class Indexing:
         self.index.sort_values(ascending=False)
 
 
-from .pandas_vb_common import setup  # noqa: F401
+class SearchSorted:
+    def setup(self):
+        N = 10 ** 5
+        self.ci = tm.makeCategoricalIndex(N).sort_values()
+        self.c = self.ci.values
+        self.key = self.ci.categories[1]
+
+    def time_categorical_index_contains(self):
+        self.ci.searchsorted(self.key)
+
+    def time_categorical_contains(self):
+        self.c.searchsorted(self.key)
+
+
+from .pandas_vb_common import setup  # noqa: F401 isort:skip

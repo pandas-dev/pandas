@@ -3,11 +3,15 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from pandas import Timedelta, Timestamp
-import pandas.util.testing as tm
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    Timedelta,
+    Timestamp,
+    offsets,
+    to_offset,
+)
 
-from pandas.tseries import offsets
-from pandas.tseries.frequencies import to_offset
+import pandas._testing as tm
 
 
 class TestTimestampArithmetic:
@@ -36,35 +40,65 @@ class TestTimestampArithmetic:
             r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
             "will overflow"
         )
+        lmsg = "|".join(
+            ["Python int too large to convert to C long", "int too big to convert"]
+        )
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
         with pytest.raises(OverflowError, match=msg):
             offset_overflow + stamp
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp - offset_overflow
 
         # xref https://github.com/pandas-dev/pandas/issues/14080
         # used to crash, so check for proper overflow exception
 
         stamp = Timestamp("2000/1/1")
-        offset_overflow = to_offset("D") * 100 ** 25
+        offset_overflow = to_offset("D") * 100 ** 5
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
         with pytest.raises(OverflowError, match=msg):
             offset_overflow + stamp
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp - offset_overflow
+
+    def test_overflow_timestamp_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/31774
+        msg = "Result is too large"
+        a = Timestamp("2101-01-01 00:00:00")
+        b = Timestamp("1688-01-01 00:00:00")
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            a - b
+
+        # but we're OK for timestamp and datetime.datetime
+        assert (a - b.to_pydatetime()) == (a.to_pydatetime() - b)
 
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123)
         result = val + timedelta(1)
         assert result.nanosecond == val.nanosecond
+
+    def test_rsub_dtscalars(self, tz_naive_fixture):
+        # In particular, check that datetime64 - Timestamp works GH#28286
+        td = Timedelta(1235345642000)
+        ts = Timestamp.now(tz_naive_fixture)
+        other = ts + td
+
+        assert other - ts == td
+        assert other.to_pydatetime() - ts == td
+        if tz_naive_fixture is None:
+            assert other.to_datetime64() - ts == td
+        else:
+            msg = "subtraction must have"
+            with pytest.raises(TypeError, match=msg):
+                other.to_datetime64() - ts
 
     def test_timestamp_sub_datetime(self):
         dt = datetime(2013, 10, 12)
@@ -81,10 +115,12 @@ class TestTimestampArithmetic:
         # addition/subtraction of integers
         ts = Timestamp(dt, freq="D")
 
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "Addition/subtraction of integers"
+        with pytest.raises(TypeError, match=msg):
             # GH#22535 add/sub with integers is deprecated
-            assert type(ts + 1) == Timestamp
-            assert type(ts - 1) == Timestamp
+            ts + 1
+        with pytest.raises(TypeError, match=msg):
+            ts - 1
 
         # Timestamp + datetime not supported, though subtraction is supported
         # and yields timedelta more tests in tseries/base/tests/test_base.py
@@ -112,11 +148,6 @@ class TestTimestampArithmetic:
     def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
         ts = Timestamp("2014-03-05 00:00:00", freq=freq)
         original_freq = ts.freq
-
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#22535 add/sub with integers is deprecated
-            assert (ts + 1).freq == original_freq
-            assert (ts - 1).freq == original_freq
 
         assert (ts + 1 * original_freq).freq == original_freq
         assert (ts - 1 * original_freq).freq == original_freq
@@ -151,3 +182,82 @@ class TestTimestampArithmetic:
         result = ts + other
         valdiff = result.value - ts.value
         assert valdiff == expected_difference
+
+    @pytest.mark.parametrize(
+        "ts",
+        [
+            Timestamp("1776-07-04", freq="D"),
+            Timestamp("1776-07-04", tz="UTC", freq="D"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "other",
+        [
+            1,
+            np.int64(1),
+            np.array([1, 2], dtype=np.int32),
+            np.array([3, 4], dtype=np.uint64),
+        ],
+    )
+    def test_add_int_with_freq(self, ts, other):
+        msg = "Addition/subtraction of integers and integer-arrays"
+        with pytest.raises(TypeError, match=msg):
+            ts + other
+        with pytest.raises(TypeError, match=msg):
+            other + ts
+
+        with pytest.raises(TypeError, match=msg):
+            ts - other
+
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
+            other - ts
+
+    @pytest.mark.parametrize("shape", [(6,), (2, 3)])
+    def test_addsub_m8ndarray(self, shape):
+        # GH#33296
+        ts = Timestamp("2020-04-04 15:45")
+        other = np.arange(6).astype("m8[h]").reshape(shape)
+
+        result = ts + other
+
+        ex_stamps = [ts + Timedelta(hours=n) for n in range(6)]
+        expected = np.array([x.asm8 for x in ex_stamps], dtype="M8[ns]").reshape(shape)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = other + ts
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ts - other
+        ex_stamps = [ts - Timedelta(hours=n) for n in range(6)]
+        expected = np.array([x.asm8 for x in ex_stamps], dtype="M8[ns]").reshape(shape)
+        tm.assert_numpy_array_equal(result, expected)
+
+        msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timestamp'"
+        with pytest.raises(TypeError, match=msg):
+            other - ts
+
+    @pytest.mark.parametrize("shape", [(6,), (2, 3)])
+    def test_addsub_m8ndarray_tzaware(self, shape):
+        # GH#33296
+        ts = Timestamp("2020-04-04 15:45", tz="US/Pacific")
+
+        other = np.arange(6).astype("m8[h]").reshape(shape)
+
+        result = ts + other
+
+        ex_stamps = [ts + Timedelta(hours=n) for n in range(6)]
+        expected = np.array(ex_stamps).reshape(shape)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = other + ts
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ts - other
+        ex_stamps = [ts - Timedelta(hours=n) for n in range(6)]
+        expected = np.array(ex_stamps).reshape(shape)
+        tm.assert_numpy_array_equal(result, expected)
+
+        msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timestamp'"
+        with pytest.raises(TypeError, match=msg):
+            other - ts

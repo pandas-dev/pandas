@@ -3,7 +3,7 @@ import pytest
 
 import pandas as pd
 from pandas import Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -46,13 +46,13 @@ def test_join_level_corner_case(idx):
 
 def test_join_self(idx, join_type):
     joined = idx.join(idx, how=join_type)
-    assert idx is joined
+    tm.assert_index_equal(joined, idx)
 
 
 def test_join_multi():
     # GH 10665
     midx = pd.MultiIndex.from_product([np.arange(4), np.arange(4)], names=["a", "b"])
-    idx = pd.Index([1, 2, 5], name="b")
+    idx = Index([1, 2, 5], name="b")
 
     # inner
     jidx, lidx, ridx = midx.join(idx, how="inner", return_indexers=True)
@@ -87,3 +87,29 @@ def test_join_self_unique(idx, join_type):
     if idx.is_unique:
         joined = idx.join(idx, how=join_type)
         assert (idx == joined).all()
+
+
+def test_join_multi_wrong_order():
+    # GH 25760
+    # GH 28956
+
+    midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
+    midx2 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["b", "a"])
+
+    join_idx, lidx, ridx = midx1.join(midx2, return_indexers=True)
+
+    exp_ridx = np.array([-1, -1, -1, -1], dtype=np.intp)
+
+    tm.assert_index_equal(midx1, join_idx)
+    assert lidx is None
+    tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+
+def test_join_multi_return_indexers():
+    # GH 34074
+
+    midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4], [5, 6]], names=["a", "b", "c"])
+    midx2 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
+
+    result = midx1.join(midx2, return_indexers=False)
+    tm.assert_index_equal(result, midx1)

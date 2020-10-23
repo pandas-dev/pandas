@@ -3,7 +3,7 @@
 .. _api.arrays:
 
 =============
-Pandas arrays
+pandas arrays
 =============
 
 .. currentmodule:: pandas
@@ -12,10 +12,11 @@ For most data types, pandas uses NumPy arrays as the concrete
 objects contained with a :class:`Index`, :class:`Series`, or
 :class:`DataFrame`.
 
-For some data types, pandas extends NumPy's type system.
+For some data types, pandas extends NumPy's type system. String aliases for these types
+can be found at :ref:`basics.dtypes`.
 
 =================== ========================= ================== =============================
-Kind of Data        Pandas Data Type          Scalar             Array
+Kind of Data        pandas Data Type          Scalar             Array
 =================== ========================= ================== =============================
 TZ-aware datetime   :class:`DatetimeTZDtype`  :class:`Timestamp` :ref:`api.arrays.datetime`
 Timedeltas          (none)                    :class:`Timedelta` :ref:`api.arrays.timedelta`
@@ -24,9 +25,11 @@ Intervals           :class:`IntervalDtype`    :class:`Interval`  :ref:`api.array
 Nullable Integer    :class:`Int64Dtype`, ...  (none)             :ref:`api.arrays.integer_na`
 Categorical         :class:`CategoricalDtype` (none)             :ref:`api.arrays.categorical`
 Sparse              :class:`SparseDtype`      (none)             :ref:`api.arrays.sparse`
+Strings             :class:`StringDtype`      :class:`str`       :ref:`api.arrays.string`
+Boolean (with NA)   :class:`BooleanDtype`     :class:`bool`      :ref:`api.arrays.bool`
 =================== ========================= ================== =============================
 
-Pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
+pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`).
 The top-level :meth:`array` method can be used to create a new array, which may be
 stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFrame`.
 
@@ -40,7 +43,7 @@ stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFra
 Datetime data
 -------------
 
-NumPy cannot natively represent timezone-aware datetimes. Pandas supports this
+NumPy cannot natively represent timezone-aware datetimes. pandas supports this
 with the :class:`arrays.DatetimeArray` extension array, which can hold timezone-naive
 or timezone-aware values.
 
@@ -159,7 +162,7 @@ If the data are tz-aware, then every value in the array must have the same timez
 Timedelta data
 --------------
 
-NumPy can natively represent timedeltas. Pandas provides :class:`Timedelta`
+NumPy can natively represent timedeltas. pandas provides :class:`Timedelta`
 for symmetry with :class:`Timestamp`.
 
 .. autosummary::
@@ -214,7 +217,7 @@ A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
 Timespan data
 -------------
 
-Pandas represents spans of times as :class:`Period` objects.
+pandas represents spans of times as :class:`Period` objects.
 
 Period
 ------
@@ -349,7 +352,7 @@ Nullable integer
 ----------------
 
 :class:`numpy.ndarray` cannot natively represent integer-data with missing values.
-Pandas provides this through :class:`arrays.IntegerArray`.
+pandas provides this through :class:`arrays.IntegerArray`.
 
 .. autosummary::
    :toctree: api/
@@ -375,7 +378,7 @@ Pandas provides this through :class:`arrays.IntegerArray`.
 Categorical data
 ----------------
 
-Pandas defines a custom data type for representing data that can take only a
+pandas defines a custom data type for representing data that can take only a
 limited, fixed set of values. The dtype of a ``Categorical`` can be described by
 a :class:`pandas.api.types.CategoricalDtype`.
 
@@ -441,13 +444,13 @@ Sparse data
 -----------
 
 Data where a single value is repeated many times (e.g. ``0`` or ``NaN``) may
-be stored efficiently as a :class:`SparseArray`.
+be stored efficiently as a :class:`arrays.SparseArray`.
 
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
-   SparseArray
+   arrays.SparseArray
 
 .. autosummary::
    :toctree: api/
@@ -459,6 +462,51 @@ The ``Series.sparse`` accessor may be used to access sparse-specific attributes
 and methods if the :class:`Series` contains sparse values. See
 :ref:`api.series.sparse` for more.
 
+
+.. _api.arrays.string:
+
+Text data
+---------
+
+When working with text data, where each valid element is a string or missing,
+we recommend using :class:`StringDtype` (with the alias ``"string"``).
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   arrays.StringArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   StringDtype
+
+The ``Series.str`` accessor is available for ``Series`` backed by a :class:`arrays.StringArray`.
+See :ref:`api.series.str` for more.
+
+
+.. _api.arrays.bool:
+
+Boolean data with missing values
+--------------------------------
+
+The boolean dtype (with the alias ``"boolean"``) provides support for storing
+boolean data (True, False values) with missing values, which is not possible
+with a bool :class:`numpy.ndarray`.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   arrays.BooleanArray
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/class_without_autosummary.rst
+
+   BooleanDtype
 
 
 .. Dtype attributes which are manually listed in their docstrings: including

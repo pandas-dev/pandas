@@ -1,12 +1,10 @@
-import itertools
-
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
+import pandas._testing as tm
 from pandas.core.indexing import IndexingError
-from pandas.util import testing as tm
 
 
 @pytest.fixture
@@ -50,7 +48,9 @@ class TestMultiIndexLoc:
 
         empty = Series(data=[], dtype=np.float64)
         expected = Series(
-            [], index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64)
+            [],
+            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            dtype=np.float64,
         )
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)
@@ -72,7 +72,9 @@ class TestMultiIndexLoc:
         # empty array:
         empty = np.array([])
         expected = Series(
-            [], index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64)
+            [],
+            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            dtype="float64",
         )
         result = x.loc[empty]
         tm.assert_series_equal(result, expected)
@@ -132,16 +134,15 @@ class TestMultiIndexLoc:
 
     @pytest.mark.parametrize("key, pos", [([2, 4], [0, 1]), ([2], []), ([2, 3], [])])
     def test_loc_multiindex_list_missing_label(self, key, pos):
-        # GH 27148 - lists with missing labels do not raise:
+        # GH 27148 - lists with missing labels _do_ raise
         df = DataFrame(
             np.random.randn(3, 3),
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )
 
-        expected = df.iloc[pos]
-        result = df.loc[key]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError, match="not in index"):
+            df.loc[key]
 
     def test_loc_multiindex_too_many_dims_raises(self):
         # GH 14885
@@ -223,17 +224,13 @@ class TestMultiIndexLoc:
         # GH 3053
         # loc should treat integer slices like label slices
 
-        index = MultiIndex.from_tuples(
-            [t for t in itertools.product([6, 7, 8], ["a", "b"])]
-        )
+        index = MultiIndex.from_product([[6, 7, 8], ["a", "b"]])
         df = DataFrame(np.random.randn(6, 6), index, index)
         result = df.loc[6:8, :]
         expected = df
         tm.assert_frame_equal(result, expected)
 
-        index = MultiIndex.from_tuples(
-            [t for t in itertools.product([10, 20, 30], ["a", "b"])]
-        )
+        index = MultiIndex.from_product([[10, 20, 30], ["a", "b"]])
         df = DataFrame(np.random.randn(6, 6), index, index)
         result = df.loc[20:30, :]
         expected = df.iloc[2:]
@@ -297,8 +294,8 @@ class TestMultiIndexLoc:
     [
         ([], []),  # empty ok
         (["A"], slice(3)),
-        (["A", "D"], slice(3)),
-        (["D", "E"], []),  # no values found - fine
+        (["A", "D"], []),  # "D" isnt present -> raise
+        (["D", "E"], []),  # no values found -> raise
         (["D"], []),  # same, with single item list: GH 27148
         (pd.IndexSlice[:, ["foo"]], slice(2, None, 3)),
         (pd.IndexSlice[:, ["foo", "bah"]], slice(2, None, 3)),
@@ -312,8 +309,13 @@ def test_loc_getitem_duplicates_multiindex_missing_indexers(indexer, pos):
     )
     s = Series(np.arange(9, dtype="int64"), index=idx).sort_index()
     expected = s.iloc[pos]
-    result = s.loc[indexer]
-    tm.assert_series_equal(result, expected)
+
+    if expected.size == 0 and indexer != []:
+        with pytest.raises(KeyError, match=str(indexer)):
+            s.loc[indexer]
+    else:
+        result = s.loc[indexer]
+        tm.assert_series_equal(result, expected)
 
 
 def test_series_loc_getitem_fancy(multiindex_year_month_day_dataframe_random_data):
@@ -390,3 +392,201 @@ def test_loc_getitem_lowerdim_corner(multiindex_dataframe_random_data):
     expected = 0
     result = df.sort_index().loc[("bar", "three"), "B"]
     assert result == expected
+
+
+def test_loc_setitem_single_column_slice():
+    # case from https://github.com/pandas-dev/pandas/issues/27841
+    df = DataFrame(
+        "string",
+        index=list("abcd"),
+        columns=MultiIndex.from_product([["Main"], ("another", "one")]),
+    )
+    df["labels"] = "a"
+    df.loc[:, "labels"] = df.index
+    tm.assert_numpy_array_equal(np.asarray(df["labels"]), np.asarray(df.index))
+
+    # test with non-object block
+    df = DataFrame(
+        np.nan,
+        index=range(4),
+        columns=MultiIndex.from_tuples([("A", "1"), ("A", "2"), ("B", "1")]),
+    )
+    expected = df.copy()
+    df.loc[:, "B"] = np.arange(4)
+    expected.iloc[:, 2] = np.arange(4)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_nan_multiindex():
+    # GH 5286
+    tups = [
+        ("Good Things", "C", np.nan),
+        ("Good Things", "R", np.nan),
+        ("Bad Things", "C", np.nan),
+        ("Bad Things", "T", np.nan),
+        ("Okay Things", "N", "B"),
+        ("Okay Things", "N", "D"),
+        ("Okay Things", "B", np.nan),
+        ("Okay Things", "D", np.nan),
+    ]
+    df = DataFrame(
+        np.ones((8, 4)),
+        columns=Index(["d1", "d2", "d3", "d4"]),
+        index=MultiIndex.from_tuples(tups, names=["u1", "u2", "u3"]),
+    )
+    result = df.loc["Good Things"].loc["C"]
+    expected = DataFrame(
+        np.ones((1, 4)),
+        index=Index([np.nan], dtype="object", name="u3"),
+        columns=Index(["d1", "d2", "d3", "d4"], dtype="object"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_period_string_indexing():
+    # GH 9892
+    a = pd.period_range("2013Q1", "2013Q4", freq="Q")
+    i = (1111, 2222, 3333)
+    idx = pd.MultiIndex.from_product((a, i), names=("Periode", "CVR"))
+    df = DataFrame(
+        index=idx,
+        columns=(
+            "OMS",
+            "OMK",
+            "RES",
+            "DRIFT_IND",
+            "OEVRIG_IND",
+            "FIN_IND",
+            "VARE_UD",
+            "LOEN_UD",
+            "FIN_UD",
+        ),
+    )
+    result = df.loc[("2013Q1", 1111), "OMS"]
+    expected = Series(
+        [np.nan],
+        dtype=object,
+        name="OMS",
+        index=pd.MultiIndex.from_tuples(
+            [(pd.Period("2013Q1"), 1111)], names=["Periode", "CVR"]
+        ),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_datetime_mask_slicing():
+    # GH 16699
+    dt_idx = pd.to_datetime(["2017-05-04", "2017-05-05"])
+    m_idx = pd.MultiIndex.from_product([dt_idx, dt_idx], names=["Idx1", "Idx2"])
+    df = DataFrame(
+        data=[[1, 2], [3, 4], [5, 6], [7, 6]], index=m_idx, columns=["C1", "C2"]
+    )
+    result = df.loc[(dt_idx[0], (df.index.get_level_values(1) > "2017-05-04")), "C1"]
+    expected = Series(
+        [3],
+        name="C1",
+        index=MultiIndex.from_tuples(
+            [(pd.Timestamp("2017-05-04"), pd.Timestamp("2017-05-05"))],
+            names=["Idx1", "Idx2"],
+        ),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_datetime_series_tuple_slicing():
+    # https://github.com/pandas-dev/pandas/issues/35858
+    date = pd.Timestamp("2000")
+    ser = Series(
+        1,
+        index=pd.MultiIndex.from_tuples([("a", date)], names=["a", "b"]),
+        name="c",
+    )
+    result = ser.loc[:, [date]]
+    tm.assert_series_equal(result, ser)
+
+
+def test_loc_with_mi_indexer():
+    # https://github.com/pandas-dev/pandas/issues/35351
+    df = DataFrame(
+        data=[["a", 1], ["a", 0], ["b", 1], ["c", 2]],
+        index=MultiIndex.from_tuples(
+            [(0, 1), (1, 0), (1, 1), (1, 1)], names=["index", "date"]
+        ),
+        columns=["author", "price"],
+    )
+    idx = MultiIndex.from_tuples([(0, 1), (1, 1)], names=["index", "date"])
+    result = df.loc[idx, :]
+    expected = DataFrame(
+        [["a", 1], ["b", 1], ["c", 2]],
+        index=MultiIndex.from_tuples([(0, 1), (1, 1), (1, 1)], names=["index", "date"]),
+        columns=["author", "price"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_mi_with_level1_named_0():
+    # GH#37194
+    dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+    ser = Series(range(3), index=dti)
+    df = ser.to_frame()
+    df[1] = dti
+
+    df2 = df.set_index(0, append=True)
+    assert df2.index.names == (None, 0)
+    df2.index.get_loc(dti[0])  # smoke test
+
+    result = df2.loc[dti[0]]
+    expected = df2.iloc[[0]].droplevel(None)
+    tm.assert_frame_equal(result, expected)
+
+    ser2 = df2[1]
+    assert ser2.index.names == (None, 0)
+
+    result = ser2.loc[dti[0]]
+    expected = ser2.iloc[[0]].droplevel(None)
+    tm.assert_series_equal(result, expected)
+
+
+def test_getitem_str_slice(datapath):
+    # GH#15928
+    path = datapath("reshape", "merge", "data", "quotes2.csv")
+    df = pd.read_csv(path, parse_dates=["time"])
+    df2 = df.set_index(["ticker", "time"]).sort_index()
+
+    res = df2.loc[("AAPL", slice("2016-05-25 13:30:00")), :].droplevel(0)
+    expected = df2.loc["AAPL"].loc[slice("2016-05-25 13:30:00"), :]
+    tm.assert_frame_equal(res, expected)
+
+
+def test_3levels_leading_period_index():
+    # GH#24091
+    pi = pd.PeriodIndex(
+        ["20181101 1100", "20181101 1200", "20181102 1300", "20181102 1400"],
+        name="datetime",
+        freq="B",
+    )
+    lev2 = ["A", "A", "Z", "W"]
+    lev3 = ["B", "C", "Q", "F"]
+    mi = pd.MultiIndex.from_arrays([pi, lev2, lev3])
+
+    ser = Series(range(4), index=mi, dtype=np.float64)
+    result = ser.loc[(pi[0], "A", "B")]
+    assert result == 0.0
+
+
+class TestKeyErrorsWithMultiIndex:
+    def test_missing_keys_raises_keyerror(self):
+        # GH#27420 KeyError, not TypeError
+        df = DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
+        df2 = df.set_index(["A", "B"])
+
+        with pytest.raises(KeyError, match="1"):
+            df2.loc[(1, 6)]
+
+    def test_missing_key_raises_keyerror2(self):
+        # GH#21168 KeyError, not "IndexingError: Too many indexers"
+        ser = Series(-1, index=pd.MultiIndex.from_product([[0, 1]] * 2))
+
+        with pytest.raises(KeyError, match=r"\(0, 3\)"):
+            ser.loc[0, 3]

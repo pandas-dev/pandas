@@ -6,14 +6,15 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import pytest
 
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 
 from pandas import Timestamp
+import pandas._testing as tm
 
 from pandas.tseries.frequencies import get_offset
 from pandas.tseries.offsets import FY5253, FY5253Quarter
 
-from .common import assert_offset_equal, assert_onOffset
+from .common import assert_is_on_offset, assert_offset_equal
 from .test_offsets import Base, WeekDay
 
 
@@ -50,9 +51,11 @@ def test_get_offset_name():
 
 def test_get_offset():
     with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
-        get_offset("gibberish")
+        with tm.assert_produces_warning(FutureWarning):
+            get_offset("gibberish")
     with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
-        get_offset("QS-JAN-B")
+        with tm.assert_produces_warning(FutureWarning):
+            get_offset("QS-JAN-B")
 
     pairs = [
         ("RE-N-DEC-MON", makeFY5253NearestEndMonth(weekday=0, startingMonth=12)),
@@ -78,11 +81,11 @@ def test_get_offset():
     ]
 
     for name, expected in pairs:
-        offset = get_offset(name)
-        assert (
-            offset == expected
-        ), "Expected {name!r} to yield {expected!r} (actual: {offset!r})".format(
-            name=name, expected=expected, offset=offset
+        with tm.assert_produces_warning(FutureWarning):
+            offset = get_offset(name)
+        assert offset == expected, (
+            f"Expected {repr(name)} to yield {repr(expected)} "
+            f"(actual: {repr(offset)})"
         )
 
 
@@ -92,7 +95,7 @@ class TestFY5253LastOfMonth(Base):
 
     on_offset_cases = [
         # From Wikipedia (see:
-        # http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar#Last_Saturday_of_the_month_at_fiscal_year_end)
+        # https://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar#Last_Saturday_of_the_month_at_fiscal_year_end)
         (offset_lom_sat_aug, datetime(2006, 8, 26), True),
         (offset_lom_sat_aug, datetime(2007, 8, 25), True),
         (offset_lom_sat_aug, datetime(2008, 8, 30), True),
@@ -129,9 +132,9 @@ class TestFY5253LastOfMonth(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
     def test_apply(self):
         offset_lom_aug_sat = makeFY5253LastOfMonth(startingMonth=8, weekday=WeekDay.SAT)
@@ -205,7 +208,7 @@ class TestFY5253NearestEndMonth(Base):
 
     on_offset_cases = [
         #    From Wikipedia (see:
-        #    http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar
+        #    https://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar
         #    #Saturday_nearest_the_end_of_month)
         #    2006-09-02   2006 September 2
         #    2007-09-01   2007 September 1
@@ -254,9 +257,9 @@ class TestFY5253NearestEndMonth(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
     def test_apply(self):
         date_seq_nem_8_sat = [
@@ -330,16 +333,16 @@ class TestFY5253NearestEndMonth(Base):
 
 
 class TestFY5253LastOfMonthQuarter(Base):
-    def test_isAnchored(self):
+    def test_is_anchored(self):
         assert makeFY5253LastOfMonthQuarter(
             startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4
-        ).isAnchored()
+        ).is_anchored()
         assert makeFY5253LastOfMonthQuarter(
             weekday=WeekDay.SAT, startingMonth=3, qtr_with_extra_week=4
-        ).isAnchored()
+        ).is_anchored()
         assert not makeFY5253LastOfMonthQuarter(
             2, startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4
-        ).isAnchored()
+        ).is_anchored()
 
     def test_equality(self):
         assert makeFY5253LastOfMonthQuarter(
@@ -492,9 +495,9 @@ class TestFY5253LastOfMonthQuarter(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
     def test_year_has_extra_week(self):
         # End of long Q1
@@ -597,9 +600,9 @@ class TestFY5253NearestEndMonthQuarter(Base):
     ]
 
     @pytest.mark.parametrize("case", on_offset_cases)
-    def test_onOffset(self, case):
+    def test_is_on_offset(self, case):
         offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
+        assert_is_on_offset(offset, dt, expected)
 
     def test_offset(self):
         offset = makeFY5253NearestEndMonthQuarter(
@@ -653,7 +656,7 @@ def test_fy5253_last_onoffset():
     # GH#18877 dates on the year-end but not normalized to midnight
     offset = FY5253(n=-5, startingMonth=5, variation="last", weekday=0)
     ts = Timestamp("1984-05-28 06:29:43.955911354+0200", tz="Europe/San_Marino")
-    fast = offset.onOffset(ts)
+    fast = offset.is_on_offset(ts)
     slow = (ts + offset) - offset == ts
     assert fast == slow
 
@@ -662,7 +665,7 @@ def test_fy5253_nearest_onoffset():
     # GH#18877 dates on the year-end but not normalized to midnight
     offset = FY5253(n=3, startingMonth=7, variation="nearest", weekday=2)
     ts = Timestamp("2032-07-28 00:12:59.035729419+0000", tz="Africa/Dakar")
-    fast = offset.onOffset(ts)
+    fast = offset.is_on_offset(ts)
     slow = (ts + offset) - offset == ts
     assert fast == slow
 
@@ -673,7 +676,7 @@ def test_fy5253qtr_onoffset_nearest():
     offset = FY5253Quarter(
         n=3, qtr_with_extra_week=1, startingMonth=2, variation="nearest", weekday=0
     )
-    fast = offset.onOffset(ts)
+    fast = offset.is_on_offset(ts)
     slow = (ts + offset) - offset == ts
     assert fast == slow
 
@@ -685,5 +688,5 @@ def test_fy5253qtr_onoffset_last():
     )
     ts = Timestamp("2011-01-26 19:03:40.331096129+0200", tz="Africa/Windhoek")
     slow = (ts + offset) - offset == ts
-    fast = offset.onOffset(ts)
+    fast = offset.is_on_offset(ts)
     assert fast == slow

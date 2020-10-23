@@ -1,36 +1,30 @@
 """
 Quantilization functions and related stuff
 """
-from functools import partial
-
 import numpy as np
 
+from pandas._libs import Timedelta, Timestamp
 from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE,
+    DT64NS_DTYPE,
     ensure_int64,
+    is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
+    is_extension_array_dtype,
     is_integer,
+    is_integer_dtype,
+    is_list_like,
     is_scalar,
     is_timedelta64_dtype,
 )
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas import (
-    Categorical,
-    Index,
-    Interval,
-    IntervalIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    to_datetime,
-    to_timedelta,
-)
+from pandas import Categorical, Index, IntervalIndex, to_datetime, to_timedelta
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 
@@ -38,12 +32,13 @@ import pandas.core.nanops as nanops
 def cut(
     x,
     bins,
-    right=True,
+    right: bool = True,
     labels=None,
-    retbins=False,
-    precision=3,
-    include_lowest=False,
-    duplicates="raise",
+    retbins: bool = False,
+    precision: int = 3,
+    include_lowest: bool = False,
+    duplicates: str = "raise",
+    ordered: bool = True,
 ):
     """
     Bin values into discrete intervals.
@@ -74,11 +69,12 @@ def cut(
         ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]``
         indicate (1,2], (2,3], (3,4]. This argument is ignored when
         `bins` is an IntervalIndex.
-    labels : array or bool, optional
+    labels : array or False, default None
         Specifies the labels for the returned bins. Must be the same length as
         the resulting bins. If False, returns only integer indicators of the
         bins. This affects the type of the output container (see below).
-        This argument is ignored when `bins` is an IntervalIndex.
+        This argument is ignored when `bins` is an IntervalIndex. If True,
+        raises an error. When `ordered=False`, labels must be provided.
     retbins : bool, default False
         Whether to return the bins or not. Useful when bins is provided
         as a scalar.
@@ -88,8 +84,13 @@ def cut(
         Whether the first interval should be left-inclusive or not.
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
+    ordered : bool, default True
+        Whether the labels are ordered or not. Applies to returned types
+        Categorical and Series (with Categorical dtype). If True,
+        the resulting categorical will be ordered. If False, the resulting
+        categorical will be unordered (labels must be provided).
 
-        .. versionadded:: 0.23.0
+        .. versionadded:: 1.1.0
 
     Returns
     -------
@@ -147,8 +148,16 @@ def cut(
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),
     ...        3, labels=["bad", "medium", "good"])
-    [bad, good, medium, medium, good, bad]
-    Categories (3, object): [bad < medium < good]
+    ['bad', 'good', 'medium', 'medium', 'good', 'bad']
+    Categories (3, object): ['bad' < 'medium' < 'good']
+
+    ``ordered=False`` will result in unordered categories when labels are passed.
+    This parameter can be used to allow non-unique labels:
+
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3,
+    ...        labels=["B", "A", "B"], ordered=False)
+    ['B', 'B', 'A', 'A', 'B', 'B']
+    Categories (2, object): ['A', 'B']
 
     ``labels=False`` implies you just want the bins back.
 
@@ -176,24 +185,26 @@ def cut(
     ...               index=['a', 'b', 'c', 'd', 'e'])
     >>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)
     ... # doctest: +ELLIPSIS
-    (a    0.0
-     b    1.0
-     c    2.0
-     d    3.0
-     e    4.0
-     dtype: float64, array([0, 2, 4, 6, 8]))
+    (a    1.0
+     b    2.0
+     c    3.0
+     d    4.0
+     e    NaN
+     dtype: float64,
+     array([ 0,  2,  4,  6,  8, 10]))
 
     Use `drop` optional when bins is not unique
 
     >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
     ...        right=False, duplicates='drop')
     ... # doctest: +ELLIPSIS
-    (a    0.0
-     b    1.0
-     c    2.0
+    (a    1.0
+     b    2.0
+     c    3.0
      d    3.0
-     e    3.0
-     dtype: float64, array([0, 2, 4, 6, 8]))
+     e    NaN
+     dtype: float64,
+     array([ 0,  2,  4,  6, 10]))
 
     Passing an IntervalIndex for `bins` results in those categories exactly.
     Notice that values not covered by the IntervalIndex are set to NaN. 0
@@ -202,13 +213,13 @@ def cut(
 
     >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
-    [NaN, (0, 1], NaN, (2, 3], (4, 5]]
+    [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64]): [(0, 1] < (2, 3] < (4, 5]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
-    # for handling the cut for datetime and timedelta objects
-    x_is_series, series_index, name, x = _preprocess_for_cut(x)
+    original = x
+    x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
 
     if not np.iterable(bins):
@@ -230,7 +241,7 @@ def cut(
         if np.isinf(mn) or np.isinf(mx):
             # GH 24314
             raise ValueError(
-                "cannot specify integer `bins` when input data " "contains infinity"
+                "cannot specify integer `bins` when input data contains infinity"
             )
         elif mn == mx:  # adjust end points before binning
             mn -= 0.001 * abs(mn) if mn != 0 else 0.001
@@ -250,7 +261,7 @@ def cut(
 
     else:
         if is_datetime64tz_dtype(bins):
-            bins = np.asarray(bins, dtype=_NS_DTYPE)
+            bins = np.asarray(bins, dtype=DT64NS_DTYPE)
         else:
             bins = np.asarray(bins)
         bins = _convert_bin_to_numeric_type(bins, dtype)
@@ -268,39 +279,44 @@ def cut(
         include_lowest=include_lowest,
         dtype=dtype,
         duplicates=duplicates,
+        ordered=ordered,
     )
 
-    return _postprocess_for_cut(
-        fac, bins, retbins, x_is_series, series_index, name, dtype
-    )
+    return _postprocess_for_cut(fac, bins, retbins, dtype, original)
 
 
-def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
+def qcut(
+    x,
+    q,
+    labels=None,
+    retbins: bool = False,
+    precision: int = 3,
+    duplicates: str = "raise",
+):
     """
-    Quantile-based discretization function. Discretize variable into
-    equal-sized buckets based on rank or based on sample quantiles. For example
-    1000 values for 10 quantiles would produce a Categorical object indicating
-    quantile membership for each data point.
+    Quantile-based discretization function.
+
+    Discretize variable into equal-sized buckets based on rank or based
+    on sample quantiles. For example 1000 values for 10 quantiles would
+    produce a Categorical object indicating quantile membership for each data point.
 
     Parameters
     ----------
     x : 1d ndarray or Series
-    q : integer or array of quantiles
+    q : int or list-like of float
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
-        array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
-    labels : array or boolean, default None
+        array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
+    labels : array or False, default None
         Used as labels for the resulting bins. Must be of the same length as
         the resulting bins. If False, return only integer indicators of the
-        bins.
+        bins. If True, raises an error.
     retbins : bool, optional
         Whether to return the (bins, labels) or not. Can be useful if bins
         is given as a scalar.
     precision : int, optional
-        The precision at which to store and display the bins labels
+        The precision at which to store and display the bins labels.
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
-
-        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -330,8 +346,8 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3])
     """
-    x_is_series, series_index, name, x = _preprocess_for_cut(x)
-
+    original = x
+    x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
 
     if is_integer(q):
@@ -349,42 +365,40 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates="raise"):
         duplicates=duplicates,
     )
 
-    return _postprocess_for_cut(
-        fac, bins, retbins, x_is_series, series_index, name, dtype
-    )
+    return _postprocess_for_cut(fac, bins, retbins, dtype, original)
 
 
 def _bins_to_cuts(
     x,
     bins,
-    right=True,
+    right: bool = True,
     labels=None,
-    precision=3,
-    include_lowest=False,
+    precision: int = 3,
+    include_lowest: bool = False,
     dtype=None,
-    duplicates="raise",
+    duplicates: str = "raise",
+    ordered: bool = True,
 ):
+    if not ordered and labels is None:
+        raise ValueError("'labels' must be provided if 'ordered = False'")
 
     if duplicates not in ["raise", "drop"]:
         raise ValueError(
-            "invalid value for 'duplicates' parameter, "
-            "valid options are: raise, drop"
+            "invalid value for 'duplicates' parameter, valid options are: raise, drop"
         )
 
     if isinstance(bins, IntervalIndex):
         # we have a fast-path here
         ids = bins.get_indexer(x)
-        result = algos.take_nd(bins, ids)
-        result = Categorical(result, categories=bins, ordered=True)
+        result = Categorical.from_codes(ids, categories=bins, ordered=True)
         return result, bins
 
     unique_bins = algos.unique(bins)
     if len(unique_bins) < len(bins) and len(bins) != 2:
         if duplicates == "raise":
             raise ValueError(
-                "Bin edges must be unique: {bins!r}.\nYou "
-                "can drop duplicate edges by setting "
-                "the 'duplicates' kwarg".format(bins=bins)
+                f"Bin edges must be unique: {repr(bins)}.\n"
+                f"You can drop duplicate edges by setting the 'duplicates' kwarg"
             )
         else:
             bins = unique_bins
@@ -399,18 +413,32 @@ def _bins_to_cuts(
     has_nas = na_mask.any()
 
     if labels is not False:
-        if labels is None:
+        if not (labels is None or is_list_like(labels)):
+            raise ValueError(
+                "Bin labels must either be False, None or passed in as a "
+                "list-like argument"
+            )
+
+        elif labels is None:
             labels = _format_labels(
                 bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
+            )
+        elif ordered and len(set(labels)) != len(labels):
+            raise ValueError(
+                "labels must be unique if ordered=True; pass ordered=False for duplicate labels"  # noqa
             )
         else:
             if len(labels) != len(bins) - 1:
                 raise ValueError(
-                    "Bin labels must be one fewer than " "the number of bin edges"
+                    "Bin labels must be one fewer than the number of bin edges"
                 )
         if not is_categorical_dtype(labels):
-            labels = Categorical(labels, categories=labels, ordered=True)
-
+            labels = Categorical(
+                labels,
+                categories=labels if len(set(labels)) == len(labels) else None,
+                ordered=ordered,
+            )
+        # TODO: handle mismatch between categorical label order and pandas.cut order.
         np.putmask(ids, na_mask, 0)
         result = algos.take_nd(labels, ids - 1)
 
@@ -425,20 +453,29 @@ def _bins_to_cuts(
 
 def _coerce_to_type(x):
     """
-    if the passed data is of datetime/timedelta type,
-    this method converts it to numeric so that cut method can
+    if the passed data is of datetime/timedelta, bool or nullable int type,
+    this method converts it to numeric so that cut or qcut method can
     handle it
     """
     dtype = None
 
-    if is_datetime64tz_dtype(x):
+    if is_datetime64tz_dtype(x.dtype):
         dtype = x.dtype
-    elif is_datetime64_dtype(x):
+    elif is_datetime64_dtype(x.dtype):
         x = to_datetime(x)
         dtype = np.dtype("datetime64[ns]")
-    elif is_timedelta64_dtype(x):
+    elif is_timedelta64_dtype(x.dtype):
         x = to_timedelta(x)
         dtype = np.dtype("timedelta64[ns]")
+    elif is_bool_dtype(x.dtype):
+        # GH 20303
+        x = x.astype(np.int64)
+    # To support cut and qcut for IntegerArray we convert to float dtype.
+    # Will properly support in the future.
+    # https://github.com/pandas-dev/pandas/pull/31290
+    # https://github.com/pandas-dev/pandas/issues/31389
+    elif is_extension_array_dtype(x.dtype) and is_integer_dtype(x.dtype):
+        x = x.to_numpy(dtype=np.float64, na_value=np.nan)
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
@@ -498,13 +535,14 @@ def _convert_bin_to_datelike_type(bins, dtype):
     return bins
 
 
-def _format_labels(bins, precision, right=True, include_lowest=False, dtype=None):
+def _format_labels(
+    bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
+):
     """ based on the dtype, return our labels """
-
     closed = "right" if right else "left"
 
     if is_datetime64tz_dtype(dtype):
-        formatter = partial(Timestamp, tz=dtype.tz)
+        formatter = lambda x: Timestamp(x, tz=dtype.tz)
         adjust = lambda x: x - Timedelta("1ns")
     elif is_datetime64_dtype(dtype):
         formatter = Timestamp
@@ -518,17 +556,11 @@ def _format_labels(bins, precision, right=True, include_lowest=False, dtype=None
         adjust = lambda x: x - 10 ** (-precision)
 
     breaks = [formatter(b) for b in bins]
-    labels = IntervalIndex.from_breaks(breaks, closed=closed)
-
     if right and include_lowest:
-        # we will adjust the left hand side by precision to
-        # account that we are all right closed
-        v = adjust(labels[0].left)
+        # adjust lhs of first interval by precision to account for being right closed
+        breaks[0] = adjust(breaks[0])
 
-        i = IntervalIndex([Interval(v, labels[0].right, closed="right")])
-        labels = i.append(labels[1:])
-
-    return labels
+    return IntervalIndex.from_breaks(breaks, closed=closed)
 
 
 def _preprocess_for_cut(x):
@@ -537,14 +569,6 @@ def _preprocess_for_cut(x):
     input to array, strip the index information and store it
     separately
     """
-    x_is_series = isinstance(x, Series)
-    series_index = None
-    name = None
-
-    if x_is_series:
-        series_index = x.index
-        name = x.name
-
     # Check that the passed array is a Pandas or Numpy object
     # We don't want to strip away a Pandas data-type here (e.g. datetimetz)
     ndim = getattr(x, "ndim", None)
@@ -553,17 +577,17 @@ def _preprocess_for_cut(x):
     if x.ndim != 1:
         raise ValueError("Input array must be 1 dimensional")
 
-    return x_is_series, series_index, name, x
+    return x
 
 
-def _postprocess_for_cut(fac, bins, retbins, x_is_series, series_index, name, dtype):
+def _postprocess_for_cut(fac, bins, retbins: bool, dtype, original):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
     datatype was a series
     """
-    if x_is_series:
-        fac = Series(fac, index=series_index, name=name)
+    if isinstance(original, ABCSeries):
+        fac = original._constructor(fac, index=original.index, name=original.name)
 
     if not retbins:
         return fac
@@ -573,7 +597,7 @@ def _postprocess_for_cut(fac, bins, retbins, x_is_series, series_index, name, dt
     return fac, bins
 
 
-def _round_frac(x, precision):
+def _round_frac(x, precision: int):
     """
     Round the fractional part of the given number
     """
@@ -588,8 +612,9 @@ def _round_frac(x, precision):
         return np.around(x, digits)
 
 
-def _infer_precision(base_precision, bins):
-    """Infer an appropriate precision for _round_frac
+def _infer_precision(base_precision: int, bins) -> int:
+    """
+    Infer an appropriate precision for _round_frac
     """
     for precision in range(base_precision, 20):
         levels = [_round_frac(b, precision) for b in bins]

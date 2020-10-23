@@ -53,7 +53,7 @@ int main() {
 	  speed for simple keys. Thank Zilong Tan for the suggestion. Reference:
 
 	   - https://github.com/stefanocasazza/ULib
-	   - http://nothings.org/computer/judy/
+	   - https://nothings.org/computer/judy/
 
 	* Allow to optionally use linear probing which usually has better
 	  performance for random input. Double hashing is still the default as it
@@ -498,7 +498,7 @@ PANDAS_INLINE khint_t __ac_Wang_hash(khint_t key)
  */
 #define kh_n_buckets(h) ((h)->n_buckets)
 
-/* More conenient interfaces */
+/* More convenient interfaces */
 
 /*! @function
   @abstract     Instantiate a hash set containing integer keys

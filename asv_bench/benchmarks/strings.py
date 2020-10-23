@@ -1,8 +1,32 @@
 import warnings
 
 import numpy as np
-from pandas import Series, DataFrame
-import pandas.util.testing as tm
+
+from pandas import DataFrame, Series
+
+from .pandas_vb_common import tm
+
+
+class Construction:
+
+    params = ["str", "string"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        self.series_arr = tm.rands_array(nchars=10, size=10 ** 5)
+        self.frame_arr = self.series_arr.reshape((50_000, 2)).copy()
+
+    def time_series_construction(self, dtype):
+        Series(self.series_arr, dtype=dtype)
+
+    def peakmem_series_construction(self, dtype):
+        Series(self.series_arr, dtype=dtype)
+
+    def time_frame_construction(self, dtype):
+        DataFrame(self.frame_arr, dtype=dtype)
+
+    def peakmem_frame_construction(self, dtype):
+        DataFrame(self.frame_arr, dtype=dtype)
 
 
 class Methods:

@@ -20,12 +20,12 @@ requirements:
     - cython
     - numpy
     - setuptools >=3.3
-    - python-dateutil >=2.5.0
+    - python-dateutil >=2.7.3
     - pytz
   run:
     - python {{ python }}
     - {{ pin_compatible('numpy') }}
-    - python-dateutil >=2.5.0
+    - python-dateutil >=2.7.3
     - pytz
 
 test:
@@ -36,5 +36,5 @@ test:
 
 
 about:
-  home: http://pandas.pydata.org
+  home: https://pandas.pydata.org
   license: BSD

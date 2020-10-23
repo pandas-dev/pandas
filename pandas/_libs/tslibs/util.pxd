@@ -1,14 +1,11 @@
 
-from cpython cimport PyTypeObject
+from cpython.object cimport PyTypeObject
+
 
 cdef extern from *:
     """
     PyObject* char_to_string(const char* data) {
-    #if PY_VERSION_HEX >= 0x03000000
         return PyUnicode_FromString(data);
-    #else
-        return PyString_FromString(data);
-    #endif
     }
     """
     object char_to_string(const char* data)
@@ -18,7 +15,6 @@ cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
     bint PyUnicode_Check(object obj) nogil
-    bint PyString_Check(object obj) nogil
     bint PyBool_Check(object obj) nogil
     bint PyFloat_Check(object obj) nogil
     bint PyComplex_Check(object obj) nogil
@@ -28,12 +24,11 @@ cdef extern from "Python.h":
     # thus they cannot be declared 'nogil'. Also PyUnicode_AsUTF8AndSize() can
     # potentially allocate memory inside in unlikely case of when underlying
     # unicode object was stored as non-utf8 and utf8 wasn't requested before.
-    bint PyBytes_AsStringAndSize(object obj, char** buf,
-                                 Py_ssize_t* length) except -1
     const char* PyUnicode_AsUTF8AndSize(object obj,
                                         Py_ssize_t* length) except NULL
 
-from numpy cimport int64_t, float64_t
+from numpy cimport float64_t, int64_t
+
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
@@ -47,7 +42,7 @@ cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_IsIntegerScalar(obj) nogil
     bint PyArray_Check(obj) nogil
 
-cdef extern from  "numpy/npy_common.h":
+cdef extern from "numpy/npy_common.h":
     int64_t NPY_MIN_INT64
 
 
@@ -128,6 +123,10 @@ cdef inline bint is_bool_object(object obj) nogil:
             PyObject_TypeCheck(obj, &PyBoolArrType_Type))
 
 
+cdef inline bint is_real_number_object(object obj) nogil:
+    return is_bool_object(obj) or is_integer_object(obj) or is_float_object(obj)
+
+
 cdef inline bint is_timedelta64_object(object obj) nogil:
     """
     Cython equivalent of `isinstance(val, np.timedelta64)`
@@ -173,36 +172,6 @@ cdef inline bint is_array(object val):
     return PyArray_Check(val)
 
 
-cdef inline bint is_period_object(object val):
-    """
-    Cython equivalent of `isinstance(val, pd.Period)`
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    is_period : bool
-    """
-    return getattr(val, '_typ', '_typ') == 'period'
-
-
-cdef inline bint is_offset_object(object val):
-    """
-    Check if an object is a DateOffset object.
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    is_date_offset : bool
-    """
-    return getattr(val, '_typ', None) == "dateoffset"
-
-
 cdef inline bint is_nan(object val):
     """
     Check if val is a Not-A-Number float or complex, including
@@ -223,8 +192,8 @@ cdef inline bint is_nan(object val):
     return is_complex_object(val) and val != val
 
 
-cdef inline const char* get_c_string_buf_and_size(object py_string,
-                                                  Py_ssize_t *length):
+cdef inline const char* get_c_string_buf_and_size(str py_string,
+                                                  Py_ssize_t *length) except NULL:
     """
     Extract internal char* buffer of unicode or bytes object `py_string` with
     getting length of this internal buffer saved in `length`.
@@ -236,22 +205,15 @@ cdef inline const char* get_c_string_buf_and_size(object py_string,
 
     Parameters
     ----------
-    py_string : object
+    py_string : str
     length : Py_ssize_t*
 
     Returns
     -------
     buf : const char*
     """
-    cdef:
-        const char *buf
-
-    if PyUnicode_Check(py_string):
-        buf = PyUnicode_AsUTF8AndSize(py_string, length)
-    else:
-        PyBytes_AsStringAndSize(py_string, <char**>&buf, length)
-    return buf
+    return PyUnicode_AsUTF8AndSize(py_string, length)
 
 
-cdef inline const char* get_c_string(object py_string):
+cdef inline const char* get_c_string(str py_string) except NULL:
     return get_c_string_buf_and_size(py_string, NULL)

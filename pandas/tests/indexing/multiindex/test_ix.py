@@ -4,7 +4,7 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 from pandas import DataFrame, MultiIndex
-from pandas.util import testing as tm
+import pandas._testing as tm
 
 
 class TestMultiIndex:
@@ -35,7 +35,8 @@ class TestMultiIndex:
             tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
-        df.sort_index(inplace=True)
+        return_value = df.sort_index(inplace=True)
+        assert return_value is None
         res = df.loc[key]
 
         # col has float dtype, result should be Float64Index

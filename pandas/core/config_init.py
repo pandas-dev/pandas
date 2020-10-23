@@ -6,10 +6,10 @@ is invoked inside specific modules, they will not be registered until that
 module is imported, which may or may not be a problem.
 
 If you need to make sure options are available even before a certain
-module is imported, register them here rather then in the module.
+module is imported, register them here rather than in the module.
 
 """
-import importlib
+import warnings
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -17,6 +17,7 @@ from pandas._config.config import (
     is_callable,
     is_instance_factory,
     is_int,
+    is_nonnegative_int,
     is_one_of_factory,
     is_text,
 )
@@ -51,6 +52,20 @@ def use_numexpr_cb(key):
     expressions.set_use_numexpr(cf.get_option(key))
 
 
+use_numba_doc = """
+: bool
+    Use the numba engine option for select operations if it is installed,
+    the default is False
+    Valid values: False,True
+"""
+
+
+def use_numba_cb(key):
+    from pandas.core.util import numba_
+
+    numba_.set_use_numba(cf.get_option(key))
+
+
 with cf.config_prefix("compute"):
     cf.register_option(
         "use_bottleneck",
@@ -62,13 +77,17 @@ with cf.config_prefix("compute"):
     cf.register_option(
         "use_numexpr", True, use_numexpr_doc, validator=is_bool, cb=use_numexpr_cb
     )
+    cf.register_option(
+        "use_numba", False, use_numba_doc, validator=is_bool, cb=use_numba_cb
+    )
 #
 # options from the "display" namespace
 
 pc_precision_doc = """
 : int
-    Floating point output precision (number of significant digits). This is
-    only a suggestion
+    Floating point output precision in terms of number of places after the
+    decimal, for regular formatting as well as scientific notation. Similar
+    to ``precision`` in :meth:`numpy.set_printoptions`.
 """
 
 pc_colspace_doc = """
@@ -149,10 +168,10 @@ float_format_doc = """
 """
 
 max_colwidth_doc = """
-: int
+: int or None
     The maximum width in characters of a column in the repr of
     a pandas data structure. When the column overflows, a "..."
-    placeholder is embedded in the output.
+    placeholder is embedded in the output. A 'None' value means unlimited.
 """
 
 colheader_justify_doc = """
@@ -231,7 +250,7 @@ pc_chop_threshold_doc = """
 
 pc_max_seq_items = """
 : int or None
-    when pretty-printing a long sequence, no more then `max_seq_items`
+    When pretty-printing a long sequence, no more then `max_seq_items`
     will be printed. If items are omitted, they will be denoted by the
     addition of "..." to the resulting string.
 
@@ -296,19 +315,20 @@ pc_latex_multirow = """
 
 
 def table_schema_cb(key):
-    from pandas.io.formats.printing import _enable_data_resource_formatter
+    from pandas.io.formats.printing import enable_data_resource_formatter
 
-    _enable_data_resource_formatter(cf.get_option(key))
+    enable_data_resource_formatter(cf.get_option(key))
 
 
-def is_terminal():
+def is_terminal() -> bool:
     """
     Detect if Python is running in a terminal.
 
     Returns True if Python is running in a terminal or False if not.
     """
     try:
-        ip = get_ipython()
+        # error: Name 'get_ipython' is not defined
+        ip = get_ipython()  # type: ignore[name-defined]
     except NameError:  # assume standard Python interpreter in a terminal
         return True
     else:
@@ -319,7 +339,7 @@ def is_terminal():
 
 
 with cf.config_prefix("display"):
-    cf.register_option("precision", 6, pc_precision_doc, validator=is_int)
+    cf.register_option("precision", 6, pc_precision_doc, validator=is_nonnegative_int)
     cf.register_option(
         "float_format",
         None,
@@ -333,12 +353,7 @@ with cf.config_prefix("display"):
         pc_max_info_rows_doc,
         validator=is_instance_factory((int, type(None))),
     )
-    cf.register_option(
-        "max_rows",
-        60,
-        pc_max_rows_doc,
-        validator=is_instance_factory([type(None), int]),
-    )
+    cf.register_option("max_rows", 60, pc_max_rows_doc, validator=is_nonnegative_int)
     cf.register_option(
         "min_rows",
         10,
@@ -346,16 +361,32 @@ with cf.config_prefix("display"):
         validator=is_instance_factory([type(None), int]),
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
-    cf.register_option("max_colwidth", 50, max_colwidth_doc, validator=is_int)
+
+    def _deprecate_negative_int_max_colwidth(key):
+        value = cf.get_option(key)
+        if value is not None and value < 0:
+            warnings.warn(
+                "Passing a negative integer is deprecated in version 1.0 and "
+                "will not be supported in future version. Instead, use None "
+                "to not limit the column width.",
+                FutureWarning,
+                stacklevel=4,
+            )
+
+    cf.register_option(
+        # TODO(2.0): change `validator=is_nonnegative_int` see GH#31569
+        "max_colwidth",
+        50,
+        max_colwidth_doc,
+        validator=is_instance_factory([type(None), int]),
+        cb=_deprecate_negative_int_max_colwidth,
+    )
     if is_terminal():
         max_cols = 0  # automatically determine optimal number of columns
     else:
         max_cols = 20  # cannot determine optimal number of columns
     cf.register_option(
-        "max_columns",
-        max_cols,
-        pc_max_cols_doc,
-        validator=is_instance_factory([type(None), int]),
+        "max_columns", max_cols, pc_max_cols_doc, validator=is_nonnegative_int
     )
     cf.register_option(
         "large_repr",
@@ -485,6 +516,7 @@ _xls_options = ["xlrd"]
 _xlsm_options = ["xlrd", "openpyxl"]
 _xlsx_options = ["xlrd", "openpyxl"]
 _ods_options = ["odf"]
+_xlsb_options = ["pyxlsb"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -521,6 +553,13 @@ with cf.config_prefix("io.excel.ods"):
         validator=str,
     )
 
+with cf.config_prefix("io.excel.xlsb"):
+    cf.register_option(
+        "reader",
+        "auto",
+        reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
+        validator=str,
+    )
 
 # Set up the io.excel specific writer configuration.
 writer_engine_doc = """
@@ -532,6 +571,7 @@ writer_engine_doc = """
 _xls_options = ["xlwt"]
 _xlsm_options = ["openpyxl"]
 _xlsx_options = ["openpyxl", "xlsxwriter"]
+_ods_options = ["odf"]
 
 
 with cf.config_prefix("io.excel.xls"):
@@ -560,6 +600,15 @@ with cf.config_prefix("io.excel.xlsx"):
     )
 
 
+with cf.config_prefix("io.excel.ods"):
+    cf.register_option(
+        "writer",
+        "auto",
+        writer_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
+        validator=str,
+    )
+
+
 # Set up the io.parquet specific configuration.
 parquet_engine_doc = """
 : string
@@ -583,31 +632,17 @@ plotting_backend_doc = """
 : str
     The plotting backend to use. The default value is "matplotlib", the
     backend provided with pandas. Other backends can be specified by
-    prodiving the name of the module that implements the backend.
+    providing the name of the module that implements the backend.
 """
 
 
 def register_plotting_backend_cb(key):
-    backend_str = cf.get_option(key)
-    if backend_str == "matplotlib":
-        try:
-            import pandas.plotting._matplotlib  # noqa
-        except ImportError:
-            raise ImportError(
-                "matplotlib is required for plotting when the "
-                'default backend "matplotlib" is selected.'
-            )
-        else:
-            return
+    if key == "matplotlib":
+        # We defer matplotlib validation, since it's the default
+        return
+    from pandas.plotting._core import _get_plot_backend
 
-    try:
-        importlib.import_module(backend_str)
-    except ImportError:
-        raise ValueError(
-            '"{}" does not seem to be an installed module. '
-            "A pandas plotting backend must be a module that "
-            "can be imported".format(backend_str)
-        )
+    _get_plot_backend(key)
 
 
 with cf.config_prefix("plotting"):
@@ -615,13 +650,12 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        validator=str,
-        cb=register_plotting_backend_cb,
+        validator=register_plotting_backend_cb,
     )
 
 
 register_converter_doc = """
-: bool
+: bool or 'auto'.
     Whether to register converters with matplotlib's units registry for
     dates, times, datetimes, and Periods. Toggling to False will remove
     the converters, restoring any converters that pandas overwrote.
@@ -629,8 +663,10 @@ register_converter_doc = """
 
 
 def register_converter_cb(key):
-    from pandas.plotting import register_matplotlib_converters
-    from pandas.plotting import deregister_matplotlib_converters
+    from pandas.plotting import (
+        deregister_matplotlib_converters,
+        register_matplotlib_converters,
+    )
 
     if cf.get_option(key):
         register_matplotlib_converters()
@@ -641,8 +677,8 @@ def register_converter_cb(key):
 with cf.config_prefix("plotting.matplotlib"):
     cf.register_option(
         "register_converters",
-        True,
+        "auto",
         register_converter_doc,
-        validator=bool,
+        validator=is_one_of_factory(["auto", True, False]),
         cb=register_converter_cb,
     )

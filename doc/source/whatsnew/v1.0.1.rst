@@ -1,0 +1,79 @@
+.. _whatsnew_101:
+
+What's new in 1.0.1 (February 5, 2020)
+--------------------------------------
+
+These are the changes in pandas 1.0.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_101.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression in :class:`DataFrame` setting values with a slice (e.g. ``df[-4:] = 1``) indexing by label instead of position (:issue:`31469`)
+- Fixed regression when indexing a ``Series`` or ``DataFrame`` indexed by ``DatetimeIndex`` with a slice containing a :class:`datetime.date` (:issue:`31501`)
+- Fixed regression in ``DataFrame.__setitem__`` raising an ``AttributeError`` with a :class:`MultiIndex` and a non-monotonic indexer (:issue:`31449`)
+- Fixed regression in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31457`)
+- Fixed regression in ``.groupby().agg()`` raising an ``AssertionError`` for some reductions like ``min`` on object-dtype columns (:issue:`31522`)
+- Fixed regression in ``.groupby()`` aggregations with categorical dtype using Cythonized reduction functions (e.g. ``first``) (:issue:`31450`)
+- Fixed regression in :meth:`GroupBy.apply` if called with a function which returned a non-pandas non-scalar object (e.g. a list or numpy array) (:issue:`31441`)
+- Fixed regression in :meth:`DataFrame.groupby` whereby taking the minimum or maximum of a column with period dtype would raise a ``TypeError``. (:issue:`31471`)
+- Fixed regression in :meth:`DataFrame.groupby` with an empty DataFrame grouping by a level of a MultiIndex (:issue:`31670`).
+- Fixed regression in :meth:`DataFrame.apply` with object dtype and non-reducing function (:issue:`31505`)
+- Fixed regression in :meth:`to_datetime` when parsing non-nanosecond resolution datetimes (:issue:`31491`)
+- Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)
+- Fixed regression in :class:`Categorical` construction with ``numpy.str_`` categories (:issue:`31499`)
+- Fixed regression in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a row containing a single ``datetime64`` or ``timedelta64`` column (:issue:`31649`)
+- Fixed regression where setting :attr:`pd.options.display.max_colwidth` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)
+- Fixed regression in objTOJSON.c fix return-type warning (:issue:`31463`)
+- Fixed regression in :meth:`qcut` when passed a nullable integer. (:issue:`31389`)
+- Fixed regression in assigning to a :class:`Series` using a nullable integer dtype (:issue:`31446`)
+- Fixed performance regression when indexing a ``DataFrame`` or ``Series`` with a :class:`MultiIndex` for the index using a list of labels (:issue:`31648`)
+- Fixed regression in :meth:`read_csv` used in file like object ``RawIOBase`` is not recognize ``encoding`` option (:issue:`31575`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_101.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+- Support for negative integer for :attr:`pd.options.display.max_colwidth` is deprecated in favor of using ``None`` (:issue:`31532`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_101.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+**Datetimelike**
+
+- Fixed bug in :meth:`to_datetime` raising when ``cache=True`` and out-of-bound values are present (:issue:`31491`)
+
+**Numeric**
+
+- Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`)
+  and for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)
+
+**Plotting**
+
+- Plotting tz-aware timeseries no longer gives UserWarning (:issue:`31205`)
+
+**Interval**
+
+- Bug in :meth:`Series.shift` with ``interval`` dtype raising a ``TypeError`` when shifting an interval array of integers or datetimes (:issue:`34195`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_101.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.0.0..v1.0.1|HEAD

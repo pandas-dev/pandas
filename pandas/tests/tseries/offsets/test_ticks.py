@@ -7,8 +7,10 @@ from hypothesis import assume, example, given, settings, strategies as st
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs.offsets import delta_to_tick
+
 from pandas import Timedelta, Timestamp
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 from pandas.tseries.offsets import Hour, Micro, Milli, Minute, Nano, Second
@@ -33,11 +35,11 @@ def test_apply_ticks():
 def test_delta_to_tick():
     delta = timedelta(3)
 
-    tick = offsets._delta_to_tick(delta)
+    tick = delta_to_tick(delta)
     assert tick == offsets.Day(3)
 
     td = Timedelta(nanoseconds=5)
-    tick = offsets._delta_to_tick(td)
+    tick = delta_to_tick(td)
     assert tick == Nano(5)
 
 
@@ -62,6 +64,7 @@ def test_tick_add_sub(cls, n, m):
     assert left - right == expected
 
 
+@pytest.mark.arm_slow
 @pytest.mark.parametrize("cls", tick_classes)
 @settings(deadline=None)
 @example(n=2, m=3)
@@ -234,7 +237,7 @@ def test_tick_division(cls):
         assert not isinstance(result, cls)
         assert result.delta == off.delta / 1000
 
-    if cls._inc < Timedelta(seconds=1):
+    if cls._nanos_inc < Timedelta(seconds=1).value:
         # Case where we end up with a bigger class
         result = off / 0.001
         assert isinstance(result, offsets.Tick)
@@ -242,15 +245,36 @@ def test_tick_division(cls):
         assert result.delta == off.delta / 0.001
 
 
+def test_tick_mul_float():
+    off = Micro(2)
+
+    # Case where we retain type
+    result = off * 1.5
+    expected = Micro(3)
+    assert result == expected
+    assert isinstance(result, Micro)
+
+    # Case where we bump up to the next type
+    result = off * 1.25
+    expected = Nano(2500)
+    assert result == expected
+    assert isinstance(result, Nano)
+
+
 @pytest.mark.parametrize("cls", tick_classes)
 def test_tick_rdiv(cls):
     off = cls(10)
     delta = off.delta
     td64 = delta.to_timedelta64()
+    instance__type = ".".join([cls.__module__, cls.__name__])
+    msg = (
+        "unsupported operand type\\(s\\) for \\/: 'int'|'float' and "
+        f"'{instance__type}'"
+    )
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         2 / off
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         2.0 / off
 
     assert (td64 * 2.5) / off == 2.5
@@ -284,7 +308,7 @@ def test_tick_equalities(cls):
 
 @pytest.mark.parametrize("cls", tick_classes)
 def test_tick_offset(cls):
-    assert not cls().isAnchored()
+    assert not cls().is_anchored()
 
 
 @pytest.mark.parametrize("cls", tick_classes)
@@ -311,12 +335,37 @@ def test_compare_ticks_to_strs(cls):
     assert not off == "infer"
     assert not "foo" == off
 
+    instance_type = ".".join([cls.__module__, cls.__name__])
+    msg = (
+        "'<'|'<='|'>'|'>=' not supported between instances of "
+        f"'str' and '{instance_type}'|'{instance_type}' and 'str'"
+    )
+
     for left, right in [("infer", off), (off, "infer")]:
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left < right
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left <= right
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left > right
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left >= right
+
+
+@pytest.mark.parametrize("cls", tick_classes)
+def test_compare_ticks_to_timedeltalike(cls):
+    off = cls(19)
+
+    td = off.delta
+
+    others = [td, td.to_timedelta64()]
+    if cls is not Nano:
+        others.append(td.to_pytimedelta())
+
+    for other in others:
+        assert off == other
+        assert not off != other
+        assert not off < other
+        assert not off > other
+        assert off <= other
+        assert off >= other

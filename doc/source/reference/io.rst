@@ -22,7 +22,6 @@ Flat file
    read_table
    read_csv
    read_fwf
-   read_msgpack
 
 Clipboard
 ~~~~~~~~~
@@ -51,13 +50,13 @@ JSON
    :toctree: api/
 
    read_json
+   json_normalize
 
 .. currentmodule:: pandas.io.json
 
 .. autosummary::
    :toctree: api/
 
-   json_normalize
    build_table_schema
 
 .. currentmodule:: pandas
@@ -98,12 +97,26 @@ Parquet
 
    read_parquet
 
+ORC
+~~~
+.. autosummary::
+   :toctree: api/
+
+   read_orc
+
 SAS
 ~~~
 .. autosummary::
    :toctree: api/
 
    read_sas
+
+SPSS
+~~~~
+.. autosummary::
+   :toctree: api/
+
+   read_spss
 
 SQL
 ~~~
@@ -133,7 +146,6 @@ STATA
 .. autosummary::
    :toctree: api/
 
-   StataReader.data
    StataReader.data_label
    StataReader.value_labels
    StataReader.variable_labels

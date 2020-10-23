@@ -3,84 +3,69 @@ Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
 """
 
-from typing import Tuple
+from typing import Union
 
 import numpy as np
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
-
-from pandas.tseries.offsets import DateOffset, Tick, generate_range
+from pandas._libs.tslibs import BaseOffset, OutOfBoundsDatetime, Timedelta, Timestamp
 
 
 def generate_regular_range(
-    start: Timestamp, end: Timestamp, periods: int, freq: DateOffset
-) -> Tuple[np.ndarray, str]:
+    start: Union[Timestamp, Timedelta],
+    end: Union[Timestamp, Timedelta],
+    periods: int,
+    freq: BaseOffset,
+):
     """
-    Generate a range of dates with the spans between dates described by
-    the given `freq` DateOffset.
+    Generate a range of dates or timestamps with the spans between dates
+    described by the given `freq` DateOffset.
 
     Parameters
     ----------
-    start : Timestamp or None
-        first point of produced date range
-    end : Timestamp or None
-        last point of produced date range
+    start : Timedelta, Timestamp or None
+        First point of produced date range.
+    end : Timedelta, Timestamp or None
+        Last point of produced date range.
     periods : int
-        number of periods in produced date range
-    freq : DateOffset
-        describes space between dates in produced date range
+        Number of periods in produced date range.
+    freq : Tick
+        Describes space between dates in produced date range.
 
     Returns
     -------
-    ndarray[np.int64] representing nanosecond unix timestamps
+    ndarray[np.int64] Representing nanoseconds.
     """
-    if isinstance(freq, Tick):
-        stride = freq.nanos
-        if periods is None:
-            b = Timestamp(start).value
-            # cannot just use e = Timestamp(end) + 1 because arange breaks when
-            # stride is too large, see GH10887
-            e = b + (Timestamp(end).value - b) // stride * stride + stride // 2 + 1
-            # end.tz == start.tz by this point due to _generate implementation
-            tz = start.tz
-        elif start is not None:
-            b = Timestamp(start).value
-            e = _generate_range_overflow_safe(b, periods, stride, side="start")
-            tz = start.tz
-        elif end is not None:
-            e = Timestamp(end).value + stride
-            b = _generate_range_overflow_safe(e, periods, stride, side="end")
-            tz = end.tz
-        else:
-            raise ValueError(
-                "at least 'start' or 'end' should be specified "
-                "if a 'period' is given."
-            )
+    start = start.value if start is not None else None
+    end = end.value if end is not None else None
+    stride = freq.nanos
 
-        with np.errstate(over="raise"):
-            # If the range is sufficiently large, np.arange may overflow
-            #  and incorrectly return an empty array if not caught.
-            try:
-                values = np.arange(b, e, stride, dtype=np.int64)
-            except FloatingPointError:
-                xdr = [b]
-                while xdr[-1] != e:
-                    xdr.append(xdr[-1] + stride)
-                values = np.array(xdr[:-1], dtype=np.int64)
-
+    if periods is None:
+        b = start
+        # cannot just use e = Timestamp(end) + 1 because arange breaks when
+        # stride is too large, see GH10887
+        e = b + (end - b) // stride * stride + stride // 2 + 1
+    elif start is not None:
+        b = start
+        e = _generate_range_overflow_safe(b, periods, stride, side="start")
+    elif end is not None:
+        e = end + stride
+        b = _generate_range_overflow_safe(e, periods, stride, side="end")
     else:
-        tz = None
-        # start and end should have the same timezone by this point
-        if start is not None:
-            tz = start.tz
-        elif end is not None:
-            tz = end.tz
+        raise ValueError(
+            "at least 'start' or 'end' should be specified if a 'period' is given."
+        )
 
-        xdr = generate_range(start=start, end=end, periods=periods, offset=freq)
-
-        values = np.array([x.value for x in xdr], dtype=np.int64)
-
-    return values, tz
+    with np.errstate(over="raise"):
+        # If the range is sufficiently large, np.arange may overflow
+        #  and incorrectly return an empty array if not caught.
+        try:
+            values = np.arange(b, e, stride, dtype=np.int64)
+        except FloatingPointError:
+            xdr = [b]
+            while xdr[-1] != e:
+                xdr.append(xdr[-1] + stride)
+            values = np.array(xdr[:-1], dtype=np.int64)
+    return values
 
 
 def _generate_range_overflow_safe(
@@ -114,18 +99,15 @@ def _generate_range_overflow_safe(
     assert side in ["start", "end"]
 
     i64max = np.uint64(np.iinfo(np.int64).max)
-    msg = (
-        "Cannot generate range with {side}={endpoint} and "
-        "periods={periods}".format(side=side, endpoint=endpoint, periods=periods)
-    )
+    msg = f"Cannot generate range with {side}={endpoint} and periods={periods}"
 
     with np.errstate(over="raise"):
         # if periods * strides cannot be multiplied within the *uint64* bounds,
         #  we cannot salvage the operation by recursing, so raise
         try:
             addend = np.uint64(periods) * np.uint64(np.abs(stride))
-        except FloatingPointError:
-            raise OutOfBoundsDatetime(msg)
+        except FloatingPointError as err:
+            raise OutOfBoundsDatetime(msg) from err
 
     if np.abs(addend) <= i64max:
         # relatively easy case without casting concerns
@@ -182,7 +164,6 @@ def _generate_range_overflow_safe_signed(
             # watch out for very special case in which we just slightly
             #  exceed implementation bounds, but when passing the result to
             #  np.arange will get a result slightly within the bounds
-            assert endpoint >= 0
             result = np.uint64(endpoint) + np.uint64(addend)
             i64max = np.uint64(np.iinfo(np.int64).max)
             assert result > i64max
@@ -190,7 +171,5 @@ def _generate_range_overflow_safe_signed(
                 return result
 
     raise OutOfBoundsDatetime(
-        "Cannot generate range with "
-        "{side}={endpoint} and "
-        "periods={periods}".format(side=side, endpoint=endpoint, periods=periods)
+        f"Cannot generate range with {side}={endpoint} and periods={periods}"
     )

@@ -8,9 +8,10 @@ import pytest
 import pandas._config.config as cf
 
 from pandas.compat.numpy import np_datetime64_compat
+import pandas.util._test_decorators as td
 
 from pandas import Index, Period, Series, Timestamp, date_range
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 from pandas.plotting import (
     deregister_matplotlib_converters,
@@ -22,22 +23,26 @@ try:
     from pandas.plotting._matplotlib import converter
 except ImportError:
     # try / except, rather than skip, to avoid internal refactoring
-    # causing an improprer skip
+    # causing an improper skip
     pass
 
 pytest.importorskip("matplotlib.pyplot")
+dates = pytest.importorskip("matplotlib.dates")
 
 
-def test_initial_warning():
+def test_registry_mpl_resets():
+    # Check that Matplotlib converters are properly reset (see issue #27481)
     code = (
-        "import pandas as pd; import matplotlib.pyplot as plt; "
-        "s = pd.Series(1, pd.date_range('2000', periods=12)); "
-        "fig, ax = plt.subplots(); "
-        "ax.plot(s.index, s.values)"
+        "import matplotlib.units as units; "
+        "import matplotlib.dates as mdates; "
+        "n_conv = len(units.registry); "
+        "import pandas as pd; "
+        "pd.plotting.register_matplotlib_converters(); "
+        "pd.plotting.deregister_matplotlib_converters(); "
+        "assert len(units.registry) == n_conv"
     )
     call = [sys.executable, "-c", code]
-    out = subprocess.check_output(call, stderr=subprocess.STDOUT).decode()
-    assert "Using an implicitly" in out
+    subprocess.check_output(call)
 
 
 def test_timtetonum_accepts_unicode():
@@ -56,38 +61,20 @@ class TestRegistration:
         call = [sys.executable, "-c", code]
         assert subprocess.check_call(call) == 0
 
-    def test_warns(self):
-        plt = pytest.importorskip("matplotlib.pyplot")
-        s = Series(range(12), index=date_range("2017", periods=12))
-        _, ax = plt.subplots()
-
-        # Set to the "warning" state, in case this isn't the first test run
-        converter._WARN = True
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
-            ax.plot(s.index, s.values)
-            plt.close()
-
-        assert len(w) == 1
-        assert "Using an implicitly registered datetime converter" in str(w[0])
-
+    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_registering_no_warning(self):
         plt = pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
         # Set to the "warn" state, in case this isn't the first test run
-        converter._WARN = True
         register_matplotlib_converters()
-        with tm.assert_produces_warning(None) as w:
-            ax.plot(s.index, s.values)
-
-        assert len(w) == 0
+        ax.plot(s.index, s.values)
 
     def test_pandas_plots_register(self):
         pytest.importorskip("matplotlib.pyplot")
         s = Series(range(12), index=date_range("2017", periods=12))
         # Set to the "warn" state, in case this isn't the first test run
-        converter._WARN = True
         with tm.assert_produces_warning(None) as w:
             s.plot()
 
@@ -95,14 +82,17 @@ class TestRegistration:
 
     def test_matplotlib_formatters(self):
         units = pytest.importorskip("matplotlib.units")
-        assert Timestamp in units.registry
 
-        ctx = cf.option_context("plotting.matplotlib.register_converters", False)
-        with ctx:
-            assert Timestamp not in units.registry
+        # Can't make any assertion about the start state.
+        # We we check that toggling converters off removes it, and toggling it
+        # on restores it.
 
-        assert Timestamp in units.registry
+        with cf.option_context("plotting.matplotlib.register_converters", True):
+            with cf.option_context("plotting.matplotlib.register_converters", False):
+                assert Timestamp not in units.registry
+            assert Timestamp in units.registry
 
+    @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_option_no_warning(self):
         pytest.importorskip("matplotlib.pyplot")
         ctx = cf.option_context("plotting.matplotlib.register_converters", False)
@@ -110,22 +100,14 @@ class TestRegistration:
         s = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
-        converter._WARN = True
         # Test without registering first, no warning
         with ctx:
-            with tm.assert_produces_warning(None) as w:
-                ax.plot(s.index, s.values)
-
-        assert len(w) == 0
+            ax.plot(s.index, s.values)
 
         # Now test with registering
-        converter._WARN = True
         register_matplotlib_converters()
         with ctx:
-            with tm.assert_produces_warning(None) as w:
-                ax.plot(s.index, s.values)
-
-        assert len(w) == 0
+            ax.plot(s.index, s.values)
 
     def test_registry_resets(self):
         units = pytest.importorskip("matplotlib.units")
@@ -152,15 +134,6 @@ class TestRegistration:
             for k, v in original.items():
                 units.registry[k] = v
 
-    def test_old_import_warns(self):
-        with tm.assert_produces_warning(FutureWarning) as w:
-            from pandas.tseries import converter
-
-            converter.register()
-
-        assert len(w)
-        assert "pandas.plotting.register_matplotlib_converters" in str(w[0].message)
-
 
 class TestDateTimeConverter:
     def setup_method(self, method):
@@ -174,16 +147,13 @@ class TestDateTimeConverter:
 
     def test_conversion(self):
         rs = self.dtc.convert(["2012-1-1"], None, None)[0]
-        xp = datetime(2012, 1, 1).toordinal()
+        xp = dates.date2num(datetime(2012, 1, 1))
         assert rs == xp
 
         rs = self.dtc.convert("2012-1-1", None, None)
         assert rs == xp
 
         rs = self.dtc.convert(date(2012, 1, 1), None, None)
-        assert rs == xp
-
-        rs = self.dtc.convert(datetime(2012, 1, 1).toordinal(), None, None)
         assert rs == xp
 
         rs = self.dtc.convert("2012-1-1", None, None)
@@ -229,19 +199,19 @@ class TestDateTimeConverter:
         assert rs[1] == xp
 
     def test_conversion_float(self):
-        decimals = 9
+        rtol = 0.5 * 10 ** -9
 
         rs = self.dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
         xp = converter.dates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
-        tm.assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = self.dtc.convert(
             Timestamp("2012-1-1 09:02:03", tz="Asia/Hong_Kong"), None, None
         )
-        tm.assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
         rs = self.dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
-        tm.assert_almost_equal(rs, xp, decimals)
+        tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     def test_conversion_outofbounds_datetime(self):
         # 2579
@@ -277,20 +247,20 @@ class TestDateTimeConverter:
         assert result == format_expected
 
     def test_dateindex_conversion(self):
-        decimals = 9
+        rtol = 10 ** -9
 
         for freq in ("B", "L", "S"):
             dateindex = tm.makeDateIndex(k=10, freq=freq)
             rs = self.dtc.convert(dateindex, None, None)
             xp = converter.dates.date2num(dateindex._mpl_repr())
-            tm.assert_almost_equal(rs, xp, decimals)
+            tm.assert_almost_equal(rs, xp, rtol=rtol)
 
     def test_resolution(self):
         def _assert_less(ts1, ts2):
             val1 = self.dtc.convert(ts1, None, None)
             val2 = self.dtc.convert(ts2, None, None)
             if not val1 < val2:
-                raise AssertionError("{0} is not less than {1}.".format(val1, val2))
+                raise AssertionError(f"{val1} is not less than {val2}.")
 
         # Matplotlib's time representation using floats cannot distinguish
         # intervals smaller than ~10 microsecond in the common range of years.
@@ -373,3 +343,21 @@ class TestPeriodConverter:
         r1 = self.pc.convert([data, data], None, self.axis)
         r2 = [self.pc.convert(data, None, self.axis) for _ in range(2)]
         assert r1 == r2
+
+
+class TestTimeDeltaConverter:
+    """Test timedelta converter"""
+
+    @pytest.mark.parametrize(
+        "x, decimal, format_expected",
+        [
+            (0.0, 0, "00:00:00"),
+            (3972320000000, 1, "01:06:12.3"),
+            (713233432000000, 2, "8 days 06:07:13.43"),
+            (32423432000000, 4, "09:00:23.4320"),
+        ],
+    )
+    def test_format_timedelta_ticks(self, x, decimal, format_expected):
+        tdc = converter.TimeSeries_TimedeltaFormatter
+        result = tdc.format_timedelta_ticks(x, pos=None, n_decimals=decimal)
+        assert result == format_expected

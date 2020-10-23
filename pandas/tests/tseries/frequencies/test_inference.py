@@ -4,12 +4,12 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
-from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
 
 from pandas import DatetimeIndex, Index, Series, Timestamp, date_range, period_range
+import pandas._testing as tm
 from pandas.core.tools.datetimes import to_datetime
-import pandas.util.testing as tm
 
 import pandas.tseries.frequencies as frequencies
 import pandas.tseries.offsets as offsets
@@ -178,7 +178,7 @@ def test_infer_freq_delta(base_delta_code_pair, count):
     inc = base_delta * count
     index = DatetimeIndex([b + inc * j for j in range(3)])
 
-    exp_freq = "{count:d}{code}".format(count=count, code=code) if count > 1 else code
+    exp_freq = f"{count:d}{code}" if count > 1 else code
     assert frequencies.infer_freq(index) == exp_freq
 
 
@@ -202,13 +202,11 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
 
 
 def test_weekly_infer(periods, day):
-    _check_generated_range("1/1/2000", periods, "W-{day}".format(day=day))
+    _check_generated_range("1/1/2000", periods, f"W-{day}")
 
 
 def test_week_of_month_infer(periods, day, count):
-    _check_generated_range(
-        "1/1/2000", periods, "WOM-{count}{day}".format(count=count, day=day)
-    )
+    _check_generated_range("1/1/2000", periods, f"WOM-{count}{day}")
 
 
 @pytest.mark.parametrize("freq", ["M", "BM", "BMS"])
@@ -217,14 +215,12 @@ def test_monthly_infer(periods, freq):
 
 
 def test_quarterly_infer(month, periods):
-    _check_generated_range("1/1/2000", periods, "Q-{month}".format(month=month))
+    _check_generated_range("1/1/2000", periods, f"Q-{month}")
 
 
 @pytest.mark.parametrize("annual", ["A", "BA"])
 def test_annually_infer(month, periods, annual):
-    _check_generated_range(
-        "1/1/2000", periods, "{annual}-{month}".format(annual=annual, month=month)
-    )
+    _check_generated_range("1/1/2000", periods, f"{annual}-{month}")
 
 
 @pytest.mark.parametrize(
@@ -468,7 +464,7 @@ def test_series_datetime_index(freq):
 @pytest.mark.parametrize(
     "offset_func",
     [
-        frequencies.get_offset,
+        frequencies._get_offset,
         lambda freq: date_range("2011-01-01", periods=5, freq=freq),
     ],
 )
@@ -528,8 +524,8 @@ def test_legacy_offset_warnings(offset_func, freq):
 
 
 def test_ms_vs_capital_ms():
-    left = frequencies.get_offset("ms")
-    right = frequencies.get_offset("MS")
+    left = frequencies._get_offset("ms")
+    right = frequencies._get_offset("MS")
 
     assert left == offsets.Milli()
     assert right == offsets.MonthBegin()

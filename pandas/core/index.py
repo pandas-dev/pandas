@@ -1,3 +1,5 @@
+import warnings
+
 from pandas.core.indexes.api import (  # noqa:F401
     CategoricalIndex,
     DatetimeIndex,
@@ -5,7 +7,6 @@ from pandas.core.indexes.api import (  # noqa:F401
     Index,
     Int64Index,
     IntervalIndex,
-    InvalidIndexError,
     MultiIndex,
     NaT,
     NumericIndex,
@@ -13,13 +14,17 @@ from pandas.core.indexes.api import (  # noqa:F401
     RangeIndex,
     TimedeltaIndex,
     UInt64Index,
-    _all_indexes_same,
-    _get_combined_index,
-    _get_consensus_names,
-    _get_objs_combined_axis,
     _new_Index,
-    _union_indexes,
     ensure_index,
     ensure_index_from_sequences,
+    get_objs_combined_axis,
 )
-from pandas.core.indexes.multi import _sparsify  # noqa:F401
+from pandas.core.indexes.multi import sparsify_labels  # noqa:F401
+
+# GH#30193
+warnings.warn(
+    "pandas.core.index is deprecated and will be removed in a future version.  "
+    "The public classes are available in the top-level namespace.",
+    FutureWarning,
+    stacklevel=2,
+)

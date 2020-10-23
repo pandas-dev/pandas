@@ -5,10 +5,11 @@ the parsers defined in parsers.py
 """
 from io import StringIO
 
+import numpy as np
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex
-import pandas.util.testing as tm
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("with_header", [True, False])
@@ -20,10 +21,8 @@ KORD2,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
 KORD3,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
 KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""  # noqa
-    header = (
-        "ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir\n"
-    )  # noqa
+KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
+    header = "ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir\n"
 
     if with_header:
         data = header + no_header
@@ -173,4 +172,38 @@ def test_multi_index_naming_not_all_at_beginning(all_parsers):
             levels=[["a", "b"], [1, 2, 3, 4]], codes=[[0, 0, 1, 1], [0, 1, 2, 3]]
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_no_multi_index_level_names_empty(all_parsers):
+    # GH 10984
+    parser = all_parsers
+    midx = MultiIndex.from_tuples([("A", 1, 2), ("A", 1, 2), ("B", 1, 2)])
+    expected = DataFrame(np.random.randn(3, 3), index=midx, columns=["x", "y", "z"])
+    with tm.ensure_clean() as path:
+        expected.to_csv(path)
+        result = parser.read_csv(path, index_col=[0, 1, 2])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_header_with_index_col(all_parsers):
+    # GH 33476
+    parser = all_parsers
+    data = """
+I11,A,A
+I12,B,B
+I2,1,3
+"""
+    midx = MultiIndex.from_tuples([("A", "B"), ("A", "B.1")], names=["I11", "I12"])
+    idx = Index(["I2"])
+    expected = DataFrame([[1, 3]], index=idx, columns=midx)
+
+    result = parser.read_csv(StringIO(data), index_col=0, header=[0, 1])
+    tm.assert_frame_equal(result, expected)
+
+    col_idx = Index(["A", "A.1"])
+    idx = Index(["I12", "I2"], name="I11")
+    expected = DataFrame([["B", "B"], ["1", "3"]], index=idx, columns=col_idx)
+
+    result = parser.read_csv(StringIO(data), index_col="I11", header=0)
     tm.assert_frame_equal(result, expected)

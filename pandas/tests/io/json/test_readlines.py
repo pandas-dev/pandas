@@ -1,18 +1,18 @@
 from io import StringIO
+from pathlib import Path
 
 import pytest
 
 import pandas as pd
 from pandas import DataFrame, read_json
-import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal, assert_series_equal, ensure_clean
+import pandas._testing as tm
 
 from pandas.io.json._json import JsonReader
 
 
 @pytest.fixture
 def lines_json_df():
-    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     return df.to_json(lines=True, orient="records")
 
 
@@ -20,7 +20,7 @@ def test_read_jsonl():
     # GH9180
     result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
     expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_read_jsonl_unicode_chars():
@@ -32,34 +32,42 @@ def test_read_jsonl_unicode_chars():
     json = StringIO(json)
     result = read_json(json, lines=True)
     expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     # simulate string
     json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
     result = read_json(json, lines=True)
     expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_to_jsonl():
     # GH9180
     df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
     result = df.to_json(orient="records", lines=True)
-    expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
+    expected = '{"a":1,"b":2}\n{"a":1,"b":2}\n'
     assert result == expected
 
     df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=["a", "b"])
     result = df.to_json(orient="records", lines=True)
-    expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
+    expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}\n'
     assert result == expected
-    assert_frame_equal(read_json(result, lines=True), df)
+    tm.assert_frame_equal(read_json(result, lines=True), df)
 
     # GH15096: escaped characters in columns and data
     df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]], columns=["a\\", "b"])
     result = df.to_json(orient="records", lines=True)
-    expected = '{"a\\\\":"foo\\\\","b":"bar"}\n' '{"a\\\\":"foo\\"","b":"bar"}'
+    expected = '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n'
     assert result == expected
-    assert_frame_equal(read_json(result, lines=True), df)
+    tm.assert_frame_equal(read_json(result, lines=True), df)
+
+
+def test_to_jsonl_count_new_lines():
+    # GH36888
+    df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+    actual_new_lines_count = df.to_json(orient="records", lines=True).count("\n")
+    expected_new_lines_count = 2
+    assert actual_new_lines_count == expected_new_lines_count
 
 
 @pytest.mark.parametrize("chunksize", [1, 1.0])
@@ -72,7 +80,7 @@ def test_readjson_chunks(lines_json_df, chunksize):
     reader = read_json(StringIO(lines_json_df), lines=True, chunksize=chunksize)
     chunked = pd.concat(reader)
 
-    assert_frame_equal(chunked, unchunked)
+    tm.assert_frame_equal(chunked, unchunked)
 
 
 def test_readjson_chunksize_requires_lines(lines_json_df):
@@ -91,7 +99,7 @@ def test_readjson_chunks_series():
     strio = StringIO(s.to_json(lines=True, orient="records"))
     chunked = pd.concat(pd.read_json(strio, lines=True, typ="Series", chunksize=1))
 
-    assert_series_equal(chunked, unchunked)
+    tm.assert_series_equal(chunked, unchunked)
 
 
 def test_readjson_each_chunk(lines_json_df):
@@ -103,18 +111,18 @@ def test_readjson_each_chunk(lines_json_df):
 
 
 def test_readjson_chunks_from_file():
-    with ensure_clean("test.json") as path:
-        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    with tm.ensure_clean("test.json") as path:
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         df.to_json(path, lines=True, orient="records")
         chunked = pd.concat(pd.read_json(path, lines=True, chunksize=1))
         unchunked = pd.read_json(path, lines=True)
-        assert_frame_equal(unchunked, chunked)
+        tm.assert_frame_equal(unchunked, chunked)
 
 
 @pytest.mark.parametrize("chunksize", [None, 1])
 def test_readjson_chunks_closes(chunksize):
-    with ensure_clean("test.json") as path:
-        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    with tm.ensure_clean("test.json") as path:
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         df.to_json(path, lines=True, orient="records")
         reader = JsonReader(
             path,
@@ -131,14 +139,12 @@ def test_readjson_chunks_closes(chunksize):
             lines=True,
             chunksize=chunksize,
             compression=None,
+            nrows=None,
         )
         reader.read()
         assert (
             reader.open_stream.closed
-        ), "didn't close stream with \
-            chunksize = {chunksize}".format(
-            chunksize=chunksize
-        )
+        ), f"didn't close stream with chunksize = {chunksize}"
 
 
 @pytest.mark.parametrize("chunksize", [0, -1, 2.2, "foo"])
@@ -167,10 +173,73 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
 
     {"A":3,"B":6}
     """
-    orig = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    orig = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     test = pd.read_json(j, lines=True, chunksize=chunksize)
     if chunksize is not None:
         test = pd.concat(test)
-    tm.assert_frame_equal(
-        orig, test, obj="chunksize: {chunksize}".format(chunksize=chunksize)
-    )
+    tm.assert_frame_equal(orig, test, obj=f"chunksize: {chunksize}")
+
+
+def test_readjson_unicode(monkeypatch):
+    with tm.ensure_clean("test.json") as path:
+        monkeypatch.setattr("_bootlocale.getpreferredencoding", lambda l: "cp949")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write('{"£©µÀÆÖÞßéöÿ":["АБВГДабвгд가"]}')
+
+        result = read_json(path)
+        expected = DataFrame({"£©µÀÆÖÞßéöÿ": ["АБВГДабвгд가"]})
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("nrows", [1, 2])
+def test_readjson_nrows(nrows):
+    # GH 33916
+    # Test reading line-format JSON to Series with nrows param
+    jsonl = """{"a": 1, "b": 2}
+        {"a": 3, "b": 4}
+        {"a": 5, "b": 6}
+        {"a": 7, "b": 8}"""
+    result = pd.read_json(jsonl, lines=True, nrows=nrows)
+    expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("nrows,chunksize", [(2, 2), (4, 2)])
+def test_readjson_nrows_chunks(nrows, chunksize):
+    # GH 33916
+    # Test reading line-format JSON to Series with nrows and chunksize param
+    jsonl = """{"a": 1, "b": 2}
+        {"a": 3, "b": 4}
+        {"a": 5, "b": 6}
+        {"a": 7, "b": 8}"""
+    reader = read_json(jsonl, lines=True, nrows=nrows, chunksize=chunksize)
+    chunked = pd.concat(reader)
+    expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
+    tm.assert_frame_equal(chunked, expected)
+
+
+def test_readjson_nrows_requires_lines():
+    # GH 33916
+    # Test ValuError raised if nrows is set without setting lines in read_json
+    jsonl = """{"a": 1, "b": 2}
+        {"a": 3, "b": 4}
+        {"a": 5, "b": 6}
+        {"a": 7, "b": 8}"""
+    msg = "nrows can only be passed if lines=True"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(jsonl, lines=False, nrows=2)
+
+
+def test_readjson_lines_chunks_fileurl(datapath):
+    # GH 27135
+    # Test reading line-format JSON from file url
+    df_list_expected = [
+        DataFrame([[1, 2]], columns=["a", "b"], index=[0]),
+        DataFrame([[3, 4]], columns=["a", "b"], index=[1]),
+        DataFrame([[5, 6]], columns=["a", "b"], index=[2]),
+    ]
+    os_path = datapath("io", "json", "data", "line_delimited.json")
+    file_url = Path(os_path).as_uri()
+    url_reader = pd.read_json(file_url, lines=True, chunksize=1)
+    for index, chuck in enumerate(url_reader):
+        tm.assert_frame_equal(chuck, df_list_expected[index])

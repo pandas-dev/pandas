@@ -1,7 +1,7 @@
 .. _whatsnew_0200:
 
-v0.20.1 (May 5, 2017)
----------------------
+Version 0.20.1 (May 5, 2017)
+----------------------------
 
 {{ header }}
 
@@ -26,14 +26,14 @@ Highlights include:
 
 .. warning::
 
-  Pandas has changed the internal structure and layout of the code base.
+  pandas has changed the internal structure and layout of the code base.
   This can affect imports that are not from the top-level ``pandas.*`` namespace, please see the changes :ref:`here <whatsnew_0200.privacy>`.
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
 
 .. note::
 
-   This is a combined release for 0.20.0 and and 0.20.1.
+   This is a combined release for 0.20.0 and 0.20.1.
    Version 0.20.1 contains one additional change for backwards-compatibility with downstream projects using pandas' ``utils`` routines. (:issue:`16250`)
 
 .. contents:: What's new in v0.20.0
@@ -47,8 +47,8 @@ New features
 
 .. _whatsnew_0200.enhancements.agg:
 
-``agg`` API for DataFrame/Series
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``agg`` API for DataFrame/Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Series & DataFrame have been enhanced to support the aggregation API. This is a familiar API
 from groupby, window operations, and resampling. This allows aggregation operations in a concise way
@@ -110,8 +110,8 @@ aggregations. This is similar to how groupby ``.agg()`` works. (:issue:`15015`)
 
 .. _whatsnew_0200.enhancements.dataio_dtype:
 
-``dtype`` keyword for data IO
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Keyword argument ``dtype`` for data IO
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``'python'`` engine for :func:`read_csv`, as well as the :func:`read_fwf` function for parsing
 fixed-width text files and :func:`read_excel` for parsing Excel files, now accept the ``dtype`` keyword argument for specifying the types of specific columns (:issue:`14295`). See the :ref:`io docs <io.dtypes>` for more information.
@@ -129,8 +129,8 @@ fixed-width text files and :func:`read_excel` for parsing Excel files, now accep
 
 .. _whatsnew_0120.enhancements.datetime_origin:
 
-``.to_datetime()`` has gained an ``origin`` parameter
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Method ``.to_datetime()`` has gained an ``origin`` parameter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`to_datetime` has gained a new parameter, ``origin``, to define a reference date
 from where to compute the resulting timestamps when parsing numerical values with a specific ``unit`` specified. (:issue:`11276`, :issue:`11745`)
@@ -151,7 +151,7 @@ commonly called 'unix epoch' or POSIX time. This was the previous default, so th
 
 .. _whatsnew_0200.enhancements.groupby_access:
 
-Groupby enhancements
+GroupBy enhancements
 ^^^^^^^^^^^^^^^^^^^^
 
 Strings passed to ``DataFrame.groupby()`` as the ``by`` parameter may now reference either column names or index level names. Previously, only column names could be referenced. This allows to easily group by a column and index level at the same time. (:issue:`5677`)
@@ -197,8 +197,8 @@ support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
 .. _whatsnew_0200.enhancements.pickle_compression:
 
-Pickle file I/O now supports compression
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Pickle file IO now supports compression
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle`
 can now read from and write to compressed pickle files. Compression methods
@@ -243,7 +243,7 @@ The default is to infer the compression type from the extension (``compression='
 UInt64 support improved
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has significantly improved support for operations involving unsigned,
+pandas has significantly improved support for operations involving unsigned,
 or purely non-negative, integers. Previously, handling these integers would
 result in improper rounding or data-type casting, leading to incorrect results.
 Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937`)
@@ -333,13 +333,12 @@ You must enable this by setting the ``display.html.table_schema`` option to ``Tr
 SciPy sparse matrix from/to SparseDataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
+pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
 See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:`4343`)
 
 All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: python
 
    from scipy.sparse import csr_matrix
    arr = np.random.random(size=(1000, 5))
@@ -351,7 +350,7 @@ All sparse formats are supported, but matrices that are not in :mod:`COOrdinate 
 
 To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you can use:
 
-.. ipython:: python
+.. code-block:: python
 
    sdf.to_coo()
 
@@ -495,7 +494,7 @@ Other enhancements
 - :func:`pandas.util.hash_pandas_object` has gained the ability to hash a ``MultiIndex`` (:issue:`15224`)
 - ``Series/DataFrame.squeeze()`` have gained the ``axis`` parameter. (:issue:`15339`)
 - ``DataFrame.to_excel()`` has a new ``freeze_panes`` parameter to turn on Freeze Panes when exporting to Excel (:issue:`15160`)
-- ``pd.read_html()`` will parse multiple header rows, creating a MutliIndex header. (:issue:`13434`).
+- ``pd.read_html()`` will parse multiple header rows, creating a MultiIndex header. (:issue:`13434`).
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
 - :class:`pandas.io.formats.style.Styler` template now has blocks for easier extension, see the :ref:`example notebook </user_guide/style.ipynb#Subclassing>` (:issue:`15649`)
 - :meth:`Styler.render() <pandas.io.formats.style.Styler.render>` now accepts ``**kwargs`` to allow user-defined variables in the template (:issue:`15649`)
@@ -814,7 +813,7 @@ New behavior:
 
 .. _whatsnew_0200.api_breaking.gbq:
 
-Pandas Google BigQuery support has moved
+pandas Google BigQuery support has moved
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 pandas has split off Google BigQuery support into a separate package ``pandas-gbq``. You can ``conda install pandas-gbq -c conda-forge`` or
@@ -929,7 +928,7 @@ New behavior:
 
 .. _whatsnew_0200.api_breaking.groupby_describe:
 
-Groupby describe formatting
+GroupBy describe formatting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The output formatting of ``groupby.describe()`` now labels the ``describe()`` metrics in the columns instead of the index.
@@ -1202,7 +1201,7 @@ Modules privacy has changed
 
 Some formerly public python/c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API.
 Furthermore, the ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are now considered to be PRIVATE.
-If indicated, a deprecation warning will be issued if you reference theses modules. (:issue:`12588`)
+If indicated, a deprecation warning will be issued if you reference these modules. (:issue:`12588`)
 
 .. csv-table::
     :header: "Previous Location", "New Location", "Deprecated"
@@ -1290,7 +1289,7 @@ A new public ``pandas.plotting`` module has been added that holds plotting funct
 
 .. _whatsnew_0200.privacy.development:
 
-Other Development Changes
+Other development changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.23`` (:issue:`14831`)
@@ -1356,12 +1355,12 @@ Deprecate Panel
 ^^^^^^^^^^^^^^^
 
 ``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
-with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
+with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. pandas
 provides a :meth:`~Panel.to_xarray` method to automate this conversion (:issue:`13563`).
 
 .. code-block:: ipython
 
-    In [133]: import pandas.util.testing as tm
+    In [133]: import pandas._testing as tm
 
     In [134]: p = tm.makePanel()
 
@@ -1671,8 +1670,8 @@ Indexing
 - Bug in in ``pd.concat()`` when combining objects with a ``CategoricalIndex`` (:issue:`16111`)
 - Bug in indexing with a scalar and a ``CategoricalIndex`` (:issue:`16123`)
 
-I/O
-^^^
+IO
+^^
 
 - Bug in ``pd.to_numeric()`` in which float and unsigned integer elements were being improperly casted (:issue:`14941`, :issue:`15005`)
 - Bug in ``pd.read_fwf()`` where the skiprows parameter was not being respected during column width inference (:issue:`11256`)
@@ -1713,7 +1712,7 @@ Plotting
 - Bug in the date and time converters pandas registers with matplotlib not handling multiple dimensions (:issue:`16026`)
 - Bug in ``pd.scatter_matrix()`` could accept either ``color`` or ``c``, but not both (:issue:`14855`)
 
-Groupby/resample/rolling
+GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in ``.groupby(..).resample()`` when passed the ``on=`` kwarg. (:issue:`15021`)

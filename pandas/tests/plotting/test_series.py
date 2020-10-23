@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """ Test cases for Series.plot """
 
 
@@ -14,8 +12,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import DataFrame, Series, date_range
+import pandas._testing as tm
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
-import pandas.util.testing as tm
 
 import pandas.plotting as plotting
 
@@ -111,6 +109,7 @@ class TestSeriesPlots(TestPlotBase):
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
         assert xmax >= line[-1]
+        self._check_ticks_props(ax, xrot=0)
         tm.close()
 
         # GH 7471
@@ -120,6 +119,7 @@ class TestSeriesPlots(TestPlotBase):
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
         assert xmax >= line[-1]
+        self._check_ticks_props(ax, xrot=30)
         tm.close()
 
         tz_ts = self.ts.copy()
@@ -130,6 +130,7 @@ class TestSeriesPlots(TestPlotBase):
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
         assert xmax >= line[-1]
+        self._check_ticks_props(ax, xrot=0)
         tm.close()
 
         _, ax = self.plt.subplots()
@@ -138,6 +139,7 @@ class TestSeriesPlots(TestPlotBase):
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
         assert xmax >= line[-1]
+        self._check_ticks_props(ax, xrot=0)
 
     def test_label(self):
         s = Series([1, 2])
@@ -166,6 +168,15 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.get_legend() is None  # Hasn't been drawn
         ax.legend()  # draw it
         self._check_legend_labels(ax, labels=["LABEL"])
+
+    def test_boolean(self):
+        # GH 23719
+        s = Series([False, False, True])
+        _check_plot_works(s.plot, include_bool=True)
+
+        msg = "no numeric data to plot"
+        with pytest.raises(TypeError, match=msg):
+            _check_plot_works(s.plot)
 
     def test_line_area_nan_series(self):
         values = [1, 2, np.nan, 3]
@@ -267,14 +278,17 @@ class TestSeriesPlots(TestPlotBase):
         self._check_ticks_props(axes, xrot=30)
 
     def test_irregular_datetime(self):
+        from pandas.plotting._matplotlib.converter import DatetimeConverter
+
         rng = date_range("1/1/2000", "3/1/2000")
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
         ser = Series(randn(len(rng)), rng)
         _, ax = self.plt.subplots()
         ax = ser.plot(ax=ax)
-        xp = datetime(1999, 1, 1).toordinal()
+        xp = DatetimeConverter.convert(datetime(1999, 1, 1), "", ax)
         ax.set_xlim("1/1/1999", "1/1/2001")
         assert xp == ax.get_xlim()[0]
+        self._check_ticks_props(ax, xrot=30)
 
     def test_unsorted_index_xlim(self):
         ser = Series(
@@ -321,7 +335,7 @@ class TestSeriesPlots(TestPlotBase):
         ax = _check_plot_works(
             series.plot.pie, colors=color_args, autopct="%.2f", fontsize=7
         )
-        pcts = ["{0:.2f}".format(s * 100) for s in series.values / float(series.sum())]
+        pcts = [f"{s*100:.2f}" for s in series.values / float(series.sum())]
         expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
@@ -443,7 +457,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_no_overlap(self):
-        from matplotlib.pyplot import subplot, gcf
+        from matplotlib.pyplot import gcf, subplot
 
         x = Series(randn(2))
         y = Series(randn(2))
@@ -610,7 +624,7 @@ class TestSeriesPlots(TestPlotBase):
         sample_points = np.linspace(-100, 100, 20)
         _check_plot_works(self.ts.plot.kde, bw_method="scott", ind=20)
         _check_plot_works(self.ts.plot.kde, bw_method=None, ind=20)
-        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=np.int(20))
+        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=np.int_(20))
         _check_plot_works(self.ts.plot.kde, bw_method=0.5, ind=sample_points)
         _check_plot_works(self.ts.plot.density, bw_method=0.5, ind=sample_points)
         _, ax = self.plt.subplots()
@@ -677,11 +691,13 @@ class TestSeriesPlots(TestPlotBase):
         kinds = (
             plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds
         )
-        _, ax = self.plt.subplots()
         for kind in kinds:
-
+            _, ax = self.plt.subplots()
             s.plot(kind=kind, ax=ax)
+            self.plt.close()
+            _, ax = self.plt.subplots()
             getattr(s.plot, kind)()
+            self.plt.close()
 
     @pytest.mark.slow
     def test_invalid_plot_data(self):
@@ -721,6 +737,26 @@ class TestSeriesPlots(TestPlotBase):
         values = randn(index.size)
         s = Series(values, index=index)
         _check_plot_works(s.plot)
+
+    def test_errorbar_asymmetrical(self):
+        # GH9536
+        s = Series(np.arange(10), name="x")
+        err = np.random.rand(2, 10)
+
+        ax = s.plot(yerr=err, xerr=err)
+
+        result = np.vstack([i.vertices[:, 1] for i in ax.collections[1].get_paths()])
+        expected = (err.T * np.array([-1, 1])) + s.to_numpy().reshape(-1, 1)
+        tm.assert_numpy_array_equal(result, expected)
+
+        msg = (
+            "Asymmetrical error bars should be provided "
+            f"with the shape \\(2, {len(s)}\\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            s.plot(yerr=np.random.rand(2, 11))
+
+        tm.close()
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
@@ -778,52 +814,53 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_standard_colors(self):
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
         for c in ["r", "red", "green", "#FF0000"]:
-            result = _get_standard_colors(1, color=c)
+            result = get_standard_colors(1, color=c)
             assert result == [c]
 
-            result = _get_standard_colors(1, color=[c])
+            result = get_standard_colors(1, color=[c])
             assert result == [c]
 
-            result = _get_standard_colors(3, color=c)
+            result = get_standard_colors(3, color=c)
             assert result == [c] * 3
 
-            result = _get_standard_colors(3, color=[c])
+            result = get_standard_colors(3, color=[c])
             assert result == [c] * 3
 
     @pytest.mark.slow
     def test_standard_colors_all(self):
         import matplotlib.colors as colors
-        from pandas.plotting._matplotlib.style import _get_standard_colors
+
+        from pandas.plotting._matplotlib.style import get_standard_colors
 
         # multiple colors like mediumaquamarine
         for c in colors.cnames:
-            result = _get_standard_colors(num_colors=1, color=c)
+            result = get_standard_colors(num_colors=1, color=c)
             assert result == [c]
 
-            result = _get_standard_colors(num_colors=1, color=[c])
+            result = get_standard_colors(num_colors=1, color=[c])
             assert result == [c]
 
-            result = _get_standard_colors(num_colors=3, color=c)
+            result = get_standard_colors(num_colors=3, color=c)
             assert result == [c] * 3
 
-            result = _get_standard_colors(num_colors=3, color=[c])
+            result = get_standard_colors(num_colors=3, color=[c])
             assert result == [c] * 3
 
         # single letter colors like k
         for c in colors.ColorConverter.colors:
-            result = _get_standard_colors(num_colors=1, color=c)
+            result = get_standard_colors(num_colors=1, color=c)
             assert result == [c]
 
-            result = _get_standard_colors(num_colors=1, color=[c])
+            result = get_standard_colors(num_colors=1, color=[c])
             assert result == [c]
 
-            result = _get_standard_colors(num_colors=3, color=c)
+            result = get_standard_colors(num_colors=3, color=c)
             assert result == [c] * 3
 
-            result = _get_standard_colors(num_colors=3, color=[c])
+            result = get_standard_colors(num_colors=3, color=[c])
             assert result == [c] * 3
 
     def test_series_plot_color_kwargs(self):
@@ -856,11 +893,18 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_xticklabels(self):
         # GH11529
-        s = Series(np.arange(10), index=["P{i:02d}".format(i=i) for i in range(10)])
+        s = Series(np.arange(10), index=[f"P{i:02d}" for i in range(10)])
         _, ax = self.plt.subplots()
         ax = s.plot(xticks=[0, 3, 5, 9], ax=ax)
-        exp = ["P{i:02d}".format(i=i) for i in [0, 3, 5, 9]]
+        exp = [f"P{i:02d}" for i in [0, 3, 5, 9]]
         self._check_text_labels(ax.get_xticklabels(), exp)
+
+    def test_xtick_barPlot(self):
+        # GH28172
+        s = Series(range(10), index=[f"P{i:02d}" for i in range(10)])
+        ax = s.plot.bar(xticks=range(0, 11, 2))
+        exp = np.array(list(range(0, 11, 2)))
+        tm.assert_numpy_array_equal(exp, ax.get_xticks())
 
     def test_custom_business_day_freq(self):
         # GH7222
@@ -888,3 +932,55 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         after = ax.xaxis.get_ticklocs()
         tm.assert_numpy_array_equal(before, after)
+
+    @pytest.mark.parametrize("kind", ["line", "area"])
+    def test_plot_xlim_for_series(self, kind):
+        # test if xlim is also correctly plotted in Series for line and area
+        # GH 27686
+        s = Series([2, 3])
+        _, ax = self.plt.subplots()
+        s.plot(kind=kind, ax=ax)
+        xlims = ax.get_xlim()
+
+        assert xlims[0] < 0
+        assert xlims[1] > 1
+
+    def test_plot_no_rows(self):
+        # GH 27758
+        df = Series(dtype=int)
+        assert df.empty
+        ax = df.plot()
+        assert len(ax.get_lines()) == 1
+        line = ax.get_lines()[0]
+        assert len(line.get_xdata()) == 0
+        assert len(line.get_ydata()) == 0
+
+    def test_plot_no_numeric_data(self):
+        df = Series(["a", "b", "c"])
+        with pytest.raises(TypeError):
+            df.plot()
+
+    def test_style_single_ok(self):
+        s = Series([1, 2])
+        ax = s.plot(style="s", color="C3")
+        assert ax.lines[0].get_color() == "C3"
+
+    @pytest.mark.parametrize(
+        "index_name, old_label, new_label",
+        [(None, "", "new"), ("old", "old", "new"), (None, "", "")],
+    )
+    @pytest.mark.parametrize("kind", ["line", "area", "bar"])
+    def test_xlabel_ylabel_series(self, kind, index_name, old_label, new_label):
+        # GH 9093
+        ser = Series([1, 2, 3, 4])
+        ser.index.name = index_name
+
+        # default is the ylabel is not shown and xlabel is index name
+        ax = ser.plot(kind=kind)
+        assert ax.get_ylabel() == ""
+        assert ax.get_xlabel() == old_label
+
+        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)
+        assert ax.get_ylabel() == new_label
+        assert ax.get_xlabel() == new_label

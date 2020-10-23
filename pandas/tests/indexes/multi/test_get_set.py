@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalIndex, Index, MultiIndex
-import pandas.util.testing as tm
+from pandas import CategoricalIndex, MultiIndex
+import pandas._testing as tm
 
 
 def assert_matching(actual, expected, check_dtype=False):
@@ -27,90 +27,13 @@ def test_get_level_number_integer(idx):
         idx._get_level_number("fourth")
 
 
-def test_get_level_values(idx):
-    result = idx.get_level_values(0)
-    expected = Index(["foo", "foo", "bar", "baz", "qux", "qux"], name="first")
-    tm.assert_index_equal(result, expected)
-    assert result.name == "first"
+def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):
+    frame = multiindex_dataframe_random_data
 
-    result = idx.get_level_values("first")
-    expected = idx.get_level_values(0)
-    tm.assert_index_equal(result, expected)
-
-    # GH 10460
-    index = MultiIndex(
-        levels=[CategoricalIndex(["A", "B"]), CategoricalIndex([1, 2, 3])],
-        codes=[np.array([0, 0, 0, 1, 1, 1]), np.array([0, 1, 2, 0, 1, 2])],
-    )
-
-    exp = CategoricalIndex(["A", "A", "A", "B", "B", "B"])
-    tm.assert_index_equal(index.get_level_values(0), exp)
-    exp = CategoricalIndex([1, 2, 3, 1, 2, 3])
-    tm.assert_index_equal(index.get_level_values(1), exp)
-
-
-def test_get_value_duplicates():
-    index = MultiIndex(
-        levels=[["D", "B", "C"], [0, 26, 27, 37, 57, 67, 75, 82]],
-        codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
-        names=["tag", "day"],
-    )
-
-    assert index.get_loc("D") == slice(0, 3)
-    with pytest.raises(KeyError, match=r"^'D'$"):
-        index._engine.get_value(np.array([]), "D")
-
-
-def test_get_level_values_all_na():
-    # GH 17924 when level entirely consists of nan
-    arrays = [[np.nan, np.nan, np.nan], ["a", np.nan, 1]]
-    index = pd.MultiIndex.from_arrays(arrays)
-    result = index.get_level_values(0)
-    expected = pd.Index([np.nan, np.nan, np.nan], dtype=np.float64)
-    tm.assert_index_equal(result, expected)
-
-    result = index.get_level_values(1)
-    expected = pd.Index(["a", np.nan, 1], dtype=object)
-    tm.assert_index_equal(result, expected)
-
-
-def test_get_level_values_int_with_na():
-    # GH 17924
-    arrays = [["a", "b", "b"], [1, np.nan, 2]]
-    index = pd.MultiIndex.from_arrays(arrays)
-    result = index.get_level_values(1)
-    expected = Index([1, np.nan, 2])
-    tm.assert_index_equal(result, expected)
-
-    arrays = [["a", "b", "b"], [np.nan, np.nan, 2]]
-    index = pd.MultiIndex.from_arrays(arrays)
-    result = index.get_level_values(1)
-    expected = Index([np.nan, np.nan, 2])
-    tm.assert_index_equal(result, expected)
-
-
-def test_get_level_values_na():
-    arrays = [[np.nan, np.nan, np.nan], ["a", np.nan, 1]]
-    index = pd.MultiIndex.from_arrays(arrays)
-    result = index.get_level_values(0)
-    expected = pd.Index([np.nan, np.nan, np.nan])
-    tm.assert_index_equal(result, expected)
-
-    result = index.get_level_values(1)
-    expected = pd.Index(["a", np.nan, 1])
-    tm.assert_index_equal(result, expected)
-
-    arrays = [["a", "b", "b"], pd.DatetimeIndex([0, 1, pd.NaT])]
-    index = pd.MultiIndex.from_arrays(arrays)
-    result = index.get_level_values(1)
-    expected = pd.DatetimeIndex([0, 1, pd.NaT])
-    tm.assert_index_equal(result, expected)
-
-    arrays = [[], []]
-    index = pd.MultiIndex.from_arrays(arrays)
-    result = index.get_level_values(0)
-    expected = pd.Index([], dtype=object)
-    tm.assert_index_equal(result, expected)
+    with pytest.raises(IndexError, match="Too many levels"):
+        frame.index._get_level_number(2)
+    with pytest.raises(IndexError, match="not a valid level number"):
+        frame.index._get_level_number(-3)
 
 
 def test_set_name_methods(idx, index_names):
@@ -159,7 +82,7 @@ def test_set_levels_codes_directly(idx):
     minor_codes = [(x + 1) % 1 for x in minor_codes]
     new_codes = [major_codes, minor_codes]
 
-    msg = "can't set attribute"
+    msg = "[Cc]an't set attribute"
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
     with pytest.raises(AttributeError, match=msg):
@@ -179,7 +102,8 @@ def test_set_levels(idx):
 
     # level changing [w/ mutation]
     ind2 = idx.copy()
-    inplace_return = ind2.set_levels(new_levels, inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        inplace_return = ind2.set_levels(new_levels, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.levels, new_levels)
 
@@ -199,20 +123,23 @@ def test_set_levels(idx):
 
     # level changing specific level [w/ mutation]
     ind2 = idx.copy()
-    inplace_return = ind2.set_levels(new_levels[0], level=0, inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        inplace_return = ind2.set_levels(new_levels[0], level=0, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.levels, [new_levels[0], levels[1]])
     assert_matching(idx.levels, levels)
 
     ind2 = idx.copy()
-    inplace_return = ind2.set_levels(new_levels[1], level=1, inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        inplace_return = ind2.set_levels(new_levels[1], level=1, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.levels, [levels[0], new_levels[1]])
     assert_matching(idx.levels, levels)
 
     # level changing multiple levels [w/ mutation]
     ind2 = idx.copy()
-    inplace_return = ind2.set_levels(new_levels, level=[0, 1], inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        inplace_return = ind2.set_levels(new_levels, level=[0, 1], inplace=True)
     assert inplace_return is None
     assert_matching(ind2.levels, new_levels)
     assert_matching(idx.levels, levels)
@@ -222,19 +149,23 @@ def test_set_levels(idx):
     original_index = idx.copy()
     for inplace in [True, False]:
         with pytest.raises(ValueError, match="^On"):
-            idx.set_levels(["c"], level=0, inplace=inplace)
+            with tm.assert_produces_warning(FutureWarning):
+                idx.set_levels(["c"], level=0, inplace=inplace)
         assert_matching(idx.levels, original_index.levels, check_dtype=True)
 
         with pytest.raises(ValueError, match="^On"):
-            idx.set_codes([0, 1, 2, 3, 4, 5], level=0, inplace=inplace)
+            with tm.assert_produces_warning(FutureWarning):
+                idx.set_codes([0, 1, 2, 3, 4, 5], level=0, inplace=inplace)
         assert_matching(idx.codes, original_index.codes, check_dtype=True)
 
         with pytest.raises(TypeError, match="^Levels"):
-            idx.set_levels("c", level=0, inplace=inplace)
+            with tm.assert_produces_warning(FutureWarning):
+                idx.set_levels("c", level=0, inplace=inplace)
         assert_matching(idx.levels, original_index.levels, check_dtype=True)
 
         with pytest.raises(TypeError, match="^Codes"):
-            idx.set_codes(1, level=0, inplace=inplace)
+            with tm.assert_produces_warning(FutureWarning):
+                idx.set_codes(1, level=0, inplace=inplace)
         assert_matching(idx.codes, original_index.codes, check_dtype=True)
 
 
@@ -254,7 +185,8 @@ def test_set_codes(idx):
 
     # changing label w/ mutation
     ind2 = idx.copy()
-    inplace_return = ind2.set_codes(new_codes, inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        inplace_return = ind2.set_codes(new_codes, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.codes, new_codes)
 
@@ -274,20 +206,23 @@ def test_set_codes(idx):
 
     # label changing specific level w/ mutation
     ind2 = idx.copy()
-    inplace_return = ind2.set_codes(new_codes[0], level=0, inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        inplace_return = ind2.set_codes(new_codes[0], level=0, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.codes, [new_codes[0], codes[1]])
     assert_matching(idx.codes, codes)
 
     ind2 = idx.copy()
-    inplace_return = ind2.set_codes(new_codes[1], level=1, inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        inplace_return = ind2.set_codes(new_codes[1], level=1, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.codes, [codes[0], new_codes[1]])
     assert_matching(idx.codes, codes)
 
     # codes changing multiple levels [w/ mutation]
     ind2 = idx.copy()
-    inplace_return = ind2.set_codes(new_codes, level=[0, 1], inplace=True)
+    with tm.assert_produces_warning(FutureWarning):
+        inplace_return = ind2.set_codes(new_codes, level=[0, 1], inplace=True)
     assert inplace_return is None
     assert_matching(ind2.codes, new_codes)
     assert_matching(idx.codes, codes)
@@ -303,28 +238,8 @@ def test_set_codes(idx):
 
     # [w/ mutation]
     result = ind.copy()
-    result.set_codes(codes=new_codes, level=1, inplace=True)
-    assert result.equals(expected)
-
     with tm.assert_produces_warning(FutureWarning):
-        ind.set_codes(labels=new_codes, level=1)
-
-
-def test_set_labels_deprecated():
-    # GH23752
-    ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
-    new_labels = range(129, -1, -1)
-    expected = pd.MultiIndex.from_tuples([(0, i) for i in new_labels])
-
-    # [w/o mutation]
-    with tm.assert_produces_warning(FutureWarning):
-        result = ind.set_labels(labels=new_labels, level=1)
-    assert result.equals(expected)
-
-    # [w/ mutation]
-    result = ind.copy()
-    with tm.assert_produces_warning(FutureWarning):
-        result.set_labels(labels=new_labels, level=1, inplace=True)
+        result.set_codes(codes=new_codes, level=1, inplace=True)
     assert result.equals(expected)
 
 
@@ -436,3 +351,19 @@ def test_set_levels_with_iterable():
         [expected_sizes, colors], names=["size", "color"]
     )
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+def test_set_codes_inplace_deprecated(idx, inplace):
+    new_codes = idx.codes[1][::-1]
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx.set_codes(codes=new_codes, level=1, inplace=inplace)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+def test_set_levels_inplace_deprecated(idx, inplace):
+    new_level = idx.levels[1].copy()
+
+    with tm.assert_produces_warning(FutureWarning):
+        idx.set_levels(levels=new_level, level=1, inplace=inplace)

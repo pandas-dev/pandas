@@ -1,18 +1,27 @@
 import random
+from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
 import numpy as np
 
+from pandas._typing import Label
+
 from pandas.core.dtypes.missing import notna
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.style import _get_standard_colors
-from pandas.plotting._matplotlib.tools import _set_ticks_props, _subplots
+from pandas.plotting._matplotlib.style import get_standard_colors
+from pandas.plotting._matplotlib.tools import create_subplots, set_ticks_props
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
+
+    from pandas import DataFrame, Series
 
 
 def scatter_matrix(
-    frame,
+    frame: "DataFrame",
     alpha=0.5,
     figsize=None,
     ax=None,
@@ -22,12 +31,12 @@ def scatter_matrix(
     density_kwds=None,
     hist_kwds=None,
     range_padding=0.05,
-    **kwds
+    **kwds,
 ):
     df = frame._get_numeric_data()
     n = df.columns.size
     naxes = n * n
-    fig, axes = _subplots(naxes=naxes, figsize=figsize, ax=ax, squeeze=False)
+    fig, axes = create_subplots(naxes=naxes, figsize=figsize, ax=ax, squeeze=False)
 
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
@@ -103,7 +112,7 @@ def scatter_matrix(
             locs = locs.astype(int)
         axes[0][0].yaxis.set_ticklabels(locs)
 
-    _set_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
+    set_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
     return axes
 
@@ -114,7 +123,14 @@ def _get_marker_compat(marker):
     return marker
 
 
-def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
+def radviz(
+    frame: "DataFrame",
+    class_column,
+    ax: Optional["Axes"] = None,
+    color=None,
+    colormap=None,
+    **kwds,
+) -> "Axes":
     import matplotlib.pyplot as plt
 
     def normalize(series):
@@ -130,8 +146,8 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     if ax is None:
         ax = plt.gca(xlim=[-1, 1], ylim=[-1, 1])
 
-    to_plot = {}
-    colors = _get_standard_colors(
+    to_plot: Dict[Label, List[List]] = {}
+    colors = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
 
@@ -160,7 +176,7 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
             to_plot[kls][1],
             color=colors[i],
             label=pprint_thing(kls),
-            **kwds
+            **kwds,
         )
     ax.legend()
 
@@ -197,8 +213,14 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
 
 
 def andrews_curves(
-    frame, class_column, ax=None, samples=200, color=None, colormap=None, **kwds
-):
+    frame: "DataFrame",
+    class_column,
+    ax: Optional["Axes"] = None,
+    samples: int = 200,
+    color=None,
+    colormap=None,
+    **kwds,
+) -> "Axes":
     import matplotlib.pyplot as plt
 
     def function(amplitudes):
@@ -231,9 +253,9 @@ def andrews_curves(
     classes = frame[class_column].drop_duplicates()
     df = frame.drop(class_column, axis=1)
     t = np.linspace(-np.pi, np.pi, samples)
-    used_legends = set()
+    used_legends: Set[str] = set()
 
-    color_values = _get_standard_colors(
+    color_values = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
     colors = dict(zip(classes, color_values))
@@ -256,10 +278,17 @@ def andrews_curves(
     return ax
 
 
-def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
+def bootstrap_plot(
+    series: "Series",
+    fig: Optional["Figure"] = None,
+    size: int = 50,
+    samples: int = 500,
+    **kwds,
+) -> "Figure":
 
     import matplotlib.pyplot as plt
 
+    # TODO: is the failure mentioned below still relevant?
     # random.sample(ndarray, int) fails on python 3.3, sigh
     data = list(series.values)
     samplings = [random.sample(data, size) for _ in range(samples)]
@@ -300,23 +329,24 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     for axis in axes:
         plt.setp(axis.get_xticklabels(), fontsize=8)
         plt.setp(axis.get_yticklabels(), fontsize=8)
+    plt.tight_layout()
     return fig
 
 
 def parallel_coordinates(
-    frame,
+    frame: "DataFrame",
     class_column,
     cols=None,
-    ax=None,
+    ax: Optional["Axes"] = None,
     color=None,
     use_columns=False,
     xticks=None,
     colormap=None,
-    axvlines=True,
+    axvlines: bool = True,
     axvlines_kwds=None,
-    sort_labels=False,
-    **kwds
-):
+    sort_labels: bool = False,
+    **kwds,
+) -> "Axes":
     import matplotlib.pyplot as plt
 
     if axvlines_kwds is None:
@@ -331,7 +361,7 @@ def parallel_coordinates(
     else:
         df = frame[cols]
 
-    used_legends = set()
+    used_legends: Set[str] = set()
 
     ncols = len(df.columns)
 
@@ -352,7 +382,7 @@ def parallel_coordinates(
     if ax is None:
         ax = plt.gca()
 
-    color_values = _get_standard_colors(
+    color_values = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
 
@@ -383,8 +413,10 @@ def parallel_coordinates(
     return ax
 
 
-def lag_plot(series, lag=1, ax=None, **kwds):
-    # workaround because `c='b'` is hardcoded in matplotlibs scatter method
+def lag_plot(
+    series: "Series", lag: int = 1, ax: Optional["Axes"] = None, **kwds
+) -> "Axes":
+    # workaround because `c='b'` is hardcoded in matplotlib's scatter method
     import matplotlib.pyplot as plt
 
     kwds.setdefault("c", plt.rcParams["patch.facecolor"])
@@ -395,12 +427,14 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     if ax is None:
         ax = plt.gca()
     ax.set_xlabel("y(t)")
-    ax.set_ylabel("y(t + {lag})".format(lag=lag))
+    ax.set_ylabel(f"y(t + {lag})")
     ax.scatter(y1, y2, **kwds)
     return ax
 
 
-def autocorrelation_plot(series, ax=None, **kwds):
+def autocorrelation_plot(
+    series: "Series", ax: Optional["Axes"] = None, **kwds
+) -> "Axes":
     import matplotlib.pyplot as plt
 
     n = len(series)

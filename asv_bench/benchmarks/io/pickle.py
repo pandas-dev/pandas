@@ -1,8 +1,8 @@
 import numpy as np
-from pandas import DataFrame, date_range, read_pickle
-import pandas.util.testing as tm
 
-from ..pandas_vb_common import BaseIO
+from pandas import DataFrame, date_range, read_pickle
+
+from ..pandas_vb_common import BaseIO, tm
 
 
 class Pickle(BaseIO):
@@ -12,7 +12,7 @@ class Pickle(BaseIO):
         C = 5
         self.df = DataFrame(
             np.random.randn(N, C),
-            columns=["float{}".format(i) for i in range(C)],
+            columns=[f"float{i}" for i in range(C)],
             index=date_range("20000101", periods=N, freq="H"),
         )
         self.df["object"] = tm.makeStringIndex(N)
@@ -24,5 +24,11 @@ class Pickle(BaseIO):
     def time_write_pickle(self):
         self.df.to_pickle(self.fname)
 
+    def peakmem_read_pickle(self):
+        read_pickle(self.fname)
 
-from ..pandas_vb_common import setup  # noqa: F401
+    def peakmem_write_pickle(self):
+        self.df.to_pickle(self.fname)
+
+
+from ..pandas_vb_common import setup  # noqa: F401 isort:skip
