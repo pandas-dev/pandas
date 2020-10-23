@@ -7,17 +7,46 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
+m = 50
+n = 1000
+cols = ["jim", "joe", "jolie", "joline", "jolia"]
 
-@pytest.mark.slow
+vals = [
+    np.random.randint(0, 10, n),
+    np.random.choice(list("abcdefghij"), n),
+    np.random.choice(pd.date_range("20141009", periods=10).tolist(), n),
+    np.random.choice(list("ZYXWVUTSRQ"), n),
+    np.random.randn(n),
+]
+vals = list(map(tuple, zip(*vals)))
+
+# bunch of keys for testing
+keys = [
+    np.random.randint(0, 11, m),
+    np.random.choice(list("abcdefghijk"), m),
+    np.random.choice(pd.date_range("20141009", periods=11).tolist(), m),
+    np.random.choice(list("ZYXWVUTSRQP"), m),
+]
+keys = list(map(tuple, zip(*keys)))
+keys += list(map(lambda t: t[:-1], vals[:: n // m]))
+
+
+# covers both unique index and non-unique index
+df = DataFrame(vals, columns=cols)
+a = pd.concat([df, df])
+b = df.drop_duplicates(subset=cols[:-1])
+
+
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
-def test_multiindex_get_loc():  # GH7724, GH2646
+@pytest.mark.parametrize("lexsort_depth", list(range(5)))
+@pytest.mark.parametrize("key", keys)
+@pytest.mark.parametrize("frame", [a, b])
+def test_multiindex_get_loc(lexsort_depth, key, frame):
+    # GH7724, GH2646
 
     with warnings.catch_warnings(record=True):
 
         # test indexing into a multi-index before & past the lexsort depth
-        from numpy.random import choice, randint, randn
-
-        cols = ["jim", "joe", "jolie", "joline", "jolia"]
 
         def validate(mi, df, key):
             mask = np.ones(len(df)).astype("bool")
@@ -51,38 +80,11 @@ def test_multiindex_get_loc():  # GH7724, GH2646
                     else:  # multi hit
                         tm.assert_frame_equal(mi.loc[key[: i + 1]], right)
 
-        def loop(mi, df, keys):
-            for key in keys:
-                validate(mi, df, key)
+        if lexsort_depth == 0:
+            df = frame.copy()
+        else:
+            df = frame.sort_values(by=cols[:lexsort_depth])
 
-        n, m = 1000, 50
-
-        vals = [
-            randint(0, 10, n),
-            choice(list("abcdefghij"), n),
-            choice(pd.date_range("20141009", periods=10).tolist(), n),
-            choice(list("ZYXWVUTSRQ"), n),
-            randn(n),
-        ]
-        vals = list(map(tuple, zip(*vals)))
-
-        # bunch of keys for testing
-        keys = [
-            randint(0, 11, m),
-            choice(list("abcdefghijk"), m),
-            choice(pd.date_range("20141009", periods=11).tolist(), m),
-            choice(list("ZYXWVUTSRQP"), m),
-        ]
-        keys = list(map(tuple, zip(*keys)))
-        keys += list(map(lambda t: t[:-1], vals[:: n // m]))
-
-        # covers both unique index and non-unique index
-        df = DataFrame(vals, columns=cols)
-        a, b = pd.concat([df, df]), df.drop_duplicates(subset=cols[:-1])
-
-        for frame in a, b:
-            for i in range(5):  # lexsort depth
-                df = frame.copy() if i == 0 else frame.sort_values(by=cols[:i])
-                mi = df.set_index(cols[:-1])
-                assert not mi.index.lexsort_depth < i
-                loop(mi, df, keys)
+        mi = df.set_index(cols[:-1])
+        assert not mi.index.lexsort_depth < lexsort_depth
+        validate(mi, df, key)

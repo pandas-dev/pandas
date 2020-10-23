@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas._libs import join as _join
+from pandas._libs import join as libjoin
+from pandas._libs.join import inner_join, left_outer_join
 
-from pandas import Categorical, DataFrame, Index, merge
 import pandas._testing as tm
 
 
@@ -12,7 +12,7 @@ class TestIndexer:
         "dtype", ["int32", "int64", "float32", "float64", "object"]
     )
     def test_outer_join_indexer(self, dtype):
-        indexer = _join.outer_join_indexer
+        indexer = libjoin.outer_join_indexer
 
         left = np.arange(3, dtype=dtype)
         right = np.arange(2, 5, dtype=dtype)
@@ -42,12 +42,104 @@ class TestIndexer:
         exp = np.array([-1, -1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(rindexer, exp)
 
+    def test_cython_left_outer_join(self):
+        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = np.array([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
+        max_group = 5
+
+        ls, rs = left_outer_join(left, right, max_group)
+
+        exp_ls = left.argsort(kind="mergesort")
+        exp_rs = right.argsort(kind="mergesort")
+
+        exp_li = np.array([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10])
+        exp_ri = np.array(
+            [0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 4, 5, 4, 5, -1, -1]
+        )
+
+        exp_ls = exp_ls.take(exp_li)
+        exp_ls[exp_li == -1] = -1
+
+        exp_rs = exp_rs.take(exp_ri)
+        exp_rs[exp_ri == -1] = -1
+
+        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+
+    def test_cython_right_outer_join(self):
+        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = np.array([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
+        max_group = 5
+
+        rs, ls = left_outer_join(right, left, max_group)
+
+        exp_ls = left.argsort(kind="mergesort")
+        exp_rs = right.argsort(kind="mergesort")
+
+        #            0        1        1        1
+        exp_li = np.array(
+            [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                3,
+                4,
+                5,
+                3,
+                4,
+                5,
+                #            2        2        4
+                6,
+                7,
+                8,
+                6,
+                7,
+                8,
+                -1,
+            ]
+        )
+        exp_ri = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6])
+
+        exp_ls = exp_ls.take(exp_li)
+        exp_ls[exp_li == -1] = -1
+
+        exp_rs = exp_rs.take(exp_ri)
+        exp_rs[exp_ri == -1] = -1
+
+        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+
+    def test_cython_inner_join(self):
+        left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
+        right = np.array([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
+        max_group = 5
+
+        ls, rs = inner_join(left, right, max_group)
+
+        exp_ls = left.argsort(kind="mergesort")
+        exp_rs = right.argsort(kind="mergesort")
+
+        exp_li = np.array([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8])
+        exp_ri = np.array([0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 4, 5, 4, 5])
+
+        exp_ls = exp_ls.take(exp_li)
+        exp_ls[exp_li == -1] = -1
+
+        exp_rs = exp_rs.take(exp_ri)
+        exp_rs[exp_ri == -1] = -1
+
+        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
+        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+
 
 def test_left_join_indexer_unique():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([2, 2, 3, 4, 4], dtype=np.int64)
 
-    result = _join.left_join_indexer_unique(b, a)
+    result = libjoin.left_join_indexer_unique(b, a)
     expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -162,7 +254,7 @@ def test_left_outer_join_bug():
     right = np.array([3, 1], dtype=np.int64)
     max_groups = 4
 
-    lidx, ridx = _join.left_outer_join(left, right, max_groups, sort=False)
+    lidx, ridx = libjoin.left_outer_join(left, right, max_groups, sort=False)
 
     exp_lidx = np.arange(len(left), dtype=np.int64)
     exp_ridx = -np.ones(len(left), dtype=np.int64)
@@ -178,7 +270,7 @@ def test_inner_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = _join.inner_join_indexer(a, b)
+    index, ares, bres = libjoin.inner_join_indexer(a, b)
 
     index_exp = np.array([3, 5], dtype=np.int64)
     tm.assert_almost_equal(index, index_exp)
@@ -191,7 +283,7 @@ def test_inner_join_indexer():
     a = np.array([5], dtype=np.int64)
     b = np.array([5], dtype=np.int64)
 
-    index, ares, bres = _join.inner_join_indexer(a, b)
+    index, ares, bres = libjoin.inner_join_indexer(a, b)
     tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
     tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
     tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
@@ -201,7 +293,7 @@ def test_outer_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = _join.outer_join_indexer(a, b)
+    index, ares, bres = libjoin.outer_join_indexer(a, b)
 
     index_exp = np.array([0, 1, 2, 3, 4, 5, 7, 9], dtype=np.int64)
     tm.assert_almost_equal(index, index_exp)
@@ -214,7 +306,7 @@ def test_outer_join_indexer():
     a = np.array([5], dtype=np.int64)
     b = np.array([5], dtype=np.int64)
 
-    index, ares, bres = _join.outer_join_indexer(a, b)
+    index, ares, bres = libjoin.outer_join_indexer(a, b)
     tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
     tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
     tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
@@ -224,7 +316,7 @@ def test_left_join_indexer():
     a = np.array([1, 2, 3, 4, 5], dtype=np.int64)
     b = np.array([0, 3, 5, 7, 9], dtype=np.int64)
 
-    index, ares, bres = _join.left_join_indexer(a, b)
+    index, ares, bres = libjoin.left_join_indexer(a, b)
 
     tm.assert_almost_equal(index, a)
 
@@ -236,17 +328,17 @@ def test_left_join_indexer():
     a = np.array([5], dtype=np.int64)
     b = np.array([5], dtype=np.int64)
 
-    index, ares, bres = _join.left_join_indexer(a, b)
+    index, ares, bres = libjoin.left_join_indexer(a, b)
     tm.assert_numpy_array_equal(index, np.array([5], dtype=np.int64))
     tm.assert_numpy_array_equal(ares, np.array([0], dtype=np.int64))
     tm.assert_numpy_array_equal(bres, np.array([0], dtype=np.int64))
 
 
 def test_left_join_indexer2():
-    idx = Index([1, 1, 2, 5])
-    idx2 = Index([1, 2, 5, 7, 9])
+    idx = np.array([1, 1, 2, 5], dtype=np.int64)
+    idx2 = np.array([1, 2, 5, 7, 9], dtype=np.int64)
 
-    res, lidx, ridx = _join.left_join_indexer(idx2.values, idx.values)
+    res, lidx, ridx = libjoin.left_join_indexer(idx2, idx)
 
     exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
     tm.assert_almost_equal(res, exp_res)
@@ -259,10 +351,10 @@ def test_left_join_indexer2():
 
 
 def test_outer_join_indexer2():
-    idx = Index([1, 1, 2, 5])
-    idx2 = Index([1, 2, 5, 7, 9])
+    idx = np.array([1, 1, 2, 5], dtype=np.int64)
+    idx2 = np.array([1, 2, 5, 7, 9], dtype=np.int64)
 
-    res, lidx, ridx = _join.outer_join_indexer(idx2.values, idx.values)
+    res, lidx, ridx = libjoin.outer_join_indexer(idx2, idx)
 
     exp_res = np.array([1, 1, 2, 5, 7, 9], dtype=np.int64)
     tm.assert_almost_equal(res, exp_res)
@@ -275,10 +367,10 @@ def test_outer_join_indexer2():
 
 
 def test_inner_join_indexer2():
-    idx = Index([1, 1, 2, 5])
-    idx2 = Index([1, 2, 5, 7, 9])
+    idx = np.array([1, 1, 2, 5], dtype=np.int64)
+    idx2 = np.array([1, 2, 5, 7, 9], dtype=np.int64)
 
-    res, lidx, ridx = _join.inner_join_indexer(idx2.values, idx.values)
+    res, lidx, ridx = libjoin.inner_join_indexer(idx2, idx)
 
     exp_res = np.array([1, 1, 2, 5], dtype=np.int64)
     tm.assert_almost_equal(res, exp_res)
@@ -288,59 +380,3 @@ def test_inner_join_indexer2():
 
     exp_ridx = np.array([0, 1, 2, 3], dtype=np.int64)
     tm.assert_almost_equal(ridx, exp_ridx)
-
-
-def test_merge_join_categorical_multiindex():
-    # From issue 16627
-    a = {
-        "Cat1": Categorical(["a", "b", "a", "c", "a", "b"], ["a", "b", "c"]),
-        "Int1": [0, 1, 0, 1, 0, 0],
-    }
-    a = DataFrame(a)
-
-    b = {
-        "Cat": Categorical(["a", "b", "c", "a", "b", "c"], ["a", "b", "c"]),
-        "Int": [0, 0, 0, 1, 1, 1],
-        "Factor": [1.1, 1.2, 1.3, 1.4, 1.5, 1.6],
-    }
-    b = DataFrame(b).set_index(["Cat", "Int"])["Factor"]
-
-    expected = merge(
-        a,
-        b.reset_index(),
-        left_on=["Cat1", "Int1"],
-        right_on=["Cat", "Int"],
-        how="left",
-    )
-    result = a.join(b, on=["Cat1", "Int1"])
-    expected = expected.drop(["Cat", "Int"], axis=1)
-    tm.assert_frame_equal(expected, result)
-
-    # Same test, but with ordered categorical
-    a = {
-        "Cat1": Categorical(
-            ["a", "b", "a", "c", "a", "b"], ["b", "a", "c"], ordered=True
-        ),
-        "Int1": [0, 1, 0, 1, 0, 0],
-    }
-    a = DataFrame(a)
-
-    b = {
-        "Cat": Categorical(
-            ["a", "b", "c", "a", "b", "c"], ["b", "a", "c"], ordered=True
-        ),
-        "Int": [0, 0, 0, 1, 1, 1],
-        "Factor": [1.1, 1.2, 1.3, 1.4, 1.5, 1.6],
-    }
-    b = DataFrame(b).set_index(["Cat", "Int"])["Factor"]
-
-    expected = merge(
-        a,
-        b.reset_index(),
-        left_on=["Cat1", "Int1"],
-        right_on=["Cat", "Int"],
-        how="left",
-    )
-    result = a.join(b, on=["Cat1", "Int1"])
-    expected = expected.drop(["Cat", "Int"], axis=1)
-    tm.assert_frame_equal(expected, result)

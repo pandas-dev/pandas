@@ -34,9 +34,9 @@ class TestDataFrameDescribe:
 
     def test_describe_empty_object(self):
         # GH#27183
-        df = pd.DataFrame({"A": [None, None]}, dtype=object)
+        df = DataFrame({"A": [None, None]}, dtype=object)
         result = df.describe()
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {"A": [0, 0, np.nan, np.nan]},
             dtype=object,
             index=["count", "unique", "top", "freq"],
@@ -48,7 +48,7 @@ class TestDataFrameDescribe:
 
     def test_describe_bool_frame(self):
         # GH#13891
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "bool_data_1": [False, False, True, True],
                 "bool_data_2": [False, True, True, True],
@@ -61,7 +61,7 @@ class TestDataFrameDescribe:
         )
         tm.assert_frame_equal(result, expected)
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "bool_data": [False, False, True, True, False],
                 "int_data": [0, 1, 2, 3, 4],
@@ -74,7 +74,7 @@ class TestDataFrameDescribe:
         )
         tm.assert_frame_equal(result, expected)
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {"bool_data": [False, False, True, True], "str_data": ["a", "b", "c", "a"]}
         )
         result = df.describe()
@@ -119,7 +119,7 @@ class TestDataFrameDescribe:
         # GH#26397
         # Ensure the index of an an empty categorical DataFrame column
         # also contains (count, unique, top, freq)
-        df = pd.DataFrame({"empty_col": Categorical([])})
+        df = DataFrame({"empty_col": Categorical([])})
         result = df.describe()
         expected = DataFrame(
             {"empty_col": [0, 0, np.nan, np.nan]},
@@ -198,7 +198,7 @@ class TestDataFrameDescribe:
         # GH#6145
         t1 = pd.timedelta_range("1 days", freq="D", periods=5)
         t2 = pd.timedelta_range("1 hours", freq="H", periods=5)
-        df = pd.DataFrame({"t1": t1, "t2": t2})
+        df = DataFrame({"t1": t1, "t2": t2})
 
         expected = DataFrame(
             {
@@ -249,7 +249,7 @@ class TestDataFrameDescribe:
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
         s2 = Series(date_range(start, end, tz=tz))
-        df = pd.DataFrame({"s1": s1, "s2": s2})
+        df = DataFrame({"s1": s1, "s2": s2})
 
         expected = DataFrame(
             {
@@ -271,9 +271,9 @@ class TestDataFrameDescribe:
         tm.assert_frame_equal(result, expected)
 
     def test_datetime_is_numeric_includes_datetime(self):
-        df = pd.DataFrame({"a": pd.date_range("2012", periods=3), "b": [1, 2, 3]})
+        df = DataFrame({"a": pd.date_range("2012", periods=3), "b": [1, 2, 3]})
         result = df.describe(datetime_is_numeric=True)
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "a": [
                     3,
@@ -297,10 +297,10 @@ class TestDataFrameDescribe:
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
         s2 = Series(date_range(start, end, tz=tz))
-        df = pd.DataFrame({"s1": s1, "s2": s2})
+        df = DataFrame({"s1": s1, "s2": s2})
 
         s1_ = s1.describe()
-        s2_ = pd.Series(
+        s2_ = Series(
             [
                 5,
                 5,
@@ -334,7 +334,7 @@ class TestDataFrameDescribe:
 
     def test_describe_percentiles_integer_idx(self):
         # GH#26660
-        df = pd.DataFrame({"x": [1]})
+        df = DataFrame({"x": [1]})
         pct = np.linspace(0, 1, 10 + 1)
         result = df.describe(percentiles=pct)
 

@@ -44,11 +44,11 @@ def test_get_level_values_all_na():
     arrays = [[np.nan, np.nan, np.nan], ["a", np.nan, 1]]
     index = pd.MultiIndex.from_arrays(arrays)
     result = index.get_level_values(0)
-    expected = pd.Index([np.nan, np.nan, np.nan], dtype=np.float64)
+    expected = Index([np.nan, np.nan, np.nan], dtype=np.float64)
     tm.assert_index_equal(result, expected)
 
     result = index.get_level_values(1)
-    expected = pd.Index(["a", np.nan, 1], dtype=object)
+    expected = Index(["a", np.nan, 1], dtype=object)
     tm.assert_index_equal(result, expected)
 
 
@@ -71,11 +71,11 @@ def test_get_level_values_na():
     arrays = [[np.nan, np.nan, np.nan], ["a", np.nan, 1]]
     index = pd.MultiIndex.from_arrays(arrays)
     result = index.get_level_values(0)
-    expected = pd.Index([np.nan, np.nan, np.nan])
+    expected = Index([np.nan, np.nan, np.nan])
     tm.assert_index_equal(result, expected)
 
     result = index.get_level_values(1)
-    expected = pd.Index(["a", np.nan, 1])
+    expected = Index(["a", np.nan, 1])
     tm.assert_index_equal(result, expected)
 
     arrays = [["a", "b", "b"], pd.DatetimeIndex([0, 1, pd.NaT])]
@@ -87,7 +87,7 @@ def test_get_level_values_na():
     arrays = [[], []]
     index = pd.MultiIndex.from_arrays(arrays)
     result = index.get_level_values(0)
-    expected = pd.Index([], dtype=object)
+    expected = Index([], dtype=object)
     tm.assert_index_equal(result, expected)
 
 
