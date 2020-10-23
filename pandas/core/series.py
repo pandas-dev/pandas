@@ -4639,6 +4639,7 @@ Keep all original rows and also all original values
             Series.describe: Generate descriptive statistics of Series.
             Series.memory_usage: Memory usage of Series."""
         ),
+        version_added_sub=".. versionadded:: 1.2.0",
     )
     @doc(BaseInfo.render)
     def info(

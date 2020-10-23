@@ -2618,6 +2618,7 @@ class DataFrame(NDFrame, OpsMixin):
                 columns.
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
+        version_added_sub="",
     )
     @doc(BaseInfo.render)
     def info(

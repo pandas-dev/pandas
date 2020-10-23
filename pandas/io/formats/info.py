@@ -206,6 +206,8 @@ class BaseInfo(ABC):
         None
             This method prints a summary of a %(klass)s and returns None.
 
+        %(version_added_sub)s
+
         See Also
         --------
         %(see_also_sub)s
