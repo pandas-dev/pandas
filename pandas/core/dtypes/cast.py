@@ -1315,6 +1315,9 @@ def convert_dtypes(
                     inferred_dtype = "Int64"
                 else:
                     inferred_dtype = "Float64"
+        else:
+            if is_float_dtype(inferred_dtype):
+                inferred_dtype = input_array.dtype
 
         if convert_boolean:
             if is_bool_dtype(input_array.dtype):
