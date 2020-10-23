@@ -67,6 +67,24 @@ class Constructor:
         pd.Categorical(self.series)
 
 
+class AsType:
+    def setup(self):
+        N = 10 ** 6
+
+        self.df = pd.DataFrame(
+            np.random.default_rng()
+            .choice(np.array(list("abcde")), 4 * N)
+            .reshape(N, 4),
+            columns=list("ABCD"),
+        )
+
+        for col in self.df.columns:
+            self.df[col] = self.df[col].astype("category")
+
+    def astype_unicode(self):
+        [self.df[col].astype("unicode") for col in self.df.columns]
+
+
 class Concat:
     def setup(self):
         N = 10 ** 5
