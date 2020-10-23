@@ -104,6 +104,7 @@ conda list
 conda remove --all -q -y -n pandas-dev
 
 echo
+conda config --set channel_priority strict
 echo "conda env create --file=${ENV_FILE}"
 conda env create --file="${ENV_FILE}"
 
