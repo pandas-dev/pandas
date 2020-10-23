@@ -567,7 +567,7 @@ class TestReaders:
         if pd.read_excel.keywords["engine"] == "pyxlsb":
             pytest.xfail("Sheets containing datetimes not supported by pyxlsb")
 
-        expected = pd.DataFrame(
+        expected = DataFrame(
             [
                 [pd.Timestamp("2016-03-12"), "Marc Johnson"],
                 [pd.Timestamp("2016-03-16"), "Jack Black"],
@@ -843,7 +843,7 @@ class TestReaders:
             ["R0", "R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"], name=None
         )
 
-        expected = pd.DataFrame(data, index=si, columns=columns)
+        expected = DataFrame(data, index=si, columns=columns)
 
         actual = pd.read_excel(filename, sheet_name="single_names", index_col=0)
         tm.assert_frame_equal(actual, expected)
@@ -875,7 +875,7 @@ class TestReaders:
         )
         si = Index(["R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"], name=None)
 
-        expected = pd.DataFrame(data, index=si, columns=columns)
+        expected = DataFrame(data, index=si, columns=columns)
 
         actual = pd.read_excel(filename, sheet_name="single_no_names", index_col=0)
         tm.assert_frame_equal(actual, expected)
@@ -975,7 +975,7 @@ class TestReaders:
         tm.assert_series_equal(actual, expected)
 
         actual = pd.read_excel(f, sheet_name="two_columns", squeeze=True)
-        expected = pd.DataFrame({"a": [4, 5, 6], "b": [2, 3, 4]})
+        expected = DataFrame({"a": [4, 5, 6], "b": [2, 3, 4]})
         tm.assert_frame_equal(actual, expected)
 
         actual = pd.read_excel(f, sheet_name="one_column", squeeze=True)
@@ -995,7 +995,7 @@ class TestReaders:
         idx = pd.MultiIndex.from_tuples(
             [("A", "A"), ("key", "val"), (1, 2), (1, 2)], names=(0, 1)
         )
-        expected = pd.DataFrame(data, index=idx, columns=(2, 3))
+        expected = DataFrame(data, index=idx, columns=(2, 3))
         result = pd.read_excel(
             file_name, sheet_name="index_col_none", index_col=[0, 1], header=None
         )
@@ -1158,7 +1158,7 @@ class TestExcelFileRead:
 
     def test_excel_high_surrogate(self, engine):
         # GH 23809
-        expected = pd.DataFrame(["\udc88"], columns=["Column1"])
+        expected = DataFrame(["\udc88"], columns=["Column1"])
 
         # should not produce a segmentation violation
         actual = pd.read_excel("high_surrogate.xlsx")
@@ -1167,11 +1167,11 @@ class TestExcelFileRead:
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, engine, filename):
         # GH 33476
-        idx = pd.Index(["Z"], name="I2")
+        idx = Index(["Z"], name="I2")
         cols = pd.MultiIndex.from_tuples(
             [("A", "B"), ("A", "B.1")], names=["I11", "I12"]
         )
-        expected = pd.DataFrame([[1, 3]], index=idx, columns=cols, dtype="int64")
+        expected = DataFrame([[1, 3]], index=idx, columns=cols, dtype="int64")
         result = pd.read_excel(
             filename, sheet_name="Sheet1", index_col=0, header=[0, 1]
         )
@@ -1192,6 +1192,6 @@ class TestExcelFileRead:
                 pd.to_datetime("03/01/2020").to_pydatetime(),
             ],
         )
-        expected = pd.DataFrame([], columns=expected_column_index)
+        expected = DataFrame([], columns=expected_column_index)
 
         tm.assert_frame_equal(expected, actual)

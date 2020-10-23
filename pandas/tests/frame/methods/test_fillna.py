@@ -1,214 +1,22 @@
-import datetime
-
-import dateutil
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import Categorical, DataFrame, Series, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    DatetimeIndex,
+    NaT,
+    PeriodIndex,
+    Series,
+    TimedeltaIndex,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
 
 
-class TestDataFrameMissingData:
-    def test_dropEmptyRows(self, float_frame):
-        N = len(float_frame.index)
-        mat = np.random.randn(N)
-        mat[:5] = np.nan
-
-        frame = DataFrame({"foo": mat}, index=float_frame.index)
-        original = Series(mat, index=float_frame.index, name="foo")
-        expected = original.dropna()
-        inplace_frame1, inplace_frame2 = frame.copy(), frame.copy()
-
-        smaller_frame = frame.dropna(how="all")
-        # check that original was preserved
-        tm.assert_series_equal(frame["foo"], original)
-        return_value = inplace_frame1.dropna(how="all", inplace=True)
-        tm.assert_series_equal(smaller_frame["foo"], expected)
-        tm.assert_series_equal(inplace_frame1["foo"], expected)
-        assert return_value is None
-
-        smaller_frame = frame.dropna(how="all", subset=["foo"])
-        return_value = inplace_frame2.dropna(how="all", subset=["foo"], inplace=True)
-        tm.assert_series_equal(smaller_frame["foo"], expected)
-        tm.assert_series_equal(inplace_frame2["foo"], expected)
-        assert return_value is None
-
-    def test_dropIncompleteRows(self, float_frame):
-        N = len(float_frame.index)
-        mat = np.random.randn(N)
-        mat[:5] = np.nan
-
-        frame = DataFrame({"foo": mat}, index=float_frame.index)
-        frame["bar"] = 5
-        original = Series(mat, index=float_frame.index, name="foo")
-        inp_frame1, inp_frame2 = frame.copy(), frame.copy()
-
-        smaller_frame = frame.dropna()
-        tm.assert_series_equal(frame["foo"], original)
-        return_value = inp_frame1.dropna(inplace=True)
-
-        exp = Series(mat[5:], index=float_frame.index[5:], name="foo")
-        tm.assert_series_equal(smaller_frame["foo"], exp)
-        tm.assert_series_equal(inp_frame1["foo"], exp)
-        assert return_value is None
-
-        samesize_frame = frame.dropna(subset=["bar"])
-        tm.assert_series_equal(frame["foo"], original)
-        assert (frame["bar"] == 5).all()
-        return_value = inp_frame2.dropna(subset=["bar"], inplace=True)
-        tm.assert_index_equal(samesize_frame.index, float_frame.index)
-        tm.assert_index_equal(inp_frame2.index, float_frame.index)
-        assert return_value is None
-
-    def test_dropna(self):
-        df = DataFrame(np.random.randn(6, 4))
-        df[2][:2] = np.nan
-
-        dropped = df.dropna(axis=1)
-        expected = df.loc[:, [0, 1, 3]]
-        inp = df.copy()
-        return_value = inp.dropna(axis=1, inplace=True)
-        tm.assert_frame_equal(dropped, expected)
-        tm.assert_frame_equal(inp, expected)
-        assert return_value is None
-
-        dropped = df.dropna(axis=0)
-        expected = df.loc[list(range(2, 6))]
-        inp = df.copy()
-        return_value = inp.dropna(axis=0, inplace=True)
-        tm.assert_frame_equal(dropped, expected)
-        tm.assert_frame_equal(inp, expected)
-        assert return_value is None
-
-        # threshold
-        dropped = df.dropna(axis=1, thresh=5)
-        expected = df.loc[:, [0, 1, 3]]
-        inp = df.copy()
-        return_value = inp.dropna(axis=1, thresh=5, inplace=True)
-        tm.assert_frame_equal(dropped, expected)
-        tm.assert_frame_equal(inp, expected)
-        assert return_value is None
-
-        dropped = df.dropna(axis=0, thresh=4)
-        expected = df.loc[range(2, 6)]
-        inp = df.copy()
-        return_value = inp.dropna(axis=0, thresh=4, inplace=True)
-        tm.assert_frame_equal(dropped, expected)
-        tm.assert_frame_equal(inp, expected)
-        assert return_value is None
-
-        dropped = df.dropna(axis=1, thresh=4)
-        tm.assert_frame_equal(dropped, df)
-
-        dropped = df.dropna(axis=1, thresh=3)
-        tm.assert_frame_equal(dropped, df)
-
-        # subset
-        dropped = df.dropna(axis=0, subset=[0, 1, 3])
-        inp = df.copy()
-        return_value = inp.dropna(axis=0, subset=[0, 1, 3], inplace=True)
-        tm.assert_frame_equal(dropped, df)
-        tm.assert_frame_equal(inp, df)
-        assert return_value is None
-
-        # all
-        dropped = df.dropna(axis=1, how="all")
-        tm.assert_frame_equal(dropped, df)
-
-        df[2] = np.nan
-        dropped = df.dropna(axis=1, how="all")
-        expected = df.loc[:, [0, 1, 3]]
-        tm.assert_frame_equal(dropped, expected)
-
-        # bad input
-        msg = "No axis named 3 for object type DataFrame"
-        with pytest.raises(ValueError, match=msg):
-            df.dropna(axis=3)
-
-    def test_drop_and_dropna_caching(self):
-        # tst that cacher updates
-        original = Series([1, 2, np.nan], name="A")
-        expected = Series([1, 2], dtype=original.dtype, name="A")
-        df = DataFrame({"A": original.values.copy()})
-        df2 = df.copy()
-        df["A"].dropna()
-        tm.assert_series_equal(df["A"], original)
-
-        ser = df["A"]
-        return_value = ser.dropna(inplace=True)
-        tm.assert_series_equal(ser, expected)
-        tm.assert_series_equal(df["A"], original)
-        assert return_value is None
-
-        df2["A"].drop([1])
-        tm.assert_series_equal(df2["A"], original)
-
-        ser = df2["A"]
-        return_value = ser.drop([1], inplace=True)
-        tm.assert_series_equal(ser, original.drop([1]))
-        tm.assert_series_equal(df2["A"], original)
-        assert return_value is None
-
-    def test_dropna_corner(self, float_frame):
-        # bad input
-        msg = "invalid how option: foo"
-        with pytest.raises(ValueError, match=msg):
-            float_frame.dropna(how="foo")
-        msg = "must specify how or thresh"
-        with pytest.raises(TypeError, match=msg):
-            float_frame.dropna(how=None)
-        # non-existent column - 8303
-        with pytest.raises(KeyError, match=r"^\['X'\]$"):
-            float_frame.dropna(subset=["A", "X"])
-
-    def test_dropna_multiple_axes(self):
-        df = DataFrame(
-            [
-                [1, np.nan, 2, 3],
-                [4, np.nan, 5, 6],
-                [np.nan, np.nan, np.nan, np.nan],
-                [7, np.nan, 8, 9],
-            ]
-        )
-
-        # GH20987
-        with pytest.raises(TypeError, match="supplying multiple axes"):
-            df.dropna(how="all", axis=[0, 1])
-        with pytest.raises(TypeError, match="supplying multiple axes"):
-            df.dropna(how="all", axis=(0, 1))
-
-        inp = df.copy()
-        with pytest.raises(TypeError, match="supplying multiple axes"):
-            inp.dropna(how="all", axis=(0, 1), inplace=True)
-
-    def test_dropna_tz_aware_datetime(self):
-        # GH13407
-        df = DataFrame()
-        dt1 = datetime.datetime(2015, 1, 1, tzinfo=dateutil.tz.tzutc())
-        dt2 = datetime.datetime(2015, 2, 2, tzinfo=dateutil.tz.tzutc())
-        df["Time"] = [dt1]
-        result = df.dropna(axis=0)
-        expected = DataFrame({"Time": [dt1]})
-        tm.assert_frame_equal(result, expected)
-
-        # Ex2
-        df = DataFrame({"Time": [dt1, None, np.nan, dt2]})
-        result = df.dropna(axis=0)
-        expected = DataFrame([dt1, dt2], columns=["Time"], index=[0, 3])
-        tm.assert_frame_equal(result, expected)
-
-    def test_dropna_categorical_interval_index(self):
-        # GH 25087
-        ii = pd.IntervalIndex.from_breaks([0, 2.78, 3.14, 6.28])
-        ci = pd.CategoricalIndex(ii)
-        df = DataFrame({"A": list("abc")}, index=ci)
-
-        expected = df
-        result = df.dropna()
-        tm.assert_frame_equal(result, expected)
-
+class TestFillNA:
     def test_fillna_datetime(self, datetime_frame):
         tf = datetime_frame
         tf.loc[tf.index[:5], "A"] = np.nan
@@ -251,7 +59,7 @@ class TestDataFrameMissingData:
         _check_mixed_float(result, dtype=dict(C=None))
 
     def test_fillna_empty(self):
-        # empty frame (GH #2778)
+        # empty frame (GH#2778)
         df = DataFrame(columns=["x"])
         for m in ["pad", "backfill"]:
             df.x.fillna(method=m, inplace=True)
@@ -290,8 +98,8 @@ class TestDataFrameMissingData:
         # GH#6344
         df = DataFrame(
             {
-                "Date": [pd.NaT, Timestamp("2014-1-1")],
-                "Date2": [Timestamp("2013-1-1"), pd.NaT],
+                "Date": [NaT, Timestamp("2014-1-1")],
+                "Date2": [Timestamp("2013-1-1"), NaT],
             }
         )
 
@@ -303,23 +111,23 @@ class TestDataFrameMissingData:
     def test_fillna_tzaware(self):
         # with timezone
         # GH#15855
-        df = DataFrame({"A": [pd.Timestamp("2012-11-11 00:00:00+01:00"), pd.NaT]})
+        df = DataFrame({"A": [Timestamp("2012-11-11 00:00:00+01:00"), NaT]})
         exp = DataFrame(
             {
                 "A": [
-                    pd.Timestamp("2012-11-11 00:00:00+01:00"),
-                    pd.Timestamp("2012-11-11 00:00:00+01:00"),
+                    Timestamp("2012-11-11 00:00:00+01:00"),
+                    Timestamp("2012-11-11 00:00:00+01:00"),
                 ]
             }
         )
         tm.assert_frame_equal(df.fillna(method="pad"), exp)
 
-        df = DataFrame({"A": [pd.NaT, pd.Timestamp("2012-11-11 00:00:00+01:00")]})
+        df = DataFrame({"A": [NaT, Timestamp("2012-11-11 00:00:00+01:00")]})
         exp = DataFrame(
             {
                 "A": [
-                    pd.Timestamp("2012-11-11 00:00:00+01:00"),
-                    pd.Timestamp("2012-11-11 00:00:00+01:00"),
+                    Timestamp("2012-11-11 00:00:00+01:00"),
+                    Timestamp("2012-11-11 00:00:00+01:00"),
                 ]
             }
         )
@@ -330,14 +138,14 @@ class TestDataFrameMissingData:
         # GH#15522
         df = DataFrame(
             {
-                "A": pd.date_range("20130101", periods=4, tz="US/Eastern"),
+                "A": date_range("20130101", periods=4, tz="US/Eastern"),
                 "B": [1, 2, np.nan, np.nan],
             }
         )
         result = df.fillna(method="pad")
         expected = DataFrame(
             {
-                "A": pd.date_range("20130101", periods=4, tz="US/Eastern"),
+                "A": date_range("20130101", periods=4, tz="US/Eastern"),
                 "B": [1.0, 2.0, 2.0, 2.0],
             }
         )
@@ -387,7 +195,7 @@ class TestDataFrameMissingData:
         tm.assert_frame_equal(res, df_exp)
 
     def test_fillna_categorical_nan(self):
-        # GH 14021
+        # GH#14021
         # np.nan should always be a valid filler
         cat = Categorical([np.nan, 2, np.nan])
         val = Categorical([np.nan, np.nan, np.nan])
@@ -408,24 +216,22 @@ class TestDataFrameMissingData:
         result = df.vals.fillna(np.nan)
         tm.assert_series_equal(result, df.vals)
 
-        idx = pd.DatetimeIndex(
-            ["2011-01-01 09:00", "2016-01-01 23:45", "2011-01-01 09:00", pd.NaT, pd.NaT]
+        idx = DatetimeIndex(
+            ["2011-01-01 09:00", "2016-01-01 23:45", "2011-01-01 09:00", NaT, NaT]
         )
         df = DataFrame({"a": Categorical(idx)})
-        tm.assert_frame_equal(df.fillna(value=pd.NaT), df)
+        tm.assert_frame_equal(df.fillna(value=NaT), df)
 
-        idx = pd.PeriodIndex(
-            ["2011-01", "2011-01", "2011-01", pd.NaT, pd.NaT], freq="M"
-        )
+        idx = PeriodIndex(["2011-01", "2011-01", "2011-01", NaT, NaT], freq="M")
         df = DataFrame({"a": Categorical(idx)})
-        tm.assert_frame_equal(df.fillna(value=pd.NaT), df)
+        tm.assert_frame_equal(df.fillna(value=NaT), df)
 
-        idx = pd.TimedeltaIndex(["1 days", "2 days", "1 days", pd.NaT, pd.NaT])
+        idx = TimedeltaIndex(["1 days", "2 days", "1 days", NaT, NaT])
         df = DataFrame({"a": Categorical(idx)})
-        tm.assert_frame_equal(df.fillna(value=pd.NaT), df)
+        tm.assert_frame_equal(df.fillna(value=NaT), df)
 
     def test_fillna_downcast(self):
-        # GH 15277
+        # GH#15277
         # infer int64 from float64
         df = DataFrame({"a": [1.0, np.nan]})
         result = df.fillna(0, downcast="infer")
@@ -463,7 +269,7 @@ class TestDataFrameMissingData:
             tm.assert_frame_equal(result, expected)
 
     def test_fillna_datetime_columns(self):
-        # GH 7095
+        # GH#7095
         df = DataFrame(
             {
                 "A": [-1, -2, np.nan],
@@ -488,7 +294,7 @@ class TestDataFrameMissingData:
         df = DataFrame(
             {
                 "A": [-1, -2, np.nan],
-                "B": [pd.Timestamp("2013-01-01"), pd.Timestamp("2013-01-02"), pd.NaT],
+                "B": [Timestamp("2013-01-01"), Timestamp("2013-01-02"), NaT],
                 "C": ["foo", "bar", None],
                 "D": ["foo2", "bar2", None],
             },
@@ -498,11 +304,11 @@ class TestDataFrameMissingData:
         expected = DataFrame(
             {
                 "A": [-1, -2, "?"],
-                "B": [pd.Timestamp("2013-01-01"), pd.Timestamp("2013-01-02"), "?"],
+                "B": [Timestamp("2013-01-01"), Timestamp("2013-01-02"), "?"],
                 "C": ["foo", "bar", "?"],
                 "D": ["foo2", "bar2", "?"],
             },
-            index=pd.date_range("20130110", periods=3),
+            index=date_range("20130110", periods=3),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -631,7 +437,7 @@ class TestDataFrameMissingData:
             df.fillna(df.max(1), axis=1)
 
     def test_fillna_dataframe(self):
-        # GH 8377
+        # GH#8377
         df = DataFrame(
             {
                 "a": [np.nan, 1, 2, np.nan, np.nan],

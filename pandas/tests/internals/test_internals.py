@@ -613,7 +613,7 @@ class TestBlockManager:
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
         assert reindexed.nblocks == 2
-        tm.assert_index_equal(reindexed.items, pd.Index(["g", "c", "a", "d"]))
+        tm.assert_index_equal(reindexed.items, Index(["g", "c", "a", "d"]))
         tm.assert_almost_equal(
             mgr.iget(6).internal_values(), reindexed.iget(0).internal_values()
         )
@@ -636,9 +636,7 @@ class TestBlockManager:
         mgr.iset(5, np.array([1, 2, 3], dtype=np.object_))
 
         numeric = mgr.get_numeric_data()
-        tm.assert_index_equal(
-            numeric.items, pd.Index(["int", "float", "complex", "bool"])
-        )
+        tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("float")).internal_values(),
             numeric.iget(numeric.items.get_loc("float")).internal_values(),
@@ -652,9 +650,7 @@ class TestBlockManager:
         )
 
         numeric2 = mgr.get_numeric_data(copy=True)
-        tm.assert_index_equal(
-            numeric.items, pd.Index(["int", "float", "complex", "bool"])
-        )
+        tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
         numeric2.iset(
             numeric2.items.get_loc("float"), np.array([1000.0, 2000.0, 3000.0])
         )
@@ -672,7 +668,7 @@ class TestBlockManager:
         mgr.iset(6, np.array([True, False, True], dtype=np.object_))
 
         bools = mgr.get_bool_data()
-        tm.assert_index_equal(bools.items, pd.Index(["bool"]))
+        tm.assert_index_equal(bools.items, Index(["bool"]))
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             bools.iget(bools.items.get_loc("bool")).internal_values(),
@@ -840,14 +836,12 @@ class TestIndexing:
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
         for ax in range(mgr.ndim):
-            assert_reindex_axis_is_ok(mgr, ax, pd.Index([]), fill_value)
+            assert_reindex_axis_is_ok(mgr, ax, Index([]), fill_value)
             assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax], fill_value)
             assert_reindex_axis_is_ok(mgr, ax, mgr.axes[ax][[0, 0, 0]], fill_value)
+            assert_reindex_axis_is_ok(mgr, ax, Index(["foo", "bar", "baz"]), fill_value)
             assert_reindex_axis_is_ok(
-                mgr, ax, pd.Index(["foo", "bar", "baz"]), fill_value
-            )
-            assert_reindex_axis_is_ok(
-                mgr, ax, pd.Index(["foo", mgr.axes[ax][0], "baz"]), fill_value
+                mgr, ax, Index(["foo", mgr.axes[ax][0], "baz"]), fill_value
             )
 
             if mgr.shape[ax] >= 3:
@@ -872,14 +866,14 @@ class TestIndexing:
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
         for ax in range(mgr.ndim):
-            assert_reindex_indexer_is_ok(mgr, ax, pd.Index([]), [], fill_value)
+            assert_reindex_indexer_is_ok(mgr, ax, Index([]), [], fill_value)
             assert_reindex_indexer_is_ok(
                 mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax]), fill_value
             )
             assert_reindex_indexer_is_ok(
                 mgr,
                 ax,
-                pd.Index(["foo"] * mgr.shape[ax]),
+                Index(["foo"] * mgr.shape[ax]),
                 np.arange(mgr.shape[ax]),
                 fill_value,
             )
@@ -890,22 +884,22 @@ class TestIndexing:
                 mgr, ax, mgr.axes[ax], np.arange(mgr.shape[ax])[::-1], fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 0, 0], fill_value
+                mgr, ax, Index(["foo", "bar", "baz"]), [0, 0, 0], fill_value
             )
             assert_reindex_indexer_is_ok(
-                mgr, ax, pd.Index(["foo", "bar", "baz"]), [-1, 0, -1], fill_value
+                mgr, ax, Index(["foo", "bar", "baz"]), [-1, 0, -1], fill_value
             )
             assert_reindex_indexer_is_ok(
                 mgr,
                 ax,
-                pd.Index(["foo", mgr.axes[ax][0], "baz"]),
+                Index(["foo", mgr.axes[ax][0], "baz"]),
                 [-1, -1, -1],
                 fill_value,
             )
 
             if mgr.shape[ax] >= 3:
                 assert_reindex_indexer_is_ok(
-                    mgr, ax, pd.Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value
+                    mgr, ax, Index(["foo", "bar", "baz"]), [0, 1, 2], fill_value
                 )
 
 
@@ -1095,7 +1089,7 @@ class TestCanHoldElement:
         assert not block._can_hold_element(val)
 
         msg = (
-            "'value' should be a 'Timestamp', 'NaT', "
+            "value should be a 'Timestamp', 'NaT', "
             "or array of those. Got 'date' instead."
         )
         with pytest.raises(TypeError, match=msg):
@@ -1140,7 +1134,7 @@ class TestCanHoldElement:
             pytest.skip(f"Invalid combination {op},{dtype}")
 
         e = DummyElement(value, dtype)
-        s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+        s = DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
 
         invalid = {
             (operator.pow, "<M8[ns]"),
@@ -1176,7 +1170,7 @@ class TestCanHoldElement:
 class TestShouldStore:
     def test_should_store_categorical(self):
         cat = pd.Categorical(["A", "B", "C"])
-        df = pd.DataFrame(cat)
+        df = DataFrame(cat)
         blk = df._mgr.blocks[0]
 
         # matching dtype
@@ -1215,7 +1209,7 @@ def test_validate_ndim():
 
 
 def test_block_shape():
-    idx = pd.Index([0, 1, 2, 3, 4])
+    idx = Index([0, 1, 2, 3, 4])
     a = Series([1, 2, 3]).reindex(idx)
     b = Series(pd.Categorical([1, 2, 3])).reindex(idx)
 
@@ -1244,8 +1238,8 @@ def test_make_block_no_pandas_array():
 
 def test_dataframe_not_equal():
     # see GH28839
-    df1 = pd.DataFrame({"a": [1, 2], "b": ["s", "d"]})
-    df2 = pd.DataFrame({"a": ["s", "d"], "b": [1, 2]})
+    df1 = DataFrame({"a": [1, 2], "b": ["s", "d"]})
+    df2 = DataFrame({"a": ["s", "d"], "b": [1, 2]})
     assert df1.equals(df2) is False
 
 

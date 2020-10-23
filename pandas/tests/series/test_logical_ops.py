@@ -4,7 +4,6 @@ import operator
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import DataFrame, Index, Series, bdate_range
 import pandas._testing as tm
 from pandas.core import ops
@@ -161,7 +160,7 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
         result = left & np.array(right)
         tm.assert_series_equal(result, expected)
-        result = left & pd.Index(right)
+        result = left & Index(right)
         tm.assert_series_equal(result, expected)
         result = left & Series(right)
         tm.assert_series_equal(result, expected)
@@ -171,7 +170,7 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
         result = left | np.array(right)
         tm.assert_series_equal(result, expected)
-        result = left | pd.Index(right)
+        result = left | Index(right)
         tm.assert_series_equal(result, expected)
         result = left | Series(right)
         tm.assert_series_equal(result, expected)
@@ -181,7 +180,7 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
         result = left ^ np.array(right)
         tm.assert_series_equal(result, expected)
-        result = left ^ pd.Index(right)
+        result = left ^ Index(right)
         tm.assert_series_equal(result, expected)
         result = left ^ Series(right)
         tm.assert_series_equal(result, expected)
@@ -315,9 +314,9 @@ class TestSeriesLogicalOps:
     @pytest.mark.parametrize(
         "op, expected",
         [
-            (ops.rand_, pd.Index([False, True])),
-            (ops.ror_, pd.Index([False, True])),
-            (ops.rxor, pd.Index([])),
+            (ops.rand_, Index([False, True])),
+            (ops.ror_, Index([False, True])),
+            (ops.rxor, Index([])),
         ],
     )
     def test_reverse_ops_with_index(self, op, expected):
@@ -449,7 +448,7 @@ class TestSeriesLogicalOps:
         tm.assert_frame_equal(s1.to_frame() & s2.to_frame(), exp.to_frame())
         tm.assert_frame_equal(s2.to_frame() & s1.to_frame(), exp.to_frame())
 
-        exp = pd.DataFrame({"x": [True, True, np.nan, np.nan]}, index=list("ABCD"))
+        exp = DataFrame({"x": [True, True, np.nan, np.nan]}, index=list("ABCD"))
         tm.assert_frame_equal(s1.to_frame() | s2.to_frame(), exp_or1.to_frame())
         tm.assert_frame_equal(s2.to_frame() | s1.to_frame(), exp_or.to_frame())
 

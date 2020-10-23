@@ -335,7 +335,7 @@ class TestPartialSetting:
         df = orig.copy()
 
         # don't allow not string inserts
-        msg = "cannot insert DatetimeArray with incompatible label"
+        msg = r"value should be a 'Timestamp' or 'NaT'\. Got '.*' instead\."
 
         with pytest.raises(TypeError, match=msg):
             df.loc[100.0, :] = df.iloc[0]
@@ -663,21 +663,21 @@ class TestPartialSetting:
 
     def test_index_name_empty(self):
         # GH 31368
-        df = pd.DataFrame({}, index=pd.RangeIndex(0, name="df_index"))
+        df = DataFrame({}, index=pd.RangeIndex(0, name="df_index"))
         series = Series(1.23, index=pd.RangeIndex(4, name="series_index"))
 
         df["series"] = series
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="df_index")
         )
 
         tm.assert_frame_equal(df, expected)
 
         # GH 36527
-        df = pd.DataFrame()
+        df = DataFrame()
         series = Series(1.23, index=pd.RangeIndex(4, name="series_index"))
         df["series"] = series
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="series_index")
         )
         tm.assert_frame_equal(df, expected)

@@ -448,7 +448,7 @@ def test_loc_period_string_indexing():
     a = pd.period_range("2013Q1", "2013Q4", freq="Q")
     i = (1111, 2222, 3333)
     idx = pd.MultiIndex.from_product((a, i), names=("Periode", "CVR"))
-    df = pd.DataFrame(
+    df = DataFrame(
         index=idx,
         columns=(
             "OMS",
@@ -478,7 +478,7 @@ def test_loc_datetime_mask_slicing():
     # GH 16699
     dt_idx = pd.to_datetime(["2017-05-04", "2017-05-05"])
     m_idx = pd.MultiIndex.from_product([dt_idx, dt_idx], names=["Idx1", "Idx2"])
-    df = pd.DataFrame(
+    df = DataFrame(
         data=[[1, 2], [3, 4], [5, 6], [7, 6]], index=m_idx, columns=["C1", "C2"]
     )
     result = df.loc[(dt_idx[0], (df.index.get_level_values(1) > "2017-05-04")), "C1"]
@@ -524,6 +524,30 @@ def test_loc_with_mi_indexer():
     tm.assert_frame_equal(result, expected)
 
 
+def test_loc_mi_with_level1_named_0():
+    # GH#37194
+    dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+    ser = Series(range(3), index=dti)
+    df = ser.to_frame()
+    df[1] = dti
+
+    df2 = df.set_index(0, append=True)
+    assert df2.index.names == (None, 0)
+    df2.index.get_loc(dti[0])  # smoke test
+
+    result = df2.loc[dti[0]]
+    expected = df2.iloc[[0]].droplevel(None)
+    tm.assert_frame_equal(result, expected)
+
+    ser2 = df2[1]
+    assert ser2.index.names == (None, 0)
+
+    result = ser2.loc[dti[0]]
+    expected = ser2.iloc[[0]].droplevel(None)
+    tm.assert_series_equal(result, expected)
+
+
 def test_getitem_str_slice(datapath):
     # GH#15928
     path = datapath("reshape", "merge", "data", "quotes2.csv")
@@ -554,7 +578,7 @@ def test_3levels_leading_period_index():
 class TestKeyErrorsWithMultiIndex:
     def test_missing_keys_raises_keyerror(self):
         # GH#27420 KeyError, not TypeError
-        df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
+        df = DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
         df2 = df.set_index(["A", "B"])
 
         with pytest.raises(KeyError, match="1"):

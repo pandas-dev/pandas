@@ -678,6 +678,11 @@ class TestCommon(Base):
         expected = off.is_anchored()
         assert result == expected
 
+    def test_offsets_hashable(self, offset_types):
+        # GH: 37267
+        off = self._get_offset(offset_types)
+        assert hash(off) is not None
+
 
 class TestDateOffset(Base):
     def setup_method(self, method):
