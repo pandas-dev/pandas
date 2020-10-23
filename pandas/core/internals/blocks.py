@@ -596,10 +596,10 @@ class Block(PandasObject):
 
             return self.make_block(Categorical(self.values, dtype=dtype))
 
-        elif (
-            copy
-            and is_categorical_dtype(self.values.dtype)
+        elif (  # GH8628
+            is_categorical_dtype(self.values.dtype)
             and not is_object_dtype(dtype)
+            and copy is True
         ):
             return self.make_block(
                 Categorical.from_codes(
