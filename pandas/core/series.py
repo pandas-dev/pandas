@@ -72,7 +72,7 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import aggregate, transform
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
-from pandas.core.arrays.sparse import SparseAccessor
+from pandas.core.arrays.sparse import SparseAccessor, SparseArray
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -3287,8 +3287,12 @@ Keep all original rows and also all original values
         arr = self._values
 
         if key:
-            good = ~isna(arr)
-            arr[good] = ensure_key_mapped(self[good], key).values
+            if isinstance(arr, SparseArray):
+                # SparseArray doesn't store NaNs item-by-item, so pass everything
+                arr = ensure_key_mapped(self, key)._values
+            else:
+                good = ~isna(arr)
+                arr[good] = ensure_key_mapped(self[good], key)._values
 
         # GH 35922. Make sorting stable by leveraging nargsort
         sorted_index = nargsort(arr, kind, ascending, na_position)
