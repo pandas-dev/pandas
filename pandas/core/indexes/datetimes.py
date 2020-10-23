@@ -430,8 +430,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert("UTC")
                 other = other.tz_convert("UTC")
-        else:
-            assert False
         return this, other
 
     # --------------------------------------------------------------------
