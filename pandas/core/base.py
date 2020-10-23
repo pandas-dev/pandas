@@ -1181,14 +1181,14 @@ class IndexOpsMixin(OpsMixin):
 
         >>> ser.searchsorted([1, 3], side='right')
         array([1, 3])
-        
+
         >>> ser = pd.Series(pd.to_datetime(['21.10.2020', '22.10.2020', '23.10.2020']))
         >>> ser
         0   2020-10-21
         1   2020-10-22
         2   2020-10-23
         dtype: datetime64[ns]
-        
+
         >>> ser.searchsorted('3/14/2000')
         3
 
