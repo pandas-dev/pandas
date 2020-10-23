@@ -399,7 +399,7 @@ class SharedTests:
         with pytest.raises(IndexError, match="index 12 is out of bounds"):
             arr[12] = val
 
-        with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
+        with pytest.raises(TypeError, match="value should be a.* 'object'"):
             arr[0] = object()
 
         msg = "cannot set using a list-like indexer with a different length"
@@ -1032,7 +1032,7 @@ def test_casting_nat_setitem_array(array, casting_nats):
 )
 def test_invalid_nat_setitem_array(array, non_casting_nats):
     msg = (
-        "'value' should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
+        "value should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
         "Got '(timedelta64|datetime64|int)' instead."
     )
 
