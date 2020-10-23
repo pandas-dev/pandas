@@ -944,9 +944,9 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
         >>> s.value_counts(normalize=True)
         3.0    0.4
-        4.0    0.2
-        2.0    0.2
         1.0    0.2
+        2.0    0.2
+        4.0    0.2
         dtype: float64
 
         **bins**
