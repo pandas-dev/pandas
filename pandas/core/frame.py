@@ -34,6 +34,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -155,6 +156,8 @@ from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas.core.groupby.generic import DataFrameGroupBy
 
     from pandas.io.formats.style import Styler
@@ -4706,6 +4709,30 @@ class DataFrame(NDFrame, OpsMixin):
         if not inplace:
             return frame
 
+    @overload
+    # https://github.com/python/mypy/issues/6580
+    # Overloaded function signatures 1 and 2 overlap with incompatible return types
+    def reset_index(  # type: ignore[misc]
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        drop: bool = ...,
+        inplace: Literal[False] = ...,
+        col_level: Hashable = ...,
+        col_fill: Label = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def reset_index(
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        drop: bool = ...,
+        inplace: Literal[True] = ...,
+        col_level: Hashable = ...,
+        col_fill: Label = ...,
+    ) -> None:
+        ...
+
     def reset_index(
         self,
         level: Optional[Union[Hashable, Sequence[Hashable]]] = None,
@@ -7185,8 +7212,6 @@ NaN 12.3   33.0
             raise ValueError("columns must be unique")
 
         df = self.reset_index(drop=True)
-        # TODO: use overload to refine return type of reset_index
-        assert df is not None  # needed for mypy
         result = df[column].explode()
         result = df.drop([column], axis=1).join(result)
         if ignore_index:
@@ -7256,7 +7281,9 @@ NaN 12.3   33.0
         """
         from pandas.core.reshape.reshape import unstack
 
-        return unstack(self, level, fill_value)
+        result = unstack(self, level, fill_value)
+
+        return result.__finalize__(self, method="unstack")
 
     @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt"))
     def melt(
