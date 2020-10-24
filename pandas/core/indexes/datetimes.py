@@ -732,11 +732,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             self._deprecate_mismatched_indexing(label)
         return self._maybe_cast_for_get_loc(label)
 
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
+    def _get_string_slice(self, key: str):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
         parsed, reso = parsing.parse_time_string(key, freq)
         reso = Resolution.from_attrname(reso)
-        loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
+        loc = self._partial_date_slice(reso, parsed)
         return loc
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):

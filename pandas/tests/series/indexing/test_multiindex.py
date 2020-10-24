@@ -54,7 +54,7 @@ def test_nat_multi_index(ix_data, exp_data):
 def test_loc_getitem_multiindex_nonunique_len_zero():
     # GH#13691
     mi = pd.MultiIndex.from_product([[0], [1, 1]])
-    ser = pd.Series(0, index=mi)
+    ser = Series(0, index=mi)
 
     res = ser.loc[[]]
 

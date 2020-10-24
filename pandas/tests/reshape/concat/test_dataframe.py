@@ -1,17 +1,15 @@
-from datetime import datetime
-
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, date_range
+from pandas import DataFrame, Index, Series
 import pandas._testing as tm
 
 
 class TestDataFrameConcat:
     def test_concat_multiple_frames_dtypes(self):
 
-        # GH 2759
+        # GH#2759
         A = DataFrame(data=np.ones((10, 2)), columns=["foo", "bar"], dtype=np.float64)
         B = DataFrame(data=np.ones((10, 2)), dtype=np.float32)
         results = pd.concat((A, B), axis=1).dtypes
@@ -21,73 +19,12 @@ class TestDataFrameConcat:
         )
         tm.assert_series_equal(results, expected)
 
-    def test_concat_multiple_tzs(self):
-        # GH 12467
-        # combining datetime tz-aware and naive DataFrames
-        ts1 = Timestamp("2015-01-01", tz=None)
-        ts2 = Timestamp("2015-01-01", tz="UTC")
-        ts3 = Timestamp("2015-01-01", tz="EST")
-
-        df1 = DataFrame(dict(time=[ts1]))
-        df2 = DataFrame(dict(time=[ts2]))
-        df3 = DataFrame(dict(time=[ts3]))
-
-        results = pd.concat([df1, df2]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts1, ts2]), dtype=object)
-        tm.assert_frame_equal(results, expected)
-
-        results = pd.concat([df1, df3]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts1, ts3]), dtype=object)
-        tm.assert_frame_equal(results, expected)
-
-        results = pd.concat([df2, df3]).reset_index(drop=True)
-        expected = DataFrame(dict(time=[ts2, ts3]))
-        tm.assert_frame_equal(results, expected)
-
-    @pytest.mark.parametrize(
-        "t1",
-        [
-            "2015-01-01",
-            pytest.param(
-                pd.NaT,
-                marks=pytest.mark.xfail(
-                    reason="GH23037 incorrect dtype when concatenating"
-                ),
-            ),
-        ],
-    )
-    def test_concat_tz_NaT(self, t1):
-        # GH 22796
-        # Concating tz-aware multicolumn DataFrames
-        ts1 = Timestamp(t1, tz="UTC")
-        ts2 = Timestamp("2015-01-01", tz="UTC")
-        ts3 = Timestamp("2015-01-01", tz="UTC")
-
-        df1 = DataFrame([[ts1, ts2]])
-        df2 = DataFrame([[ts3]])
-
-        result = pd.concat([df1, df2])
-        expected = DataFrame([[ts1, ts2], [ts3, pd.NaT]], index=[0, 0])
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_concat_tz_not_aligned(self):
-        # GH 22796
-        ts = pd.to_datetime([1, 2]).tz_localize("UTC")
-        a = pd.DataFrame({"A": ts})
-        b = pd.DataFrame({"A": ts, "B": ts})
-        result = pd.concat([a, b], sort=True, ignore_index=True)
-        expected = pd.DataFrame(
-            {"A": list(ts) + list(ts), "B": [pd.NaT, pd.NaT] + list(ts)}
-        )
-        tm.assert_frame_equal(result, expected)
-
     def test_concat_tuple_keys(self):
-        # GH 14438
-        df1 = pd.DataFrame(np.ones((2, 2)), columns=list("AB"))
-        df2 = pd.DataFrame(np.ones((3, 2)) * 2, columns=list("AB"))
+        # GH#14438
+        df1 = DataFrame(np.ones((2, 2)), columns=list("AB"))
+        df2 = DataFrame(np.ones((3, 2)) * 2, columns=list("AB"))
         results = pd.concat((df1, df2), keys=[("bee", "bah"), ("bee", "boo")])
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "A": {
                     ("bee", "bah", 0): 1.0,
@@ -108,11 +45,11 @@ class TestDataFrameConcat:
         tm.assert_frame_equal(results, expected)
 
     def test_concat_named_keys(self):
-        # GH 14252
-        df = pd.DataFrame({"foo": [1, 2], "bar": [0.1, 0.2]})
+        # GH#14252
+        df = DataFrame({"foo": [1, 2], "bar": [0.1, 0.2]})
         index = Index(["a", "b"], name="baz")
         concatted_named_from_keys = pd.concat([df, df], keys=index)
-        expected_named = pd.DataFrame(
+        expected_named = DataFrame(
             {"foo": [1, 2, 1, 2], "bar": [0.1, 0.2, 0.1, 0.2]},
             index=pd.MultiIndex.from_product((["a", "b"], [0, 1]), names=["baz", None]),
         )
@@ -125,19 +62,19 @@ class TestDataFrameConcat:
         tm.assert_frame_equal(concatted_named_from_names, expected_named)
 
         concatted_unnamed = pd.concat([df, df], keys=index_no_name)
-        expected_unnamed = pd.DataFrame(
+        expected_unnamed = DataFrame(
             {"foo": [1, 2, 1, 2], "bar": [0.1, 0.2, 0.1, 0.2]},
             index=pd.MultiIndex.from_product((["a", "b"], [0, 1]), names=[None, None]),
         )
         tm.assert_frame_equal(concatted_unnamed, expected_unnamed)
 
     def test_concat_axis_parameter(self):
-        # GH 14369
-        df1 = pd.DataFrame({"A": [0.1, 0.2]}, index=range(2))
-        df2 = pd.DataFrame({"A": [0.3, 0.4]}, index=range(2))
+        # GH#14369
+        df1 = DataFrame({"A": [0.1, 0.2]}, index=range(2))
+        df2 = DataFrame({"A": [0.3, 0.4]}, index=range(2))
 
         # Index/row/0 DataFrame
-        expected_index = pd.DataFrame({"A": [0.1, 0.2, 0.3, 0.4]}, index=[0, 1, 0, 1])
+        expected_index = DataFrame({"A": [0.1, 0.2, 0.3, 0.4]}, index=[0, 1, 0, 1])
 
         concatted_index = pd.concat([df1, df2], axis="index")
         tm.assert_frame_equal(concatted_index, expected_index)
@@ -149,7 +86,7 @@ class TestDataFrameConcat:
         tm.assert_frame_equal(concatted_0, expected_index)
 
         # Columns/1 DataFrame
-        expected_columns = pd.DataFrame(
+        expected_columns = DataFrame(
             [[0.1, 0.3], [0.2, 0.4]], index=[0, 1], columns=["A", "A"]
         )
 
@@ -159,11 +96,11 @@ class TestDataFrameConcat:
         concatted_1 = pd.concat([df1, df2], axis=1)
         tm.assert_frame_equal(concatted_1, expected_columns)
 
-        series1 = pd.Series([0.1, 0.2])
-        series2 = pd.Series([0.3, 0.4])
+        series1 = Series([0.1, 0.2])
+        series2 = Series([0.3, 0.4])
 
         # Index/row/0 Series
-        expected_index_series = pd.Series([0.1, 0.2, 0.3, 0.4], index=[0, 1, 0, 1])
+        expected_index_series = Series([0.1, 0.2, 0.3, 0.4], index=[0, 1, 0, 1])
 
         concatted_index_series = pd.concat([series1, series2], axis="index")
         tm.assert_series_equal(concatted_index_series, expected_index_series)
@@ -175,7 +112,7 @@ class TestDataFrameConcat:
         tm.assert_series_equal(concatted_0_series, expected_index_series)
 
         # Columns/1 Series
-        expected_columns_series = pd.DataFrame(
+        expected_columns_series = DataFrame(
             [[0.1, 0.3], [0.2, 0.4]], index=[0, 1], columns=[0, 1]
         )
 
@@ -190,8 +127,8 @@ class TestDataFrameConcat:
             pd.concat([series1, series2], axis="something")
 
     def test_concat_numerical_names(self):
-        # #15262  # #12223
-        df = pd.DataFrame(
+        # GH#15262, GH#12223
+        df = DataFrame(
             {"col": range(9)},
             dtype="int32",
             index=(
@@ -201,7 +138,7 @@ class TestDataFrameConcat:
             ),
         )
         result = pd.concat((df.iloc[:2, :], df.iloc[-2:, :]))
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {"col": [0, 1, 7, 8]},
             dtype="int32",
             index=pd.MultiIndex.from_tuples(
@@ -211,26 +148,12 @@ class TestDataFrameConcat:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_astype_dup_col(self):
-        # gh 23049
-        df = pd.DataFrame([{"a": "b"}])
+        # GH#23049
+        df = DataFrame([{"a": "b"}])
         df = pd.concat([df, df], axis=1)
 
         result = df.astype("category")
-        expected = pd.DataFrame(
+        expected = DataFrame(
             np.array(["b", "b"]).reshape(1, 2), columns=["a", "a"]
         ).astype("category")
         tm.assert_frame_equal(result, expected)
-
-    def test_concat_datetime_datetime64_frame(self):
-        # #2624
-        rows = []
-        rows.append([datetime(2010, 1, 1), 1])
-        rows.append([datetime(2010, 1, 2), "hi"])
-
-        df2_obj = DataFrame.from_records(rows, columns=["date", "test"])
-
-        ind = date_range(start="2000/1/1", freq="D", periods=10)
-        df1 = DataFrame({"date": ind, "test": range(10)})
-
-        # it works!
-        pd.concat([df1, df2_obj])

@@ -115,10 +115,7 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("notnull")),
     (pd.DataFrame, frame_data, operator.methodcaller("dropna")),
     (pd.DataFrame, frame_data, operator.methodcaller("drop_duplicates")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("duplicated")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("duplicated")),
     (pd.DataFrame, frame_data, operator.methodcaller("sort_values", by="A")),
     (pd.DataFrame, frame_data, operator.methodcaller("sort_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("nlargest", 1, "A")),
@@ -157,10 +154,7 @@ _all_methods = [
         ),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
     pytest.param(
         (
             pd.DataFrame,
@@ -169,18 +163,12 @@ _all_methods = [
         ),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("stack")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("stack")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
     pytest.param(
         (
             pd.DataFrame,
@@ -786,3 +774,11 @@ def test_groupby_finalize_not_implemented(obj, method):
     obj.attrs = {"a": 1}
     result = method(obj.groupby([0, 0]))
     assert result.attrs == {"a": 1}
+
+
+def test_finalize_frame_series_name():
+    # https://github.com/pandas-dev/pandas/pull/37186/files#r506978889
+    # ensure we don't copy the column `name` to the Series.
+    df = pd.DataFrame({"name": [1, 2]})
+    result = pd.Series([1, 2]).__finalize__(df)
+    assert result.name is None

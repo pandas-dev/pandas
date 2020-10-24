@@ -331,7 +331,10 @@ def _na_ok_dtype(dtype: DtypeObj) -> bool:
 
 def _wrap_results(result, dtype: DtypeObj, fill_value=None):
     """ wrap our results if needed """
-    if is_datetime64_any_dtype(dtype):
+    if result is NaT:
+        pass
+
+    elif is_datetime64_any_dtype(dtype):
         if fill_value is None:
             # GH#24293
             fill_value = iNaT
@@ -517,16 +520,21 @@ def nansum(
     >>> nanops.nansum(s)
     3.0
     """
+    orig_values = values
+
     values, mask, dtype, dtype_max, _ = _get_values(
         values, skipna, fill_value=0, mask=mask
     )
     dtype_sum = dtype_max
+    datetimelike = False
     if is_float_dtype(dtype):
         dtype_sum = dtype
     elif is_timedelta64_dtype(dtype):
+        datetimelike = True
         # error: Incompatible types in assignment (expression has type
         # "Type[float64]", variable has type "dtype")
         dtype_sum = np.float64  # type: ignore[assignment]
+
     the_sum = values.sum(axis, dtype=dtype_sum)
     # pandas\core\nanops.py:525: error: Incompatible types in assignment
     # (expression has type "float", variable has type "Union[number, ndarray]")
@@ -539,7 +547,29 @@ def nansum(
         the_sum, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
     )
 
-    return _wrap_results(the_sum, dtype)
+    the_sum = _wrap_results(the_sum, dtype)
+    if datetimelike and not skipna:
+        the_sum = _mask_datetimelike_result(the_sum, axis, mask, orig_values)
+    return the_sum
+
+
+def _mask_datetimelike_result(
+    result: Union[np.ndarray, np.datetime64, np.timedelta64],
+    axis: Optional[int],
+    mask: Optional[np.ndarray],
+    orig_values: np.ndarray,
+):
+    if mask is None:
+        mask = isna(orig_values)
+    if isinstance(result, np.ndarray):
+        # we need to apply the mask
+        result = result.astype("i8").view(orig_values.dtype)
+        axis_mask = mask.any(axis=axis)
+        result[axis_mask] = iNaT
+    else:
+        if mask.any():
+            result = NaT
+    return result
 
 
 @disallow(PeriodDtype)
@@ -574,25 +604,25 @@ def nanmean(
     >>> nanops.nanmean(s)
     1.5
     """
+    orig_values = values
+
     values, mask, dtype, dtype_max, _ = _get_values(
         values, skipna, fill_value=0, mask=mask
     )
     dtype_sum = dtype_max
     dtype_count = np.float64
+
     # not using needs_i8_conversion because that includes period
-    if (
-        is_integer_dtype(dtype)
-        or is_datetime64_any_dtype(dtype)
-        or is_timedelta64_dtype(dtype)
-    ):
-        # error: Incompatible types in assignment (expression has type
-        # "Type[float64]", variable has type "dtype")
-        dtype_sum = np.float64  # type: ignore[assignment]
+    datetimelike = False
+    if dtype.kind in ["m", "M"]:
+        datetimelike = True
+        dtype_sum = np.float64
+    elif is_integer_dtype(dtype):
+        dtype_sum = np.float64
     elif is_float_dtype(dtype):
         dtype_sum = dtype
-        # error: Incompatible types in assignment (expression has type "dtype",
-        # variable has type "Type[float64]")
-        dtype_count = dtype  # type: ignore[assignment]
+        dtype_count = dtype
+
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
 
@@ -607,7 +637,10 @@ def nanmean(
     else:
         the_mean = the_sum / count if count > 0 else np.nan
 
-    return _wrap_results(the_mean, dtype)
+    the_mean = _wrap_results(the_mean, dtype)
+    if datetimelike and not skipna:
+        the_mean = _mask_datetimelike_result(the_mean, axis, mask, orig_values)
+    return the_mean
 
 
 @bottleneck_switch()
@@ -673,14 +706,35 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
         # empty set so return nans of shape "everything but the passed axis"
         # since "axis" is where the reduction would occur if we had a nonempty
         # array
-        shp = np.array(values.shape)
-        dims = np.arange(values.ndim)
-        ret = np.empty(shp[dims != axis])
-        ret.fill(np.nan)
+        ret = get_empty_reduction_result(values.shape, axis, np.float_, np.nan)
         return _wrap_results(ret, dtype)
 
     # otherwise return a scalar value
     return _wrap_results(get_median(values) if notempty else np.nan, dtype)
+
+
+def get_empty_reduction_result(
+    shape: Tuple[int, ...], axis: int, dtype: np.dtype, fill_value: Any
+) -> np.ndarray:
+    """
+    The result from a reduction on an empty ndarray.
+
+    Parameters
+    ----------
+    shape : Tuple[int]
+    axis : int
+    dtype : np.dtype
+    fill_value : Any
+
+    Returns
+    -------
+    np.ndarray
+    """
+    shp = np.array(shape)
+    dims = np.arange(len(shape))
+    ret = np.empty(shp[dims != axis], dtype=dtype)
+    ret.fill(fill_value)
+    return ret
 
 
 def _get_counts_nanvar(

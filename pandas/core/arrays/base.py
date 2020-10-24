@@ -510,7 +510,12 @@ class ExtensionArray:
         return np.array(self)
 
     def argsort(
-        self, ascending: bool = True, kind: str = "quicksort", *args, **kwargs
+        self,
+        ascending: bool = True,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        *args,
+        **kwargs,
     ) -> np.ndarray:
         """
         Return the indices that would sort this array.
@@ -541,7 +546,14 @@ class ExtensionArray:
         # 2. argsort : total control over sorting.
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 
-        result = nargsort(self, kind=kind, ascending=ascending, na_position="last")
+        values = self._values_for_argsort()
+        result = nargsort(
+            values,
+            kind=kind,
+            ascending=ascending,
+            na_position=na_position,
+            mask=np.asarray(self.isna()),
+        )
         return result
 
     def argmin(self):

@@ -145,8 +145,8 @@ class Expanding(RollingAndExpandingMixin):
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["count"])
-    def count(self, **kwargs):
-        return super().count(**kwargs)
+    def count(self):
+        return super().count()
 
     @Substitution(name="expanding")
     @Appender(_shared_docs["apply"])

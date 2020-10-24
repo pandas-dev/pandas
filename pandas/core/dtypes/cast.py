@@ -2,6 +2,7 @@
 Routines for casting.
 """
 
+from contextlib import suppress
 from datetime import date, datetime, timedelta
 from typing import (
     TYPE_CHECKING,
@@ -133,7 +134,7 @@ def is_nested_object(obj) -> bool:
     return False
 
 
-def maybe_downcast_to_dtype(result, dtype: Dtype):
+def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
@@ -169,18 +170,20 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
 
         dtype = np.dtype(dtype)
 
-    # pandas\core\dtypes\cast.py:172: error: Argument 2 to
-    # "maybe_downcast_numeric" has incompatible type "Union[ExtensionDtype,
-    # dtype, Type[object]]"; expected "Union[dtype, ExtensionDtype]"
-    # [arg-type]
-    converted = maybe_downcast_numeric(
-        result, dtype, do_round  # type: ignore[arg-type]
-    )
+    elif dtype.type is Period:
+        from pandas.core.arrays import PeriodArray
+
+        with suppress(TypeError):
+            # e.g. TypeError: int() argument must be a string, a
+            #  bytes-like object or a number, not 'Period
+            return PeriodArray(result, freq=dtype.freq)
+
+    converted = maybe_downcast_numeric(result, dtype, do_round)
     if converted is not result:
         return converted
 
     # a datetimelike
-    # GH12821, iNaT is casted to float
+    # GH12821, iNaT is cast to float
 
     # pandas\core\dtypes\cast.py:178: error: Item "type" of
     # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute "kind"
@@ -222,31 +225,6 @@ def maybe_downcast_to_dtype(result, dtype: Dtype):
                 result = result.tz_convert(dtype.tz)  # type: ignore[union-attr]
         else:
             result = result.astype(dtype)
-
-    # pandas\core\dtypes\cast.py:190: error: Item "type" of
-    # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute "type"
-    # [union-attr]
-    elif dtype.type is Period:  # type: ignore[union-attr]
-        # TODO(DatetimeArray): merge with previous elif
-        from pandas.core.arrays import PeriodArray
-
-        try:
-            # pandas\core\dtypes\cast.py:195: error: Item "ExtensionDtype" of
-            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
-            # "freq"  [union-attr]
-
-            # pandas\core\dtypes\cast.py:195: error: Item "dtype" of
-            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
-            # "freq"  [union-attr]
-
-            # pandas\core\dtypes\cast.py:195: error: Item "type" of
-            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
-            # "freq"  [union-attr]
-            return PeriodArray(result, freq=dtype.freq)  # type: ignore[union-attr]
-        except TypeError:
-            # e.g. TypeError: int() argument must be a string, a
-            #  bytes-like object or a number, not 'Period
-            pass
 
     return result
 
@@ -541,39 +519,25 @@ def maybe_casted_values(
     if codes is not None:
         mask: np.ndarray = codes == -1
 
-        # we can have situations where the whole mask is -1,
-        # meaning there is nothing found in codes, so make all nan's
         if mask.size > 0 and mask.all():
+            # we can have situations where the whole mask is -1,
+            # meaning there is nothing found in codes, so make all nan's
+
             dtype = index.dtype
             fill_value = na_value_for_dtype(dtype)
             values = construct_1d_arraylike_from_scalar(fill_value, len(mask), dtype)
+
         else:
             # pandas\core\dtypes\cast.py:501: error: Argument 1 to "take" of
             # "ExtensionArray" has incompatible type "ndarray"; expected
             # "Sequence[int]"  [arg-type]
             values = values.take(codes)  # type: ignore[arg-type]
 
-            # TODO(https://github.com/pandas-dev/pandas/issues/24206)
-            # Push this into maybe_upcast_putmask?
-            # We can't pass EAs there right now. Looks a bit
-            # complicated.
-            # So we unbox the ndarray_values, op, re-box.
-            values_type = type(values)
-            values_dtype = values.dtype
-
-            from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-
-            if isinstance(values, DatetimeLikeArrayMixin):
-                values = values._data  # TODO: can we de-kludge yet?
-
             if mask.any():
                 if isinstance(values, np.ndarray):
                     values, _ = maybe_upcast_putmask(values, mask, np.nan)
                 else:
                     values[mask] = np.nan
-
-            if issubclass(values_type, DatetimeLikeArrayMixin):
-                values = values_type(values, dtype=values_dtype)
 
     # pandas\core\dtypes\cast.py:525: error: Incompatible return value type
     # (got "Union[ExtensionArray, ndarray]", expected "ExtensionArray")
