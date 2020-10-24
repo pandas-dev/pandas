@@ -927,9 +927,14 @@ def _nanminmax(meth, fill_value_typ):
         mask: Optional[np.ndarray] = None,
     ) -> Dtype:
 
+        orig_values = values
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
+
+        datetimelike = orig_values.dtype.kind in ["m", "M"]
+        if datetimelike and mask is None:
+            mask = isna(orig_values)
 
         if (axis is not None and values.shape[axis] == 0) or values.size == 0:
             try:
@@ -941,7 +946,17 @@ def _nanminmax(meth, fill_value_typ):
             result = getattr(values, meth)(axis)
 
         result = _wrap_results(result, dtype, fill_value)
-        return _maybe_null_out(result, axis, mask, values.shape)
+        result = _maybe_null_out(result, axis, mask, values.shape)
+
+        if datetimelike and not skipna:
+            if axis is None or values.ndim == 1:
+                if mask.any():
+                    return orig_values.dtype.type("NaT")
+            else:
+                axis_mask = mask.any(axis=axis)
+                result[axis_mask] = orig_values.dtype.type("NaT")
+
+        return result
 
     return reduction
 
