@@ -362,7 +362,7 @@ class NaTType(_NaT):
     daysinmonth = property(fget=lambda self: np.nan)
     dayofweek = property(fget=lambda self: np.nan)
     day_of_week = property(fget=lambda self: np.nan)
-    
+
     # inject Timedelta properties
     days = property(fget=lambda self: np.nan)
     seconds = property(fget=lambda self: np.nan)
