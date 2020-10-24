@@ -305,7 +305,8 @@ def test_astype_boolean():
         lambda s: list(iter(s))[0],
     ],
 )
-def test_conversion_methods_return_type_is_native(func):
+def test_conversion_methods_return_type_is_native(any_nullable_int_dtype, func):
     # GH 29738
-    s = pd.Series([1, 2], dtype="Int64")
+    dtype = any_nullable_int_dtype
+    s = pd.Series([1, 2], dtype=dtype)
     assert isinstance(func(s), int)
