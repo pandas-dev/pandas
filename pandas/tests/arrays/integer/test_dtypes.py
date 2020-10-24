@@ -310,3 +310,16 @@ def test_conversion_methods_return_type_is_native(any_nullable_int_dtype, func):
     dtype = any_nullable_int_dtype
     s = pd.Series([1, 2], dtype=dtype)
     assert isinstance(func(s), int)
+
+
+def test_conversion_to_dict_oriented_record_returns_native(any_nullable_int_dtype):
+    # GH 34665
+
+    df = pd.DataFrame({"A": [1, None]})
+    df["A"] = df["A"].astype("Int64")
+    records_as_dicts = df.to_dict(orient="records")
+    expected = [{"A": 1}, {"A": pd.NA}]
+
+    assert records_as_dicts == expected
+    assert type(records_as_dicts[0]["A"]) is int
+    assert type(records_as_dicts[1]["A"]) is pd._libs.missing.NAType
