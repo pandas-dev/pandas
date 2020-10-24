@@ -7281,7 +7281,9 @@ NaN 12.3   33.0
         """
         from pandas.core.reshape.reshape import unstack
 
-        return unstack(self, level, fill_value)
+        result = unstack(self, level, fill_value)
+
+        return result.__finalize__(self, method="unstack")
 
     @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt"))
     def melt(
