@@ -294,3 +294,18 @@ def test_astype_boolean():
     result = a.astype("boolean")
     expected = pd.array([True, False, True, True, None], dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda s: s.tolist()[0],
+        lambda s: s.to_dict()[0],
+        lambda s: list(s.iteritems())[0][1],
+        lambda s: list(iter(s))[0],
+    ],
+)
+def test_conversion_methods_return_type_is_native(func):
+    # GH 29738
+    s = pd.Series([1, 2], dtype="Int64")
+    assert isinstance(func(s), int)
