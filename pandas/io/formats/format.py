@@ -40,6 +40,7 @@ from pandas._libs.tslib import format_array_from_datetime
 from pandas._libs.tslibs import NaT, Timedelta, Timestamp, iNaT
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
+    ArrayLike,
     CompressionOptions,
     FilePathOrBuffer,
     FloatFormatType,
@@ -104,7 +105,7 @@ common_docstring = """
         index : bool, optional, default True
             Whether to print index (row) labels.
         na_rep : str, optional, default 'NaN'
-            String representation of NAN to use.
+            String representation of ``NaN`` to use.
         formatters : list, tuple or dict of one-param. functions, optional
             Formatter functions to apply to columns' elements by position or
             name.
@@ -112,7 +113,12 @@ common_docstring = """
             List/tuple must be of length equal to the number of columns.
         float_format : one-parameter function, optional, default None
             Formatter function to apply to columns' elements if they are
-            floats. The result of this function must be a unicode string.
+            floats. This function must return a unicode string and will be
+            applied only to the non-``NaN`` elements, with ``NaN`` being
+            handled by ``na_rep``.
+
+            .. versionchanged:: 1.2.0
+
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
@@ -1364,8 +1370,19 @@ class FloatArrayFormatter(GenericArrayFormatter):
         Returns the float values converted into strings using
         the parameters given at initialisation, as a numpy array
         """
+
+        def format_with_na_rep(values: ArrayLike, formatter: Callable, na_rep: str):
+            mask = isna(values)
+            formatted = np.array(
+                [
+                    formatter(val) if not m else na_rep
+                    for val, m in zip(values.ravel(), mask.ravel())
+                ]
+            ).reshape(values.shape)
+            return formatted
+
         if self.formatter is not None:
-            return np.array([self.formatter(x) for x in self.values])
+            return format_with_na_rep(self.values, self.formatter, self.na_rep)
 
         if self.fixed_width:
             threshold = get_option("display.chop_threshold")
@@ -1386,13 +1403,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
             # separate the wheat from the chaff
             values = self.values
             is_complex = is_complex_dtype(values)
-            mask = isna(values)
-            values = np.array(values, dtype="object")
-            values[mask] = na_rep
-            imask = (~mask).ravel()
-            values.flat[imask] = np.array(
-                [formatter(val) for val in values.ravel()[imask]]
-            )
+            values = format_with_na_rep(values, formatter, na_rep)
 
             if self.fixed_width:
                 if is_complex:
@@ -1454,10 +1465,6 @@ class FloatArrayFormatter(GenericArrayFormatter):
         return formatted_values
 
     def _format_strings(self) -> List[str]:
-        # shortcut
-        if self.formatter is not None:
-            return [self.formatter(x) for x in self.values]
-
         return list(self.get_result_as_array())
 
 

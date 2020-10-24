@@ -377,11 +377,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return Index.astype(self, dtype=dtype, copy=copy)
 
-    @cache_readonly
-    def _isnan(self):
-        """ return if each value is nan"""
-        return self._data.codes == -1
-
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._validate_scalar(value)
