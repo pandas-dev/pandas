@@ -4,20 +4,10 @@ from io import StringIO
 from warnings import catch_warnings
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    concat,
-    date_range,
-    read_csv,
-)
+from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range, read_csv
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -122,29 +112,6 @@ class TestConcatenate:
         # it works
         result = concat([t1, t2], axis=1, keys=["t1", "t2"], sort=sort)
         assert list(result.columns) == [("t1", "value"), ("t2", "value")]
-
-    def test_concat_series_partial_columns_names(self):
-        # GH10698
-        foo = Series([1, 2], name="foo")
-        bar = Series([1, 2])
-        baz = Series([4, 5])
-
-        result = concat([foo, bar, baz], axis=1)
-        expected = DataFrame(
-            {"foo": [1, 2], 0: [1, 2], 1: [4, 5]}, columns=["foo", 0, 1]
-        )
-        tm.assert_frame_equal(result, expected)
-
-        result = concat([foo, bar, baz], axis=1, keys=["red", "blue", "yellow"])
-        expected = DataFrame(
-            {"red": [1, 2], "blue": [1, 2], "yellow": [4, 5]},
-            columns=["red", "blue", "yellow"],
-        )
-        tm.assert_frame_equal(result, expected)
-
-        result = concat([foo, bar, baz], axis=1, ignore_index=True)
-        expected = DataFrame({0: [1, 2], 1: [1, 2], 2: [4, 5]})
-        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("mapping", ["mapping", "dict"])
     def test_concat_mapping(self, mapping, non_dict_mapping_subclass):
@@ -438,38 +405,6 @@ class TestConcatenate:
         # it works
         concat([df1, df2], sort=sort)
 
-    def test_handle_empty_objects(self, sort):
-        df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
-
-        baz = df[:5].copy()
-        baz["foo"] = "bar"
-        empty = df[5:5]
-
-        frames = [baz, empty, empty, df[5:]]
-        concatted = concat(frames, axis=0, sort=sort)
-
-        expected = df.reindex(columns=["a", "b", "c", "d", "foo"])
-        expected["foo"] = expected["foo"].astype("O")
-        expected.loc[0:4, "foo"] = "bar"
-
-        tm.assert_frame_equal(concatted, expected)
-
-        # empty as first element with time series
-        # GH3259
-        df = DataFrame(
-            dict(A=range(10000)), index=date_range("20130101", periods=10000, freq="s")
-        )
-        empty = DataFrame()
-        result = concat([df, empty], axis=1)
-        tm.assert_frame_equal(result, df)
-        result = concat([empty, df], axis=1)
-        tm.assert_frame_equal(result, df)
-
-        result = concat([df, empty])
-        tm.assert_frame_equal(result, df)
-        result = concat([empty, df])
-        tm.assert_frame_equal(result, df)
-
     def test_concat_mixed_objs(self):
 
         # concat mixed series/frames
@@ -539,20 +474,6 @@ class TestConcatenate:
         result = concat([s1, df, s2], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
-    def test_empty_dtype_coerce(self):
-
-        # xref to #12411
-        # xref to #12045
-        # xref to #11594
-        # see below
-
-        # 10571
-        df1 = DataFrame(data=[[1, None], [2, None]], columns=["a", "b"])
-        df2 = DataFrame(data=[[3, None], [4, None]], columns=["a", "b"])
-        result = concat([df1, df2])
-        expected = df1.dtypes
-        tm.assert_series_equal(result.dtypes, expected)
-
     def test_dtype_coerceion(self):
 
         # 12411
@@ -574,76 +495,6 @@ class TestConcatenate:
         df = DataFrame({"text": ["some words"] + [None] * 9})
         result = concat([df.iloc[[0]], df.iloc[[1]]])
         tm.assert_series_equal(result.dtypes, df.dtypes)
-
-    def test_concat_series(self):
-
-        ts = tm.makeTimeSeries()
-        ts.name = "foo"
-
-        pieces = [ts[:5], ts[5:15], ts[15:]]
-
-        result = concat(pieces)
-        tm.assert_series_equal(result, ts)
-        assert result.name == ts.name
-
-        result = concat(pieces, keys=[0, 1, 2])
-        expected = ts.copy()
-
-        ts.index = DatetimeIndex(np.array(ts.index.values, dtype="M8[ns]"))
-
-        exp_codes = [np.repeat([0, 1, 2], [len(x) for x in pieces]), np.arange(len(ts))]
-        exp_index = MultiIndex(levels=[[0, 1, 2], ts.index], codes=exp_codes)
-        expected.index = exp_index
-        tm.assert_series_equal(result, expected)
-
-    def test_concat_series_axis1(self, sort=sort):
-        ts = tm.makeTimeSeries()
-
-        pieces = [ts[:-2], ts[2:], ts[2:-2]]
-
-        result = concat(pieces, axis=1)
-        expected = DataFrame(pieces).T
-        tm.assert_frame_equal(result, expected)
-
-        result = concat(pieces, keys=["A", "B", "C"], axis=1)
-        expected = DataFrame(pieces, index=["A", "B", "C"]).T
-        tm.assert_frame_equal(result, expected)
-
-        # preserve series names, #2489
-        s = Series(randn(5), name="A")
-        s2 = Series(randn(5), name="B")
-
-        result = concat([s, s2], axis=1)
-        expected = DataFrame({"A": s, "B": s2})
-        tm.assert_frame_equal(result, expected)
-
-        s2.name = None
-        result = concat([s, s2], axis=1)
-        tm.assert_index_equal(result.columns, Index(["A", 0], dtype="object"))
-
-        # must reindex, #2603
-        s = Series(randn(3), index=["c", "a", "b"], name="A")
-        s2 = Series(randn(4), index=["d", "a", "b", "c"], name="B")
-        result = concat([s, s2], axis=1, sort=sort)
-        expected = DataFrame({"A": s, "B": s2})
-        tm.assert_frame_equal(result, expected)
-
-    def test_concat_series_axis1_names_applied(self):
-        # ensure names argument is not ignored on axis=1, #23490
-        s = Series([1, 2, 3])
-        s2 = Series([4, 5, 6])
-        result = concat([s, s2], axis=1, keys=["a", "b"], names=["A"])
-        expected = DataFrame(
-            [[1, 4], [2, 5], [3, 6]], columns=Index(["a", "b"], name="A")
-        )
-        tm.assert_frame_equal(result, expected)
-
-        result = concat([s, s2], axis=1, keys=[("a", 1), ("b", 2)], names=["A", "B"])
-        expected = DataFrame(
-            [[1, 4], [2, 5], [3, 6]],
-            columns=MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["A", "B"]),
-        )
-        tm.assert_frame_equal(result, expected)
 
     def test_concat_single_with_key(self):
         df = DataFrame(np.random.randn(10, 4))
@@ -733,26 +584,6 @@ class TestConcatenate:
         result = concat([df1, df2], axis=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_inner_join_empty(self):
-        # GH 15328
-        df_empty = DataFrame()
-        df_a = DataFrame({"a": [1, 2]}, index=[0, 1], dtype="int64")
-        df_expected = DataFrame({"a": []}, index=[], dtype="int64")
-
-        for how, expected in [("inner", df_expected), ("outer", df_a)]:
-            result = pd.concat([df_a, df_empty], axis=1, join=how)
-            tm.assert_frame_equal(result, expected)
-
-    def test_concat_series_axis1_same_names_ignore_index(self):
-        dates = date_range("01-Jan-2013", "01-Jan-2014", freq="MS")[0:-1]
-        s1 = Series(randn(len(dates)), index=dates, name="value")
-        s2 = Series(randn(len(dates)), index=dates, name="value")
-
-        result = concat([s1, s2], axis=1, ignore_index=True)
-        expected = Index([0, 1])
-
-        tm.assert_index_equal(result.columns, expected)
-
     def test_concat_iterables(self):
         # GH8645 check concat works with tuples, list, generators, and weird
         # stuff like deque and custom iterables
@@ -825,53 +656,6 @@ bar2,12,13,14,15
         reader = read_csv(StringIO(data), chunksize=1)
         result = concat(reader, ignore_index=True)
         expected = read_csv(StringIO(data))
-        tm.assert_frame_equal(result, expected)
-
-    def test_concat_empty_series(self):
-        # GH 11082
-        s1 = Series([1, 2, 3], name="x")
-        s2 = Series(name="y", dtype="float64")
-        res = pd.concat([s1, s2], axis=1)
-        exp = DataFrame(
-            {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan]},
-            index=Index([0, 1, 2], dtype="O"),
-        )
-        tm.assert_frame_equal(res, exp)
-
-        s1 = Series([1, 2, 3], name="x")
-        s2 = Series(name="y", dtype="float64")
-        res = pd.concat([s1, s2], axis=0)
-        # name will be reset
-        exp = Series([1, 2, 3])
-        tm.assert_series_equal(res, exp)
-
-        # empty Series with no name
-        s1 = Series([1, 2, 3], name="x")
-        s2 = Series(name=None, dtype="float64")
-        res = pd.concat([s1, s2], axis=1)
-        exp = DataFrame(
-            {"x": [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
-            columns=["x", 0],
-            index=Index([0, 1, 2], dtype="O"),
-        )
-        tm.assert_frame_equal(res, exp)
-
-    @pytest.mark.parametrize("tz", [None, "UTC"])
-    @pytest.mark.parametrize("values", [[], [1, 2, 3]])
-    def test_concat_empty_series_timelike(self, tz, values):
-        # GH 18447
-
-        first = Series([], dtype="M8[ns]").dt.tz_localize(tz)
-        dtype = None if values else np.float64
-        second = Series(values, dtype=dtype)
-
-        expected = DataFrame(
-            {
-                0: Series([pd.NaT] * len(values), dtype="M8[ns]").dt.tz_localize(tz),
-                1: values,
-            }
-        )
-        result = concat([first, second], axis=1)
         tm.assert_frame_equal(result, expected)
 
     def test_default_index(self):
@@ -1025,16 +809,6 @@ def test_concat_empty_and_non_empty_frame_regression():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_empty_and_non_empty_series_regression():
-    # GH 18187 regression test
-    s1 = Series([1])
-    s2 = Series([], dtype=object)
-
-    expected = s1
-    result = pd.concat([s1, s2])
-    tm.assert_series_equal(result, expected)
-
-
 def test_concat_sorts_columns(sort):
     # GH-4588
     df1 = DataFrame({"a": [1, 2], "b": [1, 2]}, columns=["b", "a"])
@@ -1109,25 +883,6 @@ def test_concat_aligned_sort_does_not_raise():
     df = DataFrame({1: [1, 2], "a": [3, 4]}, columns=[1, "a"])
     expected = DataFrame({1: [1, 2, 1, 2], "a": [3, 4, 3, 4]}, columns=[1, "a"])
     result = pd.concat([df, df], ignore_index=True, sort=True)
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("s1name,s2name", [(np.int64(190), (43, 0)), (190, (43, 0))])
-def test_concat_series_name_npscalar_tuple(s1name, s2name):
-    # GH21015
-    s1 = Series({"a": 1, "b": 2}, name=s1name)
-    s2 = Series({"c": 5, "d": 6}, name=s2name)
-    result = pd.concat([s1, s2])
-    expected = Series({"a": 1, "b": 2, "c": 5, "d": 6})
-    tm.assert_series_equal(result, expected)
-
-
-def test_concat_empty_df_object_dtype():
-    # GH 9149
-    df_1 = DataFrame({"Row": [0, 1, 1], "EmptyCol": np.nan, "NumberCol": [1, 2, 3]})
-    df_2 = DataFrame(columns=df_1.columns)
-    result = pd.concat([df_1, df_2], axis=0)
-    expected = df_1.astype(object)
     tm.assert_frame_equal(result, expected)
 
 
