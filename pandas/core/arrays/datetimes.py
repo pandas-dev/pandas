@@ -318,7 +318,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if inferred in ["datetime64", "date", "datetime", "empty"]:
                 pass
             else:
-                msg = f"dtype {scalars.dtype} cannot be converted to datetime64[ns]"
+                msg = f"{inferred} scalars cannot be converted to datetime64[ns]"
                 raise TypeError(msg)
         elif is_string_dtype(scalars.dtype):
             # TODO: should go through from_sequence_of_strings?
