@@ -429,7 +429,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
+            # pandas\core\arrays\datetimelike.py:432: error: Too many arguments
+            # for "object"  [call-arg]
+            other = self._scalar_type(other)  # type: ignore[call-arg]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:

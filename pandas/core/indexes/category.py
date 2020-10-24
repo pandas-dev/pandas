@@ -703,15 +703,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others
-
-        # pandas\core\indexes\category.py:704: error: "bool" has no attribute
-        # "codes"  [attr-defined]
-        codes = np.concatenate(
-            [
-                self._is_dtype_compat(c).codes  # type: ignore[attr-defined]
-                for c in to_concat
-            ]
-        )
+        codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
         cat = self._data._from_backing_data(codes)
         return type(self)._simple_new(cat, name=name)
 
