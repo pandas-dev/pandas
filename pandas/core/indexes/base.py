@@ -118,7 +118,9 @@ _index_shared_docs = dict()
 str_t = str
 
 
-_o_dtype = np.dtype(object)
+# pandas\core\indexes\base.py:121: error: Value of type variable "_DTypeScalar"
+# of "dtype" cannot be "object"  [type-var]
+_o_dtype = np.dtype(object)  # type: ignore[type-var]
 
 
 _Identity = NewType("_Identity", object)

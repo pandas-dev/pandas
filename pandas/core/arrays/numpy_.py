@@ -40,11 +40,9 @@ class PandasDtype(ExtensionDtype):
     _metadata = ("_dtype",)
 
     def __init__(self, dtype: object):
-        # error: Argument 1 to "dtype" has incompatible type "object"; expected
-        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
-        # Tuple[Any, Any]]"
-        self._dtype = np.dtype(dtype)  # type: ignore[arg-type]
+        # pandas\core\arrays\numpy_.py:47: error: No overload variant of "dtype"
+        # matches argument type "object"  [call-overload]
+        self._dtype = np.dtype(dtype)  # type: ignore[call-overload]
 
     def __repr__(self) -> str:
         return f"PandasDtype({repr(self.name)})"

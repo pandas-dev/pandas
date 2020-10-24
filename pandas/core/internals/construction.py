@@ -269,7 +269,11 @@ def init_dict(data: Dict, index, columns, dtype: Optional[DtypeObj] = None):
                 and np.issubdtype(dtype, np.flexible)  # type: ignore[arg-type]
             ):
                 # GH#1783
-                nan_dtype = np.dtype(object)
+
+                # pandas\core\internals\construction.py:272: error: Value of
+                # type variable "_DTypeScalar" of "dtype" cannot be "object"
+                # [type-var]
+                nan_dtype = np.dtype(object)  # type: ignore[type-var]
             else:
                 # error: Incompatible types in assignment (expression has type
                 # "Union[dtype, ExtensionDtype]", variable has type "dtype")
