@@ -1153,6 +1153,31 @@ class TestDataFrameReductions:
         exp = Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
+    def test_min_max_dt64_with_NaT_skipna_false(self, tz_naive_fixture):
+        # GH#36907
+        tz = tz_naive_fixture
+        df = pd.DataFrame(
+            {
+                "a": [
+                    pd.Timestamp("2020-01-01 08:00:00", tz=tz),
+                    pd.Timestamp("1920-02-01 09:00:00", tz=tz),
+                ],
+                "b": [pd.Timestamp("2020-02-01 08:00:00", tz=tz), pd.NaT],
+            }
+        )
+
+        res = df.min(axis=1, skipna=False)
+        expected = pd.Series([df.loc[0, "a"], pd.NaT])
+        assert expected.dtype == df["a"].dtype
+
+        tm.assert_series_equal(res, expected)
+
+        res = df.max(axis=1, skipna=False)
+        expected = pd.Series([df.loc[0, "b"], pd.NaT])
+        assert expected.dtype == df["a"].dtype
+
+        tm.assert_series_equal(res, expected)
+
     def test_min_max_dt64_api_consistency_with_NaT(self):
         # Calling the following sum functions returned an error for dataframes but
         # returned NaT for series. These tests check that the API is consistent in

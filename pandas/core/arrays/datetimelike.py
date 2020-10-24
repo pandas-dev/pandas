@@ -1264,13 +1264,21 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Series.min : Return the minimum value in a Series.
         """
         nv.validate_min(args, kwargs)
-        nv.validate_minmax_axis(axis)
+        nv.validate_minmax_axis(axis, self.ndim)
 
-        result = nanops.nanmin(self.asi8, skipna=skipna, mask=self.isna())
-        if isna(result):
-            # Period._from_ordinal does not handle np.nan gracefully
-            return NaT
-        return self._box_func(result)
+        # View as M8[ns] to get correct NaT/masking semantics for PeriodDtype
+        result = nanops.nanmin(
+            self._ndarray.view("M8[ns]"), skipna=skipna, mask=self.isna()
+        )
+        if lib.is_scalar(result):
+            if isna(result):
+                # Period._from_ordinal does not handle NaT gracefully
+                return NaT
+            # nanops may unwantedly cast to Timestamp
+            result = getattr(result, "value", result)
+            return self._box_func(result)
+        result = result.astype("i8", copy=False)
+        return self._from_backing_data(result)
 
     def max(self, axis=None, skipna=True, *args, **kwargs):
         """
@@ -1286,23 +1294,21 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # TODO: skipna is broken with max.
         # See https://github.com/pandas-dev/pandas/issues/24265
         nv.validate_max(args, kwargs)
-        nv.validate_minmax_axis(axis)
+        nv.validate_minmax_axis(axis, self.ndim)
 
-        mask = self.isna()
-        if skipna:
-            values = self[~mask].asi8
-        elif mask.any():
-            return NaT
-        else:
-            values = self.asi8
-
-        if not len(values):
-            # short-circuit for empty max / min
-            return NaT
-
-        result = nanops.nanmax(values, skipna=skipna)
-        # Don't have to worry about NA `result`, since no NA went in.
-        return self._box_func(result)
+        # View as M8[ns] to get correct NaT/masking semantics for PeriodDtype
+        result = nanops.nanmax(
+            self._ndarray.view("M8[ns]"), skipna=skipna, mask=self.isna()
+        )
+        if lib.is_scalar(result):
+            if isna(result):
+                # Period._from_ordinal does not handle NaT gracefully
+                return NaT
+            # nanops may unwantedly cast to Timestamp
+            result = getattr(result, "value", result)
+            return self._box_func(result)
+        result = result.astype("i8", copy=False)
+        return self._from_backing_data(result)
 
     def mean(self, skipna=True):
         """
@@ -1359,7 +1365,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if axis is not None and abs(axis) >= self.ndim:
             raise ValueError("abs(axis) must be less than ndim")
 
-        if self.size == 0:
+        if not self.size and (self.ndim == 1 or axis is None):
+            return NaT
+
+        if self.size == 0:  # TODO: try to do this directly in nanmedian
             if self.ndim == 1 or axis is None:
                 return NaT
             shape = list(self.shape)
@@ -1369,7 +1378,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             result.fill(iNaT)
             return self._from_backing_data(result)
 
-        mask = self.isna()
+        mask = self.isna()  # TODO: can we use ndarray instead of asi8?
         result = nanops.nanmedian(self.asi8, axis=axis, skipna=skipna, mask=mask)
         if axis is None or self.ndim == 1:
             return self._box_func(result)
