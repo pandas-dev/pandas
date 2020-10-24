@@ -1373,7 +1373,7 @@ cdef accessor _get_accessor_func(str field):
         return <accessor>pweek
     elif field == "day_of_year":
         return <accessor>pday_of_year
-    elif field == "weekday":
+    elif field == "weekday" or field == "day_of_week":
         return <accessor>pweekday
     elif field == "days_in_month":
         return <accessor>pdays_in_month
@@ -1882,7 +1882,7 @@ cdef class _Period(PeriodMixin):
         return self.weekofyear
 
     @property
-    def dayofweek(self) -> int:
+    def day_of_week(self) -> int:
         """
         Day of the week the period lies in, with Monday=0 and Sunday=6.
 
@@ -1900,37 +1900,42 @@ cdef class _Period(PeriodMixin):
 
         See Also
         --------
-        Period.dayofweek : Day of the week the period lies in.
-        Period.weekday : Alias of Period.dayofweek.
+        Period.day_of_week : Day of the week the period lies in.
+        Period.weekday : Alias of Period.day_of_week.
         Period.day : Day of the month.
         Period.dayofyear : Day of the year.
 
         Examples
         --------
         >>> per = pd.Period('2017-12-31 22:00', 'H')
-        >>> per.dayofweek
+        >>> per.day_of_week
         6
 
         For periods that span over multiple days, the day at the beginning of
         the period is returned.
 
         >>> per = pd.Period('2017-12-31 22:00', '4H')
-        >>> per.dayofweek
+        >>> per.day_of_week
         6
-        >>> per.start_time.dayofweek
+        >>> per.start_time.day_of_week
         6
 
         For periods with a frequency higher than days, the last day of the
         period is returned.
 
         >>> per = pd.Period('2018-01', 'M')
-        >>> per.dayofweek
+        >>> per.day_of_week
         2
-        >>> per.end_time.dayofweek
+        >>> per.end_time.day_of_week
         2
         """
         base = self._dtype._dtype_code
         return pweekday(self.ordinal, base)
+
+    @property
+    def dayofweek(self) -> int:
+        """This property is deprecated. Please use day_of_week instead."""
+        return self.day_of_week
 
     @property
     def weekday(self) -> int:

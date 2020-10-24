@@ -140,6 +140,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         "weekday",
         "week",
         "dayofweek",
+        "day_of_week",
         "dayofyear",
         "quarter",
         "qyear",
@@ -381,12 +382,13 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         """,
     )
     week = weekofyear
-    dayofweek = _field_accessor(
-        "weekday",
+    day_of_week = _field_accessor(
+        "day_of_week",
         """
         The day of the week with Monday=0, Sunday=6.
         """,
     )
+    dayofweek = day_of_week
     weekday = dayofweek
     dayofyear = day_of_year = _field_accessor(
         "day_of_year",

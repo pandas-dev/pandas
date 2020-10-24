@@ -249,6 +249,8 @@ class TestPeriodIndex(DatetimeLike):
             "weekofyear",
             "week",
             "dayofweek",
+            # Add better named field for GH-9606
+            "day_of_week",
             "dayofyear",
             "quarter",
             "qyear",

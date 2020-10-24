@@ -161,6 +161,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     weekofyear
     week
     dayofweek
+    day_of_week
     weekday
     quarter
     tz

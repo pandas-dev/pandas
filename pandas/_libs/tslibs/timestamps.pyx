@@ -538,11 +538,18 @@ cdef class _Timestamp(ABCTimestamp):
         return bool(ccalendar.is_leapyear(self.year))
 
     @property
-    def dayofweek(self) -> int:
+    def day_of_week(self) -> int:
         """
         Return day of the week.
         """
         return self.weekday()
+
+    @property
+    def dayofweek(self) -> int:
+        """
+        Deprecated. Use day_of_week instead.
+        """
+        return self.day_of_week
 
     @property
     def dayofyear(self) -> int:
