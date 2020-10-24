@@ -651,29 +651,33 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
 
+    from pandas.core.dtypes.common import is_extension_array_dtype
+
+    if is_extension_array_dtype(arr):
+        arr = arr.to_numpy()
+    elif not isinstance(arr, np.ndarray):
+        arr = np.array(arr, dtype=object)
+
     result = np.asarray(arr, dtype="object")
 
     if copy and result is arr:
         result = result.copy()
 
-    arr = np.asarray(arr)  # PERF: need a numpy array to ensure fast access
-
     for i in range(n):
-        arr_val = arr[i]
-        res_val = result[i]
+        val = arr[i]
 
-        if not checknull(res_val) and isinstance(arr_val, str):
+        if isinstance(val, str):
             continue
 
-        if not checknull(res_val):
-            result[i] = str(arr_val)
+        if not checknull(val):
+            result[i] = str(val)
         else:
             if convert_na_value:
-                arr_val = na_value
+                val = na_value
             if skipna:
-                result[i] = arr_val
+                result[i] = val
             else:
-                result[i] = str(arr_val)
+                result[i] = str(val)
 
     return result
 
