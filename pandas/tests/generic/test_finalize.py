@@ -94,8 +94,7 @@ _all_methods = [
     (pd.DataFrame, ({("A", "a"): [1]},), operator.methodcaller("__getitem__", ["A"])),
     (pd.DataFrame, frame_data, operator.methodcaller("query", "A == 1")),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("eval", "A + 1")),
-        marks=not_implemented_mark,
+        (pd.DataFrame, frame_data, operator.methodcaller("eval", "A + 1"))
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("select_dtypes", include="int")),
     (pd.DataFrame, frame_data, operator.methodcaller("assign", b=1)),
@@ -155,7 +154,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("update", pd.DataFrame(*frame_data)),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
@@ -190,20 +188,17 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("diff")),
-        marks=not_implemented_mark,
-    ),
+        (pd.DataFrame, frame_data, operator.methodcaller("diff"))
+        ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x)),
-        marks=not_implemented_mark,
+        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
     ),
     pytest.param(
         (
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"A": [1]})),
-        ),
-        #marks=not_implemented_mark,
+        )
     ),
     pytest.param(
         (
@@ -211,15 +206,13 @@ _all_methods = [
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"B": [1]})),
         ),
-        #marks=not_implemented_mark,
     ),
     pytest.param(
         (
             pd.DataFrame,
             frame_data,
             operator.methodcaller("merge", pd.DataFrame({"A": [1]})),
-        ),
-        marks=not_implemented_mark,
+        )
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
