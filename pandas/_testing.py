@@ -6,6 +6,7 @@ from functools import wraps
 import gzip
 import operator
 import os
+import re
 from shutil import rmtree
 import string
 import tempfile
@@ -2586,10 +2587,11 @@ with_connectivity_check = network
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning=Warning,
+    expected_warning: Optional[Union[Type[Warning], bool]] = Warning,
     filter_level="always",
-    check_stacklevel=True,
-    raise_on_extra_warnings=True,
+    check_stacklevel: bool = True,
+    raise_on_extra_warnings: bool = True,
+    match: Optional[str] = None,
 ):
     """
     Context manager for running code expected to either raise a specific
@@ -2624,6 +2626,8 @@ def assert_produces_warning(
     raise_on_extra_warnings : bool, default True
         Whether extra warnings not of the type `expected_warning` should
         cause the test to fail.
+    match : str, optional
+        Match warning message.
 
     Examples
     --------
@@ -2650,28 +2654,28 @@ def assert_produces_warning(
     with warnings.catch_warnings(record=True) as w:
 
         saw_warning = False
+        matched_message = False
+
         warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
 
         for actual_warning in w:
-            if expected_warning and issubclass(
-                actual_warning.category, expected_warning
-            ):
+            if not expected_warning:
+                continue
+
+            expected_warning = cast(Type[Warning], expected_warning)
+            if issubclass(actual_warning.category, expected_warning):
                 saw_warning = True
 
                 if check_stacklevel and issubclass(
                     actual_warning.category, (FutureWarning, DeprecationWarning)
                 ):
-                    from inspect import getframeinfo, stack
+                    _assert_raised_with_correct_stacklevel(actual_warning)
 
-                    caller = getframeinfo(stack()[2][0])
-                    msg = (
-                        "Warning not set with correct stacklevel. "
-                        f"File where warning is raised: {actual_warning.filename} != "
-                        f"{caller.filename}. Warning message: {actual_warning.message}"
-                    )
-                    assert actual_warning.filename == caller.filename, msg
+                if match is not None and re.search(match, str(actual_warning.message)):
+                    matched_message = True
+
             else:
                 extra_warnings.append(
                     (
@@ -2681,16 +2685,39 @@ def assert_produces_warning(
                         actual_warning.lineno,
                     )
                 )
+
         if expected_warning:
-            msg = (
-                f"Did not see expected warning of class "
-                f"{repr(expected_warning.__name__)}"
-            )
-            assert saw_warning, msg
+            expected_warning = cast(Type[Warning], expected_warning)
+            if not saw_warning:
+                raise AssertionError(
+                    f"Did not see expected warning of class "
+                    f"{repr(expected_warning.__name__)}"
+                )
+
+            if match and not matched_message:
+                raise AssertionError(
+                    f"Did not see warning {repr(expected_warning.__name__)} "
+                    f"matching {match}"
+                )
+
         if raise_on_extra_warnings and extra_warnings:
             raise AssertionError(
                 f"Caused unexpected warning(s): {repr(extra_warnings)}"
             )
+
+
+def _assert_raised_with_correct_stacklevel(
+    actual_warning: warnings.WarningMessage,
+) -> None:
+    from inspect import getframeinfo, stack
+
+    caller = getframeinfo(stack()[3][0])
+    msg = (
+        "Warning not set with correct stacklevel. "
+        f"File where warning is raised: {actual_warning.filename} != "
+        f"{caller.filename}. Warning message: {actual_warning.message}"
+    )
+    assert actual_warning.filename == caller.filename, msg
 
 
 class RNGContext:
