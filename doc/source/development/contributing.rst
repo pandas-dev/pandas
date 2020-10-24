@@ -598,7 +598,7 @@ Building master branch documentation
 
 When pull requests are merged into the pandas ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
-<https://pandas.pydata.org/pandas-docs/dev/>`__, see also
+<https://pandas.pydata.org/docs/dev/>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
 
 .. _contributing.code:
