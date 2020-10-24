@@ -974,9 +974,6 @@ class DataFrame(NDFrame, OpsMixin):
         data : Series
             The data of the row as a Series.
 
-        it : generator
-            A generator that iterates over the rows of the frame.
-
         See Also
         --------
         DataFrame.itertuples : Iterate over DataFrame rows as namedtuples of the values.
