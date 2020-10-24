@@ -1373,12 +1373,14 @@ def ewma_time(ndarray[float64_t] vals, int minp, ndarray[int64_t] times,
     """
     Compute exponentially-weighted moving average using halflife and time
     distances.
+
     Parameters
     ----------
     vals : ndarray[float_64]
     minp : int
     times : ndarray[int64]
     halflife : int64
+
     Returns
     -------
     ndarray
