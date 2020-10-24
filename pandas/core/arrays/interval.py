@@ -550,29 +550,22 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if is_interval_dtype(other_dtype):
             if self.closed != other.closed:
                 return invalid_comparison(self, other, op)
-            if isinstance(other, Interval):
-                other = type(self)._from_sequence([other])
-                if self._left.dtype.kind in ["m", "M"]:
-                    # Need to repeat bc we do not broadcast length-1
-                    # TODO: would be helpful to have a tile method to do
-                    #  this without copies
-                    other = other.repeat(len(self))
-            else:
+            elif not isinstance(other, Interval):
                 other = type(self)(other)
 
             if op is operator.eq:
-                return (self._left == other._left) & (self._right == other._right)
+                return (self._left == other.left) & (self._right == other.right)
             elif op is operator.ne:
-                return (self._left != other._left) | (self._right != other._right)
+                return (self._left != other.left) | (self._right != other.right)
             elif op is operator.gt:
-                return (self._left > other._left) | (
-                    (self._left == other._left) & (self._right > other._right)
+                return (self._left > other.left) | (
+                    (self._left == other.left) & (self._right > other.right)
                 )
             elif op is operator.ge:
                 return (self == other) | (self > other)
             elif op is operator.lt:
-                return (self._left < other._left) | (
-                    (self._left == other._left) & (self._right < other._right)
+                return (self._left < other.left) | (
+                    (self._left == other.left) & (self._right < other.right)
                 )
             else:
                 # operator.lt
