@@ -34,6 +34,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -155,6 +156,8 @@ from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas.core.groupby.generic import DataFrameGroupBy
 
     from pandas.io.formats.style import Styler
@@ -970,9 +973,6 @@ class DataFrame(NDFrame, OpsMixin):
             The index of the row. A tuple for a `MultiIndex`.
         data : Series
             The data of the row as a Series.
-
-        it : generator
-            A generator that iterates over the rows of the frame.
 
         See Also
         --------
@@ -2289,14 +2289,14 @@ class DataFrame(NDFrame, OpsMixin):
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
-        path: FilePathOrBuffer[AnyStr],
+        path: Optional[FilePathOrBuffer] = None,
         engine: str = "auto",
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
         partition_cols: Optional[List[str]] = None,
         storage_options: StorageOptions = None,
         **kwargs,
-    ) -> None:
+    ) -> Optional[bytes]:
         """
         Write a DataFrame to the binary parquet format.
 
@@ -2307,14 +2307,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        path : str or file-like object
+        path : str or file-like object, default None
             If a string, it will be used as Root Directory path
             when writing a partitioned dataset. By file-like object,
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function) or io.BytesIO. The engine
-            fastparquet does not accept file-like objects.
+            fastparquet does not accept file-like objects. If path is None,
+            a bytes object is returned.
 
-            .. versionchanged:: 1.0.0
+            .. versionchanged:: 1.2.0
 
             Previously this was "fname"
 
@@ -2357,6 +2358,10 @@ class DataFrame(NDFrame, OpsMixin):
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
 
+        Returns
+        -------
+        bytes if no path argument is provided else None
+
         See Also
         --------
         read_parquet : Read a parquet file.
@@ -2392,7 +2397,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.parquet import to_parquet
 
-        to_parquet(
+        return to_parquet(
             self,
             path,
             engine,
@@ -4700,6 +4705,30 @@ class DataFrame(NDFrame, OpsMixin):
 
         if not inplace:
             return frame
+
+    @overload
+    # https://github.com/python/mypy/issues/6580
+    # Overloaded function signatures 1 and 2 overlap with incompatible return types
+    def reset_index(  # type: ignore[misc]
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        drop: bool = ...,
+        inplace: Literal[False] = ...,
+        col_level: Hashable = ...,
+        col_fill: Label = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def reset_index(
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        drop: bool = ...,
+        inplace: Literal[True] = ...,
+        col_level: Hashable = ...,
+        col_fill: Label = ...,
+    ) -> None:
+        ...
 
     def reset_index(
         self,
@@ -7180,8 +7209,6 @@ NaN 12.3   33.0
             raise ValueError("columns must be unique")
 
         df = self.reset_index(drop=True)
-        # TODO: use overload to refine return type of reset_index
-        assert df is not None  # needed for mypy
         result = df[column].explode()
         result = df.drop([column], axis=1).join(result)
         if ignore_index:
@@ -7251,7 +7278,9 @@ NaN 12.3   33.0
         """
         from pandas.core.reshape.reshape import unstack
 
-        return unstack(self, level, fill_value)
+        result = unstack(self, level, fill_value)
+
+        return result.__finalize__(self, method="unstack")
 
     @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt"))
     def melt(
@@ -7437,9 +7466,9 @@ NaN 12.3   33.0
 
     >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
             A    B
-    max   NaN  8.0
-    min   1.0  2.0
     sum  12.0  NaN
+    min   1.0  2.0
+    max   NaN  8.0
 
     Aggregate different functions over the columns and rename the index of the resulting
     DataFrame.
@@ -8542,6 +8571,7 @@ NaN 12.3   33.0
         See Also
         --------
         Series.count: Number of non-NA elements in a Series.
+        DataFrame.value_counts: Count unique combinations of columns.
         DataFrame.shape: Number of DataFrame rows and columns (including NA
             elements).
         DataFrame.isna: Boolean same-sized DataFrame showing places of NA

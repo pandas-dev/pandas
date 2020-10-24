@@ -78,7 +78,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
 
 
 @inherit_names(
-    ["inferred_freq", "_isnan", "_resolution_obj", "resolution"],
+    ["inferred_freq", "_resolution_obj", "resolution"],
     DatetimeLikeArrayMixin,
     cache=True,
 )
@@ -412,8 +412,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         self._validate_partial_date_slice(reso)
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        i8vals = self.asi8
-        unbox = self._data._unbox_scalar
+        vals = self._data._ndarray
+        unbox = self._data._unbox
 
         if self.is_monotonic:
 
@@ -426,14 +426,13 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # TODO: does this depend on being monotonic _increasing_?
 
             # a monotonic (sorted) series can be sliced
-            # Use asi8.searchsorted to avoid re-validating Periods/Timestamps
-            left = i8vals.searchsorted(unbox(t1), side="left")
-            right = i8vals.searchsorted(unbox(t2), side="right")
+            left = vals.searchsorted(unbox(t1), side="left")
+            right = vals.searchsorted(unbox(t2), side="right")
             return slice(left, right)
 
         else:
-            lhs_mask = i8vals >= unbox(t1)
-            rhs_mask = i8vals <= unbox(t2)
+            lhs_mask = vals >= unbox(t1)
+            rhs_mask = vals <= unbox(t2)
 
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
