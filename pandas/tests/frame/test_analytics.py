@@ -1233,17 +1233,17 @@ def test_sum_timedelta64_skipna_false():
     arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
     arr[-1, -1] = "Nat"
 
-    df = pd.DataFrame(arr)
+    df = DataFrame(arr)
 
     result = df.sum(skipna=False)
-    expected = pd.Series([pd.Timedelta(seconds=12), pd.NaT])
+    expected = Series([pd.Timedelta(seconds=12), pd.NaT])
     tm.assert_series_equal(result, expected)
 
     result = df.sum(axis=0, skipna=False)
     tm.assert_series_equal(result, expected)
 
     result = df.sum(axis=1, skipna=False)
-    expected = pd.Series(
+    expected = Series(
         [
             pd.Timedelta(seconds=1),
             pd.Timedelta(seconds=5),
