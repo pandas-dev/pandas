@@ -7867,12 +7867,12 @@ NaN 12.3   33.0
             to_concat = [self, *other]
         else:
             to_concat = [self, other]
-        return concat(
+        return (concat(
             to_concat,
             ignore_index=ignore_index,
             verify_integrity=verify_integrity,
             sort=sort,
-        )
+        )).__finalize__(self, method="append")
 
     def join(
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False

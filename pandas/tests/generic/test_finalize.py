@@ -203,7 +203,7 @@ _all_methods = [
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"A": [1]})),
         ),
-        marks=not_implemented_mark,
+        #marks=not_implemented_mark,
     ),
     pytest.param(
         (
@@ -211,7 +211,7 @@ _all_methods = [
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"B": [1]})),
         ),
-        marks=not_implemented_mark,
+        #marks=not_implemented_mark,
     ),
     pytest.param(
         (
