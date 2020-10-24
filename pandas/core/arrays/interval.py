@@ -1426,7 +1426,6 @@ def _get_combined_data(
     # pandas\core\arrays\interval.py:1422: error: Value of type variable
     # "ArrayLike" of "maybe_upcast_datetimelike_array" cannot be "Union[Index,
     # ExtensionArray]"  [type-var]
-
     # pandas\core\arrays\interval.py:1422: error: Value of type variable
     # "ArrayLike" of "maybe_upcast_datetimelike_array" cannot be "Union[Index,
     # ndarray]"  [type-var]

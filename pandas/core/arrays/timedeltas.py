@@ -393,7 +393,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         )
         if is_scalar(result):
             return Timedelta(result)
-        return self._from_backing_data(result)
+        # pandas\core\arrays\timedeltas.py:396: error: Argument 1 to
+        # "_from_backing_data" of "DatetimeLikeArrayMixin" has incompatible
+        # type "float"; expected "ndarray"  [arg-type]
+        return self._from_backing_data(result)  # type: ignore[arg-type]
 
     def std(
         self,

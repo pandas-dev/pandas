@@ -563,9 +563,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
-                # error: Non-overlapping equality check (left operand type:
-                # "Type[signedinteger]", right operand type: "Type[float64]")
-                if c_data[2] == np.int64:  # type: ignore[comparison-overlap]
+                if c_data[2] == np.int64:
                     # Warn if necessary
                     if data[col].max() >= 2 ** 53:
                         ws = precision_loss_doc.format("uint64", "float64")
@@ -658,13 +656,8 @@ class StataValueLabel:
             )
 
         # Ensure int32
-
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "List[int]")
-        self.off = np.array(offsets, dtype=np.int32)  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "List[int]")  [assignment]
-        self.val = np.array(values, dtype=np.int32)  # type: ignore[assignment]
+        self.off = np.array(offsets, dtype=np.int32)
+        self.val = np.array(values, dtype=np.int32)
 
         # Total length
         self.len = 4 + 4 + 4 * self.n + 4 * self.n + self.text_len
@@ -878,14 +871,11 @@ class StataParser:
         self.DTYPE_MAP = dict(
             list(zip(range(1, 245), [np.dtype("a" + str(i)) for i in range(1, 245)]))
             + [
-                (251, np.dtype(np.int8)),  # type:ignore[list-item]
-                (252, np.dtype(np.int16)),  # type:ignore[list-item]
-                (253, np.dtype(np.int32)),  # type:ignore[list-item]
-                (254, np.dtype(np.float32)),  # type:ignore[list-item]
-                # pandas\io\stata.py:885: error: List item 4 has incompatible
-                # type "Tuple[int, Type[float64]]"; expected "Tuple[int, str]"
-                # [list-item]
-                (255, np.dtype(np.float64)),  # type:ignore[list-item]
+                (251, np.dtype(np.int8)),
+                (252, np.dtype(np.int16)),
+                (253, np.dtype(np.int32)),
+                (254, np.dtype(np.float32)),
+                (255, np.dtype(np.float64)),
             ]
         )
         self.DTYPE_MAP_XML = dict(
@@ -1236,10 +1226,7 @@ class StataReader(StataParser, abc.Iterator):
 
         dtyplist = [g(x) for x in raw_typlist]
 
-        # error: Incompatible return value type (got "Tuple[List[Union[int,
-        # str]], List[Union[str, dtype]]]", expected "Tuple[List[Union[int,
-        # str]], List[Union[int, dtype]]]")
-        return typlist, dtyplist  # type: ignore[return-value]
+        return typlist, dtyplist
 
     def _get_varlist(self) -> List[str]:
         # 33 in order formats, 129 in formats 118 and 119
@@ -1363,12 +1350,7 @@ class StataReader(StataParser, abc.Iterator):
             invalid_types = ",".join(str(x) for x in typlist)
             raise ValueError(f"cannot convert stata types [{invalid_types}]") from err
         try:
-            # pandas\io\stata.py:1359: error: List comprehension has
-            # incompatible type List[str]; expected List[Union[int, dtype]]
-            # [misc]
-            self.dtyplist = [
-                self.DTYPE_MAP[typ] for typ in typlist  # type: ignore[misc]
-            ]
+            self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
         except ValueError as err:
             invalid_dtypes = ",".join(str(x) for x in typlist)
             raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]") from err
@@ -1429,12 +1411,9 @@ class StataReader(StataParser, abc.Iterator):
                 dtypes.append(("s" + str(i), self.byteorder + self.NUMPY_TYPE_MAP[typ]))
             else:
                 dtypes.append(("s" + str(i), "S" + str(typ)))
-        # error: Incompatible types in assignment (expression has type "dtype",
-        # variable has type "None")
-        self._dtype = np.dtype(dtypes)  # type: ignore[assignment]
+        self._dtype = np.dtype(dtypes)
 
-        # error: Incompatible return value type (got "None", expected "dtype")
-        return self._dtype  # type: ignore[return-value]
+        return self._dtype
 
     def _calcsize(self, fmt: Union[int, str]) -> int:
         if isinstance(fmt, int):
@@ -1674,7 +1653,12 @@ the string values returned are correct."""
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
+                # pandas\io\stata.py:1677: error: Value of type variable
+                # "_DTypeScalar" of "dtype" cannot be "object"  [type-var]
+                if (
+                    dtype != np.dtype(object)  # type: ignore[type-var]
+                    and dtype != self.dtyplist[i]
+                ):
                     requires_type_conversion = True
                     data_formatted.append(
                         (col, Series(data[col], ix, self.dtyplist[i]))
@@ -1845,9 +1829,7 @@ the string values returned are correct."""
                         warnings.warn(
                             categorical_conversion_warning, CategoricalConversionWarning
                         )
-                    # error: Incompatible types in assignment (expression has
-                    # type "None", variable has type "ndarray")
-                    initial_categories = None  # type: ignore[assignment]
+                    initial_categories = None
                 cat_data = Categorical(
                     column, categories=initial_categories, ordered=order_categoricals
                 )

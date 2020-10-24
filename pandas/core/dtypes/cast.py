@@ -176,7 +176,10 @@ def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
         with suppress(TypeError):
             # e.g. TypeError: int() argument must be a string, a
             #  bytes-like object or a number, not 'Period
-            return PeriodArray(result, freq=dtype.freq)
+
+            # pandas\core\dtypes\cast.py:179: error: "dtype[Any]" has no
+            # attribute "freq"  [attr-defined]
+            return PeriodArray(result, freq=dtype.freq)  # type: ignore[attr-defined]
 
     converted = maybe_downcast_numeric(result, dtype, do_round)
     if converted is not result:
@@ -184,14 +187,7 @@ def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
 
     # a datetimelike
     # GH12821, iNaT is cast to float
-
-    # pandas\core\dtypes\cast.py:178: error: Item "type" of
-    # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute "kind"
-    # [union-attr]
-    if dtype.kind in ["M", "m"] and result.dtype.kind in [  # type: ignore[union-attr]
-        "i",
-        "f",
-    ]:
+    if dtype.kind in ["M", "m"] and result.dtype.kind in ["i", "f"]:
         if hasattr(dtype, "tz"):
             # not a numpy dtype
 
@@ -211,18 +207,9 @@ def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
                 from pandas import to_datetime
 
                 result = to_datetime(result).tz_localize("utc")
-                # pandas\core\dtypes\cast.py:186: error: Item "ExtensionDtype"
-                # of "Union[ExtensionDtype, dtype, Type[object]]" has no
-                # attribute "tz"  [union-attr]
-
-                # pandas\core\dtypes\cast.py:186: error: Item "dtype" of
-                # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
-                # "tz"  [union-attr]
-
-                # pandas\core\dtypes\cast.py:186: error: Item "type" of
-                # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
-                # "tz"  [union-attr]
-                result = result.tz_convert(dtype.tz)  # type: ignore[union-attr]
+                # pandas\core\dtypes\cast.py:225: error: "dtype[Any]" has no
+                # attribute "tz"  [attr-defined]
+                result = result.tz_convert(dtype.tz)  # type: ignore[attr-defined]
         else:
             result = result.astype(dtype)
 

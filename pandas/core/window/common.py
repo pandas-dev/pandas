@@ -165,10 +165,14 @@ def zsqrt(x):
 
     if isinstance(x, ABCDataFrame):
         if mask._values.any():
-            result[mask] = 0
+            # pandas\core\window\common.py:168: error: Unsupported target for
+            # indexed assignment ("Union[ndarray, generic]")  [index]
+            result[mask] = 0  # type: ignore[index]
     else:
         if mask.any():
-            result[mask] = 0
+            # pandas\core\window\common.py:171: error: Unsupported target for
+            # indexed assignment ("Union[ndarray, generic]")  [index]
+            result[mask] = 0  # type: ignore[index]
 
     return result
 

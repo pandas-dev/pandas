@@ -549,8 +549,16 @@ def nansum(
 
     the_sum = _wrap_results(the_sum, dtype)
     if datetimelike and not skipna:
-        the_sum = _mask_datetimelike_result(the_sum, axis, mask, orig_values)
-    return the_sum
+        # pandas\core\nanops.py:552: error: Argument 1 to
+        # "_mask_datetimelike_result" has incompatible type "Union[number,
+        # ndarray]"; expected "Union[ndarray, datetime64, timedelta64]"
+        # [arg-type]
+        the_sum = _mask_datetimelike_result(
+            the_sum, axis, mask, orig_values  # type: ignore[arg-type]
+        )
+    # pandas\core\nanops.py:553: error: Incompatible return value type (got
+    # "Union[number, ndarray]", expected "float")  [return-value]
+    return the_sum  # type: ignore[return-value]
 
 
 def _mask_datetimelike_result(
@@ -616,12 +624,21 @@ def nanmean(
     datetimelike = False
     if dtype.kind in ["m", "M"]:
         datetimelike = True
-        dtype_sum = np.float64
+        # pandas\core\nanops.py:619: error: Incompatible types in assignment
+        # (expression has type "Type[float64]", variable has type "dtype[Any]")
+        # [assignment]
+        dtype_sum = np.float64  # type: ignore[assignment]
     elif is_integer_dtype(dtype):
-        dtype_sum = np.float64
+        # pandas\core\nanops.py:621: error: Incompatible types in assignment
+        # (expression has type "Type[float64]", variable has type "dtype[Any]")
+        # [assignment]
+        dtype_sum = np.float64  # type: ignore[assignment]
     elif is_float_dtype(dtype):
         dtype_sum = dtype
-        dtype_count = dtype
+        # pandas\core\nanops.py:624: error: Incompatible types in assignment
+        # (expression has type "dtype[Any]", variable has type "Type[float64]")
+        # [assignment]
+        dtype_count = dtype  # type: ignore[assignment]
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))

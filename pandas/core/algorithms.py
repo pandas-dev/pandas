@@ -2137,12 +2137,7 @@ def safe_sort(
     if not isinstance(values, (np.ndarray, ABCExtensionArray)):
         # don't convert to string types
         dtype, _ = infer_dtype_from_array(values)
-        # pandas\core\algorithms.py:2121: error: Argument "dtype" to "asarray"
-        # has incompatible type "Union[dtype, ExtensionDtype]"; expected
-        # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
-        # Tuple[Any, Any]]"  [arg-type]
-        values = np.asarray(values, dtype=dtype)  # type: ignore[arg-type]
+        values = np.asarray(values, dtype=dtype)
 
     def sort_mixed(values):
         # order ints before strings, safe in py3
