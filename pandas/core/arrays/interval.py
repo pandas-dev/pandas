@@ -13,6 +13,7 @@ from pandas._libs.interval import (
     IntervalMixin,
     intervals_to_interval_bounds,
 )
+from pandas._libs.missing import NA
 from pandas._typing import ArrayLike, Dtype
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
@@ -577,14 +578,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         # object dtype -> iteratively check for intervals
         result = np.zeros(len(self), dtype=bool)
-        try:
-            for i, obj in enumerate(other):
+        for i, obj in enumerate(other):
+            try:
                 result[i] = op(self[i], obj)
-        except TypeError:
-            # pd.NA
-            result = np.zeros(len(self), dtype=object)
-            for i, obj in enumerate(other):
-                result[i] = op(self[i], obj)
+            except TypeError:
+                if obj is NA:
+                    # github.com/pandas-dev/pandas/pull/37124#discussion_r509095092
+                    result[i] = op is operator.ne
+                else:
+                    raise
         return result
 
     @unpack_zerodim_and_defer("__eq__")
