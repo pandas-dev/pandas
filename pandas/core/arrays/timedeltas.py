@@ -385,10 +385,10 @@ class TimedeltaArray(dtl.TimelikeOps):
             return NaT
 
         result = nanops.nansum(
-            self._data, axis=axis, skipna=skipna, min_count=min_count
+            self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
-        if is_scalar(result):
-            return Timedelta(result)
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
         return self._from_backing_data(result)
 
     def std(
@@ -403,13 +403,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
         )
-        if not len(self):
-            return NaT
-        if not skipna and self._hasnans:
+        if not self.size and (self.ndim == 1 or axis is None):
             return NaT
 
-        result = nanops.nanstd(self._data, axis=axis, skipna=skipna, ddof=ddof)
-        return Timedelta(result)
+        result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result)
 
     # ----------------------------------------------------------------
     # Rendering Methods
