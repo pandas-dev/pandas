@@ -43,7 +43,7 @@ from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
-    from pandas import CategoricalIndex, DatetimeIndex
+    from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -944,9 +944,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
                 raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
             if not timezones.tz_compare(self.tz, other.tz):
-                self = cast("DatetimeIndex", self)
-                other = cast("DatetimeIndex", other)
-
                 this = self.tz_convert("UTC")
                 other = other.tz_convert("UTC")
         return this, other
