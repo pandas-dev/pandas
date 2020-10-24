@@ -20,7 +20,14 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
+if [[ $(uname) == "Linux" || $(uname) == "Darwin" ]]; then
+    # use multiple processes
+    PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas";
+else
+    # windows: disable multiple processes to debug CI
+    PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" --dist=loadfile -s --strict --durations=30 $TEST_ARGS $COVERAGE pandas";
+fi
+
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
