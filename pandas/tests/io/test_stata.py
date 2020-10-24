@@ -1988,9 +1988,7 @@ def test_precision_loss():
         columns=["big", "little"],
     )
     with tm.ensure_clean() as path:
-        with tm.assert_produces_warning(
-            PossiblePrecisionLoss, match="Column converted from int64 to float64"
-        ):
+        with tm.assert_produces_warning(PossiblePrecisionLoss):
             df.to_stata(path, write_index=False)
         reread = read_stata(path)
         expected_dt = Series([np.float64, np.float64], index=["big", "little"])
