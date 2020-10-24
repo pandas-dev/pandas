@@ -240,7 +240,7 @@ class CSVFormatter:
         """
         # get a handle or wrap an existing handle to take care of 1) compression and
         # 2) text -> byte conversion
-        f, handles = get_handle(
+        handleArgs = get_handle(
             self.path_or_buf,
             self.mode,
             encoding=self.encoding,
@@ -251,7 +251,7 @@ class CSVFormatter:
         try:
             # Note: self.encoding is irrelevant here
             self.writer = csvlib.writer(
-                f,
+                handleArgs.handle,  # type: ignore[arg-type]
                 lineterminator=self.line_terminator,
                 delimiter=self.sep,
                 quoting=self.quoting,
@@ -263,23 +263,21 @@ class CSVFormatter:
             self._save()
 
         finally:
-            if self.should_close:
-                f.close()
-            elif (
-                isinstance(f, TextIOWrapper)
-                and not f.closed
-                and f != self.path_or_buf
-                and hasattr(self.path_or_buf, "write")
-            ):
+            if handleArgs.is_wrapped:
                 # get_handle uses TextIOWrapper for non-binary handles. TextIOWrapper
                 # closes the wrapped handle if it is not detached.
-                f.flush()  # make sure everything is written
-                f.detach()  # makes f unusable
-                del f
-            elif f != self.path_or_buf:
-                f.close()
-            for _fh in handles:
-                _fh.close()
+                assert isinstance(handleArgs.handle, TextIOWrapper)
+                handleArgs.handle.flush()
+                handleArgs.handle.detach()
+                handleArgs.created_handles.remove(handleArgs.handle)
+            for handle in handleArgs.created_handles:
+                handle.close()
+            if (
+                self.should_close
+                and not self.path_or_buf.closed  # type: ignore[union-attr]
+            ):
+                assert not isinstance(self.path_or_buf, str)
+                self.path_or_buf.close()
 
     def _save(self) -> None:
         if self._need_to_save_header:

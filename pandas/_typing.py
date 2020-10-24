@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, tzinfo
-from io import IOBase
+from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
 from pathlib import Path
 from typing import (
     IO,
@@ -77,8 +77,13 @@ Dtype = Union[
     "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
 ]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
-FilePathOrBuffer = Union[str, Path, IO[AnyStr], IOBase]
-FileOrBuffer = Union[str, IO[AnyStr], IOBase]
+FilePathOrBuffer = Union[
+    str, Path, IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper
+]
+FileOrBuffer = Union[
+    str, IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper
+]
+Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper]
 
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
 # `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
@@ -168,3 +173,12 @@ class IOArgs(Generic[ModeVar, EncodingVar]):
     compression: CompressionDict
     should_close: bool
     mode: Union[ModeVar, str]
+
+
+@dataclass
+class HandleArgs:
+    """Return value of io/common.py:get_handle"""
+
+    handle: Buffer
+    created_handles: List[Buffer]
+    is_wrapped: bool

@@ -5,12 +5,12 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import StringIO, TextIOWrapper
+from io import StringIO
 import itertools
 import re
 import sys
 from textwrap import fill
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
 import warnings
 
 import numpy as np
@@ -20,7 +20,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer, StorageOptions, Union
+from pandas._typing import FilePathOrBuffer, HandleArgs, StorageOptions, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -1355,10 +1355,6 @@ class ParserBase:
 
         self._first_chunk = True
 
-        # GH 13932
-        # keep references to file handles opened by the parser itself
-        self.handles = []
-
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
         """
         Check if parse_dates are in columns.
@@ -1408,20 +1404,13 @@ class ParserBase:
             )
 
     def close(self):
-        if self._original_handle or isinstance(self.source, str):
-            # user-provided file handle or a string when using memory_map=True
-            pass
-        elif self._non_closeable_wrapper and not self.source.closed:
-            # user provided file handle that is wrap inside TextIOWrapper
+        if self.handleArgs.is_wrapped:
+            # user-provided file handle that is wrap inside TextIOWrapper
             # closing TextIOWrapper would close the file handle as well
-            self.source.detach()
-        else:
-            self.source.close()
-        for f in self.handles:
-            if self.source == f:
-                # skip: if we alreay detached/closed the buffer
-                continue
-            f.close()
+            self.handleArgs.handle.detach()
+            self.handleArgs.created_handles.remove(self.handleArgs.handle)
+        for handle in self.handleArgs.created_handles:
+            handle.close()
 
     @property
     def _has_complex_date_col(self):
@@ -1872,10 +1861,13 @@ class CParserWrapper(ParserBase):
                     + "Please use memory_map=False instead."
                 )
 
-            self.source = src
-            self.handles = []
+            self.handleArgs = HandleArgs(
+                handle=src,
+                created_handles=[],
+                is_wrapped=False,
+            )
         else:
-            self.source, self.handles = get_handle(
+            self.handleArgs = get_handle(
                 src,
                 mode="r",
                 encoding=kwds.get("encoding", None),
@@ -1885,9 +1877,6 @@ class CParserWrapper(ParserBase):
             kwds.pop("encoding", None)
         kwds.pop("memory_map", None)
         kwds.pop("compression", None)
-        self._original_handle, self._non_closeable_wrapper = _can_close(
-            src, self.source
-        )
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -1896,7 +1885,7 @@ class CParserWrapper(ParserBase):
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
-        self._reader = parsers.TextReader(self.source, **kwds)
+        self._reader = parsers.TextReader(self.handleArgs.handle, **kwds)
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -2269,21 +2258,19 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        self.source, handles = get_handle(
+        self.handleArgs = get_handle(
             f,
             "r",
             encoding=self.encoding,
             compression=self.compression,
             memory_map=self.memory_map,
         )
-        self.handles.extend(handles)
-        self._original_handle, self._non_closeable_wrapper = _can_close(f, self.source)
 
         # Set self.data to something that can read lines.
-        if hasattr(self.source, "readline"):
-            self._make_reader(self.source)
+        if hasattr(self.handleArgs.handle, "readline"):
+            self._make_reader(self.handleArgs.handle)
         else:
-            self.data = self.source
+            self.data = self.handleArgs.handle
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
@@ -3885,19 +3872,3 @@ def _validate_skipfooter(kwds: Dict[str, Any]) -> None:
             raise ValueError("'skipfooter' not supported for iteration")
         if kwds.get("nrows"):
             raise ValueError("'skipfooter' not supported with 'nrows'")
-
-
-def _can_close(
-    original_handle: FilePathOrBuffer, wrapped_handle: FilePathOrBuffer
-) -> Tuple[bool, bool]:
-    """Check whether the output of get_handle can be closed."""
-    # do not close user-provided file handles
-    is_original_handle = id(wrapped_handle) == id(original_handle)
-
-    # TextIOWrapper closes wrapped file handles, we cannot close it if the user
-    # provided a file handler. Needs to be detached (and flushed when writing).
-    non_closeable_wrapper = hasattr(original_handle, "read") and isinstance(
-        wrapped_handle, TextIOWrapper
-    )
-
-    return is_original_handle, non_closeable_wrapper
