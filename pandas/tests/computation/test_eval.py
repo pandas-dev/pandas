@@ -301,7 +301,7 @@ class TestEvalNumexprPandas:
 
             # direct numpy comparison
             expected = self.ne.evaluate(f"nlhs {op} ghs")
-            tm.assert_numpy_array_equal(result.values, expected)
+            tm.assert_almost_equal(result.values, expected, atol=1e-14, rtol=1e-15)
 
     # modulus, pow, and floor division require special casing
 
