@@ -14,7 +14,7 @@ Enhancements
 ~~~~~~~~~~~~
 
 .. _whatsnew_120.improve_timeseries_accessor_naming:
-Improve Timeseries accessors Naming Convention
+Improve timeseries accessors naming convention
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Added ``day_of_week`` (compatibility alias ``dayofweek``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
@@ -26,9 +26,7 @@ Improve Timeseries accessors Naming Convention
 Optionally disallow duplicate labels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`Series` and :class:`DataFrame` can now be created with ``allows_duplicate_labels=False`` flag to
-control whether the index or columns can contain duplicate labels (:issue:`28394`). This can be used to
-prevent accidental introduction of duplicate labels, which can affect downstream operations.
+:class:`Series` and :class:`DataFrame` can now be created with ``allows_duplicate_labels=False`` flag to control whether the index or columns can contain duplicate labels (:issue:`28394`). This can be used to prevent accidental introduction of duplicate labels, which can affect downstream operations.
 
 By default, duplicates continue to be allowed
 
