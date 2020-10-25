@@ -1073,4 +1073,3 @@ def test_rolling_non_monotonic(method, expected):
     result = getattr(df.rolling(indexer), method)()
     expected = DataFrame({"values": expected})
     tm.assert_frame_equal(result, expected)
-
