@@ -178,7 +178,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for inconsistent use of pandas namespace in tests' ; echo $MSG
-    for class in "Series" "DataFrame" "Index" "MultiIndex" "Timestamp" "Timedelta" "DatetimeIndex"; do
+    for class in "Series" "DataFrame" "Index" "MultiIndex" "Timestamp" "Timedelta" "TimedeltaIndex" "DatetimeIndex"; do
         check_namespace ${class}
         RET=$(($RET + $?))
     done
