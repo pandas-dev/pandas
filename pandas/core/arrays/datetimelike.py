@@ -1266,18 +1266,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         nv.validate_min(args, kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
-        # View as M8[ns] to get correct NaT/masking semantics for PeriodDtype
-        result = nanops.nanmin(
-            self._ndarray.view("M8[ns]"), skipna=skipna, mask=self.isna()
-        )
+        if is_period_dtype(self.dtype):
+            result = self.to_timestamp("S").min(axis=axis, skipna=skipna)
+            if result is not NaT:
+                result = result.to_period(self.freq)
+            return result
+
+        result = nanops.nanmin(self._ndarray, skipna=skipna, mask=self.isna())
         if lib.is_scalar(result):
-            if isna(result):
-                # Period._from_ordinal does not handle NaT gracefully
-                return NaT
-            # nanops may unwantedly cast to Timestamp
-            result = getattr(result, "value", result)
             return self._box_func(result)
-        result = result.astype("i8", copy=False)
         return self._from_backing_data(result)
 
     def max(self, axis=None, skipna=True, *args, **kwargs):
@@ -1296,18 +1293,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         nv.validate_max(args, kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
-        # View as M8[ns] to get correct NaT/masking semantics for PeriodDtype
-        result = nanops.nanmax(
-            self._ndarray.view("M8[ns]"), skipna=skipna, mask=self.isna()
-        )
+        if is_period_dtype(self.dtype):
+            result = self.to_timestamp("S").max(axis=axis, skipna=skipna)
+            if result is not NaT:
+                result = result.to_period(self.freq)
+            return result
+
+        result = nanops.nanmax(self._ndarray, skipna=skipna, mask=self.isna())
         if lib.is_scalar(result):
-            if isna(result):
-                # Period._from_ordinal does not handle NaT gracefully
-                return NaT
-            # nanops may unwantedly cast to Timestamp
-            result = getattr(result, "value", result)
             return self._box_func(result)
-        result = result.astype("i8", copy=False)
         return self._from_backing_data(result)
 
     def mean(self, skipna=True):
@@ -1365,10 +1359,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if axis is not None and abs(axis) >= self.ndim:
             raise ValueError("abs(axis) must be less than ndim")
 
-        if not self.size and (self.ndim == 1 or axis is None):
-            return NaT
-
-        if self.size == 0:  # TODO: try to do this directly in nanmedian
+        if self.size == 0:
             if self.ndim == 1 or axis is None:
                 return NaT
             shape = list(self.shape)
@@ -1378,7 +1369,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             result.fill(iNaT)
             return self._from_backing_data(result)
 
-        mask = self.isna()  # TODO: can we use ndarray instead of asi8?
+        mask = self.isna()
         result = nanops.nanmedian(self.asi8, axis=axis, skipna=skipna, mask=mask)
         if axis is None or self.ndim == 1:
             return self._box_func(result)
