@@ -381,18 +381,16 @@ def _na_for_min_count(
     if is_numeric_dtype(values):
         values = values.astype("float64")
     fill_value = na_value_for_dtype(values.dtype)
+    if fill_value is NaT:
+        fill_value = values.dtype.type("NaT", "ns")
 
     if values.ndim == 1:
         return fill_value
     else:
         assert axis is not None  # assertion to make mypy happy
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
-        # calling np.full with dtype parameter throws an ValueError when called
-        # with dtype=np.datetime64 and and fill_value=pd.NaT
-        try:
-            result = np.full(result_shape, fill_value, dtype=values.dtype)
-        except ValueError:
-            result = np.full(result_shape, fill_value)
+
+        result = np.full(result_shape, fill_value, dtype=values.dtype)
         return result
 
 
@@ -526,11 +524,9 @@ def nansum(
 def _mask_datetimelike_result(
     result: Union[np.ndarray, np.datetime64, np.timedelta64],
     axis: Optional[int],
-    mask: Optional[np.ndarray],
+    mask: np.ndarray,
     orig_values: np.ndarray,
 ):
-    if mask is None:
-        mask = isna(orig_values)
     if isinstance(result, np.ndarray):
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
