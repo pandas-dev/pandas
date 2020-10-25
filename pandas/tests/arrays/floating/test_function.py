@@ -73,7 +73,7 @@ def test_ufunc_reduce_raises(values):
         np.add.reduce(a)
 
 
-@pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
+@pytest.mark.skipif(not IS64, reason="GH 36579: fail on 32-bit system")
 @pytest.mark.parametrize(
     "pandasmethname, kwargs",
     [
