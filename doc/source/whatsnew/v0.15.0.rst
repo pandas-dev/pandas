@@ -490,7 +490,7 @@ Rolling/expanding moments improvements
   now have an optional ``adjust`` argument, just like :func:`ewma` does,
   affecting how the weights are calculated.
   The default value of ``adjust`` is ``True``, which is backwards-compatible.
-  See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7911`)
+  See :ref:`Exponentially weighted moment functions <window.exponentially_weighted>` for details. (:issue:`7911`)
 
 - :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
   now have an optional ``ignore_na`` argument.
@@ -595,7 +595,7 @@ Rolling/expanding moments improvements
      3    1.425439
      dtype: float64
 
-  See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7912`)
+  See :ref:`Exponentially weighted moment functions <window.exponentially_weighted>` for details. (:issue:`7912`)
 
 
 .. _whatsnew_0150.sql:

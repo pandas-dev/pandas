@@ -538,8 +538,8 @@ standard deviation of 1), very concisely:
 
 Note that methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod`
 preserve the location of ``NaN`` values. This is somewhat different from
-:meth:`~DataFrame.expanding` and :meth:`~DataFrame.rolling`.
-For more details please see :ref:`this note <stats.moments.expanding.note>`.
+:meth:`~DataFrame.expanding` and :meth:`~DataFrame.rolling` since ``NaN`` behavior
+is furthermore dictated by a ``min_periods`` parameter.
 
 .. ipython:: python
 
