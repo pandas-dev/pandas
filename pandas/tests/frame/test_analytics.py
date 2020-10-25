@@ -754,6 +754,7 @@ class TestDataFrameAnalytics:
         assert df["off2"].dtype == "timedelta64[ns]"
 
     def test_std_timedelta64_skipna_false(self):
+        # GH#37392
         tdi = pd.timedelta_range("1 Day", periods=10)
         df = DataFrame({"A": tdi, "B": tdi})
         df.iloc[-2, -1] = pd.NaT
