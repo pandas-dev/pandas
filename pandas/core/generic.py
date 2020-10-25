@@ -4,7 +4,6 @@ import collections
 from datetime import timedelta
 import functools
 import gc
-from io import StringIO
 import json
 import operator
 import pickle
@@ -109,7 +108,11 @@ from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
-from pandas.io.formats.format import DataFrameFormatter, format_percentiles
+from pandas.io.formats.format import (
+    DataFrameFormatter,
+    DataFrameRenderer,
+    format_percentiles,
+)
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
@@ -2777,7 +2780,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
-            values are 0, 1, 2, 3, 4. A negative value for the protocol
+            values are 0, 1, 2, 3, 4, 5. A negative value for the protocol
             parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html.
@@ -3013,6 +3016,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         .. versionchanged:: 1.0.0
            Added caption and label arguments.
 
+        .. versionchanged:: 1.2.0
+           Added position argument, changed meaning of caption argument.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -3074,10 +3080,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
-        caption : str, optional
-            The LaTeX caption to be placed inside ``\caption{{}}`` in the output.
+        caption : str or tuple, optional
+            Tuple (full_caption, short_caption),
+            which results in ``\caption[short_caption]{{full_caption}}``;
+            if a single string is passed, no short caption will be set.
 
             .. versionadded:: 1.0.0
+
+            .. versionchanged:: 1.2.0
+               Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
 
         label : str, optional
             The LaTeX label to be placed inside ``\label{{}}`` in the output.
@@ -3087,6 +3098,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{{}}`` in the output.
+
+            .. versionadded:: 1.2.0
         {returns}
         See Also
         --------
@@ -3097,8 +3110,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Examples
         --------
         >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                    mask=['red', 'purple'],
-        ...                    weapon=['sai', 'bo staff']))
+        ...                   mask=['red', 'purple'],
+        ...                   weapon=['sai', 'bo staff']))
         >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{{tabular}}{{lll}}
          \toprule
@@ -3139,7 +3152,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             escape=escape,
             decimal=decimal,
         )
-        return formatter.to_latex(
+        return DataFrameRenderer(formatter).to_latex(
             buf=buf,
             column_format=column_format,
             longtable=longtable,
@@ -3172,7 +3185,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         date_format: Optional[str] = None,
         doublequote: bool_t = True,
         escapechar: Optional[str] = None,
-        decimal: Optional[str] = ".",
+        decimal: str = ".",
         errors: str = "strict",
         storage_options: StorageOptions = None,
     ) -> Optional[str]:
@@ -3330,10 +3343,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
-        from pandas.io.formats.csvs import CSVFormatter
+        formatter = DataFrameFormatter(
+            frame=df,
+            header=header,
+            index=index,
+            na_rep=na_rep,
+            float_format=float_format,
+            decimal=decimal,
+        )
 
-        formatter = CSVFormatter(
-            df,
+        return DataFrameRenderer(formatter).to_csv(
             path_or_buf,
             line_terminator=line_terminator,
             sep=sep,
@@ -3341,11 +3360,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             errors=errors,
             compression=compression,
             quoting=quoting,
-            na_rep=na_rep,
-            float_format=float_format,
-            cols=columns,
-            header=header,
-            index=index,
+            columns=columns,
             index_label=index_label,
             mode=mode,
             chunksize=chunksize,
@@ -3353,16 +3368,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             date_format=date_format,
             doublequote=doublequote,
             escapechar=escapechar,
-            decimal=decimal,
             storage_options=storage_options,
         )
-        formatter.save()
-
-        if path_or_buf is None:
-            assert isinstance(formatter.path_or_buf, StringIO)
-            return formatter.path_or_buf.getvalue()
-
-        return None
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -3677,7 +3684,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index = self.index
         if isinstance(index, MultiIndex):
             try:
-                loc, new_index = self.index.get_loc_level(key, drop_level=drop_level)
+                loc, new_index = self.index._get_loc_level(
+                    key, level=0, drop_level=drop_level
+                )
             except TypeError as e:
                 raise TypeError(f"Expected label or tuple of labels, got {key}") from e
         else:
@@ -5343,7 +5352,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             A passed method name providing context on where ``__finalize__``
             was called.
 
-            .. warning:
+            .. warning::
 
                The value passed as `method` are not currently considered
                stable across pandas releases.
@@ -5354,7 +5363,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
             # For subclasses using _metadata.
-            for name in self._metadata:
+            for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
@@ -5474,7 +5483,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     @property
     def _is_mixed_type(self) -> bool_t:
-        if len(self._mgr.blocks) == 1:
+        if self._mgr.is_single_block:
             return False
 
         if self._mgr.any_extension_types:
@@ -6262,7 +6271,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if value is None:
-            if len(self._mgr.blocks) > 1 and axis == 1:
+            if not self._mgr.is_single_block and axis == 1:
                 if inplace:
                     raise NotImplementedError()
                 result = self.T.fillna(method=method, limit=limit).T
@@ -7309,7 +7318,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -------
         {klass}
             Mask of bool values for each element in {klass} that
-            indicates whether an element is not an NA value.
+            indicates whether an element is an NA value.
 
         See Also
         --------
