@@ -1978,7 +1978,6 @@ def _factorize_keys(
     lany = lmask.any()
     rmask = rlab == -1
     rany = rmask.any()
-    raise ValueError
     if lany and rany:
         warnings.warn(
             "Matching nan on nan in merge is not supported and will not match in "
