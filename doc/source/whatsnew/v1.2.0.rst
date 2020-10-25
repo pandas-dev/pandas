@@ -193,6 +193,8 @@ Other enhancements
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 - Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
+- Added ability to load pickles from ``.zip`` files created by OS X and macOS containing ``__MACOSX/`` or ``.DS_STORE`` hidden folders/files (:issue:`37098`).
+
 
 .. _whatsnew_120.api_breaking.python:
 
