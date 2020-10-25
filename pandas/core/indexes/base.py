@@ -2648,7 +2648,12 @@ class Index(IndexOpsMixin, PandasObject):
             result.extend([x for x in rvals if x not in value_set])
             result = Index(result)._values  # do type inference here
         else:
-            if sort is False or not self.is_monotonic or not other.is_monotonic:
+            if (
+                sort is False
+                or not self.is_monotonic
+                or not other.is_monotonic
+                or is_categorical_dtype(self)
+            ):
                 result = algos.resort_union_after_inputs(result, lvals, rvals)
 
         if sort is None and (not self.is_monotonic or not other.is_monotonic):
