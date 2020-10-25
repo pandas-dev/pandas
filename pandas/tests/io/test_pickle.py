@@ -378,7 +378,7 @@ class TestCompression:
 
     @pytest.mark.parametrize("cruft", ["__MACOSX/", ".DS_STORE"])
     def test_load_zip_with_hidden_folders(self, cruft, get_random_path):
-        """Test loading .zip files that have extraneous metadata in hidden folders. """
+        # Test loading .zip files that have extraneous metadata in hidden folders (issue #37098)
         base = get_random_path
         path1 = f"{base}.raw"
         path2 = f"{base}.zip"
@@ -387,27 +387,20 @@ class TestCompression:
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(
             path2
-        ) as p2, tm.ensure_clean(dummy) as d:
+        ) as p2, tm.ensure_clean(dummy) as dummy_path:
+
             df = tm.makeDataFrame()
-
-            # write to uncompressed file
             df.to_pickle(p1, compression=None)
-
-            # compress dataframe normally
             self.compress_file(p1, p2, compression=compression)
 
             # add dummy file `{cruft}{dummy}` to the archive
             with zipfile.ZipFile(p2, "a", compression=zipfile.ZIP_DEFLATED) as f:
-                f.write(d, f"{cruft}{dummy}")
-
-            # check the file was definitely added to the archive
+                f.write(dummy_path, f"{cruft}{dummy}")
             with zipfile.ZipFile(p2, "r") as f:
                 assert f"{cruft}{dummy}" in f.namelist()
 
-            # compressed file by inferred compression method,
-            # dummy file should have been ignored
+            # dummy file should be ignored on reading, otherwise read_pickle will fail
             df2 = pd.read_pickle(p2)
-
             tm.assert_frame_equal(df, df2)
 
 
