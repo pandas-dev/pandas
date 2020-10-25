@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -82,10 +84,15 @@ def test_ufunc_reduce_raises(values):
     ],
 )
 def test_stat_method(pandasmethname, kwargs):
-    s = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, np.nan, np.nan], dtype="Float64")
+    s = pd.Series(
+        data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, np.nan, np.nan],
+        dtype="Float64" if IS64 else "Float32",
+    )
     pandasmeth = getattr(s, pandasmethname)
     result = pandasmeth(**kwargs)
-    s2 = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], dtype="float64")
+    s2 = pd.Series(
+        data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], dtype="float64" if IS64 else "float32"
+    )
     pandasmeth = getattr(s2, pandasmethname)
     expected = pandasmeth(**kwargs)
     assert expected == result
