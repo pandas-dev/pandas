@@ -7,6 +7,26 @@ import pandas._testing as tm
 
 
 class TestSeriesCount:
+    def test_count_level_series(self):
+        index = MultiIndex(
+            levels=[["foo", "bar", "baz"], ["one", "two", "three", "four"]],
+            codes=[[0, 0, 0, 2, 2], [2, 0, 1, 1, 2]],
+        )
+
+        ser = Series(np.random.randn(len(index)), index=index)
+
+        result = ser.count(level=0)
+        expected = ser.groupby(level=0).count()
+        tm.assert_series_equal(
+            result.astype("f8"), expected.reindex(result.index).fillna(0)
+        )
+
+        result = ser.count(level=1)
+        expected = ser.groupby(level=1).count()
+        tm.assert_series_equal(
+            result.astype("f8"), expected.reindex(result.index).fillna(0)
+        )
+
     def test_count_multiindex(self, series_with_multilevel_index):
         ser = series_with_multilevel_index
 

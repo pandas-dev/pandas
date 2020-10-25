@@ -14,8 +14,6 @@ from pandas._libs.tslib import Timestamp
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
-from pandas.core.dtypes.generic import ABCIndex
-
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -2519,10 +2517,6 @@ class TestIndexUtils:
     ],
 )
 def test_generated_op_names(opname, index):
-    if isinstance(index, ABCIndex) and opname == "rsub":
-        # Index.__rsub__ does not exist; though the method does exist
-        # for subclasses.  see GH#19723
-        return
     opname = f"__{opname}__"
     method = getattr(index, opname)
     assert method.__name__ == opname
