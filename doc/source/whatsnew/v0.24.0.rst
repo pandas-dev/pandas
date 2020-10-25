@@ -38,7 +38,7 @@ Enhancements
 Optional integer NA support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
+pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
 
 .. note::
 
@@ -384,7 +384,7 @@ Other enhancements
 - :meth:`Series.droplevel` and :meth:`DataFrame.droplevel` are now implemented (:issue:`20342`)
 - Added support for reading from/writing to Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`, :issue:`23094`)
 - :func:`DataFrame.to_gbq` and :func:`read_gbq` signature and documentation updated to
-  reflect changes from the `Pandas-GBQ library version 0.8.0
+  reflect changes from the `pandas-gbq library version 0.8.0
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0>`__.
   Adds a ``credentials`` argument, which enables the use of any kind of
   `google-auth credentials
@@ -432,7 +432,7 @@ Other enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas 0.24.0 includes a number of API breaking changes.
+pandas 0.24.0 includes a number of API breaking changes.
 
 
 .. _whatsnew_0240.api_breaking.deps:
@@ -1217,7 +1217,7 @@ Extension type changes
 
 **Equality and hashability**
 
-Pandas now requires that extension dtypes be hashable (i.e. the respective
+pandas now requires that extension dtypes be hashable (i.e. the respective
 ``ExtensionDtype`` objects; hashability is not a requirement for the values
 of the corresponding ``ExtensionArray``). The base class implements
 a default ``__eq__`` and ``__hash__``. If you have a parametrized dtype, you should
@@ -1925,7 +1925,7 @@ Build changes
 Other
 ^^^^^
 
-- Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before Pandas. (:issue:`24113`)
+- Bug where C variables were declared with external linkage causing import errors if certain other C libraries were imported before pandas. (:issue:`24113`)
 
 
 .. _whatsnew_0.24.0.contributors:

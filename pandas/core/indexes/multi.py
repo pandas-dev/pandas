@@ -47,7 +47,12 @@ from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
-from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
+from pandas.core.indexes.base import (
+    Index,
+    _index_shared_docs,
+    ensure_index,
+    get_unanimous_names,
+)
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 import pandas.core.missing as missing
@@ -311,7 +316,9 @@ class MultiIndex(Index):
             new_codes = result._verify_integrity()
             result._codes = new_codes
 
-        return result._reset_identity()
+        result._reset_identity()
+
+        return result
 
     def _validate_codes(self, level: List, code: List):
         """
@@ -456,7 +463,7 @@ class MultiIndex(Index):
         if names is lib.no_default:
             names = [getattr(arr, "name", None) for arr in arrays]
 
-        return MultiIndex(
+        return cls(
             levels=levels,
             codes=codes,
             sortorder=sortorder,
@@ -527,7 +534,7 @@ class MultiIndex(Index):
         else:
             arrays = zip(*tuples)
 
-        return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
+        return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
     @classmethod
     def from_product(cls, iterables, sortorder=None, names=lib.no_default):
@@ -586,7 +593,7 @@ class MultiIndex(Index):
 
         # codes are all ndarrays, so cartesian_product is lossless
         codes = cartesian_product(codes)
-        return MultiIndex(levels, codes, sortorder=sortorder, names=names)
+        return cls(levels, codes, sortorder=sortorder, names=names)
 
     @classmethod
     def from_frame(cls, df, sortorder=None, names=None):
@@ -782,7 +789,8 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new index (of same type and class...etc)
+        new index (of same type and class...etc) or None
+            The same type as the caller or None if ``inplace=True``.
 
         Examples
         --------
@@ -961,7 +969,8 @@ class MultiIndex(Index):
 
         Returns
         -------
-        new index (of same type and class...etc)
+        new index (of same type and class...etc) or None
+            The same type as the caller or None if ``inplace=True``.
 
         Examples
         --------
@@ -2855,16 +2864,29 @@ class MultiIndex(Index):
         >>> mi.get_loc_level(['b', 'e'])
         (1, None)
         """
+        if not isinstance(level, (list, tuple)):
+            level = self._get_level_number(level)
+        else:
+            level = [self._get_level_number(lev) for lev in level]
+        return self._get_loc_level(key, level=level, drop_level=drop_level)
+
+    def _get_loc_level(
+        self, key, level: Union[int, List[int]] = 0, drop_level: bool = True
+    ):
+        """
+        get_loc_level but with `level` known to be positional, not name-based.
+        """
+
         # different name to distinguish from maybe_droplevels
         def maybe_mi_droplevels(indexer, levels, drop_level: bool):
             if not drop_level:
                 return self[indexer]
             # kludge around
             orig_index = new_index = self[indexer]
-            levels = [self._get_level_number(i) for i in levels]
+
             for i in sorted(levels, reverse=True):
                 try:
-                    new_index = new_index.droplevel(i)
+                    new_index = new_index._drop_level_numbers([i])
                 except ValueError:
 
                     # no dropping here
@@ -2878,7 +2900,7 @@ class MultiIndex(Index):
                 )
             result = None
             for lev, k in zip(level, key):
-                loc, new_index = self.get_loc_level(k, level=lev)
+                loc, new_index = self._get_loc_level(k, level=lev)
                 if isinstance(loc, slice):
                     mask = np.zeros(len(self), dtype=bool)
                     mask[loc] = True
@@ -2887,8 +2909,6 @@ class MultiIndex(Index):
                 result = loc if result is None else result & loc
 
             return result, maybe_mi_droplevels(result, level, drop_level)
-
-        level = self._get_level_number(level)
 
         # kludge for #1796
         if isinstance(key, list):
@@ -2954,7 +2974,8 @@ class MultiIndex(Index):
             indexer = self._get_level_indexer(key, level=level)
             return indexer, maybe_mi_droplevels(indexer, [level], drop_level)
 
-    def _get_level_indexer(self, key, level=0, indexer=None):
+    def _get_level_indexer(self, key, level: int = 0, indexer=None):
+        # `level` kwarg is _always_ positional, never name
         # return an indexer, boolean array or a slice showing where the key is
         # in the totality of values
         # if the indexer is provided, then use this
@@ -3086,7 +3107,6 @@ class MultiIndex(Index):
         >>> mi.get_locs([[True, False, True], slice('e', 'f')])  # doctest: +SKIP
         array([2], dtype=int64)
         """
-        from pandas.core.indexes.numeric import Int64Index
 
         # must be lexsorted to at least as many levels
         true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
@@ -3426,7 +3446,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0 or self.equals(other):
-            return self
+            return self.rename(result_names)
 
         # TODO: Index.union returns other when `len(self)` is 0.
 
@@ -3468,7 +3488,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if self.equals(other):
-            return self
+            return self.rename(result_names)
 
         if not is_object_dtype(other.dtype):
             # The intersection is empty
@@ -3539,7 +3559,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
 
         if len(other) == 0:
-            return self
+            return self.rename(result_names)
 
         if self.equals(other):
             return MultiIndex(
@@ -3587,7 +3607,8 @@ class MultiIndex(Index):
                 except TypeError as err:
                     raise TypeError(msg) from err
         else:
-            result_names = self.names if self.names == other.names else None
+            result_names = get_unanimous_names(self, other)
+
         return other, result_names
 
     # --------------------------------------------------------------------
@@ -3600,8 +3621,8 @@ class MultiIndex(Index):
             raise NotImplementedError(msg)
         elif not is_object_dtype(dtype):
             raise TypeError(
-                f"Setting {type(self)} dtype to anything other "
-                "than object is not supported"
+                "Setting a MultiIndex dtype to anything other than object "
+                "is not supported"
             )
         elif copy is True:
             return self._shallow_copy()
@@ -3680,44 +3701,32 @@ class MultiIndex(Index):
                 return np.zeros(len(levs), dtype=np.bool_)
             return levs.isin(values)
 
-    @classmethod
-    def _add_numeric_methods_add_sub_disabled(cls):
-        """
-        Add in the numeric add/sub methods to disable.
-        """
-        cls.__add__ = make_invalid_op("__add__")
-        cls.__radd__ = make_invalid_op("__radd__")
-        cls.__iadd__ = make_invalid_op("__iadd__")
-        cls.__sub__ = make_invalid_op("__sub__")
-        cls.__rsub__ = make_invalid_op("__rsub__")
-        cls.__isub__ = make_invalid_op("__isub__")
+    # ---------------------------------------------------------------
+    # Arithmetic/Numeric Methods - Disabled
 
-    @classmethod
-    def _add_numeric_methods_disabled(cls):
-        """
-        Add in numeric methods to disable other than add/sub.
-        """
-        cls.__pow__ = make_invalid_op("__pow__")
-        cls.__rpow__ = make_invalid_op("__rpow__")
-        cls.__mul__ = make_invalid_op("__mul__")
-        cls.__rmul__ = make_invalid_op("__rmul__")
-        cls.__floordiv__ = make_invalid_op("__floordiv__")
-        cls.__rfloordiv__ = make_invalid_op("__rfloordiv__")
-        cls.__truediv__ = make_invalid_op("__truediv__")
-        cls.__rtruediv__ = make_invalid_op("__rtruediv__")
-        cls.__mod__ = make_invalid_op("__mod__")
-        cls.__rmod__ = make_invalid_op("__rmod__")
-        cls.__divmod__ = make_invalid_op("__divmod__")
-        cls.__rdivmod__ = make_invalid_op("__rdivmod__")
-        cls.__neg__ = make_invalid_op("__neg__")
-        cls.__pos__ = make_invalid_op("__pos__")
-        cls.__abs__ = make_invalid_op("__abs__")
-        cls.__inv__ = make_invalid_op("__inv__")
-
-
-MultiIndex._add_numeric_methods_disabled()
-MultiIndex._add_numeric_methods_add_sub_disabled()
-MultiIndex._add_logical_methods_disabled()
+    __add__ = make_invalid_op("__add__")
+    __radd__ = make_invalid_op("__radd__")
+    __iadd__ = make_invalid_op("__iadd__")
+    __sub__ = make_invalid_op("__sub__")
+    __rsub__ = make_invalid_op("__rsub__")
+    __isub__ = make_invalid_op("__isub__")
+    __pow__ = make_invalid_op("__pow__")
+    __rpow__ = make_invalid_op("__rpow__")
+    __mul__ = make_invalid_op("__mul__")
+    __rmul__ = make_invalid_op("__rmul__")
+    __floordiv__ = make_invalid_op("__floordiv__")
+    __rfloordiv__ = make_invalid_op("__rfloordiv__")
+    __truediv__ = make_invalid_op("__truediv__")
+    __rtruediv__ = make_invalid_op("__rtruediv__")
+    __mod__ = make_invalid_op("__mod__")
+    __rmod__ = make_invalid_op("__rmod__")
+    __divmod__ = make_invalid_op("__divmod__")
+    __rdivmod__ = make_invalid_op("__rdivmod__")
+    # Unary methods disabled
+    __neg__ = make_invalid_op("__neg__")
+    __pos__ = make_invalid_op("__pos__")
+    __abs__ = make_invalid_op("__abs__")
+    __inv__ = make_invalid_op("__inv__")
 
 
 def sparsify_labels(label_list, start: int = 0, sentinel=""):
@@ -3770,13 +3779,13 @@ def maybe_droplevels(index, key):
     if isinstance(key, tuple):
         for _ in key:
             try:
-                index = index.droplevel(0)
+                index = index._drop_level_numbers([0])
             except ValueError:
                 # we have dropped too much, so back out
                 return original_index
     else:
         try:
-            index = index.droplevel(0)
+            index = index._drop_level_numbers([0])
         except ValueError:
             pass
 

@@ -238,3 +238,15 @@ class TestTimedeltaIndex:
 
         result = TimedeltaIndex(tdi._data, freq=None)
         assert result.freq is None
+
+    def test_from_categorical(self):
+        tdi = timedelta_range(1, periods=5)
+
+        cat = pd.Categorical(tdi)
+
+        result = TimedeltaIndex(cat)
+        tm.assert_index_equal(result, tdi)
+
+        ci = pd.CategoricalIndex(tdi)
+        result = TimedeltaIndex(ci)
+        tm.assert_index_equal(result, tdi)

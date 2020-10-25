@@ -16,7 +16,18 @@ import os
 from pathlib import Path
 import struct
 import sys
-from typing import Any, AnyStr, BinaryIO, Dict, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    AnyStr,
+    BinaryIO,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 
 from dateutil.relativedelta import relativedelta
@@ -367,8 +378,8 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["delta"] = time_delta._values.astype(np.int64) // 1000  # microseconds
             if days or year:
                 date_index = DatetimeIndex(dates)
-                d["year"] = date_index.year
-                d["month"] = date_index.month
+                d["year"] = date_index._data.year
+                d["month"] = date_index._data.month
             if days:
                 days_in_ns = dates.astype(np.int64) - to_datetime(
                     d["year"], format="%Y"
@@ -458,7 +469,7 @@ class PossiblePrecisionLoss(Warning):
 
 
 precision_loss_doc = """
-Column converted from %s to %s, and some data are outside of the lossless
+Column converted from {0} to {1}, and some data are outside of the lossless
 conversion range. This may result in a loss of precision in the saved data.
 """
 
@@ -532,7 +543,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     object in a DataFrame.
     """
     ws = ""
-    #                  original, if small, if large
+    # original, if small, if large
     conversion_data = (
         (np.bool_, np.int8, np.int8),
         (np.uint8, np.int8, np.int16),
@@ -552,7 +563,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
-                if c_data[2] == np.float64:  # Warn if necessary
+                if c_data[2] == np.int64:  # Warn if necessary
                     if data[col].max() >= 2 ** 53:
                         ws = precision_loss_doc.format("uint64", "float64")
 
@@ -616,12 +627,12 @@ class StataValueLabel:
         self.value_labels = list(zip(np.arange(len(categories)), categories))
         self.value_labels.sort(key=lambda x: x[0])
         self.text_len = 0
-        self.off: List[int] = []
-        self.val: List[int] = []
         self.txt: List[bytes] = []
         self.n = 0
 
         # Compute lengths and setup lists of offsets and labels
+        offsets: List[int] = []
+        values: List[int] = []
         for vl in self.value_labels:
             category = vl[1]
             if not isinstance(category, str):
@@ -631,9 +642,9 @@ class StataValueLabel:
                     ValueLabelTypeMismatch,
                 )
             category = category.encode(encoding)
-            self.off.append(self.text_len)
+            offsets.append(self.text_len)
             self.text_len += len(category) + 1  # +1 for the padding
-            self.val.append(vl[0])
+            values.append(vl[0])
             self.txt.append(category)
             self.n += 1
 
@@ -644,8 +655,8 @@ class StataValueLabel:
             )
 
         # Ensure int32
-        self.off = np.array(self.off, dtype=np.int32)
-        self.val = np.array(self.val, dtype=np.int32)
+        self.off = np.array(offsets, dtype=np.int32)
+        self.val = np.array(values, dtype=np.int32)
 
         # Total length
         self.len = 4 + 4 + 4 * self.n + 4 * self.n + self.text_len
@@ -857,26 +868,28 @@ class StataParser:
         # with a label, but the underlying variable is -127 to 100
         # we're going to drop the label and cast to int
         self.DTYPE_MAP = dict(
-            list(zip(range(1, 245), ["a" + str(i) for i in range(1, 245)]))
+            list(zip(range(1, 245), [np.dtype("a" + str(i)) for i in range(1, 245)]))
             + [
-                (251, np.int8),
-                (252, np.int16),
-                (253, np.int32),
-                (254, np.float32),
-                (255, np.float64),
+                (251, np.dtype(np.int8)),
+                (252, np.dtype(np.int16)),
+                (253, np.dtype(np.int32)),
+                (254, np.dtype(np.float32)),
+                (255, np.dtype(np.float64)),
             ]
         )
         self.DTYPE_MAP_XML = dict(
             [
-                (32768, np.uint8),  # Keys to GSO
-                (65526, np.float64),
-                (65527, np.float32),
-                (65528, np.int32),
-                (65529, np.int16),
-                (65530, np.int8),
+                (32768, np.dtype(np.uint8)),  # Keys to GSO
+                (65526, np.dtype(np.float64)),
+                (65527, np.dtype(np.float32)),
+                (65528, np.dtype(np.int32)),
+                (65529, np.dtype(np.int16)),
+                (65530, np.dtype(np.int8)),
             ]
         )
-        self.TYPE_MAP = list(range(251)) + list("bhlfd")
+        # error: Argument 1 to "list" has incompatible type "str";
+        #  expected "Iterable[int]"  [arg-type]
+        self.TYPE_MAP = list(range(251)) + list("bhlfd")  # type: ignore[arg-type]
         self.TYPE_MAP_XML = dict(
             [
                 # Not really a Q, unclear how to handle byteswap
@@ -1032,9 +1045,10 @@ class StataReader(StataParser, abc.Iterator):
         self._order_categoricals = order_categoricals
         self._encoding = ""
         self._chunksize = chunksize
-        if self._chunksize is not None and (
-            not isinstance(chunksize, int) or chunksize <= 0
-        ):
+        self._using_iterator = False
+        if self._chunksize is None:
+            self._chunksize = 1
+        elif not isinstance(chunksize, int) or chunksize <= 0:
             raise ValueError("chunksize must be a positive integer when set.")
 
         # State variables for the file
@@ -1044,7 +1058,7 @@ class StataReader(StataParser, abc.Iterator):
         self._column_selector_set = False
         self._value_labels_read = False
         self._data_read = False
-        self._dtype = None
+        self._dtype: Optional[np.dtype] = None
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
@@ -1180,7 +1194,7 @@ class StataReader(StataParser, abc.Iterator):
     # Get data type information, works for versions 117-119.
     def _get_dtypes(
         self, seek_vartypes: int
-    ) -> Tuple[List[Union[int, str]], List[Union[int, np.dtype]]]:
+    ) -> Tuple[List[Union[int, str]], List[Union[str, np.dtype]]]:
 
         self.path_or_buf.seek(seek_vartypes)
         raw_typlist = [
@@ -1389,6 +1403,7 @@ class StataReader(StataParser, abc.Iterator):
         dtypes = []  # Convert struct data types to numpy data type
         for i, typ in enumerate(self.typlist):
             if typ in self.NUMPY_TYPE_MAP:
+                typ = cast(str, typ)  # only strs in NUMPY_TYPE_MAP
                 dtypes.append(("s" + str(i), self.byteorder + self.NUMPY_TYPE_MAP[typ]))
             else:
                 dtypes.append(("s" + str(i), "S" + str(typ)))
@@ -1504,11 +1519,8 @@ the string values returned are correct."""
             self.GSO[str(v_o)] = decoded_va
 
     def __next__(self) -> DataFrame:
-        if self._chunksize is None:
-            raise ValueError(
-                "chunksize must be set to a positive integer to use as an iterator."
-            )
-        return self.read(nrows=self._chunksize or 1)
+        self._using_iterator = True
+        return self.read(nrows=self._chunksize)
 
     def get_chunk(self, size: Optional[int] = None) -> DataFrame:
         """
@@ -1676,11 +1688,15 @@ the string values returned are correct."""
             convert = False
             for col in data:
                 dtype = data[col].dtype
-                if dtype in (np.float16, np.float32):
-                    dtype = np.float64
+                if dtype in (np.dtype(np.float16), np.dtype(np.float32)):
+                    dtype = np.dtype(np.float64)
                     convert = True
-                elif dtype in (np.int8, np.int16, np.int32):
-                    dtype = np.int64
+                elif dtype in (
+                    np.dtype(np.int8),
+                    np.dtype(np.int16),
+                    np.dtype(np.int32),
+                ):
+                    dtype = np.dtype(np.int64)
                     convert = True
                 retyped_data.append((col, data[col].astype(dtype)))
             if convert:
@@ -1699,6 +1715,7 @@ the string values returned are correct."""
             if fmt not in self.VALID_RANGE:
                 continue
 
+            fmt = cast(str, fmt)  # only strs in VALID_RANGE
             nmin, nmax = self.VALID_RANGE[fmt]
             series = data[colname]
             missing = np.logical_or(series < nmin, series > nmax)
@@ -1791,14 +1808,14 @@ the string values returned are correct."""
                 keys = np.array(list(vl.keys()))
                 column = data[col]
                 key_matches = column.isin(keys)
-                if self._chunksize is not None and key_matches.all():
-                    initial_categories = keys
+                if self._using_iterator and key_matches.all():
+                    initial_categories: Optional[np.ndarray] = keys
                     # If all categories are in the keys and we are iterating,
                     # use the same keys for all chunks. If some are missing
                     # value labels, then we will fall back to the categories
                     # varying across chunks.
                 else:
-                    if self._chunksize is not None:
+                    if self._using_iterator:
                         # warn is using an iterator
                         warnings.warn(
                             categorical_conversion_warning, CategoricalConversionWarning
@@ -2009,7 +2026,7 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
         "ty",
         "%ty",
     ]:
-        return np.float64  # Stata expects doubles for SIFs
+        return np.dtype(np.float64)  # Stata expects doubles for SIFs
     else:
         raise NotImplementedError(f"Format {fmt} not implemented")
 

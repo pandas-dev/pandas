@@ -214,7 +214,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             if data is None and ordinal is not None:
                 # we strangely ignore `ordinal` if data is passed.
                 ordinal = np.asarray(ordinal, dtype=np.int64)
-                data = PeriodArray(ordinal, freq)
+                data = PeriodArray(ordinal, freq=freq)
             else:
                 # don't pass copy here, since we copy later.
                 data = period_array(data=data, freq=freq)
@@ -260,12 +260,12 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
 
     def _shallow_copy(self, values=None, name: Label = no_default):
         name = name if name is not no_default else self.name
-        cache = self._cache.copy() if values is None else {}
-        if values is None:
-            values = self._data
 
-        result = self._simple_new(values, name=name)
-        result._cache = cache
+        if values is not None:
+            return self._simple_new(values, name=name)
+
+        result = self._simple_new(self._data, name=name)
+        result._cache = self._cache
         return result
 
     def _maybe_convert_timedelta(self, other):
@@ -622,12 +622,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             #  why is that check not needed?
             raise ValueError
 
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
-        # TODO: Check for non-True use_lhs/use_rhs
+    def _get_string_slice(self, key: str):
         parsed, reso = parse_time_string(key, self.freq)
         reso = Resolution.from_attrname(reso)
         try:
-            return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
+            return self._partial_date_slice(reso, parsed)
         except KeyError as err:
             raise KeyError(key) from err
 
@@ -717,9 +716,6 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
         if hasattr(self, "_cache") and "_int64index" in self._cache:
             result += self._int64index.memory_usage(deep=deep)
         return result
-
-
-PeriodIndex._add_logical_methods_disabled()
 
 
 def period_range(

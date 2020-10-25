@@ -352,14 +352,6 @@ class TestDataFrameIndexingCategorical:
         df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp)
 
-    def test_functions_no_warnings(self):
-        df = DataFrame({"value": np.random.randint(0, 100, 20)})
-        labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
-        with tm.assert_produces_warning(False):
-            df["group"] = pd.cut(
-                df.value, range(0, 105, 10), right=False, labels=labels
-            )
-
     def test_setitem_single_row_categorical(self):
         # GH 25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
@@ -394,14 +386,3 @@ class TestDataFrameIndexingCategorical:
 
         result = df.loc[["a"]].index.levels[0]
         tm.assert_index_equal(result, expected)
-
-    def test_categorical_filtering(self):
-        # GH22609 Verify filtering operations on DataFrames with categorical Series
-        df = pd.DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
-        df["b"] = df.b.astype("category")
-
-        result = df.where(df.a > 0)
-        expected = df.copy()
-        expected.loc[0, :] = np.nan
-
-        tm.assert_equal(result, expected)

@@ -283,7 +283,7 @@ def test_count():
 def test_count_non_nulls():
     # GH#5610
     # count counts non-nulls
-    df = pd.DataFrame(
+    df = DataFrame(
         [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, np.nan]],
         columns=["A", "B", "C"],
     )
@@ -301,14 +301,14 @@ def test_count_non_nulls():
 
 
 def test_count_object():
-    df = pd.DataFrame({"a": ["a"] * 3 + ["b"] * 3, "c": [2] * 3 + [3] * 3})
+    df = DataFrame({"a": ["a"] * 3 + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
-    expected = pd.Series([3, 3], index=pd.Index([2, 3], name="c"), name="a")
+    expected = Series([3, 3], index=pd.Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
-    df = pd.DataFrame({"a": ["a", np.nan, np.nan] + ["b"] * 3, "c": [2] * 3 + [3] * 3})
+    df = DataFrame({"a": ["a", np.nan, np.nan] + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
-    expected = pd.Series([1, 3], index=pd.Index([2, 3], name="c"), name="a")
+    expected = Series([1, 3], index=pd.Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
 
@@ -318,7 +318,7 @@ def test_count_cross_type():
         (np.random.randint(0, 5, (100, 2)), np.random.randint(0, 2, (100, 2)))
     )
 
-    df = pd.DataFrame(vals, columns=["a", "b", "c", "d"])
+    df = DataFrame(vals, columns=["a", "b", "c", "d"])
     df[df == 2] = np.nan
     expected = df.groupby(["c", "d"]).count()
 

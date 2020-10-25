@@ -128,7 +128,8 @@ def test_memory_usage(index_or_series_obj):
     )
 
     if len(obj) == 0:
-        assert res_deep == res == 0
+        expected = 0 if isinstance(obj, Index) else 80
+        assert res_deep == res == expected
     elif is_object or is_categorical:
         # only deep will pick them up
         assert res_deep > res
@@ -181,7 +182,7 @@ def test_access_by_position(index):
     elif isinstance(index, pd.MultiIndex):
         pytest.skip("Can't instantiate Series from MultiIndex")
 
-    series = pd.Series(index)
+    series = Series(index)
     assert index[0] == series.iloc[0]
     assert index[5] == series.iloc[5]
     assert index[-1] == series.iloc[-1]
@@ -199,6 +200,6 @@ def test_access_by_position(index):
 
 def test_get_indexer_non_unique_dtype_mismatch():
     # GH 25459
-    indexes, missing = pd.Index(["A", "B"]).get_indexer_non_unique(pd.Index([0]))
+    indexes, missing = Index(["A", "B"]).get_indexer_non_unique(Index([0]))
     tm.assert_numpy_array_equal(np.array([-1], dtype=np.intp), indexes)
     tm.assert_numpy_array_equal(np.array([0], dtype=np.intp), missing)

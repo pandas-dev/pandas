@@ -24,7 +24,7 @@ class TestDataFrame(Generic):
 
     @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
     def test_set_axis_name(self, func):
-        df = pd.DataFrame([[1, 2], [3, 4]])
+        df = DataFrame([[1, 2], [3, 4]])
 
         result = methodcaller(func, "foo")(df)
         assert df.index.name is None
@@ -188,9 +188,6 @@ class TestDataFrame2:
 
         with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).drop("a", axis=1, inplace=value)
-
-        with pytest.raises(ValueError, match=msg):
-            super(DataFrame, df)._consolidate(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
             super(DataFrame, df).fillna(value=0, inplace=value)
