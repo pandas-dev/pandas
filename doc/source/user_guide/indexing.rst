@@ -1594,19 +1594,16 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
 Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The two main operations are ``union (|)`` and ``intersection (&)``.
-These can be directly called as instance methods or used via overloaded
-operators. Difference is provided via the ``.difference()`` method.
+The two main operations are ``union`` and ``intersection``.
+Difference is provided via the ``.difference()`` method.
 
 .. ipython:: python
 
    a = pd.Index(['c', 'b', 'a'])
    b = pd.Index(['c', 'e', 'd'])
-   a | b
-   a & b
    a.difference(b)
 
-Also available is the ``symmetric_difference (^)`` operation, which returns elements
+Also available is the ``symmetric_difference`` operation, which returns elements
 that appear in either ``idx1`` or ``idx2``, but not in both. This is
 equivalent to the Index created by ``idx1.difference(idx2).union(idx2.difference(idx1))``,
 with duplicates dropped.
@@ -1616,7 +1613,6 @@ with duplicates dropped.
    idx1 = pd.Index([1, 2, 3, 4])
    idx2 = pd.Index([2, 3, 4, 5])
    idx1.symmetric_difference(idx2)
-   idx1 ^ idx2
 
 .. note::
 
@@ -1631,7 +1627,7 @@ integer values are converted to float
 
    idx1 = pd.Index([0, 1, 2])
    idx2 = pd.Index([0.5, 1.5])
-   idx1 | idx2
+   idx1.union(idx2)
 
 .. _indexing.missing:
 
