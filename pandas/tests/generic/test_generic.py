@@ -837,34 +837,6 @@ class TestNDFrame:
         df2 = df1.set_index(["floats"], append=True)
         assert df3.equals(df2)
 
-    def test_pipe(self):
-        df = DataFrame({"A": [1, 2, 3]})
-        f = lambda x, y: x ** y
-        result = df.pipe(f, 2)
-        expected = DataFrame({"A": [1, 4, 9]})
-        tm.assert_frame_equal(result, expected)
-
-        result = df.A.pipe(f, 2)
-        tm.assert_series_equal(result, expected.A)
-
-    def test_pipe_tuple(self):
-        df = DataFrame({"A": [1, 2, 3]})
-        f = lambda x, y: y
-        result = df.pipe((f, "y"), 0)
-        tm.assert_frame_equal(result, df)
-
-        result = df.A.pipe((f, "y"), 0)
-        tm.assert_series_equal(result, df.A)
-
-    def test_pipe_tuple_error(self):
-        df = DataFrame({"A": [1, 2, 3]})
-        f = lambda x, y: y
-        with pytest.raises(ValueError):
-            df.pipe((f, "y"), x=1, y=0)
-
-        with pytest.raises(ValueError):
-            df.A.pipe((f, "y"), x=1, y=0)
-
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):
         obj = box(dtype=object)
