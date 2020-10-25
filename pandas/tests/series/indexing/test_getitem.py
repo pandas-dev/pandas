@@ -9,8 +9,11 @@ import pytest
 from pandas._libs.tslibs import conversion, timezones
 
 import pandas as pd
-from pandas import Series, Timestamp, date_range, period_range
+from pandas import Index, Series, Timestamp, date_range, period_range
 import pandas._testing as tm
+from pandas.core.indexing import IndexingError
+
+from pandas.tseries.offsets import BDay
 
 
 class TestSeriesGetitemScalars:
@@ -122,6 +125,107 @@ class TestSeriesGetitemListLike:
         key = box([5])
         with pytest.raises(KeyError, match="5"):
             ser[key]
+
+
+class TestGetitemBooleanMask:
+    def test_getitem_boolean(self, string_series):
+        ser = string_series
+        mask = ser > ser.median()
+
+        # passing list is OK
+        result = ser[list(mask)]
+        expected = ser[mask]
+        tm.assert_series_equal(result, expected)
+        tm.assert_index_equal(result.index, ser.index[mask])
+
+    def test_getitem_boolean_empty(self):
+        ser = Series([], dtype=np.int64)
+        ser.index.name = "index_name"
+        ser = ser[ser.isna()]
+        assert ser.index.name == "index_name"
+        assert ser.dtype == np.int64
+
+        # GH#5877
+        # indexing with empty series
+        ser = Series(["A", "B"])
+        expected = Series(dtype=object, index=Index([], dtype="int64"))
+        result = ser[Series([], dtype=object)]
+        tm.assert_series_equal(result, expected)
+
+        # invalid because of the boolean indexer
+        # that's empty or not-aligned
+        msg = (
+            r"Unalignable boolean Series provided as indexer \(index of "
+            r"the boolean Series and of the indexed object do not match"
+        )
+        with pytest.raises(IndexingError, match=msg):
+            ser[Series([], dtype=bool)]
+
+        with pytest.raises(IndexingError, match=msg):
+            ser[Series([True], dtype=bool)]
+
+    def test_getitem_boolean_object(self, string_series):
+        # using column from DataFrame
+
+        ser = string_series
+        mask = ser > ser.median()
+        omask = mask.astype(object)
+
+        # getitem
+        result = ser[omask]
+        expected = ser[mask]
+        tm.assert_series_equal(result, expected)
+
+        # setitem
+        s2 = ser.copy()
+        cop = ser.copy()
+        cop[omask] = 5
+        s2[mask] = 5
+        tm.assert_series_equal(cop, s2)
+
+        # nans raise exception
+        omask[5:10] = np.nan
+        msg = "Cannot mask with non-boolean array containing NA / NaN values"
+        with pytest.raises(ValueError, match=msg):
+            ser[omask]
+        with pytest.raises(ValueError, match=msg):
+            ser[omask] = 5
+
+    def test_getitem_boolean_dt64_copies(self):
+        # GH#36210
+        dti = date_range("2016-01-01", periods=4, tz="US/Pacific")
+        key = np.array([True, True, False, False])
+
+        ser = Series(dti._data)
+
+        res = ser[key]
+        assert res._values._data.base is None
+
+        # compare with numeric case for reference
+        ser2 = Series(range(4))
+        res2 = ser2[key]
+        assert res2._values.base is None
+
+    def test_getitem_boolean_corner(self, datetime_series):
+        ts = datetime_series
+        mask_shifted = ts.shift(1, freq=BDay()) > ts.median()
+
+        msg = (
+            r"Unalignable boolean Series provided as indexer \(index of "
+            r"the boolean Series and of the indexed object do not match"
+        )
+        with pytest.raises(IndexingError, match=msg):
+            ts[mask_shifted]
+
+        with pytest.raises(IndexingError, match=msg):
+            ts.loc[mask_shifted]
+
+    def test_getitem_boolean_different_order(self, string_series):
+        ordered = string_series.sort_values()
+
+        sel = string_series[ordered > 0]
+        exp = string_series[string_series > 0]
+        tm.assert_series_equal(sel, exp)
 
 
 def test_getitem_generator(string_series):

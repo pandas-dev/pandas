@@ -64,13 +64,13 @@ class TestMap:
 
     def test_map_with_categorical_series(self):
         # GH 12756
-        a = pd.Index([1, 2, 3, 4])
+        a = Index([1, 2, 3, 4])
         b = pd.Series(["even", "odd", "even", "odd"], dtype="category")
         c = pd.Series(["even", "odd", "even", "odd"])
 
         exp = CategoricalIndex(["odd", "even", "odd", np.nan])
         tm.assert_index_equal(a.map(b), exp)
-        exp = pd.Index(["odd", "even", "odd", np.nan])
+        exp = Index(["odd", "even", "odd", np.nan])
         tm.assert_index_equal(a.map(c), exp)
 
     @pytest.mark.parametrize(
@@ -91,5 +91,5 @@ class TestMap:
             expected = pd.Categorical([False, False, np.nan])
             tm.assert_categorical_equal(result, expected)
         else:
-            expected = pd.Index([False, False, np.nan])
+            expected = Index([False, False, np.nan])
             tm.assert_index_equal(result, expected)

@@ -1,12 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas._libs import groupby, lib, reduction as libreduction
-
-from pandas.core.dtypes.common import ensure_int64
+from pandas._libs import lib, reduction as libreduction
 
 import pandas as pd
-from pandas import Series, isna
+from pandas import Series
 import pandas._testing as tm
 
 
@@ -101,37 +99,6 @@ def test_generate_bins(binner, closed, expected):
     values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
     result = lib.generate_bins_dt64(values, binner, closed=closed)
     tm.assert_numpy_array_equal(result, expected)
-
-
-def test_group_ohlc():
-    def _check(dtype):
-        obj = np.array(np.random.randn(20), dtype=dtype)
-
-        bins = np.array([6, 12, 20])
-        out = np.zeros((3, 4), dtype)
-        counts = np.zeros(len(out), dtype=np.int64)
-        labels = ensure_int64(np.repeat(np.arange(3), np.diff(np.r_[0, bins])))
-
-        func = getattr(groupby, f"group_ohlc_{dtype}")
-        func(out, counts, obj[:, None], labels)
-
-        def _ohlc(group):
-            if isna(group).all():
-                return np.repeat(np.nan, 4)
-            return [group[0], group.max(), group.min(), group[-1]]
-
-        expected = np.array([_ohlc(obj[:6]), _ohlc(obj[6:12]), _ohlc(obj[12:])])
-
-        tm.assert_almost_equal(out, expected)
-        tm.assert_numpy_array_equal(counts, np.array([6, 6, 8], dtype=np.int64))
-
-        obj[:6] = np.nan
-        func(out, counts, obj[:, None], labels)
-        expected[0] = np.nan
-        tm.assert_almost_equal(out, expected)
-
-    _check("float32")
-    _check("float64")
 
 
 class TestMoments:
