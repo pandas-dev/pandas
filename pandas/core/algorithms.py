@@ -2134,8 +2134,8 @@ def safe_sort(
 
 def resort_union_after_inputs(union_values, lvals, rvals) -> np.ndarray:
     """
-    Elements from union_values are resorted after the order of
-    lvals and then rvals, if element is not in lvals. All occurrences
+    Elements from union_values are resorted after the ranking of the first occurrence in
+    lvals and then rvals, if element is not in lvals. All occurrences of this element
     are placed at the spot of the first occurrence of this element.
 
     Parameters

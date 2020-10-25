@@ -2312,3 +2312,13 @@ class TestDiff:
         msg = "cannot diff DatetimeArray on axis=1"
         with pytest.raises(ValueError, match=msg):
             algos.diff(dta, 1, axis=1)
+
+
+def test_resort_union_after_inputs():
+    # GH: 36299
+    union_values = np.array([1, 1, 2, 3, 3, 4])
+    lvals = np.array([[3, 1, 4]])
+    rvals = np.array([[2, 3, 1]])
+    result = algos.resort_union_after_inputs(union_values, lvals, rvals)
+    expected = np.array([3, 3, 1, 1, 4, 2])
+    tm.assert_numpy_array_equal(result, expected)
