@@ -8,7 +8,7 @@ import pytest
 from pandas.compat.numpy import is_numpy_dev
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
@@ -977,6 +977,47 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result.loc[2015:2010:-1] = [6, 5, 4, 3, 2, 1]
 
         tm.assert_series_equal(result, expected)
+
+
+class TestLocWithMultiIndex:
+    @pytest.mark.parametrize(
+        "keys, expected",
+        [
+            (["b", "a"], [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            (["a", "b"], [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [1, 2]), [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [2, 1]), [["a", "a", "b", "b"], [2, 1, 2, 1]]),
+            ((["b", "a"], [2, 1]), [["b", "b", "a", "a"], [2, 1, 2, 1]]),
+            ((["b", "a"], [1, 2]), [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            ((["c", "a"], [2, 1]), [["c", "a", "a"], [1, 2, 1]]),
+        ],
+    )
+    @pytest.mark.parametrize("dim", ["index", "columns"])
+    def test_loc_getitem_multilevel_index_order(self, dim, keys, expected):
+        # GH#22797
+        # Try to respect order of keys given for MultiIndex.loc
+        kwargs = {dim: [["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]]}
+        df = DataFrame(np.arange(25).reshape(5, 5), **kwargs)
+        exp_index = MultiIndex.from_arrays(expected)
+        if dim == "index":
+            res = df.loc[keys, :]
+            tm.assert_index_equal(res.index, exp_index)
+        elif dim == "columns":
+            res = df.loc[:, keys]
+            tm.assert_index_equal(res.columns, exp_index)
+
+    def test_loc_preserve_names(self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        result = ymd.loc[2000]
+        result2 = ymd["A"].loc[2000]
+        assert result.index.names == ymd.index.names[1:]
+        assert result2.index.names == ymd.index.names[1:]
+
+        result = ymd.loc[2000, 2]
+        result2 = ymd["A"].loc[2000, 2]
+        assert result.index.name == ymd.index.names[2]
+        assert result2.index.name == ymd.index.names[2]
 
 
 def test_series_loc_getitem_label_list_missing_values():
