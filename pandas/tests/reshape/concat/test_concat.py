@@ -1,13 +1,12 @@
 from collections import abc, deque
 from decimal import Decimal
-from io import StringIO
 from warnings import catch_warnings
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range, read_csv
+from pandas import DataFrame, Index, MultiIndex, Series, concat, date_range
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -616,48 +615,6 @@ class TestConcatenate:
 
         tm.assert_frame_equal(pd.concat(CustomIterator2(), ignore_index=True), expected)
 
-    def test_concat_invalid(self):
-
-        # trying to concat a ndframe with a non-ndframe
-        df1 = tm.makeCustomDataframe(10, 2)
-        for obj in [1, dict(), [1, 2], (1, 2)]:
-
-            msg = (
-                f"cannot concatenate object of type '{type(obj)}'; "
-                "only Series and DataFrame objs are valid"
-            )
-            with pytest.raises(TypeError, match=msg):
-                concat([df1, obj])
-
-    def test_concat_invalid_first_argument(self):
-        df1 = tm.makeCustomDataframe(10, 2)
-        df2 = tm.makeCustomDataframe(10, 2)
-        msg = (
-            "first argument must be an iterable of pandas "
-            'objects, you passed an object of type "DataFrame"'
-        )
-        with pytest.raises(TypeError, match=msg):
-            concat(df1, df2)
-
-        # generator ok though
-        concat(DataFrame(np.random.rand(5, 5)) for _ in range(3))
-
-        # text reader ok
-        # GH6583
-        data = """index,A,B,C,D
-foo,2,3,4,5
-bar,7,8,9,10
-baz,12,13,14,15
-qux,12,13,14,15
-foo2,12,13,14,15
-bar2,12,13,14,15
-"""
-
-        reader = read_csv(StringIO(data), chunksize=1)
-        result = concat(reader, ignore_index=True)
-        expected = read_csv(StringIO(data))
-        tm.assert_frame_equal(result, expected)
-
     def test_default_index(self):
         # is_series and ignore_index
         s1 = Series([1, 2, 3], name="x")
@@ -806,83 +763,6 @@ def test_concat_empty_and_non_empty_frame_regression():
     df2 = DataFrame({"foo": []})
     expected = DataFrame({"foo": [1.0]})
     result = pd.concat([df1, df2])
-    tm.assert_frame_equal(result, expected)
-
-
-def test_concat_sorts_columns(sort):
-    # GH-4588
-    df1 = DataFrame({"a": [1, 2], "b": [1, 2]}, columns=["b", "a"])
-    df2 = DataFrame({"a": [3, 4], "c": [5, 6]})
-
-    # for sort=True/None
-    expected = DataFrame(
-        {"a": [1, 2, 3, 4], "b": [1, 2, None, None], "c": [None, None, 5, 6]},
-        columns=["a", "b", "c"],
-    )
-
-    if sort is False:
-        expected = expected[["b", "a", "c"]]
-
-    # default
-    with tm.assert_produces_warning(None):
-        result = pd.concat([df1, df2], ignore_index=True, sort=sort)
-    tm.assert_frame_equal(result, expected)
-
-
-def test_concat_sorts_index(sort):
-    df1 = DataFrame({"a": [1, 2, 3]}, index=["c", "a", "b"])
-    df2 = DataFrame({"b": [1, 2]}, index=["a", "b"])
-
-    # For True/None
-    expected = DataFrame(
-        {"a": [2, 3, 1], "b": [1, 2, None]}, index=["a", "b", "c"], columns=["a", "b"]
-    )
-    if sort is False:
-        expected = expected.loc[["c", "a", "b"]]
-
-    # Warn and sort by default
-    with tm.assert_produces_warning(None):
-        result = pd.concat([df1, df2], axis=1, sort=sort)
-    tm.assert_frame_equal(result, expected)
-
-
-def test_concat_inner_sort(sort):
-    # https://github.com/pandas-dev/pandas/pull/20613
-    df1 = DataFrame({"a": [1, 2], "b": [1, 2], "c": [1, 2]}, columns=["b", "a", "c"])
-    df2 = DataFrame({"a": [1, 2], "b": [3, 4]}, index=[3, 4])
-
-    with tm.assert_produces_warning(None):
-        # unset sort should *not* warn for inner join
-        # since that never sorted
-        result = pd.concat([df1, df2], sort=sort, join="inner", ignore_index=True)
-
-    expected = DataFrame({"b": [1, 2, 3, 4], "a": [1, 2, 1, 2]}, columns=["b", "a"])
-    if sort is True:
-        expected = expected[["a", "b"]]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_concat_aligned_sort():
-    # GH-4588
-    df = DataFrame({"c": [1, 2], "b": [3, 4], "a": [5, 6]}, columns=["c", "b", "a"])
-    result = pd.concat([df, df], sort=True, ignore_index=True)
-    expected = DataFrame(
-        {"a": [5, 6, 5, 6], "b": [3, 4, 3, 4], "c": [1, 2, 1, 2]},
-        columns=["a", "b", "c"],
-    )
-    tm.assert_frame_equal(result, expected)
-
-    result = pd.concat([df, df[["c", "b"]]], join="inner", sort=True, ignore_index=True)
-    expected = expected[["b", "c"]]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_concat_aligned_sort_does_not_raise():
-    # GH-4588
-    # We catch TypeErrors from sorting internally and do not re-raise.
-    df = DataFrame({1: [1, 2], "a": [3, 4]}, columns=[1, "a"])
-    expected = DataFrame({1: [1, 2, 1, 2], "a": [3, 4, 3, 4]}, columns=[1, "a"])
-    result = pd.concat([df, df], ignore_index=True, sort=True)
     tm.assert_frame_equal(result, expected)
 
 
