@@ -571,8 +571,8 @@ def test_downcast_limits(dtype, downcast, min_max):
     "ser,expected",
     [
         (
-            pd.Series([0, 9223372036854775808]),
-            pd.Series([0, 9223372036854775808], dtype=np.uint64),
+            Series([0, 9223372036854775808]),
+            Series([0, 9223372036854775808], dtype=np.uint64),
         )
     ],
 )
@@ -647,7 +647,7 @@ def test_failure_to_convert_uint64_string_to_NaN():
     assert np.isnan(result)
 
     ser = Series([32, 64, np.nan])
-    result = to_numeric(pd.Series(["32", "64", "uint64"]), errors="coerce")
+    result = to_numeric(Series(["32", "64", "uint64"]), errors="coerce")
     tm.assert_series_equal(result, ser)
 
 
@@ -707,3 +707,21 @@ def test_precision_float_conversion(strrep):
     result = to_numeric(strrep)
 
     assert result == float(strrep)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (["1", "2", None], Series([1, 2, np.nan])),
+        (["1", "2", "3"], Series([1, 2, 3])),
+        (["1", "2", 3], Series([1, 2, 3])),
+        (["1", "2", 3.5], Series([1, 2, 3.5])),
+        (["1", None, 3.5], Series([1, np.nan, 3.5])),
+        (["1", "2", "3.5"], Series([1, 2, 3.5])),
+    ],
+)
+def test_to_numeric_from_nullable_string(values, expected):
+    # https://github.com/pandas-dev/pandas/issues/37262
+    s = Series(values, dtype="string")
+    result = to_numeric(s)
+    tm.assert_series_equal(result, expected)

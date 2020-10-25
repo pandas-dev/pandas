@@ -176,7 +176,7 @@ def test__cython_agg_general(op, targop):
     ],
 )
 def test_cython_agg_empty_buckets(op, targop, observed):
-    df = pd.DataFrame([11, 12, 13])
+    df = DataFrame([11, 12, 13])
     grps = range(0, 55, 5)
 
     # calling _cython_agg_general directly, instead of via the user API
@@ -192,14 +192,14 @@ def test_cython_agg_empty_buckets(op, targop, observed):
 def test_cython_agg_empty_buckets_nanops(observed):
     # GH-18869 can't call nanops on empty groups, so hardcode expected
     # for these
-    df = pd.DataFrame([11, 12, 13], columns=["a"])
+    df = DataFrame([11, 12, 13], columns=["a"])
     grps = range(0, 25, 5)
     # add / sum
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
         "add"
     )
     intervals = pd.interval_range(0, 20, freq=5)
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"a": [0, 0, 36, 0]},
         index=pd.CategoricalIndex(intervals, name="a", ordered=True),
     )
@@ -212,7 +212,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
         "prod"
     )
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"a": [1, 1, 1716, 1]},
         index=pd.CategoricalIndex(intervals, name="a", ordered=True),
     )
