@@ -341,6 +341,7 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
             if result == fill_value:
                 result = np.nan
             if tz is not None:
+                # we get here e.g. via nanmean when we call it on a DTA[tz]
                 result = Timestamp(result, tz=tz)
             elif isna(result):
                 result = np.datetime64("NaT", "ns")
