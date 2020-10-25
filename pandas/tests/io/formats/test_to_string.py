@@ -220,3 +220,14 @@ def test_nullable_int_to_string(any_nullable_int_dtype):
 1       1
 2    <NA>"""
     assert result == expected
+
+
+@pytest.mark.parametrize("na_rep", ["NaN", "Ted"])
+def test_to_string_na_rep_and_float_format(na_rep):
+    # GH 13828
+    df = DataFrame([["A", 1.2225], ["A", None]], columns=["Group", "Data"])
+    result = df.to_string(na_rep=na_rep, float_format="{:.2f}".format)
+    expected = f"""  Group  Data
+0     A  1.22
+1     A   {na_rep}"""
+    assert result == expected

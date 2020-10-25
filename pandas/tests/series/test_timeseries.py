@@ -2,19 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, date_range, timedelta_range
+from pandas import DataFrame, Series, date_range, timedelta_range
 import pandas._testing as tm
 
 
 class TestTimeSeries:
-    def test_timeseries_coercion(self):
-        idx = tm.makeDateIndex(10000)
-        with tm.assert_produces_warning(FutureWarning):
-            ser = Series(np.random.randn(len(idx)), idx.astype(object))
-        with tm.assert_produces_warning(FutureWarning):
-            assert ser.index.is_all_dates
-        assert isinstance(ser.index, DatetimeIndex)
-
     def test_contiguous_boolean_preserve_freq(self):
         rng = date_range("1/1/2000", "3/1/2000", freq="B")
 
@@ -78,24 +70,6 @@ class TestTimeSeries:
         s.map(f)
         s.apply(f)
         DataFrame(s).applymap(f)
-
-    def test_asfreq_resample_set_correct_freq(self):
-        # GH5613
-        # we test if .asfreq() and .resample() set the correct value for .freq
-        df = DataFrame(
-            {"date": ["2012-01-01", "2012-01-02", "2012-01-03"], "col": [1, 2, 3]}
-        )
-        df = df.set_index(pd.to_datetime(df.date))
-
-        # testing the settings before calling .asfreq() and .resample()
-        assert df.index.freq is None
-        assert df.index.inferred_freq == "D"
-
-        # does .asfreq() set .freq correctly?
-        assert df.asfreq("D").index.freq == "D"
-
-        # does .resample() set .freq correctly?
-        assert df.resample("D").asfreq().index.freq == "D"
 
     def test_view_tz(self):
         # GH#24024

@@ -222,6 +222,31 @@ def test_suppress_future_warning_with_sort_kw(sort_kw):
 
 
 class TestDataFrameJoin:
+    def test_join(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        a = frame.loc[frame.index[:5], ["A"]]
+        b = frame.loc[frame.index[2:], ["B", "C"]]
+
+        joined = a.join(b, how="outer").reindex(frame.index)
+        expected = frame.copy()
+        expected.values[np.isnan(joined.values)] = np.nan
+
+        assert not np.isnan(joined.values).all()
+
+        # TODO what should join do with names ?
+        tm.assert_frame_equal(joined, expected, check_names=False)
+
+    def test_join_segfault(self):
+        # GH#1532
+        df1 = DataFrame({"a": [1, 1], "b": [1, 2], "x": [1, 2]})
+        df2 = DataFrame({"a": [2, 2], "b": [1, 2], "y": [1, 2]})
+        df1 = df1.set_index(["a", "b"])
+        df2 = df2.set_index(["a", "b"])
+        # it works!
+        for how in ["left", "right", "outer"]:
+            df1.join(df2, how=how)
+
     def test_join_str_datetime(self):
         str_dates = ["20120209", "20120222"]
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
