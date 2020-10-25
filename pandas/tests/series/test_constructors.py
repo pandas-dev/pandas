@@ -694,7 +694,7 @@ class TestSeriesConstructors:
 
         msg = "cannot convert float NaN to integer"
         with pytest.raises(ValueError, match=msg):
-            pd.Series([1, 2, np.nan], dtype=any_int_dtype)
+            Series([1, 2, np.nan], dtype=any_int_dtype)
 
     def test_constructor_dtype_no_cast(self):
         # see gh-1572
