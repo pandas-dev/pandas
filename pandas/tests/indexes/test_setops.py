@@ -100,8 +100,8 @@ def test_compatible_inconsistent_pairs(idx_fact1, idx_fact2):
 def test_union_dtypes(left, right, expected):
     left = pandas_dtype(left)
     right = pandas_dtype(right)
-    a = pd.Index([], dtype=left)
-    b = pd.Index([], dtype=right)
+    a = Index([], dtype=left)
+    b = Index([], dtype=right)
     result = (a | b).dtype
     assert result == expected
 
