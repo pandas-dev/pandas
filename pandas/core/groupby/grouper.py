@@ -99,6 +99,13 @@ class Grouper:
 
         .. versionadded:: 1.1.0
 
+    dropna : bool, default True
+        If True, and if group keys contain NA values, NA values together with
+        row/column will be dropped. If False, NA values will also be treated as
+        the key in groups.
+
+        .. versionadded:: 1.2.0
+
     Returns
     -------
     A specification for a groupby instruction
@@ -556,8 +563,13 @@ class Grouping:
         if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
-        values = Categorical(self.grouper)
-        return values._reverse_indexer()
+        # Return a dictionary of {group label: [indices belonging to the group label]}
+        # respecting whether sort was specified
+        codes, uniques = algorithms.factorize(self.grouper, sort=self.sort)
+        return {
+            category: np.flatnonzero(codes == i)
+            for i, category in enumerate(Index(uniques))
+        }
 
     @property
     def codes(self) -> np.ndarray:
@@ -820,7 +832,9 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated)
+    grouper = ops.BaseGrouper(
+        group_axis, groupings, sort=sort, mutated=mutated, dropna=dropna
+    )
     return grouper, exclusions, obj
 
 

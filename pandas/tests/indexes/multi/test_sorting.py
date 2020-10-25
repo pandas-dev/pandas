@@ -98,7 +98,7 @@ def test_unsortedindex():
         [("z", "a"), ("x", "a"), ("y", "b"), ("x", "b"), ("y", "a"), ("z", "b")],
         names=["one", "two"],
     )
-    df = pd.DataFrame([[i, 10 * i] for i in range(6)], index=mi, columns=["one", "two"])
+    df = DataFrame([[i, 10 * i] for i in range(6)], index=mi, columns=["one", "two"])
 
     # GH 16734: not sorted, but no real slicing
     result = df.loc(axis=0)["z", "a"]
@@ -119,7 +119,7 @@ def test_unsortedindex():
 
 
 def test_unsortedindex_doc_examples():
-    # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex  # noqa
+    # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
     dfm = DataFrame(
         {"jim": [0, 0, 1, 1], "joe": ["x", "x", "z", "y"], "jolie": np.random.rand(4)}
     )

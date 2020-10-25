@@ -14,7 +14,7 @@ def gcs_buffer(monkeypatch):
     """Emulate GCS using a binary buffer."""
     from fsspec import AbstractFileSystem, registry
 
-    registry.target.clear()  # noqa  # remove state
+    registry.target.clear()  # remove state
 
     gcs_buffer = BytesIO()
     gcs_buffer.close = lambda: True
@@ -33,7 +33,7 @@ def gcs_buffer(monkeypatch):
 def test_read_csv_gcs(gcs_buffer):
     from fsspec import registry
 
-    registry.target.clear()  # noqa  # remove state
+    registry.target.clear()  # remove state
 
     df1 = DataFrame(
         {
@@ -55,7 +55,7 @@ def test_read_csv_gcs(gcs_buffer):
 def test_to_csv_gcs(gcs_buffer):
     from fsspec import registry
 
-    registry.target.clear()  # noqa  # remove state
+    registry.target.clear()  # remove state
 
     df1 = DataFrame(
         {
@@ -84,7 +84,7 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     """
     from fsspec import registry
 
-    registry.target.clear()  # noqa  # remove state
+    registry.target.clear()  # remove state
     df = tm.makeDataFrame()
 
     # reference of compressed and encoded file
@@ -120,7 +120,7 @@ def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     from fsspec import AbstractFileSystem, registry
 
-    registry.target.clear()  # noqa  # remove state
+    registry.target.clear()  # remove state
     df1 = DataFrame(
         {
             "int": [1, 3],

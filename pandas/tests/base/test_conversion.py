@@ -208,7 +208,7 @@ class TestToIterable:
     ],
 )
 def test_values_consistent(array, expected_type, dtype):
-    l_values = pd.Series(array)._values
+    l_values = Series(array)._values
     r_values = pd.Index(array)._values
     assert type(l_values) is expected_type
     assert type(l_values) is type(r_values)
@@ -218,14 +218,14 @@ def test_values_consistent(array, expected_type, dtype):
 
 @pytest.mark.parametrize("arr", [np.array([1, 2, 3])])
 def test_numpy_array(arr):
-    ser = pd.Series(arr)
+    ser = Series(arr)
     result = ser.array
     expected = PandasArray(arr)
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_numpy_array_all_dtypes(any_numpy_dtype):
-    ser = pd.Series(dtype=any_numpy_dtype)
+    ser = Series(dtype=any_numpy_dtype)
     result = ser.array
     if is_datetime64_dtype(any_numpy_dtype):
         assert isinstance(result, DatetimeArray)
@@ -241,7 +241,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         (pd.Categorical(["a", "b"]), "_codes"),
         (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_data"),
         (pd.core.arrays.integer_array([0, np.nan]), "_data"),
-        (IntervalArray.from_breaks([0, 1]), "_left"),
+        (IntervalArray.from_breaks([0, 1]), "_combined"),
         (SparseArray([0, 1]), "_sparse_values"),
         (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_data"),
         # tz-aware Datetime
@@ -336,7 +336,7 @@ def test_to_numpy(array, expected, index_or_series):
 def test_to_numpy_copy(arr, as_series):
     obj = pd.Index(arr, copy=False)
     if as_series:
-        obj = pd.Series(obj.values, copy=False)
+        obj = Series(obj.values, copy=False)
 
     # no copy by default
     result = obj.to_numpy()
@@ -355,7 +355,7 @@ def test_to_numpy_dtype(as_series):
     tz = "US/Eastern"
     obj = pd.DatetimeIndex(["2000", "2001"], tz=tz)
     if as_series:
-        obj = pd.Series(obj)
+        obj = Series(obj)
 
     # preserve tz by default
     result = obj.to_numpy()
@@ -395,13 +395,13 @@ def test_to_numpy_na_value_numpy_dtype(
 
 def test_to_numpy_kwargs_raises():
     # numpy
-    s = pd.Series([1, 2, 3])
+    s = Series([1, 2, 3])
     msg = r"to_numpy\(\) got an unexpected keyword argument 'foo'"
     with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
 
     # extension
-    s = pd.Series([1, 2, 3], dtype="Int64")
+    s = Series([1, 2, 3], dtype="Int64")
     with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
 

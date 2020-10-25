@@ -143,10 +143,10 @@ class TestGetItem:
         assert idx[0] == Period("2011-01", freq="M")
         assert idx[1] is NaT
 
-        s = pd.Series([0, 1, 2], index=idx)
+        s = Series([0, 1, 2], index=idx)
         assert s[NaT] == 1
 
-        s = pd.Series(idx, index=idx)
+        s = Series(idx, index=idx)
         assert s[Period("2011-01", freq="M")] == Period("2011-01", freq="M")
         assert s[NaT] is NaT
 
@@ -366,7 +366,7 @@ class TestGetLoc:
         with pytest.raises(KeyError, match="A"):
             pi.get_loc("A")
 
-        ser = pd.Series([1, 2, 3], index=pi)
+        ser = Series([1, 2, 3], index=pi)
         with pytest.raises(KeyError, match="A"):
             ser.loc["A"]
 
@@ -450,7 +450,7 @@ class TestGetIndexer:
 
         result = idx1.get_indexer_non_unique(idx2)
         expected_indexer = np.array([1, 0, 2, -1, -1], dtype=np.intp)
-        expected_missing = np.array([2, 3], dtype=np.int64)
+        expected_missing = np.array([2, 3], dtype=np.intp)
 
         tm.assert_numpy_array_equal(result[0], expected_indexer)
         tm.assert_numpy_array_equal(result[1], expected_missing)
@@ -687,7 +687,7 @@ class TestGetValue:
         p2 = Period("2017-09-03")
 
         idx0 = PeriodIndex([p0, p1, p2])
-        input0 = pd.Series(np.array([1, 2, 3]), index=idx0)
+        input0 = Series(np.array([1, 2, 3]), index=idx0)
         expected0 = 2
 
         with tm.assert_produces_warning(FutureWarning):
@@ -695,7 +695,7 @@ class TestGetValue:
         assert result0 == expected0
 
         idx1 = PeriodIndex([p1, p1, p2])
-        input1 = pd.Series(np.array([1, 2, 3]), index=idx1)
+        input1 = Series(np.array([1, 2, 3]), index=idx1)
         expected1 = input1.iloc[[0, 1]]
 
         with tm.assert_produces_warning(FutureWarning):
@@ -703,7 +703,7 @@ class TestGetValue:
         tm.assert_series_equal(result1, expected1)
 
         idx2 = PeriodIndex([p1, p2, p1])
-        input2 = pd.Series(np.array([1, 2, 3]), index=idx2)
+        input2 = Series(np.array([1, 2, 3]), index=idx2)
         expected2 = input2.iloc[[0, 2]]
 
         with tm.assert_produces_warning(FutureWarning):
@@ -713,7 +713,7 @@ class TestGetValue:
     def test_loc_str(self):
         # https://github.com/pandas-dev/pandas/issues/33964
         index = pd.period_range(start="2000", periods=20, freq="B")
-        series = pd.Series(range(20), index=index)
+        series = Series(range(20), index=index)
         assert series.loc["2000-01-14"] == 9
 
     @pytest.mark.parametrize("freq", ["H", "D"])
@@ -721,7 +721,7 @@ class TestGetValue:
         # get_loc and get_value should treat datetime objects symmetrically
         dti = date_range("2016-01-01", periods=3, freq="MS")
         pi = dti.to_period(freq)
-        ser = pd.Series(range(7, 10), index=pi)
+        ser = Series(range(7, 10), index=pi)
 
         ts = dti[0]
 
@@ -753,14 +753,14 @@ class TestGetValue:
         msg = "index 16801 is out of bounds for axis 0 with size 3"
         dti = date_range("2016-01-01", periods=3)
         pi = dti.to_period("D")
-        ser = pd.Series(range(3), index=pi)
+        ser = Series(range(3), index=pi)
         with pytest.raises(IndexError, match=msg):
             with tm.assert_produces_warning(FutureWarning):
                 pi.get_value(ser, 16801)
 
         msg = "index 46 is out of bounds for axis 0 with size 3"
         pi2 = dti.to_period("Y")  # duplicates, ordinals are all 46
-        ser2 = pd.Series(range(3), index=pi2)
+        ser2 = Series(range(3), index=pi2)
         with pytest.raises(IndexError, match=msg):
             with tm.assert_produces_warning(FutureWarning):
                 pi2.get_value(ser2, 46)
@@ -776,7 +776,7 @@ class TestContains:
 
         ps0 = [p0, p1, p2]
         idx0 = PeriodIndex(ps0)
-        ser = pd.Series(range(6, 9), index=idx0)
+        ser = Series(range(6, 9), index=idx0)
 
         for p in ps0:
             assert p in idx0

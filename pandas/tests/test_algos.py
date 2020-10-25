@@ -3,11 +3,9 @@ from itertools import permutations
 import struct
 
 import numpy as np
-from numpy.random import RandomState
 import pytest
 
 from pandas._libs import algos as libalgos, hashtable as ht
-from pandas._libs.groupby import group_var_float32, group_var_float64
 from pandas.compat import IS64
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util._test_decorators as td
@@ -851,10 +849,10 @@ class TestIsin:
     def test_same_nan_is_in_large_series(self):
         # https://github.com/pandas-dev/pandas/issues/22205
         s = np.tile(1.0, 1_000_001)
-        series = pd.Series(s)
+        series = Series(s)
         s[0] = np.nan
         result = series.isin([np.nan, 1])
-        expected = pd.Series(np.ones(len(s), dtype=bool))
+        expected = Series(np.ones(len(s), dtype=bool))
         tm.assert_series_equal(result, expected)
 
     def test_same_object_is_in(self):
@@ -1409,122 +1407,6 @@ class TestDuplicated:
         tm.assert_numpy_array_equal(result, expected)
 
 
-class GroupVarTestMixin:
-    def test_group_var_generic_1d(self):
-        prng = RandomState(1234)
-
-        out = (np.nan * np.ones((5, 1))).astype(self.dtype)
-        counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(15, 1).astype(self.dtype)
-        labels = np.tile(np.arange(5), (3,)).astype("int64")
-
-        expected_out = (
-            np.squeeze(values).reshape((5, 3), order="F").std(axis=1, ddof=1) ** 2
-        )[:, np.newaxis]
-        expected_counts = counts + 3
-
-        self.algo(out, counts, values, labels)
-        assert np.allclose(out, expected_out, self.rtol)
-        tm.assert_numpy_array_equal(counts, expected_counts)
-
-    def test_group_var_generic_1d_flat_labels(self):
-        prng = RandomState(1234)
-
-        out = (np.nan * np.ones((1, 1))).astype(self.dtype)
-        counts = np.zeros(1, dtype="int64")
-        values = 10 * prng.rand(5, 1).astype(self.dtype)
-        labels = np.zeros(5, dtype="int64")
-
-        expected_out = np.array([[values.std(ddof=1) ** 2]])
-        expected_counts = counts + 5
-
-        self.algo(out, counts, values, labels)
-
-        assert np.allclose(out, expected_out, self.rtol)
-        tm.assert_numpy_array_equal(counts, expected_counts)
-
-    def test_group_var_generic_2d_all_finite(self):
-        prng = RandomState(1234)
-
-        out = (np.nan * np.ones((5, 2))).astype(self.dtype)
-        counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(10, 2).astype(self.dtype)
-        labels = np.tile(np.arange(5), (2,)).astype("int64")
-
-        expected_out = np.std(values.reshape(2, 5, 2), ddof=1, axis=0) ** 2
-        expected_counts = counts + 2
-
-        self.algo(out, counts, values, labels)
-        assert np.allclose(out, expected_out, self.rtol)
-        tm.assert_numpy_array_equal(counts, expected_counts)
-
-    def test_group_var_generic_2d_some_nan(self):
-        prng = RandomState(1234)
-
-        out = (np.nan * np.ones((5, 2))).astype(self.dtype)
-        counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(10, 2).astype(self.dtype)
-        values[:, 1] = np.nan
-        labels = np.tile(np.arange(5), (2,)).astype("int64")
-
-        expected_out = np.vstack(
-            [
-                values[:, 0].reshape(5, 2, order="F").std(ddof=1, axis=1) ** 2,
-                np.nan * np.ones(5),
-            ]
-        ).T.astype(self.dtype)
-        expected_counts = counts + 2
-
-        self.algo(out, counts, values, labels)
-        tm.assert_almost_equal(out, expected_out, rtol=0.5e-06)
-        tm.assert_numpy_array_equal(counts, expected_counts)
-
-    def test_group_var_constant(self):
-        # Regression test from GH 10448.
-
-        out = np.array([[np.nan]], dtype=self.dtype)
-        counts = np.array([0], dtype="int64")
-        values = 0.832845131556193 * np.ones((3, 1), dtype=self.dtype)
-        labels = np.zeros(3, dtype="int64")
-
-        self.algo(out, counts, values, labels)
-
-        assert counts[0] == 3
-        assert out[0, 0] >= 0
-        tm.assert_almost_equal(out[0, 0], 0.0)
-
-
-class TestGroupVarFloat64(GroupVarTestMixin):
-    __test__ = True
-
-    algo = staticmethod(group_var_float64)
-    dtype = np.float64
-    rtol = 1e-5
-
-    def test_group_var_large_inputs(self):
-
-        prng = RandomState(1234)
-
-        out = np.array([[np.nan]], dtype=self.dtype)
-        counts = np.array([0], dtype="int64")
-        values = (prng.rand(10 ** 6) + 10 ** 12).astype(self.dtype)
-        values.shape = (10 ** 6, 1)
-        labels = np.zeros(10 ** 6, dtype="int64")
-
-        self.algo(out, counts, values, labels)
-
-        assert counts[0] == 10 ** 6
-        tm.assert_almost_equal(out[0, 0], 1.0 / 12, rtol=0.5e-3)
-
-
-class TestGroupVarFloat32(GroupVarTestMixin):
-    __test__ = True
-
-    algo = staticmethod(group_var_float32)
-    dtype = np.float32
-    rtol = 1e-2
-
-
 class TestHashTable:
     def test_string_hashtable_set_item_signature(self):
         # GH#30419 fix typing in StringHashTable.set_item to prevent segfault
@@ -1545,7 +1427,7 @@ class TestHashTable:
         xs.setflags(write=writable)
         m = ht.Float64HashTable()
         m.map_locations(xs)
-        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.int64))
+        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.intp))
 
     def test_add_signed_zeros(self):
         # GH 21866 inconsistent hash-function for float64
@@ -1578,7 +1460,7 @@ class TestHashTable:
         xs.setflags(write=writable)
         m = ht.UInt64HashTable()
         m.map_locations(xs)
-        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.int64))
+        tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs), dtype=np.intp))
 
     def test_get_unique(self):
         s = Series([1, 2, 2 ** 63, 2 ** 63], dtype=np.uint64)
@@ -2405,3 +2287,28 @@ class TestMode:
             dtype="timedelta64[ns]",
         )
         tm.assert_series_equal(algos.mode(idx), exp)
+
+
+class TestDiff:
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_diff_datetimelike_nat(self, dtype):
+        # NaT - NaT is NaT, not 0
+        arr = np.arange(12).astype(np.int64).view(dtype).reshape(3, 4)
+        arr[:, 2] = arr.dtype.type("NaT", "ns")
+        result = algos.diff(arr, 1, axis=0)
+
+        expected = np.ones(arr.shape, dtype="timedelta64[ns]") * 4
+        expected[:, 2] = np.timedelta64("NaT", "ns")
+        expected[0, :] = np.timedelta64("NaT", "ns")
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.diff(arr.T, 1, axis=1)
+        tm.assert_numpy_array_equal(result, expected.T)
+
+    def test_diff_ea_axis(self):
+        dta = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")._data
+
+        msg = "cannot diff DatetimeArray on axis=1"
+        with pytest.raises(ValueError, match=msg):
+            algos.diff(dta, 1, axis=1)

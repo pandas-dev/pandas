@@ -199,7 +199,7 @@ def interpolate_1d(
         return yvalues
 
     if method == "time":
-        if not getattr(xvalues, "is_all_dates", None):
+        if not getattr(xvalues, "_is_all_dates", None):
             # if not issubclass(xvalues.dtype.type, np.datetime64):
             raise ValueError(
                 "time-weighted interpolation only works "
@@ -327,7 +327,7 @@ def _interpolate_scipy_wrapper(
         "piecewise_polynomial": _from_derivatives,
     }
 
-    if getattr(x, "is_all_dates", False):
+    if getattr(x, "_is_all_dates", False):
         # GH 5975, scipy.interp1d can't handle datetime64s
         x, new_x = x._values.astype("i8"), new_x.astype("i8")
 
@@ -545,8 +545,6 @@ def interpolate_2d(
     method="pad",
     axis=0,
     limit=None,
-    fill_value=None,
-    dtype: Optional[DtypeObj] = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
@@ -563,28 +561,23 @@ def interpolate_2d(
             raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
-    if fill_value is None:
-        mask = None
-    else:  # todo create faster fill func without masking
-        mask = mask_missing(transf(values), fill_value)
-
     method = clean_fill_method(method)
+    tvalues = transf(values)
     if method == "pad":
-        values = transf(pad_2d(transf(values), limit=limit, mask=mask, dtype=dtype))
+        result = _pad_2d(tvalues, limit=limit)
     else:
-        values = transf(
-            backfill_2d(transf(values), limit=limit, mask=mask, dtype=dtype)
-        )
+        result = _backfill_2d(tvalues, limit=limit)
 
+    result = transf(result)
     # reshape back
     if ndim == 1:
-        values = values[0]
+        result = result[0]
 
-    if orig_values.dtype.kind == "M":
-        # convert float back to datetime64
-        values = values.astype(orig_values.dtype)
+    if orig_values.dtype.kind in ["m", "M"]:
+        # convert float back to datetime64/timedelta64
+        result = result.view(orig_values.dtype)
 
-    return values
+    return result
 
 
 def _cast_values_for_fillna(values, dtype: DtypeObj, has_mask: bool):
@@ -606,10 +599,9 @@ def _cast_values_for_fillna(values, dtype: DtypeObj, has_mask: bool):
     return values
 
 
-def _fillna_prep(values, mask=None, dtype: Optional[DtypeObj] = None):
-    # boilerplate for pad_1d, backfill_1d, pad_2d, backfill_2d
-    if dtype is None:
-        dtype = values.dtype
+def _fillna_prep(values, mask=None):
+    # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
+    dtype = values.dtype
 
     has_mask = mask is not None
     if not has_mask:
@@ -622,20 +614,20 @@ def _fillna_prep(values, mask=None, dtype: Optional[DtypeObj] = None):
     return values, mask
 
 
-def pad_1d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _pad_1d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
     return values
 
 
-def backfill_1d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _backfill_1d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
     return values
 
 
-def pad_2d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _pad_2d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
         algos.pad_2d_inplace(values, mask, limit=limit)
@@ -645,8 +637,8 @@ def pad_2d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None):
     return values
 
 
-def backfill_2d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None):
-    values, mask = _fillna_prep(values, mask, dtype)
+def _backfill_2d(values, limit=None, mask=None):
+    values, mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
         algos.backfill_2d_inplace(values, mask, limit=limit)
@@ -656,7 +648,7 @@ def backfill_2d(values, limit=None, mask=None, dtype: Optional[DtypeObj] = None)
     return values
 
 
-_fill_methods = {"pad": pad_1d, "backfill": backfill_1d}
+_fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
 
 
 def get_fill_func(method):
@@ -725,15 +717,15 @@ def _interp_limit(invalid, fw_limit, bw_limit):
             # just use forwards
             return f_idx
         else:
-            b_idx = list(inner(invalid[::-1], bw_limit))
-            b_idx = set(N - 1 - np.asarray(b_idx))
+            b_idx_inv = list(inner(invalid[::-1], bw_limit))
+            b_idx = set(N - 1 - np.asarray(b_idx_inv))
             if fw_limit == 0:
                 return b_idx
 
     return f_idx & b_idx
 
 
-def _rolling_window(a, window):
+def _rolling_window(a: np.ndarray, window: int):
     """
     [True, True, False, True, False], 2 ->
 
