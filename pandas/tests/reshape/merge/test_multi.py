@@ -197,7 +197,7 @@ class TestMergeMulti:
         # GH29522
         s = pd.Series(
             range(6),
-            pd.MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
+            MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
             name="Amount",
         )
         df = DataFrame({"lev1": list("AAABBB"), "lev2": [1, 2, 3, 1, 2, 3], "col": 0})
@@ -795,7 +795,7 @@ class TestJoinMultiMulti:
         tm.assert_frame_equal(result, expected)
 
     def test_single_common_level(self):
-        index_left = pd.MultiIndex.from_tuples(
+        index_left = MultiIndex.from_tuples(
             [("K0", "X0"), ("K0", "X1"), ("K1", "X2")], names=["key", "X"]
         )
 
@@ -803,7 +803,7 @@ class TestJoinMultiMulti:
             {"A": ["A0", "A1", "A2"], "B": ["B0", "B1", "B2"]}, index=index_left
         )
 
-        index_right = pd.MultiIndex.from_tuples(
+        index_right = MultiIndex.from_tuples(
             [("K0", "Y0"), ("K1", "Y1"), ("K2", "Y2"), ("K2", "Y3")], names=["key", "Y"]
         )
 
@@ -823,8 +823,8 @@ class TestJoinMultiMulti:
         # GH 25760
         # GH 28956
 
-        midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
-        midx3 = pd.MultiIndex.from_tuples([(4, 1), (3, 2), (3, 1)], names=["b", "a"])
+        midx1 = MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
+        midx3 = MultiIndex.from_tuples([(4, 1), (3, 2), (3, 1)], names=["b", "a"])
 
         left = DataFrame(index=midx1, data={"x": [10, 20, 30, 40]})
         right = DataFrame(index=midx3, data={"y": ["foo", "bar", "fing"]})

@@ -1269,7 +1269,7 @@ def test_groupby_cat_preserves_structure(observed, ordered):
 
     result = (
         df.groupby("Name", observed=observed)
-        .agg(pd.DataFrame.sum, skipna=True)
+        .agg(DataFrame.sum, skipna=True)
         .reset_index()
     )
 
@@ -1433,7 +1433,7 @@ def test_series_groupby_categorical_aggregation_getitem():
 
 @pytest.mark.parametrize(
     "func, expected_values",
-    [(pd.Series.nunique, [1, 1, 2]), (pd.Series.count, [1, 2, 2])],
+    [(Series.nunique, [1, 1, 2]), (Series.count, [1, 2, 2])],
 )
 def test_groupby_agg_categorical_columns(func, expected_values):
     # 31256
@@ -1456,7 +1456,7 @@ def test_groupby_agg_non_numeric():
     df = DataFrame({"A": pd.Categorical(["a", "a", "b"], categories=["a", "b", "c"])})
     expected = DataFrame({"A": [2, 1]}, index=[1, 2])
 
-    result = df.groupby([1, 2, 1]).agg(pd.Series.nunique)
+    result = df.groupby([1, 2, 1]).agg(Series.nunique)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby([1, 2, 1]).nunique()

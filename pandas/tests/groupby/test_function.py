@@ -957,7 +957,7 @@ def test_describe_with_duplicate_output_column_names(as_index):
     )
 
     expected = (
-        pd.DataFrame.from_records(
+        DataFrame.from_records(
             [
                 ("a", "count", 3.0, 3.0),
                 ("a", "mean", 88.0, 99.0),

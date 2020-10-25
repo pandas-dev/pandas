@@ -195,7 +195,7 @@ class TestPivotTable:
         df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
         result = pd.pivot_table(df, values="values", index=["A", "B"], dropna=True)
 
-        exp_index = pd.MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
+        exp_index = MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
         expected = DataFrame({"values": [1, 2, 3, 4]}, index=exp_index)
         tm.assert_frame_equal(result, expected)
 
@@ -398,7 +398,7 @@ class TestPivotTable:
         df = DataFrame({"A": [1, 2, 3, 4, 5]}, index=idx)
         res = df.pivot_table(index=df.index.month, columns=df.index.day)
 
-        exp_columns = pd.MultiIndex.from_tuples([("A", 1), ("A", 2)])
+        exp_columns = MultiIndex.from_tuples([("A", 1), ("A", 2)])
         exp = DataFrame([[2.5, 4.0], [2.0, np.nan]], index=[1, 2], columns=exp_columns)
         tm.assert_frame_equal(res, exp)
 
@@ -412,7 +412,7 @@ class TestPivotTable:
         res = df.pivot_table(
             index=df.index.month, columns=pd.Grouper(key="dt", freq="M")
         )
-        exp_columns = pd.MultiIndex.from_tuples([("A", pd.Timestamp("2011-01-31"))])
+        exp_columns = MultiIndex.from_tuples([("A", pd.Timestamp("2011-01-31"))])
         exp_columns.names = [None, "dt"]
         exp = DataFrame([3.25, 2.0], index=[1, 2], columns=exp_columns)
         tm.assert_frame_equal(res, exp)
@@ -542,7 +542,7 @@ class TestPivotTable:
         exp_col2 = pd.DatetimeIndex(
             ["2014/01/01 09:00", "2014/01/02 09:00"] * 2, name="dt2", tz="Asia/Tokyo"
         )
-        exp_col = pd.MultiIndex.from_arrays([exp_col1, exp_col2])
+        exp_col = MultiIndex.from_arrays([exp_col1, exp_col2])
         expected = DataFrame(
             [[0, 2, 0, 2], [1, 3, 1, 3]],
             index=pd.DatetimeIndex(
@@ -651,7 +651,7 @@ class TestPivotTable:
 
         exp_col1 = Index(["data1", "data1", "data2", "data2"])
         exp_col2 = pd.PeriodIndex(["2013-01", "2013-02"] * 2, name="p2", freq="M")
-        exp_col = pd.MultiIndex.from_arrays([exp_col1, exp_col2])
+        exp_col = MultiIndex.from_arrays([exp_col1, exp_col2])
         expected = DataFrame(
             [[0, 2, 0, 2], [1, 3, 1, 3]],
             index=pd.PeriodIndex(["2013-01-01", "2013-01-02"], name="p1", freq="D"),
@@ -1703,7 +1703,7 @@ class TestPivotTable:
             ("max", "cost", "T"),
             ("max", "cost", margins_name),
         ]
-        cols = pd.MultiIndex.from_tuples(tups, names=[None, None, "day"])
+        cols = MultiIndex.from_tuples(tups, names=[None, None, "day"])
         expected = DataFrame(table.values, index=ix, columns=cols)
         tm.assert_frame_equal(table, expected)
 
@@ -2011,7 +2011,7 @@ class TestPivotTable:
         )
 
         data = [[3, 1, np.nan, np.nan, 1, 1], [13, 6, np.nan, np.nan, 1, 1]]
-        col = pd.MultiIndex.from_product(
+        col = MultiIndex.from_product(
             [["ret_sum", "ret_none", "ret_one"], ["apple", "peach"]],
             names=[None, "fruit"],
         )
@@ -2140,7 +2140,7 @@ class TestPivot:
         # omit values
         result = frame.pivot(columns="columns")
 
-        expected.columns = pd.MultiIndex.from_tuples(
+        expected.columns = MultiIndex.from_tuples(
             [("values", "One"), ("values", "Two")], names=[None, "columns"]
         )
         expected.index.name = "index"

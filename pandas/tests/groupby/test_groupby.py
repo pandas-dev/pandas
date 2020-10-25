@@ -601,7 +601,7 @@ def test_as_index_select_column():
 
     result = df.groupby("A", as_index=False)["B"].apply(lambda x: x.cumsum())
     expected = Series(
-        [2, 6, 6], name="B", index=pd.MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
+        [2, 6, 6], name="B", index=MultiIndex.from_tuples([(0, 0), (0, 1), (1, 2)])
     )
     tm.assert_series_equal(result, expected)
 
@@ -1190,7 +1190,7 @@ def test_groupby_unit64_float_conversion():
     result = df.groupby(["first", "second"])["value"].max()
     expected = Series(
         [16148277970000000000],
-        pd.MultiIndex.from_product([[1], [1]], names=["first", "second"]),
+        MultiIndex.from_product([[1], [1]], names=["first", "second"]),
         name="value",
     )
     tm.assert_series_equal(result, expected)
@@ -1781,9 +1781,7 @@ def test_tuple_as_grouping():
 
 def test_tuple_correct_keyerror():
     # https://github.com/pandas-dev/pandas/issues/18798
-    df = DataFrame(
-        1, index=range(3), columns=pd.MultiIndex.from_product([[1, 2], [3, 4]])
-    )
+    df = DataFrame(1, index=range(3), columns=MultiIndex.from_product([[1, 2], [3, 4]]))
     with pytest.raises(KeyError, match=r"^\(7, 8\)$"):
         df.groupby((7, 8)).mean()
 
@@ -1798,7 +1796,7 @@ def test_groupby_agg_ohlc_non_first():
 
     expected = DataFrame(
         [[1, 1, 1, 1, 1], [1, 1, 1, 1, 1]],
-        columns=pd.MultiIndex.from_tuples(
+        columns=MultiIndex.from_tuples(
             (
                 ("foo", "sum", "foo"),
                 ("foo", "ohlc", "open"),
@@ -1823,7 +1821,7 @@ def test_groupby_multiindex_nat():
         (datetime(2012, 1, 2), "b"),
         (datetime(2012, 1, 3), "a"),
     ]
-    mi = pd.MultiIndex.from_tuples(values, names=["date", None])
+    mi = MultiIndex.from_tuples(values, names=["date", None])
     ser = Series([3, 2, 2.5, 4], index=mi)
 
     result = ser.groupby(level=1).mean()
@@ -1844,13 +1842,13 @@ def test_groupby_multiindex_series_keys_len_equal_group_axis():
     # GH 25704
     index_array = [["x", "x"], ["a", "b"], ["k", "k"]]
     index_names = ["first", "second", "third"]
-    ri = pd.MultiIndex.from_arrays(index_array, names=index_names)
+    ri = MultiIndex.from_arrays(index_array, names=index_names)
     s = Series(data=[1, 2], index=ri)
     result = s.groupby(["first", "third"]).sum()
 
     index_array = [["x"], ["k"]]
     index_names = ["first", "third"]
-    ei = pd.MultiIndex.from_arrays(index_array, names=index_names)
+    ei = MultiIndex.from_arrays(index_array, names=index_names)
     expected = Series([3], index=ei)
 
     tm.assert_series_equal(result, expected)
@@ -1859,7 +1857,7 @@ def test_groupby_multiindex_series_keys_len_equal_group_axis():
 def test_groupby_groups_in_BaseGrouper():
     # GH 26326
     # Test if DataFrame grouped with a pandas.Grouper has correct groups
-    mi = pd.MultiIndex.from_product([["A", "B"], ["C", "D"]], names=["alpha", "beta"])
+    mi = MultiIndex.from_product([["A", "B"], ["C", "D"]], names=["alpha", "beta"])
     df = DataFrame({"foo": [1, 2, 1, 2], "bar": [1, 2, 3, 4]}, index=mi)
     result = df.groupby([pd.Grouper(level="alpha"), "beta"])
     expected = df.groupby(["alpha", "beta"])
@@ -1885,7 +1883,7 @@ def test_groupby_axis_1(group_name):
 
     # test on MI column
     iterables = [["bar", "baz", "foo"], ["one", "two"]]
-    mi = pd.MultiIndex.from_product(iterables=iterables, names=["x", "x1"])
+    mi = MultiIndex.from_product(iterables=iterables, names=["x", "x1"])
     df = DataFrame(np.arange(18).reshape(3, 6), index=[0, 1, 0], columns=mi)
     results = df.groupby(group_name, axis=1).sum()
     expected = df.T.groupby(group_name).sum().T
@@ -1990,7 +1988,7 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 
 
 @pytest.mark.parametrize(
-    "idx", [Index(["a", "a"]), pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
+    "idx", [Index(["a", "a"]), MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
 )
 @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
