@@ -216,6 +216,22 @@ class TestEmptyConcat:
         expected = df_1.astype(object)
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_empty_dataframe_dtypes(self):
+        df = DataFrame(columns=list("abc"))
+        df["a"] = df["a"].astype(np.bool_)
+        df["b"] = df["b"].astype(np.int32)
+        df["c"] = df["c"].astype(np.float64)
+
+        result = pd.concat([df, df])
+        assert result["a"].dtype == np.bool_
+        assert result["b"].dtype == np.int32
+        assert result["c"].dtype == np.float64
+
+        result = pd.concat([df, df.astype(np.float64)])
+        assert result["a"].dtype == np.object_
+        assert result["b"].dtype == np.float64
+        assert result["c"].dtype == np.float64
+
     def test_concat_inner_join_empty(self):
         # GH 15328
         df_empty = DataFrame()
