@@ -1523,9 +1523,9 @@ class TestDataFrameReplace:
         Regression test for GH#34871: if df.replace(1.0, 0.0) is called on a df
         with a Period/Interval column the old, faulty behavior is to raise TypeError.
         """
-        df = pd.DataFrame({"Per": [value] * 3})
+        df = DataFrame({"Per": [value] * 3})
         result = df.replace(1.0, 0.0)
-        expected = pd.DataFrame({"Per": [value] * 3})
+        expected = DataFrame({"Per": [value] * 3})
         tm.assert_frame_equal(expected, result)
 
     def test_replace_value_category_type(self):
