@@ -328,7 +328,7 @@ class TestDatetimeIndexOps:
         assert idx.astype(object).equals(idx)
         assert idx.astype(object).equals(idx.astype(object))
         assert not idx.equals(list(idx))
-        assert not idx.equals(pd.Series(idx))
+        assert not idx.equals(Series(idx))
 
         idx2 = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "NaT"], tz="US/Pacific")
         assert not idx.equals(idx2)
@@ -336,7 +336,7 @@ class TestDatetimeIndexOps:
         assert not idx.equals(idx2.astype(object))
         assert not idx.astype(object).equals(idx2)
         assert not idx.equals(list(idx2))
-        assert not idx.equals(pd.Series(idx2))
+        assert not idx.equals(Series(idx2))
 
         # same internal, different tz
         idx3 = pd.DatetimeIndex(idx.asi8, tz="US/Pacific")
@@ -346,10 +346,10 @@ class TestDatetimeIndexOps:
         assert not idx.equals(idx3.astype(object))
         assert not idx.astype(object).equals(idx3)
         assert not idx.equals(list(idx3))
-        assert not idx.equals(pd.Series(idx3))
+        assert not idx.equals(Series(idx3))
 
         # check that we do not raise when comparing with OutOfBounds objects
-        oob = pd.Index([datetime(2500, 1, 1)] * 3, dtype=object)
+        oob = Index([datetime(2500, 1, 1)] * 3, dtype=object)
         assert not idx.equals(oob)
         assert not idx2.equals(oob)
         assert not idx3.equals(oob)

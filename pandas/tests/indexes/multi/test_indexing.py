@@ -3,7 +3,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import InvalidIndexError, PerformanceWarning
 
 import pandas as pd
 from pandas import Categorical, Index, MultiIndex, date_range
@@ -461,10 +461,10 @@ def test_getitem_group_select(idx):
     assert sorted_idx.get_loc("foo") == slice(0, 2)
 
 
-@pytest.mark.parametrize("ind1", [[True] * 5, pd.Index([True] * 5)])
+@pytest.mark.parametrize("ind1", [[True] * 5, Index([True] * 5)])
 @pytest.mark.parametrize(
     "ind2",
-    [[True, False, True, False, False], pd.Index([True, False, True, False, False])],
+    [[True, False, True, False, False], Index([True, False, True, False, False])],
 )
 def test_getitem_bool_index_all(ind1, ind2):
     # GH#22533
@@ -475,8 +475,8 @@ def test_getitem_bool_index_all(ind1, ind2):
     tm.assert_index_equal(idx[ind2], expected)
 
 
-@pytest.mark.parametrize("ind1", [[True], pd.Index([True])])
-@pytest.mark.parametrize("ind2", [[False], pd.Index([False])])
+@pytest.mark.parametrize("ind1", [[True], Index([True])])
+@pytest.mark.parametrize("ind2", [[False], Index([False])])
 def test_getitem_bool_index_single(ind1, ind2):
     # GH#22533
     idx = MultiIndex.from_tuples([(10, 1)])
@@ -645,6 +645,22 @@ class TestGetLoc:
         )
 
         assert index.get_loc("D") == slice(0, 3)
+
+    def test_get_loc_past_lexsort_depth(self):
+        # GH#30053
+        idx = MultiIndex(
+            levels=[["a"], [0, 7], [1]],
+            codes=[[0, 0], [1, 0], [0, 0]],
+            names=["x", "y", "z"],
+            sortorder=0,
+        )
+        key = ("a", 7)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            # PerformanceWarning: indexing past lexsort depth may impact performance
+            result = idx.get_loc(key)
+
+        assert result == slice(0, 1, None)
 
 
 class TestWhere:
