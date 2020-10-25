@@ -896,3 +896,64 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     result = getattr(ds.rolling(2), func)()
     expected = pd.Series([np.nan] + values)
     tm.assert_series_equal(result, expected)
+
+
+def test_timeoffset_as_window_parameter():
+
+    exp = DataFrame(
+        {
+            "B": [
+                np.nan,
+                np.nan,
+                0.9999999999999998,
+                -1.0,
+                1.0,
+                -0.3273268353539892,
+                0.9999999999999998,
+                1.0,
+                0.9999999999999998,
+                1.0,
+            ],
+            "A": [
+                np.nan,
+                np.nan,
+                -1.0,
+                1.0000000000000002,
+                -0.3273268353539892,
+                0.9999999999999966,
+                1.0,
+                1.0000000000000002,
+                1.0,
+                1.0000000000000002,
+            ],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                (pd.Timestamp("20130101 09:00:00"), "B"),
+                (pd.Timestamp("20130101 09:00:00"), "A"),
+                (pd.Timestamp("20130102 09:00:02"), "B"),
+                (pd.Timestamp("20130102 09:00:02"), "A"),
+                (pd.Timestamp("20130103 09:00:03"), "B"),
+                (pd.Timestamp("20130103 09:00:03"), "A"),
+                (pd.Timestamp("20130105 09:00:05"), "B"),
+                (pd.Timestamp("20130105 09:00:05"), "A"),
+                (pd.Timestamp("20130106 09:00:06"), "B"),
+                (pd.Timestamp("20130106 09:00:06"), "A"),
+            ]
+        ),
+    )
+
+    df = DataFrame(
+        {"B": [0, 1, 2, 4, 3], "A": [7, 4, 6, 9, 3]},
+        index=[
+            pd.Timestamp("20130101 09:00:00"),
+            pd.Timestamp("20130102 09:00:02"),
+            pd.Timestamp("20130103 09:00:03"),
+            pd.Timestamp("20130105 09:00:05"),
+            pd.Timestamp("20130106 09:00:06"),
+        ],
+    )
+
+    res = df.rolling(window="3d").corr()
+
+    tm.assert_frame_equal(exp, res)
