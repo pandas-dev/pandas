@@ -538,7 +538,7 @@ def test_reset_index_dtypes_on_empty_frame_with_multiindex(array, dtype):
 def test_reset_index_empty_frame_with_datetime64_multiindex():
     # https://github.com/pandas-dev/pandas/issues/35606
     idx = MultiIndex(
-        levels=[[pd.Timestamp("2020-07-20 00:00:00")], [3, 4]],
+        levels=[[Timestamp("2020-07-20 00:00:00")], [3, 4]],
         codes=[[], []],
         names=["a", "b"],
     )

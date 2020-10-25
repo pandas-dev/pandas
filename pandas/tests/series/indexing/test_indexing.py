@@ -133,10 +133,10 @@ def test_getitem_fancy(string_series, object_series):
 def test_type_promotion():
     # GH12599
     s = Series(dtype=object)
-    s["a"] = pd.Timestamp("2016-01-01")
+    s["a"] = Timestamp("2016-01-01")
     s["b"] = 3.0
     s["c"] = "foo"
-    expected = Series([pd.Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
+    expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
     tm.assert_series_equal(s, expected)
 
 
@@ -194,13 +194,13 @@ def test_series_box_timestamp():
     rng = pd.date_range("20090415", "20090519", freq="B")
     ser = Series(rng)
 
-    assert isinstance(ser[5], pd.Timestamp)
+    assert isinstance(ser[5], Timestamp)
 
     rng = pd.date_range("20090415", "20090519", freq="B")
     ser = Series(rng, index=rng)
-    assert isinstance(ser[5], pd.Timestamp)
+    assert isinstance(ser[5], Timestamp)
 
-    assert isinstance(ser.iat[5], pd.Timestamp)
+    assert isinstance(ser.iat[5], Timestamp)
 
 
 def test_series_box_timedelta():
@@ -298,7 +298,7 @@ def test_setitem(datetime_series, string_series):
 
 def test_setitem_empty_series():
     # Test for issue #10193
-    key = pd.Timestamp("2012-01-01")
+    key = Timestamp("2012-01-01")
     series = Series(dtype=object)
     series[key] = 47
     expected = Series(47, [key])
@@ -414,27 +414,27 @@ def test_setitem_with_tz(tz):
 
     # scalar
     s = orig.copy()
-    s[1] = pd.Timestamp("2011-01-01", tz=tz)
+    s[1] = Timestamp("2011-01-01", tz=tz)
     exp = Series(
         [
-            pd.Timestamp("2016-01-01 00:00", tz=tz),
-            pd.Timestamp("2011-01-01 00:00", tz=tz),
-            pd.Timestamp("2016-01-01 02:00", tz=tz),
+            Timestamp("2016-01-01 00:00", tz=tz),
+            Timestamp("2011-01-01 00:00", tz=tz),
+            Timestamp("2016-01-01 02:00", tz=tz),
         ]
     )
     tm.assert_series_equal(s, exp)
 
     s = orig.copy()
-    s.loc[1] = pd.Timestamp("2011-01-01", tz=tz)
+    s.loc[1] = Timestamp("2011-01-01", tz=tz)
     tm.assert_series_equal(s, exp)
 
     s = orig.copy()
-    s.iloc[1] = pd.Timestamp("2011-01-01", tz=tz)
+    s.iloc[1] = Timestamp("2011-01-01", tz=tz)
     tm.assert_series_equal(s, exp)
 
     # vector
     vals = Series(
-        [pd.Timestamp("2011-01-01", tz=tz), pd.Timestamp("2012-01-01", tz=tz)],
+        [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
         index=[1, 2],
     )
     assert vals.dtype == f"datetime64[ns, {tz}]"
@@ -442,9 +442,9 @@ def test_setitem_with_tz(tz):
     s[[1, 2]] = vals
     exp = Series(
         [
-            pd.Timestamp("2016-01-01 00:00", tz=tz),
-            pd.Timestamp("2011-01-01 00:00", tz=tz),
-            pd.Timestamp("2012-01-01 00:00", tz=tz),
+            Timestamp("2016-01-01 00:00", tz=tz),
+            Timestamp("2011-01-01 00:00", tz=tz),
+            Timestamp("2012-01-01 00:00", tz=tz),
         ]
     )
     tm.assert_series_equal(s, exp)
@@ -466,27 +466,27 @@ def test_setitem_with_tz_dst():
 
     # scalar
     s = orig.copy()
-    s[1] = pd.Timestamp("2011-01-01", tz=tz)
+    s[1] = Timestamp("2011-01-01", tz=tz)
     exp = Series(
         [
-            pd.Timestamp("2016-11-06 00:00-04:00", tz=tz),
-            pd.Timestamp("2011-01-01 00:00-05:00", tz=tz),
-            pd.Timestamp("2016-11-06 01:00-05:00", tz=tz),
+            Timestamp("2016-11-06 00:00-04:00", tz=tz),
+            Timestamp("2011-01-01 00:00-05:00", tz=tz),
+            Timestamp("2016-11-06 01:00-05:00", tz=tz),
         ]
     )
     tm.assert_series_equal(s, exp)
 
     s = orig.copy()
-    s.loc[1] = pd.Timestamp("2011-01-01", tz=tz)
+    s.loc[1] = Timestamp("2011-01-01", tz=tz)
     tm.assert_series_equal(s, exp)
 
     s = orig.copy()
-    s.iloc[1] = pd.Timestamp("2011-01-01", tz=tz)
+    s.iloc[1] = Timestamp("2011-01-01", tz=tz)
     tm.assert_series_equal(s, exp)
 
     # vector
     vals = Series(
-        [pd.Timestamp("2011-01-01", tz=tz), pd.Timestamp("2012-01-01", tz=tz)],
+        [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
         index=[1, 2],
     )
     assert vals.dtype == f"datetime64[ns, {tz}]"
@@ -494,9 +494,9 @@ def test_setitem_with_tz_dst():
     s[[1, 2]] = vals
     exp = Series(
         [
-            pd.Timestamp("2016-11-06 00:00", tz=tz),
-            pd.Timestamp("2011-01-01 00:00", tz=tz),
-            pd.Timestamp("2012-01-01 00:00", tz=tz),
+            Timestamp("2016-11-06 00:00", tz=tz),
+            Timestamp("2011-01-01 00:00", tz=tz),
+            Timestamp("2012-01-01 00:00", tz=tz),
         ]
     )
     tm.assert_series_equal(s, exp)
@@ -647,7 +647,7 @@ def test_timedelta_assignment():
     s = Series(10 * [np.timedelta64(10, "m")])
     s.loc[[1, 2, 3]] = np.timedelta64(20, "m")
     expected = Series(10 * [np.timedelta64(10, "m")])
-    expected.loc[[1, 2, 3]] = pd.Timedelta(np.timedelta64(20, "m"))
+    expected.loc[[1, 2, 3]] = Timedelta(np.timedelta64(20, "m"))
     tm.assert_series_equal(s, expected)
 
 
@@ -716,9 +716,9 @@ def test_td64_series_assign_nat(nat_val, should_cast):
 @pytest.mark.parametrize(
     "td",
     [
-        pd.Timedelta("9 days"),
-        pd.Timedelta("9 days").to_timedelta64(),
-        pd.Timedelta("9 days").to_pytimedelta(),
+        Timedelta("9 days"),
+        Timedelta("9 days").to_timedelta64(),
+        Timedelta("9 days").to_pytimedelta(),
     ],
 )
 def test_append_timedelta_does_not_cast(td):
@@ -728,12 +728,12 @@ def test_append_timedelta_does_not_cast(td):
     ser = Series(["x"])
     ser["td"] = td
     tm.assert_series_equal(ser, expected)
-    assert isinstance(ser["td"], pd.Timedelta)
+    assert isinstance(ser["td"], Timedelta)
 
     ser = Series(["x"])
-    ser.loc["td"] = pd.Timedelta("9 days")
+    ser.loc["td"] = Timedelta("9 days")
     tm.assert_series_equal(ser, expected)
-    assert isinstance(ser["td"], pd.Timedelta)
+    assert isinstance(ser["td"], Timedelta)
 
 
 def test_underlying_data_conversion():

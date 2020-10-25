@@ -1215,7 +1215,7 @@ def test_groupby_keys_same_size_as_index():
     # GH 11185
     freq = "s"
     index = pd.date_range(
-        start=pd.Timestamp("2015-09-29T11:34:44-0700"), periods=2, freq=freq
+        start=Timestamp("2015-09-29T11:34:44-0700"), periods=2, freq=freq
     )
     df = DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
     result = df.groupby([pd.Grouper(level=0, freq=freq), "metric"]).mean()
@@ -1242,13 +1242,13 @@ def test_groupby_nat_exclude():
             "values": np.random.randn(8),
             "dt": [
                 np.nan,
-                pd.Timestamp("2013-01-01"),
+                Timestamp("2013-01-01"),
                 np.nan,
-                pd.Timestamp("2013-02-01"),
+                Timestamp("2013-02-01"),
                 np.nan,
-                pd.Timestamp("2013-02-01"),
+                Timestamp("2013-02-01"),
                 np.nan,
-                pd.Timestamp("2013-01-01"),
+                Timestamp("2013-01-01"),
             ],
             "str": [np.nan, "a", np.nan, "a", np.nan, "a", np.nan, "b"],
         }
@@ -1724,7 +1724,7 @@ def test_group_shift_with_fill_value():
 
 def test_group_shift_lose_timezone():
     # GH 30134
-    now_dt = pd.Timestamp.utcnow()
+    now_dt = Timestamp.utcnow()
     df = DataFrame({"a": [1, 1], "date": now_dt})
     result = df.groupby("a").shift(0).iloc[0]
     expected = Series({"date": now_dt}, name=result.name)
@@ -2004,7 +2004,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
     elif groupby_func == "corrwith":
         args.append(df)
     elif groupby_func == "tshift":
-        df.index = [pd.Timestamp("today")]
+        df.index = [Timestamp("today")]
         args.extend([1, "D"])
 
     result = getattr(grp_by, groupby_func)(*args)

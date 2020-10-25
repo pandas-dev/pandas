@@ -2325,7 +2325,7 @@ class TestHDFStore:
                 np.random.randn(20, 2), index=pd.date_range("20130101", periods=20)
             )
             store.put("df", df, format="table")
-            expected = df[df.index > pd.Timestamp("20130105")]
+            expected = df[df.index > Timestamp("20130105")]
 
             import datetime
 
@@ -4152,7 +4152,7 @@ class TestHDFStore:
         ) as store:
             result = store.select("df")
             expected = DataFrame(
-                [[pd.Timestamp("2020-02-06T18:00")]],
+                [[Timestamp("2020-02-06T18:00")]],
                 columns=["A"],
                 index=Index(["date"]),
             )
@@ -4768,14 +4768,14 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
             store.append("test", df, format="table", data_columns=True)
 
-            ts = pd.Timestamp("2014-01-01")  # noqa
+            ts = Timestamp("2014-01-01")  # noqa
             result = store.select("test", where="real_date > ts")
             expected = df.loc[[1], :]
             tm.assert_frame_equal(expected, result)
 
             for op in ["<", ">", "=="]:
                 # non strings to string column always fail
-                for v in [2.1, True, pd.Timestamp("2014-01-01"), pd.Timedelta(1, "s")]:
+                for v in [2.1, True, Timestamp("2014-01-01"), pd.Timedelta(1, "s")]:
                     query = f"date {op} v"
                     with pytest.raises(TypeError):
                         store.select("test", where=query)

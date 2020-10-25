@@ -69,7 +69,7 @@ class TestSeriesConstructors:
     def test_invalid_dtype(self):
         # GH15520
         msg = "not understood"
-        invalid_list = [pd.Timestamp, "pd.Timestamp", list]
+        invalid_list = [Timestamp, "Timestamp", list]
         for dtype in invalid_list:
             with pytest.raises(TypeError, match=msg):
                 Series([], name="time", dtype=dtype)
@@ -931,8 +931,8 @@ class TestSeriesConstructors:
         # inference
         s = Series(
             [
-                pd.Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
-                pd.Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific"),
+                Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
+                Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific"),
             ]
         )
         assert s.dtype == "datetime64[ns, US/Pacific]"
@@ -940,8 +940,8 @@ class TestSeriesConstructors:
 
         s = Series(
             [
-                pd.Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
-                pd.Timestamp("2013-01-02 14:00:00-0800", tz="US/Eastern"),
+                Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
+                Timestamp("2013-01-02 14:00:00-0800", tz="US/Eastern"),
             ]
         )
         assert s.dtype == "object"
@@ -970,7 +970,7 @@ class TestSeriesConstructors:
     def test_constructor_with_naive_string_and_datetimetz_dtype(self, arg):
         # GH 17415: With naive string
         result = Series([arg], dtype="datetime64[ns, CET]")
-        expected = Series(pd.Timestamp(arg)).dt.tz_localize("CET")
+        expected = Series(Timestamp(arg)).dt.tz_localize("CET")
         tm.assert_series_equal(result, expected)
 
     def test_constructor_datetime64_bigendian(self):

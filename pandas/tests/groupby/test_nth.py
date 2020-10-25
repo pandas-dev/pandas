@@ -152,8 +152,8 @@ def test_first_strings_timestamps():
     # GH 11244
     test = DataFrame(
         {
-            pd.Timestamp("2012-01-01 00:00:00"): ["a", "b"],
-            pd.Timestamp("2012-01-02 00:00:00"): ["c", "d"],
+            Timestamp("2012-01-01 00:00:00"): ["a", "b"],
+            Timestamp("2012-01-02 00:00:00"): ["c", "d"],
             "name": ["e", "e"],
             "aaaa": ["f", "g"],
         }

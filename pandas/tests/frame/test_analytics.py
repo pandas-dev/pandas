@@ -463,7 +463,7 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_mean_mixed_datetime_numeric(self, tz):
         # https://github.com/pandas-dev/pandas/issues/24752
-        df = DataFrame({"A": [1, 1], "B": [pd.Timestamp("2000", tz=tz)] * 2})
+        df = DataFrame({"A": [1, 1], "B": [Timestamp("2000", tz=tz)] * 2})
         with tm.assert_produces_warning(FutureWarning):
             result = df.mean()
         expected = Series([1.0], index=["A"])
@@ -474,7 +474,7 @@ class TestDataFrameAnalytics:
         # https://github.com/pandas-dev/pandas/issues/24752
         # Our long-term desired behavior is unclear, but the behavior in
         # 0.24.0rc1 was buggy.
-        df = DataFrame({"A": [pd.Timestamp("2000", tz=tz)] * 2})
+        df = DataFrame({"A": [Timestamp("2000", tz=tz)] * 2})
         with tm.assert_produces_warning(FutureWarning):
             result = df.mean()
 
@@ -1000,8 +1000,8 @@ class TestDataFrameAnalytics:
         # GH 23070
         float_data = [1, np.nan, 3, np.nan]
         datetime_data = [
-            pd.Timestamp("1960-02-15"),
-            pd.Timestamp("1960-02-16"),
+            Timestamp("1960-02-15"),
+            Timestamp("1960-02-16"),
             pd.NaT,
             pd.NaT,
         ]
@@ -1132,14 +1132,14 @@ class TestDataFrameAnalytics:
 class TestDataFrameReductions:
     def test_min_max_dt64_with_NaT(self):
         # Both NaT and Timestamp are in DataFrame.
-        df = DataFrame({"foo": [pd.NaT, pd.NaT, pd.Timestamp("2012-05-01")]})
+        df = DataFrame({"foo": [pd.NaT, pd.NaT, Timestamp("2012-05-01")]})
 
         res = df.min()
-        exp = Series([pd.Timestamp("2012-05-01")], index=["foo"])
+        exp = Series([Timestamp("2012-05-01")], index=["foo"])
         tm.assert_series_equal(res, exp)
 
         res = df.max()
-        exp = Series([pd.Timestamp("2012-05-01")], index=["foo"])
+        exp = Series([Timestamp("2012-05-01")], index=["foo"])
         tm.assert_series_equal(res, exp)
 
         # GH12941, only NaTs are in DataFrame.

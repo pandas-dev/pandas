@@ -225,7 +225,7 @@ class TestIsNA:
             tm.assert_numpy_array_equal(result, expected)
 
     def test_datetime_other_units(self):
-        idx = pd.DatetimeIndex(["2011-01-01", "NaT", "2011-01-02"])
+        idx = DatetimeIndex(["2011-01-01", "NaT", "2011-01-02"])
         exp = np.array([False, True, False])
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
