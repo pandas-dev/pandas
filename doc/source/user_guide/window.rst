@@ -313,7 +313,7 @@ and their default values are set to ``False``, ``True`` and ``False`` respective
    In [6]: %timeit roll.apply(f, engine='cython', raw=True)
    3.92 s ± 59 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
-.. _stats.moments.binary:
+.. _window.cov_corr:
 
 Binary window functions
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -329,7 +329,7 @@ two :class:`Series` or any combination of :class:`DataFrame`/:class:`Series` or
   names, returning a DataFrame. If the keyword argument ``pairwise=True`` is
   passed then computes the statistic for each pair of columns, returning a
   ``MultiIndexed DataFrame`` whose ``index`` are the dates in question (see :ref:`the next section
-  <stats.moments.corr_pairwise>`).
+  <window.corr_pairwise>`).
 
 For example:
 
@@ -345,7 +345,7 @@ For example:
    df2 = df[:4]
    df2.rolling(window=2).corr(df2["B"])
 
-.. _stats.moments.corr_pairwise:
+.. _window.corr_pairwise:
 
 Computing rolling pairwise covariances and correlations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

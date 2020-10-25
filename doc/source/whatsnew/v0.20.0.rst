@@ -988,7 +988,7 @@ A binary window operation, like ``.corr()`` or ``.cov()``, when operating on a `
 will now return a 2-level ``MultiIndexed DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated,
 see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`. These are equivalent in function,
 but a MultiIndexed ``DataFrame`` enjoys more support in pandas.
-See the section on :ref:`Windowed Binary Operations <stats.moments.binary>` for more information. (:issue:`15677`)
+See the section on :ref:`Windowed Binary Operations <window.cov_corr>` for more information. (:issue:`15677`)
 
 .. ipython:: python
 
