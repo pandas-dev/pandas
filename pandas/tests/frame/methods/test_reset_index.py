@@ -1,7 +1,10 @@
 from datetime import datetime
+from itertools import product
 
 import numpy as np
 import pytest
+
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 
 import pandas as pd
 from pandas import (
@@ -18,6 +21,30 @@ import pandas._testing as tm
 
 
 class TestResetIndex:
+    def test_set_reset(self):
+
+        idx = Index([2 ** 63, 2 ** 63 + 5, 2 ** 63 + 10], name="foo")
+
+        # set/reset
+        df = DataFrame({"A": [0, 1, 2]}, index=idx)
+        result = df.reset_index()
+        assert result["foo"].dtype == np.dtype("uint64")
+
+        df = result.set_index("foo")
+        tm.assert_index_equal(df.index, idx)
+
+    def test_set_index_reset_index_dt64tz(self):
+
+        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+
+        # set/reset
+        df = DataFrame({"A": [0, 1, 2]}, index=idx)
+        result = df.reset_index()
+        assert result["foo"].dtype == "datetime64[ns, US/Eastern]"
+
+        df = result.set_index("foo")
+        tm.assert_index_equal(df.index, idx)
+
     def test_reset_index_tz(self, tz_aware_fixture):
         # GH 3950
         # reset_index with single level
@@ -300,6 +327,194 @@ class TestResetIndex:
             index=RangeIndex(stop=2),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_reset_index_multiindex_columns(self):
+        levels = [["A", ""], ["B", "b"]]
+        df = DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
+        result = df[["B"]].rename_axis("A").reset_index()
+        tm.assert_frame_equal(result, df)
+
+        # GH#16120: already existing column
+        msg = r"cannot insert \('A', ''\), already exists"
+        with pytest.raises(ValueError, match=msg):
+            df.rename_axis("A").reset_index()
+
+        # GH#16164: multiindex (tuple) full key
+        result = df.set_index([("A", "")]).reset_index()
+        tm.assert_frame_equal(result, df)
+
+        # with additional (unnamed) index level
+        idx_col = DataFrame(
+            [[0], [1]], columns=MultiIndex.from_tuples([("level_0", "")])
+        )
+        expected = pd.concat([idx_col, df[[("B", "b"), ("A", "")]]], axis=1)
+        result = df.set_index([("B", "b")], append=True).reset_index()
+        tm.assert_frame_equal(result, expected)
+
+        # with index name which is a too long tuple...
+        msg = "Item must have length equal to number of levels."
+        with pytest.raises(ValueError, match=msg):
+            df.rename_axis([("C", "c", "i")]).reset_index()
+
+        # or too short...
+        levels = [["A", "a", ""], ["B", "b", "i"]]
+        df2 = DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
+        idx_col = DataFrame(
+            [[0], [1]], columns=MultiIndex.from_tuples([("C", "c", "ii")])
+        )
+        expected = pd.concat([idx_col, df2], axis=1)
+        result = df2.rename_axis([("C", "c")]).reset_index(col_fill="ii")
+        tm.assert_frame_equal(result, expected)
+
+        # ... which is incompatible with col_fill=None
+        with pytest.raises(
+            ValueError,
+            match=(
+                "col_fill=None is incompatible with "
+                r"incomplete column name \('C', 'c'\)"
+            ),
+        ):
+            df2.rename_axis([("C", "c")]).reset_index(col_fill=None)
+
+        # with col_level != 0
+        result = df2.rename_axis([("c", "ii")]).reset_index(col_level=1, col_fill="C")
+        tm.assert_frame_equal(result, expected)
+
+    def test_reset_index_datetime(self, tz_naive_fixture):
+        # GH#3950
+        tz = tz_naive_fixture
+        idx1 = pd.date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
+        idx2 = Index(range(5), name="idx2", dtype="int64")
+        idx = MultiIndex.from_arrays([idx1, idx2])
+        df = DataFrame(
+            {"a": np.arange(5, dtype="int64"), "b": ["A", "B", "C", "D", "E"]},
+            index=idx,
+        )
+
+        expected = DataFrame(
+            {
+                "idx1": [
+                    datetime(2011, 1, 1),
+                    datetime(2011, 1, 2),
+                    datetime(2011, 1, 3),
+                    datetime(2011, 1, 4),
+                    datetime(2011, 1, 5),
+                ],
+                "idx2": np.arange(5, dtype="int64"),
+                "a": np.arange(5, dtype="int64"),
+                "b": ["A", "B", "C", "D", "E"],
+            },
+            columns=["idx1", "idx2", "a", "b"],
+        )
+        expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=tz))
+
+        tm.assert_frame_equal(df.reset_index(), expected)
+
+        idx3 = pd.date_range(
+            "1/1/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3"
+        )
+        idx = MultiIndex.from_arrays([idx1, idx2, idx3])
+        df = DataFrame(
+            {"a": np.arange(5, dtype="int64"), "b": ["A", "B", "C", "D", "E"]},
+            index=idx,
+        )
+
+        expected = DataFrame(
+            {
+                "idx1": [
+                    datetime(2011, 1, 1),
+                    datetime(2011, 1, 2),
+                    datetime(2011, 1, 3),
+                    datetime(2011, 1, 4),
+                    datetime(2011, 1, 5),
+                ],
+                "idx2": np.arange(5, dtype="int64"),
+                "idx3": [
+                    datetime(2012, 1, 1),
+                    datetime(2012, 2, 1),
+                    datetime(2012, 3, 1),
+                    datetime(2012, 4, 1),
+                    datetime(2012, 5, 1),
+                ],
+                "a": np.arange(5, dtype="int64"),
+                "b": ["A", "B", "C", "D", "E"],
+            },
+            columns=["idx1", "idx2", "idx3", "a", "b"],
+        )
+        expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=tz))
+        expected["idx3"] = expected["idx3"].apply(
+            lambda d: Timestamp(d, tz="Europe/Paris")
+        )
+        tm.assert_frame_equal(df.reset_index(), expected)
+
+        # GH#7793
+        idx = MultiIndex.from_product(
+            [["a", "b"], pd.date_range("20130101", periods=3, tz=tz)]
+        )
+        df = DataFrame(
+            np.arange(6, dtype="int64").reshape(6, 1), columns=["a"], index=idx
+        )
+
+        expected = DataFrame(
+            {
+                "level_0": "a a a b b b".split(),
+                "level_1": [
+                    datetime(2013, 1, 1),
+                    datetime(2013, 1, 2),
+                    datetime(2013, 1, 3),
+                ]
+                * 2,
+                "a": np.arange(6, dtype="int64"),
+            },
+            columns=["level_0", "level_1", "a"],
+        )
+        expected["level_1"] = expected["level_1"].apply(
+            lambda d: Timestamp(d, freq="D", tz=tz)
+        )
+        result = df.reset_index()
+        tm.assert_frame_equal(result, expected)
+
+    def test_reset_index_period(self):
+        # GH#7746
+        idx = MultiIndex.from_product(
+            [pd.period_range("20130101", periods=3, freq="M"), list("abc")],
+            names=["month", "feature"],
+        )
+
+        df = DataFrame(
+            np.arange(9, dtype="int64").reshape(-1, 1), index=idx, columns=["a"]
+        )
+        expected = DataFrame(
+            {
+                "month": (
+                    [pd.Period("2013-01", freq="M")] * 3
+                    + [pd.Period("2013-02", freq="M")] * 3
+                    + [pd.Period("2013-03", freq="M")] * 3
+                ),
+                "feature": ["a", "b", "c"] * 3,
+                "a": np.arange(9, dtype="int64"),
+            },
+            columns=["month", "feature", "a"],
+        )
+        result = df.reset_index()
+        tm.assert_frame_equal(result, expected)
+
+    def test_reset_index_delevel_infer_dtype(self):
+        tuples = list(product(["foo", "bar"], [10, 20], [1.0, 1.1]))
+        index = MultiIndex.from_tuples(tuples, names=["prm0", "prm1", "prm2"])
+        df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"], index=index)
+        deleveled = df.reset_index()
+        assert is_integer_dtype(deleveled["prm1"])
+        assert is_float_dtype(deleveled["prm2"])
+
+    def test_reset_index_with_drop(
+        self, multiindex_year_month_day_dataframe_random_data
+    ):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        deleveled = ymd.reset_index(drop=True)
+        assert len(deleveled.columns) == len(ymd.columns)
+        assert deleveled.index.name == ymd.index.name
 
 
 @pytest.mark.parametrize(

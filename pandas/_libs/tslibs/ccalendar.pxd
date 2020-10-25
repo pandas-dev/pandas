@@ -1,6 +1,5 @@
 from cython cimport Py_ssize_t
-
-from numpy cimport int64_t, int32_t
+from numpy cimport int32_t, int64_t
 
 ctypedef (int32_t, int32_t, int32_t) iso_calendar_t
 

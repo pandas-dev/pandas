@@ -34,9 +34,15 @@ def test_transform_groupby_kernel(string_series, op):
 
 
 @pytest.mark.parametrize(
-    "ops, names", [([np.sqrt], ["sqrt"]), ([np.abs, np.sqrt], ["absolute", "sqrt"])]
+    "ops, names",
+    [
+        ([np.sqrt], ["sqrt"]),
+        ([np.abs, np.sqrt], ["absolute", "sqrt"]),
+        (np.array([np.sqrt]), ["sqrt"]),
+        (np.array([np.abs, np.sqrt]), ["absolute", "sqrt"]),
+    ],
 )
-def test_transform_list(string_series, ops, names):
+def test_transform_listlike(string_series, ops, names):
     # GH 35964
     with np.errstate(all="ignore"):
         expected = concat([op(string_series) for op in ops], axis=1)
@@ -45,13 +51,36 @@ def test_transform_list(string_series, ops, names):
         tm.assert_frame_equal(result, expected)
 
 
-def test_transform_dict(string_series):
+@pytest.mark.parametrize("ops", [[], np.array([])])
+def test_transform_empty_listlike(string_series, ops):
+    with pytest.raises(ValueError, match="No transform functions were provided"):
+        string_series.transform(ops)
+
+
+@pytest.mark.parametrize("box", [dict, Series])
+def test_transform_dictlike(string_series, box):
     # GH 35964
     with np.errstate(all="ignore"):
         expected = concat([np.sqrt(string_series), np.abs(string_series)], axis=1)
     expected.columns = ["foo", "bar"]
-    result = string_series.transform({"foo": np.sqrt, "bar": np.abs})
+    result = string_series.transform(box({"foo": np.sqrt, "bar": np.abs}))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {},
+        {"A": []},
+        {"A": [], "B": ["cumsum"]},
+        {"A": ["cumsum"], "B": []},
+        {"A": [], "B": "cumsum"},
+        {"A": "cumsum", "B": []},
+    ],
+)
+def test_transform_empty_dictlike(string_series, ops):
+    with pytest.raises(ValueError, match="No transform functions were provided"):
+        string_series.transform(ops)
 
 
 def test_transform_udf(axis, string_series):
@@ -121,15 +150,20 @@ def test_transform_bad_dtype(op):
     s = Series(3 * [object])  # Series that will fail on most transforms
     if op in ("backfill", "shift", "pad", "bfill", "ffill"):
         pytest.xfail("Transform function works on any datatype")
+
     msg = "Transform function failed"
-    with pytest.raises(ValueError, match=msg):
-        s.transform(op)
-    with pytest.raises(ValueError, match=msg):
-        s.transform([op])
-    with pytest.raises(ValueError, match=msg):
-        s.transform({"A": op})
-    with pytest.raises(ValueError, match=msg):
-        s.transform({"A": [op]})
+
+    # tshift is deprecated
+    warn = None if op != "tshift" else FutureWarning
+    with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with pytest.raises(ValueError, match=msg):
+            s.transform(op)
+        with pytest.raises(ValueError, match=msg):
+            s.transform([op])
+        with pytest.raises(ValueError, match=msg):
+            s.transform({"A": op})
+        with pytest.raises(ValueError, match=msg):
+            s.transform({"A": [op]})
 
 
 @pytest.mark.parametrize("use_apply", [True, False])

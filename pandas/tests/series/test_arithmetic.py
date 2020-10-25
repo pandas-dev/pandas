@@ -191,7 +191,7 @@ class TestSeriesArithmetic:
         s1 = Series([1, 2], index=[1, 1])
         s2 = Series([10, 10], index=[1, 2])
         result = s1 + s2
-        expected = pd.Series([11, 12, np.nan], index=[1, 1, 2])
+        expected = Series([11, 12, np.nan], index=[1, 1, 2])
         tm.assert_series_equal(result, expected)
 
     def test_add_na_handling(self):
@@ -254,6 +254,19 @@ class TestSeriesArithmetic:
         result = (dt2.to_frame() - dt.to_frame())[0]
         tm.assert_series_equal(result, expected)
 
+    def test_alignment_doesnt_change_tz(self):
+        # GH#33671
+        dti = pd.date_range("2016-01-01", periods=10, tz="CET")
+        dti_utc = dti.tz_convert("UTC")
+        ser = Series(10, index=dti)
+        ser_utc = Series(10, index=dti_utc)
+
+        # we don't care about the result, just that original indexes are unchanged
+        ser * ser_utc
+
+        assert ser.index is dti
+        assert ser_utc.index is dti_utc
+
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -263,16 +276,16 @@ class TestSeriesFlexComparison:
     @pytest.mark.parametrize("axis", [0, None, "index"])
     def test_comparison_flex_basic(self, axis, all_compare_operators):
         op = all_compare_operators.strip("__")
-        left = pd.Series(np.random.randn(10))
-        right = pd.Series(np.random.randn(10))
+        left = Series(np.random.randn(10))
+        right = Series(np.random.randn(10))
         result = getattr(left, op)(right, axis=axis)
         expected = getattr(operator, op)(left, right)
         tm.assert_series_equal(result, expected)
 
     def test_comparison_bad_axis(self, all_compare_operators):
         op = all_compare_operators.strip("__")
-        left = pd.Series(np.random.randn(10))
-        right = pd.Series(np.random.randn(10))
+        left = Series(np.random.randn(10))
+        right = Series(np.random.randn(10))
 
         msg = "No axis named 1 for object type"
         with pytest.raises(ValueError, match=msg):
@@ -293,7 +306,7 @@ class TestSeriesFlexComparison:
         left = Series([1, 3, 2], index=list("abc"))
         right = Series([2, 2, 2], index=list("bcd"))
         result = getattr(left, op)(right)
-        expected = pd.Series(values, index=list("abcd"))
+        expected = Series(values, index=list("abcd"))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -311,7 +324,7 @@ class TestSeriesFlexComparison:
         left = Series([1, 3, 2], index=list("abc"))
         right = Series([2, 2, 2], index=list("bcd"))
         result = getattr(left, op)(right, fill_value=fill_value)
-        expected = pd.Series(values, index=list("abcd"))
+        expected = Series(values, index=list("abcd"))
         tm.assert_series_equal(result, expected)
 
 
@@ -572,12 +585,12 @@ class TestSeriesComparison:
         "left, right",
         [
             (
-                pd.Series([1, 2, 3], index=list("ABC"), name="x"),
-                pd.Series([2, 2, 2], index=list("ABD"), name="x"),
+                Series([1, 2, 3], index=list("ABC"), name="x"),
+                Series([2, 2, 2], index=list("ABD"), name="x"),
             ),
             (
-                pd.Series([1, 2, 3], index=list("ABC"), name="x"),
-                pd.Series([2, 2, 2, 2], index=list("ABCD"), name="x"),
+                Series([1, 2, 3], index=list("ABC"), name="x"),
+                Series([2, 2, 2, 2], index=list("ABCD"), name="x"),
             ),
         ],
     )
@@ -681,8 +694,50 @@ class TestTimeSeriesArithmetic:
     def test_datetime_understood(self):
         # Ensures it doesn't fail to create the right series
         # reported in issue#16726
-        series = pd.Series(pd.date_range("2012-01-01", periods=3))
+        series = Series(pd.date_range("2012-01-01", periods=3))
         offset = pd.offsets.DateOffset(days=6)
         result = series - offset
-        expected = pd.Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
+        expected = Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "names",
+    [
+        ("foo", None, None),
+        ("Egon", "Venkman", None),
+        ("NCC1701D", "NCC1701D", "NCC1701D"),
+    ],
+)
+@pytest.mark.parametrize("box", [list, tuple, np.array, pd.Index, pd.Series, pd.array])
+@pytest.mark.parametrize("flex", [True, False])
+def test_series_ops_name_retention(flex, box, names, all_binary_operators):
+    # GH#33930 consistent name renteiton
+    op = all_binary_operators
+
+    if op is ops.rfloordiv and box in [list, tuple]:
+        pytest.xfail("op fails because of inconsistent ndarray-wrapping GH#28759")
+
+    left = Series(range(10), name=names[0])
+    right = Series(range(10), name=names[1])
+
+    right = box(right)
+    if flex:
+        name = op.__name__.strip("_")
+        if name in ["and", "rand", "xor", "rxor", "or", "ror"]:
+            # Series doesn't have these as flex methods
+            return
+        result = getattr(left, name)(right)
+    else:
+        result = op(left, right)
+
+    if box is pd.Index and op.__name__.strip("_") in ["rxor", "ror", "rand"]:
+        # Index treats these as set operators, so does not defer
+        assert isinstance(result, pd.Index)
+        return
+
+    assert isinstance(result, Series)
+    if box in [pd.Index, pd.Series]:
+        assert result.name == names[2]
+    else:
+        assert result.name == names[0]

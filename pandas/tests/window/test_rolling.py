@@ -39,22 +39,27 @@ def test_constructor(which):
     with pytest.raises(ValueError, match=msg):
         c(-1)
 
+
+@pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
+def test_invalid_constructor(which, w):
     # not valid
-    for w in [2.0, "foo", np.array([2])]:
-        msg = (
-            "window must be an integer|"
-            "passed window foo is not compatible with a datetimelike index"
-        )
-        with pytest.raises(ValueError, match=msg):
-            c(window=w)
 
-        msg = "min_periods must be an integer"
-        with pytest.raises(ValueError, match=msg):
-            c(window=2, min_periods=w)
+    c = which.rolling
 
-        msg = "center must be a boolean"
-        with pytest.raises(ValueError, match=msg):
-            c(window=2, min_periods=1, center=w)
+    msg = (
+        "window must be an integer|"
+        "passed window foo is not compatible with a datetimelike index"
+    )
+    with pytest.raises(ValueError, match=msg):
+        c(window=w)
+
+    msg = "min_periods must be an integer"
+    with pytest.raises(ValueError, match=msg):
+        c(window=2, min_periods=w)
+
+    msg = "center must be a boolean"
+    with pytest.raises(ValueError, match=msg):
+        c(window=2, min_periods=1, center=w)
 
 
 @td.skip_if_no_scipy
@@ -117,42 +122,63 @@ def test_numpy_compat(method):
         getattr(r, method)(dtype=np.float64)
 
 
-def test_closed():
-    df = DataFrame({"A": [0, 1, 2, 3, 4]})
-    # closed only allowed for datetimelike
+@pytest.mark.parametrize("closed", ["left", "right", "both", "neither"])
+def test_closed_fixed(closed, arithmetic_win_operators):
+    # GH 34315
+    func_name = arithmetic_win_operators
+    df_fixed = DataFrame({"A": [0, 1, 2, 3, 4]})
+    df_time = DataFrame({"A": [0, 1, 2, 3, 4]}, index=date_range("2020", periods=5))
 
-    msg = "closed only implemented for datetimelike and offset based windows"
+    result = getattr(df_fixed.rolling(2, closed=closed, min_periods=1), func_name)()
+    expected = getattr(df_time.rolling("2D", closed=closed), func_name)().reset_index(
+        drop=True
+    )
 
-    with pytest.raises(ValueError, match=msg):
-        df.rolling(window=3, closed="neither")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_closed_fixed_binary_col():
+    # GH 34315
+    data = [0, 1, 1, 0, 0, 1, 0, 1]
+    df = DataFrame(
+        {"binary_col": data},
+        index=pd.date_range(start="2020-01-01", freq="min", periods=len(data)),
+    )
+
+    rolling = df.rolling(window=len(df), closed="left", min_periods=1)
+    result = rolling.mean()
+    expected = DataFrame(
+        [np.nan, 0, 0.5, 2 / 3, 0.5, 0.4, 0.5, 0.428571],
+        columns=["binary_col"],
+        index=pd.date_range(start="2020-01-01", freq="min", periods=len(data)),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("closed", ["neither", "left"])
 def test_closed_empty(closed, arithmetic_win_operators):
     # GH 26005
     func_name = arithmetic_win_operators
-    ser = pd.Series(
-        data=np.arange(5), index=pd.date_range("2000", periods=5, freq="2D")
-    )
+    ser = Series(data=np.arange(5), index=pd.date_range("2000", periods=5, freq="2D"))
     roll = ser.rolling("1D", closed=closed)
 
     result = getattr(roll, func_name)()
-    expected = pd.Series([np.nan] * 5, index=ser.index)
+    expected = Series([np.nan] * 5, index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
 def test_closed_one_entry(func):
     # GH24718
-    ser = pd.Series(data=[2], index=pd.date_range("2000", periods=1))
+    ser = Series(data=[2], index=pd.date_range("2000", periods=1))
     result = getattr(ser.rolling("10D", closed="left"), func)()
-    tm.assert_series_equal(result, pd.Series([np.nan], index=ser.index))
+    tm.assert_series_equal(result, Series([np.nan], index=ser.index))
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
 def test_closed_one_entry_groupby(func):
     # GH24718
-    ser = pd.DataFrame(
+    ser = DataFrame(
         data={"A": [1, 1, 2], "B": [3, 2, 1]}, index=pd.date_range("2000", periods=3)
     )
     result = getattr(
@@ -161,7 +187,7 @@ def test_closed_one_entry_groupby(func):
     exp_idx = pd.MultiIndex.from_arrays(
         arrays=[[1, 1, 2], ser.index], names=("A", None)
     )
-    expected = pd.Series(data=[np.nan, 3, np.nan], index=exp_idx, name="B")
+    expected = Series(data=[np.nan, 3, np.nan], index=exp_idx, name="B")
     tm.assert_series_equal(result, expected)
 
 
@@ -181,23 +207,23 @@ def test_closed_one_entry_groupby(func):
 )
 def test_closed_min_max_datetime(input_dtype, func, closed, expected):
     # see gh-21704
-    ser = pd.Series(
+    ser = Series(
         data=np.arange(10).astype(input_dtype), index=pd.date_range("2000", periods=10)
     )
 
     result = getattr(ser.rolling("3D", closed=closed), func)()
-    expected = pd.Series(expected, index=ser.index)
+    expected = Series(expected, index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
 def test_closed_uneven():
     # see gh-21704
-    ser = pd.Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
+    ser = Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
 
     # uneven
     ser = ser.drop(index=ser.index[[1, 5]])
     result = ser.rolling("3D", closed="left").min()
-    expected = pd.Series([np.nan, 0, 0, 2, 3, 4, 6, 6], index=ser.index)
+    expected = Series([np.nan, 0, 0, 2, 3, 4, 6, 6], index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
@@ -216,10 +242,10 @@ def test_closed_uneven():
 )
 def test_closed_min_max_minp(func, closed, expected):
     # see gh-21704
-    ser = pd.Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
+    ser = Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
     ser[ser.index[-3:]] = np.nan
     result = getattr(ser.rolling("3D", min_periods=2, closed=closed), func)()
-    expected = pd.Series(expected, index=ser.index)
+    expected = Series(expected, index=ser.index)
     tm.assert_series_equal(result, expected)
 
 
@@ -234,9 +260,9 @@ def test_closed_min_max_minp(func, closed, expected):
 )
 def test_closed_median_quantile(closed, expected):
     # GH 26005
-    ser = pd.Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
+    ser = Series(data=np.arange(10), index=pd.date_range("2000", periods=10))
     roll = ser.rolling("3D", closed=closed)
-    expected = pd.Series(expected, index=ser.index)
+    expected = Series(expected, index=ser.index)
 
     result = roll.median()
     tm.assert_series_equal(result, expected)
@@ -262,8 +288,8 @@ def tests_empty_df_rolling(roller):
 
 def test_empty_window_median_quantile():
     # GH 26005
-    expected = pd.Series([np.nan, np.nan, np.nan])
-    roll = pd.Series(np.arange(3)).rolling(0)
+    expected = Series([np.nan, np.nan, np.nan])
+    roll = Series(np.arange(3)).rolling(0)
 
     result = roll.median()
     tm.assert_series_equal(result, expected)
@@ -275,27 +301,27 @@ def test_empty_window_median_quantile():
 def test_missing_minp_zero():
     # https://github.com/pandas-dev/pandas/pull/18921
     # minp=0
-    x = pd.Series([np.nan])
+    x = Series([np.nan])
     result = x.rolling(1, min_periods=0).sum()
-    expected = pd.Series([0.0])
+    expected = Series([0.0])
     tm.assert_series_equal(result, expected)
 
     # minp=1
     result = x.rolling(1, min_periods=1).sum()
-    expected = pd.Series([np.nan])
+    expected = Series([np.nan])
     tm.assert_series_equal(result, expected)
 
 
 def test_missing_minp_zero_variable():
     # https://github.com/pandas-dev/pandas/pull/18921
-    x = pd.Series(
+    x = Series(
         [np.nan] * 4,
         index=pd.DatetimeIndex(
             ["2017-01-01", "2017-01-04", "2017-01-06", "2017-01-07"]
         ),
     )
     result = x.rolling(pd.Timedelta("2d"), min_periods=0).sum()
-    expected = pd.Series(0.0, index=x.index)
+    expected = Series(0.0, index=x.index)
     tm.assert_series_equal(result, expected)
 
 
@@ -344,22 +370,22 @@ def test_readonly_array():
     # GH-27766
     arr = np.array([1, 3, np.nan, 3, 5])
     arr.setflags(write=False)
-    result = pd.Series(arr).rolling(2).mean()
-    expected = pd.Series([np.nan, 2, np.nan, np.nan, 4])
+    result = Series(arr).rolling(2).mean()
+    expected = Series([np.nan, 2, np.nan, np.nan, 4])
     tm.assert_series_equal(result, expected)
 
 
 def test_rolling_datetime(axis_frame, tz_naive_fixture):
     # GH-28192
     tz = tz_naive_fixture
-    df = pd.DataFrame(
+    df = DataFrame(
         {i: [1] * 2 for i in pd.date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)}
     )
     if axis_frame in [0, "index"]:
         result = df.T.rolling("2D", axis=axis_frame).sum().T
     else:
         result = df.rolling("2D", axis=axis_frame).sum()
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             **{
                 i: [1.0] * 2
@@ -435,9 +461,9 @@ def test_rolling_window_as_string():
 
 def test_min_periods1():
     # GH#6795
-    df = pd.DataFrame([0, 1, 2, 1, 0], columns=["a"])
+    df = DataFrame([0, 1, 2, 1, 0], columns=["a"])
     result = df["a"].rolling(3, center=True, min_periods=1).max()
-    expected = pd.Series([1.0, 2.0, 2.0, 2.0, 1.0], name="a")
+    expected = Series([1.0, 2.0, 2.0, 2.0, 1.0], name="a")
     tm.assert_series_equal(result, expected)
 
 
@@ -455,7 +481,9 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
     values = [1, 2, 3, np.nan, 4, 5, 6]
     expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
-    result = constructor(values).rolling(3).count()
+    # GH 31302
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = constructor(values).rolling(3).count()
     expected = constructor(expected_counts)
     tm.assert_equal(result, expected)
 
@@ -491,27 +519,27 @@ def test_rolling_count_default_min_periods_with_null_values(constructor):
                 ({"A": [2, 3], "B": [5, 6]}, [1, 2]),
             ],
             2,
-            3,
-        ),
-        (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
-            [
-                ({"A": [1], "B": [4]}, [0]),
-                ({"A": [2], "B": [5]}, [1]),
-                ({"A": [3], "B": [6]}, [2]),
-            ],
-            1,
-            1,
-        ),
-        (
-            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
-            [
-                ({"A": [1], "B": [4]}, [0]),
-                ({"A": [2], "B": [5]}, [1]),
-                ({"A": [3], "B": [6]}, [2]),
-            ],
-            1,
             2,
+        ),
+        (
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [2], "B": [5]}, [1]),
+                ({"A": [3], "B": [6]}, [2]),
+            ],
+            1,
+            1,
+        ),
+        (
+            DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}),
+            [
+                ({"A": [1], "B": [4]}, [0]),
+                ({"A": [2], "B": [5]}, [1]),
+                ({"A": [3], "B": [6]}, [2]),
+            ],
+            1,
+            0,
         ),
         (DataFrame({"A": [1], "B": [4]}), [], 2, None),
         (DataFrame({"A": [1], "B": [4]}), [], 2, 1),
@@ -598,9 +626,9 @@ def test_iter_rolling_on_dataframe(expected, window):
             1,
         ),
         (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 1),
-        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 3),
+        (Series([1, 2, 3]), [([1], [0]), ([1, 2], [0, 1]), ([2, 3], [1, 2])], 2, 2),
         (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1, 0),
-        (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1, 2),
+        (Series([1, 2, 3]), [([1], [0]), ([2], [1]), ([3], [2])], 1, 1),
         (Series([1, 2]), [([1], [0]), ([1, 2], [0, 1])], 2, 0),
         (Series([], dtype="int64"), [], 2, 1),
     ],
@@ -701,7 +729,7 @@ def test_rolling_positional_argument(grouping, _index, raw):
 @pytest.mark.parametrize("add", [0.0, 2.0])
 def test_rolling_numerical_accuracy_kahan_mean(add):
     # GH: 36031 implementing kahan summation
-    df = pd.DataFrame(
+    df = DataFrame(
         {"A": [3002399751580331.0 + add, -0.0, -0.0]},
         index=[
             pd.Timestamp("19700101 09:00:00"),
@@ -713,7 +741,7 @@ def test_rolling_numerical_accuracy_kahan_mean(add):
         df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
     )
     dates = pd.date_range("19700101 09:00:00", periods=7, freq="S")
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             "A": [
                 np.nan,
@@ -732,9 +760,9 @@ def test_rolling_numerical_accuracy_kahan_mean(add):
 
 def test_rolling_numerical_accuracy_kahan_sum():
     # GH: 13254
-    df = pd.DataFrame([2.186, -1.647, 0.0, 0.0, 0.0, 0.0], columns=["x"])
+    df = DataFrame([2.186, -1.647, 0.0, 0.0, 0.0, 0.0], columns=["x"])
     result = df["x"].rolling(3).sum()
-    expected = pd.Series([np.nan, np.nan, 0.539, -1.647, 0.0, 0.0], name="x")
+    expected = Series([np.nan, np.nan, 0.539, -1.647, 0.0, 0.0], name="x")
     tm.assert_series_equal(result, expected)
 
 
@@ -745,7 +773,7 @@ def test_rolling_numerical_accuracy_jump():
     )
     data = np.random.rand(len(index))
 
-    df = pd.DataFrame({"data": data}, index=index)
+    df = DataFrame({"data": data}, index=index)
     result = df.rolling("60s").mean()
     tm.assert_frame_equal(result, df[["data"]])
 
@@ -763,11 +791,11 @@ def test_rolling_numerical_accuracy_small_values():
 def test_rolling_numerical_too_large_numbers():
     # GH: 11645
     dates = pd.date_range("2015-01-01", periods=10, freq="D")
-    ds = pd.Series(data=range(10), index=dates, dtype=np.float64)
+    ds = Series(data=range(10), index=dates, dtype=np.float64)
     ds[2] = -9e33
     result = ds.rolling(5).mean()
-    expected = pd.Series(
-        [np.nan, np.nan, np.nan, np.nan, -1.8e33, -1.8e33, -1.8e33, 0.0, 6.0, 7.0],
+    expected = Series(
+        [np.nan, np.nan, np.nan, np.nan, -1.8e33, -1.8e33, -1.8e33, 5.0, 6.0, 7.0],
         index=dates,
     )
     tm.assert_series_equal(result, expected)
@@ -779,10 +807,10 @@ def test_rolling_numerical_too_large_numbers():
 )
 def test_rolling_mixed_dtypes_axis_1(func, value):
     # GH: 20649
-    df = pd.DataFrame(1, index=[1, 2], columns=["a", "b", "c"])
+    df = DataFrame(1, index=[1, 2], columns=["a", "b", "c"])
     df["c"] = 1.0
     result = getattr(df.rolling(window=2, min_periods=1, axis=1), func)()
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"a": [1.0, 1.0], "b": [value, value], "c": [value, value]}, index=[1, 2]
     )
     tm.assert_frame_equal(result, expected)
@@ -790,7 +818,7 @@ def test_rolling_mixed_dtypes_axis_1(func, value):
 
 def test_rolling_axis_one_with_nan():
     # GH: 35596
-    df = pd.DataFrame(
+    df = DataFrame(
         [
             [0, 1, 2, 4, np.nan, np.nan, np.nan],
             [0, 1, 2, np.nan, np.nan, np.nan, np.nan],
@@ -798,7 +826,7 @@ def test_rolling_axis_one_with_nan():
         ]
     )
     result = df.rolling(window=7, min_periods=1, axis="columns").sum()
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [
             [0.0, 1.0, 3.0, 7.0, 7.0, 7.0, 7.0],
             [0.0, 1.0, 3.0, 3.0, 3.0, 3.0, 3.0],
@@ -814,8 +842,78 @@ def test_rolling_axis_one_with_nan():
 )
 def test_rolling_axis_1_non_numeric_dtypes(value):
     # GH: 20649
-    df = pd.DataFrame({"a": [1, 2]})
+    df = DataFrame({"a": [1, 2]})
     df["b"] = value
     result = df.rolling(window=2, min_periods=1, axis=1).sum()
-    expected = pd.DataFrame({"a": [1.0, 2.0]})
+    expected = DataFrame({"a": [1.0, 2.0]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_on_df_transposed():
+    # GH: 32724
+    df = DataFrame({"A": [1, None], "B": [4, 5], "C": [7, 8]})
+    expected = DataFrame({"A": [1.0, np.nan], "B": [5.0, 5.0], "C": [11.0, 13.0]})
+    result = df.rolling(min_periods=1, window=2, axis=1).sum()
+    tm.assert_frame_equal(result, expected)
+
+    result = df.T.rolling(min_periods=1, window=2).sum().T
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("index", "window"),
+    [
+        (
+            pd.period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="T"),
+            "2T",
+        ),
+        (
+            pd.period_range(
+                start="2020-01-01 08:00", end="2020-01-01 12:00", freq="30T"
+            ),
+            "1h",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    ("func", "values"),
+    [
+        ("min", [np.nan, 0, 0, 1, 2, 3, 4, 5, 6]),
+        ("max", [np.nan, 0, 1, 2, 3, 4, 5, 6, 7]),
+        ("sum", [np.nan, 0, 1, 3, 5, 7, 9, 11, 13]),
+    ],
+)
+def test_rolling_period_index(index, window, func, values):
+    # GH: 34225
+    ds = Series([0, 1, 2, 3, 4, 5, 6, 7, 8], index=index)
+    result = getattr(ds.rolling(window, closed="left"), func)()
+    expected = Series(values, index=index)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("constructor", ["DataFrame", "Series"])
+def test_rolling_sem(constructor):
+    # GH: 26476
+    obj = getattr(pd, constructor)([0, 1, 2])
+    result = obj.rolling(2, min_periods=1).sem()
+    if isinstance(result, DataFrame):
+        result = Series(result[0].values)
+    expected = Series([np.nan] + [0.707107] * 2)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("func", "third_value", "values"),
+    [
+        ("var", 1, [5e33, 0, 0.5, 0.5, 2, 0]),
+        ("std", 1, [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0]),
+        ("var", 2, [5e33, 0.5, 0, 0.5, 2, 0]),
+        ("std", 2, [7.071068e16, 0.7071068, 0, 0.7071068, 1.414214, 0]),
+    ],
+)
+def test_rolling_var_numerical_issues(func, third_value, values):
+    # GH: 37051
+    ds = Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
+    result = getattr(ds.rolling(2), func)()
+    expected = Series([np.nan] + values)
+    tm.assert_series_equal(result, expected)
