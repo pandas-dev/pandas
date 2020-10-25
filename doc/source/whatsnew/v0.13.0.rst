@@ -46,7 +46,7 @@ API changes
 - Text parser now treats anything that reads like inf ("inf", "Inf", "-Inf",
   "iNf", etc.) as infinity. (:issue:`4220`, :issue:`4219`), affecting
   ``read_table``, ``read_csv``, etc.
-- ``pandas`` now is Python 2/3 compatible without the need for 2to3 thanks to
+- pandas now is Python 2/3 compatible without the need for 2to3 thanks to
   @jtratner. As a result, pandas now uses iterators more extensively. This
   also led to the introduction of substantive parts of the Benjamin
   Peterson's ``six`` library into compat. (:issue:`4384`, :issue:`4375`,
@@ -57,7 +57,7 @@ API changes
   filter, map and zip, plus other necessary elements for Python 3
   compatibility. ``lmap``, ``lzip``, ``lrange`` and ``lfilter`` all produce
   lists instead of iterators, for compatibility with ``numpy``, subscripting
-  and ``pandas`` constructors.(:issue:`4384`, :issue:`4375`, :issue:`4372`)
+  and pandas constructors.(:issue:`4384`, :issue:`4375`, :issue:`4372`)
 - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
 - Changes to how ``Index`` and ``MultiIndex`` handle metadata (``levels``,
   ``labels``, and ``names``) (:issue:`4039`):

@@ -616,7 +616,7 @@ be added with blank lines before and after them.
 
 The way to present examples is as follows:
 
-1. Import required libraries (except ``numpy`` and ``pandas``)
+1. Import required libraries (except ``numpy`` and pandas)
 
 2. Create the data required for the example
 

@@ -33,8 +33,8 @@ where ``KeyValue`` is
    }
 
 So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
-``pandas`` metadata key in the ``FileMetaData`` with the value stored as :
-
+pandas metadata key in the ``FileMetaData`` with the value stored as :
+``
 .. code-block:: text
 
    {'index_columns': [<descr0>, <descr1>, ...],

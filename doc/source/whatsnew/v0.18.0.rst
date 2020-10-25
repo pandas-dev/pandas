@@ -1274,7 +1274,7 @@ Bug fixes
 - Bug in ``.groupby`` where a ``KeyError`` was not raised for a wrong column if there was only one row in the dataframe (:issue:`11741`)
 - Bug in ``.read_csv`` with dtype specified on empty data producing an error (:issue:`12048`)
 - Bug in ``.read_csv`` where strings like ``'2E'`` are treated as valid floats (:issue:`12237`)
-- Bug in building *pandas* with debugging symbols (:issue:`12123`)
+- Bug in building pandas with debugging symbols (:issue:`12123`)
 
 
 - Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise a ``ValueError`` (:issue:`12019`).

@@ -454,7 +454,7 @@ These bugs were squashed:
 ``Series.str.cat`` has gained the ``join`` kwarg
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, :meth:`Series.str.cat` did not -- in contrast to most of ``pandas`` -- align :class:`Series` on their index before concatenation (see :issue:`18657`).
+Previously, :meth:`Series.str.cat` did not -- in contrast to most of pandas -- align :class:`Series` on their index before concatenation (see :issue:`18657`).
 The method has now gained a keyword ``join`` to control the manner of alignment, see examples below and :ref:`here <text.concatenate>`.
 
 In v.0.23 ``join`` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.

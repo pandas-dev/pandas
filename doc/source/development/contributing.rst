@@ -134,7 +134,7 @@ want to clone your fork to your machine::
     git remote add upstream https://github.com/pandas-dev/pandas.git
 
 This creates the directory ``pandas-yourname`` and connects your repository to
-the upstream (main project) *pandas* repository.
+the upstream (main project) pandas repository.
 
 Note that performing a shallow clone (with ``--depth==N``, for some ``N`` greater
 or equal to 1) might break some tests and features as ``pd.show_versions()``
@@ -1381,7 +1381,7 @@ using ``.`` as a separator. For example::
 
 will only run the ``GroupByMethods`` benchmark defined in ``groupby.py``.
 
-You can also run the benchmark suite using the version of ``pandas``
+You can also run the benchmark suite using the version of pandas
 already installed in your current Python environment. This can be
 useful if you do not have virtualenv or conda, or are using the
 ``setup.py develop`` approach discussed above; for the in-place build

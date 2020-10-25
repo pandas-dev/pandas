@@ -22,7 +22,7 @@ You can get/set options directly as attributes of the top-level ``options`` attr
    pd.options.display.max_rows = 999
    pd.options.display.max_rows
 
-The API is composed of 5 relevant functions, available directly from the ``pandas``
+The API is composed of 5 relevant functions, available directly from the pandas
 namespace:
 
 * :func:`~pandas.get_option` / :func:`~pandas.set_option` - get/set the value of a single option.

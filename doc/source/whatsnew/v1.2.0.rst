@@ -188,7 +188,7 @@ Alternatively, you can also use the dtype object:
 Index/column name preservation when aggregating
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When aggregating using :meth:`concat` or the :class:`DataFrame` constructor, Pandas
+When aggregating using :meth:`concat` or the :class:`DataFrame` constructor, pandas
 will attempt to preserve index (and column) names whenever possible (:issue:`35847`).
 In the case where all inputs share a common name, this name will be assigned to the
 result. When the input names do not all agree, the result will be unnamed. Here is an
