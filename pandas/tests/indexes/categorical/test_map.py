@@ -56,7 +56,7 @@ class TestMap:
         )
         tm.assert_index_equal(result, exp)
 
-        result = ci.map(pd.Series([10, 20, 30], index=["A", "B", "C"]))
+        result = ci.map(Series([10, 20, 30], index=["A", "B", "C"]))
         tm.assert_index_equal(result, exp)
 
         result = ci.map({"A": 10, "B": 20, "C": 30})
@@ -65,8 +65,8 @@ class TestMap:
     def test_map_with_categorical_series(self):
         # GH 12756
         a = Index([1, 2, 3, 4])
-        b = pd.Series(["even", "odd", "even", "odd"], dtype="category")
-        c = pd.Series(["even", "odd", "even", "odd"])
+        b = Series(["even", "odd", "even", "odd"], dtype="category")
+        c = Series(["even", "odd", "even", "odd"])
 
         exp = CategoricalIndex(["odd", "even", "odd", np.nan])
         tm.assert_index_equal(a.map(b), exp)
@@ -80,8 +80,8 @@ class TestMap:
             ([1, 2, np.nan], pd.isna),
             ([1, 1, np.nan], {1: False}),
             ([1, 2, np.nan], {1: False, 2: False}),
-            ([1, 1, np.nan], pd.Series([False, False])),
-            ([1, 2, np.nan], pd.Series([False, False, False])),
+            ([1, 1, np.nan], Series([False, False])),
+            ([1, 2, np.nan], Series([False, False, False])),
         ),
     )
     def test_map_with_nan(self, data, f):  # GH 24241
