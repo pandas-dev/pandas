@@ -13,6 +13,21 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_120.improve_timeseries_accessor_naming:
+Improve Timeseries accessors Naming Convention
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In modules like Period, PeriodArray, and Timestamp, there are non-Pythonic property names ``dayofweek`` and ``dayofyear`` (:issue:`9606`). We continue to maintain backwards-compatibility by simply aliasing the old naming convention to the new, properly named functions ``day_of_week`` and ``day_of_year``.
+
+For example:
+
+.. ipython:: python
+
+   import pandas as pd
+
+   per = pd.Period('2017-12-31 22:00', 'H')
+   per.dayofweek == per.day_of_week == 6
+
 .. _whatsnew_120.duplicate_labels:
 
 Optionally disallow duplicate labels
