@@ -2288,8 +2288,8 @@ def test_merge_join_categorical_multiindex():
 @pytest.mark.parametrize("how", ["left", "right"])
 def test_merge_same_order_left_right(how):
     # GH: 35382
-    df = pd.DataFrame({"a": [1, 0, 1]})
+    df = DataFrame({"a": [1, 0, 1]})
 
     result = df.merge(df, on="a", how=how, sort=False)
-    expected = pd.DataFrame([1, 1, 0, 1, 1], columns=["a"])
+    expected = DataFrame([1, 1, 0, 1, 1], columns=["a"])
     tm.assert_frame_equal(result, expected)
