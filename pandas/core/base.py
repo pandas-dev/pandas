@@ -1184,9 +1184,9 @@ class IndexOpsMixin(OpsMixin):
 
         >>> ser = pd.Series(pd.to_datetime(['3/11/2000', '3/12/2000', '3/13/2000']))
         >>> ser
-        0   2020-10-21
-        1   2020-10-22
-        2   2020-10-23
+        0   2000-03-11
+        1   2000-03-12
+        2   2000-03-13
         dtype: datetime64[ns]
 
         >>> ser.searchsorted('3/14/2000')
