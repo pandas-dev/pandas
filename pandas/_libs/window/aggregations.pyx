@@ -688,7 +688,7 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
 
-    is_monotonic_increasing_bounds = is_monotonic_start_end_bounds(
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
 
@@ -958,7 +958,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
     except KeyError:
         raise ValueError(f"Interpolation '{interpolation}' is not supported")
 
-    is_monotonic_increasing_bounds = is_monotonic_start_end_bounds(
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
     # we use the Fixed/Variable Indexer here as the
