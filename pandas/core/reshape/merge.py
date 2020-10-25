@@ -1336,7 +1336,7 @@ def get_join_indexers(
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = copy.copy(kwargs)
-    if how == "left":
+    if how in ("left", "right"):
         kwargs["sort"] = sort
     join_func = {
         "inner": libjoin.inner_join,
@@ -1861,8 +1861,8 @@ def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool =
     return left_ax, None, right_indexer
 
 
-def _right_outer_join(x, y, max_groups):
-    right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups)
+def _right_outer_join(x, y, max_groups, **kwargs):
+    right_indexer, left_indexer = libjoin.left_outer_join(y, x, max_groups, **kwargs)
     return left_indexer, right_indexer
 
 
