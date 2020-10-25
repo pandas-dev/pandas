@@ -822,6 +822,14 @@ def test_html_repr_min_rows(datapath, max_rows, min_rows, expected):
     assert result == expected
 
 
+def test_to_html_multilevel(multiindex_year_month_day_dataframe_random_data):
+    ymd = multiindex_year_month_day_dataframe_random_data
+
+    ymd.columns.name = "foo"
+    ymd.to_html()
+    ymd.T.to_html()
+
+
 @pytest.mark.parametrize("na_rep", ["NaN", "Ted"])
 def test_to_html_na_rep_and_float_format(na_rep):
     # https://github.com/pandas-dev/pandas/issues/13828
