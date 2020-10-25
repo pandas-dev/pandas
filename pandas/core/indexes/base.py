@@ -2659,11 +2659,8 @@ class Index(IndexOpsMixin, PandasObject):
         rvals = other._values
 
         try:
-            if sort is None and self.is_monotonic and other.is_monotonic:
-                result = self._outer_indexer(lvals, rvals)[0]
-            else:
-                # We calculate the sorted union and resort it afterwards
-                result = self._outer_indexer(np.sort(lvals), np.sort(rvals))
+            # If one of both is not monotonic, we resort it afterwards
+            result = self._outer_indexer(np.sort(lvals), np.sort(rvals))[0]
         except TypeError:
             # incomparable objects
             result = list(lvals)
@@ -2674,13 +2671,8 @@ class Index(IndexOpsMixin, PandasObject):
             result = Index(result)._values  # do type inference here
         else:
             if sort is False or not self.is_monotonic or not other.is_monotonic:
-                indexer = []
-                counts = dict(zip(*np.unique(result[0], return_counts=True)))
-                unique_array = algos.unique(np.append(lvals, rvals))
-                # Create indexer to resort result
-                for i, value in enumerate(unique_array):
-                    indexer += [i] * counts[value]
-                result = unique_array.take(indexer)
+                result = algos.resort_union_after_inputs(result, lvals, rvals)
+
         if sort is None and (not self.is_monotonic or not other.is_monotonic):
             try:
                 result = algos.safe_sort(result)
