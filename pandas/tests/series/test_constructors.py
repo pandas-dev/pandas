@@ -308,17 +308,17 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = pd.Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"], fastpath=True)
+        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"], fastpath=True)
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
         # can cast to a new dtype
-        result = Series(pd.Categorical([1, 2, 3]), dtype="int64")
+        result = Series(Categorical([1, 2, 3]), dtype="int64")
         expected = Series([1, 2, 3], dtype="int64")
         tm.assert_series_equal(result, expected)
 
         # GH12574
-        cat = Series(pd.Categorical([1, 2, 3]), dtype="category")
+        cat = Series(Categorical([1, 2, 3]), dtype="category")
         assert is_categorical_dtype(cat)
         assert is_categorical_dtype(cat.dtype)
         s = Series([1, 2, 3], dtype="category")
@@ -451,7 +451,7 @@ class TestSeriesConstructors:
 
     def test_unordered_compare_equal(self):
         left = Series(["a", "b", "c"], dtype=CategoricalDtype(["a", "b"]))
-        right = Series(pd.Categorical(["a", "b", np.nan], categories=["a", "b"]))
+        right = Series(Categorical(["a", "b", np.nan], categories=["a", "b"]))
         tm.assert_series_equal(left, right)
 
     def test_constructor_maskedarray(self):
@@ -555,7 +555,7 @@ class TestSeriesConstructors:
             [1, 2, 3],
             (1, 2, 3),
             list(range(3)),
-            pd.Categorical(["a", "b", "a"]),
+            Categorical(["a", "b", "a"]),
             (i for i in range(3)),
             map(lambda x: x, range(3)),
         ],

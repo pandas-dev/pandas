@@ -1169,7 +1169,7 @@ class TestCanHoldElement:
 
 class TestShouldStore:
     def test_should_store_categorical(self):
-        cat = pd.Categorical(["A", "B", "C"])
+        cat = Categorical(["A", "B", "C"])
         df = DataFrame(cat)
         blk = df._mgr.blocks[0]
 
@@ -1211,7 +1211,7 @@ def test_validate_ndim():
 def test_block_shape():
     idx = Index([0, 1, 2, 3, 4])
     a = Series([1, 2, 3]).reindex(idx)
-    b = Series(pd.Categorical([1, 2, 3])).reindex(idx)
+    b = Series(Categorical([1, 2, 3])).reindex(idx)
 
     assert a._mgr.blocks[0].mgr_locs.indexer == b._mgr.blocks[0].mgr_locs.indexer
 

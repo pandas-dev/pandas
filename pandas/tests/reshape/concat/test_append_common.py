@@ -40,7 +40,7 @@ class TestConcatAppendCommon:
             "bool": [True, False, True],
             "int64": [1, 2, 3],
             "float64": [1.1, np.nan, 3.3],
-            "category": pd.Categorical(["X", "Y", "Z"]),
+            "category": Categorical(["X", "Y", "Z"]),
             "object": ["a", "b", "c"],
             "datetime64[ns]": dt_data,
             "datetime64[ns, US/Eastern]": tz_data,
@@ -80,8 +80,8 @@ class TestConcatAppendCommon:
             vals3 = vals1
 
             if typ1 == "category":
-                exp_data = pd.Categorical(list(vals1) + list(vals2))
-                exp_data3 = pd.Categorical(list(vals1) + list(vals2) + list(vals3))
+                exp_data = Categorical(list(vals1) + list(vals2))
+                exp_data3 = Categorical(list(vals1) + list(vals2) + list(vals3))
             else:
                 exp_data = vals1 + vals2
                 exp_data3 = vals1 + vals2 + vals3
@@ -637,16 +637,14 @@ class TestConcatAppendCommon:
     def test_concat_categorical_ordered(self):
         # GH 13524
 
-        s1 = Series(pd.Categorical([1, 2, np.nan], ordered=True))
-        s2 = Series(pd.Categorical([2, 1, 2], ordered=True))
+        s1 = Series(Categorical([1, 2, np.nan], ordered=True))
+        s2 = Series(Categorical([2, 1, 2], ordered=True))
 
-        exp = Series(pd.Categorical([1, 2, np.nan, 2, 1, 2], ordered=True))
+        exp = Series(Categorical([1, 2, np.nan, 2, 1, 2], ordered=True))
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
-        exp = Series(
-            pd.Categorical([1, 2, np.nan, 2, 1, 2, 1, 2, np.nan], ordered=True)
-        )
+        exp = Series(Categorical([1, 2, np.nan, 2, 1, 2, 1, 2, np.nan], ordered=True))
         tm.assert_series_equal(pd.concat([s1, s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s1.append([s2, s1], ignore_index=True), exp)
 

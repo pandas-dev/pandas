@@ -231,7 +231,7 @@ class TestPivotTable:
         # gh-21133
         df = DataFrame(
             {
-                "A": pd.Categorical(
+                "A": Categorical(
                     [np.nan, "low", "high", "low", "high"],
                     categories=["low", "high"],
                     ordered=True,
@@ -244,7 +244,7 @@ class TestPivotTable:
         expected = DataFrame(
             {"B": [2, 3]},
             index=Index(
-                pd.Categorical.from_codes(
+                Categorical.from_codes(
                     [0, 1], categories=["low", "high"], ordered=True
                 ),
                 name="A",
@@ -256,7 +256,7 @@ class TestPivotTable:
         # gh-21378
         df = DataFrame(
             {
-                "A": pd.Categorical(
+                "A": Categorical(
                     ["left", "low", "high", "low", "high"],
                     categories=["low", "high", "left"],
                     ordered=True,
@@ -269,7 +269,7 @@ class TestPivotTable:
         expected = DataFrame(
             {"B": [2, 3, 0]},
             index=Index(
-                pd.Categorical.from_codes(
+                Categorical.from_codes(
                     [0, 1, 2], categories=["low", "high", "left"], ordered=True
                 ),
                 name="A",
@@ -292,7 +292,7 @@ class TestPivotTable:
             {
                 "A": np.arange(4, 0, -1, dtype=np.intp),
                 "B": ["a", "b", "a", "b"],
-                "C": pd.Categorical(ordered_cat, ordered=True).sort_values(
+                "C": Categorical(ordered_cat, ordered=True).sort_values(
                     ascending=False
                 ),
             }
@@ -1760,8 +1760,8 @@ class TestPivotTable:
         col = [np.nan, "A", "B", np.nan, "A"]
         df = DataFrame(
             {
-                "In": pd.Categorical(idx, categories=["low", "high"], ordered=ordered),
-                "Col": pd.Categorical(col, categories=["A", "B"], ordered=ordered),
+                "In": Categorical(idx, categories=["low", "high"], ordered=ordered),
+                "Col": Categorical(col, categories=["A", "B"], ordered=ordered),
                 "Val": range(1, 6),
             }
         )
@@ -1774,9 +1774,7 @@ class TestPivotTable:
 
         expected = DataFrame(data=[[2.0, np.nan], [np.nan, 3.0]], columns=expected_cols)
         expected.index = Index(
-            pd.Categorical(
-                ["low", "high"], categories=["low", "high"], ordered=ordered
-            ),
+            Categorical(["low", "high"], categories=["low", "high"], ordered=ordered),
             name="In",
         )
 
