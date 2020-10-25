@@ -1475,6 +1475,9 @@ cdef class _Period(PeriodMixin):
         PeriodDtypeBase _dtype
         BaseOffset freq
 
+    # Alias dayofweek function to day_of_week (GH-9606)
+    dayofweek = _Period.day_of_week
+
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
         self.freq = freq
@@ -1931,11 +1934,6 @@ cdef class _Period(PeriodMixin):
         """
         base = self._dtype._dtype_code
         return pweekday(self.ordinal, base)
-
-    @property
-    def dayofweek(self) -> int:
-        """This property is deprecated. Please use day_of_week instead."""
-        return self.day_of_week
 
     @property
     def weekday(self) -> int:
