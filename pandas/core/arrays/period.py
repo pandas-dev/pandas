@@ -142,6 +142,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         "dayofweek",
         "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "qyear",
         "days_in_month",

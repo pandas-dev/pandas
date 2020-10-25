@@ -15,18 +15,11 @@ Enhancements
 
 .. _whatsnew_120.improve_timeseries_accessor_naming:
 Improve Timeseries accessors Naming Convention
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In modules like Period, PeriodArray, and Timestamp, there are non-Pythonic property names ``dayofweek`` and ``dayofyear`` (:issue:`9606`). We continue to maintain backwards-compatibility by simply aliasing the old naming convention to the new, properly named functions ``day_of_week`` and ``day_of_year``.
+- Added ``day_of_week`` (compatibility alias ``dayofweek``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
 
-For example:
-
-.. ipython:: python
-
-   import pandas as pd
-
-   per = pd.Period('2017-12-31 22:00', 'H')
-   per.dayofweek == per.day_of_week == 6
+- Added ``day_of_year`` (compatibility alias ``dayofyear``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
 
 .. _whatsnew_120.duplicate_labels:
 

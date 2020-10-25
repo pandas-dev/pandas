@@ -66,6 +66,7 @@ class TestTimestampProperties:
         check(ts.day_of_week, 6)
         check(ts.quarter, 2)
         check(ts.dayofyear, 130)
+        check(ts.day_of_year, 130)
         check(ts.week, 19)
         check(ts.daysinmonth, 31)
         check(ts.daysinmonth, 31)
@@ -87,6 +88,7 @@ class TestTimestampProperties:
         check(ts.day_of_week, 2)
         check(ts.quarter, 4)
         check(ts.dayofyear, 365)
+        check(ts.day_of_year, 365)
         check(ts.week, 1)
         check(ts.daysinmonth, 31)
 

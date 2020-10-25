@@ -1475,8 +1475,8 @@ cdef class _Period(PeriodMixin):
         PeriodDtypeBase _dtype
         BaseOffset freq
 
-    # Alias dayofweek function to day_of_week (GH-9606)
     dayofweek = _Period.day_of_week
+    dayofyear = _Period.day_of_year
 
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
@@ -1989,7 +1989,7 @@ cdef class _Period(PeriodMixin):
         return self.dayofweek
 
     @property
-    def dayofyear(self) -> int:
+    def day_of_year(self) -> int:
         """
         Return the day of the year.
 
@@ -2005,19 +2005,19 @@ cdef class _Period(PeriodMixin):
         See Also
         --------
         Period.day : Return the day of the month.
-        Period.dayofweek : Return the day of week.
-        PeriodIndex.dayofyear : Return the day of year of all indexes.
+        Period.day_of_week : Return the day of week.
+        PeriodIndex.day_of_year : Return the day of year of all indexes.
 
         Examples
         --------
         >>> period = pd.Period("2015-10-23", freq='H')
-        >>> period.dayofyear
+        >>> period.day_of_year
         296
         >>> period = pd.Period("2012-12-31", freq='D')
-        >>> period.dayofyear
+        >>> period.day_of_year
         366
         >>> period = pd.Period("2013-01-01", freq='D')
-        >>> period.dayofyear
+        >>> period.day_of_year
         1
         """
         base = self._dtype._dtype_code

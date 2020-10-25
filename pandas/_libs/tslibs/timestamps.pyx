@@ -230,8 +230,8 @@ cdef class _Timestamp(ABCTimestamp):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
-    # Alias dayofweek function to day_of_week (GH-9606)
     dayofweek = _Timestamp.day_of_week
+    dayofyear = _Timestamp.day_of_year
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
@@ -547,7 +547,7 @@ cdef class _Timestamp(ABCTimestamp):
         return self.weekday()
 
     @property
-    def dayofyear(self) -> int:
+    def day_of_year(self) -> int:
         """
         Return the day of the year.
         """

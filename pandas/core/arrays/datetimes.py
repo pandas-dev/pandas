@@ -179,6 +179,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "dayofweek",
         "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "days_in_month",
         "daysinmonth",
@@ -1538,13 +1539,14 @@ default 'raise'
     dayofweek = day_of_week
     weekday = day_of_week
 
-    dayofyear = _field_accessor(
+    day_of_year = _field_accessor(
         "dayofyear",
         "doy",
         """
         The ordinal day of the year.
         """,
     )
+    dayofyear = day_of_year
     quarter = _field_accessor(
         "quarter",
         "q",

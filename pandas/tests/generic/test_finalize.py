@@ -680,6 +680,7 @@ def test_datetime_method(method):
         "dayofweek",
         "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "is_month_start",
         "is_month_end",
