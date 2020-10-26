@@ -1386,7 +1386,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert df.BigIntCol.dtype == "int64"
         assert df.IntCol.dtype == "int32"
         assert df.SmallIntCol.dtype == "int16"
-        
+
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
         df = DataFrame(data={"i64": [2 ** 62]})
