@@ -444,7 +444,7 @@ class TestDatetimeArray:
 
         fill_value = pd.Timestamp("2020-10-18 18:44", tz="US/Pacific")
 
-        msg = "Timezones don't match. 'UTC != US/Pacific'"
+        msg = "Timezones don't match. 'UTC' != 'US/Pacific'"
         with pytest.raises(ValueError, match=msg):
             dta.shift(1, fill_value=fill_value)
 
