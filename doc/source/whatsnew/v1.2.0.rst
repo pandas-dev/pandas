@@ -13,23 +13,14 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-
-
-.. _whatsnew_120.improve_timeseries_accessor_naming:
-
-Improve timeseries accessors naming convention
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-- Added ``day_of_week``(compatibility alias ``dayofweek``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
-- Added ``day_of_year`` (compatibility alias ``dayofyear``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
-
-
 .. _whatsnew_120.duplicate_labels:
 
 Optionally disallow duplicate labels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`Series` and :class:`DataFrame` can now be created with ``allows_duplicate_labels=False`` flag to control whether the index or columns can contain duplicate labels (:issue:`28394`). This can be used to prevent accidental introduction of duplicate labels, which can affect downstream operations.
+:class:`Series` and :class:`DataFrame` can now be created with ``allows_duplicate_labels=False`` flag to
+control whether the index or columns can contain duplicate labels (:issue:`28394`). This can be used to
+prevent accidental introduction of duplicate labels, which can affect downstream operations.
 
 By default, duplicates continue to be allowed
 
@@ -216,6 +207,8 @@ level-by-level basis.
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- Added ``day_of_week``(compatibility alias ``dayofweek``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
+- Added ``day_of_year`` (compatibility alias ``dayofyear``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
