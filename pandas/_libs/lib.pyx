@@ -651,12 +651,10 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
 
-    from pandas.core.dtypes.common import is_extension_array_dtype
-
-    if is_extension_array_dtype(arr):
+    if hasattr(arr, "to_numpy"):
         arr = arr.to_numpy()
     elif not isinstance(arr, np.ndarray):
-        arr = np.array(arr, dtype=object)
+        arr = np.array(arr, dtype="object")
 
     result = np.asarray(arr, dtype="object")
 
