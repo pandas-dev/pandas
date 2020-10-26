@@ -2697,6 +2697,19 @@ class TestDataFrameConstructors:
         df = DataFrame({"A": np.random.randn(len(rng)), "B": dates})
         assert np.issubdtype(df["B"].dtype, np.dtype("M8[ns]"))
 
+    def test_dataframe_constructor_infer_multiindex(self):
+        index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
+
+        multi = DataFrame(
+            np.random.randn(4, 4),
+            index=[np.array(x) for x in index_lists],
+        )
+        assert isinstance(multi.index, MultiIndex)
+        assert not isinstance(multi.columns, MultiIndex)
+
+        multi = DataFrame(np.random.randn(4, 4), columns=index_lists)
+        assert isinstance(multi.columns, MultiIndex)
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
     def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
