@@ -16,6 +16,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
+    Period,
     PeriodIndex,
     Series,
     TimedeltaIndex,
@@ -655,26 +656,6 @@ class TestSeriesDatetimeValues:
         result = s.dt.timetz
         tm.assert_series_equal(result, expected)
 
-    def test_setitem_with_string_index(self):
-        # GH 23451
-        x = Series([1, 2, 3], index=["Date", "b", "other"])
-        x["Date"] = date.today()
-        assert x.Date == date.today()
-        assert x["Date"] == date.today()
-
-    def test_setitem_with_different_tz(self):
-        # GH#24024
-        ser = Series(pd.date_range("2000", periods=2, tz="US/Central"))
-        ser[0] = pd.Timestamp("2000", tz="US/Eastern")
-        expected = Series(
-            [
-                pd.Timestamp("2000-01-01 00:00:00-05:00", tz="US/Eastern"),
-                pd.Timestamp("2000-01-02 00:00:00-06:00", tz="US/Central"),
-            ],
-            dtype=object,
-        )
-        tm.assert_series_equal(ser, expected)
-
     @pytest.mark.parametrize(
         "input_series, expected_output",
         [
@@ -693,6 +674,45 @@ class TestSeriesDatetimeValues:
             expected_output, columns=["year", "week", "day"], dtype="UInt32"
         )
         tm.assert_frame_equal(result, expected_frame)
+
+
+class TestSeriesPeriodValuesDtAccessor:
+    @pytest.mark.parametrize(
+        "input_vals",
+        [
+            [Period("2016-01", freq="M"), Period("2016-02", freq="M")],
+            [Period("2016-01-01", freq="D"), Period("2016-01-02", freq="D")],
+            [
+                Period("2016-01-01 00:00:00", freq="H"),
+                Period("2016-01-01 01:00:00", freq="H"),
+            ],
+            [
+                Period("2016-01-01 00:00:00", freq="M"),
+                Period("2016-01-01 00:01:00", freq="M"),
+            ],
+            [
+                Period("2016-01-01 00:00:00", freq="S"),
+                Period("2016-01-01 00:00:01", freq="S"),
+            ],
+        ],
+    )
+    def test_end_time_timevalues(self, input_vals):
+        # GH#17157
+        # Check that the time part of the Period is adjusted by end_time
+        # when using the dt accessor on a Series
+        input_vals = PeriodArray._from_sequence(np.asarray(input_vals))
+
+        s = Series(input_vals)
+        result = s.dt.end_time
+        expected = s.apply(lambda x: x.end_time)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("input_vals", [("2001"), ("NaT")])
+    def test_to_period(self, input_vals):
+        # GH#21205
+        expected = Series([input_vals], dtype="Period[D]")
+        result = Series([input_vals], dtype="datetime64[ns]").dt.to_period("D")
+        tm.assert_series_equal(result, expected)
 
 
 def test_week_and_weekofyear_are_deprecated():

@@ -303,7 +303,7 @@ def test_non_cython_api():
     tm.assert_frame_equal(result, expected)
 
     # describe
-    expected_index = pd.Index([1, 3], name="A")
+    expected_index = Index([1, 3], name="A")
     expected_col = pd.MultiIndex(
         levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
         codes=[[0] * 8, list(range(8))],
@@ -325,7 +325,7 @@ def test_non_cython_api():
             df[df.A == 3].describe().unstack().to_frame().T,
         ]
     )
-    expected.index = pd.Index([0, 1])
+    expected.index = Index([0, 1])
     result = gni.describe()
     tm.assert_frame_equal(result, expected)
 
@@ -933,7 +933,7 @@ def test_frame_describe_unstacked_format():
     ]
     expected = DataFrame(
         data,
-        index=pd.Index([24990, 25499], name="PRICE"),
+        index=Index([24990, 25499], name="PRICE"),
         columns=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
     )
     tm.assert_frame_equal(result, expected)
@@ -989,7 +989,7 @@ def test_describe_with_duplicate_output_column_names(as_index):
         .T
     )
     expected.columns.names = [None, None]
-    expected.index = pd.Index([88, 99], name="a")
+    expected.index = Index([88, 99], name="a")
 
     if as_index:
         expected = expected.drop(columns=["a"], level=0)
@@ -1027,7 +1027,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     # https://github.com/pandas-dev/pandas/issues/32219
     output = 0.5 if function == "var" else 1.5
     arr = np.array([output] * 3, dtype=float)
-    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    idx = Index([1, 2, 3], dtype=object, name="a")
     expected = DataFrame({"b": arr}, index=idx)
 
     groups = DataFrame(values, dtype="Int64").groupby("a")
@@ -1047,7 +1047,7 @@ def test_groupby_sum_below_mincount_nullable_integer():
     # https://github.com/pandas-dev/pandas/issues/32861
     df = DataFrame({"a": [0, 1, 2], "b": [0, 1, 2], "c": [0, 1, 2]}, dtype="Int64")
     grouped = df.groupby("a")
-    idx = pd.Index([0, 1, 2], dtype=object, name="a")
+    idx = Index([0, 1, 2], dtype=object, name="a")
 
     result = grouped["b"].sum(min_count=2)
     expected = Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")
