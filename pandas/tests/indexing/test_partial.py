@@ -686,7 +686,7 @@ class TestPartialSetting:
         # GH36953
         index = pd.to_datetime(["2012-01-01", "2012-01-02", "2012-01-03", None])
         df = pd.DataFrame(range(len(index)), index=index)
-        expected = pd.DataFrame(range(len(index[:3])), index=index[:3])
+        expected = DataFrame(range(len(index[:3])), index=index[:3])
         result = df["2012-01-01":"2012-01-04"]
         tm.assert_frame_equal(result, expected)
 
