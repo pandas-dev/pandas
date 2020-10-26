@@ -92,20 +92,15 @@ class TestSeriesMissingData:
         tm.assert_series_equal(result, ts[1::2])
         tm.assert_series_equal(result, ts[pd.notna(ts)])
 
-    def test_isna(self):
-        ser = Series([0, 5.4, 3, np.nan, -0.001])
-        expected = Series([False, False, False, True, False])
-        tm.assert_series_equal(ser.isna(), expected)
 
-        ser = Series(["hi", "", np.nan])
-        expected = Series([False, False, True])
-        tm.assert_series_equal(ser.isna(), expected)
-
-    def test_notna(self):
-        ser = Series([0, 5.4, 3, np.nan, -0.001])
-        expected = Series([True, True, True, False, True])
-        tm.assert_series_equal(ser.notna(), expected)
-
-        ser = Series(["hi", "", np.nan])
-        expected = Series([True, True, False])
-        tm.assert_series_equal(ser.notna(), expected)
+def test_hasnans_uncached_for_series():
+    # GH#19700
+    idx = Index([0, 1])
+    assert idx.hasnans is False
+    assert "hasnans" in idx._cache
+    ser = idx.to_series()
+    assert ser.hasnans is False
+    assert not hasattr(ser, "_cache")
+    ser.iloc[-1] = np.nan
+    assert ser.hasnans is True
+    assert Series.hasnans.__doc__ == Index.hasnans.__doc__
