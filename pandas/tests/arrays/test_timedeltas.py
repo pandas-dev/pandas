@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core import nanops
 from pandas.core.arrays import TimedeltaArray
 
 
@@ -251,6 +252,30 @@ class TestReductions:
         assert isinstance(result, pd.Timedelta)
         assert result == expected
 
+    def test_sum_2d_skipna_false(self):
+        arr = np.arange(8).astype(np.int64).view("m8[s]").astype("m8[ns]").reshape(4, 2)
+        arr[-1, -1] = "Nat"
+
+        tda = TimedeltaArray(arr)
+
+        result = tda.sum(skipna=False)
+        assert result is pd.NaT
+
+        result = tda.sum(axis=0, skipna=False)
+        expected = pd.TimedeltaIndex([pd.Timedelta(seconds=12), pd.NaT])._values
+        tm.assert_timedelta_array_equal(result, expected)
+
+        result = tda.sum(axis=1, skipna=False)
+        expected = pd.TimedeltaIndex(
+            [
+                pd.Timedelta(seconds=1),
+                pd.Timedelta(seconds=5),
+                pd.Timedelta(seconds=9),
+                pd.NaT,
+            ]
+        )._values
+        tm.assert_timedelta_array_equal(result, expected)
+
     def test_std(self):
         tdi = pd.TimedeltaIndex(["0H", "4H", "NaT", "4H", "0H", "2H"])
         arr = tdi.array
@@ -264,10 +289,17 @@ class TestReductions:
         assert isinstance(result, pd.Timedelta)
         assert result == expected
 
+        result = nanops.nanstd(np.asarray(arr), skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
         result = arr.std(skipna=False)
         assert result is pd.NaT
 
         result = tdi.std(skipna=False)
+        assert result is pd.NaT
+
+        result = nanops.nanstd(np.asarray(arr), skipna=False)
         assert result is pd.NaT
 
     def test_median(self):
@@ -283,8 +315,8 @@ class TestReductions:
         assert isinstance(result, pd.Timedelta)
         assert result == expected
 
-        result = arr.std(skipna=False)
+        result = arr.median(skipna=False)
         assert result is pd.NaT
 
-        result = tdi.std(skipna=False)
+        result = tdi.median(skipna=False)
         assert result is pd.NaT
