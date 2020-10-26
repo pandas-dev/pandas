@@ -19,12 +19,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[True, False])
-def sort(request):
-    """Boolean sort keyword for concat and DataFrame.append."""
-    return request.param
-
-
 class TestDatetimeConcat:
     def test_concat_datetime64_block(self):
         from pandas.core.indexes.datetimes import date_range

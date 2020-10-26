@@ -1,14 +1,6 @@
-import pytest
-
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
-
-
-@pytest.fixture(params=[True, False])
-def sort(request):
-    """Boolean sort keyword for concat and DataFrame.append."""
-    return request.param
 
 
 class TestConcatSort:

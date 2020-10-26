@@ -8,12 +8,6 @@ from pandas import Categorical, DataFrame, Series
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[True, False])
-def sort(request):
-    """Boolean sort keyword for concat and DataFrame.append."""
-    return request.param
-
-
 class TestCategoricalConcat:
     def test_categorical_concat(self, sort):
         # See GH 10177

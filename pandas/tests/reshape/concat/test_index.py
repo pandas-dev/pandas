@@ -6,12 +6,6 @@ from pandas import DataFrame, Index, MultiIndex, Series, concat
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[True, False])
-def sort(request):
-    """Boolean sort keyword for concat and DataFrame.append."""
-    return request.param
-
-
 class TestIndexConcat:
     def test_concat_ignore_index(self, sort):
         frame1 = DataFrame(

@@ -6,12 +6,6 @@ from pandas import DataFrame, Index, Series, concat, date_range
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[True, False])
-def sort(request):
-    """Boolean sort keyword for concat and DataFrame.append."""
-    return request.param
-
-
 class TestEmptyConcat:
     def test_handle_empty_objects(self, sort):
         df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))

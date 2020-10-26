@@ -13,12 +13,6 @@ from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.tests.extension.decimal import to_decimal
 
 
-@pytest.fixture(params=[True, False])
-def sort(request):
-    """Boolean sort keyword for concat and DataFrame.append."""
-    return request.param
-
-
 class TestConcatenate:
     def test_concat_copy(self):
         df = DataFrame(np.random.randn(4, 3))

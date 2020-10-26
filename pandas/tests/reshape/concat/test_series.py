@@ -15,12 +15,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[True, False])
-def sort(request):
-    """Boolean sort keyword for concat and DataFrame.append."""
-    return request.param
-
-
 class TestSeriesConcat:
     def test_concat_series(self):
 
@@ -52,7 +46,7 @@ class TestSeriesConcat:
         result = pd.concat([s1, s2])
         tm.assert_series_equal(result, expected)
 
-    def test_concat_series_axis1(self, sort=sort):
+    def test_concat_series_axis1(self, sort=True):
         ts = tm.makeTimeSeries()
 
         pieces = [ts[:-2], ts[2:], ts[2:-2]]
@@ -82,6 +76,7 @@ class TestSeriesConcat:
         s2 = Series(randn(4), index=["d", "a", "b", "c"], name="B")
         result = concat([s, s2], axis=1, sort=sort)
         expected = DataFrame({"A": s, "B": s2})
+
         tm.assert_frame_equal(result, expected)
 
     def test_concat_series_axis1_names_applied(self):
