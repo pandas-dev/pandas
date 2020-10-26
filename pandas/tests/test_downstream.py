@@ -150,6 +150,12 @@ def test_missing_required_dependency():
     # https://github.com/MacPython/pandas-wheels/pull/50
 
     pyexe = sys.executable.replace("\\", "/")
+
+    call = [pyexe, "-c", "import pandas;pandas.__file__"]
+    output = subprocess.check_output(call).decode()
+    if "site-packages" in output:
+        pytest.skip("pandas installed as site package")
+
     call = [pyexe, "-sSE", "-c", "import pandas"]
 
     msg = (
