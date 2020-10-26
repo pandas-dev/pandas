@@ -1172,24 +1172,24 @@ class TestDataFrameReductions:
     def test_min_max_dt64_with_NaT_skipna_false(self, tz_naive_fixture):
         # GH#36907
         tz = tz_naive_fixture
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "a": [
-                    pd.Timestamp("2020-01-01 08:00:00", tz=tz),
-                    pd.Timestamp("1920-02-01 09:00:00", tz=tz),
+                    Timestamp("2020-01-01 08:00:00", tz=tz),
+                    Timestamp("1920-02-01 09:00:00", tz=tz),
                 ],
-                "b": [pd.Timestamp("2020-02-01 08:00:00", tz=tz), pd.NaT],
+                "b": [Timestamp("2020-02-01 08:00:00", tz=tz), pd.NaT],
             }
         )
 
         res = df.min(axis=1, skipna=False)
-        expected = pd.Series([df.loc[0, "a"], pd.NaT])
+        expected = Series([df.loc[0, "a"], pd.NaT])
         assert expected.dtype == df["a"].dtype
 
         tm.assert_series_equal(res, expected)
 
         res = df.max(axis=1, skipna=False)
-        expected = pd.Series([df.loc[0, "b"], pd.NaT])
+        expected = Series([df.loc[0, "b"], pd.NaT])
         assert expected.dtype == df["a"].dtype
 
         tm.assert_series_equal(res, expected)
