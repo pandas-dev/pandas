@@ -173,26 +173,21 @@ class TestPlotBase:
         for patch in collections:
             assert patch.get_visible() == visible
 
-    def _check_filled(self, ax, filled=True):
+    def _check_filling(self, axes, filled=True):
         """
-        Check each artist is filled or not
+        Check for each artist whether it is filled or not
 
         Parameters
         ----------
-        ax : matplotlib Axes object or a numpy.ndarray of them
+        axes : matplotlib Axes object, or its list-like
         filled : bool
             expected filling
         """
 
-        def _check_patch_filling(artist):
-            for patch in artist.patches:
+        axes = self._flatten_visible(axes)
+        for ax in axes:
+            for patch in ax.patches:
                 assert patch.fill == filled
-
-        if isinstance(ax, np.ndarray):
-            for rows in ax.flatten():
-                _check_patch_filling(rows)
-        else:
-            _check_patch_filling(ax)
 
     def _get_colors_mapped(self, series, colors):
         unique = series.unique()

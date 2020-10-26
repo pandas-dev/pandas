@@ -142,7 +142,7 @@ class TestSeriesPlots(TestPlotBase):
         # GH23992 Verify functioning of histtype argument
         ser = Series(np.random.randint(1, 10))
         ax = ser.hist(histtype=histtype)
-        self._check_filled(ax, filled=expected)
+        self._check_filling(ax, filled=expected)
 
     @pytest.mark.parametrize(
         "by, expected_axes_num, expected_layout", [(None, 1, (1, 1)), ("b", 2, (1, 2))]
@@ -393,7 +393,7 @@ class TestDataFramePlots(TestPlotBase):
         # GH23992 Verify functioning of histtype argument
         df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
         ax = df.hist(histtype=histtype)
-        self._check_filled(ax, filled=expected)
+        self._check_filling(ax, filled=expected)
 
     @pytest.mark.parametrize("by", [None, "c"])
     @pytest.mark.parametrize("column", [None, "b"])
@@ -639,4 +639,4 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # GH23992 Verify functioning of histtype argument
         df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
         ax = df.hist(by="a", histtype=histtype)
-        self._check_filled(ax, filled=expected)
+        self._check_filling(ax, filled=expected)
