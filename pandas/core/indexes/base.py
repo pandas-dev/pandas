@@ -545,7 +545,7 @@ class Index(IndexOpsMixin, PandasObject):
             return True
         elif not hasattr(other, "_id"):
             return False
-        elif com.any_none(self._id, other._id):
+        elif self._id is None or other._id is None:
             return False
         else:
             return self._id is other._id
