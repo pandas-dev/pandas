@@ -45,5 +45,5 @@ from pandas import Categorical, DataFrame
         ),
     ],
 )
-def test_is_homogeneous_type(self, data, expected):
+def test_is_homogeneous_type(data, expected):
     assert data._is_homogeneous_type is expected
