@@ -1410,7 +1410,6 @@ def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
         float64_t[:] observations = np.zeros(N, dtype=float)
         float64_t[:] times_masked = np.zeros(N, dtype=float)
         ndarray[float64_t] output = np.empty(N, dtype=float)
-        float64_t[:] output_view = output
 
     if N == 0:
         return output
@@ -1435,7 +1434,7 @@ def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
 
                 last_result = weights_dot / weights_sum
 
-            output_view[i] = last_result if num_not_nan >= minp else NaN
+            output[i] = last_result if num_not_nan >= minp else NaN
 
     return output
 
