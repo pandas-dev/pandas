@@ -12,7 +12,7 @@ from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas as pd
 from pandas import DataFrame, Index, NaT, Series
 import pandas._testing as tm
-from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
+from pandas.core.indexing import maybe_numeric_slice, non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
 # ------------------------------------------------------------------------
@@ -31,7 +31,11 @@ class TestFancy:
         df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
-        with pytest.raises(ValueError):
+        msg = (
+            "cannot set using a multi-index selection "
+            "indexer with a different length than the value"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.loc[df.index[2:5], "bar"] = np.array([2.33j, 1.23 + 0.1j, 2.2, 1.0])
 
         # valid
@@ -48,7 +52,8 @@ class TestFancy:
         df["foo"] = np.zeros(10, dtype=np.float64)
         df["bar"] = np.zeros(10, dtype=complex)
 
-        with pytest.raises(ValueError):
+        msg = "Must have equal len keys and value when setting with an iterable"
+        with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
     @pytest.mark.parametrize(
@@ -324,7 +329,7 @@ class TestFancy:
     @pytest.mark.parametrize("case", [lambda s: s, lambda s: s.loc])
     def test_duplicate_int_indexing(self, case):
         # GH 17347
-        s = pd.Series(range(3), index=[1, 1, 3])
+        s = Series(range(3), index=[1, 1, 3])
         expected = s[1]
         result = case(s)[[1]]
         tm.assert_series_equal(result, expected)
@@ -554,15 +559,17 @@ class TestFancy:
         # string indexing against datetimelike with object
         # dtype should properly raises KeyError
         df = DataFrame([1], Index([pd.Timestamp("2011-01-01")], dtype=object))
-        assert df.index.is_all_dates
+        assert df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
         with pytest.raises(KeyError, match="'2011'"):
-            df.loc["2011", 0]
+            with tm.assert_produces_warning(FutureWarning):
+                # This does an is_all_dates check
+                df.loc["2011", 0]
 
         df = DataFrame()
-        assert not df.index.is_all_dates
+        assert not df.index._is_all_dates
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
@@ -745,7 +752,7 @@ class TestMisc:
         # make frames multi-type & re-run tests
         for frame in [df, rhs, right]:
             frame["joe"] = frame["joe"].astype("float64")
-            frame["jolie"] = frame["jolie"].map("@{0}".format)
+            frame["jolie"] = frame["jolie"].map("@{}".format)
 
         run_tests(df, rhs, right)
 
@@ -822,7 +829,7 @@ class TestMisc:
     def test_non_reducing_slice(self, slc):
         df = DataFrame([[0, 1], [2, 3]])
 
-        tslice_ = _non_reducing_slice(slc)
+        tslice_ = non_reducing_slice(slc)
         assert isinstance(df.loc[tslice_], DataFrame)
 
     def test_list_slice(self):
@@ -831,18 +838,18 @@ class TestMisc:
         df = DataFrame({"A": [1, 2], "B": [3, 4]}, index=["A", "B"])
         expected = pd.IndexSlice[:, ["A"]]
         for subset in slices:
-            result = _non_reducing_slice(subset)
+            result = non_reducing_slice(subset)
             tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
     def test_maybe_numeric_slice(self):
         df = DataFrame({"A": [1, 2], "B": ["c", "d"], "C": [True, False]})
-        result = _maybe_numeric_slice(df, slice_=None)
+        result = maybe_numeric_slice(df, slice_=None)
         expected = pd.IndexSlice[:, ["A"]]
         assert result == expected
 
-        result = _maybe_numeric_slice(df, None, include_bool=True)
+        result = maybe_numeric_slice(df, None, include_bool=True)
         expected = pd.IndexSlice[:, ["A", "C"]]
-        result = _maybe_numeric_slice(df, [1])
+        result = maybe_numeric_slice(df, [1])
         expected = [1]
         assert result == expected
 
@@ -984,16 +991,14 @@ class TestDataframeNoneCoercion:
 
 def test_extension_array_cross_section():
     # A cross-section of a homogeneous EA should be an EA
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "A": pd.core.arrays.integer_array([1, 2]),
             "B": pd.core.arrays.integer_array([3, 4]),
         },
         index=["a", "b"],
     )
-    expected = pd.Series(
-        pd.core.arrays.integer_array([1, 3]), index=["A", "B"], name="a"
-    )
+    expected = Series(pd.core.arrays.integer_array([1, 3]), index=["A", "B"], name="a")
     result = df.loc["a"]
     tm.assert_series_equal(result, expected)
 
@@ -1003,23 +1008,23 @@ def test_extension_array_cross_section():
 
 def test_extension_array_cross_section_converts():
     # all numeric columns -> numeric series
-    df = pd.DataFrame(
-        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"],
+    df = DataFrame(
+        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"]
     )
     result = df.loc["a"]
-    expected = pd.Series([1, 1], dtype="Int64", index=["A", "B"], name="a")
+    expected = Series([1, 1], dtype="Int64", index=["A", "B"], name="a")
     tm.assert_series_equal(result, expected)
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
 
     # mixed columns -> object series
-    df = pd.DataFrame(
+    df = DataFrame(
         {"A": pd.array([1, 2], dtype="Int64"), "B": np.array(["a", "b"])},
         index=["a", "b"],
     )
     result = df.loc["a"]
-    expected = pd.Series([1, "a"], dtype=object, index=["A", "B"], name="a")
+    expected = Series([1, "a"], dtype=object, index=["A", "B"], name="a")
     tm.assert_series_equal(result, expected)
 
     result = df.iloc[0]
@@ -1028,7 +1033,7 @@ def test_extension_array_cross_section_converts():
 
 def test_readonly_indices():
     # GH#17192 iloc with read-only array raising TypeError
-    df = pd.DataFrame({"data": np.ones(100, dtype="float64")})
+    df = DataFrame({"data": np.ones(100, dtype="float64")})
     indices = np.array([1, 3, 6])
     indices.flags.writeable = False
 
@@ -1042,7 +1047,7 @@ def test_readonly_indices():
 
 
 def test_1tuple_without_multiindex():
-    ser = pd.Series(range(5))
+    ser = Series(range(5))
     key = (slice(3),)
 
     result = ser[key]
@@ -1052,30 +1057,30 @@ def test_1tuple_without_multiindex():
 
 def test_duplicate_index_mistyped_key_raises_keyerror():
     # GH#29189 float_index.get_loc(None) should raise KeyError, not TypeError
-    ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
-    with pytest.raises(KeyError):
+    ser = Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    with pytest.raises(KeyError, match="None"):
         ser[None]
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="None"):
         ser.index.get_loc(None)
 
-    with pytest.raises(KeyError):
+    with pytest.raises(KeyError, match="None"):
         ser.index._engine.get_loc(None)
 
 
 def test_setitem_with_bool_mask_and_values_matching_n_trues_in_length():
     # GH 30567
-    ser = pd.Series([None] * 10)
+    ser = Series([None] * 10)
     mask = [False] * 3 + [True] * 5 + [False] * 2
     ser[mask] = range(5)
     result = ser
-    expected = pd.Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+    expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
     tm.assert_series_equal(result, expected)
 
 
 def test_missing_labels_inside_loc_matched_in_error_message():
     # GH34272
-    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    s = Series({"a": 1, "b": 2, "c": 3})
     error_message_regex = "missing_0.*missing_1.*missing_2"
     with pytest.raises(KeyError, match=error_message_regex):
         s.loc[["a", "b", "missing_0", "c", "missing_1", "missing_2"]]
@@ -1085,7 +1090,7 @@ def test_many_missing_labels_inside_loc_error_message_limited():
     # GH34272
     n = 10000
     missing_labels = [f"missing_{label}" for label in range(n)]
-    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    s = Series({"a": 1, "b": 2, "c": 3})
     # regex checks labels between 4 and 9995 are replaced with ellipses
     error_message_regex = "missing_4.*\\.\\.\\..*missing_9995"
     with pytest.raises(KeyError, match=error_message_regex):
@@ -1094,7 +1099,7 @@ def test_many_missing_labels_inside_loc_error_message_limited():
 
 def test_long_text_missing_labels_inside_loc_error_message_limited():
     # GH34272
-    s = pd.Series({"a": 1, "b": 2, "c": 3})
+    s = Series({"a": 1, "b": 2, "c": 3})
     missing_labels = [f"long_missing_label_text_{i}" * 5 for i in range(3)]
     # regex checks for very long labels there are new lines between each
     error_message_regex = "long_missing_label_text_0.*\\\\n.*long_missing_label_text_1"
@@ -1104,9 +1109,9 @@ def test_long_text_missing_labels_inside_loc_error_message_limited():
 
 def test_setitem_categorical():
     # https://github.com/pandas-dev/pandas/issues/35369
-    df = pd.DataFrame({"h": pd.Series(list("mn")).astype("category")})
+    df = DataFrame({"h": Series(list("mn")).astype("category")})
     df.h = df.h.cat.reorder_categories(["n", "m"])
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"h": pd.Categorical(["m", "n"]).reorder_categories(["n", "m"])}
     )
     tm.assert_frame_equal(df, expected)

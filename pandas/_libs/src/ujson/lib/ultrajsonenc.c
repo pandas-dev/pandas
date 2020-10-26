@@ -1134,7 +1134,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             }
 
             break;
-            
+
         }
     }
 

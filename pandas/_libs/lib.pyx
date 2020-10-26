@@ -584,14 +584,16 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
             elif not (PyObject_RichCompareBool(x, y, Py_EQ) or
                       (x is None or is_nan(x)) and (y is None or is_nan(y))):
                 return False
-        except TypeError as err:
-            # Avoid raising TypeError on tzawareness mismatch
-            # TODO: This try/except can be removed if/when Timestamp
-            #  comparisons are changed to match datetime, see GH#28507
-            if "tz-naive and tz-aware" in str(err):
+        except ValueError:
+            # Avoid raising ValueError when comparing Numpy arrays to other types
+            if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
+                # Only compare scalars to scalars and non-scalars to non-scalars
+                return False
+            elif (not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
+                  and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
+                # Check if non-scalars have the same type
                 return False
             raise
-
     return True
 
 
@@ -650,11 +652,16 @@ cpdef ndarray[object] ensure_string_array(
         Py_ssize_t i = 0, n = len(arr)
 
     result = np.asarray(arr, dtype="object")
+
     if copy and result is arr:
         result = result.copy()
 
     for i in range(n):
-        val = result[i]
+        val = arr[i]
+
+        if isinstance(val, str):
+            continue
+
         if not checknull(val):
             result[i] = str(val)
         else:
@@ -1407,10 +1414,12 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "time"
 
     elif is_decimal(val):
-        return "decimal"
+        if is_decimal_array(values):
+            return "decimal"
 
     elif is_complex(val):
-        return "complex"
+        if is_complex_array(values):
+            return "complex"
 
     elif util.is_float_object(val):
         if is_float_array(values):
@@ -1692,6 +1701,34 @@ cdef class FloatValidator(Validator):
 cpdef bint is_float_array(ndarray values):
     cdef:
         FloatValidator validator = FloatValidator(len(values), values.dtype)
+    return validator.validate(values)
+
+
+cdef class ComplexValidator(Validator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return (
+            util.is_complex_object(value)
+            or (util.is_float_object(value) and is_nan(value))
+        )
+
+    cdef inline bint is_array_typed(self) except -1:
+        return issubclass(self.dtype.type, np.complexfloating)
+
+
+cdef bint is_complex_array(ndarray values):
+    cdef:
+        ComplexValidator validator = ComplexValidator(len(values), values.dtype)
+    return validator.validate(values)
+
+
+cdef class DecimalValidator(Validator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return is_decimal(value)
+
+
+cdef bint is_decimal_array(ndarray values):
+    cdef:
+        DecimalValidator validator = DecimalValidator(len(values), values.dtype)
     return validator.validate(values)
 
 
@@ -1982,7 +2019,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
-        elif val is None:
+        elif val is None or val is C_NA:
             seen.saw_null()
             floats[i] = complexes[i] = NaN
         elif hasattr(val, '__len__') and len(val) == 0:
@@ -2377,7 +2414,7 @@ def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=Tr
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer(ndarray arr, object f, bint convert=True):
+def map_infer(ndarray arr, object f, bint convert=True, bint ignore_na=False):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
@@ -2385,6 +2422,9 @@ def map_infer(ndarray arr, object f, bint convert=True):
     ----------
     arr : ndarray
     f : function
+    convert : bint
+    ignore_na : bint
+        If True, NA values will not have f applied
 
     Returns
     -------
@@ -2398,6 +2438,9 @@ def map_infer(ndarray arr, object f, bint convert=True):
     n = len(arr)
     result = np.empty(n, dtype=object)
     for i in range(n):
+        if ignore_na and checknull(arr[i]):
+            result[i] = arr[i]
+            continue
         val = f(arr[i])
 
         if cnp.PyArray_IsZeroDim(val):
@@ -2532,8 +2575,6 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     if n == 0:
         # kludge, for Series
         return np.empty(0, dtype='f8')
-
-    keys = getattr(keys, 'values', keys)
 
     for i in range(n):
         val = keys[i]

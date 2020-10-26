@@ -12,14 +12,12 @@ from pandas.errors import AbstractMethodError
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
 
 if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray  # noqa: F401
+    from pandas.core.arrays import ExtensionArray
 
 
 class ExtensionDtype:
     """
     A custom data type, to be paired with an ExtensionArray.
-
-    .. versionadded:: 0.23.0
 
     See Also
     --------

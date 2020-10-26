@@ -100,9 +100,13 @@ class TestRangeIndex(Numeric):
 
         # GH 18295 (test missing)
         expected = Float64Index([0, np.nan, 1, 2, 3, 4])
-        for na in (np.nan, pd.NaT, None):
+        for na in [np.nan, None, pd.NA]:
             result = RangeIndex(5).insert(1, na)
             tm.assert_index_equal(result, expected)
+
+        result = RangeIndex(5).insert(1, pd.NaT)
+        expected = Index([0, pd.NaT, 1, 2, 3, 4], dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_delete(self):
 
@@ -171,7 +175,13 @@ class TestRangeIndex(Numeric):
             pass
         assert idx._cache == {}
 
+        idx.format()
+        assert idx._cache == {}
+
         df = pd.DataFrame({"a": range(10)}, index=idx)
+
+        str(df)
+        assert idx._cache == {}
 
         df.loc[50]
         assert idx._cache == {}
@@ -515,3 +525,9 @@ class TestRangeIndex(Numeric):
             idx.get_loc("a")
 
         assert "_engine" not in idx._cache
+
+    def test_format_empty(self):
+        # GH35712
+        empty_idx = self._holder(0)
+        assert empty_idx.format() == []
+        assert empty_idx.format(name=True) == [""]

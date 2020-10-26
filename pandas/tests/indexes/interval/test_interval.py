@@ -191,22 +191,32 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
         # invalid type
-        msg = "can only insert Interval objects and NA into an IntervalIndex"
+        msg = "can only insert Interval objects and NA into an IntervalArray"
         with pytest.raises(ValueError, match=msg):
             data.insert(1, "foo")
 
         # invalid closed
-        msg = "inserted item must be closed on the same side as the index"
+        msg = "'value.closed' is 'left', expected 'right'."
         for closed in {"left", "right", "both", "neither"} - {item.closed}:
+            msg = f"'value.closed' is '{closed}', expected '{item.closed}'."
             with pytest.raises(ValueError, match=msg):
                 bad_item = Interval(item.left, item.right, closed=closed)
                 data.insert(1, bad_item)
 
         # GH 18295 (test missing)
         na_idx = IntervalIndex([np.nan], closed=data.closed)
-        for na in (np.nan, pd.NaT, None):
+        for na in [np.nan, None, pd.NA]:
             expected = data[:1].append(na_idx).append(data[1:])
             result = data.insert(1, na)
+            tm.assert_index_equal(result, expected)
+
+        if data.left.dtype.kind not in ["m", "M"]:
+            # trying to insert pd.NaT into a numeric-dtyped Index should cast/raise
+            msg = "can only insert Interval objects and NA into an IntervalArray"
+            with pytest.raises(ValueError, match=msg):
+                result = data.insert(1, pd.NaT)
+        else:
+            result = data.insert(1, pd.NaT)
             tm.assert_index_equal(result, expected)
 
     def test_is_unique_interval(self, closed):
@@ -618,7 +628,7 @@ class TestIntervalIndex:
         expected = IntervalIndex([Interval(0, 1), Interval(1, 2), np.nan])
         tm.assert_index_equal(result, expected)
 
-        result = index.sort_values(ascending=False)
+        result = index.sort_values(ascending=False, na_position="first")
         expected = IntervalIndex([np.nan, Interval(1, 2), Interval(0, 1)])
         tm.assert_index_equal(result, expected)
 
@@ -861,7 +871,7 @@ class TestIntervalIndex:
             pd.Timestamp("2017-01-01 00:00:00"), pd.Timestamp("2018-01-01 00:00:00")
         )
         year_2017_index = pd.IntervalIndex([year_2017])
-        assert not year_2017_index.is_all_dates
+        assert not year_2017_index._is_all_dates
 
     @pytest.mark.parametrize("key", [[5], (2, 3)])
     def test_get_value_non_scalar_errors(self, key):
@@ -873,6 +883,13 @@ class TestIntervalIndex:
         with pytest.raises(InvalidIndexError, match=msg):
             with tm.assert_produces_warning(FutureWarning):
                 idx.get_value(s, key)
+
+    @pytest.mark.parametrize("closed", ["left", "right", "both"])
+    def test_pickle_round_trip_closed(self, closed):
+        # https://github.com/pandas-dev/pandas/issues/35658
+        idx = IntervalIndex.from_tuples([(1, 2), (2, 3)], closed=closed)
+        result = tm.round_trip_pickle(idx)
+        tm.assert_index_equal(result, idx)
 
 
 def test_dir():

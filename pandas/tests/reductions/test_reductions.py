@@ -56,13 +56,13 @@ class TestReductions:
             expected = getattr(obj.values, opname)()
         else:
             expected = pd.Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
-        try:
-            assert result == expected
-        except TypeError:
-            # comparing tz-aware series with np.array results in
-            # TypeError
+
+        if getattr(obj, "tz", None) is not None:
+            # We need to de-localize before comparing to the numpy-produced result
             expected = expected.astype("M8[ns]").astype("int64")
             assert result.value == expected
+        else:
+            assert result == expected
 
     @pytest.mark.parametrize("opname", ["max", "min"])
     @pytest.mark.parametrize(
@@ -351,6 +351,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
+                f"'TimedeltaArray' does not implement reduction '{opname}'",
             ]
         )
 
@@ -642,40 +643,40 @@ class TestSeriesReductions:
             df = DataFrame(np.empty((10, 0)), dtype=dtype)
             assert (getattr(df, method)(1) == unit).all()
 
-            s = pd.Series([1], dtype=dtype)
+            s = Series([1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
             result = getattr(s, method)(skipna=False, min_count=2)
             assert pd.isna(result)
 
-            s = pd.Series([np.nan], dtype=dtype)
+            s = Series([np.nan], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
-            s = pd.Series([np.nan, 1], dtype=dtype)
+            s = Series([np.nan, 1], dtype=dtype)
             result = getattr(s, method)(min_count=2)
             assert pd.isna(result)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
     def test_empty_multi(self, method, unit):
-        s = pd.Series(
+        s = Series(
             [1, np.nan, np.nan, np.nan],
             index=pd.MultiIndex.from_product([("a", "b"), (0, 1)]),
         )
         # 1 / 0 by default
         result = getattr(s, method)(level=0)
-        expected = pd.Series([1, unit], index=["a", "b"])
+        expected = Series([1, unit], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
         # min_count=0
         result = getattr(s, method)(level=0, min_count=0)
-        expected = pd.Series([1, unit], index=["a", "b"])
+        expected = Series([1, unit], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
         # min_count=1
         result = getattr(s, method)(level=0, min_count=1)
-        expected = pd.Series([1, np.nan], index=["a", "b"])
+        expected = Series([1, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["mean", "median", "std", "var"])
@@ -695,6 +696,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
+                    "'TimedeltaArray' does not implement reduction 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -842,13 +844,13 @@ class TestSeriesReductions:
 
         # Float64Index
         # GH#5914
-        s = pd.Series([1, 2, 3], [1.1, 2.1, 3.1])
+        s = Series([1, 2, 3], [1.1, 2.1, 3.1])
         result = s.idxmax()
         assert result == 3.1
         result = s.idxmin()
         assert result == 1.1
 
-        s = pd.Series(s.index, s.index)
+        s = Series(s.index, s.index)
         result = s.idxmax()
         assert result == 3.1
         result = s.idxmin()
@@ -874,7 +876,7 @@ class TestSeriesReductions:
         assert not s2.any(skipna=True)
 
         # Check level.
-        s = pd.Series([False, False, True, True, False, True], index=[0, 0, 1, 1, 2, 2])
+        s = Series([False, False, True, True, False, True], index=[0, 0, 1, 1, 2, 2])
         tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
         tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
@@ -906,13 +908,20 @@ class TestSeriesReductions:
         assert not s4.any(skipna=False)
 
         # Check level TODO(GH-33449) result should also be boolean
-        s = pd.Series(
+        s = Series(
             [False, False, True, True, False, True],
             index=[0, 0, 1, 1, 2, 2],
             dtype="boolean",
         )
         tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
         tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+
+    def test_any_axis1_bool_only(self):
+        # GH#32432
+        df = DataFrame({"A": [True, False], "B": [1, 2]})
+        result = df.any(axis=1, bool_only=True)
+        expected = Series([True, False])
+        tm.assert_series_equal(result, expected)
 
     def test_timedelta64_analytics(self):
 
@@ -959,12 +968,12 @@ class TestSeriesReductions:
     @pytest.mark.parametrize(
         "test_input,error_type",
         [
-            (pd.Series([], dtype="float64"), ValueError),
+            (Series([], dtype="float64"), ValueError),
             # For strings, or any Series with dtype 'O'
-            (pd.Series(["foo", "bar", "baz"]), TypeError),
-            (pd.Series([(1,), (2,)]), TypeError),
+            (Series(["foo", "bar", "baz"]), TypeError),
+            (Series([(1,), (2,)]), TypeError),
             # For mixed data types
-            (pd.Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"]), TypeError),
+            (Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"]), TypeError),
         ],
     )
     def test_assert_idxminmax_raises(self, test_input, error_type):
@@ -982,7 +991,7 @@ class TestSeriesReductions:
 
     def test_idxminmax_with_inf(self):
         # For numeric data with NA and Inf (GH #13595)
-        s = pd.Series([0, -np.inf, np.inf, np.nan])
+        s = Series([0, -np.inf, np.inf, np.nan])
 
         assert s.idxmin() == 1
         assert np.isnan(s.idxmin(skipna=False))
@@ -1022,9 +1031,9 @@ class TestDatetime64SeriesReductions:
     @pytest.mark.parametrize(
         "nat_df",
         [
-            pd.DataFrame([pd.NaT, pd.NaT]),
-            pd.DataFrame([pd.NaT, pd.Timedelta("nat")]),
-            pd.DataFrame([pd.Timedelta("nat"), pd.Timedelta("nat")]),
+            DataFrame([pd.NaT, pd.NaT]),
+            DataFrame([pd.NaT, pd.Timedelta("nat")]),
+            DataFrame([pd.Timedelta("nat"), pd.Timedelta("nat")]),
         ],
     )
     def test_minmax_nat_dataframe(self, nat_df):

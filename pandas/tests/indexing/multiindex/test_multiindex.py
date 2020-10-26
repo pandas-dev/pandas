@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
@@ -69,12 +70,12 @@ class TestMultiIndexBasic:
         # GH#30892
 
         dti = pd.to_datetime(["20190101", "20190101", "20190102"])
-        idx = pd.Index(["a", "a", "c"])
+        idx = Index(["a", "a", "c"])
         mi = pd.MultiIndex.from_arrays([dti, idx], names=["index1", "index2"])
 
-        df = pd.DataFrame({"c1": [1, 2, 3], "c2": [np.nan, np.nan, np.nan]}, index=mi)
+        df = DataFrame({"c1": [1, 2, 3], "c2": [np.nan, np.nan, np.nan]}, index=mi)
 
-        expected = pd.DataFrame({"c1": df["c1"], "c2": [1.0, 1.0, np.nan]}, index=mi)
+        expected = DataFrame({"c1": df["c1"], "c2": [1.0, 1.0, np.nan]}, index=mi)
 
         df2 = df.copy(deep=True)
         df2.loc[(dti[0], "a"), "c2"] = 1.0
@@ -83,3 +84,10 @@ class TestMultiIndexBasic:
         df3 = df.copy(deep=True)
         df3.loc[[(dti[0], "a")], "c2"] = 1.0
         tm.assert_frame_equal(df3, expected)
+
+    def test_multiindex_get_loc_list_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/35878
+        idx = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        msg = "unhashable type"
+        with pytest.raises(TypeError, match=msg):
+            idx.get_loc([])

@@ -241,6 +241,20 @@ class TestCounting:
         )
         tm.assert_frame_equal(expected, res)
 
+    def test_groupby_count_dateparseerror(self):
+        dr = date_range(start="1/1/2012", freq="5min", periods=10)
+
+        # BAD Example, datetimes first
+        ser = Series(np.arange(10), index=[dr, np.arange(10)])
+        grouped = ser.groupby(lambda x: x[1] % 2 == 0)
+        result = grouped.count()
+
+        ser = Series(np.arange(10), index=[np.arange(10), dr])
+        grouped = ser.groupby(lambda x: x[0] % 2 == 0)
+        expected = grouped.count()
+
+        tm.assert_series_equal(result, expected)
+
 
 def test_groupby_timedelta_cython_count():
     df = DataFrame(
@@ -283,7 +297,7 @@ def test_count():
 def test_count_non_nulls():
     # GH#5610
     # count counts non-nulls
-    df = pd.DataFrame(
+    df = DataFrame(
         [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, np.nan]],
         columns=["A", "B", "C"],
     )
@@ -301,14 +315,14 @@ def test_count_non_nulls():
 
 
 def test_count_object():
-    df = pd.DataFrame({"a": ["a"] * 3 + ["b"] * 3, "c": [2] * 3 + [3] * 3})
+    df = DataFrame({"a": ["a"] * 3 + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
-    expected = pd.Series([3, 3], index=pd.Index([2, 3], name="c"), name="a")
+    expected = Series([3, 3], index=pd.Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
-    df = pd.DataFrame({"a": ["a", np.nan, np.nan] + ["b"] * 3, "c": [2] * 3 + [3] * 3})
+    df = DataFrame({"a": ["a", np.nan, np.nan] + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
-    expected = pd.Series([1, 3], index=pd.Index([2, 3], name="c"), name="a")
+    expected = Series([1, 3], index=pd.Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
 
@@ -318,7 +332,7 @@ def test_count_cross_type():
         (np.random.randint(0, 5, (100, 2)), np.random.randint(0, 2, (100, 2)))
     )
 
-    df = pd.DataFrame(vals, columns=["a", "b", "c", "d"])
+    df = DataFrame(vals, columns=["a", "b", "c", "d"])
     df[df == 2] = np.nan
     expected = df.groupby(["c", "d"]).count()
 

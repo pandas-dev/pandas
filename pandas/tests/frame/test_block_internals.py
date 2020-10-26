@@ -64,7 +64,7 @@ class TestDataFrameBlockInternals:
         float_frame["F"] = 8.0
         assert len(float_frame._mgr.blocks) == 3
 
-        return_value = float_frame._consolidate(inplace=True)
+        return_value = float_frame._consolidate_inplace()
         assert return_value is None
         assert len(float_frame._mgr.blocks) == 1
 
@@ -78,7 +78,7 @@ class TestDataFrameBlockInternals:
     def test_values_consolidate(self, float_frame):
         float_frame["E"] = 7.0
         assert not float_frame._mgr.is_consolidated()
-        _ = float_frame.values  # noqa
+        _ = float_frame.values
         assert float_frame._mgr.is_consolidated()
 
     def test_modify_values(self, float_frame):
@@ -302,7 +302,7 @@ class TestDataFrameBlockInternals:
 
     def test_equals_different_blocks(self):
         # GH 9330
-        df0 = pd.DataFrame({"A": ["x", "y"], "B": [1, 2], "C": ["w", "z"]})
+        df0 = DataFrame({"A": ["x", "y"], "B": [1, 2], "C": ["w", "z"]})
         df1 = df0.reset_index()[["A", "B", "C"]]
         # this assert verifies that the above operations have
         # induced a block rearrangement
@@ -606,17 +606,17 @@ class TestDataFrameBlockInternals:
     def test_constructor_no_pandas_array(self):
         # Ensure that PandasArray isn't allowed inside Series
         # See https://github.com/pandas-dev/pandas/issues/23995 for more.
-        arr = pd.Series([1, 2, 3]).array
-        result = pd.DataFrame({"A": arr})
-        expected = pd.DataFrame({"A": [1, 2, 3]})
+        arr = Series([1, 2, 3]).array
+        result = DataFrame({"A": arr})
+        expected = DataFrame({"A": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
         assert isinstance(result._mgr.blocks[0], IntBlock)
 
     def test_add_column_with_pandas_array(self):
         # GH 26390
-        df = pd.DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
+        df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
         df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
-        df2 = pd.DataFrame(
+        df2 = DataFrame(
             {
                 "a": [1, 2, 3, 4],
                 "b": ["a", "b", "c", "d"],
@@ -626,3 +626,58 @@ class TestDataFrameBlockInternals:
         assert type(df["c"]._mgr.blocks[0]) == ObjectBlock
         assert type(df2["c"]._mgr.blocks[0]) == ObjectBlock
         tm.assert_frame_equal(df, df2)
+
+
+def test_to_dict_of_blocks_item_cache():
+    # Calling to_dict_of_blocks should not poison item_cache
+    df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
+    df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
+    mgr = df._mgr
+    assert len(mgr.blocks) == 3  # i.e. not consolidated
+
+    ser = df["b"]  # populations item_cache["b"]
+
+    df._to_dict_of_blocks()
+
+    # Check that the to_dict_of_blocks didnt break link between ser and df
+    ser.values[0] = "foo"
+    assert df.loc[0, "b"] == "foo"
+
+    assert df["b"] is ser
+
+
+def test_update_inplace_sets_valid_block_values():
+    # https://github.com/pandas-dev/pandas/issues/33457
+    df = DataFrame({"a": Series([1, 2, None], dtype="category")})
+
+    # inplace update of a single column
+    df["a"].fillna(1, inplace=True)
+
+    # check we havent put a Series into any block.values
+    assert isinstance(df._mgr.blocks[0].values, pd.Categorical)
+
+    # smoketest for OP bug from GH#35731
+    assert df.isnull().sum().sum() == 0
+
+
+def test_nonconsolidated_item_cache_take():
+    # https://github.com/pandas-dev/pandas/issues/35521
+
+    # create non-consolidated dataframe with object dtype columns
+    df = DataFrame()
+    df["col1"] = Series(["a"], dtype=object)
+    df["col2"] = Series([0], dtype=object)
+
+    # access column (item cache)
+    df["col1"] == "A"
+    # take operation
+    # (regression was that this consolidated but didn't reset item cache,
+    # resulting in an invalid cache and the .at operation not working properly)
+    df[df["col2"] == 0]
+
+    # now setting value should update actual dataframe
+    df.at[0, "col1"] = "A"
+
+    expected = DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+    assert df.at[0, "col1"] == "A"

@@ -10,16 +10,16 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, to_datetime
 import pandas._testing as tm
-
-"""
-This is a common base class used for various plotting tests
-"""
 
 
 @td.skip_if_no_mpl
 class TestPlotBase:
+    """
+    This is a common base class used for various plotting tests
+    """
+
     def setup_method(self, method):
 
         import matplotlib as mpl
@@ -28,10 +28,13 @@ class TestPlotBase:
 
         mpl.rcdefaults()
 
-        self.mpl_ge_2_2_3 = compat._mpl_ge_2_2_3()
-        self.mpl_ge_3_0_0 = compat._mpl_ge_3_0_0()
-        self.mpl_ge_3_1_0 = compat._mpl_ge_3_1_0()
-        self.mpl_ge_3_2_0 = compat._mpl_ge_3_2_0()
+        self.start_date_to_int64 = 812419200000000000
+        self.end_date_to_int64 = 819331200000000000
+
+        self.mpl_ge_2_2_3 = compat.mpl_ge_2_2_3()
+        self.mpl_ge_3_0_0 = compat.mpl_ge_3_0_0()
+        self.mpl_ge_3_1_0 = compat.mpl_ge_3_1_0()
+        self.mpl_ge_3_2_0 = compat.mpl_ge_3_2_0()
 
         self.bp_n_objects = 7
         self.polycollection_factor = 2
@@ -50,6 +53,14 @@ class TestPlotBase:
                     "height": random.normal(66, 4, size=n),
                     "weight": random.normal(161, 32, size=n),
                     "category": random.randint(4, size=n),
+                    "datetime": to_datetime(
+                        random.randint(
+                            self.start_date_to_int64,
+                            self.end_date_to_int64,
+                            size=n,
+                            dtype=np.int64,
+                        )
+                    ),
                 }
             )
 
@@ -330,7 +341,7 @@ class TestPlotBase:
         figsize : tuple
             expected figsize. default is matplotlib default
         """
-        from pandas.plotting._matplotlib.tools import _flatten
+        from pandas.plotting._matplotlib.tools import flatten_axes
 
         if figsize is None:
             figsize = self.default_figsize
@@ -343,7 +354,7 @@ class TestPlotBase:
                 assert len(ax.get_children()) > 0
 
         if layout is not None:
-            result = self._get_axes_layout(_flatten(axes))
+            result = self._get_axes_layout(flatten_axes(axes))
             assert result == layout
 
         tm.assert_numpy_array_equal(
@@ -370,9 +381,9 @@ class TestPlotBase:
         axes : matplotlib Axes object, or its list-like
 
         """
-        from pandas.plotting._matplotlib.tools import _flatten
+        from pandas.plotting._matplotlib.tools import flatten_axes
 
-        axes = _flatten(axes)
+        axes = flatten_axes(axes)
         axes = [ax for ax in axes if ax.get_visible()]
         return axes
 

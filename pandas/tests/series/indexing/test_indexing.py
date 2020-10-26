@@ -132,7 +132,7 @@ def test_getitem_fancy(string_series, object_series):
 
 def test_type_promotion():
     # GH12599
-    s = pd.Series(dtype=object)
+    s = Series(dtype=object)
     s["a"] = pd.Timestamp("2016-01-01")
     s["b"] = 3.0
     s["c"] = "foo"
@@ -144,14 +144,14 @@ def test_type_promotion():
     "result_1, duplicate_item, expected_1",
     [
         [
-            pd.Series({1: 12, 2: [1, 2, 2, 3]}),
-            pd.Series({1: 313}),
-            pd.Series({1: 12}, dtype=object),
+            Series({1: 12, 2: [1, 2, 2, 3]}),
+            Series({1: 313}),
+            Series({1: 12}, dtype=object),
         ],
         [
-            pd.Series({1: [1, 2, 3], 2: [1, 2, 2, 3]}),
-            pd.Series({1: [1, 2, 3]}),
-            pd.Series({1: [1, 2, 3]}),
+            Series({1: [1, 2, 3], 2: [1, 2, 2, 3]}),
+            Series({1: [1, 2, 3]}),
+            Series({1: [1, 2, 3]}),
         ],
     ],
 )
@@ -205,7 +205,7 @@ def test_series_box_timestamp():
 
 def test_series_box_timedelta():
     rng = pd.timedelta_range("1 day 1 s", periods=5, freq="h")
-    ser = pd.Series(rng)
+    ser = Series(rng)
     assert isinstance(ser[0], Timedelta)
     assert isinstance(ser.at[1], Timedelta)
     assert isinstance(ser.iat[2], Timedelta)
@@ -262,8 +262,8 @@ def test_setitem_ambiguous_keyerror():
 
 def test_getitem_dataframe():
     rng = list(range(10))
-    s = pd.Series(10, index=rng)
-    df = pd.DataFrame(rng, index=rng)
+    s = Series(10, index=rng)
+    df = DataFrame(rng, index=rng)
     msg = (
         "Indexing a Series with DataFrame is not supported, "
         "use the appropriate DataFrame column"
@@ -299,15 +299,15 @@ def test_setitem(datetime_series, string_series):
 def test_setitem_empty_series():
     # Test for issue #10193
     key = pd.Timestamp("2012-01-01")
-    series = pd.Series(dtype=object)
+    series = Series(dtype=object)
     series[key] = 47
-    expected = pd.Series(47, [key])
+    expected = Series(47, [key])
     tm.assert_series_equal(series, expected)
 
     # GH#33573 our index should retain its freq
-    series = pd.Series([], pd.DatetimeIndex([], freq="D"), dtype=object)
+    series = Series([], pd.DatetimeIndex([], freq="D"), dtype=object)
     series[key] = 47
-    expected = pd.Series(47, pd.DatetimeIndex([key], freq="D"))
+    expected = Series(47, pd.DatetimeIndex([key], freq="D"))
     tm.assert_series_equal(series, expected)
     assert series.index.freq == expected.index.freq
 
@@ -365,16 +365,19 @@ def test_setslice(datetime_series):
 
 def test_2d_to_1d_assignment_raises():
     x = np.random.randn(2, 2)
-    y = pd.Series(range(2))
+    y = Series(range(2))
 
-    msg = (
-        r"shape mismatch: value array of shape \(2,2\) could not be "
-        r"broadcast to indexing result of shape \(2,\)"
+    msg = "|".join(
+        [
+            r"shape mismatch: value array of shape \(2,2\) could not be "
+            r"broadcast to indexing result of shape \(2,\)",
+            r"cannot reshape array of size 4 into shape \(2,\)",
+        ]
     )
     with pytest.raises(ValueError, match=msg):
         y.loc[range(2)] = x
 
-    msg = r"could not broadcast input array from shape \(2,2\) into shape \(2\)"
+    msg = r"could not broadcast input array from shape \(2,2\) into shape \(2,?\)"
     with pytest.raises(ValueError, match=msg):
         y.loc[:] = x
 
@@ -383,7 +386,7 @@ def test_2d_to_1d_assignment_raises():
 @pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_basic_getitem_setitem_corner(datetime_series):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
-    msg = "Can only tuple-index with a MultiIndex"
+    msg = "key of type tuple not found and not a MultiIndex"
     with pytest.raises(ValueError, match=msg):
         datetime_series[:, 2]
     with pytest.raises(ValueError, match=msg):
@@ -406,13 +409,13 @@ def test_basic_getitem_setitem_corner(datetime_series):
 
 @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
 def test_setitem_with_tz(tz):
-    orig = pd.Series(pd.date_range("2016-01-01", freq="H", periods=3, tz=tz))
+    orig = Series(pd.date_range("2016-01-01", freq="H", periods=3, tz=tz))
     assert orig.dtype == f"datetime64[ns, {tz}]"
 
     # scalar
     s = orig.copy()
     s[1] = pd.Timestamp("2011-01-01", tz=tz)
-    exp = pd.Series(
+    exp = Series(
         [
             pd.Timestamp("2016-01-01 00:00", tz=tz),
             pd.Timestamp("2011-01-01 00:00", tz=tz),
@@ -430,14 +433,14 @@ def test_setitem_with_tz(tz):
     tm.assert_series_equal(s, exp)
 
     # vector
-    vals = pd.Series(
+    vals = Series(
         [pd.Timestamp("2011-01-01", tz=tz), pd.Timestamp("2012-01-01", tz=tz)],
         index=[1, 2],
     )
     assert vals.dtype == f"datetime64[ns, {tz}]"
 
     s[[1, 2]] = vals
-    exp = pd.Series(
+    exp = Series(
         [
             pd.Timestamp("2016-01-01 00:00", tz=tz),
             pd.Timestamp("2011-01-01 00:00", tz=tz),
@@ -458,13 +461,13 @@ def test_setitem_with_tz(tz):
 def test_setitem_with_tz_dst():
     # GH XXX TODO: fill in GH ref
     tz = "US/Eastern"
-    orig = pd.Series(pd.date_range("2016-11-06", freq="H", periods=3, tz=tz))
+    orig = Series(pd.date_range("2016-11-06", freq="H", periods=3, tz=tz))
     assert orig.dtype == f"datetime64[ns, {tz}]"
 
     # scalar
     s = orig.copy()
     s[1] = pd.Timestamp("2011-01-01", tz=tz)
-    exp = pd.Series(
+    exp = Series(
         [
             pd.Timestamp("2016-11-06 00:00-04:00", tz=tz),
             pd.Timestamp("2011-01-01 00:00-05:00", tz=tz),
@@ -482,14 +485,14 @@ def test_setitem_with_tz_dst():
     tm.assert_series_equal(s, exp)
 
     # vector
-    vals = pd.Series(
+    vals = Series(
         [pd.Timestamp("2011-01-01", tz=tz), pd.Timestamp("2012-01-01", tz=tz)],
         index=[1, 2],
     )
     assert vals.dtype == f"datetime64[ns, {tz}]"
 
     s[[1, 2]] = vals
-    exp = pd.Series(
+    exp = Series(
         [
             pd.Timestamp("2016-11-06 00:00", tz=tz),
             pd.Timestamp("2011-01-01 00:00", tz=tz),
@@ -544,7 +547,7 @@ def test_categorical_assigning_ops():
 
 def test_getitem_categorical_str():
     # GH#31765
-    ser = pd.Series(range(5), index=pd.Categorical(["a", "b", "c", "a", "b"]))
+    ser = Series(range(5), index=pd.Categorical(["a", "b", "c", "a", "b"]))
     result = ser["a"]
     expected = ser.iloc[[0, 3]]
     tm.assert_series_equal(result, expected)
@@ -643,7 +646,7 @@ def test_timedelta_assignment():
     # GH 14155
     s = Series(10 * [np.timedelta64(10, "m")])
     s.loc[[1, 2, 3]] = np.timedelta64(20, "m")
-    expected = pd.Series(10 * [np.timedelta64(10, "m")])
+    expected = Series(10 * [np.timedelta64(10, "m")])
     expected.loc[[1, 2, 3]] = pd.Timedelta(np.timedelta64(20, "m"))
     tm.assert_series_equal(s, expected)
 
@@ -662,8 +665,8 @@ def test_dt64_series_assign_nat(nat_val, should_cast, tz):
     #  into a datetime64 series.  Others should coerce to object
     #  and retain their dtypes.
     dti = pd.date_range("2016-01-01", periods=3, tz=tz)
-    base = pd.Series(dti)
-    expected = pd.Series([pd.NaT] + list(dti[1:]), dtype=dti.dtype)
+    base = Series(dti)
+    expected = Series([pd.NaT] + list(dti[1:]), dtype=dti.dtype)
     if not should_cast:
         expected = expected.astype(object)
 
@@ -692,8 +695,8 @@ def test_td64_series_assign_nat(nat_val, should_cast):
     # some nat-like values should be cast to timedelta64 when inserting
     #  into a timedelta64 series.  Others should coerce to object
     #  and retain their dtypes.
-    base = pd.Series([0, 1, 2], dtype="m8[ns]")
-    expected = pd.Series([pd.NaT, 1, 2], dtype="m8[ns]")
+    base = Series([0, 1, 2], dtype="m8[ns]")
+    expected = Series([pd.NaT, 1, 2], dtype="m8[ns]")
     if not should_cast:
         expected = expected.astype(object)
 
@@ -720,14 +723,14 @@ def test_td64_series_assign_nat(nat_val, should_cast):
 )
 def test_append_timedelta_does_not_cast(td):
     # GH#22717 inserting a Timedelta should _not_ cast to int64
-    expected = pd.Series(["x", td], index=[0, "td"], dtype=object)
+    expected = Series(["x", td], index=[0, "td"], dtype=object)
 
-    ser = pd.Series(["x"])
+    ser = Series(["x"])
     ser["td"] = td
     tm.assert_series_equal(ser, expected)
     assert isinstance(ser["td"], pd.Timedelta)
 
-    ser = pd.Series(["x"])
+    ser = Series(["x"])
     ser.loc["td"] = pd.Timedelta("9 days")
     tm.assert_series_equal(ser, expected)
     assert isinstance(ser["td"], pd.Timedelta)
@@ -768,7 +771,7 @@ def test_underlying_data_conversion():
     # GH 3217
     df = DataFrame(dict(a=[1, 3], b=[np.nan, 2]))
     df["c"] = np.nan
-    df["c"].update(pd.Series(["foo"], index=[0]))
+    df["c"].update(Series(["foo"], index=[0]))
 
     expected = DataFrame(dict(a=[1, 3], b=[np.nan, 2], c=["foo", np.nan]))
     tm.assert_frame_equal(df, expected)
@@ -875,9 +878,9 @@ def test_pop():
 def test_uint_drop(any_int_dtype):
     # see GH18311
     # assigning series.loc[0] = 4 changed series.dtype to int
-    series = pd.Series([1, 2, 3], dtype=any_int_dtype)
+    series = Series([1, 2, 3], dtype=any_int_dtype)
     series.loc[0] = 4
-    expected = pd.Series([4, 2, 3], dtype=any_int_dtype)
+    expected = Series([4, 2, 3], dtype=any_int_dtype)
     tm.assert_series_equal(series, expected)
 
 
@@ -885,7 +888,7 @@ def test_getitem_unrecognized_scalar():
     # GH#32684 a scalar key that is not recognized by lib.is_scalar
 
     # a series that might be produced via `frame.dtypes`
-    ser = pd.Series([1, 2], index=[np.dtype("O"), np.dtype("i8")])
+    ser = Series([1, 2], index=[np.dtype("O"), np.dtype("i8")])
 
     key = ser.index[1]
 
@@ -942,3 +945,22 @@ def test_slice_with_negative_step(index):
         for key2 in [keystr2, box(keystr2)]:
             assert_slices_equivalent(SLC[key2:key:-1], SLC[13:8:-1])
             assert_slices_equivalent(SLC[key:key2:-1], SLC[0:0:-1])
+
+
+def test_tuple_index():
+    # GH 35534 - Selecting values when a Series has an Index of tuples
+    s = Series([1, 2], index=[("a",), ("b",)])
+    assert s[("a",)] == 1
+    assert s[("b",)] == 2
+    s[("b",)] = 3
+    assert s[("b",)] == 3
+
+
+def test_frozenset_index():
+    # GH35747 - Selecting values when a Series has an Index of frozenset
+    idx0, idx1 = frozenset("a"), frozenset("b")
+    s = Series([1, 2], index=[idx0, idx1])
+    assert s[idx0] == 1
+    assert s[idx1] == 2
+    s[idx1] = 3
+    assert s[idx1] == 3

@@ -16,7 +16,9 @@ from pandas.core.arrays import DatetimeArray, period_array
 
 
 class TestDatetimeIndex:
-    @pytest.mark.parametrize("dt_cls", [DatetimeIndex, DatetimeArray._from_sequence])
+    @pytest.mark.parametrize(
+        "dt_cls", [DatetimeIndex, DatetimeArray._from_sequence_not_strict]
+    )
     def test_freq_validation_with_nat(self, dt_cls):
         # GH#11587 make sure we get a useful error message when generate_range
         #  raises
@@ -462,12 +464,12 @@ class TestDatetimeIndex:
 
     def test_construction_base_constructor(self):
         arr = [pd.Timestamp("2011-01-01"), pd.NaT, pd.Timestamp("2011-01-03")]
-        tm.assert_index_equal(pd.Index(arr), pd.DatetimeIndex(arr))
-        tm.assert_index_equal(pd.Index(np.array(arr)), pd.DatetimeIndex(np.array(arr)))
+        tm.assert_index_equal(Index(arr), pd.DatetimeIndex(arr))
+        tm.assert_index_equal(Index(np.array(arr)), pd.DatetimeIndex(np.array(arr)))
 
         arr = [np.nan, pd.NaT, pd.Timestamp("2011-01-03")]
-        tm.assert_index_equal(pd.Index(arr), pd.DatetimeIndex(arr))
-        tm.assert_index_equal(pd.Index(np.array(arr)), pd.DatetimeIndex(np.array(arr)))
+        tm.assert_index_equal(Index(arr), pd.DatetimeIndex(arr))
+        tm.assert_index_equal(Index(np.array(arr)), pd.DatetimeIndex(np.array(arr)))
 
     def test_construction_outofbounds(self):
         # GH 13663
@@ -854,7 +856,7 @@ class TestDatetimeIndex:
             pd.DatetimeIndex(["2000"], dtype="datetime64")
 
         with pytest.raises(ValueError, match=msg):
-            pd.Index(["2000"], dtype="datetime64")
+            Index(["2000"], dtype="datetime64")
 
     def test_constructor_wrong_precision_raises(self):
         msg = "Unexpected value for 'dtype': 'datetime64\\[us\\]'"

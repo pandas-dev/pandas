@@ -412,7 +412,7 @@ ctypedef fused algos_t:
     uint8_t
 
 
-def _validate_limit(nobs: int, limit=None) -> int:
+def validate_limit(nobs: int, limit=None) -> int:
     """
     Check that the `limit` argument is a positive integer.
 
@@ -452,7 +452,7 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     indexer = np.empty(nright, dtype=np.int64)
     indexer[:] = -1
 
-    lim = _validate_limit(nright, limit)
+    lim = validate_limit(nright, limit)
 
     if nleft == 0 or nright == 0 or new[nright - 1] < old[0]:
         return indexer
@@ -509,7 +509,7 @@ def pad_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     val = values[0]
     for i in range(N):
@@ -537,7 +537,7 @@ def pad_2d_inplace(algos_t[:, :] values, const uint8_t[:, :] mask, limit=None):
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     for j in range(K):
         fill_count = 0
@@ -593,7 +593,7 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
     indexer = np.empty(nright, dtype=np.int64)
     indexer[:] = -1
 
-    lim = _validate_limit(nright, limit)
+    lim = validate_limit(nright, limit)
 
     if nleft == 0 or nright == 0 or new[0] > old[nleft - 1]:
         return indexer
@@ -651,7 +651,7 @@ def backfill_inplace(algos_t[:] values, const uint8_t[:] mask, limit=None):
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     val = values[N - 1]
     for i in range(N - 1, -1, -1):
@@ -681,7 +681,7 @@ def backfill_2d_inplace(algos_t[:, :] values,
     if N == 0:
         return
 
-    lim = _validate_limit(N, limit)
+    lim = validate_limit(N, limit)
 
     for j in range(K):
         fill_count = 0
@@ -1195,6 +1195,7 @@ ctypedef fused diff_t:
 ctypedef fused out_t:
     float32_t
     float64_t
+    int64_t
 
 
 @cython.boundscheck(False)
@@ -1204,11 +1205,13 @@ def diff_2d(
     ndarray[out_t, ndim=2] out,
     Py_ssize_t periods,
     int axis,
+    bint datetimelike=False,
 ):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
         bint f_contig = arr.flags.f_contiguous
         # bint f_contig = arr.is_f_contig()  # TODO(cython 3)
+        diff_t left, right
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646
@@ -1217,6 +1220,9 @@ def diff_2d(
         raise NotImplementedError
     elif (out_t is float64_t
           and (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
+        raise NotImplementedError
+    elif out_t is int64_t and diff_t is not int64_t:
+        # We only have out_t of int64_t if we have datetimelike
         raise NotImplementedError
     else:
         # We put this inside an indented else block to avoid cython build
@@ -1231,7 +1237,15 @@ def diff_2d(
                         start, stop = 0, sx + periods
                     for j in range(sy):
                         for i in range(start, stop):
-                            out[i, j] = arr[i, j] - arr[i - periods, j]
+                            left = arr[i, j]
+                            right = arr[i - periods, j]
+                            if out_t is int64_t and datetimelike:
+                                if left == NPY_NAT or right == NPY_NAT:
+                                    out[i, j] = NPY_NAT
+                                else:
+                                    out[i, j] = left - right
+                            else:
+                                out[i, j] = left - right
                 else:
                     if periods >= 0:
                         start, stop = periods, sy
@@ -1239,7 +1253,15 @@ def diff_2d(
                         start, stop = 0, sy + periods
                     for j in range(start, stop):
                         for i in range(sx):
-                            out[i, j] = arr[i, j] - arr[i, j - periods]
+                            left = arr[i, j]
+                            right = arr[i, j - periods]
+                            if out_t is int64_t and datetimelike:
+                                if left == NPY_NAT or right == NPY_NAT:
+                                    out[i, j] = NPY_NAT
+                                else:
+                                    out[i, j] = left - right
+                            else:
+                                out[i, j] = left - right
             else:
                 if axis == 0:
                     if periods >= 0:
@@ -1248,7 +1270,15 @@ def diff_2d(
                         start, stop = 0, sx + periods
                     for i in range(start, stop):
                         for j in range(sy):
-                            out[i, j] = arr[i, j] - arr[i - periods, j]
+                            left = arr[i, j]
+                            right = arr[i - periods, j]
+                            if out_t is int64_t and datetimelike:
+                                if left == NPY_NAT or right == NPY_NAT:
+                                    out[i, j] = NPY_NAT
+                                else:
+                                    out[i, j] = left - right
+                            else:
+                                out[i, j] = left - right
                 else:
                     if periods >= 0:
                         start, stop = periods, sy
@@ -1256,7 +1286,15 @@ def diff_2d(
                         start, stop = 0, sy + periods
                     for i in range(sx):
                         for j in range(start, stop):
-                            out[i, j] = arr[i, j] - arr[i, j - periods]
+                            left = arr[i, j]
+                            right = arr[i, j - periods]
+                            if out_t is int64_t and datetimelike:
+                                if left == NPY_NAT or right == NPY_NAT:
+                                    out[i, j] = NPY_NAT
+                                else:
+                                    out[i, j] = left - right
+                            else:
+                                out[i, j] = left - right
 
 
 # generated from template

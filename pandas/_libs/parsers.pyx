@@ -67,7 +67,7 @@ from pandas._libs.khash cimport (
     khiter_t,
 )
 
-from pandas.compat import _get_lzma_file, _import_lzma
+from pandas.compat import get_lzma_file, import_lzma
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError, ParserWarning
 
 from pandas.core.dtypes.common import (
@@ -82,7 +82,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import union_categoricals
 
-lzma = _import_lzma()
+lzma = import_lzma()
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -476,10 +476,13 @@ cdef class TextReader:
         if float_precision == "round_trip":
             # see gh-15140
             self.parser.double_converter = round_trip
-        elif float_precision == "high":
+        elif float_precision == "legacy":
+            self.parser.double_converter = xstrtod
+        elif float_precision == "high" or float_precision is None:
             self.parser.double_converter = precise_xstrtod
         else:
-            self.parser.double_converter = xstrtod
+            raise ValueError(f'Unrecognized float_precision option: '
+                             f'{float_precision}')
 
         if isinstance(dtype, dict):
             dtype = {k: pandas_dtype(dtype[k])
@@ -638,9 +641,9 @@ cdef class TextReader:
                                      f'zip file {zip_names}')
             elif self.compression == 'xz':
                 if isinstance(source, str):
-                    source = _get_lzma_file(lzma)(source, 'rb')
+                    source = get_lzma_file(lzma)(source, 'rb')
                 else:
-                    source = _get_lzma_file(lzma)(filename=source)
+                    source = get_lzma_file(lzma)(filename=source)
             else:
                 raise ValueError(f'Unrecognized compression type: '
                                  f'{self.compression}')

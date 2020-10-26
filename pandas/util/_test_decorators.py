@@ -31,11 +31,10 @@ from typing import Callable, Optional
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_32bit, is_platform_windows
+from pandas.compat import IS64, is_platform_windows
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import _np_version
 
-from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
+from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
 
 
 def safe_import(mod_name: str, min_version: Optional[str] = None):
@@ -74,21 +73,6 @@ def safe_import(mod_name: str, min_version: Optional[str] = None):
                 return mod
 
     return False
-
-
-# TODO:
-# remove when gh-24839 is fixed.
-# this affects numpy 1.16 and pytables 3.4.4
-tables = safe_import("tables")
-xfail_non_writeable = pytest.mark.xfail(
-    tables
-    and LooseVersion(np.__version__) >= LooseVersion("1.16")
-    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
-    reason=(
-        "gh-25511, gh-24839. pytables needs a "
-        "release beyond 3.4.4 to support numpy 1.16.x"
-    ),
-)
 
 
 def _skip_if_no_mpl():
@@ -180,23 +164,23 @@ skip_if_no_mpl = pytest.mark.skipif(
     _skip_if_no_mpl(), reason="Missing matplotlib dependency"
 )
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
-skip_if_32bit = pytest.mark.skipif(is_platform_32bit(), reason="skipping for 32 bit")
+skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
 skip_if_windows_python_3 = pytest.mark.skipif(
     is_platform_windows(), reason="not used on win32"
 )
 skip_if_has_locale = pytest.mark.skipif(
-    _skip_if_has_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}",
+    _skip_if_has_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
 )
 skip_if_not_us_locale = pytest.mark.skipif(
-    _skip_if_not_us_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}",
+    _skip_if_not_us_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
 )
 skip_if_no_scipy = pytest.mark.skipif(
     _skip_if_no_scipy(), reason="Missing SciPy requirement"
 )
 skip_if_no_ne = pytest.mark.skipif(
-    not _USE_NUMEXPR,
-    reason=f"numexpr enabled->{_USE_NUMEXPR}, installed->{_NUMEXPR_INSTALLED}",
+    not USE_NUMEXPR,
+    reason=f"numexpr enabled->{USE_NUMEXPR}, installed->{NUMEXPR_INSTALLED}",
 )
 
 
@@ -205,7 +189,9 @@ skip_if_no_ne = pytest.mark.skipif(
 def skip_if_np_lt(ver_str: str, *args, reason: Optional[str] = None):
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
-    return pytest.mark.skipif(_np_version < LooseVersion(ver_str), *args, reason=reason)
+    return pytest.mark.skipif(
+        np.__version__ < LooseVersion(ver_str), *args, reason=reason
+    )
 
 
 def parametrize_fixture_doc(*args):

@@ -1,5 +1,5 @@
 import numbers
-from typing import Optional, Tuple, Type, Union
+from typing import Tuple, Type, Union
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -7,22 +7,15 @@ from numpy.lib.mixins import NDArrayOperatorsMixin
 from pandas._libs import lib
 from pandas._typing import Scalar
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
-from pandas import compat
 from pandas.core import nanops, ops
-from pandas.core.algorithms import searchsorted
 from pandas.core.array_algos import masked_reductions
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
-from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
-from pandas.core.missing import backfill_1d, pad_1d
+from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
 class PandasDtype(ExtensionDtype):
@@ -121,7 +114,10 @@ class PandasDtype(ExtensionDtype):
 
 
 class PandasArray(
-    NDArrayBackedExtensionArray, ExtensionOpsMixin, NDArrayOperatorsMixin
+    OpsMixin,
+    NDArrayBackedExtensionArray,
+    NDArrayOperatorsMixin,
+    ObjectStringArrayMixin,
 ):
     """
     A pandas ExtensionArray for NumPy data.
@@ -189,10 +185,6 @@ class PandasArray(
     def _from_factorized(cls, values, original) -> "PandasArray":
         return cls(values)
 
-    @classmethod
-    def _concat_same_type(cls, to_concat) -> "PandasArray":
-        return cls(np.concatenate(to_concat))
-
     def _from_backing_data(self, arr: np.ndarray) -> "PandasArray":
         return type(self)(arr)
 
@@ -225,6 +217,16 @@ class PandasArray(
             if not isinstance(x, self._HANDLED_TYPES + (PandasArray,)):
                 return NotImplemented
 
+        if ufunc not in [np.logical_or, np.bitwise_or, np.bitwise_xor]:
+            # For binary ops, use our custom dunder methods
+            # We haven't implemented logical dunder funcs, so exclude these
+            #  to avoid RecursionError
+            result = ops.maybe_dispatch_ufunc_to_dunder_op(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
+
         # Defer to the implementation of the ufunc on unwrapped values.
         inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)
         if out:
@@ -254,59 +256,8 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
 
-    def __getitem__(self, item):
-        if isinstance(item, type(self)):
-            item = item._ndarray
-
-        item = check_array_indexer(self, item)
-
-        result = self._ndarray[item]
-        if not lib.is_scalar(item):
-            result = type(self)(result)
-        return result
-
-    def __setitem__(self, key, value) -> None:
-        value = extract_array(value, extract_numpy=True)
-
-        key = check_array_indexer(self, key)
-        scalar_value = lib.is_scalar(value)
-
-        if not scalar_value:
-            value = np.asarray(value, dtype=self._ndarray.dtype)
-
-        self._ndarray[key] = value
-
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
-
-    def fillna(
-        self, value=None, method: Optional[str] = None, limit: Optional[int] = None,
-    ) -> "PandasArray":
-        # TODO(_values_for_fillna): remove this
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-
-        if is_array_like(value):
-            if len(value) != len(self):
-                raise ValueError(
-                    f"Length of 'value' does not match. Got ({len(value)}) "
-                    f" expected {len(self)}"
-                )
-            value = value[mask]
-
-        if mask.any():
-            if method is not None:
-                func = pad_1d if method == "pad" else backfill_1d
-                new_values = func(self._ndarray, limit=limit, mask=mask)
-                new_values = self._from_sequence(new_values, dtype=self.dtype)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     def _validate_fill_value(self, fill_value):
         if fill_value is None:
@@ -314,22 +265,11 @@ class PandasArray(
             fill_value = self.dtype.na_value
         return fill_value
 
-    def _values_for_argsort(self) -> np.ndarray:
-        return self._ndarray
-
     def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
         return self._ndarray, -1
 
     # ------------------------------------------------------------------------
     # Reductions
-
-    def _reduce(self, name, skipna=True, **kwargs):
-        meth = getattr(self, name, None)
-        if meth:
-            return meth(skipna=skipna, **kwargs)
-        else:
-            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
-            raise TypeError(msg)
 
     def any(self, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
@@ -423,36 +363,44 @@ class PandasArray(
 
         return result
 
-    @doc(ExtensionArray.searchsorted)
-    def searchsorted(self, value, side="left", sorter=None):
-        return searchsorted(self.to_numpy(), value, side=side, sorter=sorter)
-
     # ------------------------------------------------------------------------
     # Ops
 
     def __invert__(self):
         return type(self)(~self._ndarray)
 
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        @ops.unpack_zerodim_and_defer(op.__name__)
-        def arithmetic_method(self, other):
-            if isinstance(other, cls):
-                other = other._ndarray
+    def _cmp_method(self, other, op):
+        if isinstance(other, PandasArray):
+            other = other._ndarray
 
-            with np.errstate(all="ignore"):
-                result = op(self._ndarray, other)
+        pd_op = ops.get_array_op(op)
+        result = pd_op(self._ndarray, other)
 
-            if op is divmod:
-                a, b = result
-                return cls(a), cls(b)
+        if op is divmod or op is ops.rdivmod:
+            a, b = result
+            if isinstance(a, np.ndarray):
+                # for e.g. op vs TimedeltaArray, we may already
+                #  have an ExtensionArray, in which case we do not wrap
+                return self._wrap_ndarray_result(a), self._wrap_ndarray_result(b)
+            return a, b
 
-            return cls(result)
+        if isinstance(result, np.ndarray):
+            # for e.g. multiplication vs TimedeltaArray, we may already
+            #  have an ExtensionArray, in which case we do not wrap
+            return self._wrap_ndarray_result(result)
+        return result
 
-        return compat.set_function_name(arithmetic_method, f"__{op.__name__}__", cls)
+    _arith_method = _cmp_method
 
-    _create_comparison_method = _create_arithmetic_method
+    def _wrap_ndarray_result(self, result: np.ndarray):
+        # If we have timedelta64[ns] result, return a TimedeltaArray instead
+        #  of a PandasArray
+        if result.dtype == "timedelta64[ns]":
+            from pandas.core.arrays import TimedeltaArray
 
+            return TimedeltaArray._simple_new(result)
+        return type(self)(result)
 
-PandasArray._add_arithmetic_ops()
-PandasArray._add_comparison_ops()
+    # ------------------------------------------------------------------------
+    # String methods interface
+    _str_na_value = np.nan

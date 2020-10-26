@@ -15,25 +15,19 @@ from pandas.core.dtypes.common import (
     is_float,
     is_float_dtype,
     is_integer_dtype,
+    is_numeric_dtype,
     is_scalar,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCFloat64Index,
-    ABCInt64Index,
-    ABCRangeIndex,
-    ABCSeries,
-    ABCUInt64Index,
-)
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna
 
 from pandas.core import algorithms
 import pandas.core.common as com
 from pandas.core.indexes.base import Index, maybe_extract_name
-from pandas.core.ops import get_op_result_name
 
 _num_index_shared_docs = dict()
 
@@ -44,6 +38,8 @@ class NumericIndex(Index):
 
     This is an abstract class.
     """
+
+    _default_dtype: np.dtype
 
     _is_numeric_dtype = True
 
@@ -95,12 +91,17 @@ class NumericIndex(Index):
                 f"Incorrect `dtype` passed: expected {expected}, received {dtype}"
             )
 
+    # ----------------------------------------------------------------
+    # Indexing Methods
+
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side, kind):
         assert kind in ["loc", "getitem", None]
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
+
+    # ----------------------------------------------------------------
 
     @doc(Index._shallow_copy)
     def _shallow_copy(self, values=None, name: Label = lib.no_default):
@@ -110,7 +111,7 @@ class NumericIndex(Index):
             return Float64Index._simple_new(values, name=name)
         return super()._shallow_copy(values=values, name=name)
 
-    def _convert_for_op(self, value):
+    def _validate_fill_value(self, value):
         """
         Convert value to be insertable to ndarray.
         """
@@ -148,7 +149,7 @@ class NumericIndex(Index):
         pass
 
     @property
-    def is_all_dates(self) -> bool:
+    def _is_all_dates(self) -> bool:
         """
         Checks that all the labels are datetime objects.
         """
@@ -158,7 +159,12 @@ class NumericIndex(Index):
     def insert(self, loc: int, item):
         # treat NA values as nans:
         if is_scalar(item) and isna(item):
-            item = self._na_value
+            if is_valid_nat_for_dtype(item, self.dtype):
+                item = self._na_value
+            else:
+                # NaT, np.datetime64("NaT"), np.timedelta64("NaT")
+                return self.astype(object).insert(loc, item)
+
         return super().insert(loc, item)
 
     def _union(self, other, sort):
@@ -182,7 +188,7 @@ class NumericIndex(Index):
 _num_index_shared_docs[
     "class_descr"
 ] = """
-    Immutable ndarray implementing an ordered, sliceable set. The basic object
+    Immutable sequence used for indexing and alignment. The basic object
     storing axis labels for all pandas objects. %(klass)s is a special case
     of `Index` with purely %(ltype)s labels. %(extra)s.
 
@@ -255,10 +261,6 @@ class Int64Index(IntegerIndex):
     _engine_type = libindex.Int64Engine
     _default_dtype = np.dtype(np.int64)
 
-    def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        return Int64Index(joined, name=name)
-
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
         """
@@ -268,15 +270,10 @@ class Int64Index(IntegerIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
-    def _is_compatible_with_other(self, other) -> bool:
-        return super()._is_compatible_with_other(other) or all(
-            isinstance(obj, (ABCInt64Index, ABCFloat64Index, ABCRangeIndex))
-            for obj in [self, other]
-        )
+    def _can_union_without_object_cast(self, other) -> bool:
+        # See GH#26778, further casting may occur in NumericIndex._union
+        return other.dtype == "f8" or other.dtype == self.dtype
 
-
-Int64Index._add_numeric_methods()
-Int64Index._add_logical_methods()
 
 _uint64_descr_args = dict(
     klass="UInt64Index", ltype="unsigned integer", dtype="uint64", extra=""
@@ -291,6 +288,9 @@ class UInt64Index(IntegerIndex):
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
 
+    # ----------------------------------------------------------------
+    # Indexing Methods
+
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
         # Cast the indexer to uint64 if possible so that the values returned
@@ -303,18 +303,7 @@ class UInt64Index(IntegerIndex):
 
         return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
-    @doc(Index._convert_index_indexer)
-    def _convert_index_indexer(self, keyarr):
-        # Cast the indexer to uint64 if possible so
-        # that the values returned from indexing are
-        # also uint64.
-        if keyarr.is_integer():
-            return keyarr.astype(np.uint64)
-        return keyarr
-
-    def _wrap_joined_index(self, joined, other):
-        name = get_op_result_name(self, other)
-        return UInt64Index(joined, name=name)
+    # ----------------------------------------------------------------
 
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
@@ -325,14 +314,10 @@ class UInt64Index(IntegerIndex):
             if not np.array_equal(data, subarr):
                 raise TypeError("Unsafe NumPy casting, you must explicitly cast")
 
-    def _is_compatible_with_other(self, other) -> bool:
-        return super()._is_compatible_with_other(other) or all(
-            isinstance(obj, (ABCUInt64Index, ABCFloat64Index)) for obj in [self, other]
-        )
+    def _can_union_without_object_cast(self, other) -> bool:
+        # See GH#26778, further casting may occur in NumericIndex._union
+        return other.dtype == "f8" or other.dtype == self.dtype
 
-
-UInt64Index._add_numeric_methods()
-UInt64Index._add_logical_methods()
 
 _float64_descr_args = dict(
     klass="Float64Index", dtype="float64", ltype="float", extra=""
@@ -383,6 +368,22 @@ class Float64Index(NumericIndex):
         # translate to locations
         return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
 
+    @doc(Index.get_loc)
+    def get_loc(self, key, method=None, tolerance=None):
+        if is_bool(key):
+            # Catch this to avoid accidentally casting to 1.0
+            raise KeyError(key)
+
+        if is_float(key) and np.isnan(key):
+            nan_idxs = self._nan_idxs
+            if not len(nan_idxs):
+                raise KeyError(key)
+            elif len(nan_idxs) == 1:
+                return nan_idxs[0]
+            return nan_idxs
+
+        return super().get_loc(key, method=method, tolerance=tolerance)
+
     # ----------------------------------------------------------------
 
     def _format_native_types(
@@ -407,22 +408,6 @@ class Float64Index(NumericIndex):
 
         return is_float(other) and np.isnan(other) and self.hasnans
 
-    @doc(Index.get_loc)
-    def get_loc(self, key, method=None, tolerance=None):
-        if is_bool(key):
-            # Catch this to avoid accidentally casting to 1.0
-            raise KeyError(key)
-
-        if is_float(key) and np.isnan(key):
-            nan_idxs = self._nan_idxs
-            if not len(nan_idxs):
-                raise KeyError(key)
-            elif len(nan_idxs) == 1:
-                return nan_idxs[0]
-            return nan_idxs
-
-        return super().get_loc(key, method=method, tolerance=tolerance)
-
     @cache_readonly
     def is_unique(self) -> bool:
         return super().is_unique and self._nan_idxs.size < 2
@@ -433,14 +418,6 @@ class Float64Index(NumericIndex):
             self._validate_index_level(level)
         return algorithms.isin(np.array(self), values)
 
-    def _is_compatible_with_other(self, other) -> bool:
-        return super()._is_compatible_with_other(other) or all(
-            isinstance(
-                obj, (ABCInt64Index, ABCFloat64Index, ABCUInt64Index, ABCRangeIndex),
-            )
-            for obj in [self, other]
-        )
-
-
-Float64Index._add_numeric_methods()
-Float64Index._add_logical_methods_disabled()
+    def _can_union_without_object_cast(self, other) -> bool:
+        # See GH#26778, further casting may occur in NumericIndex._union
+        return is_numeric_dtype(other.dtype)

@@ -46,10 +46,8 @@ class TestDatetimeIndexSetOps:
         first = everything[:5]
         second = everything[5:]
 
-        # GH 10149
-        expected = (
-            first.astype("O").union(pd.Index(second.values, dtype="O")).astype("O")
-        )
+        # GH 10149 support listlike inputs other than Index objects
+        expected = first.union(second, sort=sort)
         case = box(second.values)
         result = first.union(case, sort=sort)
         tm.assert_index_equal(result, expected)
@@ -203,7 +201,7 @@ class TestDatetimeIndexSetOps:
 
         third = Index(["a", "b", "c"])
         result = first.intersection(third)
-        expected = pd.Index([], dtype=object)
+        expected = Index([], dtype=object)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -469,6 +467,13 @@ class TestBusinessDatetimeIndex:
         result = a.intersection(b)
         tm.assert_index_equal(result, b)
         assert result.freq == b.freq
+
+    def test_intersection_list(self):
+        # GH#35876
+        values = [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-02-01")]
+        idx = pd.DatetimeIndex(values, name="a")
+        res = idx.intersection(values)
+        tm.assert_index_equal(res, idx.rename(None))
 
     def test_month_range_union_tz_pytz(self, sort):
         from pytz import timezone

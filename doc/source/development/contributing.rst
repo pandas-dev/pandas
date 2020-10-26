@@ -31,13 +31,13 @@ comment letting others know they are working on an issue. While this is ok, you 
 check each issue individually, and it's not possible to find the unassigned ones.
 
 For this reason, we implemented a workaround consisting of adding a comment with the exact
-text `take`. When you do it, a GitHub action will automatically assign you the issue
+text ``take``. When you do it, a GitHub action will automatically assign you the issue
 (this will take seconds, and may require refreshing the page to see it).
 By doing this, it's possible to filter the list of issues and find only the unassigned ones.
 
 So, a good way to find an issue to start contributing to pandas is to check the list of
 `unassigned good first issues <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22+no%3Aassignee>`_
-and assign yourself one you like by writing a comment with the exact text `take`.
+and assign yourself one you like by writing a comment with the exact text ``take``.
 
 If for whatever reason you are not able to continue working with the issue, please try to
 unassign it, so other people know it's available again. You can check the list of
@@ -133,7 +133,7 @@ want to clone your fork to your machine::
     cd pandas-yourname
     git remote add upstream https://github.com/pandas-dev/pandas.git
 
-This creates the directory `pandas-yourname` and connects your repository to
+This creates the directory ``pandas-yourname`` and connects your repository to
 the upstream (main project) *pandas* repository.
 
 Note that performing a shallow clone (with ``--depth==N``, for some ``N`` greater
@@ -155,12 +155,12 @@ Using a Docker container
 
 Instead of manually setting up a development environment, you can use `Docker
 <https://docs.docker.com/get-docker/>`_ to automatically create the environment with just several
-commands. Pandas provides a `DockerFile` in the root directory to build a Docker image
+commands. pandas provides a ``DockerFile`` in the root directory to build a Docker image
 with a full pandas development environment.
 
 **Docker Commands**
 
-Pass your GitHub username in the `DockerFile` to use your own fork::
+Pass your GitHub username in the ``DockerFile`` to use your own fork::
 
     # Build the image pandas-yourname-env
     docker build --tag pandas-yourname-env .
@@ -172,7 +172,7 @@ Even easier, you can integrate Docker with the following IDEs:
 **Visual Studio Code**
 
 You can use the DockerFile to launch a remote session with Visual Studio Code,
-a popular free IDE, using the `.devcontainer.json` file.
+a popular free IDE, using the ``.devcontainer.json`` file.
 See https://code.visualstudio.com/docs/remote/containers for details.
 
 **PyCharm (Professional)**
@@ -190,7 +190,7 @@ Note that you might need to rebuild the C extensions if/when you merge with upst
 Installing a C compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas uses C extensions (mostly written using Cython) to speed up certain
+pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
 extensions, which means you need a C compiler. This process depends on which
 platform you're using.
@@ -204,8 +204,9 @@ You will need `Build Tools for Visual Studio 2017
 	You DO NOT need to install Visual Studio 2019.
 	You only need "Build Tools for Visual Studio 2019" found by
 	scrolling down to "All downloads" -> "Tools for Visual Studio 2019".
+	In the installer, select the "C++ build tools" workload.
 
-**Mac OS**
+**macOS**
 
 Information about compiler installation can be found here:
 https://devguide.python.org/setup/#macos
@@ -298,7 +299,7 @@ Creating a Python environment (pip)
 If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least Python 3.6.1 installed on your system.
 
-**Unix**/**Mac OS with virtualenv**
+**Unix**/**macOS with virtualenv**
 
 .. code-block:: bash
 
@@ -317,7 +318,7 @@ You'll need to have at least Python 3.6.1 installed on your system.
    python setup.py build_ext --inplace -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
-**Unix**/**Mac OS with pyenv**
+**Unix**/**macOS with pyenv**
 
 Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
 
@@ -597,7 +598,7 @@ Building master branch documentation
 
 When pull requests are merged into the pandas ``master`` branch, the main parts of
 the documentation are also built by Travis-CI. These docs are then hosted `here
-<https://dev.pandas.io>`__, see also
+<https://pandas.pydata.org/docs/dev/>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
 
 .. _contributing.code:
@@ -632,6 +633,10 @@ In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
+
+In addition to ``./ci/code_checks.sh``, some extra checks are run by
+``pre-commit`` - see :ref:`here <contributing.pre-commit>` for how to
+run them.
 
 Additional standards are outlined on the :ref:`pandas code style guide <code_style>`
 
@@ -719,7 +724,7 @@ submitting code to run the check yourself::
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
 
-You should use a ``black`` version >= 19.10b0 as previous versions are not compatible
+You should use a ``black`` version 20.8b1 as previous versions are not compatible
 with the pandas codebase.
 
 If you wish to run these checks automatically, we encourage you to use
@@ -777,7 +782,7 @@ As part of :ref:`Continuous Integration <contributing.ci>` checks we run::
 
     isort --check-only pandas
 
-to check that imports are correctly formatted as per the `setup.cfg`.
+to check that imports are correctly formatted as per the ``setup.cfg``.
 
 If you see output like the below in :ref:`Continuous Integration <contributing.ci>` checks:
 
@@ -824,6 +829,16 @@ In addition, using this pre-commit hook will also allow you to more easily
 remain up-to-date with our code checks as they change.
 
 Note that if needed, you can skip these checks with ``git commit --no-verify``.
+
+If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
+to run its checks by running::
+
+    pre-commit run --files <files you have modified>
+
+without having to have done ``pre-commit install`` beforehand.
+
+Note that if you have conflicting installations of ``virtualenv``, then you may get an
+error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -967,7 +982,7 @@ For example, quite a few functions in pandas accept a ``dtype`` argument. This c
    def as_type(dtype: Dtype) -> ...:
        ...
 
-This module will ultimately house types for repeatedly used concepts like "path-like", "array-like", "numeric", etc... and can also hold aliases for commonly appearing parameters like `axis`. Development of this module is active so be sure to refer to the source for the most up to date list of available types.
+This module will ultimately house types for repeatedly used concepts like "path-like", "array-like", "numeric", etc... and can also hold aliases for commonly appearing parameters like ``axis``. Development of this module is active so be sure to refer to the source for the most up to date list of available types.
 
 Validating type hints
 ~~~~~~~~~~~~~~~~~~~~~
@@ -1207,7 +1222,7 @@ This test shows off several useful features of Hypothesis, as well as
 demonstrating a good use-case: checking properties that should hold over
 a large or complicated domain of inputs.
 
-To keep the Pandas test suite running quickly, parametrized tests are
+To keep the pandas test suite running quickly, parametrized tests are
 preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.
@@ -1290,7 +1305,7 @@ Or with one of the following constructs::
 
 Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, one can
 speed up local testing on multicore machines. To use this feature, you will
-need to install `pytest-xdist` via::
+need to install ``pytest-xdist`` via::
 
     pip install pytest-xdist
 
@@ -1350,16 +1365,16 @@ environments. If you want to use virtualenv instead, write::
 The ``-E virtualenv`` option should be added to all ``asv`` commands
 that run benchmarks. The default value is defined in ``asv.conf.json``.
 
-Running the full test suite can take up to one hour and use up to 3GB of RAM.
-Usually it is sufficient to paste only a subset of the results into the pull
-request to show that the committed changes do not cause unexpected performance
-regressions.  You can run specific benchmarks using the ``-b`` flag, which
-takes a regular expression.  For example, this will only run tests from a
-``pandas/asv_bench/benchmarks/groupby.py`` file::
+Running the full benchmark suite can be an all-day process, depending on your
+hardware and its resource utilization. However, usually it is sufficient to paste
+only a subset of the results into the pull request to show that the committed changes
+do not cause unexpected performance regressions.  You can run specific benchmarks
+using the ``-b`` flag, which takes a regular expression. For example, this will
+only run benchmarks from a ``pandas/asv_bench/benchmarks/groupby.py`` file::
 
     asv continuous -f 1.1 upstream/master HEAD -b ^groupby
 
-If you want to only run a specific group of tests from a file, you can do it
+If you want to only run a specific group of benchmarks from a file, you can do it
 using ``.`` as a separator. For example::
 
     asv continuous -f 1.1 upstream/master HEAD -b groupby.GroupByMethods
@@ -1453,7 +1468,7 @@ The following defines how a commit message should be structured.  Please referen
 relevant GitHub issues in your commit message using GH1234 or #1234.  Either style
 is fine, but the former is generally preferred:
 
-* a subject line with `< 80` chars.
+* a subject line with ``< 80`` chars.
 * One blank line.
 * Optionally, a commit message body.
 

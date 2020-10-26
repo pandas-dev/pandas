@@ -5,7 +5,7 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import Scalar
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
+from pandas.util._decorators import cache_readonly, doc
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
@@ -17,9 +17,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
-from pandas.core.algorithms import _factorize_array, take
+from pandas.core.algorithms import factorize_array, take
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
@@ -34,11 +35,25 @@ class BaseMaskedDtype(ExtensionDtype):
     Base class for dtypes for BasedMaskedArray subclasses.
     """
 
+    name: str
+    base = None
+    type: Type
+
     na_value = libmissing.NA
 
-    @property
+    @cache_readonly
     def numpy_dtype(self) -> np.dtype:
-        raise AbstractMethodError
+        """ Return an instance of our numpy dtype """
+        return np.dtype(self.type)
+
+    @cache_readonly
+    def kind(self) -> str:
+        return self.numpy_dtype.kind
+
+    @cache_readonly
+    def itemsize(self) -> int:
+        """ Return the number of bytes in this dtype """
+        return self.numpy_dtype.itemsize
 
     @classmethod
     def construct_array_type(cls) -> Type["BaseMaskedArray"]:
@@ -52,7 +67,7 @@ class BaseMaskedDtype(ExtensionDtype):
         raise NotImplementedError
 
 
-class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
+class BaseMaskedArray(OpsMixin, ExtensionArray):
     """
     Base class for masked arrays (which use _data and _mask to store the data).
 
@@ -126,7 +141,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         return type(self)(~self._data, self._mask)
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default,
+        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
@@ -287,7 +302,7 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
         arr = self._data
         mask = self._mask
 
-        codes, uniques = _factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
+        codes, uniques = factorize_array(arr, na_sentinel=na_sentinel, mask=mask)
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)

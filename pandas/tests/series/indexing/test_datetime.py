@@ -1,3 +1,6 @@
+"""
+Also test support for datetime64[ns] in Series / DataFrame
+"""
 from datetime import datetime, timedelta
 import re
 
@@ -10,10 +13,6 @@ import pandas._libs.index as _index
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
 import pandas._testing as tm
-
-"""
-Also test support for datetime64[ns] in Series / DataFrame
-"""
 
 
 def test_fancy_getitem():
@@ -66,21 +65,6 @@ def test_dti_reset_index_round_trip():
     assert df.reset_index()["Date"][0] == stamp
 
 
-def test_series_set_value():
-    # #1561
-
-    dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
-    index = DatetimeIndex(dates)
-
-    s = Series(dtype=object)
-    s._set_value(dates[0], 1.0)
-    s._set_value(dates[1], np.nan)
-
-    expected = Series([1.0, np.nan], index=index)
-
-    tm.assert_series_equal(s, expected)
-
-
 @pytest.mark.slow
 def test_slice_locs_indexerror():
     times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10) for i in range(100000)]
@@ -110,7 +94,7 @@ def test_slicing_datetimes():
     tm.assert_frame_equal(result, expected)
 
     # duplicates
-    df = pd.DataFrame(
+    df = DataFrame(
         np.arange(5.0, dtype="float64"),
         index=[datetime(2001, 1, i, 10, 00) for i in [1, 2, 2, 3, 4]],
     )
@@ -238,28 +222,43 @@ def test_getitem_setitem_datetimeindex():
     expected = ts[4:8]
     tm.assert_series_equal(result, expected)
 
-    # repeat all the above with naive datetimes
-    result = ts[datetime(1990, 1, 1, 4)]
+    # But we do not give datetimes a pass on tzawareness compat
+    # TODO: do the same with Timestamps and dt64
+    msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+    naive = datetime(1990, 1, 1, 4)
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#36148 will require tzawareness compat
+        result = ts[naive]
     expected = ts[4]
     assert result == expected
 
     result = ts.copy()
-    result[datetime(1990, 1, 1, 4)] = 0
-    result[datetime(1990, 1, 1, 4)] = ts[4]
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36148 will require tzawareness compat
+        result[datetime(1990, 1, 1, 4)] = 0
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36148 will require tzawareness compat
+        result[datetime(1990, 1, 1, 4)] = ts[4]
     tm.assert_series_equal(result, ts)
 
-    result = ts[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)]
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36148 will require tzawareness compat
+        result = ts[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)]
     expected = ts[4:8]
     tm.assert_series_equal(result, expected)
 
     result = ts.copy()
-    result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = 0
-    result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = ts[4:8]
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36148 will require tzawareness compat
+        result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = 0
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        # GH#36148 will require tzawareness compat
+        result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = ts[4:8]
     tm.assert_series_equal(result, ts)
 
     lb = datetime(1990, 1, 1, 4)
     rb = datetime(1990, 1, 1, 7)
-    msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+    msg = r"Invalid comparison between dtype=datetime64\[ns, US/Eastern\] and datetime"
     with pytest.raises(TypeError, match=msg):
         # tznaive vs tzaware comparison is invalid
         # see GH#18376, GH#18162
@@ -538,7 +537,7 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
     idx = pd.period_range("1/1/2000", freq="T", periods=n)
     assert idx._engine.over_size_threshold
 
-    s = pd.Series(np.random.randn(len(idx)), index=idx)
+    s = Series(np.random.randn(len(idx)), index=idx)
 
     pos = n - 1
     timestamp = idx[pos]
@@ -605,7 +604,9 @@ def test_indexing():
     expected.name = "A"
 
     df = DataFrame(dict(A=ts))
-    result = df["2001"]["A"]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#36179 string indexing on rows for DataFrame deprecated
+        result = df["2001"]["A"]
     tm.assert_series_equal(expected, result)
 
     # setting
@@ -615,7 +616,9 @@ def test_indexing():
 
     df.loc["2001", "A"] = 1
 
-    result = df["2001"]["A"]
+    with tm.assert_produces_warning(FutureWarning):
+        # GH#36179 string indexing on rows for DataFrame deprecated
+        result = df["2001"]["A"]
     tm.assert_series_equal(expected, result)
 
     # GH3546 (not including times on the last day)

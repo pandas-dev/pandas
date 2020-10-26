@@ -98,7 +98,7 @@ With Altair, you can spend more time understanding your data and its
 meaning. Altair's API is simple, friendly and consistent and built on
 top of the powerful Vega-Lite JSON specification. This elegant
 simplicity produces beautiful and effective visualizations with a
-minimal amount of code. Altair works with Pandas DataFrames.
+minimal amount of code. Altair works with pandas DataFrames.
 
 
 `Bokeh <https://bokeh.pydata.org>`__
@@ -110,7 +110,7 @@ graphics in the style of Protovis/D3, while delivering high-performance interact
 large data to thin clients.
 
 `Pandas-Bokeh <https://github.com/PatrikHlobil/Pandas-Bokeh>`__ provides a high level API
-for Bokeh that can be loaded as a native Pandas plotting backend via
+for Bokeh that can be loaded as a native pandas plotting backend via
 
 .. code:: python
 
@@ -170,7 +170,9 @@ invoked with the following command
 
 .. code:: python
 
-    import dtale; dtale.show(df)
+    import dtale
+
+    dtale.show(df)
 
 D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
 & Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
@@ -185,7 +187,7 @@ IDE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 IPython is an interactive command shell and distributed computing
-environment. IPython tab completion works with Pandas methods and also
+environment. IPython tab completion works with pandas methods and also
 attributes like DataFrame columns.
 
 `Jupyter Notebook / Jupyter Lab <https://jupyter.org>`__
@@ -199,7 +201,7 @@ Jupyter notebooks can be converted to a number of open standard output formats
 Python) through 'Download As' in the web interface and ``jupyter convert``
 in a shell.
 
-Pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
+pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
 which are utilized by Jupyter Notebook for displaying
 (abbreviated) HTML or LaTeX tables. LaTeX output is properly escaped.
 (Note: HTML tables may or may not be
@@ -227,8 +229,8 @@ Its `Variable Explorer <https://docs.spyder-ide.org/variableexplorer.html>`__
 allows users to view, manipulate and edit pandas ``Index``, ``Series``,
 and ``DataFrame`` objects like a "spreadsheet", including copying and modifying
 values, sorting, displaying a "heatmap", converting data types and more.
-Pandas objects can also be renamed, duplicated, new columns added,
-copyed/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
+pandas objects can also be renamed, duplicated, new columns added,
+copied/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
 Spyder can also import data from a variety of plain text and binary files
 or the clipboard into a new pandas DataFrame via a sophisticated import wizard.
 
@@ -274,13 +276,13 @@ The following data feeds are available:
 `Quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Quandl API for Python wraps the Quandl REST API to return
-Pandas DataFrames with timeseries indexes.
+pandas DataFrames with timeseries indexes.
 
 `Pydatastream <https://github.com/vfilimonov/pydatastream>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 PyDatastream is a Python interface to the
 `Refinitiv Datastream (DWS) <https://www.refinitiv.com/en/products/datastream-macroeconomic-analysis>`__
-REST API to return indexed Pandas DataFrames with financial data.
+REST API to return indexed pandas DataFrames with financial data.
 This package requires valid credentials for this API (non free).
 
 `pandaSDMX <https://pandasdmx.readthedocs.io>`__
@@ -302,6 +304,13 @@ contains point-in-time data (i.e. historic data revisions). fredapi provides a w
 HTTP API, and also provides several convenient methods for parsing and analyzing point-in-time data from ALFRED.
 fredapi makes use of pandas and returns data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
+
+`dataframe_sql <https://github.com/zbrookle/dataframe_sql>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``dataframe_sql`` is a Python package that translates SQL syntax directly into
+operations on pandas DataFrames. This is useful when migrating from a database to
+using pandas or for users more comfortable with SQL looking for a way to interface
+with pandas.
 
 
 .. _ecosystem.domain:
@@ -348,7 +357,7 @@ Out-of-core
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Blaze provides a standard API for doing computations with various
-in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB, PyTables,
+in-memory and on-disk backends: NumPy, pandas, SQLAlchemy, MongoDB, PyTables,
 PySpark.
 
 `Dask <https://dask.readthedocs.io/en/latest/>`__
@@ -366,6 +375,23 @@ Dask-ML enables parallel and distributed machine learning using Dask alongside e
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Koalas provides a familiar pandas DataFrame interface on top of Apache Spark. It enables users to leverage multi-cores on one machine or a cluster of machines to speed up or scale their DataFrame code.
+
+`Modin <https://github.com/modin-project/modin>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``modin.pandas`` DataFrame is a parallel and distributed drop-in replacement
+for pandas. This means that you can use Modin with existing pandas code or write
+new code with the existing pandas API. Modin can leverage your entire machine or
+cluster to speed up and scale your pandas workloads, including traditionally
+time-consuming tasks like ingesting data (``read_csv``, ``read_excel``,
+``read_parquet``, etc.).
+
+.. code:: python
+
+    # import pandas as pd
+    import modin.pandas as pd
+
+    df = pd.read_csv("big.csv")  # use all your cores!
 
 `Odo <http://odo.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -391,21 +417,11 @@ If also displays progress bars.
     # df.apply(func)
     df.parallel_apply(func)
 
-`Ray <https://ray.readthedocs.io/en/latest/pandas_on_ray.html>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Pandas on Ray is an early stage DataFrame library that wraps Pandas and transparently distributes the data and computation. The user does not need to know how many cores their system has, nor do they need to specify how to distribute the data. In fact, users can continue using their previous Pandas notebooks while experiencing a considerable speedup from Pandas on Ray, even on a single machine. Only a modification of the import statement is needed, as we demonstrate below. Once you’ve changed your import statement, you’re ready to use Pandas on Ray just like you would Pandas.
-
-.. code:: python
-
-    # import pandas as pd
-    import ray.dataframe as pd
-
 
 `Vaex <https://docs.vaex.io/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to Pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
+Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
 
  * vaex.from_pandas
  * vaex.to_pandas_df
@@ -415,7 +431,7 @@ Increasingly, packages are being built on top of pandas to address specific need
 Extension data types
 --------------------
 
-Pandas provides an interface for defining
+pandas provides an interface for defining
 :ref:`extension types <extending.extension-types>` to extend NumPy's type
 system. The following libraries implement that interface to provide types not
 found in NumPy or pandas, which work well with pandas' data containers.
@@ -426,10 +442,15 @@ found in NumPy or pandas, which work well with pandas' data containers.
 Cyberpandas provides an extension type for storing arrays of IP Addresses. These
 arrays can be stored inside pandas' Series and DataFrame.
 
+`Pandas-Genomics`_
+~~~~~~~~~~~~~~~~~~
+
+Pandas-Genomics provides extension types and extension arrays for working with genomics data
+
 `Pint-Pandas`_
 ~~~~~~~~~~~~~~
 
-`Pint-Pandas <https://github.com/hgrecco/pint-pandas>` provides an extension type for
+``Pint-Pandas <https://github.com/hgrecco/pint-pandas>`` provides an extension type for
 storing numeric arrays with units. These arrays can be stored inside pandas'
 Series and DataFrame. Operations between Series and DataFrame columns which
 use pint's extension array are then units aware.
@@ -456,6 +477,7 @@ Library         Accessor   Classes                   Description
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://altair-viz.github.io/pdvega/
 .. _Altair: https://altair-viz.github.io/
+.. _pandas-genomics: https://pandas-genomics.readthedocs.io/en/latest/
 .. _pandas_path: https://github.com/drivendataorg/pandas-path/
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
 .. _pint-pandas: https://github.com/hgrecco/pint-pandas

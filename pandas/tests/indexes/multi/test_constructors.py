@@ -196,7 +196,7 @@ def test_from_arrays_index_series_datetimetz():
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
 
-    result2 = pd.MultiIndex.from_arrays([pd.Series(idx1), pd.Series(idx2)])
+    result2 = pd.MultiIndex.from_arrays([Series(idx1), Series(idx2)])
     tm.assert_index_equal(result2.get_level_values(0), idx1)
     tm.assert_index_equal(result2.get_level_values(1), idx2)
 
@@ -210,7 +210,7 @@ def test_from_arrays_index_series_timedelta():
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
 
-    result2 = pd.MultiIndex.from_arrays([pd.Series(idx1), pd.Series(idx2)])
+    result2 = pd.MultiIndex.from_arrays([Series(idx1), Series(idx2)])
     tm.assert_index_equal(result2.get_level_values(0), idx1)
     tm.assert_index_equal(result2.get_level_values(1), idx2)
 
@@ -224,7 +224,7 @@ def test_from_arrays_index_series_period():
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
 
-    result2 = pd.MultiIndex.from_arrays([pd.Series(idx1), pd.Series(idx2)])
+    result2 = pd.MultiIndex.from_arrays([Series(idx1), Series(idx2)])
     tm.assert_index_equal(result2.get_level_values(0), idx1)
     tm.assert_index_equal(result2.get_level_values(1), idx2)
 
@@ -244,7 +244,7 @@ def test_from_arrays_index_datetimelike_mixed():
     tm.assert_index_equal(result.get_level_values(3), idx4)
 
     result2 = pd.MultiIndex.from_arrays(
-        [pd.Series(idx1), pd.Series(idx2), pd.Series(idx3), pd.Series(idx4)]
+        [Series(idx1), Series(idx2), Series(idx3), Series(idx4)]
     )
     tm.assert_index_equal(result2.get_level_values(0), idx1)
     tm.assert_index_equal(result2.get_level_values(1), idx2)
@@ -263,7 +263,7 @@ def test_from_arrays_index_series_categorical():
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
 
-    result2 = pd.MultiIndex.from_arrays([pd.Series(idx1), pd.Series(idx2)])
+    result2 = pd.MultiIndex.from_arrays([Series(idx1), Series(idx2)])
     tm.assert_index_equal(result2.get_level_values(0), idx1)
     tm.assert_index_equal(result2.get_level_values(1), idx2)
 
@@ -340,8 +340,8 @@ def test_from_arrays_different_lengths(idx1, idx2):
 
 def test_from_arrays_respects_none_names():
     # GH27292
-    a = pd.Series([1, 2, 3], name="foo")
-    b = pd.Series(["a", "b", "c"], name="bar")
+    a = Series([1, 2, 3], name="foo")
+    b = Series(["a", "b", "c"], name="bar")
 
     result = MultiIndex.from_arrays([a, b], names=None)
     expected = MultiIndex(
@@ -402,9 +402,9 @@ def test_tuples_with_name_string():
     li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
     msg = "Names should be list-like for a MultiIndex"
     with pytest.raises(ValueError, match=msg):
-        pd.Index(li, name="abc")
+        Index(li, name="abc")
     with pytest.raises(ValueError, match=msg):
-        pd.Index(li, name="a")
+        Index(li, name="a")
 
 
 def test_from_tuples_with_tuple_label():
@@ -429,7 +429,7 @@ def test_from_product_empty_zero_levels():
 
 def test_from_product_empty_one_level():
     result = MultiIndex.from_product([[]], names=["A"])
-    expected = pd.Index([], name="A")
+    expected = Index([], name="A")
     tm.assert_index_equal(result.levels[0], expected)
     assert result.names == ["A"]
 
@@ -478,7 +478,7 @@ def test_from_product_datetimeindex():
 
 
 @pytest.mark.parametrize("ordered", [False, True])
-@pytest.mark.parametrize("f", [lambda x: x, lambda x: pd.Series(x), lambda x: x.values])
+@pytest.mark.parametrize("f", [lambda x: x, lambda x: Series(x), lambda x: x.values])
 def test_from_product_index_series_categorical(ordered, f):
     # GH13743
     first = ["foo", "bar"]
@@ -547,11 +547,11 @@ def test_from_product_iterator():
     "a, b, expected_names",
     [
         (
-            pd.Series([1, 2, 3], name="foo"),
-            pd.Series(["a", "b"], name="bar"),
+            Series([1, 2, 3], name="foo"),
+            Series(["a", "b"], name="bar"),
             ["foo", "bar"],
         ),
-        (pd.Series([1, 2, 3], name="foo"), ["a", "b"], ["foo", None]),
+        (Series([1, 2, 3], name="foo"), ["a", "b"], ["foo", None]),
         ([1, 2, 3], ["a", "b"], None),
     ],
 )
@@ -568,8 +568,8 @@ def test_from_product_infer_names(a, b, expected_names):
 
 def test_from_product_respects_none_names():
     # GH27292
-    a = pd.Series([1, 2, 3], name="foo")
-    b = pd.Series(["a", "b"], name="bar")
+    a = Series([1, 2, 3], name="foo")
+    b = Series(["a", "b"], name="bar")
 
     result = MultiIndex.from_product([a, b], names=None)
     expected = MultiIndex(
@@ -597,7 +597,7 @@ def test_create_index_existing_name(idx):
     # specified, the new index should inherit the previous object name
     index = idx
     index.names = ["foo", "bar"]
-    result = pd.Index(index)
+    result = Index(index)
     expected = Index(
         Index(
             [
@@ -613,7 +613,7 @@ def test_create_index_existing_name(idx):
     )
     tm.assert_index_equal(result, expected)
 
-    result = pd.Index(index, name="A")
+    result = Index(index, name="A")
     expected = Index(
         Index(
             [
@@ -649,10 +649,10 @@ def test_from_frame():
 @pytest.mark.parametrize(
     "non_frame",
     [
-        pd.Series([1, 2, 3, 4]),
+        Series([1, 2, 3, 4]),
         [1, 2, 3, 4],
         [[1, 2], [3, 4], [5, 6]],
-        pd.Index([1, 2, 3, 4]),
+        Index([1, 2, 3, 4]),
         np.array([[1, 2], [3, 4], [5, 6]]),
         27,
     ],
@@ -741,18 +741,18 @@ def test_raise_invalid_sortorder():
 
     with pytest.raises(ValueError, match=r".* sortorder 2 with lexsort_depth 1.*"):
         MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=2,
+            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=2
         )
 
     with pytest.raises(ValueError, match=r".* sortorder 1 with lexsort_depth 0.*"):
         MultiIndex(
-            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=1,
+            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=1
         )
 
 
 def test_datetimeindex():
     idx1 = pd.DatetimeIndex(
-        ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2, tz="Asia/Tokyo",
+        ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2, tz="Asia/Tokyo"
     )
     idx2 = pd.date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
     idx = MultiIndex.from_arrays([idx1, idx2])

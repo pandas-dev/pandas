@@ -8,7 +8,7 @@ from collections import abc
 import numbers
 import os
 import re
-from typing import Dict, List, Optional, Pattern, Sequence, Union
+from typing import Dict, List, Optional, Pattern, Sequence, Tuple, Union
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
@@ -161,8 +161,6 @@ class _HtmlFrameParser:
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
-        .. versionadded:: 0.23.0
-
     Attributes
     ----------
     io : str or file-like
@@ -180,8 +178,6 @@ class _HtmlFrameParser:
 
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
-
-        .. versionadded:: 0.23.0
 
     Notes
     -----
@@ -439,7 +435,7 @@ class _HtmlFrameParser:
         to subsequent cells.
         """
         all_texts = []  # list of rows, each a list of str
-        remainder = []  # list of (index, text, nrows)
+        remainder: List[Tuple[int, str, int]] = []  # list of (index, text, nrows)
 
         for tr in rows:
             texts = []  # the output for this row
@@ -723,7 +719,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 r = r.getroot()
             except AttributeError:
                 pass
-        except (UnicodeDecodeError, IOError) as e:
+        except (UnicodeDecodeError, OSError) as e:
             # if the input is a blob of html goop
             if not is_url(self.io):
                 r = fromstring(self.io, parser=parser)
@@ -914,6 +910,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
         else:
             break
     else:
+        assert retained is not None  # for mypy
         raise retained
 
     ret = []

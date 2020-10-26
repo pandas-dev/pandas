@@ -219,7 +219,9 @@ cdef _wrap_timedelta_result(result):
 
 
 cdef _get_calendar(weekmask, holidays, calendar):
-    """Generate busdaycalendar"""
+    """
+    Generate busdaycalendar
+    """
     if isinstance(calendar, np.busdaycalendar):
         if not holidays:
             holidays = tuple(calendar.holidays)
@@ -659,14 +661,18 @@ cdef class BaseOffset:
         return nint
 
     def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
+        """
+        Reconstruct an instance from a pickled state
+        """
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self._cache = state.pop("_cache", {})
         # At this point we expect state to be empty
 
     def __getstate__(self):
-        """Return a pickleable state"""
+        """
+        Return a pickleable state
+        """
         state = {}
         state["n"] = self.n
         state["normalize"] = self.normalize
@@ -784,6 +790,11 @@ cdef class Tick(SingleConstructorOffset):
 
     def is_anchored(self) -> bool:
         return False
+
+    # This is identical to BaseOffset.__hash__, but has to be redefined here
+    # for Python 3, because we've redefined __eq__.
+    def __hash__(self) -> int:
+        return hash(self._params)
 
     # --------------------------------------------------------------------
     # Comparison and Arithmetic Methods
@@ -971,7 +982,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
             object.__setattr__(self, key, val)
 
     def __getstate__(self):
-        """Return a pickleable state"""
+        """
+        Return a pickleable state
+        """
         # RelativeDeltaOffset (technically DateOffset) is the only non-cdef
         #  class, so the only one with __dict__
         state = self.__dict__.copy()
@@ -980,7 +993,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
         return state
 
     def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
+        """
+        Reconstruct an instance from a pickled state
+        """
 
         if "offset" in state:
             # Older (<0.22.0) versions have offset attribute instead of _offset
@@ -1202,9 +1217,8 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + DateOffset(months=2)
     Timestamp('2017-03-01 09:10:11')
     """
-
-    pass
-
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
 
 # --------------------------------------------------------------------
 
@@ -3604,7 +3618,9 @@ def shift_day(other: datetime, days: int) -> datetime:
 
 
 cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
-    """new year number after shifting npy_datetimestruct number of months"""
+    """
+    New year number after shifting npy_datetimestruct number of months.
+    """
     return dts.year + (dts.month + months - 1) // 12
 
 
@@ -3702,10 +3718,12 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
                                Py_ssize_t count,
                                int months,
                                str day_opt) nogil:
-    """See shift_months.__doc__"""
+    """
+    See shift_months.__doc__
+    """
     cdef:
         Py_ssize_t i
-        int months_to_roll, compare_day
+        int months_to_roll
         npy_datetimestruct dts
 
     for i in range(count):
@@ -3715,10 +3733,8 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
 
         dt64_to_dtstruct(dtindex[i], &dts)
         months_to_roll = months
-        compare_day = get_day_of_month(&dts, day_opt)
 
-        months_to_roll = roll_convention(dts.day, months_to_roll,
-                                         compare_day)
+        months_to_roll = _roll_qtrday(&dts, months_to_roll, 0, day_opt)
 
         dts.year = year_add_months(dts, months_to_roll)
         dts.month = month_add_months(dts, months_to_roll)
@@ -3736,7 +3752,9 @@ cdef inline void _shift_quarters(const int64_t[:] dtindex,
                                  int q1start_month,
                                  str day_opt,
                                  int modby) nogil:
-    """See shift_quarters.__doc__"""
+    """
+    See shift_quarters.__doc__
+    """
     cdef:
         Py_ssize_t i
         int months_since, n
@@ -3992,7 +4010,9 @@ cdef inline int _roll_qtrday(npy_datetimestruct* dts,
                              int n,
                              int months_since,
                              str day_opt) nogil except? -1:
-    """See roll_qtrday.__doc__"""
+    """
+    See roll_qtrday.__doc__
+    """
 
     if n > 0:
         if months_since < 0 or (months_since == 0 and

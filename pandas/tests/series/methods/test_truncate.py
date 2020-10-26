@@ -67,14 +67,14 @@ class TestTruncate:
     def test_truncate_nonsortedindex(self):
         # GH#17935
 
-        s = pd.Series(["a", "b", "c", "d", "e"], index=[5, 3, 2, 9, 0])
+        s = Series(["a", "b", "c", "d", "e"], index=[5, 3, 2, 9, 0])
         msg = "truncate requires a sorted index"
 
         with pytest.raises(ValueError, match=msg):
             s.truncate(before=3, after=9)
 
         rng = pd.date_range("2011-01-01", "2012-01-01", freq="W")
-        ts = pd.Series(np.random.randn(len(rng)), index=rng)
+        ts = Series(np.random.randn(len(rng)), index=rng)
         msg = "truncate requires a sorted index"
 
         with pytest.raises(ValueError, match=msg):
@@ -92,7 +92,7 @@ class TestTruncate:
             before = pd.Timestamp(before) if before is not None else None
             after = pd.Timestamp(after) if after is not None else None
             indices = [pd.Timestamp(i) for i in indices]
-        values = pd.Series(range(len(idx)), index=idx)
+        values = Series(range(len(idx)), index=idx)
         result = values.truncate(before=before, after=after)
         expected = values.loc[indices]
         tm.assert_series_equal(result, expected)
@@ -101,7 +101,13 @@ class TestTruncate:
         # GH 9243
         idx = date_range("4/1/2005", "4/30/2005", freq="D", tz="US/Pacific")
         s = Series(range(len(idx)), index=idx)
-        result = s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH#36148 in the future will require tzawareness compat
+            s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
+
+        lb = idx[1]
+        ub = idx[3]
+        result = s.truncate(lb.to_pydatetime(), ub.to_pydatetime())
         expected = Series([1, 2, 3], index=idx[1:4])
         tm.assert_series_equal(result, expected)
 
@@ -110,27 +116,27 @@ class TestTruncate:
         idx1 = pd.PeriodIndex(
             [pd.Period("2017-09-02"), pd.Period("2017-09-02"), pd.Period("2017-09-03")]
         )
-        series1 = pd.Series([1, 2, 3], index=idx1)
+        series1 = Series([1, 2, 3], index=idx1)
         result1 = series1.truncate(after="2017-09-02")
 
         expected_idx1 = pd.PeriodIndex(
             [pd.Period("2017-09-02"), pd.Period("2017-09-02")]
         )
-        tm.assert_series_equal(result1, pd.Series([1, 2], index=expected_idx1))
+        tm.assert_series_equal(result1, Series([1, 2], index=expected_idx1))
 
         idx2 = pd.PeriodIndex(
             [pd.Period("2017-09-03"), pd.Period("2017-09-02"), pd.Period("2017-09-03")]
         )
-        series2 = pd.Series([1, 2, 3], index=idx2)
+        series2 = Series([1, 2, 3], index=idx2)
         result2 = series2.sort_index().truncate(after="2017-09-02")
 
         expected_idx2 = pd.PeriodIndex([pd.Period("2017-09-02")])
-        tm.assert_series_equal(result2, pd.Series([2], index=expected_idx2))
+        tm.assert_series_equal(result2, Series([2], index=expected_idx2))
 
     def test_truncate_multiindex(self):
         # GH 34564
         mi = pd.MultiIndex.from_product([[1, 2, 3, 4], ["A", "B"]], names=["L1", "L2"])
-        s1 = pd.Series(range(mi.shape[0]), index=mi, name="col")
+        s1 = Series(range(mi.shape[0]), index=mi, name="col")
         result = s1.truncate(before=2, after=3)
 
         df = pd.DataFrame.from_dict(
@@ -144,7 +150,7 @@ class TestTruncate:
 
     def test_truncate_one_element_series(self):
         # GH 35544
-        series = pd.Series([0.1], index=pd.DatetimeIndex(["2020-08-04"]))
+        series = Series([0.1], index=pd.DatetimeIndex(["2020-08-04"]))
         before = pd.Timestamp("2020-08-02")
         after = pd.Timestamp("2020-08-04")
 

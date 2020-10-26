@@ -1,4 +1,4 @@
-cdef class _NDFrameIndexerBase:
+cdef class NDFrameIndexerBase:
     """
     A base class for _NDFrameIndexer for fast instantiation and attribute access.
     """

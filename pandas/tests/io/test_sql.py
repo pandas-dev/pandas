@@ -281,7 +281,6 @@ class PandasSQLTest:
 
     @pytest.fixture(params=[("io", "data", "csv", "iris.csv")])
     def load_iris_data(self, datapath, request):
-        import io
 
         iris_csv_file = datapath(*request.param)
 
@@ -291,7 +290,7 @@ class PandasSQLTest:
         self.drop_table("iris")
         self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
-        with io.open(iris_csv_file, mode="r", newline=None) as iris_csv:
+        with open(iris_csv_file, mode="r", newline=None) as iris_csv:
             r = csv.reader(iris_csv)
             next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
@@ -1491,10 +1490,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_out_of_bounds_datetime(self):
         # GH 26761
-        data = pd.DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
+        data = DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
         data.to_sql("test_datetime_obb", self.conn, index=False)
         result = sql.read_sql_table("test_datetime_obb", self.conn)
-        expected = pd.DataFrame([pd.NaT], columns=["date"])
+        expected = DataFrame([pd.NaT], columns=["date"])
         tm.assert_frame_equal(result, expected)
 
     def test_naive_datetimeindex_roundtrip(self):
@@ -1821,7 +1820,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_to_sql_with_negative_npinf(self, input):
         # GH 34431
 
-        df = pd.DataFrame(input)
+        df = DataFrame(input)
 
         if self.flavor == "mysql":
             msg = "inf cannot be used with MySQL"
@@ -2349,9 +2348,6 @@ _formatters = {
 
 
 def format_query(sql, *args):
-    """
-
-    """
     processed_args = []
     for arg in args:
         if isinstance(arg, float) and isna(arg):

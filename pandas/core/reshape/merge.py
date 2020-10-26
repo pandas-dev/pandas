@@ -6,14 +6,13 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple
 import warnings
 
 import numpy as np
 
-from pandas._libs import Timedelta, hashtable as libhashtable, lib
-import pandas._libs.join as libjoin
-from pandas._typing import ArrayLike, FrameOrSeries
+from pandas._libs import Timedelta, hashtable as libhashtable, join as libjoin, lib
+from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion
 from pandas.errors import MergeError
 from pandas.util._decorators import Appender, Substitution
 
@@ -43,7 +42,6 @@ from pandas.core.dtypes.missing import isna, na_value_for_dtype
 from pandas import Categorical, Index, MultiIndex
 from pandas.core import groupby
 import pandas.core.algorithms as algos
-from pandas.core.arrays.categorical import recode_for_categories
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.frame import _merge_doc
@@ -51,7 +49,7 @@ from pandas.core.internals import concatenate_block_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series  # noqa:F401
+    from pandas import DataFrame
 
 
 @Substitution("\nleft : DataFrame")
@@ -575,8 +573,8 @@ class _MergeOperation:
 
     def __init__(
         self,
-        left: Union["Series", "DataFrame"],
-        right: Union["Series", "DataFrame"],
+        left: FrameOrSeriesUnion,
+        right: FrameOrSeriesUnion,
         how: str = "inner",
         on=None,
         left_on=None,
@@ -859,7 +857,7 @@ class _MergeOperation:
 
     def _get_join_indexers(self):
         """ return the join indexers """
-        return _get_join_indexers(
+        return get_join_indexers(
             self.left_join_keys, self.right_join_keys, sort=self.sort, how=self.how
         )
 
@@ -1298,7 +1296,7 @@ class _MergeOperation:
             raise ValueError("Not a valid argument for validate")
 
 
-def _get_join_indexers(
+def get_join_indexers(
     left_keys, right_keys, sort: bool = False, how: str = "inner", **kwargs
 ):
     """
@@ -1350,7 +1348,7 @@ def _get_join_indexers(
     return join_func(lkey, rkey, count, **kwargs)
 
 
-def _restore_dropped_levels_multijoin(
+def restore_dropped_levels_multijoin(
     left: MultiIndex,
     right: MultiIndex,
     dropped_level_names,
@@ -1838,7 +1836,7 @@ def _get_single_indexer(join_key, index, sort: bool = False):
 def _left_join_on_index(left_ax: Index, right_ax: Index, join_keys, sort: bool = False):
     if len(join_keys) > 1:
         if not (
-            (isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels)
+            isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels
         ):
             raise AssertionError(
                 "If more than one join key is given then "
@@ -1870,7 +1868,7 @@ def _right_outer_join(x, y, max_groups):
 
 def _factorize_keys(
     lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
-) -> Tuple[np.array, np.array, int]:
+) -> Tuple[np.ndarray, np.ndarray, int]:
     """
     Encode left and right keys as enumerated types.
 
@@ -1936,12 +1934,8 @@ def _factorize_keys(
     ):
         assert isinstance(lk, Categorical)
         assert isinstance(rk, Categorical)
-        if lk.categories.equals(rk.categories):
-            # if we exactly match in categories, allow us to factorize on codes
-            rk = rk.codes
-        else:
-            # Same categories in different orders -> recode
-            rk = recode_for_categories(rk.codes, rk.categories, lk.categories)
+        # Cast rk to encoding so we can compare codes with lk
+        rk = lk._validate_listlike(rk)
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)

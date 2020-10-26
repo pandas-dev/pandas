@@ -6,32 +6,44 @@ kwarg aggregations in groupby and DataFrame/Series aggregation
 from collections import defaultdict
 from functools import partial
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
     Dict,
+    Iterable,
     List,
     Optional,
     Sequence,
     Tuple,
     Union,
+    cast,
 )
 
-from pandas._typing import AggFuncType, Label
+from pandas._typing import (
+    AggFuncType,
+    AggFuncTypeBase,
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Label,
+)
 
+from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import is_dict_like, is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
 
-from pandas.core.base import SpecificationError
+from pandas.core.base import DataError, SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-from pandas.core.series import FrameOrSeriesUnion, Series
+
+if TYPE_CHECKING:
+    from pandas.core.series import Series
 
 
 def reconstruct_func(
-    func: Optional[AggFuncType], **kwargs,
-) -> Tuple[
-    bool, Optional[AggFuncType], Optional[List[str]], Optional[List[int]],
-]:
+    func: Optional[AggFuncType], **kwargs
+) -> Tuple[bool, Optional[AggFuncType], Optional[List[str]], Optional[List[int]]]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -63,7 +75,7 @@ def reconstruct_func(
     Examples
     --------
     >>> reconstruct_func(None, **{"foo": ("col", "min")})
-    (True, defaultdict(None, {'col': ['min']}), ('foo',), array([0]))
+    (True, defaultdict(<class 'list'>, {'col': ['min']}), ('foo',), array([0]))
 
     >>> reconstruct_func("min")
     (False, 'min', None, None)
@@ -87,7 +99,6 @@ def reconstruct_func(
 
     if relabeling:
         func, columns, order = normalize_keyword_aggregation(kwargs)
-    func = maybe_mangle_lambdas(func)
 
     return relabeling, func, columns, order
 
@@ -278,12 +289,13 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
 
 def relabel_result(
-    result: FrameOrSeriesUnion,
+    result: FrameOrSeries,
     func: Dict[str, List[Union[Callable, str]]],
-    columns: Tuple,
-    order: List[int],
-) -> Dict[Label, Series]:
-    """Internal function to reorder result if relabelling is True for
+    columns: Iterable[Label],
+    order: Iterable[int],
+) -> Dict[Label, "Series"]:
+    """
+    Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
 
     Parameters:
@@ -308,10 +320,10 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, Series] = {}
+    reordered_result_in_dict: Dict[Label, "Series"] = {}
     idx = 0
 
-    reorder_mask = not isinstance(result, Series) and len(result.columns) > 1
+    reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
     for col, fun in func.items():
         s = result[col].dropna()
 
@@ -374,7 +386,7 @@ def validate_func_kwargs(
     (['one', 'two'], ['min', 'max'])
     """
     no_arg_message = "Must provide 'func' or named aggregation **kwargs."
-    tuple_given_message = "func is expected but recieved {} in **kwargs."
+    tuple_given_message = "func is expected but received {} in **kwargs."
     columns = list(kwargs)
     func = []
     for col_func in kwargs.values():
@@ -384,3 +396,345 @@ def validate_func_kwargs(
     if not columns:
         raise TypeError(no_arg_message)
     return columns, func
+
+
+def transform(
+    obj: FrameOrSeries, func: AggFuncType, axis: Axis, *args, **kwargs
+) -> FrameOrSeriesUnion:
+    """
+    Transform a DataFrame or Series
+
+    Parameters
+    ----------
+    obj : DataFrame or Series
+        Object to compute the transform on.
+    func : string, function, list, or dictionary
+        Function(s) to compute the transform with.
+    axis : {0 or 'index', 1 or 'columns'}
+        Axis along which the function is applied:
+
+        * 0 or 'index': apply function to each column.
+        * 1 or 'columns': apply function to each row.
+
+    Returns
+    -------
+    DataFrame or Series
+        Result of applying ``func`` along the given axis of the
+        Series or DataFrame.
+
+    Raises
+    ------
+    ValueError
+        If the transform function fails or does not transform.
+    """
+    is_series = obj.ndim == 1
+
+    if obj._get_axis_number(axis) == 1:
+        assert not is_series
+        return transform(obj.T, func, 0, *args, **kwargs).T
+
+    if is_list_like(func) and not is_dict_like(func):
+        func = cast(List[AggFuncTypeBase], func)
+        # Convert func equivalent dict
+        if is_series:
+            func = {com.get_callable_name(v) or v: v for v in func}
+        else:
+            func = {col: func for col in obj}
+
+    if is_dict_like(func):
+        func = cast(Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], func)
+        return transform_dict_like(obj, func, *args, **kwargs)
+
+    # func is either str or callable
+    func = cast(AggFuncTypeBase, func)
+    try:
+        result = transform_str_or_callable(obj, func, *args, **kwargs)
+    except Exception:
+        raise ValueError("Transform function failed")
+
+    # Functions that transform may return empty Series/DataFrame
+    # when the dtype is not appropriate
+    if isinstance(result, (ABCSeries, ABCDataFrame)) and result.empty:
+        raise ValueError("Transform function failed")
+    if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
+        obj.index
+    ):
+        raise ValueError("Function did not transform")
+
+    return result
+
+
+def transform_dict_like(
+    obj: FrameOrSeries,
+    func: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    *args,
+    **kwargs,
+):
+    """
+    Compute transform in the case of a dict-like func
+    """
+    from pandas.core.reshape.concat import concat
+
+    if len(func) == 0:
+        raise ValueError("No transform functions were provided")
+
+    if obj.ndim != 1:
+        # Check for missing columns on a frame
+        cols = sorted(set(func.keys()) - set(obj.columns))
+        if len(cols) > 0:
+            raise SpecificationError(f"Column(s) {cols} do not exist")
+
+    # Can't use func.values(); wouldn't work for a Series
+    if any(is_dict_like(v) for _, v in func.items()):
+        # GH 15931 - deprecation of renaming keys
+        raise SpecificationError("nested renamer is not supported")
+
+    results: Dict[Label, FrameOrSeriesUnion] = {}
+    for name, how in func.items():
+        colg = obj._gotitem(name, ndim=1)
+        try:
+            results[name] = transform(colg, how, 0, *args, **kwargs)
+        except Exception as err:
+            if (
+                str(err) == "Function did not transform"
+                or str(err) == "No transform functions were provided"
+            ):
+                raise err
+
+    # combine results
+    if len(results) == 0:
+        raise ValueError("Transform function failed")
+    return concat(results, axis=1)
+
+
+def transform_str_or_callable(
+    obj: FrameOrSeries, func: AggFuncTypeBase, *args, **kwargs
+) -> FrameOrSeriesUnion:
+    """
+    Compute transform in the case of a string or callable func
+    """
+    if isinstance(func, str):
+        return obj._try_aggregate_string_function(func, *args, **kwargs)
+
+    if not args and not kwargs:
+        f = obj._get_cython_func(func)
+        if f:
+            return getattr(obj, f)()
+
+    # Two possible ways to use a UDF - apply or call directly
+    try:
+        return obj.apply(func, args=args, **kwargs)
+    except Exception:
+        return func(obj, *args, **kwargs)
+
+
+def aggregate(obj, arg: AggFuncType, *args, **kwargs):
+    """
+    provide an implementation for the aggregators
+
+    Parameters
+    ----------
+    arg : string, dict, function
+    *args : args to pass on to the function
+    **kwargs : kwargs to pass on to the function
+
+    Returns
+    -------
+    tuple of result, how
+
+    Notes
+    -----
+    how can be a string describe the required post-processing, or
+    None if not required
+    """
+    is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
+
+    _axis = kwargs.pop("_axis", None)
+    if _axis is None:
+        _axis = getattr(obj, "axis", 0)
+
+    if isinstance(arg, str):
+        return obj._try_aggregate_string_function(arg, *args, **kwargs), None
+
+    if isinstance(arg, dict):
+        # aggregate based on the passed dict
+        if _axis != 0:  # pragma: no cover
+            raise ValueError("Can only pass dict with axis=0")
+
+        selected_obj = obj._selected_obj
+
+        # if we have a dict of any non-scalars
+        # eg. {'A' : ['mean']}, normalize all to
+        # be list-likes
+        if any(is_aggregator(x) for x in arg.values()):
+            new_arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]] = {}
+            for k, v in arg.items():
+                if not isinstance(v, (tuple, list, dict)):
+                    new_arg[k] = [v]
+                else:
+                    new_arg[k] = v
+
+                # the keys must be in the columns
+                # for ndim=2, or renamers for ndim=1
+
+                # ok for now, but deprecated
+                # {'A': { 'ra': 'mean' }}
+                # {'A': { 'ra': ['mean'] }}
+                # {'ra': ['mean']}
+
+                # not ok
+                # {'ra' : { 'A' : 'mean' }}
+                if isinstance(v, dict):
+                    raise SpecificationError("nested renamer is not supported")
+                elif isinstance(selected_obj, ABCSeries):
+                    raise SpecificationError("nested renamer is not supported")
+                elif (
+                    isinstance(selected_obj, ABCDataFrame)
+                    and k not in selected_obj.columns
+                ):
+                    raise KeyError(f"Column '{k}' does not exist!")
+
+            arg = new_arg
+
+        else:
+            # deprecation of renaming keys
+            # GH 15931
+            keys = list(arg.keys())
+            if isinstance(selected_obj, ABCDataFrame) and len(
+                selected_obj.columns.intersection(keys)
+            ) != len(keys):
+                cols = sorted(set(keys) - set(selected_obj.columns.intersection(keys)))
+                raise SpecificationError(f"Column(s) {cols} do not exist")
+
+        from pandas.core.reshape.concat import concat
+
+        if selected_obj.ndim == 1:
+            # key only used for output
+            colg = obj._gotitem(obj._selection, ndim=1)
+            results = {key: colg.agg(how) for key, how in arg.items()}
+        else:
+            # key used for column selection and output
+            results = {
+                key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+            }
+
+        # set the final keys
+        keys = list(arg.keys())
+
+        # Avoid making two isinstance calls in all and any below
+        is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
+
+        # combine results
+        if all(is_ndframe):
+            keys_to_use = [k for k in keys if not results[k].empty]
+            # Have to check, if at least one DataFrame is not empty.
+            keys_to_use = keys_to_use if keys_to_use != [] else keys
+            axis = 0 if isinstance(obj, ABCSeries) else 1
+            result = concat({k: results[k] for k in keys_to_use}, axis=axis)
+        elif any(is_ndframe):
+            # There is a mix of NDFrames and scalars
+            raise ValueError(
+                "cannot perform both aggregation "
+                "and transformation operations "
+                "simultaneously"
+            )
+        else:
+            from pandas import Series
+
+            # we have a dict of scalars
+            # GH 36212 use name only if obj is a series
+            if obj.ndim == 1:
+                obj = cast("Series", obj)
+                name = obj.name
+            else:
+                name = None
+
+            result = Series(results, name=name)
+
+        return result, True
+    elif is_list_like(arg):
+        # we require a list, but not an 'str'
+        return aggregate_multiple_funcs(obj, arg, _axis=_axis), None
+    else:
+        result = None
+
+    if callable(arg):
+        f = obj._get_cython_func(arg)
+        if f and not args and not kwargs:
+            return getattr(obj, f)(), None
+
+    # caller can react
+    return result, True
+
+
+def aggregate_multiple_funcs(obj, arg, _axis):
+    from pandas.core.reshape.concat import concat
+
+    if _axis != 0:
+        raise NotImplementedError("axis other than 0 is not supported")
+
+    if obj._selected_obj.ndim == 1:
+        selected_obj = obj._selected_obj
+    else:
+        selected_obj = obj._obj_with_exclusions
+
+    results = []
+    keys = []
+
+    # degenerate case
+    if selected_obj.ndim == 1:
+        for a in arg:
+            colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
+            try:
+                new_res = colg.aggregate(a)
+
+            except TypeError:
+                pass
+            else:
+                results.append(new_res)
+
+                # make sure we find a good name
+                name = com.get_callable_name(a) or a
+                keys.append(name)
+
+    # multiples
+    else:
+        for index, col in enumerate(selected_obj):
+            colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
+            try:
+                new_res = colg.aggregate(arg)
+            except (TypeError, DataError):
+                pass
+            except ValueError as err:
+                # cannot aggregate
+                if "Must produce aggregated value" in str(err):
+                    # raised directly in _aggregate_named
+                    pass
+                elif "no results" in str(err):
+                    # raised directly in _aggregate_multiple_funcs
+                    pass
+                else:
+                    raise
+            else:
+                results.append(new_res)
+                keys.append(col)
+
+    # if we are empty
+    if not len(results):
+        raise ValueError("no results")
+
+    try:
+        return concat(results, keys=keys, axis=1, sort=False)
+    except TypeError as err:
+
+        # we are concatting non-NDFrame objects,
+        # e.g. a list of scalars
+
+        from pandas import Series
+
+        result = Series(results, index=keys, name=obj.name)
+        if is_nested_object(result):
+            raise ValueError(
+                "cannot combine transform and aggregation operations"
+            ) from err
+        return result

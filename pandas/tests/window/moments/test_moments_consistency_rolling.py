@@ -10,9 +10,8 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex, Index, Series
 import pandas._testing as tm
-from pandas.core.window.common import _flex_binary_moment
+from pandas.core.window.common import flex_binary_moment
 from pandas.tests.window.common import (
-    check_pairwise_moment,
     moments_consistency_cov_data,
     moments_consistency_is_constant,
     moments_consistency_mock_mean,
@@ -60,7 +59,12 @@ def test_rolling_corr(series):
 
 @pytest.mark.parametrize("func", ["cov", "corr"])
 def test_rolling_pairwise_cov_corr(func, frame):
-    check_pairwise_moment(frame, "rolling", func, window=10, min_periods=5)
+    result = getattr(frame.rolling(window=10, min_periods=5), func)()
+    result = result.loc[(slice(None), 1), 5]
+    result.index = result.index.droplevel(1)
+    expected = getattr(frame[1].rolling(window=10, min_periods=5), func)(frame[5])
+    expected.index = expected.index._with_freq(None)
+    tm.assert_series_equal(result, expected, check_names=False)
 
 
 @pytest.mark.parametrize("method", ["corr", "cov"])
@@ -95,7 +99,7 @@ def test_rolling_apply_consistency(
 
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning,
+            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning
         )
         # test consistency between rolling_xyz() and either (a)
         # rolling_apply of Series.xyz(), or (b) rolling_apply of
@@ -107,7 +111,7 @@ def test_rolling_apply_consistency(
             functions = no_nan_functions + base_functions
         for (f, require_min_periods, name) in functions:
             rolling_f = getattr(
-                x.rolling(window=window, center=center, min_periods=min_periods), name,
+                x.rolling(window=window, center=center, min_periods=min_periods), name
             )
 
             if (
@@ -139,8 +143,8 @@ def test_rolling_apply_consistency(
 @pytest.mark.parametrize("window", range(7))
 def test_rolling_corr_with_zero_variance(window):
     # GH 18430
-    s = pd.Series(np.zeros(20))
-    other = pd.Series(np.arange(20))
+    s = Series(np.zeros(20))
+    other = Series(np.arange(20))
 
     assert s.rolling(window=window).corr(other=other).isna().all()
 
@@ -150,7 +154,7 @@ def test_flex_binary_moment():
     # don't blow the stack
     msg = "arguments to moment function must be of type np.ndarray/Series/DataFrame"
     with pytest.raises(TypeError, match=msg):
-        _flex_binary_moment(5, 6, None)
+        flex_binary_moment(5, 6, None)
 
 
 def test_corr_sanity():
@@ -452,7 +456,7 @@ def test_moment_functions_zero_length():
     df2_expected = df2
 
     functions = [
-        lambda x: x.rolling(window=10).count(),
+        lambda x: x.rolling(window=10, min_periods=0).count(),
         lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=False),
         lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=False),
         lambda x: x.rolling(window=10, min_periods=5).max(),
@@ -492,7 +496,7 @@ def test_moment_functions_zero_length_pairwise():
     df2["a"] = df2["a"].astype("float64")
 
     df1_expected = DataFrame(
-        index=pd.MultiIndex.from_product([df1.index, df1.columns]), columns=Index([]),
+        index=pd.MultiIndex.from_product([df1.index, df1.columns]), columns=Index([])
     )
     df2_expected = DataFrame(
         index=pd.MultiIndex.from_product(
@@ -635,7 +639,7 @@ def test_rolling_consistency(consistency_data, window, min_periods, center):
     # with empty/0-length Series/DataFrames
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning,
+            "ignore", message=".*(empty slice|0 for slice).*", category=RuntimeWarning
         )
 
         # test consistency between different rolling_* moments

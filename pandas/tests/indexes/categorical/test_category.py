@@ -42,7 +42,7 @@ class TestCategoricalIndex(Base):
     def test_disallow_addsub_ops(self, func, op_name):
         # GH 10039
         # set ops (+/-) raise TypeError
-        idx = pd.Index(pd.Categorical(["a", "b"]))
+        idx = Index(pd.Categorical(["a", "b"]))
         cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
         msg = "|".join(
             [
@@ -171,11 +171,8 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid
-        msg = (
-            "cannot insert an item into a CategoricalIndex that is not "
-            "already an existing category"
-        )
-        with pytest.raises(TypeError, match=msg):
+        msg = "'fill_value=d' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
             ci.insert(0, "d")
 
         # GH 18295 (test missing)
@@ -183,6 +180,12 @@ class TestCategoricalIndex(Base):
         for na in (np.nan, pd.NaT, None):
             result = CategoricalIndex(list("aabcb")).insert(1, na)
             tm.assert_index_equal(result, expected)
+
+    def test_insert_na_mismatched_dtype(self):
+        ci = pd.CategoricalIndex([0, 1, 1])
+        msg = "'fill_value=NaT' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
+            ci.insert(0, pd.NaT)
 
     def test_delete(self):
 
@@ -402,15 +405,7 @@ class TestCategoricalIndex(Base):
         with pytest.raises(ValueError, match="Lengths must match"):
             ci1 == Index(["a", "b", "c"])
 
-        msg = (
-            "categorical index comparisons must have the same categories "
-            "and ordered attributes"
-            "|"
-            "Categoricals can only be compared if 'categories' are the same. "
-            "Categories are different lengths"
-            "|"
-            "Categoricals can only be compared if 'ordered' is the same"
-        )
+        msg = "Categoricals can only be compared if 'categories' are the same"
         with pytest.raises(TypeError, match=msg):
             ci1 == ci2
         with pytest.raises(TypeError, match=msg):

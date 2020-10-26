@@ -213,7 +213,7 @@ class TestCategoricalConstructors:
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
         with tm.assert_produces_warning(None):
-            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])  # noqa
+            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])
 
         with tm.assert_produces_warning(None):
             c_old = Categorical([0, 1, 2, 0, 1, 2], categories=[3, 4, 5])  # noqa
@@ -277,7 +277,7 @@ class TestCategoricalConstructors:
         # returned a scalar for a generator
 
         exp = Categorical([0, 1, 2])
-        cat = Categorical((x for x in [0, 1, 2]))
+        cat = Categorical(x for x in [0, 1, 2])
         tm.assert_categorical_equal(cat, exp)
         cat = Categorical(range(3))
         tm.assert_categorical_equal(cat, exp)
@@ -638,7 +638,7 @@ class TestCategoricalConstructors:
     def test_constructor_string_and_tuples(self):
         # GH 21416
         c = pd.Categorical(np.array(["c", ("a", "b"), ("b", "a"), "c"], dtype=object))
-        expected_index = pd.Index([("a", "b"), ("b", "a"), "c"])
+        expected_index = Index([("a", "b"), ("b", "a"), "c"])
         assert c.categories.equals(expected_index)
 
     def test_interval(self):

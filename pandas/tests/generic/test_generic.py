@@ -3,7 +3,7 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import np_version_under1p17
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -407,7 +407,7 @@ class Generic:
     def test_sample_upsampling_without_replacement(self):
         # GH27451
 
-        df = pd.DataFrame({"A": list("abc")})
+        df = DataFrame({"A": list("abc")})
         msg = (
             "Replace has to be set to `True` when "
             "upsampling the population `frac` > 1."
@@ -418,7 +418,7 @@ class Generic:
     def test_sample_is_copy(self):
         # GH-27357, GH-30784: ensure the result of sample is an actual copy and
         # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
-        df = pd.DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
+        df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
         df2 = df.sample(3)
 
         with tm.assert_produces_warning(None):
@@ -542,7 +542,7 @@ class TestNDFrame:
         easy_weight_list = [0] * 10
         easy_weight_list[5] = 1
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "col1": range(10, 20),
                 "col2": range(20, 30),
@@ -578,7 +578,7 @@ class TestNDFrame:
         ###
 
         # Test axis argument
-        df = pd.DataFrame({"col1": range(10), "col2": ["a"] * 10})
+        df = DataFrame({"col1": range(10), "col2": ["a"] * 10})
         second_column_weight = [0, 1]
         tm.assert_frame_equal(
             df.sample(n=1, axis=1, weights=second_column_weight), df[["col2"]]
@@ -604,7 +604,7 @@ class TestNDFrame:
             df.sample(n=1, axis="not_a_name")
 
         with pytest.raises(ValueError):
-            s = pd.Series(range(10))
+            s = Series(range(10))
             s.sample(n=1, axis=1)
 
         # Test weight length compared to correct axis
@@ -615,7 +615,7 @@ class TestNDFrame:
         easy_weight_list = [0] * 3
         easy_weight_list[2] = 1
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {"col1": range(10, 20), "col2": range(20, 30), "colString": ["a"] * 10}
         )
         sample1 = df.sample(n=1, axis=1, weights=easy_weight_list)
@@ -652,18 +652,18 @@ class TestNDFrame:
             pytest.param(
                 "np.random.MT19937",
                 3,
-                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
             ),
             pytest.param(
                 "np.random.PCG64",
                 11,
-                marks=pytest.mark.skipif(_np_version_under1p17, reason="NumPy<1.17"),
+                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
             ),
         ],
     )
     def test_sample_random_state(self, func_str, arg):
         # GH32503
-        df = pd.DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
+        df = DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
         result = df.sample(n=3, random_state=eval(func_str)(arg))
         expected = df.sample(n=3, random_state=com.random_state(eval(func_str)(arg)))
         tm.assert_frame_equal(result, expected)
@@ -887,3 +887,13 @@ class TestNDFrame:
         obj = box(dtype=object)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             obj._AXIS_NUMBERS
+
+    @pytest.mark.parametrize("as_frame", [True, False])
+    def test_flags_identity(self, as_frame):
+        s = Series([1, 2])
+        if as_frame:
+            s = s.to_frame()
+
+        assert s.flags is s.flags
+        s2 = s.copy()
+        assert s2.flags is not s.flags

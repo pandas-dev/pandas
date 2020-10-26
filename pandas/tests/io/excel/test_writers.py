@@ -68,7 +68,7 @@ class TestRoundTrip:
     def test_read_one_empty_col_no_header(self, ext, header, expected):
         # xref gh-12292
         filename = "no_header"
-        df = pd.DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
+        df = DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
 
         with tm.ensure_clean(ext) as path:
             df.to_excel(path, filename, index=False, header=False)
@@ -84,7 +84,7 @@ class TestRoundTrip:
     )
     def test_read_one_empty_col_with_header(self, ext, header, expected):
         filename = "with_header"
-        df = pd.DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
+        df = DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
 
         with tm.ensure_clean(ext) as path:
             df.to_excel(path, "with_header", index=False, header=True)
@@ -97,7 +97,7 @@ class TestRoundTrip:
     def test_set_column_names_in_parameter(self, ext):
         # GH 12870 : pass down column names associated with
         # keyword argument names
-        refdf = pd.DataFrame([[1, "foo"], [2, "bar"], [3, "baz"]], columns=["a", "b"])
+        refdf = DataFrame([[1, "foo"], [2, "bar"], [3, "baz"]], columns=["a", "b"])
 
         with tm.ensure_clean(ext) as pth:
             with ExcelWriter(pth) as writer:
@@ -169,7 +169,7 @@ class TestRoundTrip:
             actual = pd.read_excel(path, header=[0, 1], index_col=0)
             tm.assert_frame_equal(actual, expected)
 
-            df = pd.DataFrame(
+            df = DataFrame(
                 {
                     ("Beg", ""): {0: 0},
                     ("Middle", "x"): {0: 1},
@@ -178,7 +178,7 @@ class TestRoundTrip:
                 }
             )
 
-            expected = pd.DataFrame(
+            expected = DataFrame(
                 {
                     ("Beg", "Unnamed: 1_level_1"): {0: 0},
                     ("Middle", "x"): {0: 1},
@@ -273,11 +273,11 @@ class TestRoundTrip:
                 ),
             ]
         )
-        df = pd.DataFrame(range(4), index=midx)
+        df = DataFrame(range(4), index=midx)
         with tm.ensure_clean(ext) as pth:
             df.to_excel(pth)
             result = pd.read_excel(pth, index_col=[0, 1])
-        expected = pd.DataFrame(
+        expected = DataFrame(
             range(4),
             pd.MultiIndex.from_arrays(
                 [
@@ -328,8 +328,8 @@ class TestExcelWriter:
         # purposely using two arrays to prevent memory issues while testing
         row_arr = np.zeros(shape=(breaking_row_count, 1))
         col_arr = np.zeros(shape=(1, breaking_col_count))
-        row_df = pd.DataFrame(row_arr)
-        col_df = pd.DataFrame(col_arr)
+        row_df = DataFrame(row_arr)
+        col_df = DataFrame(col_arr)
 
         msg = "sheet is too large"
         with pytest.raises(ValueError, match=msg):
@@ -759,9 +759,7 @@ class TestExcelWriter:
 
     # GH13511
     def test_to_excel_multiindex_nan_label(self, merge_cells, path):
-        df = pd.DataFrame(
-            {"A": [None, 2, 3], "B": [10, 20, 30], "C": np.random.sample(3)}
-        )
+        df = DataFrame({"A": [None, 2, 3], "B": [10, 20, 30], "C": np.random.sample(3)})
         df = df.set_index(["A", "B"])
 
         df.to_excel(path, merge_cells=merge_cells)
@@ -1241,7 +1239,7 @@ class TestExcelWriter:
 
     def test_true_and_false_value_options(self, path):
         # see gh-13347
-        df = pd.DataFrame([["foo", "bar"]], columns=["col1", "col2"])
+        df = DataFrame([["foo", "bar"]], columns=["col1", "col2"])
         expected = df.replace({"foo": True, "bar": False})
 
         df.to_excel(path)
@@ -1286,10 +1284,9 @@ class TestExcelWriter:
         expected.to_excel(path)
         result = pd.read_excel(path, header=[0, 1], index_col=0, convert_float=False)
         # need to convert PeriodIndexes to standard Indexes for assert equal
-        expected.columns.set_levels(
+        expected.columns = expected.columns.set_levels(
             [[str(i) for i in mi.levels[0]], [str(i) for i in mi.levels[1]]],
             level=[0, 1],
-            inplace=True,
         )
         expected.index = expected.index.astype(np.float64)
         tm.assert_frame_equal(expected, result)

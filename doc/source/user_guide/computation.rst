@@ -63,8 +63,7 @@ series in the DataFrame, also excluding NA/null values.
 
 .. ipython:: python
 
-   frame = pd.DataFrame(np.random.randn(1000, 5),
-                        columns=['a', 'b', 'c', 'd', 'e'])
+   frame = pd.DataFrame(np.random.randn(1000, 5), columns=["a", "b", "c", "d", "e"])
    frame.cov()
 
 ``DataFrame.cov`` also supports an optional ``min_periods`` keyword that
@@ -73,9 +72,9 @@ in order to have a valid result.
 
 .. ipython:: python
 
-   frame = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
-   frame.loc[frame.index[:5], 'a'] = np.nan
-   frame.loc[frame.index[5:10], 'b'] = np.nan
+   frame = pd.DataFrame(np.random.randn(20, 3), columns=["a", "b", "c"])
+   frame.loc[frame.index[:5], "a"] = np.nan
+   frame.loc[frame.index[5:10], "b"] = np.nan
 
    frame.cov()
 
@@ -116,13 +115,12 @@ Wikipedia has articles covering the above correlation coefficients:
 
 .. ipython:: python
 
-   frame = pd.DataFrame(np.random.randn(1000, 5),
-                        columns=['a', 'b', 'c', 'd', 'e'])
+   frame = pd.DataFrame(np.random.randn(1000, 5), columns=["a", "b", "c", "d", "e"])
    frame.iloc[::2] = np.nan
 
    # Series with Series
-   frame['a'].corr(frame['b'])
-   frame['a'].corr(frame['b'], method='spearman')
+   frame["a"].corr(frame["b"])
+   frame["a"].corr(frame["b"], method="spearman")
 
    # Pairwise correlation of DataFrame columns
    frame.corr()
@@ -134,9 +132,9 @@ Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
 
 .. ipython:: python
 
-   frame = pd.DataFrame(np.random.randn(20, 3), columns=['a', 'b', 'c'])
-   frame.loc[frame.index[:5], 'a'] = np.nan
-   frame.loc[frame.index[5:10], 'b'] = np.nan
+   frame = pd.DataFrame(np.random.randn(20, 3), columns=["a", "b", "c"])
+   frame.loc[frame.index[:5], "a"] = np.nan
+   frame.loc[frame.index[5:10], "b"] = np.nan
 
    frame.corr()
 
@@ -154,8 +152,8 @@ compute the correlation based on histogram intersection:
 
    # histogram intersection
    def histogram_intersection(a, b):
-       return np.minimum(np.true_divide(a, a.sum()),
-                         np.true_divide(b, b.sum())).sum()
+       return np.minimum(np.true_divide(a, a.sum()), np.true_divide(b, b.sum())).sum()
+
 
    frame.corr(method=histogram_intersection)
 
@@ -165,8 +163,8 @@ DataFrame objects.
 
 .. ipython:: python
 
-   index = ['a', 'b', 'c', 'd', 'e']
-   columns = ['one', 'two', 'three', 'four']
+   index = ["a", "b", "c", "d", "e"]
+   columns = ["one", "two", "three", "four"]
    df1 = pd.DataFrame(np.random.randn(5, 4), index=index, columns=columns)
    df2 = pd.DataFrame(np.random.randn(4, 4), index=index[:4], columns=columns)
    df1.corrwith(df2)
@@ -182,8 +180,8 @@ assigned the mean of the ranks (by default) for the group:
 
 .. ipython:: python
 
-   s = pd.Series(np.random.randn(5), index=list('abcde'))
-   s['d'] = s['b']  # so there's a tie
+   s = pd.Series(np.random.randn(5), index=list("abcde"))
+   s["d"] = s["b"]  # so there's a tie
    s.rank()
 
 :meth:`~DataFrame.rank` is also a DataFrame method and can rank either the rows
@@ -229,13 +227,21 @@ see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
    The API for window statistics is quite similar to the way one works with ``GroupBy`` objects, see the documentation :ref:`here <groupby>`.
 
+.. warning::
+
+    When using ``rolling()`` and an associated function the results are calculated with rolling sums. As a consequence
+    when having values differing with magnitude :math:`1/np.finfo(np.double).eps` this results in truncation. It must be
+    noted, that large values may have an impact on windows, which do not include these values. `Kahan summation
+    <https://en.wikipedia.org/wiki/Kahan_summation_algorithm>`__ is used
+    to compute the rolling sums to preserve accuracy as much as possible. The same holds true for ``Rolling.var()`` for
+    values differing with magnitude :math:`(1/np.finfo(np.double).eps)^{0.5}`.
+
 We work with ``rolling``, ``expanding`` and ``exponentially weighted`` data through the corresponding
 objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.ExponentialMovingWindow`.
 
 .. ipython:: python
 
-   s = pd.Series(np.random.randn(1000),
-                 index=pd.date_range('1/1/2000', periods=1000))
+   s = pd.Series(np.random.randn(1000), index=pd.date_range("1/1/2000", periods=1000))
    s = s.cumsum()
    s
 
@@ -270,24 +276,26 @@ We can then call methods on these ``rolling`` objects. These return like-indexed
 
 .. ipython:: python
 
-   s.plot(style='k--')
+   s.plot(style="k--")
 
    @savefig rolling_mean_ex.png
-   r.mean().plot(style='k')
+   r.mean().plot(style="k")
 
 .. ipython:: python
    :suppress:
 
-   plt.close('all')
+   plt.close("all")
 
 They can also be applied to DataFrame objects. This is really just syntactic
 sugar for applying the moving window operator to all of the DataFrame's columns:
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(1000, 4),
-                     index=pd.date_range('1/1/2000', periods=1000),
-                     columns=['A', 'B', 'C', 'D'])
+   df = pd.DataFrame(
+       np.random.randn(1000, 4),
+       index=pd.date_range("1/1/2000", periods=1000),
+       columns=["A", "B", "C", "D"],
+   )
    df = df.cumsum()
 
    @savefig rolling_mean_frame.png
@@ -320,6 +328,7 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.apply`, Generic apply
     :meth:`~Rolling.cov`, Sample covariance (binary)
     :meth:`~Rolling.corr`, Sample correlation (binary)
+    :meth:`~Rolling.sem`, Standard error of mean
 
 .. _computation.window_variance.caveats:
 
@@ -359,7 +368,10 @@ compute the mean absolute deviation on a rolling basis:
        return np.fabs(x - x.mean()).mean()
 
    @savefig rolling_apply_ex.png
-   s.rolling(window=60).apply(mad, raw=True).plot(style='k')
+   s.rolling(window=60).apply(mad, raw=True).plot(style="k")
+
+Using the Numba engine
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. versionadded:: 1.0
 
@@ -421,7 +433,7 @@ The following methods are available:
 
 The weights used in the window are specified by the ``win_type`` keyword.
 The list of recognized types are the `scipy.signal window functions
-<https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__:
+<https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__:
 
 * ``boxcar``
 * ``triang``
@@ -441,23 +453,22 @@ The list of recognized types are the `scipy.signal window functions
 
 .. ipython:: python
 
-   ser = pd.Series(np.random.randn(10),
-                   index=pd.date_range('1/1/2000', periods=10))
+   ser = pd.Series(np.random.randn(10), index=pd.date_range("1/1/2000", periods=10))
 
-   ser.rolling(window=5, win_type='triang').mean()
+   ser.rolling(window=5, win_type="triang").mean()
 
 Note that the ``boxcar`` window is equivalent to :meth:`~Rolling.mean`.
 
 .. ipython:: python
 
-   ser.rolling(window=5, win_type='boxcar').mean()
+   ser.rolling(window=5, win_type="boxcar").mean()
    ser.rolling(window=5).mean()
 
 For some windowing functions, additional parameters must be specified:
 
 .. ipython:: python
 
-   ser.rolling(window=5, win_type='gaussian').mean(std=0.1)
+   ser.rolling(window=5, win_type="gaussian").mean(std=0.1)
 
 .. _stats.moments.normalization:
 
@@ -486,10 +497,10 @@ This can be particularly useful for a non-regular time frequency index.
 
 .. ipython:: python
 
-   dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-                      index=pd.date_range('20130101 09:00:00',
-                                          periods=5,
-                                          freq='s'))
+   dft = pd.DataFrame(
+       {"B": [0, 1, 2, np.nan, 4]},
+       index=pd.date_range("20130101 09:00:00", periods=5, freq="s"),
+   )
    dft
 
 This is a regular frequency index. Using an integer window parameter works to roll along the window frequency.
@@ -503,20 +514,26 @@ Specifying an offset allows a more intuitive specification of the rolling freque
 
 .. ipython:: python
 
-   dft.rolling('2s').sum()
+   dft.rolling("2s").sum()
 
 Using a non-regular, but still monotonic index, rolling with an integer window does not impart any special calculation.
 
 
 .. ipython:: python
 
-   dft = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-                      index=pd.Index([pd.Timestamp('20130101 09:00:00'),
-                                      pd.Timestamp('20130101 09:00:02'),
-                                      pd.Timestamp('20130101 09:00:03'),
-                                      pd.Timestamp('20130101 09:00:05'),
-                                      pd.Timestamp('20130101 09:00:06')],
-                                     name='foo'))
+   dft = pd.DataFrame(
+       {"B": [0, 1, 2, np.nan, 4]},
+       index=pd.Index(
+           [
+               pd.Timestamp("20130101 09:00:00"),
+               pd.Timestamp("20130101 09:00:02"),
+               pd.Timestamp("20130101 09:00:03"),
+               pd.Timestamp("20130101 09:00:05"),
+               pd.Timestamp("20130101 09:00:06"),
+           ],
+           name="foo",
+       ),
+   )
    dft
    dft.rolling(2).sum()
 
@@ -525,7 +542,7 @@ Using the time-specification generates variable windows for this sparse data.
 
 .. ipython:: python
 
-   dft.rolling('2s').sum()
+   dft.rolling("2s").sum()
 
 Furthermore, we now allow an optional ``on`` parameter to specify a column (rather than the
 default of the index) in a DataFrame.
@@ -534,7 +551,7 @@ default of the index) in a DataFrame.
 
    dft = dft.reset_index()
    dft
-   dft.rolling('2s', on='foo').sum()
+   dft.rolling("2s", on="foo").sum()
 
 .. _stats.custom_rolling_window:
 
@@ -557,7 +574,7 @@ For example, if we have the following ``DataFrame``:
 
    use_expanding = [True, False, True, False, True]
    use_expanding
-   df = pd.DataFrame({'values': range(5)})
+   df = pd.DataFrame({"values": range(5)})
    df
 
 and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
@@ -603,7 +620,8 @@ rolling operations over a non-fixed offset like a ``BusinessDay``.
 .. ipython:: python
 
    from pandas.api.indexers import VariableOffsetWindowIndexer
-   df = pd.DataFrame(range(10), index=pd.date_range('2020', periods=10))
+
+   df = pd.DataFrame(range(10), index=pd.date_range("2020", periods=10))
    offset = pd.offsets.BDay(1)
    indexer = VariableOffsetWindowIndexer(index=df.index, offset=offset)
    df
@@ -634,9 +652,9 @@ parameter:
     :header: "``closed``", "Description", "Default for"
     :widths: 20, 30, 30
 
-    ``right``, close right endpoint, time-based windows
+    ``right``, close right endpoint,
     ``left``, close left endpoint,
-    ``both``, close both endpoints, fixed windows
+    ``both``, close both endpoints,
     ``neither``, open endpoints,
 
 For example, having the right endpoint open is useful in many problems that require that there is no contamination
@@ -645,22 +663,23 @@ from present information back to past information. This allows the rolling windo
 
 .. ipython:: python
 
-   df = pd.DataFrame({'x': 1},
-                     index=[pd.Timestamp('20130101 09:00:01'),
-                            pd.Timestamp('20130101 09:00:02'),
-                            pd.Timestamp('20130101 09:00:03'),
-                            pd.Timestamp('20130101 09:00:04'),
-                            pd.Timestamp('20130101 09:00:06')])
+   df = pd.DataFrame(
+       {"x": 1},
+       index=[
+           pd.Timestamp("20130101 09:00:01"),
+           pd.Timestamp("20130101 09:00:02"),
+           pd.Timestamp("20130101 09:00:03"),
+           pd.Timestamp("20130101 09:00:04"),
+           pd.Timestamp("20130101 09:00:06"),
+       ],
+   )
 
-   df["right"] = df.rolling('2s', closed='right').x.sum()  # default
-   df["both"] = df.rolling('2s', closed='both').x.sum()
-   df["left"] = df.rolling('2s', closed='left').x.sum()
-   df["neither"] = df.rolling('2s', closed='neither').x.sum()
+   df["right"] = df.rolling("2s", closed="right").x.sum()  # default
+   df["both"] = df.rolling("2s", closed="both").x.sum()
+   df["left"] = df.rolling("2s", closed="left").x.sum()
+   df["neither"] = df.rolling("2s", closed="neither").x.sum()
 
    df
-
-Currently, this feature is only implemented for time-based windows.
-For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
 
 .. _stats.iter_rolling_window:
 
@@ -733,13 +752,15 @@ For example:
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(1000, 4),
-                     index=pd.date_range('1/1/2000', periods=1000),
-                     columns=['A', 'B', 'C', 'D'])
+   df = pd.DataFrame(
+       np.random.randn(1000, 4),
+       index=pd.date_range("1/1/2000", periods=1000),
+       columns=["A", "B", "C", "D"],
+   )
    df = df.cumsum()
 
    df2 = df[:20]
-   df2.rolling(window=5).corr(df2['B'])
+   df2.rolling(window=5).corr(df2["B"])
 
 .. _stats.moments.corr_pairwise:
 
@@ -764,14 +785,17 @@ can even be omitted:
 
 .. ipython:: python
 
-   covs = (df[['B', 'C', 'D']].rolling(window=50)
-                              .cov(df[['A', 'B', 'C']], pairwise=True))
-   covs.loc['2002-09-22':]
+   covs = (
+       df[["B", "C", "D"]]
+       .rolling(window=50)
+       .cov(df[["A", "B", "C"]], pairwise=True)
+   )
+   covs.loc["2002-09-22":]
 
 .. ipython:: python
 
    correls = df.rolling(window=50).corr()
-   correls.loc['2002-09-22':]
+   correls.loc["2002-09-22":]
 
 You can efficiently retrieve the time series of correlations between two
 columns by reshaping and indexing:
@@ -779,12 +803,12 @@ columns by reshaping and indexing:
 .. ipython:: python
    :suppress:
 
-   plt.close('all')
+   plt.close("all")
 
 .. ipython:: python
 
    @savefig rolling_corr_pairwise_ex.png
-   correls.unstack(1)[('A', 'C')].plot()
+   correls.unstack(1)[("A", "C")].plot()
 
 .. _stats.aggregate:
 
@@ -798,9 +822,11 @@ perform multiple computations on the data. These operations are similar to the :
 
 .. ipython:: python
 
-   dfa = pd.DataFrame(np.random.randn(1000, 3),
-                      index=pd.date_range('1/1/2000', periods=1000),
-                      columns=['A', 'B', 'C'])
+   dfa = pd.DataFrame(
+       np.random.randn(1000, 3),
+       index=pd.date_range("1/1/2000", periods=1000),
+       columns=["A", "B", "C"],
+   )
    r = dfa.rolling(window=60, min_periods=1)
    r
 
@@ -811,9 +837,9 @@ Series (or multiple Series) via standard ``__getitem__``.
 
    r.aggregate(np.sum)
 
-   r['A'].aggregate(np.sum)
+   r["A"].aggregate(np.sum)
 
-   r[['A', 'B']].aggregate(np.sum)
+   r[["A", "B"]].aggregate(np.sum)
 
 As you can see, the result of the aggregation will have the selected columns, or all
 columns if none are selected.
@@ -828,7 +854,7 @@ aggregation with, outputting a DataFrame:
 
 .. ipython:: python
 
-   r['A'].agg([np.sum, np.mean, np.std])
+   r["A"].agg([np.sum, np.mean, np.std])
 
 On a windowed DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
@@ -848,20 +874,20 @@ columns of a ``DataFrame``:
 
 .. ipython:: python
 
-   r.agg({'A': np.sum, 'B': lambda x: np.std(x, ddof=1)})
+   r.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
 
 The function names can also be strings. In order for a string to be valid it
 must be implemented on the windowed object
 
 .. ipython:: python
 
-   r.agg({'A': 'sum', 'B': 'std'})
+   r.agg({"A": "sum", "B": "std"})
 
 Furthermore you can pass a nested dict to indicate different aggregations on different columns.
 
 .. ipython:: python
 
-   r.agg({'A': ['sum', 'std'], 'B': ['mean', 'std']})
+   r.agg({"A": ["sum", "std"], "B": ["mean", "std"]})
 
 
 .. _stats.moments.expanding:
@@ -910,6 +936,7 @@ Method summary
     :meth:`~Expanding.apply`, Generic apply
     :meth:`~Expanding.cov`, Sample covariance (binary)
     :meth:`~Expanding.corr`, Sample correlation (binary)
+    :meth:`~Expanding.sem`, Standard error of mean
 
 .. note::
 
@@ -955,7 +982,7 @@ all accept are:
 
         sn.expanding().sum()
         sn.cumsum()
-        sn.cumsum().fillna(method='ffill')
+        sn.cumsum().fillna(method="ffill")
 
 
 An expanding window statistic will be more stable (and less responsive) than
@@ -966,14 +993,14 @@ relative impact of an individual data point. As an example, here is the
 .. ipython:: python
    :suppress:
 
-   plt.close('all')
+   plt.close("all")
 
 .. ipython:: python
 
-   s.plot(style='k--')
+   s.plot(style="k--")
 
    @savefig expanding_mean_frame.png
-   s.expanding().mean().plot(style='k')
+   s.expanding().mean().plot(style="k")
 
 
 .. _stats.moments.exponentially_weighted:
@@ -1103,10 +1130,10 @@ of ``times``.
 
 .. ipython:: python
 
-    df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    df = pd.DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
-    times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', '2020-01-17']
-    df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
+    times = ["2020-01-01", "2020-01-03", "2020-01-10", "2020-01-15", "2020-01-17"]
+    df.ewm(halflife="4 days", times=pd.DatetimeIndex(times)).mean()
 
 The following formula is used to compute exponentially weighted mean with an input vector of times:
 
@@ -1118,10 +1145,10 @@ Here is an example for a univariate time series:
 
 .. ipython:: python
 
-   s.plot(style='k--')
+   s.plot(style="k--")
 
    @savefig ewma_ex.png
-   s.ewm(span=20).mean().plot(style='k')
+   s.ewm(span=20).mean().plot(style="k")
 
 ExponentialMovingWindow has a ``min_periods`` argument, which has the same
 meaning it does for all the ``.expanding`` and ``.rolling`` methods:

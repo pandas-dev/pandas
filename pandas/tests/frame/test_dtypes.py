@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import timedelta
 
 import numpy as np
@@ -7,7 +6,7 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, option_context
+from pandas import DataFrame, Series, date_range, option_context
 import pandas._testing as tm
 
 
@@ -19,42 +18,23 @@ def _check_cast(df, v):
 
 
 class TestDataFrameDataTypes:
-    def test_concat_empty_dataframe_dtypes(self):
-        df = DataFrame(columns=list("abc"))
-        df["a"] = df["a"].astype(np.bool_)
-        df["b"] = df["b"].astype(np.int32)
-        df["c"] = df["c"].astype(np.float64)
-
-        result = pd.concat([df, df])
-        assert result["a"].dtype == np.bool_
-        assert result["b"].dtype == np.int32
-        assert result["c"].dtype == np.float64
-
-        result = pd.concat([df, df.astype(np.float64)])
-        assert result["a"].dtype == np.object_
-        assert result["b"].dtype == np.float64
-        assert result["c"].dtype == np.float64
-
     def test_empty_frame_dtypes(self):
-        empty_df = pd.DataFrame()
-        tm.assert_series_equal(empty_df.dtypes, pd.Series(dtype=object))
+        empty_df = DataFrame()
+        tm.assert_series_equal(empty_df.dtypes, Series(dtype=object))
 
-        nocols_df = pd.DataFrame(index=[1, 2, 3])
-        tm.assert_series_equal(nocols_df.dtypes, pd.Series(dtype=object))
+        nocols_df = DataFrame(index=[1, 2, 3])
+        tm.assert_series_equal(nocols_df.dtypes, Series(dtype=object))
 
-        norows_df = pd.DataFrame(columns=list("abc"))
-        tm.assert_series_equal(norows_df.dtypes, pd.Series(object, index=list("abc")))
+        norows_df = DataFrame(columns=list("abc"))
+        tm.assert_series_equal(norows_df.dtypes, Series(object, index=list("abc")))
 
-        norows_int_df = pd.DataFrame(columns=list("abc")).astype(np.int32)
+        norows_int_df = DataFrame(columns=list("abc")).astype(np.int32)
         tm.assert_series_equal(
-            norows_int_df.dtypes, pd.Series(np.dtype("int32"), index=list("abc"))
+            norows_int_df.dtypes, Series(np.dtype("int32"), index=list("abc"))
         )
 
-        odict = OrderedDict
-        df = pd.DataFrame(odict([("a", 1), ("b", True), ("c", 1.0)]), index=[1, 2, 3])
-        ex_dtypes = pd.Series(
-            odict([("a", np.int64), ("b", np.bool_), ("c", np.float64)])
-        )
+        df = DataFrame(dict([("a", 1), ("b", True), ("c", 1.0)]), index=[1, 2, 3])
+        ex_dtypes = Series(dict([("a", np.int64), ("b", np.bool_), ("c", np.float64)]))
         tm.assert_series_equal(df.dtypes, ex_dtypes)
 
         # same but for empty slice of df
@@ -84,18 +64,15 @@ class TestDataFrameDataTypes:
 
     def test_dtypes_are_correct_after_column_slice(self):
         # GH6525
-        df = pd.DataFrame(index=range(5), columns=list("abc"), dtype=np.float_)
-        odict = OrderedDict
+        df = DataFrame(index=range(5), columns=list("abc"), dtype=np.float_)
         tm.assert_series_equal(
             df.dtypes,
-            pd.Series(odict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
+            Series(dict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
         )
-        tm.assert_series_equal(
-            df.iloc[:, 2:].dtypes, pd.Series(odict([("c", np.float_)]))
-        )
+        tm.assert_series_equal(df.iloc[:, 2:].dtypes, Series(dict([("c", np.float_)])))
         tm.assert_series_equal(
             df.dtypes,
-            pd.Series(odict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
+            Series(dict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
         )
 
     def test_dtypes_gh8722(self, float_string_frame):
@@ -114,10 +91,10 @@ class TestDataFrameDataTypes:
 
     def test_singlerow_slice_categoricaldtype_gives_series(self):
         # GH29521
-        df = pd.DataFrame({"x": pd.Categorical("a b c d e".split())})
+        df = DataFrame({"x": pd.Categorical("a b c d e".split())})
         result = df.iloc[0]
         raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
-        expected = pd.Series(raw_cat, index=["x"], name=0, dtype="category")
+        expected = Series(raw_cat, index=["x"], name=0, dtype="category")
 
         tm.assert_series_equal(result, expected)
 
@@ -233,20 +210,8 @@ class TestDataFrameDataTypes:
     def test_is_homogeneous_type(self, data, expected):
         assert data._is_homogeneous_type is expected
 
-    def test_is_homogeneous_type_clears_cache(self):
-        ser = pd.Series([1, 2, 3])
-        df = ser.to_frame("A")
-        df["B"] = ser
-
-        assert len(df._mgr.blocks) == 2
-
-        a = df["B"]  # caches lookup
-        df._is_homogeneous_type  # _should_ clear cache
-        assert len(df._mgr.blocks) == 1
-        assert df["B"] is not a
-
     def test_asarray_homogenous(self):
-        df = pd.DataFrame({"A": pd.Categorical([1, 2]), "B": pd.Categorical([1, 2])})
+        df = DataFrame({"A": pd.Categorical([1, 2]), "B": pd.Categorical([1, 2])})
         result = np.asarray(df)
         # may change from object in the future
         expected = np.array([[1, 1], [2, 2]], dtype="object")
@@ -256,84 +221,10 @@ class TestDataFrameDataTypes:
         # GH 20388
         np.random.seed(13)
         col_data = [str(np.random.random() * 1e-12) for _ in range(5)]
-        result = pd.DataFrame(col_data, columns=["A"])
-        expected = pd.DataFrame(col_data, columns=["A"], dtype=object)
+        result = DataFrame(col_data, columns=["A"])
+        expected = DataFrame(col_data, columns=["A"], dtype=object)
         tm.assert_frame_equal(result, expected)
         # change the dtype of the elements from object to float one by one
         result.loc[result.index, "A"] = [float(x) for x in col_data]
-        expected = pd.DataFrame(col_data, columns=["A"], dtype=float)
+        expected = DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
-    )
-    def test_convert_dtypes(self, convert_integer, expected):
-        # Specific types are tested in tests/series/test_dtypes.py
-        # Just check that it works for DataFrame here
-        df = pd.DataFrame(
-            {
-                "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
-                "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
-            }
-        )
-        result = df.convert_dtypes(True, True, convert_integer, False)
-        expected = pd.DataFrame(
-            {
-                "a": pd.Series([1, 2, 3], dtype=expected),
-                "b": pd.Series(["x", "y", "z"], dtype="string"),
-            }
-        )
-        tm.assert_frame_equal(result, expected)
-
-
-class TestDataFrameDatetimeWithTZ:
-    def test_interleave(self, timezone_frame):
-
-        # interleave with object
-        result = timezone_frame.assign(D="foo").values
-        expected = np.array(
-            [
-                [
-                    Timestamp("2013-01-01 00:00:00"),
-                    Timestamp("2013-01-02 00:00:00"),
-                    Timestamp("2013-01-03 00:00:00"),
-                ],
-                [
-                    Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern"),
-                    pd.NaT,
-                    Timestamp("2013-01-03 00:00:00-0500", tz="US/Eastern"),
-                ],
-                [
-                    Timestamp("2013-01-01 00:00:00+0100", tz="CET"),
-                    pd.NaT,
-                    Timestamp("2013-01-03 00:00:00+0100", tz="CET"),
-                ],
-                ["foo", "foo", "foo"],
-            ],
-            dtype=object,
-        ).T
-        tm.assert_numpy_array_equal(result, expected)
-
-        # interleave with only datetime64[ns]
-        result = timezone_frame.values
-        expected = np.array(
-            [
-                [
-                    Timestamp("2013-01-01 00:00:00"),
-                    Timestamp("2013-01-02 00:00:00"),
-                    Timestamp("2013-01-03 00:00:00"),
-                ],
-                [
-                    Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern"),
-                    pd.NaT,
-                    Timestamp("2013-01-03 00:00:00-0500", tz="US/Eastern"),
-                ],
-                [
-                    Timestamp("2013-01-01 00:00:00+0100", tz="CET"),
-                    pd.NaT,
-                    Timestamp("2013-01-03 00:00:00+0100", tz="CET"),
-                ],
-            ],
-            dtype=object,
-        ).T
-        tm.assert_numpy_array_equal(result, expected)

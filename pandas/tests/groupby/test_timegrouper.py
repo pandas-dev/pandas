@@ -72,7 +72,7 @@ class TestGroupBy:
         # GH 3881
         # make sure API of timegrouper conforms
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "Branch": "A A A A A B".split(),
                 "Buyer": "Carl Mark Carl Joe Joe Carl".split(),
@@ -403,12 +403,12 @@ class TestGroupBy:
         # Using `apply` with the `TimeGrouper` should give the
         # same return type as an `apply` with a `Grouper`.
         # Issue #11742
-        df = pd.DataFrame({"date": ["10/10/2000", "11/10/2000"], "value": [10, 13]})
+        df = DataFrame({"date": ["10/10/2000", "11/10/2000"], "value": [10, 13]})
         df_dt = df.copy()
         df_dt["date"] = pd.to_datetime(df_dt["date"])
 
         def sumfunc_series(x):
-            return pd.Series([x["value"].sum()], ("sum",))
+            return Series([x["value"].sum()], ("sum",))
 
         expected = df.groupby(pd.Grouper(key="date")).apply(sumfunc_series)
         result = df_dt.groupby(pd.Grouper(freq="M", key="date")).apply(sumfunc_series)
@@ -420,7 +420,7 @@ class TestGroupBy:
         # Using `apply` with the `TimeGrouper` should give the
         # same return type as an `apply` with a `Grouper`.
         # Issue #11742
-        df = pd.DataFrame({"date": ["10/10/2000", "11/10/2000"], "value": [10, 13]})
+        df = DataFrame({"date": ["10/10/2000", "11/10/2000"], "value": [10, 13]})
         df_dt = df.copy()
         df_dt["date"] = pd.to_datetime(df_dt["date"])
 
@@ -448,7 +448,7 @@ class TestGroupBy:
 
         # GH#11442
         index = pd.date_range("2015/01/01", periods=5, name="date")
-        df = pd.DataFrame({"A": [5, 6, 7, 8, 9], "B": [1, 2, 3, 4, 5]}, index=index)
+        df = DataFrame({"A": [5, 6, 7, 8, 9], "B": [1, 2, 3, 4, 5]}, index=index)
         result = df.groupby(level="date").groups
         dates = ["2015-01-05", "2015-01-04", "2015-01-03", "2015-01-02", "2015-01-01"]
         expected = {
@@ -461,7 +461,7 @@ class TestGroupBy:
             result = grouped.get_group(date)
             data = [[df.loc[date, "A"], df.loc[date, "B"]]]
             expected_index = pd.DatetimeIndex([date], name="date", freq="D")
-            expected = pd.DataFrame(data, columns=list("AB"), index=expected_index)
+            expected = DataFrame(data, columns=list("AB"), index=expected_index)
             tm.assert_frame_equal(result, expected)
 
     def test_groupby_groups_datetimeindex_tz(self):
@@ -671,7 +671,7 @@ class TestGroupBy:
         # GH 11616
         # Test that column selection returns output in correct timezone.
         np.random.seed(42)
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "factor": np.random.randint(0, 3, size=60),
                 "time": pd.date_range(
@@ -687,9 +687,9 @@ class TestGroupBy:
         # see gh-11682: Timezone info lost when broadcasting
         # scalar datetime to DataFrame
 
-        df = pd.DataFrame({"a": [1], "b": [datetime.now(pytz.utc)]})
+        df = DataFrame({"a": [1], "b": [datetime.now(pytz.utc)]})
         assert df["b"][0].tzinfo == pytz.utc
-        df = pd.DataFrame({"a": [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]})
         df["b"] = datetime.now(pytz.utc)
         assert df["b"][0].tzinfo == pytz.utc
 
@@ -733,7 +733,7 @@ class TestGroupBy:
 
     def test_nunique_with_timegrouper_and_nat(self):
         # GH 17575
-        test = pd.DataFrame(
+        test = DataFrame(
             {
                 "time": [
                     Timestamp("2016-06-28 09:35:35"),
@@ -754,13 +754,13 @@ class TestGroupBy:
         # Issue: 17530
         data_frame = {
             "location": ["shanghai", "beijing", "shanghai"],
-            "time": pd.Series(
+            "time": Series(
                 ["2017-08-09 13:32:23", "2017-08-11 23:23:15", "2017-08-11 22:23:15"],
                 dtype="datetime64[ns]",
             ),
             "value": [1, 2, 3],
         }
-        data_frame = pd.DataFrame(data_frame).set_index("time")
+        data_frame = DataFrame(data_frame).set_index("time")
         grouper = pd.Grouper(freq="D")
 
         grouped = data_frame.groupby(grouper)
@@ -776,10 +776,10 @@ class TestGroupBy:
         index = pd.period_range(
             start="2018-01", periods=periods, freq="M", name="Month"
         )
-        period_series = pd.Series(range(periods), index=index)
+        period_series = Series(range(periods), index=index)
         result = period_series.groupby(period_series.index.month).sum()
 
-        expected = pd.Series(
-            range(0, periods), index=Index(range(1, periods + 1), name=index.name),
+        expected = Series(
+            range(0, periods), index=Index(range(1, periods + 1), name=index.name)
         )
         tm.assert_series_equal(result, expected)
