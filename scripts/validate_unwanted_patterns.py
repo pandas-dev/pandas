@@ -432,7 +432,7 @@ def main(
     is_failed: bool = False
 
     for file_path in source_path:
-        with open(file_path) as file_obj:
+        with open(file_path, encoding="utf-8") as file_obj:
             for line_number, msg in function(file_obj):
                 is_failed = True
                 print(
