@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, TypeVar, Union, cast
 
 import numpy as np
 
@@ -929,7 +929,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             sort=sort,
         )
 
-    def _maybe_utc_convert(self, other):
+    def _maybe_utc_convert(self: _T, other: Index) -> Tuple[_T, Index]:
         # Overridden by DatetimeIndex
         return self, other
 
