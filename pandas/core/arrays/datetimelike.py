@@ -1272,7 +1272,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 result = result.to_period(self.freq)
             return result
 
-        result = nanops.nanmin(self._ndarray, skipna=skipna, mask=self.isna())
+        result = nanops.nanmin(self._ndarray, skipna=skipna)
         if lib.is_scalar(result):
             return self._box_func(result)
         return self._from_backing_data(result)
@@ -1299,7 +1299,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 result = result.to_period(self.freq)
             return result
 
-        result = nanops.nanmax(self._ndarray, skipna=skipna, mask=self.isna())
+        result = nanops.nanmax(self._ndarray, skipna=skipna)
         if lib.is_scalar(result):
             return self._box_func(result)
         return self._from_backing_data(result)
