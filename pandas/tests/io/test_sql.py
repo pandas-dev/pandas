@@ -145,7 +145,7 @@ SQL_STRINGS = {
                 "IntColWithNull",
                 "BoolColWithNull",
                 "BigIntCol",
-                "SmallIntCol"
+                "SmallIntCol",
             ),
         },
         "mysql": {
@@ -164,7 +164,7 @@ SQL_STRINGS = {
                 "IntColWithNull",
                 "BoolColWithNull",
                 "BigIntCol",
-                "SmallIntCol"
+                "SmallIntCol",
             ),
         },
         "postgresql": {
@@ -184,7 +184,7 @@ SQL_STRINGS = {
                 "IntColWithNull",
                 "BoolColWithNull",
                 "BigIntCol",
-                "SmallIntCol"
+                "SmallIntCol",
             ),
         },
     },
