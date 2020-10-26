@@ -397,7 +397,6 @@ def _na_for_min_count(
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
 
         result = np.full(result_shape, fill_value, dtype=values.dtype)
-
         return result
 
 
@@ -531,11 +530,9 @@ def nansum(
 def _mask_datetimelike_result(
     result: Union[np.ndarray, np.datetime64, np.timedelta64],
     axis: Optional[int],
-    mask: Optional[np.ndarray],
+    mask: np.ndarray,
     orig_values: np.ndarray,
 ):
-    if mask is None:
-        mask = isna(orig_values)
     if isinstance(result, np.ndarray):
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
