@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 import numpy as np
-import pytest
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -89,16 +88,7 @@ class TestDataFrameDataTypes:
             result = df.dtypes
             tm.assert_series_equal(result, Series({0: np.dtype("int64")}))
 
-    def test_singlerow_slice_categoricaldtype_gives_series(self):
-        # GH29521
-        df = DataFrame({"x": pd.Categorical("a b c d e".split())})
-        result = df.iloc[0]
-        raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
-        expected = Series(raw_cat, index=["x"], name=0, dtype="category")
-
-        tm.assert_series_equal(result, expected)
-
-    def test_timedeltas(self):
+    def test_dtypes_timedeltas(self):
         df = DataFrame(
             dict(
                 A=Series(date_range("2012-1-1", periods=3, freq="D")),
@@ -136,95 +126,3 @@ class TestDataFrameDataTypes:
             index=list("ABCD"),
         )
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "input_vals",
-        [
-            ([1, 2]),
-            (["1", "2"]),
-            (list(pd.date_range("1/1/2011", periods=2, freq="H"))),
-            (list(pd.date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
-            ([pd.Interval(left=0, right=5)]),
-        ],
-    )
-    def test_constructor_list_str(self, input_vals, string_dtype):
-        # GH 16605
-        # Ensure that data elements are converted to strings when
-        # dtype is str, 'str', or 'U'
-
-        result = DataFrame({"A": input_vals}, dtype=string_dtype)
-        expected = DataFrame({"A": input_vals}).astype({"A": string_dtype})
-        tm.assert_frame_equal(result, expected)
-
-    def test_constructor_list_str_na(self, string_dtype):
-
-        result = DataFrame({"A": [1.0, 2.0, None]}, dtype=string_dtype)
-        expected = DataFrame({"A": ["1.0", "2.0", None]}, dtype=object)
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "data, expected",
-        [
-            # empty
-            (DataFrame(), True),
-            # multi-same
-            (DataFrame({"A": [1, 2], "B": [1, 2]}), True),
-            # multi-object
-            (
-                DataFrame(
-                    {
-                        "A": np.array([1, 2], dtype=object),
-                        "B": np.array(["a", "b"], dtype=object),
-                    }
-                ),
-                True,
-            ),
-            # multi-extension
-            (
-                DataFrame(
-                    {"A": pd.Categorical(["a", "b"]), "B": pd.Categorical(["a", "b"])}
-                ),
-                True,
-            ),
-            # differ types
-            (DataFrame({"A": [1, 2], "B": [1.0, 2.0]}), False),
-            # differ sizes
-            (
-                DataFrame(
-                    {
-                        "A": np.array([1, 2], dtype=np.int32),
-                        "B": np.array([1, 2], dtype=np.int64),
-                    }
-                ),
-                False,
-            ),
-            # multi-extension differ
-            (
-                DataFrame(
-                    {"A": pd.Categorical(["a", "b"]), "B": pd.Categorical(["b", "c"])}
-                ),
-                False,
-            ),
-        ],
-    )
-    def test_is_homogeneous_type(self, data, expected):
-        assert data._is_homogeneous_type is expected
-
-    def test_asarray_homogenous(self):
-        df = DataFrame({"A": pd.Categorical([1, 2]), "B": pd.Categorical([1, 2])})
-        result = np.asarray(df)
-        # may change from object in the future
-        expected = np.array([[1, 1], [2, 2]], dtype="object")
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_str_to_small_float_conversion_type(self):
-        # GH 20388
-        np.random.seed(13)
-        col_data = [str(np.random.random() * 1e-12) for _ in range(5)]
-        result = DataFrame(col_data, columns=["A"])
-        expected = DataFrame(col_data, columns=["A"], dtype=object)
-        tm.assert_frame_equal(result, expected)
-        # change the dtype of the elements from object to float one by one
-        result.loc[result.index, "A"] = [float(x) for x in col_data]
-        expected = DataFrame(col_data, columns=["A"], dtype=float)
-        tm.assert_frame_equal(result, expected)

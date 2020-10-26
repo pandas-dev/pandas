@@ -739,6 +739,15 @@ class TestiLoc2:
         expected = DataFrame([[0.0, 4.0], [8.0, 12.0], [4.0, 5.0], [6.0, np.nan]])
         tm.assert_frame_equal(result, expected)
 
+    def test_iloc_getitem_singlerow_slice_categoricaldtype_gives_series(self):
+        # GH#29521
+        df = DataFrame({"x": pd.Categorical("a b c d e".split())})
+        result = df.iloc[0]
+        raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
+        expected = Series(raw_cat, index=["x"], name=0, dtype="category")
+
+        tm.assert_series_equal(result, expected)
+
 
 class TestILocSetItemDuplicateColumns:
     def test_iloc_setitem_scalar_duplicate_columns(self):

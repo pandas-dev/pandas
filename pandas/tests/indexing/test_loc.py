@@ -978,6 +978,19 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         tm.assert_series_equal(result, expected)
 
+    def test_loc_setitem_str_to_small_float_conversion_type(self):
+        # GH#20388
+        np.random.seed(13)
+        col_data = [str(np.random.random() * 1e-12) for _ in range(5)]
+        result = DataFrame(col_data, columns=["A"])
+        expected = DataFrame(col_data, columns=["A"], dtype=object)
+        tm.assert_frame_equal(result, expected)
+
+        # change the dtype of the elements from object to float one by one
+        result.loc[result.index, "A"] = [float(x) for x in col_data]
+        expected = DataFrame(col_data, columns=["A"], dtype=float)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLocWithMultiIndex:
     @pytest.mark.parametrize(
