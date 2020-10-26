@@ -117,7 +117,7 @@ def _is_py3_complex_incompat(result, expected):
     return isinstance(expected, (complex, np.complexfloating)) and np.isnan(result)
 
 
-_good_arith_ops = set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_SYMS)
+_good_arith_ops = sorted(set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_SYMS))
 
 
 # TODO: using range(5) here is a kludge

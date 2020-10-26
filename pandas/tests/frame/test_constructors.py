@@ -2697,8 +2697,40 @@ class TestDataFrameConstructors:
         df = DataFrame({"A": np.random.randn(len(rng)), "B": dates})
         assert np.issubdtype(df["B"].dtype, np.dtype("M8[ns]"))
 
+    @pytest.mark.parametrize(
+        "input_vals",
+        [
+            ([1, 2]),
+            (["1", "2"]),
+            (list(date_range("1/1/2011", periods=2, freq="H"))),
+            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            ([pd.Interval(left=0, right=5)]),
+        ],
+    )
+    def test_constructor_list_str(self, input_vals, string_dtype):
+        # GH#16605
+        # Ensure that data elements are converted to strings when
+        # dtype is str, 'str', or 'U'
+
+        result = DataFrame({"A": input_vals}, dtype=string_dtype)
+        expected = DataFrame({"A": input_vals}).astype({"A": string_dtype})
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_str_na(self, string_dtype):
+
+        result = DataFrame({"A": [1.0, 2.0, None]}, dtype=string_dtype)
+        expected = DataFrame({"A": ["1.0", "2.0", None]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
+        # GH#25843
+        tz = tz_aware_fixture
+        result = DataFrame({"d": [Timestamp("2019", tz=tz)]}, dtype="datetime64[ns]")
+        expected = DataFrame({"d": [Timestamp("2019")]})
+        tm.assert_frame_equal(result, expected)
+
     def test_from_dict(self):
 
         # 8260
