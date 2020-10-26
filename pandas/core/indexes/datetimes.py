@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timedelta, tzinfo
 import operator
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
 import warnings
 
 import numpy as np
@@ -417,7 +417,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return this.rename(res_name)
         return this
 
-    def _maybe_utc_convert(self, other):
+    def _maybe_utc_convert(self, other: Index) -> Tuple["DatetimeIndex", Index]:
         this = self
 
         if isinstance(other, DatetimeIndex):
