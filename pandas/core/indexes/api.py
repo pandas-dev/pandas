@@ -298,16 +298,15 @@ def all_indexes_same(indexes):
 
     Parameters
     ----------
-    indexes : iterable of Index objects
+    indexes : list of Index objects
 
     Returns
     -------
     bool
         True if all indexes contain the same elements, False otherwise.
     """
-    itr = iter(indexes)
-    first = next(itr)
-    for index in itr:
+    first = indexes[0]
+    for index in indexes[1:]:
         if not first.equals(index):
             return False
     return True

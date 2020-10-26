@@ -1219,25 +1219,57 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if len(keys) == 0:
             return self.obj._constructor(index=keys)
 
+        key_names = self.grouper.names
+
         # GH12824
         first_not_none = next(com.not_none(*values), None)
 
         if first_not_none is None:
-            # GH9684 - All values are None, return an empty frame.
+            # GH9684. If all values are None, then this will throw an error.
+            # We'd prefer it return an empty dataframe.
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
         else:
-            key_index = self.grouper.result_index if self.as_index else None
+            if len(self.grouper.groupings) > 1:
+                key_index = self.grouper.result_index
 
-            if isinstance(first_not_none, Series):
+            else:
+                ping = self.grouper.groupings[0]
+                if len(keys) == ping.ngroups:
+                    key_index = ping.group_index
+                    key_index.name = key_names[0]
+
+                    key_lookup = Index(keys)
+                    indexer = key_lookup.get_indexer(key_index)
+
+                    # reorder the values
+                    values = [values[i] for i in indexer]
+
+                    # update due to the potential reorder
+                    first_not_none = next(com.not_none(*values), None)
+                else:
+
+                    key_index = Index(keys, name=key_names[0])
+
+                # don't use the key indexer
+                if not self.as_index:
+                    key_index = None
+
+            # make Nones an empty object
+            if first_not_none is None:
+                return self.obj._constructor()
+            elif isinstance(first_not_none, NDFrame):
 
                 # this is to silence a DeprecationWarning
                 # TODO: Remove when default dtype of empty Series is object
                 kwargs = first_not_none._construct_axes_dict()
-                backup = create_series_with_explicit_dtype(
-                    **kwargs, dtype_if_empty=object
-                )
+                if isinstance(first_not_none, Series):
+                    backup = create_series_with_explicit_dtype(
+                        **kwargs, dtype_if_empty=object
+                    )
+                else:
+                    backup = first_not_none._constructor(**kwargs)
 
                 values = [x if (x is not None) else backup for x in values]
 
@@ -1246,7 +1278,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if isinstance(v, (np.ndarray, Index, Series)) or not self.as_index:
                 if isinstance(v, Series):
                     applied_index = self._selected_obj._get_axis(self.axis)
-                    all_indexed_same = all_indexes_same((x.index for x in values))
+                    all_indexed_same = all_indexes_same([x.index for x in values])
                     singular_series = len(values) == 1 and applied_index.nlevels == 1
 
                     # GH3596
@@ -1278,6 +1310,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         # GH 8467
                         return self._concat_objects(keys, values, not_indexed_same=True)
 
+                if self.axis == 0 and isinstance(v, ABCSeries):
                     # GH6124 if the list of Series have a consistent name,
                     # then propagate that name to the result.
                     index = v.index.copy()
@@ -1290,27 +1323,34 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         if len(names) == 1:
                             index.name = list(names)[0]
 
-                    # Combine values
-                    # vstack+constructor is faster than concat and handles MI-columns
-                    stacked_values = np.vstack([np.asarray(v) for v in values])
-
-                    if self.axis == 0:
-                        index = key_index
-                        columns = v.index.copy()
-                        if columns.name is None:
-                            # GH6124 - propagate name of Series when it's consistent
-                            names = {v.name for v in values}
-                            if len(names) == 1:
-                                columns.name = list(names)[0]
+                    # normally use vstack as its faster than concat
+                    # and if we have mi-columns
+                    if (
+                        isinstance(v.index, MultiIndex)
+                        or key_index is None
+                        or isinstance(key_index, MultiIndex)
+                    ):
+                        stacked_values = np.vstack([np.asarray(v) for v in values])
+                        result = self.obj._constructor(
+                            stacked_values, index=key_index, columns=index
+                        )
                     else:
-                        index = v.index
-                        columns = key_index
-                        stacked_values = stacked_values.T
+                        # GH5788 instead of stacking; concat gets the
+                        # dtypes correct
+                        from pandas.core.reshape.concat import concat
 
+                        result = concat(
+                            values,
+                            keys=key_index,
+                            names=key_index.names,
+                            axis=self.axis,
+                        ).unstack()
+                        result.columns = index
+                elif isinstance(v, ABCSeries):
+                    stacked_values = np.vstack([np.asarray(v) for v in values])
                     result = self.obj._constructor(
-                        stacked_values, index=index, columns=columns
+                        stacked_values.T, index=v.index, columns=key_index
                     )
-
                 elif not self.as_index:
                     # We add grouping column below, so create a frame here
                     result = DataFrame(
