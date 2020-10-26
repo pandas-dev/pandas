@@ -1966,9 +1966,6 @@ def test_iterator_errors(dirpath):
         StataReader(dta_file, chunksize=0)
     with pytest.raises(ValueError, match="chunksize must be a positive"):
         StataReader(dta_file, chunksize="apple")
-    with pytest.raises(ValueError, match="chunksize must be set to a positive"):
-        with StataReader(dta_file) as reader:
-            reader.__next__()
 
 
 def test_iterator_value_labels():
@@ -1983,3 +1980,18 @@ def test_iterator_value_labels():
             for i in range(2):
                 tm.assert_index_equal(chunk.dtypes[i].categories, expected)
             tm.assert_frame_equal(chunk, df.iloc[j * 100 : (j + 1) * 100])
+
+
+def test_precision_loss():
+    df = DataFrame(
+        [[sum(2 ** i for i in range(60)), sum(2 ** i for i in range(52))]],
+        columns=["big", "little"],
+    )
+    with tm.ensure_clean() as path:
+        with tm.assert_produces_warning(PossiblePrecisionLoss):
+            df.to_stata(path, write_index=False)
+        reread = read_stata(path)
+        expected_dt = Series([np.float64, np.float64], index=["big", "little"])
+        tm.assert_series_equal(reread.dtypes, expected_dt)
+        assert reread.loc[0, "little"] == df.loc[0, "little"]
+        assert reread.loc[0, "big"] == float(df.loc[0, "big"])
