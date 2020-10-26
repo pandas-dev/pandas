@@ -151,7 +151,7 @@ def test_missing_required_dependency():
 
     pyexe = sys.executable.replace("\\", "/")
 
-    call = [pyexe, "-c", "import pandas;pandas.__file__"]
+    call = [pyexe, "-c", "import pandas;print(pandas.__file__)"]
     output = subprocess.check_output(call).decode()
     if "site-packages" in output:
         pytest.skip("pandas installed as site package")
