@@ -13,13 +13,16 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+
+
 .. _whatsnew_120.improve_timeseries_accessor_naming:
+
 Improve timeseries accessors naming convention
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Added ``day_of_week`` (compatibility alias ``dayofweek``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
-
+- Added ``day_of_week``(compatibility alias ``dayofweek``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
 - Added ``day_of_year`` (compatibility alias ``dayofyear``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
+
 
 .. _whatsnew_120.duplicate_labels:
 
