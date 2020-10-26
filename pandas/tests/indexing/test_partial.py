@@ -696,7 +696,7 @@ class TestPartialSetting:
             {"col1": ["a", "b", "c"], "col2": [1, 2, 3]},
             index=pd.to_datetime(["2020-08-01", "2020-07-02", "2020-08-05"]),
         )
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {"col1": ["a", "c"], "col2": [1, 3]},
             index=pd.to_datetime(["2020-08-01", "2020-08-05"]),
         )
