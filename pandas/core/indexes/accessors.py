@@ -28,6 +28,11 @@ if TYPE_CHECKING:
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
+    _hidden_attrs = PandasObject._hidden_attrs | {
+        "orig",
+        "name",
+    }
+
     def __init__(self, data: "Series", orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(

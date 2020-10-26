@@ -489,6 +489,21 @@ _KeysArgType = Union[
 class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection: Optional[IndexLabel] = None
     _apply_allowlist: FrozenSet[str] = frozenset()
+    _hidden_attrs = PandasObject._hidden_attrs | {
+        "as_index",
+        "axis",
+        "dropna",
+        "exclusions",
+        "grouper",
+        "group_keys",
+        "keys",
+        "level",
+        "mutated",
+        "obj",
+        "observed",
+        "sort",
+        "squeeze",
+    }
 
     def __init__(
         self,
