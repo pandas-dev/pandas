@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import OutOfBoundsDatetime
+from pandas._libs import OutOfBoundsDatetime, Timestamp
 from pandas.compat.numpy import np_version_under1p18
 
 import pandas as pd
@@ -324,6 +324,15 @@ class SharedTests:
         expected = arr1d[-1]
         assert result == expected
 
+    def test_iter_2d(self, arr1d):
+        data2d = arr1d._data[:3, np.newaxis]
+        arr2d = type(arr1d)._simple_new(data2d, dtype=arr1d.dtype)
+        result = list(arr2d)
+        for x in result:
+            assert isinstance(x, type(arr1d))
+            assert x.ndim == 1
+            assert x.dtype == arr1d.dtype
+
     def test_setitem(self):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
@@ -390,7 +399,7 @@ class SharedTests:
         with pytest.raises(IndexError, match="index 12 is out of bounds"):
             arr[12] = val
 
-        with pytest.raises(TypeError, match="'value' should be a.* 'object'"):
+        with pytest.raises(TypeError, match="value should be a.* 'object'"):
             arr[0] = object()
 
         msg = "cannot set using a list-like indexer with a different length"
@@ -407,7 +416,10 @@ class SharedTests:
     def test_setitem_numeric_raises(self, arr1d, box):
         # We dont case e.g. int64 to our own dtype for setitem
 
-        msg = "requires compatible dtype"
+        msg = (
+            f"value should be a '{arr1d._scalar_type.__name__}', "
+            "'NaT', or array of those. Got"
+        )
         with pytest.raises(TypeError, match=msg):
             arr1d[:2] = box([0, 1])
 
@@ -682,6 +694,15 @@ class TestDatetimeArray(SharedTests):
         with pytest.raises(ValueError, match=msg):
             # require appropriate-dtype if we have a NA value
             arr.take([-1, 1], allow_fill=True, fill_value=value)
+
+        if arr.tz is not None:
+            # GH#37356
+            # Assuming here that arr1d fixture does not include Australia/Melbourne
+            value = Timestamp.now().tz_localize("Australia/Melbourne")
+            msg = "Timezones don't match. .* != 'Australia/Melbourne'"
+            with pytest.raises(ValueError, match=msg):
+                # require tz match, not just tzawareness match
+                arr.take([-1, 1], allow_fill=True, fill_value=value)
 
     def test_concat_same_type_invalid(self, arr1d):
         # different timezones
@@ -1020,7 +1041,7 @@ def test_casting_nat_setitem_array(array, casting_nats):
 )
 def test_invalid_nat_setitem_array(array, non_casting_nats):
     msg = (
-        "'value' should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
+        "value should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
         "Got '(timedelta64|datetime64|int)' instead."
     )
 

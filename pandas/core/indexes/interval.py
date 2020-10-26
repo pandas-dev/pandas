@@ -37,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
@@ -192,9 +191,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
 
-    # Immutable, so we are able to cache computations like isna in '_mask'
-    _mask = None
-
     _data: IntervalArray
     _values: IntervalArray
 
@@ -341,15 +337,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         result = self._simple_new(self._data, name=name)
         result._cache = self._cache
         return result
-
-    @cache_readonly
-    def _isnan(self):
-        """
-        Return a mask indicating if each value is NA.
-        """
-        if self._mask is None:
-            self._mask = isna(self.left)
-        return self._mask
 
     @cache_readonly
     def _engine(self):
@@ -896,7 +883,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         """
         new_left = self.left.delete(loc)
         new_right = self.right.delete(loc)
-        result = self._data._shallow_copy(new_left, new_right)
+        result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
         return self._shallow_copy(result)
 
     def insert(self, loc, item):
@@ -918,7 +905,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
-        result = self._data._shallow_copy(new_left, new_right)
+        result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
         return self._shallow_copy(result)
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)

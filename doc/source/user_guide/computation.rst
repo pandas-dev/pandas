@@ -328,6 +328,7 @@ We provide a number of common statistical functions:
     :meth:`~Rolling.apply`, Generic apply
     :meth:`~Rolling.cov`, Sample covariance (binary)
     :meth:`~Rolling.corr`, Sample correlation (binary)
+    :meth:`~Rolling.sem`, Standard error of mean
 
 .. _computation.window_variance.caveats:
 
@@ -651,9 +652,9 @@ parameter:
     :header: "``closed``", "Description", "Default for"
     :widths: 20, 30, 30
 
-    ``right``, close right endpoint, time-based windows
+    ``right``, close right endpoint,
     ``left``, close left endpoint,
-    ``both``, close both endpoints, fixed windows
+    ``both``, close both endpoints,
     ``neither``, open endpoints,
 
 For example, having the right endpoint open is useful in many problems that require that there is no contamination
@@ -679,9 +680,6 @@ from present information back to past information. This allows the rolling windo
    df["neither"] = df.rolling("2s", closed="neither").x.sum()
 
    df
-
-Currently, this feature is only implemented for time-based windows.
-For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
 
 .. _stats.iter_rolling_window:
 
@@ -938,6 +936,7 @@ Method summary
     :meth:`~Expanding.apply`, Generic apply
     :meth:`~Expanding.cov`, Sample covariance (binary)
     :meth:`~Expanding.corr`, Sample correlation (binary)
+    :meth:`~Expanding.sem`, Standard error of mean
 
 .. note::
 

@@ -571,7 +571,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
     # date parser. Some would result in OutOfBoundsError (ValueError) while
     # others would result in OverflowError when passed into Timestamp.
     # We catch these errors and move on to the correct branch.
-    df = pd.DataFrame(
+    df = DataFrame(
         list(range(200)),
         index=pd.date_range(
             start="2017-01-01", freq="15min", periods=200, tz="Europe/Berlin"
@@ -579,7 +579,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         columns=[col_name],
     )
     result = df.resample("1d").aggregate(["mean"])
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [47.5, 143.5, 195.5],
         index=pd.date_range(
             start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"
@@ -595,10 +595,10 @@ def test_resample_agg_readonly():
     arr = np.zeros_like(index)
     arr.setflags(write=False)
 
-    ser = pd.Series(arr, index=index)
+    ser = Series(arr, index=index)
     rs = ser.resample("1D")
 
-    expected = pd.Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
+    expected = Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
 
     result = rs.agg("last")
     tm.assert_series_equal(result, expected)
