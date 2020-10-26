@@ -33,7 +33,6 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -47,7 +46,6 @@ from pandas.core.dtypes.common import (
     is_re,
     is_re_compilable,
     is_sparse,
-    is_string_like_dtype,
     is_timedelta64_dtype,
     pandas_dtype,
 )
@@ -597,21 +595,6 @@ class Block(PandasObject):
                 return self.make_block(self.values.astype(dtype, copy=copy))
 
             return self.make_block(Categorical(self.values, dtype=dtype))
-
-        elif (  # GH8628
-            is_categorical_dtype(self.values.dtype)
-            and not (
-                is_object_dtype(dtype)
-                or is_string_like_dtype(dtype)
-                or is_extension_array_dtype(dtype)
-                or is_datetime_or_timedelta_dtype(dtype)
-            )
-            and copy is True
-        ):
-            new_data = Categorical.from_codes(
-                self.values.codes, categories=self.values.categories.astype(dtype)
-            )
-            return self.make_block(new_data)
 
         dtype = pandas_dtype(dtype)
 

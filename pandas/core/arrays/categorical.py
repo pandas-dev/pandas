@@ -413,7 +413,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             return array(self, dtype=dtype, copy=copy)
         if is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
-        return np.array(self, dtype=dtype, copy=copy)
+
+        new_categories = self.categories.astype(dtype)
+        obj = Categorical.from_codes(self.codes, categories=new_categories)
+        return np.array(obj.categories[self.codes], copy=copy)
 
     @cache_readonly
     def itemsize(self) -> int:
