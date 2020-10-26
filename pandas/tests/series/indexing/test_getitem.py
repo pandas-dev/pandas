@@ -17,6 +17,27 @@ from pandas.tseries.offsets import BDay
 
 
 class TestSeriesGetitemScalars:
+    def test_getitem_keyerror_with_int64index(self):
+        ser = Series(np.random.randn(6), index=[0, 0, 1, 1, 2, 2])
+
+        with pytest.raises(KeyError, match=r"^5$"):
+            ser[5]
+
+        with pytest.raises(KeyError, match=r"^'c'$"):
+            ser["c"]
+
+        # not monotonic
+        ser = Series(np.random.randn(6), index=[2, 2, 0, 0, 1, 1])
+
+        with pytest.raises(KeyError, match=r"^5$"):
+            ser[5]
+
+        with pytest.raises(KeyError, match=r"^'c'$"):
+            ser["c"]
+
+    def test_getitem_int64(self, datetime_series):
+        idx = np.int64(5)
+        assert datetime_series[idx] == datetime_series[5]
 
     # TODO: better name/GH ref?
     def test_getitem_regression(self):
