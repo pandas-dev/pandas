@@ -78,7 +78,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
 
 
 @inherit_names(
-    ["inferred_freq", "_isnan", "_resolution_obj", "resolution"],
+    ["inferred_freq", "_resolution_obj", "resolution"],
     DatetimeLikeArrayMixin,
     cache=True,
 )

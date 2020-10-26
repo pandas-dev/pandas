@@ -1005,6 +1005,23 @@ class TestDatetime64NaNOps:
             result = nanops.nanmean(obj)
             assert result == expected
 
+    @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+    def test_nanmean_skipna_false(self, dtype):
+        arr = np.arange(12).astype(np.int64).view(dtype).reshape(4, 3)
+
+        arr[-1, -1] = "NaT"
+
+        result = nanops.nanmean(arr, skipna=False)
+        assert result is pd.NaT
+
+        result = nanops.nanmean(arr, axis=0, skipna=False)
+        expected = np.array([4, 5, "NaT"], dtype=arr.dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = nanops.nanmean(arr, axis=1, skipna=False)
+        expected = np.array([arr[0, 1], arr[1, 1], arr[2, 1], arr[-1, -1]])
+        tm.assert_numpy_array_equal(result, expected)
+
 
 def test_use_bottleneck():
 
