@@ -767,3 +767,11 @@ class TestILocSetItemDuplicateColumns:
         )
         df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
         assert df.dtypes.iloc[2] == np.int64
+
+
+def test_iloc_setitem_bool_array():
+    # GH: 36741
+    df = DataFrame({"flag": ["x", "y", "z"], "value": [1, 3, 4]})
+    df.iloc[[True, False, False], 1] = df.iloc[[True, False, False], 1] * 2
+    expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
+    tm.assert_frame_equal(df, expected)
