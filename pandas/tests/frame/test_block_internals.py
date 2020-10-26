@@ -254,34 +254,6 @@ class TestDataFrameBlockInternals:
         if not compat.is_platform_windows():
             f("M8[ns]")
 
-    def test_copy_blocks(self, float_frame):
-        # API/ENH 9607
-        df = DataFrame(float_frame, copy=True)
-        column = df.columns[0]
-
-        # use the default copy=True, change a column
-        blocks = df._to_dict_of_blocks(copy=True)
-        for dtype, _df in blocks.items():
-            if column in _df:
-                _df.loc[:, column] = _df[column] + 1
-
-        # make sure we did not change the original DataFrame
-        assert not _df[column].equals(df[column])
-
-    def test_no_copy_blocks(self, float_frame):
-        # API/ENH 9607
-        df = DataFrame(float_frame, copy=True)
-        column = df.columns[0]
-
-        # use the copy=False, change a column
-        blocks = df._to_dict_of_blocks(copy=False)
-        for dtype, _df in blocks.items():
-            if column in _df:
-                _df.loc[:, column] = _df[column] + 1
-
-        # make sure we did change the original DataFrame
-        assert _df[column].equals(df[column])
-
     def test_copy(self, float_frame, float_string_frame):
         cop = float_frame.copy()
         cop["E"] = cop["A"]
@@ -485,24 +457,6 @@ class TestDataFrameBlockInternals:
         assert type(df["c"]._mgr.blocks[0]) == ObjectBlock
         assert type(df2["c"]._mgr.blocks[0]) == ObjectBlock
         tm.assert_frame_equal(df, df2)
-
-
-def test_to_dict_of_blocks_item_cache():
-    # Calling to_dict_of_blocks should not poison item_cache
-    df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
-    df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
-    mgr = df._mgr
-    assert len(mgr.blocks) == 3  # i.e. not consolidated
-
-    ser = df["b"]  # populations item_cache["b"]
-
-    df._to_dict_of_blocks()
-
-    # Check that the to_dict_of_blocks didnt break link between ser and df
-    ser.values[0] = "foo"
-    assert df.loc[0, "b"] == "foo"
-
-    assert df["b"] is ser
 
 
 def test_update_inplace_sets_valid_block_values():
