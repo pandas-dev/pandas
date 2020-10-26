@@ -8,10 +8,14 @@ from pandas import (
     DataFrame,
     Index,
     Interval,
+    NaT,
     Period,
+    PeriodIndex,
     Series,
     Timestamp,
     date_range,
+    notna,
+    period_range,
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
@@ -180,3 +184,48 @@ class TestDataFrameSetItem:
         df["obj"] = obj
 
         tm.assert_frame_equal(df, expected)
+
+    def test_setitem_dt64tz(self, timezone_frame):
+
+        df = timezone_frame
+        idx = df["B"].rename("foo")
+
+        # setitem
+        df["C"] = idx
+        tm.assert_series_equal(df["C"], Series(idx, name="C"))
+
+        df["D"] = "foo"
+        df["D"] = idx
+        tm.assert_series_equal(df["D"], Series(idx, name="D"))
+        del df["D"]
+
+        # assert that A & C are not sharing the same base (e.g. they
+        # are copies)
+        b1 = df._mgr.blocks[1]
+        b2 = df._mgr.blocks[2]
+        tm.assert_extension_array_equal(b1.values, b2.values)
+        b1base = b1.values._data.base
+        b2base = b2.values._data.base
+        assert b1base is None or (id(b1base) != id(b2base))
+
+        # with nan
+        df2 = df.copy()
+        df2.iloc[1, 1] = NaT
+        df2.iloc[1, 2] = NaT
+        result = df2["B"]
+        tm.assert_series_equal(notna(result), Series([True, False, True], name="B"))
+        tm.assert_series_equal(df2.dtypes, df.dtypes)
+
+    def test_setitem_periodindex(self):
+        rng = period_range("1/1/2000", periods=5, name="index")
+        df = DataFrame(np.random.randn(5, 3), index=rng)
+
+        df["Index"] = rng
+        rs = Index(df["Index"])
+        tm.assert_index_equal(rs, rng, check_names=False)
+        assert rs.name == "Index"
+        assert rng.name == "index"
+
+        rs = df.reset_index().set_index("index")
+        assert isinstance(rs.index, PeriodIndex)
+        tm.assert_index_equal(rs.index, rng)

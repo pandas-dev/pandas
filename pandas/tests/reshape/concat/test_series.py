@@ -91,7 +91,7 @@ class TestSeriesConcat:
         )
 
     def test_concat_empty_series_dtype_category_with_array(self):
-        # GH 18515
+        # GH#18515
         assert (
             pd.concat(
                 [Series(np.array([]), dtype="category"), Series(dtype="float64")]

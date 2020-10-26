@@ -8,7 +8,7 @@ import pytest
 from pandas.compat.numpy import is_numpy_dev
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
@@ -632,7 +632,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
-        df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         df.loc[0, indexer] = value
         result = df.loc[0, "A"]
 
@@ -644,7 +644,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             (
                 ([0, 2], ["A", "B", "C", "D"]),
                 7,
-                pd.DataFrame(
+                DataFrame(
                     [[7, 7, 7, 7], [3, 4, np.nan, np.nan], [7, 7, 7, 7]],
                     columns=["A", "B", "C", "D"],
                 ),
@@ -652,7 +652,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             (
                 (1, ["C", "D"]),
                 [7, 8],
-                pd.DataFrame(
+                DataFrame(
                     [[1, 2, np.nan, np.nan], [3, 4, 7, 8], [5, 6, np.nan, np.nan]],
                     columns=["A", "B", "C", "D"],
                 ),
@@ -660,14 +660,14 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             (
                 (1, ["A", "B", "C"]),
                 np.array([7, 8, 9], dtype=np.int64),
-                pd.DataFrame(
+                DataFrame(
                     [[1, 2, np.nan], [7, 8, 9], [5, 6, np.nan]], columns=["A", "B", "C"]
                 ),
             ),
             (
                 (slice(1, 3, None), ["B", "C", "D"]),
                 [[7, 8, 9], [10, 11, 12]],
-                pd.DataFrame(
+                DataFrame(
                     [[1, 2, np.nan, np.nan], [3, 7, 8, 9], [5, 10, 11, 12]],
                     columns=["A", "B", "C", "D"],
                 ),
@@ -675,15 +675,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             (
                 (slice(1, 3, None), ["C", "A", "D"]),
                 np.array([[7, 8, 9], [10, 11, 12]], dtype=np.int64),
-                pd.DataFrame(
+                DataFrame(
                     [[1, 2, np.nan, np.nan], [8, 4, 7, 9], [11, 6, 10, 12]],
                     columns=["A", "B", "C", "D"],
                 ),
             ),
             (
                 (slice(None, None, None), ["A", "C"]),
-                pd.DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
-                pd.DataFrame(
+                DataFrame([[7, 8], [9, 10], [11, 12]], columns=["A", "C"]),
+                DataFrame(
                     [[7, 2, 8], [9, 4, 10], [11, 6, 12]], columns=["A", "B", "C"]
                 ),
             ),
@@ -691,7 +691,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     )
     def test_loc_setitem_missing_columns(self, index, box, expected):
         # GH 29334
-        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], columns=["A", "B"])
         df.loc[index] = box
         tm.assert_frame_equal(df, expected)
 
@@ -737,15 +737,15 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             pd.to_datetime(42).tz_localize("UTC"),
             pd.to_datetime(666).tz_localize("UTC"),
         ]
-        expected = pd.Series(vals, index=["foo", "bar"])
+        expected = Series(vals, index=["foo", "bar"])
 
-        ser = pd.Series(dtype=object)
+        ser = Series(dtype=object)
         ser["foo"] = vals[0]
         ser["bar"] = vals[1]
 
         tm.assert_series_equal(ser, expected)
 
-        ser = pd.Series(dtype=object)
+        ser = Series(dtype=object)
         ser.loc["foo"] = vals[0]
         ser.loc["bar"] = vals[1]
 
@@ -907,9 +907,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_loc_uint64(self):
         # GH20722
         # Test whether loc accept uint64 max value as index.
-        s = pd.Series(
-            [1, 2], index=[np.iinfo("uint64").max - 1, np.iinfo("uint64").max]
-        )
+        s = Series([1, 2], index=[np.iinfo("uint64").max - 1, np.iinfo("uint64").max])
 
         result = s.loc[np.iinfo("uint64").max - 1]
         expected = s.iloc[0]
@@ -961,7 +959,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # GH24924
         df = DataFrame([[1, 2], [3, 4]])
         result = df.loc[np.array(0)]
-        s = pd.Series([1, 2], name=0)
+        s = Series([1, 2], name=0)
         tm.assert_series_equal(result, s)
 
     def test_series_indexing_zerodim_np_array(self):
@@ -975,10 +973,51 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         data = [1, 2, 3, 4, 5, 6] + [None] * 4
         expected = Series(data, index=range(2010, 2020))
 
-        result = pd.Series(index=range(2010, 2020), dtype=np.float64)
+        result = Series(index=range(2010, 2020), dtype=np.float64)
         result.loc[2015:2010:-1] = [6, 5, 4, 3, 2, 1]
 
         tm.assert_series_equal(result, expected)
+
+
+class TestLocWithMultiIndex:
+    @pytest.mark.parametrize(
+        "keys, expected",
+        [
+            (["b", "a"], [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            (["a", "b"], [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [1, 2]), [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [2, 1]), [["a", "a", "b", "b"], [2, 1, 2, 1]]),
+            ((["b", "a"], [2, 1]), [["b", "b", "a", "a"], [2, 1, 2, 1]]),
+            ((["b", "a"], [1, 2]), [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            ((["c", "a"], [2, 1]), [["c", "a", "a"], [1, 2, 1]]),
+        ],
+    )
+    @pytest.mark.parametrize("dim", ["index", "columns"])
+    def test_loc_getitem_multilevel_index_order(self, dim, keys, expected):
+        # GH#22797
+        # Try to respect order of keys given for MultiIndex.loc
+        kwargs = {dim: [["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]]}
+        df = DataFrame(np.arange(25).reshape(5, 5), **kwargs)
+        exp_index = MultiIndex.from_arrays(expected)
+        if dim == "index":
+            res = df.loc[keys, :]
+            tm.assert_index_equal(res.index, exp_index)
+        elif dim == "columns":
+            res = df.loc[:, keys]
+            tm.assert_index_equal(res.columns, exp_index)
+
+    def test_loc_preserve_names(self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        result = ymd.loc[2000]
+        result2 = ymd["A"].loc[2000]
+        assert result.index.names == ymd.index.names[1:]
+        assert result2.index.names == ymd.index.names[1:]
+
+        result = ymd.loc[2000, 2]
+        result2 = ymd["A"].loc[2000, 2]
+        assert result.index.name == ymd.index.names[2]
+        assert result2.index.name == ymd.index.names[2]
 
 
 def test_series_loc_getitem_label_list_missing_values():
@@ -1012,13 +1051,13 @@ def test_loc_getitem_label_list_integer_labels(
 def test_loc_setitem_float_intindex():
     # GH 8720
     rand_data = np.random.randn(8, 4)
-    result = pd.DataFrame(rand_data)
+    result = DataFrame(rand_data)
     result.loc[:, 0.5] = np.nan
     expected_data = np.hstack((rand_data, np.array([np.nan] * 8).reshape(8, 1)))
-    expected = pd.DataFrame(expected_data, columns=[0.0, 1.0, 2.0, 3.0, 0.5])
+    expected = DataFrame(expected_data, columns=[0.0, 1.0, 2.0, 3.0, 0.5])
     tm.assert_frame_equal(result, expected)
 
-    result = pd.DataFrame(rand_data)
+    result = DataFrame(rand_data)
     result.loc[:, 0.5] = np.nan
     tm.assert_frame_equal(result, expected)
 
@@ -1026,13 +1065,13 @@ def test_loc_setitem_float_intindex():
 def test_loc_axis_1_slice():
     # GH 10586
     cols = [(yr, m) for yr in [2014, 2015] for m in [7, 8, 9, 10]]
-    df = pd.DataFrame(
+    df = DataFrame(
         np.ones((10, 8)),
         index=tuple("ABCDEFGHIJ"),
         columns=pd.MultiIndex.from_tuples(cols),
     )
     result = df.loc(axis=1)[(2014, 9):(2015, 8)]
-    expected = pd.DataFrame(
+    expected = DataFrame(
         np.ones((10, 4)),
         index=tuple("ABCDEFGHIJ"),
         columns=pd.MultiIndex.from_tuples(
@@ -1044,7 +1083,7 @@ def test_loc_axis_1_slice():
 
 def test_loc_set_dataframe_multiindex():
     # GH 14592
-    expected = pd.DataFrame(
+    expected = DataFrame(
         "a", index=range(2), columns=pd.MultiIndex.from_product([range(2), range(2)])
     )
     result = expected.copy()
@@ -1054,7 +1093,7 @@ def test_loc_set_dataframe_multiindex():
 
 def test_loc_mixed_int_float():
     # GH#19456
-    ser = pd.Series(range(2), pd.Index([1, 2.0], dtype=object))
+    ser = Series(range(2), pd.Index([1, 2.0], dtype=object))
 
     result = ser.loc[1]
     assert result == 0
@@ -1062,19 +1101,19 @@ def test_loc_mixed_int_float():
 
 def test_loc_with_positional_slice_deprecation():
     # GH#31840
-    ser = pd.Series(range(4), index=["A", "B", "C", "D"])
+    ser = Series(range(4), index=["A", "B", "C", "D"])
 
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         ser.loc[:3] = 2
 
-    expected = pd.Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
+    expected = Series([2, 2, 2, 3], index=["A", "B", "C", "D"])
     tm.assert_series_equal(ser, expected)
 
 
 def test_loc_slice_disallows_positional():
     # GH#16121, GH#24612, GH#31810
     dti = pd.date_range("2016-01-01", periods=3)
-    df = pd.DataFrame(np.random.random((3, 2)), index=dti)
+    df = DataFrame(np.random.random((3, 2)), index=dti)
 
     ser = df[0]
 
@@ -1102,7 +1141,7 @@ def test_loc_slice_disallows_positional():
 def test_loc_datetimelike_mismatched_dtypes():
     # GH#32650 dont mix and match datetime/timedelta/period dtypes
 
-    df = pd.DataFrame(
+    df = DataFrame(
         np.random.randn(5, 3),
         columns=["a", "b", "c"],
         index=pd.date_range("2012", freq="H", periods=5),
@@ -1124,7 +1163,7 @@ def test_loc_datetimelike_mismatched_dtypes():
 def test_loc_with_period_index_indexer():
     # GH#4125
     idx = pd.period_range("2002-01", "2003-12", freq="M")
-    df = pd.DataFrame(np.random.randn(24, 10), index=idx)
+    df = DataFrame(np.random.randn(24, 10), index=idx)
     tm.assert_frame_equal(df, df.loc[idx])
     tm.assert_frame_equal(df, df.loc[list(idx)])
     tm.assert_frame_equal(df, df.loc[list(idx)])
