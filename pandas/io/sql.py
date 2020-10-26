@@ -1014,6 +1014,7 @@ class SQLTable(PandasObject):
                     if (
                         col_type is np.dtype("int64")
                         or col_type is np.dtype("int32")
+                        or col_type is np.dtype("int16")
                         or col_type is bool
                     ):
                         self.frame[col_name] = df_col.astype(col_type, copy=False)

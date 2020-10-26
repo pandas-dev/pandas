@@ -1382,6 +1382,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # Bool column with NA values becomes object
         assert issubclass(df.BoolColWithNull.dtype.type, object)
 
+        # See #37344
+        assert df.BigIntCol.dtype == 'int64'
+        assert df.IntCol.dtype == 'int32'
+        assert df.SmallIntCol.dtype == 'int16'
+        
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
         df = DataFrame(data={"i64": [2 ** 62]})
@@ -1389,13 +1394,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         result = sql.read_sql_table("test_bigint", self.conn)
 
         tm.assert_frame_equal(df, result)
-
-    def test_reading_ints(self):
-        # BigInt should be read as int64, Int should be read as int32, and SmallInt should be read as int16
-        df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
-        assert issubclass(df.BigIntCol.dtype.type, np.int64)
-        assert issubclass(df.IntCol.dtype.type, np.int32)
-        assert issubclass(df.SmallIntCol.dtype.type, np.int16)
 
     def test_default_date_load(self):
         df = sql.read_sql_table("types_test_data", self.conn)
