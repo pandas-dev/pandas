@@ -3513,7 +3513,7 @@ class DataFrame(NDFrame, OpsMixin):
             kwargs["target"] = self
         kwargs["resolvers"] = kwargs.get("resolvers", ()) + tuple(resolvers)
 
-        return _eval(expr, inplace=inplace, **kwargs).__finalize__(self, "eval")
+        return _eval(expr, inplace=inplace, **kwargs)
 
     def select_dtypes(self, include=None, exclude=None) -> DataFrame:
         """
@@ -6528,7 +6528,6 @@ Keep all original rows and columns and also all original values
                 continue
 
             self[col] = expressions.where(mask, this, that)
-            self.__finalize__(self, "update")
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -7911,13 +7910,17 @@ NaN 12.3   33.0
         else:
             to_concat = [self, other]
         return (
-            concat(
-                to_concat,
-                ignore_index=ignore_index,
-                verify_integrity=verify_integrity,
-                sort=sort,
+            (
+                concat(
+                    to_concat,
+                    ignore_index=ignore_index,
+                    verify_integrity=verify_integrity,
+                    sort=sort,
+                )
             )
-        ).__finalize__(self, method="append")
+            .__finalize__(self)
+            .__finalize__(other, method="append")
+        )
 
     def join(
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
@@ -8115,21 +8118,25 @@ NaN 12.3   33.0
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 
-        return merge(
-            self,
-            right,
-            how=how,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            left_index=left_index,
-            right_index=right_index,
-            sort=sort,
-            suffixes=suffixes,
-            copy=copy,
-            indicator=indicator,
-            validate=validate,
-        ).__finalize__(self, method="merge")
+        return (
+            merge(
+                self,
+                right,
+                how=how,
+                on=on,
+                left_on=left_on,
+                right_on=right_on,
+                left_index=left_index,
+                right_index=right_index,
+                sort=sort,
+                suffixes=suffixes,
+                copy=copy,
+                indicator=indicator,
+                validate=validate,
+            )
+            .__finalize__(self)
+            .__finalize__(right, method="merge")
+        )
 
     def round(self, decimals=0, *args, **kwargs) -> DataFrame:
         """
