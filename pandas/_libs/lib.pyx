@@ -651,6 +651,11 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
 
+    if hasattr(arr, "to_numpy"):
+        arr = arr.to_numpy()
+    elif not isinstance(arr, np.ndarray):
+        arr = np.array(arr, dtype="object")
+
     result = np.asarray(arr, dtype="object")
 
     if copy and result is arr:
