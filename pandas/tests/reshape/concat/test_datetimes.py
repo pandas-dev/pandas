@@ -15,6 +15,7 @@ from pandas import (
     Timestamp,
     concat,
     date_range,
+    to_timedelta,
 )
 import pandas._testing as tm
 
@@ -515,12 +516,10 @@ class TestPeriodConcat:
 
 
 def test_concat_timedelta64_block():
-    from pandas import to_timedelta
-
     rng = to_timedelta(np.arange(10), unit="s")
 
     df = DataFrame({"time": rng})
 
     result = concat([df, df])
-    assert (result.iloc[:10]["time"] == rng).all()
-    assert (result.iloc[10:]["time"] == rng).all()
+    tm.assert_frame_equal(result.iloc[:10], df)
+    tm.assert_frame_equal(result.iloc[10:], df)
