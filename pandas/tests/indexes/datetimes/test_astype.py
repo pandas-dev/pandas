@@ -179,7 +179,7 @@ class TestDatetimeIndex:
             Timestamp("2013-03-31", tz=tz),
             Timestamp("2013-04-30", tz=tz),
         ]
-        expected = pd.Index(expected_list, dtype=object, name="idx")
+        expected = Index(expected_list, dtype=object, name="idx")
         result = idx.astype(object)
         tm.assert_index_equal(result, expected)
         assert idx.tolist() == expected_list
@@ -195,7 +195,7 @@ class TestDatetimeIndex:
             pd.NaT,
             Timestamp("2013-01-04"),
         ]
-        expected = pd.Index(expected_list, dtype=object, name="idx")
+        expected = Index(expected_list, dtype=object, name="idx")
         result = idx.astype(object)
         tm.assert_index_equal(result, expected)
         assert idx.tolist() == expected_list
@@ -269,7 +269,7 @@ class TestDatetimeIndex:
     def test_integer_index_astype_datetime(self, tz, dtype):
         # GH 20997, 20964, 24559
         val = [pd.Timestamp("2018-01-01", tz=tz).value]
-        result = pd.Index(val, name="idx").astype(dtype)
+        result = Index(val, name="idx").astype(dtype)
         expected = pd.DatetimeIndex(["2018-01-01"], tz=tz, name="idx")
         tm.assert_index_equal(result, expected)
 
@@ -304,7 +304,7 @@ class TestAstype:
     def test_astype_array_fallback(self, tz):
         obj = pd.date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype(bool)
-        expected = pd.Index(np.array([True, True]), name="idx")
+        expected = Index(np.array([True, True]), name="idx")
         tm.assert_index_equal(result, expected)
 
         result = obj._data.astype(bool)
