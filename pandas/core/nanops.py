@@ -228,7 +228,7 @@ def _maybe_get_mask(
             # Boolean data cannot contain nulls, so signal via mask being None
             return None
 
-        if skipna:
+        if skipna or needs_i8_conversion(values.dtype):
             mask = isna(values)
 
     return mask

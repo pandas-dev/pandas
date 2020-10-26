@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core import nanops
 from pandas.core.arrays import TimedeltaArray
 
 
@@ -288,10 +289,17 @@ class TestReductions:
         assert isinstance(result, pd.Timedelta)
         assert result == expected
 
+        result = nanops.nanstd(np.asarray(arr), skipna=True)
+        assert isinstance(result, pd.Timedelta)
+        assert result == expected
+
         result = arr.std(skipna=False)
         assert result is pd.NaT
 
         result = tdi.std(skipna=False)
+        assert result is pd.NaT
+
+        result = nanops.nanstd(np.asarray(arr), skipna=False)
         assert result is pd.NaT
 
     def test_median(self):
@@ -307,8 +315,8 @@ class TestReductions:
         assert isinstance(result, pd.Timedelta)
         assert result == expected
 
-        result = arr.std(skipna=False)
+        result = arr.median(skipna=False)
         assert result is pd.NaT
 
-        result = tdi.std(skipna=False)
+        result = tdi.median(skipna=False)
         assert result is pd.NaT
