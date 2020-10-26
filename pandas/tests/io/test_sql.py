@@ -98,7 +98,7 @@ SQL_STRINGS = {
                     "IntColWithNull" INTEGER,
                     "BoolColWithNull" INTEGER,
                     'BigIntCol' BIGINT,
-                    'SmallIntCol' SMALLINT
+                    'SmallIntCol' SMALLINT,
                 )""",
         "mysql": """CREATE TABLE types_test_data (
                     `TextCol` TEXT,
@@ -111,7 +111,7 @@ SQL_STRINGS = {
                     `IntColWithNull` INTEGER,
                     `BoolColWithNull` BOOLEAN,
                     'BigIntCol' BIGINT,
-                    'SmallIntCol' SMALLINT
+                    'SmallIntCol' SMALLINT,
                 )""",
         "postgresql": """CREATE TABLE types_test_data (
                     "TextCol" TEXT,
@@ -125,7 +125,7 @@ SQL_STRINGS = {
                     "IntColWithNull" INTEGER,
                     "BoolColWithNull" BOOLEAN,
                     'BigIntCol' BIGINT,
-                    'SmallIntCol' SMALLINT
+                    'SmallIntCol' SMALLINT,
                 )""",
     },
     "insert_test_types": {
@@ -1383,9 +1383,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert issubclass(df.BoolColWithNull.dtype.type, object)
 
         # See #37344
-        assert df.BigIntCol.dtype == 'int64'
-        assert df.IntCol.dtype == 'int32'
-        assert df.SmallIntCol.dtype == 'int16'
+        assert df.BigIntCol.dtype == "int64"
+        assert df.IntCol.dtype == "int32"
+        assert df.SmallIntCol.dtype == "int16"
         
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
