@@ -337,11 +337,12 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
         if not isinstance(result, np.ndarray):
             tz = getattr(dtype, "tz", None)
             assert not isna(fill_value), "Expected non-null fill_value"
+            if result == fill_value:
+                result = np.nan
             if tz is not None:
                 # we get here e.g. via nanmean when we call it on a DTA[tz]
                 result = Timestamp(result, tz=tz)
-            elif result == fill_value:
-                result = np.nan
+            elif isna(result):
                 result = np.datetime64("NaT", "ns")
             else:
                 result = np.int64(result).view("datetime64[ns]")
@@ -391,8 +392,9 @@ def _na_for_min_count(
 
     if values.ndim == 1:
         return fill_value
+    elif axis is None:
+        return fill_value
     else:
-        assert axis is not None  # assertion to make mypy happy
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
 
         result = np.full(result_shape, fill_value, dtype=values.dtype)
