@@ -681,3 +681,24 @@ class TestPartialSetting:
             {"series": [1.23] * 4}, index=pd.RangeIndex(4, name="series_index")
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_slice_irregular_datetime_index_with_nan(self):
+        # GH36953
+        index = pd.to_datetime(["2012-01-01", "2012-01-02", "2012-01-03", None])
+        df = DataFrame(range(len(index)), index=index)
+        expected = DataFrame(range(len(index[:3])), index=index[:3])
+        result = df["2012-01-01":"2012-01-04"]
+        tm.assert_frame_equal(result, expected)
+
+    def test_slice_datetime_index(self):
+        # GH35509
+        df = DataFrame(
+            {"col1": ["a", "b", "c"], "col2": [1, 2, 3]},
+            index=pd.to_datetime(["2020-08-01", "2020-07-02", "2020-08-05"]),
+        )
+        expected = DataFrame(
+            {"col1": ["a", "c"], "col2": [1, 3]},
+            index=pd.to_datetime(["2020-08-01", "2020-08-05"]),
+        )
+        result = df.loc["2020-08"]
+        tm.assert_frame_equal(result, expected)
