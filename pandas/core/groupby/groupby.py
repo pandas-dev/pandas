@@ -2573,9 +2573,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     except TypeError as e:
                         error_msg = str(e)
                         continue
+                vals = vals.astype(cython_dtype, copy=False)
                 if needs_2d:
                     vals = vals.reshape((-1, 1))
-                vals = vals.astype(cython_dtype, copy=False)
                 func = partial(func, vals)
 
             func = partial(func, labels)
