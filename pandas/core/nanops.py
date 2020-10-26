@@ -394,8 +394,9 @@ def _na_for_min_count(
 
     if values.ndim == 1:
         return fill_value
+    elif axis is None:
+        return fill_value
     else:
-        assert axis is not None  # assertion to make mypy happy
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
 
         result = np.full(result_shape, fill_value, dtype=values.dtype)
