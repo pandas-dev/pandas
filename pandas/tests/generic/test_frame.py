@@ -15,13 +15,6 @@ class TestDataFrame(Generic):
     _typ = DataFrame
     _comparator = lambda self, x, y: tm.assert_frame_equal(x, y)
 
-    def test_rename_mi(self):
-        df = DataFrame(
-            [11, 21, 31],
-            index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]),
-        )
-        df.rename(str.lower)
-
     @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
     def test_set_axis_name(self, func):
         df = DataFrame([[1, 2], [3, 4]])
