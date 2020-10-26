@@ -489,6 +489,21 @@ _KeysArgType = Union[
 class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection: Optional[IndexLabel] = None
     _apply_allowlist: FrozenSet[str] = frozenset()
+    _hidden_attrs = PandasObject._hidden_attrs | {
+        "as_index",
+        "axis",
+        "dropna",
+        "exclusions",
+        "grouper",
+        "group_keys",
+        "keys",
+        "level",
+        "mutated",
+        "obj",
+        "observed",
+        "sort",
+        "squeeze",
+    }
 
     def __init__(
         self,
@@ -1004,8 +1019,9 @@ b  2""",
     ):
         with group_selection_context(self):
             # try a cython aggregation if we can
+            result = None
             try:
-                return self._cython_agg_general(
+                result = self._cython_agg_general(
                     how=alias,
                     alt=npfunc,
                     numeric_only=numeric_only,
@@ -1024,8 +1040,9 @@ b  2""",
                     raise
 
             # apply a non-cython aggregation
-            result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-            return result
+            if result is None:
+                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+            return result.__finalize__(self.obj, method="groupby")
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1194,12 +1211,12 @@ b  2""",
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
-            if ax.has_duplicates:
+            if ax.has_duplicates and not result.axes[self.axis].equals(ax):
                 indexer, _ = result.index.get_indexer_non_unique(ax.values)
                 indexer = algorithms.unique1d(indexer)
                 result = result.take(indexer, axis=self.axis)
             else:
-                result = result.reindex(ax, axis=self.axis)
+                result = result.reindex(ax, axis=self.axis, copy=False)
 
         elif self.group_keys:
 

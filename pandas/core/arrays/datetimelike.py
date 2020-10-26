@@ -65,7 +65,7 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import array, extract_array
-from pandas.core.indexers import check_setitem_lengths
+from pandas.core.indexers import check_array_indexer, check_setitem_lengths
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import invalid_comparison, make_invalid_op
 
@@ -75,6 +75,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays import DatetimeArray, TimedeltaArray
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
+DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
 
 class InvalidComparison(Exception):
@@ -86,7 +87,20 @@ class InvalidComparison(Exception):
     pass
 
 
-class AttributesMixin:
+class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
+    """
+    Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
+
+    Assumes that __new__/__init__ defines:
+        _data
+        _freq
+
+    and that the inheriting class has methods:
+        _generate_range
+    """
+
+    _is_recognized_dtype: Callable[[DtypeObj], bool]
+    _recognized_scalars: Tuple[Type, ...]
     _data: np.ndarray
 
     def __init__(self, data, dtype=None, freq=None, copy=False):
@@ -184,25 +198,6 @@ class AttributesMixin:
         """
         raise AbstractMethodError(self)
 
-
-DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
-
-
-class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionArray):
-    """
-    Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
-
-    Assumes that __new__/__init__ defines:
-        _data
-        _freq
-
-    and that the inheriting class has methods:
-        _generate_range
-    """
-
-    _is_recognized_dtype: Callable[[DtypeObj], bool]
-    _recognized_scalars: Tuple[Type, ...]
-
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
@@ -231,7 +226,10 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         return lib.map_infer(values, self._box_func)
 
     def __iter__(self):
-        return (self._box_func(v) for v in self.asi8)
+        if self.ndim > 1:
+            return (self[n] for n in range(len(self)))
+        else:
+            return (self._box_func(v) for v in self.asi8)
 
     @property
     def asi8(self) -> np.ndarray:
@@ -294,7 +292,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
         elif self.ndim != 1:
             freq = None
         else:
-            key = self._validate_getitem_key(key)  # maybe ndarray[bool] -> slice
+            key = check_array_indexer(self, key)  # maybe ndarray[bool] -> slice
             freq = None
             if isinstance(key, slice):
                 if self.freq is not None and key.step is not None:
@@ -421,7 +419,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
 
-    def _validate_comparison_value(self, other, opname: str):
+    def _validate_comparison_value(self, other):
         if isinstance(other, str):
             try:
                 # GH#18435 strings get a pass from tzawareness compat
@@ -431,7 +429,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
                 raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)  # type: ignore[call-arg]
+            other = self._scalar_type(other)
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
@@ -446,7 +444,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
 
         else:
             try:
-                other = self._validate_listlike(other, opname, allow_object=True)
+                other = self._validate_listlike(other, allow_object=True)
                 self._check_compatible_with(other)
             except TypeError as err:
                 if is_object_dtype(getattr(other, "dtype", None)):
@@ -479,11 +477,10 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             f"Got '{str(fill_value)}'."
         )
         try:
-            fill_value = self._validate_scalar(fill_value, msg)
+            fill_value = self._validate_scalar(fill_value)
         except TypeError as err:
             raise ValueError(msg) from err
-        rv = self._unbox(fill_value)
-        return self._rebox_native(rv)
+        return self._unbox(fill_value, setitem=True)
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
@@ -512,17 +509,16 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
 
         return self._unbox(fill_value)
 
-    def _validate_scalar(self, value, msg: Optional[str] = None):
+    def _validate_scalar(self, value, allow_listlike: bool = False):
         """
         Validate that the input value can be cast to our scalar_type.
 
         Parameters
         ----------
         value : object
-        msg : str, optional.
-            Message to raise in TypeError on invalid input.
-            If not provided, `value` is cast to a str and used
-            as the message.
+        allow_listlike: bool, default False
+            When raising an exception, whether the message should say
+            listlike inputs are allowed.
 
         Returns
         -------
@@ -533,6 +529,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             try:
                 value = self._scalar_from_string(value)
             except ValueError as err:
+                msg = self._validation_error_message(value, allow_listlike)
                 raise TypeError(msg) from err
 
         elif is_valid_nat_for_dtype(value, self.dtype):
@@ -544,13 +541,39 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             value = self._scalar_type(value)  # type: ignore[call-arg]
 
         else:
-            if msg is None:
-                msg = str(value)
+            msg = self._validation_error_message(value, allow_listlike)
             raise TypeError(msg)
 
         return value
 
-    def _validate_listlike(self, value, opname: str, allow_object: bool = False):
+    def _validation_error_message(self, value, allow_listlike: bool = False) -> str:
+        """
+        Construct an exception message on validation error.
+
+        Some methods allow only scalar inputs, while others allow either scalar
+        or listlike.
+
+        Parameters
+        ----------
+        allow_listlike: bool, default False
+
+        Returns
+        -------
+        str
+        """
+        if allow_listlike:
+            msg = (
+                f"value should be a '{self._scalar_type.__name__}', 'NaT', "
+                f"or array of those. Got '{type(value).__name__}' instead."
+            )
+        else:
+            msg = (
+                f"value should be a '{self._scalar_type.__name__}' or 'NaT'. "
+                f"Got '{type(value).__name__}' instead."
+            )
+        return msg
+
+    def _validate_listlike(self, value, allow_object: bool = False):
         if isinstance(value, type(self)):
             return value
 
@@ -580,64 +603,53 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
 
         elif not type(self)._is_recognized_dtype(value.dtype):
             raise TypeError(
-                f"{opname} requires compatible dtype or scalar, "
-                f"not {type(value).__name__}"
+                f"value should be a '{self._scalar_type.__name__}', 'NaT', "
+                f"or array of those. Got '{type(value).__name__}' instead."
             )
-
         return value
 
     def _validate_searchsorted_value(self, value):
-        msg = "searchsorted requires compatible dtype or scalar"
         if not is_list_like(value):
-            value = self._validate_scalar(value, msg)
+            value = self._validate_scalar(value, True)
         else:
-            value = self._validate_listlike(value, "searchsorted")
+            value = self._validate_listlike(value)
 
-        rv = self._unbox(value)
-        return self._rebox_native(rv)
+        return self._unbox(value)
 
     def _validate_setitem_value(self, value):
-        msg = (
-            f"'value' should be a '{self._scalar_type.__name__}', 'NaT', "
-            f"or array of those. Got '{type(value).__name__}' instead."
-        )
         if is_list_like(value):
-            value = self._validate_listlike(value, "setitem")
+            value = self._validate_listlike(value)
         else:
-            value = self._validate_scalar(value, msg)
+            value = self._validate_scalar(value, True)
 
         return self._unbox(value, setitem=True)
 
     def _validate_insert_value(self, value):
-        msg = f"cannot insert {type(self).__name__} with incompatible label"
-        value = self._validate_scalar(value, msg)
+        value = self._validate_scalar(value)
 
-        self._check_compatible_with(value, setitem=True)
-        # TODO: if we dont have compat, should we raise or astype(object)?
-        #  PeriodIndex does astype(object)
-        return value
-        # Note: we do not unbox here because the caller needs boxed value
-        #  to check for freq.
+        return self._unbox(value, setitem=True)
 
     def _validate_where_value(self, other):
-        msg = f"Where requires matching dtype, not {type(other)}"
         if not is_list_like(other):
-            other = self._validate_scalar(other, msg)
+            other = self._validate_scalar(other, True)
         else:
-            other = self._validate_listlike(other, "where")
+            other = self._validate_listlike(other)
 
         return self._unbox(other, setitem=True)
 
-    def _unbox(self, other, setitem: bool = False) -> Union[np.int64, np.ndarray]:
+    def _unbox(
+        self, other, setitem: bool = False
+    ) -> Union[np.int64, np.datetime64, np.timedelta64, np.ndarray]:
         """
         Unbox either a scalar with _unbox_scalar or an instance of our own type.
         """
         if lib.is_scalar(other):
             other = self._unbox_scalar(other, setitem=setitem)
+            other = self._rebox_native(other)
         else:
             # same type as self
             self._check_compatible_with(other, setitem=setitem)
-            other = other.view("i8")
+            other = other._ndarray
         return other
 
     # ------------------------------------------------------------------
@@ -851,7 +863,7 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             return op(self.ravel(), other.ravel()).reshape(self.shape)
 
         try:
-            other = self._validate_comparison_value(other, f"__{op.__name__}__")
+            other = self._validate_comparison_value(other)
         except InvalidComparison:
             return invalid_comparison(self, other, op)
 
@@ -861,11 +873,13 @@ class DatetimeLikeArrayMixin(OpsMixin, AttributesMixin, NDArrayBackedExtensionAr
             #  comparison otherwise it would fail to raise when
             #  comparing tz-aware and tz-naive
             with np.errstate(all="ignore"):
-                result = ops.comp_method_OBJECT_ARRAY(op, self.astype(object), other)
+                result = ops.comp_method_OBJECT_ARRAY(
+                    op, np.asarray(self.astype(object)), other
+                )
             return result
 
-        other_i8 = self._unbox(other)
-        result = op(self.asi8, other_i8)
+        other_vals = self._unbox(other)
+        result = op(self._ndarray, other_vals)
 
         o_mask = isna(other)
         if self._hasnans | np.any(o_mask):

@@ -225,7 +225,7 @@ class BlockManager(PandasObject):
         self.axes[axis] = new_labels
 
     @property
-    def _is_single_block(self) -> bool:
+    def is_single_block(self) -> bool:
         # Assumes we are 2D; overridden by SingleBlockManager
         return len(self.blocks) == 1
 
@@ -833,7 +833,7 @@ class BlockManager(PandasObject):
         # mutating the original object
         copy = copy or na_value is not lib.no_default
 
-        if self._is_single_block:
+        if self.is_single_block:
             blk = self.blocks[0]
             if blk.is_extension:
                 # Avoid implicit conversion of extension blocks to object
@@ -1083,7 +1083,7 @@ class BlockManager(PandasObject):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
             if blk.should_store(value):
-                blk.set(blk_locs, value_getitem(val_locs))
+                blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
@@ -1313,7 +1313,7 @@ class BlockManager(PandasObject):
             slice_or_indexer, self.shape[0], allow_fill=allow_fill
         )
 
-        if self._is_single_block:
+        if self.is_single_block:
             blk = self.blocks[0]
 
             if sl_type in ("slice", "mask"):
@@ -1503,7 +1503,7 @@ class SingleBlockManager(BlockManager):
     _is_consolidated = True
     _known_consolidated = True
     __slots__ = ()
-    _is_single_block = True
+    is_single_block = True
 
     def __init__(
         self,

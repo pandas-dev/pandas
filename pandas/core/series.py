@@ -67,7 +67,6 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import aggregate, transform
@@ -76,6 +75,7 @@ from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
+    array as pd_array,
     create_series_with_explicit_dtype,
     extract_array,
     is_empty_data,
@@ -181,9 +181,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata: List[str] = ["name"]
     _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
-    _deprecations = (
-        base.IndexOpsMixin._deprecations
-        | generic.NDFrame._deprecations
+    _hidden_attrs = (
+        base.IndexOpsMixin._hidden_attrs
+        | generic.NDFrame._hidden_attrs
         | frozenset(["compress", "ptp"])
     )
 
@@ -1471,6 +1471,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         str
             {klass} in Markdown-friendly format.
+
+        Notes
+        -----
+        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
 
         Examples
         --------
@@ -4193,7 +4197,7 @@ Keep all original rows and also all original values
         if len(mapped) and isinstance(mapped[0], Series):
             # GH 25959 use pd.array instead of tolist
             # so extension arrays can be used
-            return self._constructor_expanddim(pd.array(mapped), index=self.index)
+            return self._constructor_expanddim(pd_array(mapped), index=self.index)
         else:
             return self._constructor(mapped, index=self.index).__finalize__(
                 self, method="apply"
