@@ -9,6 +9,7 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
+from pandas import NaT
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays.datetimes import sequence_to_dt64ns
@@ -578,3 +579,54 @@ class TestReductions:
         result = arr.median(axis=1, skipna=False)
         expected = type(arr)._from_sequence([pd.NaT], dtype=arr.dtype)
         tm.assert_equal(result, expected)
+
+    def test_mean(self, arr1d):
+        arr = arr1d
+
+        # manually verified result
+        expected = arr[0] + 0.4 * pd.Timedelta(days=1)
+
+        result = arr.mean()
+        assert result == expected
+        result = arr.mean(skipna=False)
+        assert result is pd.NaT
+
+        result = arr.dropna().mean(skipna=False)
+        assert result == expected
+
+        result = arr.mean(axis=0)
+        assert result == expected
+
+    def test_mean_2d(self):
+        dti = pd.date_range("2016-01-01", periods=6, tz="US/Pacific")
+        dta = dti._data.reshape(3, 2)
+
+        result = dta.mean(axis=0)
+        expected = dta[1]
+        tm.assert_datetime_array_equal(result, expected)
+
+        result = dta.mean(axis=1)
+        expected = dta[:, 0] + pd.Timedelta(hours=12)
+        tm.assert_datetime_array_equal(result, expected)
+
+        result = dta.mean(axis=None)
+        expected = dti.mean()
+        assert result == expected
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_mean_empty(self, arr1d, skipna):
+        arr = arr1d[:0]
+
+        assert arr.mean(skipna=skipna) is NaT
+
+        arr2d = arr.reshape(0, 3)
+        result = arr2d.mean(axis=0, skipna=skipna)
+        expected = DatetimeArray._from_sequence([NaT, NaT, NaT], dtype=arr.dtype)
+        tm.assert_datetime_array_equal(result, expected)
+
+        result = arr2d.mean(axis=1, skipna=skipna)
+        expected = arr  # i.e. 1D, empty
+        tm.assert_datetime_array_equal(result, expected)
+
+        result = arr2d.mean(axis=None, skipna=skipna)
+        assert result is NaT

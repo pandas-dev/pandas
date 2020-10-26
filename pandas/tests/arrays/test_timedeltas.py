@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import Timedelta
 import pandas._testing as tm
 from pandas.core import nanops
 from pandas.core.arrays import TimedeltaArray
@@ -176,7 +177,7 @@ class TestUnaryOps:
 
 
 class TestReductions:
-    @pytest.mark.parametrize("name", ["sum", "std", "min", "max", "median"])
+    @pytest.mark.parametrize("name", ["std", "min", "max", "median", "mean"])
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reductions_empty(self, name, skipna):
         tdi = pd.TimedeltaIndex([])
@@ -187,6 +188,19 @@ class TestReductions:
 
         result = getattr(arr, name)(skipna=skipna)
         assert result is pd.NaT
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_sum_empty(self, skipna):
+        tdi = pd.TimedeltaIndex([])
+        arr = tdi.array
+
+        result = tdi.sum(skipna=skipna)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(0)
+
+        result = arr.sum(skipna=skipna)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(0)
 
     def test_min_max(self):
         arr = TimedeltaArray._from_sequence(["3H", "3H", "NaT", "2H", "5H", "4H"])
@@ -320,3 +334,37 @@ class TestReductions:
 
         result = tdi.median(skipna=False)
         assert result is pd.NaT
+
+    def test_mean(self):
+        tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06m", "0H", "2H"])
+        arr = tdi._data
+
+        # manually verified result
+        expected = pd.Timedelta(arr.dropna()._ndarray.mean())
+
+        result = arr.mean()
+        assert result == expected
+        result = arr.mean(skipna=False)
+        assert result is pd.NaT
+
+        result = arr.dropna().mean(skipna=False)
+        assert result == expected
+
+        result = arr.mean(axis=0)
+        assert result == expected
+
+    def test_mean_2d(self):
+        tdi = pd.timedelta_range("14 days", periods=6)
+        tda = tdi._data.reshape(3, 2)
+
+        result = tda.mean(axis=0)
+        expected = tda[1]
+        tm.assert_timedelta_array_equal(result, expected)
+
+        result = tda.mean(axis=1)
+        expected = tda[:, 0] + pd.Timedelta(hours=12)
+        tm.assert_timedelta_array_equal(result, expected)
+
+        result = tda.mean(axis=None)
+        expected = tdi.mean()
+        assert result == expected

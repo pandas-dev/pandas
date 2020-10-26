@@ -339,7 +339,12 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
             assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
-            result = Timestamp(result, tz=tz)
+            if tz is not None:
+                result = Timestamp(result, tz=tz)
+            elif isna(result):
+                result = np.datetime64("NaT", "ns")
+            else:
+                result = np.int64(result).view("datetime64[ns]")
         else:
             # If we have float dtype, taking a view will give the wrong result
             result = result.astype(dtype)
@@ -381,18 +386,17 @@ def _na_for_min_count(
     if is_numeric_dtype(values):
         values = values.astype("float64")
     fill_value = na_value_for_dtype(values.dtype)
+    if fill_value is NaT:
+        fill_value = values.dtype.type("NaT", "ns")
 
     if values.ndim == 1:
         return fill_value
+    elif axis is None:
+        return fill_value
     else:
-        assert axis is not None  # assertion to make mypy happy
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
-        # calling np.full with dtype parameter throws an ValueError when called
-        # with dtype=np.datetime64 and and fill_value=pd.NaT
-        try:
-            result = np.full(result_shape, fill_value, dtype=values.dtype)
-        except ValueError:
-            result = np.full(result_shape, fill_value)
+
+        result = np.full(result_shape, fill_value, dtype=values.dtype)
         return result
 
 
@@ -526,11 +530,9 @@ def nansum(
 def _mask_datetimelike_result(
     result: Union[np.ndarray, np.datetime64, np.timedelta64],
     axis: Optional[int],
-    mask: Optional[np.ndarray],
+    mask: np.ndarray,
     orig_values: np.ndarray,
 ):
-    if mask is None:
-        mask = isna(orig_values)
     if isinstance(result, np.ndarray):
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
