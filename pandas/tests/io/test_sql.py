@@ -97,8 +97,8 @@ SQL_STRINGS = {
                     "BoolCol" INTEGER,
                     "IntColWithNull" INTEGER,
                     "BoolColWithNull" INTEGER,
-                    'BigIntCol' BIGINT,
-                    'SmallIntCol' SMALLINT,
+                    "BigIntCol" BIGINT,
+                    "SmallIntCol" SMALLINT,
                 )""",
         "mysql": """CREATE TABLE types_test_data (
                     `TextCol` TEXT,
@@ -110,8 +110,8 @@ SQL_STRINGS = {
                     `BoolCol` BOOLEAN,
                     `IntColWithNull` INTEGER,
                     `BoolColWithNull` BOOLEAN,
-                    'BigIntCol' BIGINT,
-                    'SmallIntCol' SMALLINT,
+                    `BigIntCol` BIGINT,
+                    `SmallIntCol` SMALLINT,
                 )""",
         "postgresql": """CREATE TABLE types_test_data (
                     "TextCol" TEXT,
@@ -124,8 +124,8 @@ SQL_STRINGS = {
                     "BoolCol" BOOLEAN,
                     "IntColWithNull" INTEGER,
                     "BoolColWithNull" BOOLEAN,
-                    'BigIntCol' BIGINT,
-                    'SmallIntCol' SMALLINT,
+                    "BigIntCol" BIGINT,
+                    "SmallIntCol" SMALLINT,
                 )""",
     },
     "insert_test_types": {
