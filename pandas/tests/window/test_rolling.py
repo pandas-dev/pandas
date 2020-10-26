@@ -919,8 +919,8 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     tm.assert_series_equal(result, expected)
 
 
-def test_timeoffset_as_window_parameter():
-
+def test_timeoffset_as_window_parameter_for_corr():
+    # GH: 28266
     exp = DataFrame(
         {
             "B": [
