@@ -3476,7 +3476,7 @@ class MultiIndex(Index):
 
         if self.equals(other):
             if self.has_duplicates:
-                return self.unique()
+                return self.unique().rename(result_names)
             return self.rename(result_names)
 
         if not is_object_dtype(other.dtype):
