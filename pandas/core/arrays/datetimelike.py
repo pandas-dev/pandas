@@ -1359,21 +1359,20 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if axis is not None and abs(axis) >= self.ndim:
             raise ValueError("abs(axis) must be less than ndim")
 
-        if self.size == 0:
-            if self.ndim == 1 or axis is None:
-                return NaT
-            shape = list(self.shape)
-            del shape[axis]
-            shape = [1 if x == 0 else x for x in shape]
-            result = np.empty(shape, dtype="i8")
-            result.fill(iNaT)
+        if is_period_dtype(self.dtype):
+            # pass datetime64 values to nanops to get correct NaT semantics
+            result = nanops.nanmedian(
+                self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
+            )
+            result = result.view("i8")
+            if axis is None or self.ndim == 1:
+                return self._box_func(result)
             return self._from_backing_data(result)
 
-        mask = self.isna()
-        result = nanops.nanmedian(self.asi8, axis=axis, skipna=skipna, mask=mask)
+        result = nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
         if axis is None or self.ndim == 1:
             return self._box_func(result)
-        return self._from_backing_data(result.astype("i8"))
+        return self._from_backing_data(result)
 
 
 class DatelikeOps(DatetimeLikeArrayMixin):

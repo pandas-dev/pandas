@@ -339,7 +339,12 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
             assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
-            result = Timestamp(result, tz=tz)
+            if tz is not None:
+                result = Timestamp(result, tz=tz)
+            elif isna(result):
+                result = np.datetime64("NaT", "ns")
+            else:
+                result = np.int64(result).view("datetime64[ns]")
         else:
             # If we have float dtype, taking a view will give the wrong result
             result = result.astype(dtype)

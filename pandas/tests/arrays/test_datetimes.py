@@ -514,7 +514,7 @@ class TestReductions:
         tm.assert_equal(result, expected)
 
         result = arr.median(axis=1, skipna=skipna)
-        expected = type(arr)._from_sequence([pd.NaT], dtype=arr.dtype)
+        expected = type(arr)._from_sequence([], dtype=arr.dtype)
         tm.assert_equal(result, expected)
 
     def test_median(self, arr1d):
