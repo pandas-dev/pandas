@@ -1,4 +1,5 @@
 from collections import ChainMap
+import inspect
 
 import numpy as np
 import pytest
@@ -8,6 +9,21 @@ import pandas._testing as tm
 
 
 class TestRename:
+    def test_rename_signature(self):
+        sig = inspect.signature(DataFrame.rename)
+        parameters = set(sig.parameters)
+        assert parameters == {
+            "self",
+            "mapper",
+            "index",
+            "columns",
+            "axis",
+            "inplace",
+            "copy",
+            "level",
+            "errors",
+        }
+
     def test_rename(self, float_frame):
         mapping = {"A": "a", "B": "b", "C": "c", "D": "d"}
 
