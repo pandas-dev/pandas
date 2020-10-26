@@ -69,8 +69,7 @@ class TestDataFrame(Generic):
         expected = DataFrame(index=[0, 1, 2], dtype=object)
         self._compare(result, expected)
 
-    def test_metadata_propagation_indiv(self):
-
+    def test_metadata_propagation_indiv_groupby(self):
         # groupby
         df = DataFrame(
             {
@@ -83,6 +82,7 @@ class TestDataFrame(Generic):
         result = df.groupby("A").sum()
         self.check_metadata(df, result)
 
+    def test_metadata_propagation_indiv_resample(self):
         # resample
         df = DataFrame(
             np.random.randn(1000, 2),
@@ -91,6 +91,7 @@ class TestDataFrame(Generic):
         result = df.resample("1T")
         self.check_metadata(df, result)
 
+    def test_metadata_propagation_indiv(self):
         # merging with override
         # GH 6923
         _metadata = DataFrame._metadata

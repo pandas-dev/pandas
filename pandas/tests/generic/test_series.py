@@ -97,17 +97,7 @@ class TestSeries(Generic):
             with pytest.raises(ValueError, match=msg):
                 s.bool()
 
-    def test_metadata_propagation_indiv(self):
-        # check that the metadata matches up on the resulting ops
-
-        o = Series(range(3), range(3))
-        o.name = "foo"
-        o2 = Series(range(3), range(3))
-        o2.name = "bar"
-
-        result = o.T
-        self.check_metadata(o, result)
-
+    def test_metadata_propagation_indiv_resample(self):
         # resample
         ts = Series(
             np.random.rand(1000),
@@ -122,6 +112,17 @@ class TestSeries(Generic):
 
         result = ts.resample("1T").apply(lambda x: x.sum())
         self.check_metadata(ts, result)
+
+    def test_metadata_propagation_indiv(self):
+        # check that the metadata matches up on the resulting ops
+
+        o = Series(range(3), range(3))
+        o.name = "foo"
+        o2 = Series(range(3), range(3))
+        o2.name = "bar"
+
+        result = o.T
+        self.check_metadata(o, result)
 
         _metadata = Series._metadata
         _finalize = Series.__finalize__
