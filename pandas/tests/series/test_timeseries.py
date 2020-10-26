@@ -46,20 +46,6 @@ class TestTimeSeries:
         expected = rng.get_indexer(ts_slice.index)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_groupby_count_dateparseerror(self):
-        dr = date_range(start="1/1/2012", freq="5min", periods=10)
-
-        # BAD Example, datetimes first
-        s = Series(np.arange(10), index=[dr, np.arange(10)])
-        grouped = s.groupby(lambda x: x[1] % 2 == 0)
-        result = grouped.count()
-
-        s = Series(np.arange(10), index=[np.arange(10), dr])
-        grouped = s.groupby(lambda x: x[0] % 2 == 0)
-        expected = grouped.count()
-
-        tm.assert_series_equal(result, expected)
-
     def test_series_map_box_timedelta(self):
         # GH 11349
         s = Series(timedelta_range("1 day 1 s", periods=5, freq="h"))
