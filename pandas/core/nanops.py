@@ -340,6 +340,7 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
             assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
+
             if tz is not None:
                 # we get here e.g. via nanmean when we call it on a DTA[tz]
                 result = Timestamp(result, tz=tz)
@@ -934,8 +935,6 @@ def _nanminmax(meth, fill_value_typ):
         )
 
         datetimelike = orig_values.dtype.kind in ["m", "M"]
-        if datetimelike and mask is None:
-            mask = isna(orig_values)
 
         if (axis is not None and values.shape[axis] == 0) or values.size == 0:
             try:
@@ -950,12 +949,7 @@ def _nanminmax(meth, fill_value_typ):
         result = _maybe_null_out(result, axis, mask, values.shape)
 
         if datetimelike and not skipna:
-            if axis is None or values.ndim == 1:
-                if mask.any():
-                    return orig_values.dtype.type("NaT")
-            else:
-                axis_mask = mask.any(axis=axis)
-                result[axis_mask] = orig_values.dtype.type("NaT")
+            result = _mask_datetimelike_result(result, axis, mask, orig_values)
 
         return result
 
