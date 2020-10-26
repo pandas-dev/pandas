@@ -20,7 +20,7 @@ def test_transform_ufunc(axis, float_frame):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("op", transformation_kernels)
+@pytest.mark.parametrize("op", sorted(transformation_kernels))
 def test_transform_groupby_kernel(axis, float_frame, op):
     # GH 35964
     if op == "cumcount":
@@ -161,7 +161,7 @@ def test_transform_reducer_raises(all_reductions):
 
 # mypy doesn't allow adding lists of different types
 # https://github.com/python/mypy/issues/5492
-@pytest.mark.parametrize("op", [*transformation_kernels, lambda x: x + 1])
+@pytest.mark.parametrize("op", [*sorted(transformation_kernels), lambda x: x + 1])
 def test_transform_bad_dtype(op):
     # GH 35964
     df = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
@@ -182,7 +182,7 @@ def test_transform_bad_dtype(op):
             df.transform({"A": [op]})
 
 
-@pytest.mark.parametrize("op", transformation_kernels)
+@pytest.mark.parametrize("op", sorted(transformation_kernels))
 def test_transform_partial_failure(op):
     # GH 35964
     wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]
