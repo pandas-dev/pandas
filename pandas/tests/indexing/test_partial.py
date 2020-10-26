@@ -692,7 +692,7 @@ class TestPartialSetting:
 
     def test_slice_datetime_index(self):
         # GH35509
-        df = pd.DataFrame(
+        df = DataFrame(
             {"col1": ["a", "b", "c"], "col2": [1, 2, 3]},
             index=pd.to_datetime(["2020-08-01", "2020-07-02", "2020-08-05"]),
         )
