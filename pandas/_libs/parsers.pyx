@@ -1,15 +1,10 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
-import bz2
 from csv import QUOTE_MINIMAL, QUOTE_NONE, QUOTE_NONNUMERIC
 from errno import ENOENT
-import gzip
-import io
-import os
 import sys
 import time
 import warnings
-import zipfile
 
 from libc.stdlib cimport free
 from libc.string cimport strcasecmp, strlen, strncpy
@@ -17,7 +12,7 @@ from libc.string cimport strcasecmp, strlen, strncpy
 import cython
 from cython import Py_ssize_t
 
-from cpython.bytes cimport PyBytes_AsString, PyBytes_FromString
+from cpython.bytes cimport PyBytes_AsString
 from cpython.exc cimport PyErr_Fetch, PyErr_Occurred
 from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
@@ -67,7 +62,6 @@ from pandas._libs.khash cimport (
     khiter_t,
 )
 
-from pandas.compat import get_lzma_file, import_lzma
 from pandas.errors import DtypeWarning, EmptyDataError, ParserError, ParserWarning
 
 from pandas.core.dtypes.common import (
@@ -81,8 +75,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.concat import union_categoricals
-
-lzma = import_lzma()
 
 cdef:
     float64_t INF = <float64_t>np.inf
