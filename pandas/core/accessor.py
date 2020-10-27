@@ -11,27 +11,19 @@ from pandas.util._decorators import doc
 
 
 class DirNamesMixin:
-    _accessors: Set[str] = set()
     _hidden_attrs: FrozenSet[str] = frozenset()
 
     def _dir_deletions(self) -> Set[str]:
         """
         Delete unwanted __dir__ for this object.
         """
-        return self._accessors | self._hidden_attrs
+        return set(self._hidden_attrs)
 
     def _dir_additions(self) -> Set[str]:
         """
         Add additional __dir__ for this object.
         """
-        rv = set()
-        for accessor in self._accessors:
-            try:
-                getattr(self, accessor)
-                rv.add(accessor)
-            except AttributeError:
-                pass
-        return rv
+        return set()
 
     def __dir__(self) -> List[str]:
         """

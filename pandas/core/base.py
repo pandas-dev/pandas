@@ -11,6 +11,7 @@ from typing import (
     Dict,
     FrozenSet,
     Optional,
+    Set,
     TypeVar,
     Union,
     cast,
@@ -61,7 +62,7 @@ class PandasObject(DirNamesMixin):
     """
     Baseclass for various pandas objects.
     """
-
+    _accessors: Set[str] = set()
     _cache: Dict[str, Any]
 
     @property
