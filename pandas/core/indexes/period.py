@@ -148,7 +148,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _supports_partial_string_indexing = True
 
     # --------------------------------------------------------------------
-    # methods that dispatch to array and wrap result in PeriodIndex
+    # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
     @doc(PeriodArray.asfreq)
