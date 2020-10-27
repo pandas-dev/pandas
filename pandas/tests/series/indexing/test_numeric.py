@@ -110,27 +110,3 @@ def test_slice_floats2():
     s.index = i
     assert len(s.loc[12.0:]) == 8
     assert len(s.loc[12.5:]) == 7
-
-
-def test_int_indexing():
-    s = Series(np.random.randn(6), index=[0, 0, 1, 1, 2, 2])
-
-    with pytest.raises(KeyError, match=r"^5$"):
-        s[5]
-
-    with pytest.raises(KeyError, match=r"^'c'$"):
-        s["c"]
-
-    # not monotonic
-    s = Series(np.random.randn(6), index=[2, 2, 0, 0, 1, 1])
-
-    with pytest.raises(KeyError, match=r"^5$"):
-        s[5]
-
-    with pytest.raises(KeyError, match=r"^'c'$"):
-        s["c"]
-
-
-def test_getitem_int64(datetime_series):
-    idx = np.int64(5)
-    assert datetime_series[idx] == datetime_series[5]

@@ -1032,6 +1032,36 @@ class TestLocWithMultiIndex:
         assert result.index.name == ymd.index.names[2]
         assert result2.index.name == ymd.index.names[2]
 
+    def test_loc_getitem_multiindex_nonunique_len_zero(self):
+        # GH#13691
+        mi = MultiIndex.from_product([[0], [1, 1]])
+        ser = Series(0, index=mi)
+
+        res = ser.loc[[]]
+
+        expected = ser[:0]
+        tm.assert_series_equal(res, expected)
+
+        res2 = ser.loc[ser.iloc[0:0]]
+        tm.assert_series_equal(res2, expected)
+
+    def test_loc_getitem_access_none_value_in_multiindex(self):
+        # GH#34318: test that you can access a None value using .loc
+        #  through a Multiindex
+
+        ser = Series([None], pd.MultiIndex.from_arrays([["Level1"], ["Level2"]]))
+        result = ser.loc[("Level1", "Level2")]
+        assert result is None
+
+        midx = MultiIndex.from_product([["Level1"], ["Level2_a", "Level2_b"]])
+        ser = Series([None] * len(midx), dtype=object, index=midx)
+        result = ser.loc[("Level1", "Level2_a")]
+        assert result is None
+
+        ser = Series([1] * len(midx), dtype=object, index=midx)
+        result = ser.loc[("Level1", "Level2_a")]
+        assert result == 1
+
 
 def test_series_loc_getitem_label_list_missing_values():
     # gh-11428
