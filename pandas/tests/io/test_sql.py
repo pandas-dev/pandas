@@ -132,7 +132,7 @@ SQL_STRINGS = {
         "sqlite": {
             "query": """
                 INSERT INTO types_test_data
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             "fields": (
                 "TextCol",
@@ -151,7 +151,7 @@ SQL_STRINGS = {
         "mysql": {
             "query": """
                 INSERT INTO types_test_data
-                VALUES("%s", %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES("%s", %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
             "fields": (
                 "TextCol",
@@ -170,7 +170,7 @@ SQL_STRINGS = {
         "postgresql": {
             "query": """
                 INSERT INTO types_test_data
-                VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
             "fields": (
                 "TextCol",
