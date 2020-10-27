@@ -753,6 +753,22 @@ class TestDataFrameAnalytics:
         assert df["off1"].dtype == "timedelta64[ns]"
         assert df["off2"].dtype == "timedelta64[ns]"
 
+    def test_std_timedelta64_skipna_false(self):
+        # GH#37392
+        tdi = pd.timedelta_range("1 Day", periods=10)
+        df = DataFrame({"A": tdi, "B": tdi})
+        df.iloc[-2, -1] = pd.NaT
+
+        result = df.std(skipna=False)
+        expected = Series(
+            [df["A"].std(), pd.NaT], index=["A", "B"], dtype="timedelta64[ns]"
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = df.std(axis=1, skipna=False)
+        expected = Series([pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)])
+        tm.assert_series_equal(result, expected)
+
     def test_sum_corner(self):
         empty_frame = DataFrame()
 
@@ -1226,6 +1242,32 @@ class TestDataFrameReductions:
         result = df.any(axis=1)
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
+
+
+def test_sum_timedelta64_skipna_false():
+    # GH#17235
+    arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
+    arr[-1, -1] = "Nat"
+
+    df = DataFrame(arr)
+
+    result = df.sum(skipna=False)
+    expected = Series([pd.Timedelta(seconds=12), pd.NaT])
+    tm.assert_series_equal(result, expected)
+
+    result = df.sum(axis=0, skipna=False)
+    tm.assert_series_equal(result, expected)
+
+    result = df.sum(axis=1, skipna=False)
+    expected = Series(
+        [
+            pd.Timedelta(seconds=1),
+            pd.Timedelta(seconds=5),
+            pd.Timedelta(seconds=9),
+            pd.NaT,
+        ]
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_mixed_frame_with_integer_sum():

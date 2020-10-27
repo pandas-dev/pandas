@@ -19,6 +19,7 @@ import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
+    DatetimeIndex,
     Index,
     Interval,
     IntervalIndex,
@@ -34,6 +35,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, period_array
+from pandas.core.internals.blocks import IntBlock
 
 
 class TestSeriesConstructors:
@@ -687,6 +689,13 @@ class TestSeriesConstructors:
         s = Series([1, 2, 3.5], dtype=float_dtype)
         expected = Series([1, 2, 3.5]).astype(float_dtype)
         tm.assert_series_equal(s, expected)
+
+    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_dtype):
+        # GH 22585
+
+        msg = "cannot convert float NaN to integer"
+        with pytest.raises(ValueError, match=msg):
+            Series([1, 2, np.nan], dtype=any_int_dtype)
 
     def test_constructor_dtype_no_cast(self):
         # see gh-1572
@@ -1507,3 +1516,44 @@ class TestSeriesConstructors:
         result = Series(n, index=[0])
         expected = Series(n)
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_list_of_periods_infers_period_dtype(self):
+        series = Series(list(period_range("2000-01-01", periods=10, freq="D")))
+        assert series.dtype == "Period[D]"
+
+        series = Series(
+            [pd.Period("2011-01-01", freq="D"), pd.Period("2011-02-01", freq="D")]
+        )
+        assert series.dtype == "Period[D]"
+
+
+class TestSeriesConstructorIndexCoercion:
+    def test_series_constructor_datetimelike_index_coercion(self):
+        idx = tm.makeDateIndex(10000)
+        with tm.assert_produces_warning(FutureWarning):
+            ser = Series(np.random.randn(len(idx)), idx.astype(object))
+        with tm.assert_produces_warning(FutureWarning):
+            assert ser.index.is_all_dates
+        assert isinstance(ser.index, DatetimeIndex)
+
+
+class TestSeriesConstructorInternals:
+    def test_constructor_no_pandas_array(self):
+        ser = Series([1, 2, 3])
+        result = Series(ser.array)
+        tm.assert_series_equal(ser, result)
+        assert isinstance(result._mgr.blocks[0], IntBlock)
+
+    def test_from_array(self):
+        result = Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
+        assert result._mgr.blocks[0].is_extension is False
+
+        result = Series(pd.array(["2015"], dtype="datetime64[ns]"))
+        assert result._mgr.blocks[0].is_extension is False
+
+    def test_from_list_dtype(self):
+        result = Series(["1H", "2H"], dtype="timedelta64[ns]")
+        assert result._mgr.blocks[0].is_extension is False
+
+        result = Series(["2015"], dtype="datetime64[ns]")
+        assert result._mgr.blocks[0].is_extension is False

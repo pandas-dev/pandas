@@ -41,7 +41,7 @@ repos:
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
         language: python
-        entry: python -m scripts.generate_pip_deps_from_conda
+        entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
         additional_dependencies: [pyyaml]
@@ -99,6 +99,28 @@ repos:
         language: pygrep
         entry: (\.\. code-block ::|\.\. ipython ::)
         files: \.(py|pyx|rst)$
+    -   id: unwanted-patterns-strings-to-concatenate
+        name: Check for use of not concatenated strings
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
+        files: \.(py|pyx|pxd|pxi)$
+    -   id: unwanted-patterns-strings-with-wrong-placed-whitespace
+        name: Check for strings with wrong placed spaces
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
+        files: \.(py|pyx|pxd|pxi)$
+    -   id: unwanted-patterns-private-import-across-module
+        name: Check for import of private attributes across modules
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
+        types: [python]
+        exclude: ^(asv_bench|pandas/_vendored|pandas/tests|doc)/
+    -   id: unwanted-patterns-private-function-across-module
+        name: Check for use of private functions across modules
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
+        types: [python]
+        exclude: ^(asv_bench|pandas/_vendored|pandas/tests|doc)/
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:

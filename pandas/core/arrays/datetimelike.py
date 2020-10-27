@@ -480,7 +480,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             fill_value = self._validate_scalar(fill_value)
         except TypeError as err:
             raise ValueError(msg) from err
-        return self._unbox(fill_value)
+        return self._unbox(fill_value, setitem=True)
 
     def _validate_shift_value(self, fill_value):
         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
@@ -1304,7 +1304,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Don't have to worry about NA `result`, since no NA went in.
         return self._box_func(result)
 
-    def mean(self, skipna=True):
+    def mean(self, skipna=True, axis: Optional[int] = 0):
         """
         Return the mean value of the Array.
 
@@ -1314,6 +1314,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ----------
         skipna : bool, default True
             Whether to ignore any NaT elements.
+        axis : int, optional, default 0
 
         Returns
         -------
@@ -1337,21 +1338,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 "obj.to_timestamp(how='start').mean()"
             )
 
-        mask = self.isna()
-        if skipna:
-            values = self[~mask]
-        elif mask.any():
-            return NaT
-        else:
-            values = self
-
-        if not len(values):
-            # short-circuit for empty max / min
-            return NaT
-
-        result = nanops.nanmean(values.view("i8"), skipna=skipna)
-        # Don't have to worry about NA `result`, since no NA went in.
-        return self._box_func(result)
+        result = nanops.nanmean(
+            self._ndarray, axis=axis, skipna=skipna, mask=self.isna()
+        )
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result)
 
     def median(self, axis: Optional[int] = None, skipna: bool = True, *args, **kwargs):
         nv.validate_median(args, kwargs)
