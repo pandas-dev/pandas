@@ -39,13 +39,6 @@ class TestDataFrameMisc:
         s2 = s.loc[:]
         assert s2.name == "B"
 
-    def test_get_value(self, float_frame):
-        for idx in float_frame.index:
-            for col in float_frame.columns:
-                result = float_frame._get_value(idx, col)
-                expected = float_frame[col][idx]
-                tm.assert_almost_equal(result, expected)
-
     def test_add_prefix_suffix(self, float_frame):
         with_prefix = float_frame.add_prefix("foo#")
         expected = pd.Index([f"foo#{c}" for c in float_frame.columns])
@@ -315,27 +308,6 @@ class TestDataFrameMisc:
     def test_len(self, float_frame):
         assert len(float_frame) == len(float_frame.index)
 
-    def test_values_mixed_dtypes(self, float_frame, float_string_frame):
-        frame = float_frame
-        arr = frame.values
-
-        frame_cols = frame.columns
-        for i, row in enumerate(arr):
-            for j, value in enumerate(row):
-                col = frame_cols[j]
-                if np.isnan(value):
-                    assert np.isnan(frame[col][i])
-                else:
-                    assert value == frame[col][i]
-
-        # mixed type
-        arr = float_string_frame[["foo", "A"]].values
-        assert arr[0, 0] == "bar"
-
-        df = DataFrame({"complex": [1j, 2j, 3j], "real": [1, 2, 3]})
-        arr = df.values
-        assert arr[0, 0] == 1j
-
         # single block corner case
         arr = float_frame[["A", "B"]].values
         expected = float_frame.reindex(columns=["A", "B"]).values
@@ -394,18 +366,6 @@ class TestDataFrameMisc:
         assert pydoc.getdoc(DataFrame.index)
         assert pydoc.getdoc(DataFrame.columns)
 
-    def test_more_values(self, float_string_frame):
-        values = float_string_frame.values
-        assert values.shape[1] == len(float_string_frame.columns)
-
-    def test_repr_with_mi_nat(self, float_string_frame):
-        df = DataFrame(
-            {"X": [1, 2]}, index=[[pd.NaT, pd.Timestamp("20130101")], ["a", "b"]]
-        )
-        result = repr(df)
-        expected = "              X\nNaT        a  1\n2013-01-01 b  2"
-        assert result == expected
-
     def test_items_names(self, float_string_frame):
         for k, v in float_string_frame.items():
             assert v.name == k
@@ -446,10 +406,6 @@ class TestDataFrameMisc:
         result = t.dtypes.value_counts()
         expected = Series({np.dtype("object"): 10})
         tm.assert_series_equal(result, expected)
-
-    def test_values(self, float_frame):
-        float_frame.values[:, 0] = 5.0
-        assert (float_frame.values[:, 0] == 5).all()
 
     def test_deepcopy(self, float_frame):
         cp = deepcopy(float_frame)
