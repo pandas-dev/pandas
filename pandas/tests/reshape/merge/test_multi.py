@@ -1,11 +1,12 @@
 import numpy as np
 from numpy.random import randn
+import pytest
+
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
-import pytest
 
 
 @pytest.fixture
@@ -840,25 +841,32 @@ class TestJoinMultiMulti:
 
 def test_merge_datetime_index_empty_df():
 
+    midx1 = pd.MultiIndex.from_tuples(
+        [[pd.Timestamp("1950-01-01"), "A"], [pd.Timestamp("1950-01-02"), "B"]],
+        names=["date", "panel"],
+    )
     frame = DataFrame(
-        {
-            "date": [pd.Timestamp("1950-01-01"), pd.Timestamp("1950-01-02")],
-            "panel": ["A", "B"],
+        data={
             "data": [1.5, 1.5],
-        }
-    ).set_index(["date", "panel"])
-    other = DataFrame(columns=["date", "panel", "state"]).set_index(["date", "panel"])
+        },
+        index=midx1,
+    )
+
+    midx2 = pd.MultiIndex.from_tuples([], names=["date", "panel"])
+
+    other = DataFrame(index=midx2, columns=["state"])
+
+    midx3 = pd.MultiIndex.from_tuples(
+        [[pd.Timestamp("1950-01-01"), "A"], [pd.Timestamp("1950-01-02"), "B"]],
+        names=["date", "panel"],
+    )
 
     expected = DataFrame(
-        {
-            "date": [pd.Timestamp("1950-01-01"), pd.Timestamp("1950-01-02")],
-            "panel": ["A", "B"],
+        data={
             "data": [1.5, 1.5],
             "state": [None, None],
-        }
+        },
+        index=midx3,
     )
-    expected = expected.set_index(["date", "panel"])
-
     result = frame.merge(other, how="left", on=["date", "panel"])
-
     tm.assert_frame_equal(result, expected)
