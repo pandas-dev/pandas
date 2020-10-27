@@ -553,7 +553,7 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
 
     if isinstance(arg, str):
         return obj._try_aggregate_string_function(arg, *args, **kwargs), None
-    elif isinstance(arg, dict):
+    elif is_dict_like(arg):
         return agg_dict_like(obj, arg, _axis)
     elif is_list_like(arg):
         # we require a list, but not an 'str'
