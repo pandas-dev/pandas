@@ -1271,6 +1271,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             result = nanops.nanmin(
                 self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
             )
+            if result is NaT:
+                return NaT
             result = result.view("i8")
             if axis is None or self.ndim == 1:
                 return self._box_func(result)
@@ -1302,6 +1304,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             result = nanops.nanmax(
                 self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
             )
+            if result is NaT:
+                return result
             result = result.view("i8")
             if axis is None or self.ndim == 1:
                 return self._box_func(result)
