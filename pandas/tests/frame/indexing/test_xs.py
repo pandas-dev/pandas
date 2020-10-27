@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, concat
+from pandas import DataFrame, Index, IndexSlice, MultiIndex, Series, concat
 import pandas._testing as tm
 import pandas.core.common as com
 
@@ -267,3 +267,33 @@ class TestXSWithMultiIndex:
         result = df.xs(("bar", "two"))
         expected = df.loc[("bar", "two")]
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("klass", [DataFrame, Series])
+    def test_xs_IndexSlice_argument_not_implemented(self, klass):
+        # GH#35301
+
+        index = MultiIndex(
+            levels=[[("foo", "bar", 0), ("foo", "baz", 0), ("foo", "qux", 0)], [0, 1]],
+            codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+        )
+
+        obj = DataFrame(np.random.randn(6, 4), index=index)
+        if klass is Series:
+            obj = obj[0]
+
+        msg = (
+            "Expected label or tuple of labels, got "
+            r"\(\('foo', 'qux', 0\), slice\(None, None, None\)\)"
+        )
+        with pytest.raises(TypeError, match=msg):
+            obj.xs(IndexSlice[("foo", "qux", 0), :])
+
+    @pytest.mark.parametrize("klass", [DataFrame, Series])
+    def test_xs_levels_raises(self, klass):
+        obj = DataFrame({"A": [1, 2, 3]})
+        if klass is Series:
+            obj = obj["A"]
+
+        msg = "Index must be a MultiIndex"
+        with pytest.raises(TypeError, match=msg):
+            obj.xs(0, level="as")
