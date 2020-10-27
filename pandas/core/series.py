@@ -3284,20 +3284,12 @@ Keep all original rows and also all original values
         if not is_bool(ascending):
             raise ValueError("ascending must be boolean")
 
-        arr = self._values
-
-        if key:
-            if isinstance(arr, SparseArray):
-                # SparseArray doesn't store NaNs item-by-item, so pass everything
-                arr = ensure_key_mapped(self, key)._values
-            else:
-                good = ~isna(arr)
-                keyed = ensure_key_mapped(self[good], key)._values
-                arr = arr.astype(keyed.dtype)
-                arr[good] = keyed
-
         # GH 35922. Make sorting stable by leveraging nargsort
-        sorted_index = nargsort(arr, kind, ascending, na_position)
+        if key:
+            ser = ensure_key_mapped(self, key)
+            sorted_index = nargsort(ser._values, kind, ascending, na_position)
+        else:
+            sorted_index = nargsort(self._values, kind, ascending, na_position)
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
