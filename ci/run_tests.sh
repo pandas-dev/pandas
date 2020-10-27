@@ -20,7 +20,16 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
+if [[ $(uname) == "Linux"  ]]; then
+    PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
+elif [[ $(uname) == 'Darwin' ]]; then
+    PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
+else
+    # Windows, see if running only a subset of tests will help with py38
+    #  build failures
+    PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas/tests/api pandas/tests/arithmetic pandas/tests/base pandas/tests/config pandas/tests/dtypes pandas/tests/extension pandas/tests/frame pandas/tests/generic pandas/tests/indexes pandas/tests/indexing pandas/tests/internals pandas/tests/reductions pandas/tests/reshape pandas/tests/scalar pandas/tests/series pandas/tests/tools pandas/tests/tseries pandas/tests/tslibs pandas/tests/util"
+fi
+
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
