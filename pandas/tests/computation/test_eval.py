@@ -209,6 +209,7 @@ class TestEvalNumexprPandas:
             and rhs.shape == (10, 5)
             and np_version_under1p17
             and is_platform_windows()
+            and compat.PY38
         ):
             mark = pytest.mark.xfail(
                 reason="GH#37328 floating point precision on Windows builds"
