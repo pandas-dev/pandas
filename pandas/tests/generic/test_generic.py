@@ -3,14 +3,11 @@ from copy import copy, deepcopy
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_under1p17
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
-import pandas.core.common as com
 
 # ----------------------------------------------------------------------
 # Generic types test cases
@@ -404,26 +401,6 @@ class Generic:
         weights_with_None[5] = 0.5
         self._compare(o.sample(n=1, axis=0, weights=weights_with_None), o.iloc[5:6])
 
-    def test_sample_upsampling_without_replacement(self):
-        # GH27451
-
-        df = DataFrame({"A": list("abc")})
-        msg = (
-            "Replace has to be set to `True` when "
-            "upsampling the population `frac` > 1."
-        )
-        with pytest.raises(ValueError, match=msg):
-            df.sample(frac=2, replace=False)
-
-    def test_sample_is_copy(self):
-        # GH-27357, GH-30784: ensure the result of sample is an actual copy and
-        # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
-        df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
-        df2 = df.sample(3)
-
-        with tm.assert_produces_warning(None):
-            df2["d"] = 1
-
     def test_size_compat(self):
         # GH8846
         # size property should be defined
@@ -534,7 +511,7 @@ class Generic:
 class TestNDFrame:
     # tests that don't fit elsewhere
 
-    def test_sample(sel):
+    def test_sample(self):
         # Fixes issue: 2419
         # additional specific object based tests
 
@@ -644,29 +621,6 @@ class TestNDFrame:
         s4 = Series([1, 0], index=[1, 2])
         with pytest.raises(ValueError):
             df.sample(1, weights=s4)
-
-    @pytest.mark.parametrize(
-        "func_str,arg",
-        [
-            ("np.array", [2, 3, 1, 0]),
-            pytest.param(
-                "np.random.MT19937",
-                3,
-                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
-            ),
-            pytest.param(
-                "np.random.PCG64",
-                11,
-                marks=pytest.mark.skipif(np_version_under1p17, reason="NumPy<1.17"),
-            ),
-        ],
-    )
-    def test_sample_random_state(self, func_str, arg):
-        # GH32503
-        df = DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
-        result = df.sample(n=3, random_state=eval(func_str)(arg))
-        expected = df.sample(n=3, random_state=com.random_state(eval(func_str)(arg)))
-        tm.assert_frame_equal(result, expected)
 
     def test_squeeze(self):
         # noop
@@ -836,34 +790,6 @@ class TestNDFrame:
         df3 = df1.set_index(["floats"], append=True)
         df2 = df1.set_index(["floats"], append=True)
         assert df3.equals(df2)
-
-    def test_pipe(self):
-        df = DataFrame({"A": [1, 2, 3]})
-        f = lambda x, y: x ** y
-        result = df.pipe(f, 2)
-        expected = DataFrame({"A": [1, 4, 9]})
-        tm.assert_frame_equal(result, expected)
-
-        result = df.A.pipe(f, 2)
-        tm.assert_series_equal(result, expected.A)
-
-    def test_pipe_tuple(self):
-        df = DataFrame({"A": [1, 2, 3]})
-        f = lambda x, y: y
-        result = df.pipe((f, "y"), 0)
-        tm.assert_frame_equal(result, df)
-
-        result = df.A.pipe((f, "y"), 0)
-        tm.assert_series_equal(result, df.A)
-
-    def test_pipe_tuple_error(self):
-        df = DataFrame({"A": [1, 2, 3]})
-        f = lambda x, y: y
-        with pytest.raises(ValueError):
-            df.pipe((f, "y"), x=1, y=0)
-
-        with pytest.raises(ValueError):
-            df.A.pipe((f, "y"), x=1, y=0)
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):

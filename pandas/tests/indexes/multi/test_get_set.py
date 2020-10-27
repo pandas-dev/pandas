@@ -27,6 +27,15 @@ def test_get_level_number_integer(idx):
         idx._get_level_number("fourth")
 
 
+def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):
+    frame = multiindex_dataframe_random_data
+
+    with pytest.raises(IndexError, match="Too many levels"):
+        frame.index._get_level_number(2)
+    with pytest.raises(IndexError, match="not a valid level number"):
+        frame.index._get_level_number(-3)
+
+
 def test_set_name_methods(idx, index_names):
     # so long as these are synonyms, we don't need to test set_names
     assert idx.rename == idx.set_names

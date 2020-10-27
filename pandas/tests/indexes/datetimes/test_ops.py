@@ -349,7 +349,7 @@ class TestDatetimeIndexOps:
         assert not idx.equals(Series(idx3))
 
         # check that we do not raise when comparing with OutOfBounds objects
-        oob = pd.Index([datetime(2500, 1, 1)] * 3, dtype=object)
+        oob = Index([datetime(2500, 1, 1)] * 3, dtype=object)
         assert not idx.equals(oob)
         assert not idx2.equals(oob)
         assert not idx3.equals(oob)

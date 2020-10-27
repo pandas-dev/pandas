@@ -2,13 +2,31 @@ from datetime import datetime
 
 import numpy as np
 
-from pandas import DataFrame, DatetimeIndex, Series, date_range
+from pandas import DataFrame, DatetimeIndex, Series, date_range, to_datetime
 import pandas._testing as tm
 
 from pandas.tseries import offsets
 
 
 class TestAsFreq:
+    def test_asfreq_resample_set_correct_freq(self):
+        # GH#5613
+        # we test if .asfreq() and .resample() set the correct value for .freq
+        df = DataFrame(
+            {"date": ["2012-01-01", "2012-01-02", "2012-01-03"], "col": [1, 2, 3]}
+        )
+        df = df.set_index(to_datetime(df.date))
+
+        # testing the settings before calling .asfreq() and .resample()
+        assert df.index.freq is None
+        assert df.index.inferred_freq == "D"
+
+        # does .asfreq() set .freq correctly?
+        assert df.asfreq("D").index.freq == "D"
+
+        # does .resample() set .freq correctly?
+        assert df.resample("D").asfreq().index.freq == "D"
+
     def test_asfreq(self, datetime_frame):
         offset_monthly = datetime_frame.asfreq(offsets.BMonthEnd())
         rule_monthly = datetime_frame.asfreq("BM")
