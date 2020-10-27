@@ -231,7 +231,7 @@ class TestDataFrameSetItem:
         tm.assert_index_equal(rs.index, rng)
 
     @pytest.mark.parametrize("klass", [list, np.array])
-    def test_iloc_setitem_bool_array(self, klass):
+    def test_iloc_setitem_bool_indexer(self, klass):
         # GH: 36741
         df = DataFrame({"flag": ["x", "y", "z"], "value": [1, 3, 4]})
         indexer = klass([True, False, False])
