@@ -93,6 +93,7 @@ def _new_DatetimeIndex(cls, d):
         "date",
         "time",
         "timetz",
+        "std",
     ]
     + DatetimeArray._bool_ops,
     DatetimeArray,
@@ -193,6 +194,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     month_name
     day_name
     mean
+    std
 
     See Also
     --------
