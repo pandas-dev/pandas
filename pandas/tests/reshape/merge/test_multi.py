@@ -1,11 +1,11 @@
 import numpy as np
-import pytest
-
+from numpy.random import randn
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
+import pytest
 
 
 @pytest.fixture
@@ -457,33 +457,6 @@ class TestMergeMulti:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_merge_datetime_index_empty_df(self):
-
-        date = np.array(
-            [pd.Timestamp("1950-01-01"), pd.Timestamp("1950-01-02")],
-            dtype=np.datetime64,
-        )
-        panel = np.array(["A", "B"], dtype=object)
-        data = np.array([1.5, 1.5], dtype=np.float64)
-
-        frame = DataFrame({"date": date, "panel": panel, "data": data}).set_index(
-            ["date", "panel"]
-        )
-        other = DataFrame(columns=["date", "panel", "state"]).set_index(
-            ["date", "panel"]
-        )
-
-        state = np.array([np.nan, np.nan], dtype=object)
-
-        expected = DataFrame(
-            {"date": date, "panel": panel, "data": data, "state": state}
-        )
-        expected = expected.set_index(["date", "panel"])
-
-        result = frame.merge(other, how="left", on=["date", "panel"])
-
-        tm.assert_frame_equal(result, expected)
-
     @pytest.mark.parametrize("klass", [None, np.asarray, Series, Index])
     def test_merge_datetime_index(self, klass):
         # see gh-19038
@@ -863,3 +836,29 @@ class TestJoinMultiMulti:
         )
 
         tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_index_empty_df():
+
+    frame = DataFrame(
+        {
+            "date": [pd.Timestamp("1950-01-01"), pd.Timestamp("1950-01-02")],
+            "panel": ["A", "B"],
+            "data": [1.5, 1.5],
+        }
+    ).set_index(["date", "panel"])
+    other = DataFrame(columns=["date", "panel", "state"]).set_index(["date", "panel"])
+
+    expected = DataFrame(
+        {
+            "date": [pd.Timestamp("1950-01-01"), pd.Timestamp("1950-01-02")],
+            "panel": ["A", "B"],
+            "data": [1.5, 1.5],
+            "state": [None, None],
+        }
+    )
+    expected = expected.set_index(["date", "panel"])
+
+    result = frame.merge(other, how="left", on=["date", "panel"])
+
+    tm.assert_frame_equal(result, expected)
