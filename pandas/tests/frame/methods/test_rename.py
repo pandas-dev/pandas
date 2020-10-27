@@ -3,11 +3,19 @@ from collections import ChainMap
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
 
 
 class TestRename:
+    @pytest.mark.parametrize("klass", [Series, DataFrame])
+    def test_rename_mi(self, klass):
+        obj = klass(
+            [11, 21, 31],
+            index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]),
+        )
+        obj.rename(str.lower)
+
     def test_rename(self, float_frame):
         mapping = {"A": "a", "B": "b", "C": "c", "D": "d"}
 
