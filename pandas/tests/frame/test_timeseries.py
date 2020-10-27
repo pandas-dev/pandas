@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import DataFrame, to_datetime
@@ -6,39 +7,41 @@ import pandas._testing as tm
 
 
 class TestDataFrameTimeSeriesMethods:
-    def test_frame_append_datetime64_col_other_units(self):
+    @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
+    def test_frame_append_datetime64_col_other_units(self, unit):
         n = 100
-
-        units = ["h", "m", "s", "ms", "D", "M", "Y"]
 
         ns_dtype = np.dtype("M8[ns]")
 
-        for unit in units:
-            dtype = np.dtype(f"M8[{unit}]")
-            vals = np.arange(n, dtype=np.int64).view(dtype)
+        dtype = np.dtype(f"M8[{unit}]")
+        vals = np.arange(n, dtype=np.int64).view(dtype)
 
-            df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
-            df[unit] = vals
+        df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
+        df[unit] = vals
 
-            ex_vals = to_datetime(vals.astype("O")).values
+        ex_vals = to_datetime(vals.astype("O")).values
 
-            assert df[unit].dtype == ns_dtype
-            assert (df[unit].values == ex_vals).all()
+        assert df[unit].dtype == ns_dtype
+        assert (df[unit].values == ex_vals).all()
 
+    @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
+    def test_frame_setitem_existing_datetime64_col_other_units(self, unit):
         # Test insertion into existing datetime64 column
+        n = 100
+        ns_dtype = np.dtype("M8[ns]")
+
         df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
         df["dates"] = np.arange(n, dtype=np.int64).view(ns_dtype)
 
-        for unit in units:
-            dtype = np.dtype(f"M8[{unit}]")
-            vals = np.arange(n, dtype=np.int64).view(dtype)
+        dtype = np.dtype(f"M8[{unit}]")
+        vals = np.arange(n, dtype=np.int64).view(dtype)
 
-            tmp = df.copy()
+        tmp = df.copy()
 
-            tmp["dates"] = vals
-            ex_vals = to_datetime(vals.astype("O")).values
+        tmp["dates"] = vals
+        ex_vals = to_datetime(vals.astype("O")).values
 
-            assert (tmp["dates"].values == ex_vals).all()
+        assert (tmp["dates"].values == ex_vals).all()
 
     def test_datetime_assignment_with_NaT_and_diff_time_units(self):
         # GH 7492
