@@ -281,18 +281,7 @@ def test_read_only_buffer_source_agg(agg):
 
 @pytest.mark.parametrize(
     "op_name",
-    [
-        "count",
-        "sum",
-        "std",
-        "var",
-        "sem",
-        "mean",
-        "median",
-        "prod",
-        "min",
-        "max",
-    ],
+    ["count", "sum", "std", "var", "sem", "mean", "median", "prod", "min", "max"],
 )
 def test_cython_agg_nullable_int(op_name):
     # ensure that the cython-based aggregations don't fail for nullable dtype
