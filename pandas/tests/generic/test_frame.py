@@ -124,7 +124,6 @@ class TestDataFrame(Generic):
 
         DataFrame.__finalize__ = finalize
         result = df1.merge(df2, left_on=["a"], right_on=["c"], how="inner")
-        print(_metadata)
         assert result.filename == "fname1.csv|fname2.csv"
 
         # concat
