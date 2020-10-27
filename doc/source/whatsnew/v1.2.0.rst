@@ -223,7 +223,7 @@ Other enhancements
 - :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
 - :meth:`DataFrame.to_parquet` now returns a ``bytes`` object when no ``path`` argument is passed (:issue:`37105`)
 - :class:`Rolling` now supports the ``closed`` argument for fixed windows (:issue:`34315`)
-- :class:`DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`??`)
+- :class:`DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`37436`)
 
 .. _whatsnew_120.api_breaking.python:
 
