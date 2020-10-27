@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 class TestDataFrameAppend:
     @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_append(self, multiindex_dataframe_random_data, klass):
+    def test_append_multiindex(self, multiindex_dataframe_random_data, klass):
         obj = multiindex_dataframe_random_data
         if klass is Series:
             obj = obj["A"]
