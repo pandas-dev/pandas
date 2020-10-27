@@ -799,7 +799,7 @@ ctypedef fused rank_t:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def rank_1d(
-    rank_t[:] in_arr,
+    ndarray[rank_t, ndim=1] in_arr,
     ties_method="average",
     bint ascending=True,
     na_option="keep",
