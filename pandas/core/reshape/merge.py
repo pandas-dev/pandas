@@ -689,7 +689,7 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
-        return result
+        return result.__finalize__(self, method="merge")
 
     def _indicator_pre_merge(
         self, left: "DataFrame", right: "DataFrame"

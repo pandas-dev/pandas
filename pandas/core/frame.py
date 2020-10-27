@@ -8118,24 +8118,20 @@ NaN 12.3   33.0
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
 
-        return (
-            merge(
-                self,
-                right,
-                how=how,
-                on=on,
-                left_on=left_on,
-                right_on=right_on,
-                left_index=left_index,
-                right_index=right_index,
-                sort=sort,
-                suffixes=suffixes,
-                copy=copy,
-                indicator=indicator,
-                validate=validate,
-            )
-            .__finalize__(self)
-            .__finalize__(right, method="merge")
+        return merge(
+            self,
+            right,
+            how=how,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            sort=sort,
+            suffixes=suffixes,
+            copy=copy,
+            indicator=indicator,
+            validate=validate,
         )
 
     def round(self, decimals=0, *args, **kwargs) -> DataFrame:
