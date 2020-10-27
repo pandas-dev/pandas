@@ -213,3 +213,10 @@ class TestDataFrameSetItem:
         result = df2["B"]
         tm.assert_series_equal(notna(result), Series([True, False, True], name="B"))
         tm.assert_series_equal(df2.dtypes, df.dtypes)
+
+    def test_iloc_setitem_bool_array(self):
+        # GH: 36741
+        df = DataFrame({"flag": ["x", "y", "z"], "value": [1, 3, 4]})
+        df.iloc[[True, False, False], 1] = df.iloc[[True, False, False], 1] * 2
+        expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
+        tm.assert_frame_equal(df, expected)
