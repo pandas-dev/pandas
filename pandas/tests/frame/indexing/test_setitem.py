@@ -230,9 +230,11 @@ class TestDataFrameSetItem:
         assert isinstance(rs.index, PeriodIndex)
         tm.assert_index_equal(rs.index, rng)
 
-    def test_iloc_setitem_bool_array(self):
+    @pytest.mark.parametrize("klass", [list, np.array])
+    def test_iloc_setitem_bool_array(self, klass):
         # GH: 36741
         df = DataFrame({"flag": ["x", "y", "z"], "value": [1, 3, 4]})
-        df.iloc[[True, False, False], 1] = df.iloc[[True, False, False], 1] * 2
+        indexer = klass([True, False, False])
+        df.iloc[indexer, 1] = df.iloc[indexer, 1] * 2
         expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
         tm.assert_frame_equal(df, expected)
