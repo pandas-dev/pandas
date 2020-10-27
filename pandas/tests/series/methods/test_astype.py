@@ -14,6 +14,7 @@ from pandas import (
     CategoricalDtype,
     Index,
     Interval,
+    NaT,
     Series,
     Timedelta,
     Timestamp,
@@ -75,6 +76,19 @@ class TestAstypeAPI:
 
 
 class TestAstype:
+    def test_astype_float_to_period(self):
+        result = Series([np.nan]).astype("period[D]")
+        expected = Series([NaT], dtype="period[D]")
+        tm.assert_series_equal(result, expected)
+
+    def test_astype_no_pandas_dtype(self):
+        # https://github.com/pandas-dev/pandas/pull/24866
+        ser = Series([1, 2], dtype="int64")
+        # Don't have PandasDtype in the public API, so we use `.array.dtype`,
+        # which is a PandasDtype.
+        result = ser.astype(ser.array.dtype)
+        tm.assert_series_equal(result, ser)
+
     @pytest.mark.parametrize("dtype", [np.datetime64, np.timedelta64])
     def test_astype_generic_timestamp_no_frequency(self, dtype, request):
         # see GH#15524, GH#15987
