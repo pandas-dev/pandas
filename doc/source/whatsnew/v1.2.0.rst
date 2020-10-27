@@ -404,6 +404,7 @@ Numeric
 - Bug in :class:`IntervalArray` comparisons with :class:`Series` not returning :class:`Series` (:issue:`36908`)
 - Bug in :class:`DataFrame` allowing arithmetic operations with list of array-likes with undefined results. Behavior changed to raising ``ValueError`` (:issue:`36702`)
 - Bug in :meth:`DataFrame.std`` with ``timedelta64`` dtype and ``skipna=False`` (:issue:`37392`)
+- Bug in :meth:`DataFrame.corr` returned inconsistent results for constant columns (:issue:`37448`)
 
 Conversion
 ^^^^^^^^^^

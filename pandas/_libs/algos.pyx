@@ -300,7 +300,6 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
                     # now the cov numerator
                     sumx = 0
-
                     for i in range(N):
                         if mask[i, xi] and mask[i, yi]:
                             vx = mat[i, xi] - meanx
@@ -312,7 +311,8 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
                     divisor = (nobs - 1.0) if cov else sqrt(sumxx * sumyy)
 
-                    if divisor != 0:
+                    # numerical issues for constant columns
+                    if divisor > 1e-15:
                         result[xi, yi] = result[yi, xi] = sumx / divisor
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
