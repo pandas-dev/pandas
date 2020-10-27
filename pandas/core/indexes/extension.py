@@ -277,3 +277,7 @@ class ExtensionIndex(Index):
         # pass copy=False because any copying will be done in the
         #  _data.astype call above
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
+
+    @cache_readonly
+    def _isnan(self) -> np.ndarray:
+        return self._data.isna()
