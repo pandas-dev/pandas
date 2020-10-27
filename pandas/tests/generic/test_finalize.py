@@ -177,7 +177,6 @@ _all_methods = [
         ),
         marks=not_implemented_mark,
     ),
-    pytest.param((pd.DataFrame, frame_data, operator.methodcaller("diff"))),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
     ),
@@ -200,7 +199,8 @@ _all_methods = [
             pd.DataFrame,
             frame_data,
             operator.methodcaller("merge", pd.DataFrame({"A": [1]})),
-        )
+        ),
+        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),

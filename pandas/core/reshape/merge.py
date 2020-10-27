@@ -1502,7 +1502,7 @@ class _OrderedMerge(_MergeOperation):
         )
 
         typ = self.left._constructor
-        result = typ(result_data).__finalize__(self, method=self._merge_type)
+        result = typ(result_data)
 
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
