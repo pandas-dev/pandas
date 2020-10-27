@@ -547,114 +547,17 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
     how can be a string describe the required post-processing, or
     None if not required
     """
-    is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
-
     _axis = kwargs.pop("_axis", None)
     if _axis is None:
         _axis = getattr(obj, "axis", 0)
 
     if isinstance(arg, str):
         return obj._try_aggregate_string_function(arg, *args, **kwargs), None
-
-    if isinstance(arg, dict):
-        # aggregate based on the passed dict
-        if _axis != 0:  # pragma: no cover
-            raise ValueError("Can only pass dict with axis=0")
-
-        selected_obj = obj._selected_obj
-
-        # if we have a dict of any non-scalars
-        # eg. {'A' : ['mean']}, normalize all to
-        # be list-likes
-        if any(is_aggregator(x) for x in arg.values()):
-            new_arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]] = {}
-            for k, v in arg.items():
-                if not isinstance(v, (tuple, list, dict)):
-                    new_arg[k] = [v]
-                else:
-                    new_arg[k] = v
-
-                # the keys must be in the columns
-                # for ndim=2, or renamers for ndim=1
-
-                # ok for now, but deprecated
-                # {'A': { 'ra': 'mean' }}
-                # {'A': { 'ra': ['mean'] }}
-                # {'ra': ['mean']}
-
-                # not ok
-                # {'ra' : { 'A' : 'mean' }}
-                if isinstance(v, dict):
-                    raise SpecificationError("nested renamer is not supported")
-                elif isinstance(selected_obj, ABCSeries):
-                    raise SpecificationError("nested renamer is not supported")
-                elif (
-                    isinstance(selected_obj, ABCDataFrame)
-                    and k not in selected_obj.columns
-                ):
-                    raise KeyError(f"Column '{k}' does not exist!")
-
-            arg = new_arg
-
-        else:
-            # deprecation of renaming keys
-            # GH 15931
-            keys = list(arg.keys())
-            if isinstance(selected_obj, ABCDataFrame) and len(
-                selected_obj.columns.intersection(keys)
-            ) != len(keys):
-                cols = sorted(set(keys) - set(selected_obj.columns.intersection(keys)))
-                raise SpecificationError(f"Column(s) {cols} do not exist")
-
-        from pandas.core.reshape.concat import concat
-
-        if selected_obj.ndim == 1:
-            # key only used for output
-            colg = obj._gotitem(obj._selection, ndim=1)
-            results = {key: colg.agg(how) for key, how in arg.items()}
-        else:
-            # key used for column selection and output
-            results = {
-                key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
-            }
-
-        # set the final keys
-        keys = list(arg.keys())
-
-        # Avoid making two isinstance calls in all and any below
-        is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
-
-        # combine results
-        if all(is_ndframe):
-            keys_to_use = [k for k in keys if not results[k].empty]
-            # Have to check, if at least one DataFrame is not empty.
-            keys_to_use = keys_to_use if keys_to_use != [] else keys
-            axis = 0 if isinstance(obj, ABCSeries) else 1
-            result = concat({k: results[k] for k in keys_to_use}, axis=axis)
-        elif any(is_ndframe):
-            # There is a mix of NDFrames and scalars
-            raise ValueError(
-                "cannot perform both aggregation "
-                "and transformation operations "
-                "simultaneously"
-            )
-        else:
-            from pandas import Series
-
-            # we have a dict of scalars
-            # GH 36212 use name only if obj is a series
-            if obj.ndim == 1:
-                obj = cast("Series", obj)
-                name = obj.name
-            else:
-                name = None
-
-            result = Series(results, name=name)
-
-        return result, True
+    elif isinstance(arg, dict):
+        return agg_dict_like(obj, arg, _axis)
     elif is_list_like(arg):
         # we require a list, but not an 'str'
-        return aggregate_multiple_funcs(obj, arg, _axis=_axis), None
+        return agg_list_like(obj, arg, _axis=_axis), None
     else:
         result = None
 
@@ -667,7 +570,7 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
     return result, True
 
 
-def aggregate_multiple_funcs(obj, arg, _axis):
+def agg_list_like(obj, arg, _axis):
     from pandas.core.reshape.concat import concat
 
     if _axis != 0:
@@ -738,3 +641,99 @@ def aggregate_multiple_funcs(obj, arg, _axis):
                 "cannot combine transform and aggregation operations"
             ) from err
         return result
+
+
+def agg_dict_like(obj, arg, _axis):
+    is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
+
+    if _axis != 0:  # pragma: no cover
+        raise ValueError("Can only pass dict with axis=0")
+
+    selected_obj = obj._selected_obj
+
+    # if we have a dict of any non-scalars
+    # eg. {'A' : ['mean']}, normalize all to
+    # be list-likes
+    if any(is_aggregator(x) for x in arg.values()):
+        new_arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]] = {}
+        for k, v in arg.items():
+            if not isinstance(v, (tuple, list, dict)):
+                new_arg[k] = [v]
+            else:
+                new_arg[k] = v
+
+            # the keys must be in the columns
+            # for ndim=2, or renamers for ndim=1
+
+            # ok for now, but deprecated
+            # {'A': { 'ra': 'mean' }}
+            # {'A': { 'ra': ['mean'] }}
+            # {'ra': ['mean']}
+
+            # not ok
+            # {'ra' : { 'A' : 'mean' }}
+            if isinstance(v, dict):
+                raise SpecificationError("nested renamer is not supported")
+            elif isinstance(selected_obj, ABCSeries):
+                raise SpecificationError("nested renamer is not supported")
+            elif (
+                isinstance(selected_obj, ABCDataFrame) and k not in selected_obj.columns
+            ):
+                raise KeyError(f"Column '{k}' does not exist!")
+
+        arg = new_arg
+
+    else:
+        # deprecation of renaming keys
+        # GH 15931
+        keys = list(arg.keys())
+        if isinstance(selected_obj, ABCDataFrame) and len(
+            selected_obj.columns.intersection(keys)
+        ) != len(keys):
+            cols = sorted(set(keys) - set(selected_obj.columns.intersection(keys)))
+            raise SpecificationError(f"Column(s) {cols} do not exist")
+
+    from pandas.core.reshape.concat import concat
+
+    if selected_obj.ndim == 1:
+        # key only used for output
+        colg = obj._gotitem(obj._selection, ndim=1)
+        results = {key: colg.agg(how) for key, how in arg.items()}
+    else:
+        # key used for column selection and output
+        results = {key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()}
+
+    # set the final keys
+    keys = list(arg.keys())
+
+    # Avoid making two isinstance calls in all and any below
+    is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
+
+    # combine results
+    if all(is_ndframe):
+        keys_to_use = [k for k in keys if not results[k].empty]
+        # Have to check, if at least one DataFrame is not empty.
+        keys_to_use = keys_to_use if keys_to_use != [] else keys
+        axis = 0 if isinstance(obj, ABCSeries) else 1
+        result = concat({k: results[k] for k in keys_to_use}, axis=axis)
+    elif any(is_ndframe):
+        # There is a mix of NDFrames and scalars
+        raise ValueError(
+            "cannot perform both aggregation "
+            "and transformation operations "
+            "simultaneously"
+        )
+    else:
+        from pandas import Series
+
+        # we have a dict of scalars
+        # GH 36212 use name only if obj is a series
+        if obj.ndim == 1:
+            obj = cast("Series", obj)
+            name = obj.name
+        else:
+            name = None
+
+        result = Series(results, name=name)
+
+    return result, True
