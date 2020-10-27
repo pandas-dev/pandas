@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Set
 
 import numpy as np
 
@@ -183,6 +183,10 @@ class NumericIndex(Index):
             return first._union(second, sort)
         else:
             return super()._union(other, sort)
+
+    @cache_readonly
+    def _dir_additions_for_owner(self) -> Set[str]:
+        return set()
 
 
 _num_index_shared_docs[

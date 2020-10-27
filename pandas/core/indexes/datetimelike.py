@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 from datetime import datetime, tzinfo
-from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Set, TypeVar, Union, cast
 
 import numpy as np
 
@@ -104,6 +104,10 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     @property
     def _is_all_dates(self) -> bool:
         return True
+
+    @cache_readonly
+    def _dir_additions_for_owner(self) -> Set[str]:
+        return set()
 
     # ------------------------------------------------------------------------
     # Abstract data attributes
