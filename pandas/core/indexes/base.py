@@ -3938,7 +3938,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         This is an ndarray or ExtensionArray.
 
-        ``_values`` are consistent between``Series`` and ``Index``.
+        ``_values`` are consistent between ``Series`` and ``Index``.
 
         It may differ from the public '.values' method.
 

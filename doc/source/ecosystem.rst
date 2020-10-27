@@ -201,7 +201,7 @@ Jupyter notebooks can be converted to a number of open standard output formats
 Python) through 'Download As' in the web interface and ``jupyter convert``
 in a shell.
 
-pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
+pandas DataFrames implement ``_repr_html_`` and ``_repr_latex`` methods
 which are utilized by Jupyter Notebook for displaying
 (abbreviated) HTML or LaTeX tables. LaTeX output is properly escaped.
 (Note: HTML tables may or may not be
