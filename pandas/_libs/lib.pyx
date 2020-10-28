@@ -35,6 +35,7 @@ from numpy cimport (
     flatiter,
     float32_t,
     float64_t,
+    int32_t,
     int64_t,
     ndarray,
     uint8_t,
@@ -490,7 +491,12 @@ def has_infs_f8(const float64_t[:] arr) -> bool:
     return False
 
 
-def maybe_indices_to_slice(ndarray[cython.integral] indices, int max_len):
+ctypedef fused signed_int_t:
+    int32_t
+    int64_t
+
+
+def maybe_indices_to_slice(ndarray[signed_int_t] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
         int k, vstart, vlast, v
