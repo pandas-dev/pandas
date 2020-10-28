@@ -369,5 +369,5 @@ class TestTimeDeltaConverter:
                 return view_interval
 
         tdc = converter.TimeSeries_TimedeltaFormatter()
-        monkeypatch.setattr(tdc, 'axis', mock_axis())
+        monkeypatch.setattr(tdc, "axis", mock_axis())
         tdc(0.0, 0)
