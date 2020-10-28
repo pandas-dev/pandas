@@ -374,9 +374,7 @@ def nargsort(
     if not ascending:
         non_nans = non_nans[::-1]
         non_nan_idx = non_nan_idx[::-1]
-
     indexer = non_nan_idx[non_nans.argsort(kind=kind)]
-
     if not ascending:
         indexer = indexer[::-1]
     # Finally, place the NaNs at the end or the beginning according to
@@ -501,7 +499,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
             result = Index(result)
         else:
             type_of_values = type(values)
-            result = type_of_values(result)
+            result = type_of_values(result) # try to revert to original type otherwise
     except TypeError:
         raise TypeError(
             f"User-provided `key` function returned an invalid type {type(result)} \
