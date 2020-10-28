@@ -373,7 +373,6 @@ class TestGrouperGrouping:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(not compat.IS64, reason="GH-35294")
     @pytest.mark.parametrize("func", ["max", "min"])
     def test_groupby_rolling_index_changed(self, func):
         # GH: #36018 nlevels of MultiIndex changed
