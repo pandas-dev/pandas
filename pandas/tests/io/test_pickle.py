@@ -500,7 +500,7 @@ class MyTz(datetime.tzinfo):
 
 def test_read_pickle_with_subclass():
     # GH 12163
-    expected = pd.Series(dtype=object), MyTz()
+    expected = Series(dtype=object), MyTz()
     result = tm.round_trip_pickle(expected)
 
     tm.assert_series_equal(result[0], expected[0])
