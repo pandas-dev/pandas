@@ -363,14 +363,11 @@ class TestTimeDeltaConverter:
         assert result == format_expected
 
     @pytest.mark.parametrize("view_interval", [(1, 2), (2, 1)])
-    def test_call(self, view_interval):
-        from unittest import mock
+    def test_call(self, view_interval, monkeypatch):
+        class mock_axis:
+            def get_view_interval(self):
+                return view_interval
 
         tdc = converter.TimeSeries_TimedeltaFormatter()
-        mock_axis = mock.Mock()
-        mock_axis.get_view_interval.return_value = view_interval
-        with mock.patch(
-            "pandas.plotting._matplotlib.converter.TimeSeries_TimedeltaFormatter.axis",
-            mock_axis,
-        ):
-            tdc(0.0, 0)
+        monkeypatch.setattr(tdc, 'axis', mock_axis())
+        tdc(0.0, 0)
