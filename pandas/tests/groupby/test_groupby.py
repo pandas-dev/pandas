@@ -2067,7 +2067,7 @@ def test_groupby_repr():
     """
     n_groups = 5
     length = n_groups * 5
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "A": range(length),
             "B": range(0, length * 2, 2),
@@ -2092,7 +2092,7 @@ def test_groupby_repr_truncated_group():
     n_groups = 10
     length = n_groups * 20
 
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "A": range(length),
             "B": range(0, length * 2, 2),
@@ -2125,7 +2125,7 @@ def test_groupby_repr_not_all_groups():
     """
     n_groups = 30
     length = n_groups * 5
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "A": range(length),
             "B": range(0, length * 2, 2),
