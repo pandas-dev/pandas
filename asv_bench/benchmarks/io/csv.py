@@ -256,7 +256,10 @@ class ReadCSVFloatPrecision(StringIORewind):
 
     def time_read_csv_arrow(self, sep, decimal, float_precision):
         read_csv(
-            self.data(self.StringIO_input), sep=sep, header=None, names=list("abc"),
+            self.data(self.StringIO_input),
+            sep=sep,
+            header=None,
+            names=list("abc"),
         )
 
 
