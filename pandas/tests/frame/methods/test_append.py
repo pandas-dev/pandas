@@ -7,6 +7,18 @@ import pandas._testing as tm
 
 
 class TestDataFrameAppend:
+    @pytest.mark.parametrize("klass", [Series, DataFrame])
+    def test_append_multiindex(self, multiindex_dataframe_random_data, klass):
+        obj = multiindex_dataframe_random_data
+        if klass is Series:
+            obj = obj["A"]
+
+        a = obj[:5]
+        b = obj[5:]
+
+        result = a.append(b)
+        tm.assert_equal(result, obj)
+
     def test_append_empty_list(self):
         # GH 28769
         df = DataFrame()

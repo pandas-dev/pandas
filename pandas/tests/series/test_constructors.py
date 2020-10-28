@@ -35,6 +35,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, period_array
+from pandas.core.internals.blocks import IntBlock
 
 
 class TestSeriesConstructors:
@@ -1534,3 +1535,37 @@ class TestSeriesConstructorIndexCoercion:
         with tm.assert_produces_warning(FutureWarning):
             assert ser.index.is_all_dates
         assert isinstance(ser.index, DatetimeIndex)
+
+    def test_series_constructor_infer_multiindex(self):
+        index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
+
+        multi = Series(1.0, index=[np.array(x) for x in index_lists])
+        assert isinstance(multi.index, MultiIndex)
+
+        multi = Series(1.0, index=index_lists)
+        assert isinstance(multi.index, MultiIndex)
+
+        multi = Series(range(4), index=index_lists)
+        assert isinstance(multi.index, MultiIndex)
+
+
+class TestSeriesConstructorInternals:
+    def test_constructor_no_pandas_array(self):
+        ser = Series([1, 2, 3])
+        result = Series(ser.array)
+        tm.assert_series_equal(ser, result)
+        assert isinstance(result._mgr.blocks[0], IntBlock)
+
+    def test_from_array(self):
+        result = Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
+        assert result._mgr.blocks[0].is_extension is False
+
+        result = Series(pd.array(["2015"], dtype="datetime64[ns]"))
+        assert result._mgr.blocks[0].is_extension is False
+
+    def test_from_list_dtype(self):
+        result = Series(["1H", "2H"], dtype="timedelta64[ns]")
+        assert result._mgr.blocks[0].is_extension is False
+
+        result = Series(["2015"], dtype="datetime64[ns]")
+        assert result._mgr.blocks[0].is_extension is False

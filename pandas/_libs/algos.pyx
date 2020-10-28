@@ -325,7 +325,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1) -> ndarray:
+def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
@@ -799,7 +799,7 @@ ctypedef fused rank_t:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def rank_1d(
-    rank_t[:] in_arr,
+    ndarray[rank_t, ndim=1] in_arr,
     ties_method="average",
     bint ascending=True,
     na_option="keep",
@@ -1018,7 +1018,7 @@ def rank_1d(
 
 
 def rank_2d(
-    rank_t[:, :] in_arr,
+    ndarray[rank_t, ndim=2] in_arr,
     int axis=0,
     ties_method="average",
     bint ascending=True,
