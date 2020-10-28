@@ -132,11 +132,12 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         1,2,3,4,"""
 
         for default in pa_unsupported:
-            print(default)
             msg = (
                 f"The {repr(default)} option is not "
                 f"supported with the 'pyarrow' engine"
             )
             kwargs = {default: object()}
+            if default == "dialect":
+                kwargs[default] = "excel"  # test a random dialect
             with pytest.raises(ValueError, match=msg):
                 read_csv(StringIO(data), engine="pyarrow", **kwargs)

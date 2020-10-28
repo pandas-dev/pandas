@@ -839,7 +839,7 @@ class TextFileReader(abc.Iterator):
             if engine == "pyarrow":
                 raise ValueError(
                     "The 'dialect' option is not supported with the 'pyarrow' engine"
-                
+                )
             kwds = _merge_with_dialect_properties(dialect, kwds)
 
         if kwds.get("header", "infer") == "infer":
@@ -2223,11 +2223,7 @@ class ArrowParserWrapper(ParserBase):
             self.src = BytesIOWrapper(self.src, encoding=encoding)
 
     def read(self):
-        pyarrow = import_optional_dependency(
-            "pyarrow.csv",
-            min_version="0.15.0",
-            extra="pyarrow is required to use the pyarrow engine",
-        )
+        pyarrow = import_optional_dependency("pyarrow.csv", min_version="0.15.0")
         kwdscopy = {k: v for k, v in self.kwds.items() if v is not None}
         # these are kwargs passed to pyarrow
         parseoptions = {"delimiter", "quote_char", "escape_char", "ignore_empty_lines"}
@@ -3434,7 +3430,7 @@ def _process_date_conversion(
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
                     continue
-                data_dict[colspec] = converter(np.array(data_dict[colspec]))
+                data_dict[colspec] = converter(np.asarray(data_dict[colspec]))
             else:
                 new_name, col, old_names = _try_convert_dates(
                     converter, colspec, data_dict, orig_names

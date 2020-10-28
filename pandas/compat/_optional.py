@@ -45,6 +45,7 @@ INSTALL_MAPPING = {
     "pandas_gbq": "pandas-gbq",
     "sqlalchemy": "SQLAlchemy",
     "jinja2": "Jinja2",
+    "pyarrow.csv": "pyarrow",
 }
 
 
@@ -119,23 +120,22 @@ def import_optional_dependency(
     # Handle submodules: if we have submodule, grab parent module from sys.modules
     parent = name.split(".")[0]
     if parent != name:
-        name = parent
-        module_to_get = sys.modules[name]
+        install_name = parent
+        module_to_get = sys.modules[install_name]
     else:
         module_to_get = module
     minimum_version = min_version if min_version is not None else VERSIONS.get(name)
-    if minimum_version:
-        version = _get_version(module_to_get)
-        if distutils.version.LooseVersion(version) < minimum_version:
-            assert on_version in {"warn", "raise", "ignore"}
-            msg = (
-                f"Pandas requires version '{minimum_version}' or newer of '{name}' "
-                f"(version '{version}' currently installed)."
-            )
-            if on_version == "warn":
-                warnings.warn(msg, UserWarning)
-                return None
-            elif on_version == "raise":
-                raise ImportError(msg)
+    version = _get_version(module_to_get)
+    if distutils.version.LooseVersion(version) < minimum_version:
+        assert on_version in {"warn", "raise", "ignore"}
+        msg = (
+            f"Pandas requires version '{minimum_version}' or newer of '{name}' "
+            f"(version '{version}' currently installed)."
+        )
+        if on_version == "warn":
+            warnings.warn(msg, UserWarning)
+            return None
+        elif on_version == "raise":
+            raise ImportError(msg)
 
     return module
