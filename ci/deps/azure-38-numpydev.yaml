@@ -10,6 +10,8 @@ dependencies:
   - hypothesis>=3.58.0
   - pytest-azurepipelines
 
+  - psutil
+
   # pandas dependencies
   - pytz
   - pip

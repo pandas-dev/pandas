@@ -5,6 +5,8 @@ import time
 
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
@@ -159,3 +161,25 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     while cli.list_buckets()["Buckets"] and timeout > 0:
         time.sleep(0.1)
         timeout -= 0.1
+
+
+@pytest.fixture(autouse=True)
+def check_for_file_leaks():
+    """
+    Fixture to run around every test to ensure that we are not leaking files.
+
+    See also
+    --------
+    _test_decorators.check_file_leaks
+    """
+    # GH#30162
+    psutil = td.safe_import("psutil")
+    if not psutil:
+        yield
+
+    else:
+        proc = psutil.Process()
+        flist = proc.open_files()
+        yield
+        flist2 = proc.open_files()
+        assert flist == flist2
