@@ -1255,7 +1255,7 @@ def test_groupby_nat_exclude():
     )
     grouped = df.groupby("dt")
 
-    expected = [pd.Index([1, 7]), pd.Index([3, 5])]
+    expected = [Index([1, 7]), Index([3, 5])]
     keys = sorted(grouped.groups.keys())
     assert len(keys) == 2
     for k, e in zip(keys, expected):
@@ -1268,8 +1268,8 @@ def test_groupby_nat_exclude():
     assert grouped.ngroups == 2
 
     expected = {
-        Timestamp("2013-01-01 00:00:00"): np.array([1, 7], dtype=np.int64),
-        Timestamp("2013-02-01 00:00:00"): np.array([3, 5], dtype=np.int64),
+        Timestamp("2013-01-01 00:00:00"): np.array([1, 7], dtype=np.intp),
+        Timestamp("2013-02-01 00:00:00"): np.array([3, 5], dtype=np.intp),
     }
 
     for k in grouped.indices:
@@ -1775,7 +1775,7 @@ def test_tuple_as_grouping():
         df[["a", "b", "c"]].groupby(("a", "b"))
 
     result = df.groupby(("a", "b"))["c"].sum()
-    expected = Series([4], name="c", index=pd.Index([1], name=("a", "b")))
+    expected = Series([4], name="c", index=Index([1], name=("a", "b")))
     tm.assert_series_equal(result, expected)
 
 
@@ -1990,7 +1990,7 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 
 
 @pytest.mark.parametrize(
-    "idx", [pd.Index(["a", "a"]), pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
+    "idx", [Index(["a", "a"]), pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
 )
 @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):
@@ -2118,7 +2118,7 @@ def test_subsetting_columns_keeps_attrs(klass, attr, value):
 @pytest.mark.parametrize("func", ["sum", "any", "shift"])
 def test_groupby_column_index_name_lost(func):
     # GH: 29764 groupby loses index sometimes
-    expected = pd.Index(["a"], name="idx")
+    expected = Index(["a"], name="idx")
     df = DataFrame([[1]], columns=expected)
     df_grouped = df.groupby([1])
     result = getattr(df_grouped, func)().columns

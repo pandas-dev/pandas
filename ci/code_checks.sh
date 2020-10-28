@@ -73,67 +73,10 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for use of not concatenated strings' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" --format="##[error]{source_path}:{line_number}:{msg}" .
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" .
-    fi
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for strings with wrong placed spaces' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" --format="##[error]{source_path}:{line_number}:{msg}" .
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" .
-    fi
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for import of private attributes across modules' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
-    fi
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of private functions across modules' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
-    fi
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
 fi
 
 ### PATTERNS ###
 if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
-
-    # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
-    # Check for imports from collections.abc instead of `from collections import abc`
-    MSG='Check for non-standard imports' ; echo $MSG
-    invgrep -R --include="*.py*" -E "from pandas.core.common import" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from pandas.core import common" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from collections.abc import" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from numpy import nan" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # Checks for test suite
-    # Check for imports from pandas._testing instead of `import pandas._testing as tm`
-    invgrep -R --include="*.py*" -E "from pandas._testing import" pandas/tests
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "from pandas import _testing as tm" pandas/tests
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # No direct imports from conftest
-    invgrep -R --include="*.py*" -E "conftest import" pandas/tests
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-    invgrep -R --include="*.py*" -E "import conftest" pandas/tests
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for use of exec' ; echo $MSG
     invgrep -R --include="*.py*" -E "[^a-zA-Z0-9_]exec\(" pandas
@@ -203,10 +146,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for inconsistent use of pandas namespace in tests' ; echo $MSG
-    check_namespace "Series"
-    RET=$(($RET + $?))
-    check_namespace "DataFrame"
-    RET=$(($RET + $?))
+    for class in "Series" "DataFrame" "Index"; do
+        check_namespace ${class}
+        RET=$(($RET + $?))
+    done
     echo $MSG "DONE"
 fi
 

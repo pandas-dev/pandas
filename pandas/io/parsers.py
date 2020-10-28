@@ -834,15 +834,12 @@ class TextFileReader(abc.Iterator):
 
         _validate_skipfooter(kwds)
 
-        if kwds.get("dialect") is not None:
+        dialect = _extract_dialect(kwds)
+        if dialect is not None:
             if engine == "pyarrow":
                 raise ValueError(
                     "The 'dialect' option is not supported with the 'pyarrow' engine"
-                )
-
-            dialect = kwds["dialect"]
-            if dialect in csv.list_dialects():
-                dialect = csv.get_dialect(dialect)
+                
             kwds = _merge_with_dialect_properties(dialect, kwds)
 
         if kwds.get("header", "infer") == "infer":
@@ -3908,6 +3905,50 @@ def _refine_defaults_read(
     return kwds
 
 
+def _extract_dialect(kwds: Dict[str, Any]) -> Optional[csv.Dialect]:
+    """
+    Extract concrete csv dialect instance.
+
+    Returns
+    -------
+    csv.Dialect or None
+    """
+    if kwds.get("dialect") is None:
+        return None
+
+    dialect = kwds["dialect"]
+    if dialect in csv.list_dialects():
+        dialect = csv.get_dialect(dialect)
+
+    _validate_dialect(dialect)
+
+    return dialect
+
+
+MANDATORY_DIALECT_ATTRS = (
+    "delimiter",
+    "doublequote",
+    "escapechar",
+    "skipinitialspace",
+    "quotechar",
+    "quoting",
+)
+
+
+def _validate_dialect(dialect: csv.Dialect) -> None:
+    """
+    Validate csv dialect instance.
+
+    Raises
+    ------
+    ValueError
+        If incorrect dialect is provided.
+    """
+    for param in MANDATORY_DIALECT_ATTRS:
+        if not hasattr(dialect, param):
+            raise ValueError(f"Invalid dialect {dialect} provided")
+
+
 def _merge_with_dialect_properties(
     dialect: csv.Dialect,
     defaults: Dict[str, Any],
@@ -3926,30 +3967,11 @@ def _merge_with_dialect_properties(
     -------
     kwds : dict
         Updated keyword arguments, merged with dialect parameters.
-
-    Raises
-    ------
-    ValueError
-        If incorrect dialect is provided.
     """
     kwds = defaults.copy()
 
-    # Any valid dialect should have these attributes.
-    # If any are missing, we will raise automatically.
-    mandatory_dialect_attrs = (
-        "delimiter",
-        "doublequote",
-        "escapechar",
-        "skipinitialspace",
-        "quotechar",
-        "quoting",
-    )
-
-    for param in mandatory_dialect_attrs:
-        try:
-            dialect_val = getattr(dialect, param)
-        except AttributeError as err:
-            raise ValueError(f"Invalid dialect {dialect} provided") from err
+    for param in MANDATORY_DIALECT_ATTRS:
+        dialect_val = getattr(dialect, param)
 
         parser_default = _parser_defaults[param]
         provided = kwds.get(param, parser_default)

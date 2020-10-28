@@ -4,6 +4,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -243,7 +245,7 @@ class TestPivotTable:
         result = df.pivot_table(index="A", values="B", dropna=dropna)
         expected = DataFrame(
             {"B": [2, 3]},
-            index=pd.Index(
+            index=Index(
                 pd.Categorical.from_codes(
                     [0, 1], categories=["low", "high"], ordered=True
                 ),
@@ -268,7 +270,7 @@ class TestPivotTable:
         result = df.pivot_table(index="A", values="B", dropna=dropna)
         expected = DataFrame(
             {"B": [2, 3, 0]},
-            index=pd.Index(
+            index=Index(
                 pd.Categorical.from_codes(
                     [0, 1, 2], categories=["low", "high", "left"], ordered=True
                 ),
@@ -617,7 +619,7 @@ class TestPivotTable:
                     pd.Timestamp("2016-08-25 11:00:00-0700", tz="US/Pacific"),
                 ]
             ],
-            index=pd.Index(["aa"], name="uid"),
+            index=Index(["aa"], name="uid"),
             columns=pd.DatetimeIndex(
                 [
                     pd.Timestamp("2016-08-12 00:00:00", tz="US/Pacific"),
@@ -691,10 +693,8 @@ class TestPivotTable:
 
         expected = DataFrame(
             data=1.0,
-            index=pd.Index([1, 2, "All"], name="a"),
-            columns=pd.Index(
-                [pd.Period("2019Q1"), pd.Period("2019Q2"), "All"], name="b"
-            ),
+            index=Index([1, 2, "All"], name="a"),
+            columns=Index([pd.Period("2019Q1"), pd.Period("2019Q2"), "All"], name="b"),
         )
 
         result = df.pivot_table(index="a", columns="b", values="x", margins=True)
@@ -706,7 +706,7 @@ class TestPivotTable:
             ["baz", "zoo"],
             np.array(["baz", "zoo"]),
             Series(["baz", "zoo"]),
-            pd.Index(["baz", "zoo"]),
+            Index(["baz", "zoo"]),
         ],
     )
     @pytest.mark.parametrize("method", [True, False])
@@ -742,7 +742,7 @@ class TestPivotTable:
             ["bar", "baz"],
             np.array(["bar", "baz"]),
             Series(["bar", "baz"]),
-            pd.Index(["bar", "baz"]),
+            Index(["bar", "baz"]),
         ],
     )
     @pytest.mark.parametrize("method", [True, False])
@@ -1696,7 +1696,7 @@ class TestPivotTable:
             margins_name=margins_name,
             aggfunc=[np.mean, max],
         )
-        ix = pd.Index(["bacon", "cheese", margins_name], dtype="object", name="item")
+        ix = Index(["bacon", "cheese", margins_name], dtype="object", name="item")
         tups = [
             ("mean", "cost", "M"),
             ("mean", "cost", "T"),
@@ -1752,7 +1752,7 @@ class TestPivotTable:
         result = pd.pivot_table(df, index="D", margins=True)
         expected = DataFrame(
             {"A": [3, 7, 5], "B": [2.5, 6.5, 4.5], "C": [2, 5, 3.5]},
-            index=pd.Index(["X", "Y", "All"], name="D"),
+            index=Index(["X", "Y", "All"], name="D"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1806,7 +1806,7 @@ class TestPivotTable:
         expected_index = pd.CategoricalIndex(
             ["A", "B", "C"], categories=["A", "B", "C"], ordered=False, name="C1"
         )
-        expected_columns = pd.Index(["a", "b"], name="C2")
+        expected_columns = Index(["a", "b"], name="C2")
         expected_data = np.array([[1, 0], [1, 0], [0, 2]], dtype=np.int64)
         expected = DataFrame(
             expected_data, index=expected_index, columns=expected_columns
@@ -1892,7 +1892,7 @@ class TestPivotTable:
         table = pd.pivot_table(
             frame, index=["foo"], aggfunc=len, margins=True, margins_name=greek
         )
-        index = pd.Index([1, 2, 3, greek], dtype="object", name="foo")
+        index = Index([1, 2, 3, greek], dtype="object", name="foo")
         expected = DataFrame(index=index)
         tm.assert_frame_equal(table, expected)
 
@@ -2033,7 +2033,7 @@ class TestPivotTable:
         result = pd.pivot_table(df, columns="A", aggfunc=np.mean, dropna=dropna)
 
         data = [[2.5, np.nan], [1, np.nan]]
-        col = pd.Index(["one", "two"], name="A")
+        col = Index(["one", "two"], name="A")
         expected = DataFrame(data, index=["x", "y"], columns=col)
 
         if dropna:
@@ -2106,6 +2106,7 @@ class TestPivot:
         with pytest.raises(ValueError, match="duplicate entries"):
             data.pivot("a", "b", "c")
 
+    @pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
     def test_pivot_empty(self):
         df = DataFrame(columns=["a", "b", "c"])
         result = df.pivot("a", "b", "c")

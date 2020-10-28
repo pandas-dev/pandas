@@ -200,7 +200,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ]
     _internal_names_set: Set[str] = set(_internal_names)
     _accessors: Set[str] = set()
-    _deprecations: FrozenSet[str] = frozenset(["get_values", "tshift"])
+    _hidden_attrs: FrozenSet[str] = frozenset(["get_values", "tshift"])
     _metadata: List[str] = []
     _is_copy = None
     _mgr: BlockManager
@@ -3684,7 +3684,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index = self.index
         if isinstance(index, MultiIndex):
             try:
-                loc, new_index = self.index.get_loc_level(key, drop_level=drop_level)
+                loc, new_index = self.index._get_loc_level(
+                    key, level=0, drop_level=drop_level
+                )
             except TypeError as e:
                 raise TypeError(f"Expected label or tuple of labels, got {key}") from e
         else:
