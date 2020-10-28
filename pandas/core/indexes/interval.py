@@ -2,7 +2,7 @@
 from functools import wraps
 from operator import le, lt
 import textwrap
-from typing import TYPE_CHECKING, Any, List, Optional, Set, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, cast
 
 import numpy as np
 
@@ -193,6 +193,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     _data: IntervalArray
     _values: IntervalArray
+    _can_hold_strings = False
 
     # --------------------------------------------------------------------
     # Constructors
@@ -370,10 +371,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     @cache_readonly
     def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
-
-    @cache_readonly
-    def _dir_additions_for_owner(self) -> Set[str]:
-        return set()
 
     @cache_readonly
     def values(self) -> IntervalArray:

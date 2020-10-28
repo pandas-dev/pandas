@@ -231,6 +231,7 @@ class Index(IndexOpsMixin, PandasObject):
     _attributes = ["name"]
     _is_numeric_dtype = False
     _can_hold_na = True
+    _can_hold_strings = True
 
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False
@@ -572,14 +573,18 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _dir_additions_for_owner(self) -> Set[str_t]:
         """
-        Add the string-like attributes from this index to the owners' dir output.
+        Add the string-like labels to the owner dataframe/series dir output.
+
         If this is a MultiIndex, it's first level values are used.
         """
-        return {
-            c
-            for c in self.unique(level=0)[:100]
-            if isinstance(c, str) and c.isidentifier()
-        }
+        if self._can_hold_strings:
+            return {
+                c
+                for c in self.unique(level=0)[:100]
+                if isinstance(c, str) and c.isidentifier()
+            }
+        else:
+            return set()
 
     # --------------------------------------------------------------------
     # Array-Like Methods

@@ -1,4 +1,4 @@
-from typing import Any, Set
+from typing import Any
 
 import numpy as np
 
@@ -42,6 +42,7 @@ class NumericIndex(Index):
     _default_dtype: np.dtype
 
     _is_numeric_dtype = True
+    _can_hold_strings = False
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
         cls._validate_dtype(dtype)
@@ -183,10 +184,6 @@ class NumericIndex(Index):
             return first._union(second, sort)
         else:
             return super()._union(other, sort)
-
-    @cache_readonly
-    def _dir_additions_for_owner(self) -> Set[str]:
-        return set()
 
 
 _num_index_shared_docs[
