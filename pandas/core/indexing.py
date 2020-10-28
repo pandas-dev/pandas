@@ -1670,8 +1670,6 @@ class _iLocIndexer(_LocationIndexer):
                         "length than the value"
                     )
 
-            pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
-
             # we need an iterable, with a ndim of at least 1
             # eg. don't pass through np.array(0)
             if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
@@ -1698,7 +1696,7 @@ class _iLocIndexer(_LocationIndexer):
                             else:
                                 v = np.nan
 
-                            self._setitem_single_column(loc, v, pi)
+                            self._setitem_single_column(loc, v, plane_indexer)
 
                     elif not unique_cols:
                         raise ValueError(
@@ -1716,7 +1714,7 @@ class _iLocIndexer(_LocationIndexer):
                             else:
                                 v = np.nan
 
-                            self._setitem_single_column(loc, v, pi)
+                            self._setitem_single_column(loc, v, plane_indexer)
 
                 # we have an equal len ndarray/convertible to our labels
                 # hasattr first, to avoid coercing to ndarray without reason.
@@ -1735,7 +1733,9 @@ class _iLocIndexer(_LocationIndexer):
 
                     for i, loc in enumerate(ilocs):
                         # setting with a list, re-coerces
-                        self._setitem_single_column(loc, value[:, i].tolist(), pi)
+                        self._setitem_single_column(
+                            loc, value[:, i].tolist(), plane_indexer
+                        )
 
                 elif (
                     len(labels) == 1
@@ -1744,7 +1744,7 @@ class _iLocIndexer(_LocationIndexer):
                 ):
                     # we have an equal len list/ndarray
                     # We only get here with len(labels) == len(ilocs) == 1
-                    self._setitem_single_column(ilocs[0], value, pi)
+                    self._setitem_single_column(ilocs[0], value, plane_indexer)
 
                 elif lplane_indexer == 0 and len(value) == len(self.obj.index):
                     # We get here in one case via .loc with a all-False mask
@@ -1759,12 +1759,12 @@ class _iLocIndexer(_LocationIndexer):
                         )
 
                     for loc, v in zip(ilocs, value):
-                        self._setitem_single_column(loc, v, pi)
+                        self._setitem_single_column(loc, v, plane_indexer)
             else:
 
                 # scalar value
                 for loc in ilocs:
-                    self._setitem_single_column(loc, value, pi)
+                    self._setitem_single_column(loc, value, plane_indexer)
 
         else:
             self._setitem_single_block(indexer, value)
