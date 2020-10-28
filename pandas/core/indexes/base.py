@@ -577,14 +577,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         If this is a MultiIndex, it's first level values are used.
         """
-        if self._can_hold_strings:
-            return {
-                c
-                for c in self.unique(level=0)[:100]
-                if isinstance(c, str) and c.isidentifier()
-            }
-        else:
-            return set()
+        return {
+            c
+            for c in self.unique(level=0)[:100]
+            if isinstance(c, str) and c.isidentifier()
+        }
 
     # --------------------------------------------------------------------
     # Array-Like Methods
