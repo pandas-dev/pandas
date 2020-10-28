@@ -1255,8 +1255,8 @@ def test_groupby_nat_exclude():
     assert grouped.ngroups == 2
 
     expected = {
-        Timestamp("2013-01-01 00:00:00"): np.array([1, 7], dtype=np.int64),
-        Timestamp("2013-02-01 00:00:00"): np.array([3, 5], dtype=np.int64),
+        Timestamp("2013-01-01 00:00:00"): np.array([1, 7], dtype=np.intp),
+        Timestamp("2013-02-01 00:00:00"): np.array([3, 5], dtype=np.intp),
     }
 
     for k in grouped.indices:
