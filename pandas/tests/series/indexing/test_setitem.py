@@ -142,3 +142,23 @@ class TestSetitemViewCopySemantics:
         ser[::3] = NaT
         assert ser[0] is NaT
         assert dti[0] == ts
+
+
+class TestSetitemCallable:
+    def test_setitem_callable_key(self):
+        # GH#12533
+        ser = Series([1, 2, 3, 4], index=list("ABCD"))
+        ser[lambda x: "A"] = -1
+
+        expected = Series([-1, 2, 3, 4], index=list("ABCD"))
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_callable_other(self):
+        # GH#13299
+        inc = lambda x: x + 1
+
+        ser = Series([1, 2, -1, 4])
+        ser[ser < 0] = inc
+
+        expected = Series([1, 2, inc, 4])
+        tm.assert_series_equal(ser, expected)
