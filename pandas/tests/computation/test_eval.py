@@ -316,10 +316,13 @@ class TestEvalNumexprPandas:
             # TypeError, AttributeError: series or frame with scalar align
             pass
         else:
-
             # direct numpy comparison
             expected = self.ne.evaluate(f"nlhs {op} ghs")
-            tm.assert_numpy_array_equal(result.values, expected)
+            # Update assert statement due to unreliable numerical
+            # precision component (GH37328)
+            # TODO: update testing code so that assert_almost_equal statement
+            #  can be replaced again by the assert_numpy_array_equal statement
+            tm.assert_almost_equal(result.values, expected)
 
     # modulus, pow, and floor division require special casing
 
