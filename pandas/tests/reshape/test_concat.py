@@ -2932,6 +2932,7 @@ def test_concat_preserves_extension_int64_dtype():
 @pytest.mark.parametrize(
     ("keys", "integrity"),
     [
+        (["red"] * 3, True),
         (["red"] * 3, False),
         (["red", "blue", "red"], False),
         (["red", "blue", "red"], True),
@@ -2941,6 +2942,6 @@ def test_concat_repeated_keys(keys, integrity):
     # GH: 20816
     series_list = [pd.Series({"a": 1}), pd.Series({"b": 2}), pd.Series({"c": 3})]
     result = pd.concat(series_list, keys=keys, verify_integrity=integrity)
-    tuples = [(first, second) for first, second in zip(keys, ["a", "b", "c"])]
+    tuples = list(zip(keys, ["a", "b", "c"]))
     expected = pd.Series([1, 2, 3], index=pd.MultiIndex.from_tuples(tuples))
     tm.assert_series_equal(result, expected)
