@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -71,6 +73,7 @@ def test_ufunc_reduce_raises(values):
         np.add.reduce(a)
 
 
+@pytest.mark.skipif(not IS64, reason="GH 36579: fail on 32-bit system")
 @pytest.mark.parametrize(
     "pandasmethname, kwargs",
     [
