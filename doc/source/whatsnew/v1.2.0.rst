@@ -203,6 +203,12 @@ example where the index name is preserved:
 The same is true for :class:`MultiIndex`, but the logic is applied separately on a
 level-by-level basis.
 
+read_csv() now accepts pyarrow as an engine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`pandas.read_csv` now accepts engine="pyarrow" as an argument, allowing for faster csv parsing on multicore machines
+with pyarrow>=0.15 installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
+
 .. _whatsnew_120.enhancements.other:
 
 Other enhancements

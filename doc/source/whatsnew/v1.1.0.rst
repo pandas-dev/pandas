@@ -270,14 +270,6 @@ change, as ``fsspec`` will still bring in the same packages as before.
 
 .. _fsspec docs: https://filesystem-spec.readthedocs.io/en/latest/
 
-
-read_csv() now accepts pyarrow as an engine
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-:func:`pandas.read_csv` now accepts engine="pyarrow" as an argument, allowing for faster csv parsing on multicore machines
-with pyarrow>=0.15 installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
-
-
 .. _whatsnew_110.enhancements.other:
 
 Other enhancements

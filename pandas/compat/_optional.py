@@ -126,16 +126,17 @@ def import_optional_dependency(
         module_to_get = module
     minimum_version = min_version if min_version is not None else VERSIONS.get(name)
     version = _get_version(module_to_get)
-    if distutils.version.LooseVersion(version) < minimum_version:
-        assert on_version in {"warn", "raise", "ignore"}
-        msg = (
-            f"Pandas requires version '{minimum_version}' or newer of '{name}' "
-            f"(version '{version}' currently installed)."
-        )
-        if on_version == "warn":
-            warnings.warn(msg, UserWarning)
-            return None
-        elif on_version == "raise":
-            raise ImportError(msg)
+    if minimum_version:
+        if distutils.version.LooseVersion(version) < minimum_version:
+            assert on_version in {"warn", "raise", "ignore"}
+            msg = (
+                f"Pandas requires version '{minimum_version}' or newer of '{name}' "
+                f"(version '{version}' currently installed)."
+            )
+            if on_version == "warn":
+                warnings.warn(msg, UserWarning)
+                return None
+            elif on_version == "raise":
+                raise ImportError(msg)
 
     return module
