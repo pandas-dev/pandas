@@ -535,7 +535,7 @@ Other
 - Bug in :meth:`Index.union` behaving differently depending on whether operand is a :class:`Index` or other list-like (:issue:`36384`)
 - Passing an array with 2 or more dimensions to the :class:`Series` constructor now raises the more specific ``ValueError``, from a bare ``Exception`` previously (:issue:`35744`)
 - Bug in ``accessor.DirNamesMixin``, where ``dir(obj)`` wouldn't show attributes defined on the instance (:issue:`37173`).
-- Sorting in descending order is now stable for :meth:`Series.sort_values` and :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses. This will affect sort order when sorting :class:`DataFrame` on multiple columns and will affect the index optionally returned by :meth:`Index.sort_values`. Default position of NaT values when sorting is now last both for ascending and descending sort and should be changed by supplying the ``na_position`` arg. This mirrors :meth:`Index.sort_values` behavior for other :class:`Index` subclasses when sorting missing values. (:issue:`35992`)
+- Sorting in descending order is now stable for :meth:`Series.sort_values` and :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses. This will affect sort order when sorting :class:`DataFrame` on multiple columns, sorting with a key function that produces duplicates, and the index optionally returned by :meth:`Index.sort_values`. Default position of missing values is now last in the list of duplicates when using :meth:`Series.value_counts`, corresponding to the default in :meth:`Series.sort_values` and :meth:`Index.sort_values`. (:issue:`35992`)
 
 .. ---------------------------------------------------------------------------
 
