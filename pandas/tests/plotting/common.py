@@ -176,7 +176,7 @@ class TestPlotBase:
             assert patch.get_visible() == visible
 
     def _check_filling(
-        self, axes: Union[Axes, Sequence[Axes]], filled: bool = True
+        self, axes: Union["Axes", Sequence["Axes"]], filled: bool = True
     ) -> None:
         """
         Check for each artist whether it is filled or not
