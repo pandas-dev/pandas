@@ -1,6 +1,8 @@
 import os
+from typing import Sequence, Union
 import warnings
 
+from matplotlib.axes import Axes
 import numpy as np
 from numpy import random
 
@@ -173,7 +175,9 @@ class TestPlotBase:
         for patch in collections:
             assert patch.get_visible() == visible
 
-    def _check_filling(self, axes, filled=True):
+    def _check_filling(
+        self, axes: Union[Axes, Sequence[Axes]], filled: bool = True
+    ) -> None:
         """
         Check for each artist whether it is filled or not
 
