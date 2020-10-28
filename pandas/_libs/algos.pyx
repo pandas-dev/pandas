@@ -302,7 +302,6 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                 else:
                     divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
 
-                    # numerical issues for constant columns
                     if divisor != 0:
                         result[xi, yi] = result[yi, xi] = covxy / divisor
                     else:
