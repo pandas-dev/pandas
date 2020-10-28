@@ -3284,6 +3284,9 @@ Keep all original rows and also all original values
         if not is_bool(ascending):
             raise ValueError("ascending must be boolean")
 
+        if na_position not in ["first", "last"]:
+            raise ValueError(f"invalid na_position: {na_position}")
+
         # GH 35922. Make sorting stable by leveraging nargsort
         if key:
             ser = ensure_key_mapped(self, key)
