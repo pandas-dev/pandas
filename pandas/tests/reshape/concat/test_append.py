@@ -11,12 +11,6 @@ from pandas import DataFrame, Index, Series, Timestamp, concat, isna
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[True, False])
-def sort(request):
-    """Boolean sort keyword for concat and DataFrame.append."""
-    return request.param
-
-
 class TestAppend:
     def test_append(self, sort, float_frame):
         mixed_frame = float_frame.copy()
