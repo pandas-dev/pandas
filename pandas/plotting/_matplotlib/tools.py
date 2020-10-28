@@ -1,6 +1,6 @@
 # being a bit too dynamic
 from math import ceil
-from typing import TYPE_CHECKING, Iterable, List, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence, Tuple, Union
 import warnings
 
 import matplotlib.table
@@ -17,6 +17,7 @@ from pandas.plotting._matplotlib import compat
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
+    from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
     from matplotlib.table import Table
 
@@ -106,6 +107,7 @@ def create_subplots(
     sharey: bool = False,
     squeeze: bool = True,
     subplot_kw=None,
+    figure: Optional["Figure"] = None,
     ax=None,
     layout=None,
     layout_type: str = "box",
@@ -144,6 +146,9 @@ def create_subplots(
     subplot_kw : dict
       Dict with keywords passed to the add_subplot() call used to create each
       subplots.
+
+    figure : Matplotlib figure object, optional
+        Existing figure to be used for plotting.
 
     ax : Matplotlib axis object, optional
 
@@ -190,7 +195,9 @@ def create_subplots(
     if subplot_kw is None:
         subplot_kw = {}
 
-    if ax is None:
+    if figure is not None:
+        fig = figure
+    elif ax is None:
         fig = plt.figure(**fig_kw)
     else:
         if is_list_like(ax):

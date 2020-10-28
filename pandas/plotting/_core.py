@@ -12,6 +12,8 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
+    from matplotlib.figure import Figure
+
     from pandas import DataFrame
 
 
@@ -107,6 +109,7 @@ def hist_frame(
     xrot: Optional[float] = None,
     ylabelsize: Optional[int] = None,
     yrot: Optional[float] = None,
+    figure: Optional["Figure"] = None,
     ax=None,
     sharex: bool = False,
     sharey: bool = False,
@@ -146,6 +149,8 @@ def hist_frame(
     yrot : float, default None
         Rotation of y axis labels. For example, a value of 90 displays the
         y labels rotated 90 degrees clockwise.
+    figure : Matplotlib Figure object, default None
+        The figure to plot the histogram on.
     ax : Matplotlib axes object, default None
         The axes to plot the histogram on.
     sharex : bool, default True if ax is None else False
@@ -217,6 +222,7 @@ def hist_frame(
         xrot=xrot,
         ylabelsize=ylabelsize,
         yrot=yrot,
+        figure=figure,
         ax=ax,
         sharex=sharex,
         sharey=sharey,

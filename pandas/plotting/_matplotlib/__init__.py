@@ -51,6 +51,10 @@ def plot(data, kind, **kwargs):
     # work)
     import matplotlib.pyplot as plt
 
+    if kwargs.get("figure"):
+        kwargs["fig"] = kwargs.get("figure")
+        kwargs["ax"] = kwargs["figure"].gca()
+        kwargs.pop("reuse_plot", None)
     if kwargs.pop("reuse_plot", False):
         ax = kwargs.get("ax")
         if ax is None and len(plt.get_fignums()) > 0:

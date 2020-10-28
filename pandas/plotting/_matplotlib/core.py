@@ -325,12 +325,16 @@ class MPLPlot:
                 sharex=self.sharex,
                 sharey=self.sharey,
                 figsize=self.figsize,
+                figure=self.fig,
                 ax=self.ax,
                 layout=self.layout,
                 layout_type=self._layout_type,
             )
         else:
-            if self.ax is None:
+            if self.fig is not None:
+                fig = self.fig
+                axes = fig.add_subplot(111)
+            elif self.ax is None:
                 fig = self.plt.figure(figsize=self.figsize)
                 axes = fig.add_subplot(111)
             else:

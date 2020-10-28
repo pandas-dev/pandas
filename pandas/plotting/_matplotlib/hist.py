@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
@@ -16,6 +16,7 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
 
 class HistPlot(LinePlot):
@@ -181,6 +182,7 @@ def _grouped_plot(
     column=None,
     by=None,
     numeric_only=True,
+    figure: Optional["Figure"] = None,
     figsize=None,
     sharex=True,
     sharey=True,
@@ -203,7 +205,13 @@ def _grouped_plot(
 
     naxes = len(grouped)
     fig, axes = create_subplots(
-        naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
+        naxes=naxes,
+        figure=figure,
+        figsize=figsize,
+        sharex=sharex,
+        sharey=sharey,
+        ax=ax,
+        layout=layout,
     )
 
     _axes = flatten_axes(axes)
@@ -222,6 +230,7 @@ def _grouped_hist(
     data,
     column=None,
     by=None,
+    figure=None,
     ax=None,
     bins=50,
     figsize=None,
@@ -245,6 +254,7 @@ def _grouped_hist(
     data : Series/DataFrame
     column : object, optional
     by : object, optional
+    figure: figure, optional
     ax : axes, optional
     bins : int, default 50
     figsize : tuple, optional
@@ -282,6 +292,7 @@ def _grouped_hist(
         data,
         column=column,
         by=by,
+        figure=figure,
         sharex=sharex,
         sharey=sharey,
         ax=ax,
@@ -381,6 +392,7 @@ def hist_frame(
     xrot=None,
     ylabelsize=None,
     yrot=None,
+    figure=None,
     ax=None,
     sharex=False,
     sharey=False,
@@ -397,6 +409,7 @@ def hist_frame(
             data,
             column=column,
             by=by,
+            figure=figure,
             ax=ax,
             grid=grid,
             figsize=figsize,
@@ -430,6 +443,7 @@ def hist_frame(
 
     fig, axes = create_subplots(
         naxes=naxes,
+        figure=figure,
         ax=ax,
         squeeze=False,
         sharex=sharex,

@@ -152,6 +152,13 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             s.hist(legend=True, by=by, label="c")
 
+    def test_hist_with_figure_argument(self):
+        # GH37278
+        index = 15 * ["1"] + 15 * ["2"]
+        s = Series(np.random.randn(30), index=index, name="a")
+        _check_plot_works(s.hist, figure=self.plt.figure())
+        _check_plot_works(s.plot.hist, figure=self.plt.figure())
+
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
@@ -394,6 +401,13 @@ class TestDataFramePlots(TestPlotBase):
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             df.hist(legend=True, by=by, column=column, label="d")
+
+    def test_hist_with_figure_argument(self):
+        # GH37278
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        _check_plot_works(df.hist, figure=self.plt.figure())
+        _check_plot_works(df.plot.hist, figure=self.plt.figure())
 
 
 @td.skip_if_no_mpl
