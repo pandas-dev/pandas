@@ -5441,7 +5441,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         additions = super()._dir_additions()
         if self._info_axis._can_hold_strings:
-            additions &= self._info_axis._dir_additions_for_owner
+            additions.update(self._info_axis._dir_additions_for_owner)
         return additions
 
     # ----------------------------------------------------------------------
