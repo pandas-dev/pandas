@@ -1669,8 +1669,6 @@ class _iLocIndexer(_LocationIndexer):
                         "length than the value"
                     )
 
-            pi = plane_indexer[0] if lplane_indexer == 1 else plane_indexer
-
             def isetter(loc, v):
                 # positional setting on column loc
                 ser = self.obj._ixs(loc, axis=1)
@@ -1680,15 +1678,15 @@ class _iLocIndexer(_LocationIndexer):
                 # which means essentially reassign to the columns of a
                 # multi-dim object
                 # GH6149 (null slice), GH10408 (full bounds)
-                if isinstance(pi, tuple) and all(
+                if isinstance(plane_indexer, tuple) and all(
                     com.is_null_slice(idx) or com.is_full_slice(idx, len(self.obj))
-                    for idx in pi
+                    for idx in plane_indexer
                 ):
                     ser = v
                 else:
                     # set the item, possibly having a dtype change
                     ser = ser.copy()
-                    ser._mgr = ser._mgr.setitem(indexer=pi, value=v)
+                    ser._mgr = ser._mgr.setitem(indexer=plane_indexer, value=v)
                     ser._maybe_update_cacher(clear=True)
 
                 # reset the sliced object if unique
