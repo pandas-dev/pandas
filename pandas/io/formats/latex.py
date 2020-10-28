@@ -2,13 +2,46 @@
 Module for formatting output data in Latex.
 """
 from abc import ABC, abstractmethod
-from typing import IO, Iterator, List, Optional, Type
+from typing import Iterator, List, Optional, Tuple, Type, Union
 
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas.io.formats.format import DataFrameFormatter, TableFormatter
+from pandas.io.formats.format import DataFrameFormatter
+
+
+def _split_into_full_short_caption(
+    caption: Optional[Union[str, Tuple[str, str]]]
+) -> Tuple[str, str]:
+    """Extract full and short captions from caption string/tuple.
+
+    Parameters
+    ----------
+    caption : str or tuple, optional
+        Either table caption string or tuple (full_caption, short_caption).
+        If string is provided, then it is treated as table full caption,
+        while short_caption is considered an empty string.
+
+    Returns
+    -------
+    full_caption, short_caption : tuple
+        Tuple of full_caption, short_caption strings.
+    """
+    if caption:
+        if isinstance(caption, str):
+            full_caption = caption
+            short_caption = ""
+        else:
+            try:
+                full_caption, short_caption = caption
+            except ValueError as err:
+                msg = "caption must be either a string or a tuple of two strings"
+                raise ValueError(msg) from err
+    else:
+        full_caption = ""
+        short_caption = ""
+    return full_caption, short_caption
 
 
 class RowStringConverter(ABC):
@@ -41,8 +74,8 @@ class RowStringConverter(ABC):
         self.multirow = multirow
         self.clinebuf: List[List[int]] = []
         self.strcols = self._get_strcols()
-        self.strrows: List[List[str]] = (
-            list(zip(*self.strcols))  # type: ignore[arg-type]
+        self.strrows: List[List[str]] = list(
+            zip(*self.strcols)  # type: ignore[arg-type]
         )
 
     def get_strrow(self, row_num: int) -> str:
@@ -100,17 +133,12 @@ class RowStringConverter(ABC):
 
     def _get_strcols(self) -> List[List[str]]:
         """String representation of the columns."""
-        if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
-            info_line = (
-                f"Empty {type(self.frame).__name__}\n"
-                f"Columns: {self.frame.columns}\n"
-                f"Index: {self.frame.index}"
-            )
-            strcols = [[info_line]]
+        if self.fmt.frame.empty:
+            strcols = [[self._empty_info_line]]
         else:
-            strcols = self.fmt._to_str_columns()
+            strcols = self.fmt.get_strcols()
 
-        # reestablish the MultiIndex that has been joined by _to_str_column
+        # reestablish the MultiIndex that has been joined by get_strcols()
         if self.fmt.index and isinstance(self.frame.index, ABCMultiIndex):
             out = self.frame.index.format(
                 adjoin=False,
@@ -142,6 +170,14 @@ class RowStringConverter(ABC):
             # Get rid of old multiindex column and add new ones
             strcols = out + strcols[1:]
         return strcols
+
+    @property
+    def _empty_info_line(self):
+        return (
+            f"Empty {type(self.frame).__name__}\n"
+            f"Columns: {self.frame.columns}\n"
+            f"Index: {self.frame.index}"
+        )
 
     def _preprocess_row(self, row: List[str]) -> List[str]:
         """Preprocess elements of the row."""
@@ -275,6 +311,8 @@ class TableBuilderAbstract(ABC):
         Use multirow to enhance MultiIndex rows.
     caption: str, optional
         Table caption.
+    short_caption: str, optional
+        Table short caption.
     label: str, optional
         LaTeX label.
     position: str, optional
@@ -289,6 +327,7 @@ class TableBuilderAbstract(ABC):
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
         caption: Optional[str] = None,
+        short_caption: Optional[str] = None,
         label: Optional[str] = None,
         position: Optional[str] = None,
     ):
@@ -298,6 +337,7 @@ class TableBuilderAbstract(ABC):
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
         self.caption = caption
+        self.short_caption = short_caption
         self.label = label
         self.position = position
 
@@ -384,8 +424,23 @@ class GenericTableBuilder(TableBuilderAbstract):
 
     @property
     def _caption_macro(self) -> str:
-        r"""Caption macro, extracted from self.caption, like \caption{cap}."""
-        return f"\\caption{{{self.caption}}}" if self.caption else ""
+        r"""Caption macro, extracted from self.caption.
+
+        With short caption:
+            \caption[short_caption]{caption_string}.
+
+        Without short caption:
+            \caption{caption_string}.
+        """
+        if self.caption:
+            return "".join(
+                [
+                    r"\caption",
+                    f"[{self.short_caption}]" if self.short_caption else "",
+                    f"{{{self.caption}}}",
+                ]
+            )
+        return ""
 
     @property
     def _label_macro(self) -> str:
@@ -431,13 +486,18 @@ class LongTableBuilder(GenericTableBuilder):
     >>> from pandas.io.formats import format as fmt
     >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
     >>> formatter = fmt.DataFrameFormatter(df)
-    >>> builder = LongTableBuilder(formatter, caption='caption', label='lab',
-    ...                            column_format='lrl')
+    >>> builder = LongTableBuilder(formatter, caption='a long table',
+    ...                            label='tab:long', column_format='lrl')
     >>> table = builder.get_result()
     >>> print(table)
     \\begin{longtable}{lrl}
-    \\caption{caption}
-    \\label{lab}\\\\
+    \\caption{a long table}
+    \\label{tab:long}\\\\
+    \\toprule
+    {} &  a &   b \\\\
+    \\midrule
+    \\endfirsthead
+    \\caption[]{a long table} \\\\
     \\toprule
     {} &  a &   b \\\\
     \\midrule
@@ -476,7 +536,16 @@ class LongTableBuilder(GenericTableBuilder):
     @property
     def middle_separator(self) -> str:
         iterator = self._create_row_iterator(over="header")
+
+        # the content between \endfirsthead and \endhead commands
+        # mitigates repeated List of Tables entries in the final LaTeX
+        # document when dealing with longtable environments; GH #34360
         elements = [
+            "\\midrule",
+            "\\endfirsthead",
+            f"\\caption[]{{{self.caption}}} \\\\" if self.caption else "",
+            self.top_separator,
+            self.header,
             "\\midrule",
             "\\endhead",
             "\\midrule",
@@ -581,16 +650,33 @@ class TabularBuilder(GenericTableBuilder):
         return "\\end{tabular}"
 
 
-class LatexFormatter(TableFormatter):
-    """
+class LatexFormatter:
+    r"""
     Used to render a DataFrame to a LaTeX tabular/longtable environment output.
 
     Parameters
     ----------
     formatter : `DataFrameFormatter`
+    longtable : bool, default False
+        Use longtable environment.
     column_format : str, default None
         The columns format as specified in `LaTeX table format
         <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3 columns
+    multicolumn : bool, default False
+        Use \multicolumn to enhance MultiIndex columns.
+    multicolumn_format : str, default 'l'
+        The alignment for multicolumns, similar to `column_format`
+    multirow : bool, default False
+        Use \multirow to enhance MultiIndex rows.
+    caption : str or tuple, optional
+        Tuple (full_caption, short_caption),
+        which results in \caption[short_caption]{full_caption};
+        if a single string is passed, no short caption will be set.
+    label : str, optional
+        The LaTeX label to be placed inside ``\label{}`` in the output.
+    position : str, optional
+        The LaTeX positional argument for tables, to be placed after
+        ``\begin{}`` in the output.
 
     See Also
     --------
@@ -605,28 +691,27 @@ class LatexFormatter(TableFormatter):
         multicolumn: bool = False,
         multicolumn_format: Optional[str] = None,
         multirow: bool = False,
-        caption: Optional[str] = None,
+        caption: Optional[Union[str, Tuple[str, str]]] = None,
         label: Optional[str] = None,
         position: Optional[str] = None,
     ):
         self.fmt = formatter
         self.frame = self.fmt.frame
         self.longtable = longtable
-        self.column_format = column_format  # type: ignore[assignment]
+        self.column_format = column_format
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
-        self.caption = caption
+        self.caption, self.short_caption = _split_into_full_short_caption(caption)
         self.label = label
         self.position = position
 
-    def write_result(self, buf: IO[str]) -> None:
+    def to_string(self) -> str:
         """
         Render a DataFrame to a LaTeX tabular, longtable, or table/tabular
         environment output.
         """
-        table_string = self.builder.get_result()
-        buf.write(table_string)
+        return self.builder.get_result()
 
     @property
     def builder(self) -> TableBuilderAbstract:
@@ -644,6 +729,7 @@ class LatexFormatter(TableFormatter):
             multicolumn_format=self.multicolumn_format,
             multirow=self.multirow,
             caption=self.caption,
+            short_caption=self.short_caption,
             label=self.label,
             position=self.position,
         )
@@ -657,7 +743,7 @@ class LatexFormatter(TableFormatter):
         return TabularBuilder
 
     @property
-    def column_format(self) -> str:
+    def column_format(self) -> Optional[str]:
         """Column format."""
         return self._column_format
 

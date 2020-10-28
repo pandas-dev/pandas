@@ -331,7 +331,7 @@ class TestUnionCategoricals:
     def test_union_categorical_unwrap(self):
         # GH 14173
         c1 = Categorical(["a", "b"])
-        c2 = pd.Series(["b", "c"], dtype="category")
+        c2 = Series(["b", "c"], dtype="category")
         result = union_categoricals([c1, c2])
         expected = Categorical(["a", "b", "b", "c"])
         tm.assert_categorical_equal(result, expected)

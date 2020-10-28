@@ -30,10 +30,10 @@ def test_value_counts(index_or_series_obj):
     result = obj.value_counts()
 
     counter = collections.Counter(obj)
-    expected = pd.Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
+    expected = Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
     expected.index = expected.index.astype(obj.dtype)
     if isinstance(obj, pd.MultiIndex):
-        expected.index = pd.Index(expected.index)
+        expected.index = Index(expected.index)
 
     # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
     if obj.duplicated().any():
@@ -67,7 +67,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     # because np.nan == np.nan is False, but None == None is True
     # np.nan would be duplicated, whereas None wouldn't
     counter = collections.Counter(obj.dropna())
-    expected = pd.Series(dict(counter.most_common()), dtype=np.int64)
+    expected = Series(dict(counter.most_common()), dtype=np.int64)
     expected.index = expected.index.astype(obj.dtype)
 
     result = obj.value_counts()
@@ -80,7 +80,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
 
     # can't use expected[null_obj] = 3 as
     # IntervalIndex doesn't allow assignment
-    new_entry = pd.Series({np.nan: 3}, dtype=np.int64)
+    new_entry = Series({np.nan: 3}, dtype=np.int64)
     expected = expected.append(new_entry)
 
     result = obj.value_counts(dropna=False)
@@ -274,3 +274,17 @@ def test_value_counts_datetime64(index_or_series):
     td2 = klass(td2, name="dt")
     result2 = td2.value_counts()
     tm.assert_series_equal(result2, expected_s)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_value_counts_with_nan(dropna, index_or_series):
+    # GH31944
+    klass = index_or_series
+    values = [True, pd.NA, np.nan]
+    s = klass(values)
+    res = s.value_counts(dropna=dropna)
+    if dropna is True:
+        expected = Series([1], index=[True])
+    else:
+        expected = Series([2, 1], index=[pd.NA, True])
+    tm.assert_series_equal(res, expected)

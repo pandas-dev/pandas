@@ -7,7 +7,17 @@ are contained *in* the SeriesGroupBy and DataFrameGroupBy objects.
 """
 
 import collections
-from typing import List, Optional, Sequence, Tuple, Type
+from typing import (
+    Dict,
+    Generic,
+    Hashable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+)
 
 import numpy as np
 
@@ -20,6 +30,7 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_cast_result
 from pandas.core.dtypes.common import (
+    ensure_float,
     ensure_float64,
     ensure_int64,
     ensure_int_or_float,
@@ -87,6 +98,7 @@ class BaseGrouper:
         group_keys: bool = True,
         mutated: bool = False,
         indexer: Optional[np.ndarray] = None,
+        dropna: bool = True,
     ):
         assert isinstance(axis, Index), axis
 
@@ -97,6 +109,7 @@ class BaseGrouper:
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
+        self.dropna = dropna
 
     @property
     def groupings(self) -> List["grouper.Grouping"]:
@@ -113,7 +126,9 @@ class BaseGrouper:
     def nkeys(self) -> int:
         return len(self.groupings)
 
-    def get_iterator(self, data: FrameOrSeries, axis: int = 0):
+    def get_iterator(
+        self, data: FrameOrSeries, axis: int = 0
+    ) -> Iterator[Tuple[Label, FrameOrSeries]]:
         """
         Groupby iterator
 
@@ -246,7 +261,7 @@ class BaseGrouper:
         return Series(out, index=self.result_index, dtype="int64")
 
     @cache_readonly
-    def groups(self):
+    def groups(self) -> Dict[Hashable, np.ndarray]:
         """ dict {group name -> group labels} """
         if len(self.groupings) == 1:
             return self.groupings[0].groups
@@ -489,7 +504,7 @@ class BaseGrouper:
             else:
                 values = ensure_int_or_float(values)
         elif is_numeric and not is_complex_dtype(values):
-            values = ensure_float64(values)
+            values = ensure_float64(ensure_float(values))
         else:
             values = values.astype(object)
 
@@ -623,7 +638,7 @@ class BaseGrouper:
         try:
             return self._aggregate_series_fast(obj, func)
         except ValueError as err:
-            if "Function does not reduce" in str(err):
+            if "Must produce aggregated value" in str(err):
                 # raised in libreduction
                 pass
             else:
@@ -653,27 +668,26 @@ class BaseGrouper:
         group_index, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
-        result = None
+        result = np.empty(ngroups, dtype="O")
+        initialized = False
 
         splitter = get_splitter(obj, group_index, ngroups, axis=0)
 
         for label, group in splitter:
-            res = func(group)
 
-            if result is None:
-                if isinstance(res, (Series, Index, np.ndarray)):
-                    if len(res) == 1:
-                        # e.g. test_agg_lambda_with_timezone lambda e: e.head(1)
-                        # FIXME: are we potentially losing important res.index info?
-                        res = res.item()
-                    else:
-                        raise ValueError("Function does not reduce")
-                result = np.empty(ngroups, dtype="O")
+            # Each step of this loop corresponds to
+            #  libreduction._BaseGrouper._apply_to_group
+            res = func(group)
+            res = libreduction.extract_result(res)
+
+            if not initialized:
+                # We only do this validation on the first iteration
+                libreduction.check_result_array(res, 0)
+                initialized = True
 
             counts[label] = group.shape[0]
             result[label] = res
 
-        assert result is not None
         result = lib.maybe_convert_objects(result, try_float=0)
         # TODO: maybe_cast_to_extension_array?
 
@@ -864,7 +878,7 @@ def _is_indexed_like(obj, axes, axis: int) -> bool:
 # Splitting / application
 
 
-class DataSplitter:
+class DataSplitter(Generic[FrameOrSeries]):
     def __init__(self, data: FrameOrSeries, labels, ngroups: int, axis: int = 0):
         self.data = data
         self.labels = ensure_int64(labels)

@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import numpy as np
 import pytest
 
@@ -307,7 +305,7 @@ def test_preserve_metadata():
 )
 def test_multiple_agg_funcs(func, window_size, expected_vals):
     # GH 15072
-    df = pd.DataFrame(
+    df = DataFrame(
         [
             ["A", 10, 20],
             ["A", 20, 30],
@@ -333,10 +331,8 @@ def test_multiple_agg_funcs(func, window_size, expected_vals):
     columns = pd.MultiIndex.from_tuples(
         [("low", "mean"), ("low", "max"), ("high", "mean"), ("high", "min")]
     )
-    expected = pd.DataFrame(expected_vals, index=index, columns=columns)
+    expected = DataFrame(expected_vals, index=index, columns=columns)
 
-    result = window.agg(
-        OrderedDict((("low", ["mean", "max"]), ("high", ["mean", "min"])))
-    )
+    result = window.agg(dict((("low", ["mean", "max"]), ("high", ["mean", "min"]))))
 
     tm.assert_frame_equal(result, expected)

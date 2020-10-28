@@ -24,7 +24,6 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
 
 from pandas.core import accessor
 from pandas.core.arrays.categorical import Categorical, contains
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
@@ -165,6 +164,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
     codes: np.ndarray
     categories: Index
     _data: Categorical
+    _values: Categorical
 
     @property
     def _engine_type(self):
@@ -235,20 +235,23 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return super()._shallow_copy(values=values, name=name)
 
-    def _is_dtype_compat(self, other) -> bool:
+    def _is_dtype_compat(self, other) -> Categorical:
         """
         *this is an internal non-public method*
 
         provide a comparison between the dtype of self and other (coercing if
         needed)
 
+        Returns
+        -------
+        Categorical
+
         Raises
         ------
         TypeError if the dtypes are not compatible
         """
         if is_categorical_dtype(other):
-            if isinstance(other, CategoricalIndex):
-                other = other._values
+            other = extract_array(other)
             if not other.is_dtype_equal(self):
                 raise TypeError(
                     "categories must match existing categories when appending"
@@ -263,6 +266,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 raise TypeError(
                     "cannot append a non-category item to a CategoricalIndex"
                 )
+            other = other._values
 
         return other
 
@@ -372,11 +376,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 return self.copy() if copy else self
 
         return Index.astype(self, dtype=dtype, copy=copy)
-
-    @cache_readonly
-    def _isnan(self):
-        """ return if each value is nan"""
-        return self._data.codes == -1
 
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
@@ -574,15 +573,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return self.get_indexer(keyarr)
 
-    @doc(Index._convert_arr_indexer)
-    def _convert_arr_indexer(self, keyarr):
-        keyarr = com.asarray_tuplesafe(keyarr)
-
-        if self.categories._defer_to_indexing:
-            return keyarr
-
-        return self._shallow_copy(keyarr)
-
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side, kind):
         if kind == "loc":
@@ -731,6 +721,3 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         name = get_op_result_name(self, other)
         cat = self._data._from_backing_data(joined)
         return type(self)._simple_new(cat, name=name)
-
-
-CategoricalIndex._add_logical_methods_disabled()

@@ -24,10 +24,15 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
-    from pandas import Series  # noqa:F401
+    from pandas import Series
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
+    _hidden_attrs = PandasObject._hidden_attrs | {
+        "orig",
+        "name",
+    }
+
     def __init__(self, data: "Series", orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(
@@ -78,7 +83,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             index = self._parent.index
         # return the result as a Series, which is by definition a copy
-        result = Series(result, index=index, name=self.name)
+        result = Series(result, index=index, name=self.name).__finalize__(self._parent)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -106,7 +111,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self._parent.index, name=self.name)
+        result = Series(result, index=self._parent.index, name=self.name).__finalize__(
+            self._parent
+        )
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -371,7 +378,11 @@ class TimedeltaProperties(Properties):
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
         """
-        return self._get_values().components.set_index(self._parent.index)
+        return (
+            self._get_values()
+            .components.set_index(self._parent.index)
+            .__finalize__(self._parent)
+        )
 
     @property
     def freq(self):
