@@ -91,6 +91,7 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.slow
 def test_isin_large_series_mixed_dtypes_and_nan():
     # https://github.com/pandas-dev/pandas/issues/37094
     # combination of object dtype for the valuesa and > 1_000_000 elements
