@@ -9,7 +9,7 @@ import pytest
 from pandas._libs.tslibs import conversion, timezones
 
 import pandas as pd
-from pandas import Index, Series, Timestamp, date_range, period_range
+from pandas import DataFrame, Index, Series, Timestamp, date_range, period_range
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
 
@@ -17,6 +17,19 @@ from pandas.tseries.offsets import BDay
 
 
 class TestSeriesGetitemScalars:
+    def test_getitem_out_of_bounds_indexerror(self, datetime_series):
+        # don't segfault, GH#495
+        msg = r"index \d+ is out of bounds for axis 0 with size \d+"
+        with pytest.raises(IndexError, match=msg):
+            datetime_series[len(datetime_series)]
+
+    def test_getitem_out_of_bounds_empty_rangeindex_keyerror(self):
+        # GH#917
+        # With a RangeIndex, an int key gives a KeyError
+        ser = Series([], dtype=object)
+        with pytest.raises(KeyError, match="-1"):
+            ser[-1]
+
     def test_getitem_keyerror_with_int64index(self):
         ser = Series(np.random.randn(6), index=[0, 0, 1, 1, 2, 2])
 
@@ -290,3 +303,15 @@ def test_getitem_multilevel_scalar_slice_not_implemented(
     msg = r"\(2000, slice\(3, 4, None\)\)"
     with pytest.raises(TypeError, match=msg):
         ser[2000, 3:4]
+
+
+def test_getitem_dataframe_raises():
+    rng = list(range(10))
+    ser = Series(10, index=rng)
+    df = DataFrame(rng, index=rng)
+    msg = (
+        "Indexing a Series with DataFrame is not supported, "
+        "use the appropriate DataFrame column"
+    )
+    with pytest.raises(TypeError, match=msg):
+        ser[df > 5]

@@ -163,19 +163,6 @@ def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
     assert result[2] == result_1[2]
 
 
-def test_getitem_out_of_bounds(datetime_series):
-    # don't segfault, GH #495
-    msg = r"index \d+ is out of bounds for axis 0 with size \d+"
-    with pytest.raises(IndexError, match=msg):
-        datetime_series[len(datetime_series)]
-
-    # GH #917
-    # With a RangeIndex, an int key gives a KeyError
-    s = Series([], dtype=object)
-    with pytest.raises(KeyError, match="-1"):
-        s[-1]
-
-
 def test_getitem_setitem_integers():
     # caused bug without test
     s = Series([1, 2, 3], ["a", "b", "c"])
@@ -260,18 +247,6 @@ def test_setitem_ambiguous_keyerror():
     tm.assert_series_equal(s2, expected)
 
 
-def test_getitem_dataframe():
-    rng = list(range(10))
-    s = Series(10, index=rng)
-    df = DataFrame(rng, index=rng)
-    msg = (
-        "Indexing a Series with DataFrame is not supported, "
-        "use the appropriate DataFrame column"
-    )
-    with pytest.raises(TypeError, match=msg):
-        s[df > 5]
-
-
 def test_setitem(datetime_series, string_series):
     datetime_series[datetime_series.index[5]] = np.NaN
     datetime_series[[1, 2, 17]] = np.NaN
@@ -294,22 +269,6 @@ def test_setitem(datetime_series, string_series):
     app = Series([1], index=["foobar"], name="series")
     expected = string_series.append(app)
     tm.assert_series_equal(s, expected)
-
-
-def test_setitem_empty_series():
-    # Test for issue #10193
-    key = pd.Timestamp("2012-01-01")
-    series = Series(dtype=object)
-    series[key] = 47
-    expected = Series(47, [key])
-    tm.assert_series_equal(series, expected)
-
-    # GH#33573 our index should retain its freq
-    series = Series([], pd.DatetimeIndex([], freq="D"), dtype=object)
-    series[key] = 47
-    expected = Series(47, pd.DatetimeIndex([key], freq="D"))
-    tm.assert_series_equal(series, expected)
-    assert series.index.freq == expected.index.freq
 
 
 def test_setitem_dtypes():
@@ -338,32 +297,13 @@ def test_setitem_dtypes():
     tm.assert_series_equal(s, Series([np.nan, 1.0]))
 
 
-def test_set_value(datetime_series, string_series):
-    idx = datetime_series.index[10]
-    res = datetime_series._set_value(idx, 0)
-    assert res is None
-    assert datetime_series[idx] == 0
-
-    # equiv
-    s = string_series.copy()
-    res = s._set_value("foobar", 0)
-    assert res is None
-    assert s.index[-1] == "foobar"
-    assert s["foobar"] == 0
-
-    s = string_series.copy()
-    s.loc["foobar"] = 0
-    assert s.index[-1] == "foobar"
-    assert s["foobar"] == 0
-
-
 def test_setslice(datetime_series):
     sl = datetime_series[5:20]
     assert len(sl) == len(sl.index)
     assert sl.index.is_unique is True
 
 
-def test_2d_to_1d_assignment_raises():
+def test_loc_setitem_2d_to_1d_raises():
     x = np.random.randn(2, 2)
     y = Series(range(2))
 
@@ -611,25 +551,6 @@ def test_loc_setitem(string_series):
     assert string_series[d2] == 6
 
 
-def test_setitem_na():
-    # these induce dtype changes
-    expected = Series([np.nan, 3, np.nan, 5, np.nan, 7, np.nan, 9, np.nan])
-    s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
-    s[::2] = np.nan
-    tm.assert_series_equal(s, expected)
-
-    # gets coerced to float, right?
-    expected = Series([np.nan, 1, np.nan, 0])
-    s = Series([True, True, False, False])
-    s[::2] = np.nan
-    tm.assert_series_equal(s, expected)
-
-    expected = Series([np.nan, np.nan, np.nan, np.nan, np.nan, 5, 6, 7, 8, 9])
-    s = Series(np.arange(10))
-    s[:5] = np.nan
-    tm.assert_series_equal(s, expected)
-
-
 def test_timedelta_assignment():
     # GH 8209
     s = Series([], dtype=object)
@@ -827,35 +748,6 @@ def test_multilevel_preserve_name():
     result2 = s.loc["foo"]
     assert result.name == s.name
     assert result2.name == s.name
-
-
-def test_setitem_scalar_into_readonly_backing_data():
-    # GH14359: test that you cannot mutate a read only buffer
-
-    array = np.zeros(5)
-    array.flags.writeable = False  # make the array immutable
-    series = Series(array)
-
-    for n in range(len(series)):
-        msg = "assignment destination is read-only"
-        with pytest.raises(ValueError, match=msg):
-            series[n] = 1
-
-        assert array[n] == 0
-
-
-def test_setitem_slice_into_readonly_backing_data():
-    # GH14359: test that you cannot mutate a read only buffer
-
-    array = np.zeros(5)
-    array.flags.writeable = False  # make the array immutable
-    series = Series(array)
-
-    msg = "assignment destination is read-only"
-    with pytest.raises(ValueError, match=msg):
-        series[1:3] = 1
-
-    assert not array.any()
 
 
 """
