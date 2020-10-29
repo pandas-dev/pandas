@@ -27,14 +27,16 @@ class TestTZLocalize:
     @pytest.mark.parametrize("copy", [True, False])
     def test_tz_localize_copy_inplace_mutate(self, copy, klass):
         # GH#6326
-        ser = klass(
+        obj = klass(
             np.arange(0, 5), index=date_range("20131027", periods=5, freq="1H", tz=None)
         )
-        result = ser.tz_localize("UTC", copy=copy)
+        orig = obj.copy()
+        result = obj.tz_localize("UTC", copy=copy)
         expected = klass(
             np.arange(0, 5),
             index=date_range("20131027", periods=5, freq="1H", tz="UTC"),
         )
         tm.assert_equal(result, expected)
-        assert result.index is not ser.index
-        assert result is not ser
+        tm.assert_equal(obj, orig)
+        assert result.index is not obj.index
+        assert result is not obj
