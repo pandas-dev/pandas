@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
@@ -63,6 +62,7 @@ from pandas import (
 from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
 
 from pandas.io.common import stringify_path
@@ -2973,12 +2973,7 @@ class GenericFixed(Fixed):
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
 
-        if isinstance(obj, (np.ndarray, ABCExtensionArray)):
-            value = obj
-        elif is_datetime64tz_dtype(obj):
-            value = obj.dt._get_values()
-        else:
-            value = obj.to_numpy()
+        value = extract_array(obj, extract_numpy=True)
 
         if key in self.group:
             self._handle.remove_node(self.group, key)
