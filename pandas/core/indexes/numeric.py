@@ -42,6 +42,7 @@ class NumericIndex(Index):
     _default_dtype: np.dtype
 
     _is_numeric_dtype = True
+    _can_hold_strings = False
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
         cls._validate_dtype(dtype)
