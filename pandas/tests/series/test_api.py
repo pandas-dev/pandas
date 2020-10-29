@@ -41,12 +41,6 @@ class TestSeriesMisc:
             unpickled = pd.read_pickle(path)
             return unpickled
 
-    def test_sparse_accessor_updates_on_inplace(self):
-        s = Series([1, 1, 2, 3], dtype="Sparse[int]")
-        return_value = s.drop([0, 1], inplace=True)
-        assert return_value is None
-        assert s.sparse.density == 1.0
-
     def test_tab_completion(self):
         # GH 9910
         s = Series(list("abcd"))
