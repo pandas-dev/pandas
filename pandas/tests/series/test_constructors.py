@@ -1062,6 +1062,11 @@ class TestSeriesConstructors:
 
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}
+
+        result = Series(d)
+        expected = Series(d, index=sorted(d.keys()))
+        tm.assert_series_equal(result, expected)
+
         result = Series(d, index=["b", "c", "d", "a"])
         expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
         tm.assert_series_equal(result, expected)
@@ -1525,6 +1530,63 @@ class TestSeriesConstructors:
             [pd.Period("2011-01-01", freq="D"), pd.Period("2011-02-01", freq="D")]
         )
         assert series.dtype == "Period[D]"
+
+    def test_constructor_subclass_dict(self, dict_subclass):
+        data = dict_subclass((x, 10.0 * x) for x in range(10))
+        series = Series(data)
+        expected = Series(dict(data.items()))
+        tm.assert_series_equal(series, expected)
+
+    def test_constructor_ordereddict(self):
+        # GH3283
+        data = OrderedDict((f"col{i}", np.random.random()) for i in range(12))
+
+        series = Series(data)
+        expected = Series(list(data.values()), list(data.keys()))
+        tm.assert_series_equal(series, expected)
+
+        # Test with subclass
+        class A(OrderedDict):
+            pass
+
+        series = Series(A(data))
+        tm.assert_series_equal(series, expected)
+
+    def test_constructor_dict_multiindex(self):
+        d = {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}
+        _d = sorted(d.items())
+        result = Series(d)
+        expected = Series(
+            [x[1] for x in _d], index=pd.MultiIndex.from_tuples([x[0] for x in _d])
+        )
+        tm.assert_series_equal(result, expected)
+
+        d["z"] = 111.0
+        _d.insert(0, ("z", d["z"]))
+        result = Series(d)
+        expected = Series(
+            [x[1] for x in _d], index=Index([x[0] for x in _d], tupleize_cols=False)
+        )
+        result = result.reindex(index=expected.index)
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dict_timedelta_index(self):
+        # GH #12169 : Resample category data with timedelta index
+        # construct Series from dict as data and TimedeltaIndex as index
+        # will result NaN in result Series data
+        expected = Series(
+            data=["A", "B", "C"], index=pd.to_timedelta([0, 10, 20], unit="s")
+        )
+
+        result = Series(
+            data={
+                pd.to_timedelta(0, unit="s"): "A",
+                pd.to_timedelta(10, unit="s"): "B",
+                pd.to_timedelta(20, unit="s"): "C",
+            },
+            index=pd.to_timedelta([0, 10, 20], unit="s"),
+        )
+        tm.assert_series_equal(result, expected)
 
 
 class TestSeriesConstructorIndexCoercion:
