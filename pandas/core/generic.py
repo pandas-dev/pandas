@@ -11115,9 +11115,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         result = op(self, other)
 
-        # Delete cacher
-        self._reset_cacher()
-
         # this makes sure that we are aligned like the input
         # we are updating inplace so we want to ignore is_copy
         self._update_inplace(

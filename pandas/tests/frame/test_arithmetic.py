@@ -1698,3 +1698,12 @@ def test_arith_list_of_arraylike_raise(to_add):
         df + to_add
     with pytest.raises(ValueError, match=msg):
         to_add + df
+
+
+def test_inplace_arithmetic_series_update():
+    # https://github.com/pandas-dev/pandas/issues/36373
+    df = DataFrame({"A": [1, 2, 3]})
+    series = df["A"]
+    series += 1
+    expected = DataFrame({"A": [2, 3, 4]})
+    tm.assert_frame_equal(df, expected)

@@ -424,7 +424,13 @@ class TestDataFrameDrop:
     @pytest.mark.parametrize(
         "operation", ["__iadd__", "__isub__", "__imul__", "__ipow__"]
     )
-    @pytest.mark.parametrize("inplace", [False, True])
+    @pytest.mark.parametrize(
+        "inplace",
+        [
+            False,
+            pytest.param(True, marks=pytest.mark.xfail(reason="reverted - GH36373")),
+        ],
+    )
     def test_inplace_drop_and_operation(self, operation, inplace):
         # GH#30484
         df = DataFrame({"x": range(5)})
