@@ -41,7 +41,8 @@ Bug fixes
 - Bug in :meth:`GroupBy.fillna` that introduced a performance regression after 1.0.5 (:issue:`36757`)
 - Bug in :meth:`DataFrame.info` was raising a ``KeyError`` when the DataFrame has integer column names (:issue:`37245`)
 - Bug in :meth:`DataFrameGroupby.apply` would drop a :class:`CategoricalIndex` when grouped on (:issue:`35792`)
-- Bug in :meth:`Series.plot` that would break if ``xmin > xmax`` when using a fixed frequency :class:`TimedeltaIndex` (:issue:`37454`)
+- Bug in :meth:`Series.plot` and :meth:`DataFrame.plot` was throwing :exc:`ValueError` with a :class:`Series` or :class:`DataFrame`
+  indexed by a :class:`TimedeltaIndex` with a fixed frequency when x-axis lower limit was greater than upper limit (:issue:`37454`)
 
 .. ---------------------------------------------------------------------------
 
