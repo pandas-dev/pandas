@@ -147,6 +147,17 @@ class TestSeriesGetitemListLike:
         with pytest.raises(KeyError, match="5"):
             ser[key]
 
+    @pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.uint32, np.uint64])
+    def test_getitem_uint_array_key(self, dtype):
+        # GH #37218
+        ser = Series([1, 2, 3])
+        key = np.array([4], dtype=dtype)
+
+        with pytest.raises(KeyError, match="4"):
+            ser[key]
+        with pytest.raises(KeyError, match="4"):
+            ser.loc[key]
+
 
 class TestGetitemBooleanMask:
     def test_getitem_boolean(self, string_series):
