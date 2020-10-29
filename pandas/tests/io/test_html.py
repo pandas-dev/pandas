@@ -7,6 +7,7 @@ import threading
 from urllib.error import URLError
 
 import numpy as np
+from numpy.random import rand
 import pytest
 
 from pandas.compat import is_platform_windows
@@ -109,7 +110,7 @@ class TestReadHtml:
             tm.makeCustomDataframe(
                 4,
                 3,
-                data_gen_f=lambda *args: np.random.rand(),
+                data_gen_f=lambda *args: rand(),
                 c_idx_names=False,
                 r_idx_names=False,
             )

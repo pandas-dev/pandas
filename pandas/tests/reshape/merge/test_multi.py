@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.random import randn
 import pytest
 
 import pandas as pd
@@ -405,10 +406,10 @@ class TestMergeMulti:
         left = DataFrame(
             {
                 "id": list("abcde"),
-                "v1": np.random.randn(5),
-                "v2": np.random.randn(5),
+                "v1": randn(5),
+                "v2": randn(5),
                 "dummy": list("abcde"),
-                "v3": np.random.randn(5),
+                "v3": randn(5),
             },
             columns=["id", "v1", "v2", "dummy", "v3"],
         )

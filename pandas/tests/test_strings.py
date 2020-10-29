@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import re
 
 import numpy as np
+from numpy.random import randint
 import pytest
 
 from pandas._libs import lib
@@ -366,12 +367,7 @@ class TestStringMethods:
         tm.assert_series_equal(ds, s)
 
     def test_iter_object_try_string(self):
-        ds = Series(
-            [
-                slice(None, np.random.randint(10), np.random.randint(10, 20))
-                for _ in range(4)
-            ]
-        )
+        ds = Series([slice(None, randint(10), randint(10, 20)) for _ in range(4)])
 
         i, s = 100, "h"
 

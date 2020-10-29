@@ -1,4 +1,4 @@
-import numpy as np
+from numpy.random import randn
 
 from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
@@ -14,7 +14,7 @@ class TestMultiIndexInsertion:
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.randn(4, 6), columns=index)
+        df = DataFrame(randn(4, 6), columns=index)
 
         result = df.copy()
         expected = df.copy()

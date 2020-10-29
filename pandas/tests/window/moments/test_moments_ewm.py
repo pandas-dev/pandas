@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.random import randn
 import pytest
 
 from pandas import DataFrame, Series
@@ -304,7 +305,7 @@ def test_ew_empty_series(method):
 @pytest.mark.parametrize("name", ["mean", "var", "vol"])
 def test_ew_min_periods(min_periods, name):
     # excluding NaNs correctly
-    arr = np.random.randn(50)
+    arr = randn(50)
     arr[:10] = np.NaN
     arr[-10:] = np.NaN
     s = Series(arr)

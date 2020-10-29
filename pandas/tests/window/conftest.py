@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import numpy as np
+from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
@@ -253,7 +254,7 @@ def consistency_data(request):
 
 def _create_arr():
     """Internal function to mock an array."""
-    arr = np.random.randn(100)
+    arr = randn(100)
     locs = np.arange(20, 40)
     arr[locs] = np.NaN
     return arr
@@ -275,7 +276,7 @@ def _create_series():
 def _create_frame():
     """Internal function to mock DataFrame."""
     rng = _create_rng()
-    return DataFrame(np.random.randn(100, 10), index=rng, columns=np.arange(10))
+    return DataFrame(randn(100, 10), index=rng, columns=np.arange(10))
 
 
 @pytest.fixture

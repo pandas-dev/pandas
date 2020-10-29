@@ -2,6 +2,7 @@ import os
 import warnings
 
 import numpy as np
+from numpy import random
 
 from pandas.util._decorators import cache_readonly
 import pandas.util._test_decorators as td
@@ -49,11 +50,11 @@ class TestPlotBase:
                 {
                     "gender": gender,
                     "classroom": classroom,
-                    "height": np.random.normal(66, 4, size=n),
-                    "weight": np.random.normal(161, 32, size=n),
-                    "category": np.random.randint(4, size=n),
+                    "height": random.normal(66, 4, size=n),
+                    "weight": random.normal(161, 32, size=n),
+                    "category": random.randint(4, size=n),
                     "datetime": to_datetime(
-                        np.random.randint(
+                        random.randint(
                             self.start_date_to_int64,
                             self.end_date_to_int64,
                             size=n,

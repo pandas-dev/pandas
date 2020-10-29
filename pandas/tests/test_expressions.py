@@ -2,14 +2,15 @@ import operator
 import re
 
 import numpy as np
+from numpy.random import randn
 import pytest
 
 import pandas._testing as tm
 from pandas.core.api import DataFrame, Index, Series
 from pandas.core.computation import expressions as expr
 
-_frame = DataFrame(np.random.randn(10000, 4), columns=list("ABCD"), dtype="float64")
-_frame2 = DataFrame(np.random.randn(100, 4), columns=list("ABCD"), dtype="float64")
+_frame = DataFrame(randn(10000, 4), columns=list("ABCD"), dtype="float64")
+_frame2 = DataFrame(randn(100, 4), columns=list("ABCD"), dtype="float64")
 _mixed = DataFrame(
     {
         "A": _frame["A"].copy(),
