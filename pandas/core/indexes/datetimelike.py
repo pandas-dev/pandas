@@ -88,6 +88,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
+    _can_hold_strings = False
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
     freq: Optional[BaseOffset]
     freqstr: Optional[str]
