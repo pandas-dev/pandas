@@ -589,7 +589,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        ndarray.shape
+        ndarray.shape : Tuple of array dimensions.
 
         Examples
         --------
