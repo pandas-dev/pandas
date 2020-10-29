@@ -284,6 +284,8 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     with nogil:
         for xi in range(K):
             for yi in range(xi + 1):
+                # Welford's method for the variance-calculation
+                # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
                 nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
