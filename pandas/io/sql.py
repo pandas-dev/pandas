@@ -49,7 +49,6 @@ def _is_sqlalchemy_connectable(con):
 
     if _SQLALCHEMY_INSTALLED:
         import sqlalchemy  # noqa: F811
-
         return isinstance(con, sqlalchemy.engine.Connectable)
     else:
         return False
