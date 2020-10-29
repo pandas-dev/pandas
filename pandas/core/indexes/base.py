@@ -5094,7 +5094,9 @@ class Index(IndexOpsMixin, PandasObject):
             if is_bool_dtype(slc):
                 slc = lib.maybe_booleans_to_slice(slc.view("u1"))
             else:
-                slc = lib.maybe_indices_to_slice(slc.astype("i8"), len(self))
+                slc = lib.maybe_indices_to_slice(
+                    slc.astype(np.intp, copy=False), len(self)
+                )
             if isinstance(slc, np.ndarray):
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-unique "

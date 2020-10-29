@@ -239,8 +239,8 @@ class BlockManager(PandasObject):
         """
         Update mgr._blknos / mgr._blklocs.
         """
-        new_blknos = np.empty(self.shape[0], dtype=np.int64)
-        new_blklocs = np.empty(self.shape[0], dtype=np.int64)
+        new_blknos = np.empty(self.shape[0], dtype=np.intp)
+        new_blklocs = np.empty(self.shape[0], dtype=np.intp)
         new_blknos.fill(-1)
         new_blklocs.fill(-1)
 
