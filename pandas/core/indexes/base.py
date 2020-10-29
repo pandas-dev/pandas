@@ -12,6 +12,7 @@ from typing import (
     NewType,
     Optional,
     Sequence,
+    Set,
     Tuple,
     TypeVar,
     Union,
@@ -230,6 +231,7 @@ class Index(IndexOpsMixin, PandasObject):
     _attributes = ["name"]
     _is_numeric_dtype = False
     _can_hold_na = True
+    _can_hold_strings = True
 
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False
@@ -567,6 +569,19 @@ class Index(IndexOpsMixin, PandasObject):
         # `self` is not passed into the lambda.
         target_values = self._get_engine_target()
         return self._engine_type(lambda: target_values, len(self))
+
+    @cache_readonly
+    def _dir_additions_for_owner(self) -> Set[str_t]:
+        """
+        Add the string-like labels to the owner dataframe/series dir output.
+
+        If this is a MultiIndex, it's first level values are used.
+        """
+        return {
+            c
+            for c in self.unique(level=0)[:100]
+            if isinstance(c, str) and c.isidentifier()
+        }
 
     # --------------------------------------------------------------------
     # Array-Like Methods
