@@ -93,8 +93,7 @@ class TestSeriesIsIn:
 
 def test_isin_large_series_mixed_dtypes_and_nan():
     # https://github.com/pandas-dev/pandas/issues/37094
-    # combination of object dtype for the values, > 1_000_000 elements
-    # and the presence of NaNs in the Series
+    # combination of object dtype for the valuesa and > 1_000_000 elements
     ser = Series([1, 2, np.nan] * 1_000_000)
     result = ser.isin({"foo", "bar"})
     expected = Series([False] * 3 * 1_000_000)
