@@ -523,7 +523,6 @@ class Grouping:
                     t = self.name or str(type(self.grouper))
                     raise ValueError(f"Grouper for '{t}' not 1-dimensional")
                 self.grouper = self.index.map(self.grouper)
-
                 if not (
                     hasattr(self.grouper, "__len__")
                     and len(self.grouper) == len(self.index)
