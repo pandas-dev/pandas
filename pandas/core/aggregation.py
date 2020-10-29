@@ -554,9 +554,11 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
     if isinstance(arg, str):
         return obj._try_aggregate_string_function(arg, *args, **kwargs), None
     elif is_dict_like(arg):
-        return agg_dict_like(obj, arg, _axis)
+        arg = cast(Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], arg)
+        return agg_dict_like(obj, arg, _axis), True
     elif is_list_like(arg):
         # we require a list, but not an 'str'
+        arg = cast(List[AggFuncTypeBase], arg)
         return agg_list_like(obj, arg, _axis=_axis), None
     else:
         result = None
@@ -570,7 +572,23 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
     return result, True
 
 
-def agg_list_like(obj, arg, _axis):
+def agg_list_like(obj, arg: List[AggFuncTypeBase], _axis: int) -> FrameOrSeriesUnion:
+    """
+    Compute aggregation in the case of a list-like argument.
+
+    Parameters
+    ----------
+    obj : Series, DataFrame, SeriesGroupBy, or DataFrameGroupBy
+        Object to compute aggregation on.
+    arg : list
+        Aggregations to compute.
+    _axis : int, 0 or 1
+        Axis to compute aggregation on.
+
+    Returns
+    -------
+    Result of aggregation.
+    """
     from pandas.core.reshape.concat import concat
 
     if _axis != 0:
@@ -643,7 +661,25 @@ def agg_list_like(obj, arg, _axis):
         return result
 
 
-def agg_dict_like(obj, arg, _axis):
+def agg_dict_like(
+    obj, arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], _axis: int
+) -> FrameOrSeriesUnion:
+    """
+    Compute aggregation in the case of a dict-like argument.
+
+    Parameters
+    ----------
+    obj: Series, DataFrame, SeriesGroupBy, or DataFrameGroupBy
+        Object to compute aggregation on.
+    arg : dict
+        label-aggregation pairs to compute.
+    _axis : int, 0 or 1
+        Axis to compute aggregation on.
+
+    Returns
+    -------
+    Result of aggregation.
+    """
     is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
 
     if _axis != 0:  # pragma: no cover
@@ -736,4 +772,4 @@ def agg_dict_like(obj, arg, _axis):
 
         result = Series(results, name=name)
 
-    return result, True
+    return result
