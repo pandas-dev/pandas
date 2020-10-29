@@ -37,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
@@ -192,11 +191,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
 
-    # Immutable, so we are able to cache computations like isna in '_mask'
-    _mask = None
-
     _data: IntervalArray
     _values: IntervalArray
+    _can_hold_strings = False
 
     # --------------------------------------------------------------------
     # Constructors
@@ -341,15 +338,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         result = self._simple_new(self._data, name=name)
         result._cache = self._cache
         return result
-
-    @cache_readonly
-    def _isnan(self):
-        """
-        Return a mask indicating if each value is NA.
-        """
-        if self._mask is None:
-            self._mask = isna(self.left)
-        return self._mask
 
     @cache_readonly
     def _engine(self):
