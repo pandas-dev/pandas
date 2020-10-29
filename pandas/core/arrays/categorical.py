@@ -414,6 +414,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
 
+        # xref GH8628
+        # PERF: astype category codes instead of astyping each entry
         new_categories = self.categories.astype(dtype)
         obj = Categorical.from_codes(self.codes, categories=new_categories)
         return np.array(obj.categories[self.codes], copy=copy)
