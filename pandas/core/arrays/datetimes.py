@@ -177,7 +177,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "week",
         "weekday",
         "dayofweek",
+        "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "days_in_month",
         "daysinmonth",
@@ -473,7 +475,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if setitem:
             # Stricter check for setitem vs comparison methods
             if not timezones.tz_compare(self.tz, other.tz):
-                raise ValueError(f"Timezones don't match. '{self.tz} != {other.tz}'")
+                raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
 
     def _maybe_clear_freq(self):
         self._freq = None
@@ -1533,16 +1535,18 @@ default 'raise'
     2017-01-08    6
     Freq: D, dtype: int64
     """
-    dayofweek = _field_accessor("dayofweek", "dow", _dayofweek_doc)
-    weekday = dayofweek
+    day_of_week = _field_accessor("day_of_week", "dow", _dayofweek_doc)
+    dayofweek = day_of_week
+    weekday = day_of_week
 
-    dayofyear = _field_accessor(
+    day_of_year = _field_accessor(
         "dayofyear",
         "doy",
         """
         The ordinal day of the year.
         """,
     )
+    dayofyear = day_of_year
     quarter = _field_accessor(
         "quarter",
         "q",

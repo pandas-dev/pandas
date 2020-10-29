@@ -161,6 +161,10 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     _typ = "categoricalindex"
 
+    @property
+    def _can_hold_strings(self):
+        return self.categories._can_hold_strings
+
     codes: np.ndarray
     categories: Index
     _data: Categorical
@@ -376,11 +380,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 return self.copy() if copy else self
 
         return Index.astype(self, dtype=dtype, copy=copy)
-
-    @cache_readonly
-    def _isnan(self):
-        """ return if each value is nan"""
-        return self._data.codes == -1
 
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
