@@ -95,7 +95,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     ----------
     day
     dayofweek
+    day_of_week
     dayofyear
+    day_of_year
     days_in_month
     daysinmonth
     end_time

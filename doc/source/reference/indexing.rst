@@ -345,9 +345,11 @@ Time/date components
    DatetimeIndex.time
    DatetimeIndex.timetz
    DatetimeIndex.dayofyear
+   DatetimeIndex.day_of_year
    DatetimeIndex.weekofyear
    DatetimeIndex.week
    DatetimeIndex.dayofweek
+   DatetimeIndex.day_of_week
    DatetimeIndex.weekday
    DatetimeIndex.quarter
    DatetimeIndex.tz
@@ -461,7 +463,9 @@ Properties
 
     PeriodIndex.day
     PeriodIndex.dayofweek
+    PeriodIndex.day_of_week
     PeriodIndex.dayofyear
+    PeriodIndex.day_of_year
     PeriodIndex.days_in_month
     PeriodIndex.daysinmonth
     PeriodIndex.end_time
