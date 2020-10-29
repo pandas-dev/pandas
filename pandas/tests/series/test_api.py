@@ -267,25 +267,6 @@ class TestSeriesMisc:
         s = Series(np.random.randn(10))
         tm.assert_almost_equal(s.ravel(order="F"), s.values.ravel(order="F"))
 
-    def test_str_accessor_updates_on_inplace(self):
-        s = Series(list("abc"))
-        return_value = s.drop([0], inplace=True)
-        assert return_value is None
-        assert len(s.str.lower()) == 2
-
-    def test_str_attribute(self):
-        # GH9068
-        methods = ["strip", "rstrip", "lstrip"]
-        s = Series([" jack", "jill ", " jesse ", "frank"])
-        for method in methods:
-            expected = Series([getattr(str, method)(x) for x in s.values])
-            tm.assert_series_equal(getattr(Series.str, method)(s.str), expected)
-
-        # str accessor only valid with string values
-        s = Series(range(5))
-        with pytest.raises(AttributeError, match="only use .str accessor"):
-            s.str.repeat(2)
-
     def test_empty_method(self):
         s_empty = Series(dtype=object)
         assert s_empty.empty
