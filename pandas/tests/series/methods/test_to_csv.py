@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import Series
 import pandas._testing as tm
 
 from pandas.io.common import get_handle
@@ -180,62 +180,3 @@ class TestSeriesToCSV:
             expected.index = expected.index.astype(str)
 
             tm.assert_series_equal(result, expected)
-
-
-class TestSeriesIO:
-    def test_to_frame(self, datetime_series):
-        datetime_series.name = None
-        rs = datetime_series.to_frame()
-        xp = pd.DataFrame(datetime_series.values, index=datetime_series.index)
-        tm.assert_frame_equal(rs, xp)
-
-        datetime_series.name = "testname"
-        rs = datetime_series.to_frame()
-        xp = pd.DataFrame(
-            dict(testname=datetime_series.values), index=datetime_series.index
-        )
-        tm.assert_frame_equal(rs, xp)
-
-        rs = datetime_series.to_frame(name="testdifferent")
-        xp = pd.DataFrame(
-            dict(testdifferent=datetime_series.values), index=datetime_series.index
-        )
-        tm.assert_frame_equal(rs, xp)
-
-    def test_timeseries_periodindex(self):
-        # GH2891
-        from pandas import period_range
-
-        prng = period_range("1/1/2011", "1/1/2012", freq="M")
-        ts = Series(np.random.randn(len(prng)), prng)
-        new_ts = tm.round_trip_pickle(ts)
-        assert new_ts.index.freq == "M"
-
-    def test_pickle_preserve_name(self):
-        for n in [777, 777.0, "name", datetime(2001, 11, 11), (1, 2)]:
-            unpickled = self._pickle_roundtrip_name(tm.makeTimeSeries(name=n))
-            assert unpickled.name == n
-
-    def _pickle_roundtrip_name(self, obj):
-
-        with tm.ensure_clean() as path:
-            obj.to_pickle(path)
-            unpickled = pd.read_pickle(path)
-            return unpickled
-
-    def test_to_frame_expanddim(self):
-        # GH 9762
-
-        class SubclassedSeries(Series):
-            @property
-            def _constructor_expanddim(self):
-                return SubclassedFrame
-
-        class SubclassedFrame(DataFrame):
-            pass
-
-        s = SubclassedSeries([1, 2, 3], name="X")
-        result = s.to_frame()
-        assert isinstance(result, SubclassedFrame)
-        expected = SubclassedFrame({"X": [1, 2, 3]})
-        tm.assert_frame_equal(result, expected)
