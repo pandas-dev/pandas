@@ -1648,10 +1648,7 @@ class _iLocIndexer(_LocationIndexer):
             labels = item_labels[info_idx]
 
             # Ensure we have something we can iterate over
-            ilocs = info_idx
-            if isinstance(info_idx, slice):
-                ri = Index(range(len(self.obj.columns)))
-                ilocs = ri[info_idx]
+            ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
             plane_indexer = indexer[:1]
             lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
@@ -1899,6 +1896,20 @@ class _iLocIndexer(_LocationIndexer):
 
             self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
+
+    def _ensure_iterable_column_indexer(self, column_indexer):
+        """
+        Ensure that our column indexer is something that can be iterated over.
+        """
+        # Ensure we have something we can iterate over
+        if is_integer(column_indexer):
+            ilocs = [column_indexer]
+        elif isinstance(column_indexer, slice):
+            ri = Index(range(len(self.obj.columns)))
+            ilocs = ri[column_indexer]
+        else:
+            ilocs = column_indexer
+        return ilocs
 
     def _align_series(self, indexer, ser: "Series", multiindex_indexer: bool = False):
         """
