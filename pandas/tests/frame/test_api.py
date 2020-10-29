@@ -86,8 +86,7 @@ class TestDataFrameMisc:
             f._get_axis_number(None)
 
     def test_keys(self, float_frame):
-        getkeys = float_frame.keys
-        assert getkeys() is float_frame.columns
+        assert float_frame.keys() is float_frame.columns
 
     def test_column_contains_raises(self, float_frame):
         with pytest.raises(TypeError, match="unhashable type: 'Index'"):
@@ -135,15 +134,6 @@ class TestDataFrameMisc:
         df2 = DataFrame(np.random.randn(0, 3))
         df1.index.name = "foo"
         assert df2.index.name is None
-
-    def test_array_interface(self, float_frame):
-        with np.errstate(all="ignore"):
-            result = np.sqrt(float_frame)
-        assert isinstance(result, type(float_frame))
-        assert result.index is float_frame.index
-        assert result.columns is float_frame.columns
-
-        tm.assert_frame_equal(result, float_frame.apply(np.sqrt))
 
     def test_get_agg_axis(self, float_frame):
         cols = float_frame._get_agg_axis(0)
@@ -312,32 +302,6 @@ class TestDataFrameMisc:
         arr = float_frame[["A", "B"]].values
         expected = float_frame.reindex(columns=["A", "B"]).values
         tm.assert_almost_equal(arr, expected)
-
-    def test_to_numpy(self):
-        df = DataFrame({"A": [1, 2], "B": [3, 4.5]})
-        expected = np.array([[1, 3], [2, 4.5]])
-        result = df.to_numpy()
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_to_numpy_dtype(self):
-        df = DataFrame({"A": [1, 2], "B": [3, 4.5]})
-        expected = np.array([[1, 3], [2, 4]], dtype="int64")
-        result = df.to_numpy(dtype="int64")
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_to_numpy_copy(self):
-        arr = np.random.randn(4, 3)
-        df = DataFrame(arr)
-        assert df.values.base is arr
-        assert df.to_numpy(copy=False).base is arr
-        assert df.to_numpy(copy=True).base is not arr
-
-    def test_to_numpy_mixed_dtype_to_str(self):
-        # https://github.com/pandas-dev/pandas/issues/35455
-        df = DataFrame([[pd.Timestamp("2020-01-01 00:00:00"), 100.0]])
-        result = df.to_numpy(dtype=str)
-        expected = np.array([["2020-01-01 00:00:00", "100.0"]], dtype=str)
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
