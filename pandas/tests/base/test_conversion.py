@@ -5,7 +5,7 @@ from pandas.core.dtypes.common import is_datetime64_dtype, is_timedelta64_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import CategoricalIndex, Series, Timedelta, Timestamp
+from pandas import CategoricalIndex, Series, Timedelta, Timestamp, date_range
 import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
@@ -208,7 +208,7 @@ class TestToIterable:
     ],
 )
 def test_values_consistent(array, expected_type, dtype):
-    l_values = pd.Series(array)._values
+    l_values = Series(array)._values
     r_values = pd.Index(array)._values
     assert type(l_values) is expected_type
     assert type(l_values) is type(r_values)
@@ -218,14 +218,14 @@ def test_values_consistent(array, expected_type, dtype):
 
 @pytest.mark.parametrize("arr", [np.array([1, 2, 3])])
 def test_numpy_array(arr):
-    ser = pd.Series(arr)
+    ser = Series(arr)
     result = ser.array
     expected = PandasArray(arr)
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_numpy_array_all_dtypes(any_numpy_dtype):
-    ser = pd.Series(dtype=any_numpy_dtype)
+    ser = Series(dtype=any_numpy_dtype)
     result = ser.array
     if is_datetime64_dtype(any_numpy_dtype):
         assert isinstance(result, DatetimeArray)
@@ -336,7 +336,7 @@ def test_to_numpy(array, expected, index_or_series):
 def test_to_numpy_copy(arr, as_series):
     obj = pd.Index(arr, copy=False)
     if as_series:
-        obj = pd.Series(obj.values, copy=False)
+        obj = Series(obj.values, copy=False)
 
     # no copy by default
     result = obj.to_numpy()
@@ -355,7 +355,7 @@ def test_to_numpy_dtype(as_series):
     tz = "US/Eastern"
     obj = pd.DatetimeIndex(["2000", "2001"], tz=tz)
     if as_series:
-        obj = pd.Series(obj)
+        obj = Series(obj)
 
     # preserve tz by default
     result = obj.to_numpy()
@@ -395,13 +395,13 @@ def test_to_numpy_na_value_numpy_dtype(
 
 def test_to_numpy_kwargs_raises():
     # numpy
-    s = pd.Series([1, 2, 3])
+    s = Series([1, 2, 3])
     msg = r"to_numpy\(\) got an unexpected keyword argument 'foo'"
     with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
 
     # extension
-    s = pd.Series([1, 2, 3], dtype="Int64")
+    s = Series([1, 2, 3], dtype="Int64")
     with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
 
@@ -449,3 +449,39 @@ def test_to_numpy_dataframe_single_block_no_mutate():
     expected = pd.DataFrame(np.array([1.0, 2.0, np.nan]))
     result.to_numpy(na_value=0.0)
     tm.assert_frame_equal(result, expected)
+
+
+class TestAsArray:
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
+    def test_asarray_object_dt64(self, tz):
+        ser = Series(date_range("2000", periods=2, tz=tz))
+
+        with tm.assert_produces_warning(None):
+            # Future behavior (for tzaware case) with no warning
+            result = np.asarray(ser, dtype=object)
+
+        expected = np.array(
+            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)]
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_asarray_tz_naive(self):
+        # This shouldn't produce a warning.
+        ser = Series(date_range("2000", periods=2))
+        expected = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
+        result = np.asarray(ser)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_asarray_tz_aware(self):
+        tz = "US/Central"
+        ser = Series(date_range("2000", periods=2, tz=tz))
+        expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
+        result = np.asarray(ser, dtype="datetime64[ns]")
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # Old behavior with no warning
+        result = np.asarray(ser, dtype="M8[ns]")
+
+        tm.assert_numpy_array_equal(result, expected)

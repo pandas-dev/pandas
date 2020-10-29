@@ -39,6 +39,8 @@ if TYPE_CHECKING:
     from pandas.core.indexes.base import Index
     from pandas.core.series import Series
 
+    from pandas.io.formats.format import EngFormatter
+
 # array-like
 
 AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
@@ -127,6 +129,10 @@ CompressionOptions = Optional[Union[str, CompressionDict]]
 # let's bind types
 ModeVar = TypeVar("ModeVar", str, None, Optional[str])
 EncodingVar = TypeVar("EncodingVar", str, None, Optional[str])
+
+
+# type of float formatter in DataFrameFormatter
+FloatFormatType = Union[str, Callable, "EngFormatter"]
 
 
 @dataclass

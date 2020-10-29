@@ -850,10 +850,11 @@ class Window(BaseWindow):
     axis : int or str, default 0
     closed : str, default None
         Make the interval closed on the 'right', 'left', 'both' or
-        'neither' endpoints.
-        For offset-based windows, it defaults to 'right'.
-        For fixed windows, defaults to 'both'. Remaining cases not implemented
-        for fixed windows.
+        'neither' endpoints. Defaults to 'right'.
+
+        .. versionchanged:: 1.2.0
+
+            The closed parameter with fixed windows is now supported.
 
     Returns
     -------
@@ -1905,8 +1906,10 @@ class RollingAndExpandingMixin(BaseWindow):
             b = b.rolling(
                 window=window, min_periods=self.min_periods, center=self.center
             )
-
-            return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
+            # GH 31286: Through using var instead of std we can avoid numerical
+            # issues when the result of var is withing floating proint precision
+            # while std is not.
+            return a.cov(b, **kwargs) / (a.var(**kwargs) * b.var(**kwargs)) ** 0.5
 
         return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
@@ -1975,11 +1978,6 @@ class Rolling(RollingAndExpandingMixin):
             raise ValueError("window must be an integer")
         elif self.window < 0:
             raise ValueError("window must be non-negative")
-
-        if not self.is_datetimelike and self.closed is not None:
-            raise ValueError(
-                "closed only implemented for datetimelike and offset based windows"
-            )
 
     def _determine_window_length(self) -> Union[int, float]:
         """

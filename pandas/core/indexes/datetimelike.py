@@ -1,13 +1,13 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-from datetime import datetime, tzinfo
-from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union, cast
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, TypeVar, Union, cast
 
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
-from pandas._libs.tslibs import BaseOffset, Resolution, Tick, timezones
+from pandas._libs.tslibs import BaseOffset, Resolution, Tick
 from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -78,7 +78,7 @@ def _join_i8_wrapper(joinf, with_indexers: bool = True):
 
 
 @inherit_names(
-    ["inferred_freq", "_isnan", "_resolution_obj", "resolution"],
+    ["inferred_freq", "_resolution_obj", "resolution"],
     DatetimeLikeArrayMixin,
     cache=True,
 )
@@ -88,6 +88,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
+    _can_hold_strings = False
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
     freq: Optional[BaseOffset]
     freqstr: Optional[str]
@@ -398,16 +399,12 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         self,
         reso: Resolution,
         parsed: datetime,
-        use_lhs: bool = True,
-        use_rhs: bool = True,
     ):
         """
         Parameters
         ----------
         reso : Resolution
         parsed : datetime
-        use_lhs : bool, default True
-        use_rhs : bool, default True
 
         Returns
         -------
@@ -416,14 +413,13 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         self._validate_partial_date_slice(reso)
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        i8vals = self.asi8
-        unbox = self._data._unbox_scalar
+        vals = self._data._ndarray
+        unbox = self._data._unbox
 
         if self.is_monotonic:
 
             if len(self) and (
-                (use_lhs and t1 < self[0] and t2 < self[0])
-                or (use_rhs and t1 > self[-1] and t2 > self[-1])
+                (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
             ):
                 # we are out of range
                 raise KeyError
@@ -431,14 +427,13 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             # TODO: does this depend on being monotonic _increasing_?
 
             # a monotonic (sorted) series can be sliced
-            # Use asi8.searchsorted to avoid re-validating Periods/Timestamps
-            left = i8vals.searchsorted(unbox(t1), side="left") if use_lhs else None
-            right = i8vals.searchsorted(unbox(t2), side="right") if use_rhs else None
+            left = vals.searchsorted(unbox(t1), side="left")
+            right = vals.searchsorted(unbox(t2), side="right")
             return slice(left, right)
 
         else:
-            lhs_mask = (i8vals >= unbox(t1)) if use_lhs else True
-            rhs_mask = (i8vals <= unbox(t2)) if use_rhs else True
+            lhs_mask = vals >= unbox(t1)
+            rhs_mask = vals <= unbox(t2)
 
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
@@ -489,7 +484,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
-        values = self.view("i8")
+        values = self._data._ndarray
 
         try:
             other = self._data._validate_where_value(other)
@@ -498,7 +493,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
             oth = getattr(other, "dtype", other)
             raise TypeError(f"Where requires matching dtype, not {oth}") from err
 
-        result = np.where(cond, values, other).astype("i8")
+        result = np.where(cond, values, other)
         arr = self._data._from_backing_data(result)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -615,7 +610,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         -------
         new_index : Index
         """
-        item = self._data._validate_insert_value(item)
+        value = self._data._validate_insert_value(item)
+        item = self._data._box_func(value)
 
         freq = None
         if is_period_dtype(self.dtype):
@@ -635,10 +631,8 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                     freq = self.freq
 
         arr = self._data
-        item = arr._unbox_scalar(item)
-        item = arr._rebox_native(item)
 
-        new_values = np.concatenate([arr._ndarray[:loc], [item], arr._ndarray[loc:]])
+        new_values = np.concatenate([arr._ndarray[:loc], [value], arr._ndarray[loc:]])
         new_arr = self._data._from_backing_data(new_values)
         new_arr._freq = freq
 
@@ -668,9 +662,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
         try:
-            return self._data._validate_listlike(
-                keyarr, "convert_arr_indexer", allow_object=True
-            )
+            return self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
             return com.asarray_tuplesafe(keyarr)
 
@@ -680,8 +672,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
     but not PeriodIndex
     """
-
-    tz: Optional[tzinfo]
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
@@ -940,22 +930,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             sort=sort,
         )
 
-    def _maybe_utc_convert(self, other):
-        this = self
-        if not hasattr(self, "tz"):
-            return this, other
-
-        if isinstance(other, type(self)):
-            if self.tz is not None:
-                if other.tz is None:
-                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-            elif other.tz is not None:
-                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-
-            if not timezones.tz_compare(self.tz, other.tz):
-                this = self.tz_convert("UTC")
-                other = other.tz_convert("UTC")
-        return this, other
+    def _maybe_utc_convert(self: _T, other: Index) -> Tuple[_T, Index]:
+        # Overridden by DatetimeIndex
+        return self, other
 
     # --------------------------------------------------------------------
     # List-Like Methods
