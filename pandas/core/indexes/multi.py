@@ -2769,7 +2769,7 @@ class MultiIndex(Index):
 
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
-            if not isinstance(loc, np.ndarray) or loc.dtype != np.intp:
+            if not isinstance(loc, np.ndarray) or loc.dtype != "int64":
                 return loc
 
             loc = lib.maybe_indices_to_slice(loc, len(self))
@@ -2816,7 +2816,7 @@ class MultiIndex(Index):
             stacklevel=10,
         )
 
-        loc = np.arange(start, stop, dtype=np.intp)
+        loc = np.arange(start, stop, dtype="int64")
 
         for i, k in enumerate(follow_key, len(lead_key)):
             mask = self.codes[i][loc] == self._get_loc_single_level_index(
