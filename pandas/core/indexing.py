@@ -1647,7 +1647,8 @@ class _iLocIndexer(_LocationIndexer):
                 info_idx = [info_idx]
             labels = item_labels[info_idx]
 
-            ilocs = self._ensure_iterable_column_indexer(info_idx)
+            # Ensure we have something we can iterate over
+            ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
             plane_indexer = indexer[:1]
             lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)

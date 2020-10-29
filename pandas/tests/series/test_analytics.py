@@ -5,13 +5,6 @@ from pandas import Series
 
 
 class TestSeriesAnalytics:
-    def test_ptp(self):
-        # GH21614
-        N = 1000
-        arr = np.random.randn(N)
-        ser = Series(arr)
-        assert np.ptp(ser) == np.ptp(arr)
-
     def test_is_monotonic(self):
 
         s = Series(np.random.randint(0, 10, size=1000))
