@@ -1,4 +1,3 @@
-from collections import OrderedDict
 import pydoc
 import warnings
 
@@ -25,66 +24,11 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 
-import pandas.io.formats.printing as printing
-
 
 class TestSeriesMisc:
-    def test_scalarop_preserve_name(self, datetime_series):
-        result = datetime_series * 2
-        assert result.name == datetime_series.name
-
-    def test_copy_name(self, datetime_series):
-        result = datetime_series.copy()
-        assert result.name == datetime_series.name
-
-    def test_copy_index_name_checking(self, datetime_series):
-        # don't want to be able to modify the index stored elsewhere after
-        # making a copy
-
-        datetime_series.index.name = None
-        assert datetime_series.index.name is None
-        assert datetime_series is datetime_series
-
-        cp = datetime_series.copy()
-        cp.index.name = "foo"
-        printing.pprint_thing(datetime_series.index.name)
-        assert datetime_series.index.name is None
-
     def test_append_preserve_name(self, datetime_series):
         result = datetime_series[:5].append(datetime_series[5:])
         assert result.name == datetime_series.name
-
-    def test_binop_maybe_preserve_name(self, datetime_series):
-        # names match, preserve
-        result = datetime_series * datetime_series
-        assert result.name == datetime_series.name
-        result = datetime_series.mul(datetime_series)
-        assert result.name == datetime_series.name
-
-        result = datetime_series * datetime_series[:-2]
-        assert result.name == datetime_series.name
-
-        # names don't match, don't preserve
-        cp = datetime_series.copy()
-        cp.name = "something else"
-        result = datetime_series + cp
-        assert result.name is None
-        result = datetime_series.add(cp)
-        assert result.name is None
-
-        ops = ["add", "sub", "mul", "div", "truediv", "floordiv", "mod", "pow"]
-        ops = ops + ["r" + op for op in ops]
-        for op in ops:
-            # names match, preserve
-            s = datetime_series.copy()
-            result = getattr(s, op)(s)
-            assert result.name == datetime_series.name
-
-            # names don't match, don't preserve
-            cp = datetime_series.copy()
-            cp.name = "changed"
-            result = getattr(s, op)(cp)
-            assert result.name is None
 
     def test_getitem_preserve_name(self, datetime_series):
         result = datetime_series[datetime_series > 0]
@@ -110,73 +54,6 @@ class TestSeriesMisc:
             obj.to_pickle(path)
             unpickled = pd.read_pickle(path)
             return unpickled
-
-    def test_constructor_dict(self):
-        d = {"a": 0.0, "b": 1.0, "c": 2.0}
-        result = Series(d)
-        expected = Series(d, index=sorted(d.keys()))
-        tm.assert_series_equal(result, expected)
-
-        result = Series(d, index=["b", "c", "d", "a"])
-        expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
-        tm.assert_series_equal(result, expected)
-
-    def test_constructor_subclass_dict(self, dict_subclass):
-        data = dict_subclass((x, 10.0 * x) for x in range(10))
-        series = Series(data)
-        expected = Series(dict(data.items()))
-        tm.assert_series_equal(series, expected)
-
-    def test_constructor_ordereddict(self):
-        # GH3283
-        data = OrderedDict((f"col{i}", np.random.random()) for i in range(12))
-
-        series = Series(data)
-        expected = Series(list(data.values()), list(data.keys()))
-        tm.assert_series_equal(series, expected)
-
-        # Test with subclass
-        class A(OrderedDict):
-            pass
-
-        series = Series(A(data))
-        tm.assert_series_equal(series, expected)
-
-    def test_constructor_dict_multiindex(self):
-        d = {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}
-        _d = sorted(d.items())
-        result = Series(d)
-        expected = Series(
-            [x[1] for x in _d], index=pd.MultiIndex.from_tuples([x[0] for x in _d])
-        )
-        tm.assert_series_equal(result, expected)
-
-        d["z"] = 111.0
-        _d.insert(0, ("z", d["z"]))
-        result = Series(d)
-        expected = Series(
-            [x[1] for x in _d], index=Index([x[0] for x in _d], tupleize_cols=False)
-        )
-        result = result.reindex(index=expected.index)
-        tm.assert_series_equal(result, expected)
-
-    def test_constructor_dict_timedelta_index(self):
-        # GH #12169 : Resample category data with timedelta index
-        # construct Series from dict as data and TimedeltaIndex as index
-        # will result NaN in result Series data
-        expected = Series(
-            data=["A", "B", "C"], index=pd.to_timedelta([0, 10, 20], unit="s")
-        )
-
-        result = Series(
-            data={
-                pd.to_timedelta(0, unit="s"): "A",
-                pd.to_timedelta(10, unit="s"): "B",
-                pd.to_timedelta(20, unit="s"): "C",
-            },
-            index=pd.to_timedelta([0, 10, 20], unit="s"),
-        )
-        tm.assert_series_equal(result, expected)
 
     def test_sparse_accessor_updates_on_inplace(self):
         s = Series([1, 1, 2, 3], dtype="Sparse[int]")
@@ -323,55 +200,6 @@ class TestSeriesMisc:
         msg = "'Series' object has no attribute 'info'"
         with pytest.raises(AttributeError, match=msg):
             s.info()
-
-    def test_copy(self):
-
-        for deep in [None, False, True]:
-            s = Series(np.arange(10), dtype="float64")
-
-            # default deep is True
-            if deep is None:
-                s2 = s.copy()
-            else:
-                s2 = s.copy(deep=deep)
-
-            s2[::2] = np.NaN
-
-            if deep is None or deep is True:
-                # Did not modify original Series
-                assert np.isnan(s2[0])
-                assert not np.isnan(s[0])
-            else:
-                # we DID modify the original Series
-                assert np.isnan(s2[0])
-                assert np.isnan(s[0])
-
-    def test_copy_tzaware(self):
-        # GH#11794
-        # copy of tz-aware
-        expected = Series([Timestamp("2012/01/01", tz="UTC")])
-        expected2 = Series([Timestamp("1999/01/01", tz="UTC")])
-
-        for deep in [None, False, True]:
-
-            s = Series([Timestamp("2012/01/01", tz="UTC")])
-
-            if deep is None:
-                s2 = s.copy()
-            else:
-                s2 = s.copy(deep=deep)
-
-            s2[0] = pd.Timestamp("1999/01/01", tz="UTC")
-
-            # default deep is True
-            if deep is None or deep is True:
-                # Did not modify original Series
-                tm.assert_series_equal(s2, expected2)
-                tm.assert_series_equal(s, expected)
-            else:
-                # we DID modify the original Series
-                tm.assert_series_equal(s2, expected2)
-                tm.assert_series_equal(s, expected2)
 
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])
