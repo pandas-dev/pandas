@@ -529,10 +529,14 @@ class TestPlotBase:
         return [v[field] for v in rcParams["axes.prop_cycle"]]
 
 
-def _check_single_plot_works(f, filterwarnings="always", **kwargs):
+def _check_plot_default_axes_works(f, filterwarnings="always", **kwargs):
     """
+    Create plot and ensure that plot return object is valid.
+
     Similar to _check_plot_works, but this one plots at the default axes,
-    without creating subplots.
+    without creating subplots in advance.
+    Use this function when plotting method generate subplots itself,
+    otherwise use _check_plot_works.
     """
     import matplotlib.pyplot as plt
 
@@ -560,12 +564,6 @@ def _check_single_plot_works(f, filterwarnings="always", **kwargs):
 
 
 def _check_plot_works(f, filterwarnings="always", **kwargs):
-    # Should bootstrap plot be removed from here to a separate function?
-    # Like _check_bootstrap_plot_works?
-    # And what if we do not create subplot(211)?
-    # This will save us a trouble with handling warnings,
-    # when figure internally creating subplots (like df.hist)
-    # is forced to be plotted in a canvas with subplots already created.
     import matplotlib.pyplot as plt
 
     ret = None
