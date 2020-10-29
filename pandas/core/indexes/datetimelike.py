@@ -1,13 +1,13 @@
 """
 Base and utility classes for tseries type pandas objects.
 """
-from datetime import datetime, tzinfo
-from typing import TYPE_CHECKING, Any, List, Optional, TypeVar, Union, cast
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, TypeVar, Union, cast
 
 import numpy as np
 
 from pandas._libs import NaT, Timedelta, iNaT, join as libjoin, lib
-from pandas._libs.tslibs import BaseOffset, Resolution, Tick, timezones
+from pandas._libs.tslibs import BaseOffset, Resolution, Tick
 from pandas._typing import Callable, Label
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -87,6 +87,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
+    _can_hold_strings = False
     _data: Union[DatetimeArray, TimedeltaArray, PeriodArray]
     freq: Optional[BaseOffset]
     freqstr: Optional[str]
@@ -673,8 +674,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
     but not PeriodIndex
     """
 
-    tz: Optional[tzinfo]
-
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
@@ -932,22 +931,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             sort=sort,
         )
 
-    def _maybe_utc_convert(self, other):
-        this = self
-        if not hasattr(self, "tz"):
-            return this, other
-
-        if isinstance(other, type(self)):
-            if self.tz is not None:
-                if other.tz is None:
-                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-            elif other.tz is not None:
-                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
-
-            if not timezones.tz_compare(self.tz, other.tz):
-                this = self.tz_convert("UTC")
-                other = other.tz_convert("UTC")
-        return this, other
+    def _maybe_utc_convert(self: _T, other: Index) -> Tuple[_T, Index]:
+        # Overridden by DatetimeIndex
+        return self, other
 
     # --------------------------------------------------------------------
     # List-Like Methods
