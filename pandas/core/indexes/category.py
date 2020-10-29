@@ -161,6 +161,10 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     _typ = "categoricalindex"
 
+    @property
+    def _can_hold_strings(self):
+        return self.categories._can_hold_strings
+
     codes: np.ndarray
     categories: Index
     _data: Categorical

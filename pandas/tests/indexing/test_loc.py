@@ -978,6 +978,19 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         tm.assert_series_equal(result, expected)
 
+    def test_loc_setitem_str_to_small_float_conversion_type(self):
+        # GH#20388
+        np.random.seed(13)
+        col_data = [str(np.random.random() * 1e-12) for _ in range(5)]
+        result = DataFrame(col_data, columns=["A"])
+        expected = DataFrame(col_data, columns=["A"], dtype=object)
+        tm.assert_frame_equal(result, expected)
+
+        # change the dtype of the elements from object to float one by one
+        result.loc[result.index, "A"] = [float(x) for x in col_data]
+        expected = DataFrame(col_data, columns=["A"], dtype=float)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLocWithMultiIndex:
     @pytest.mark.parametrize(
@@ -1018,6 +1031,36 @@ class TestLocWithMultiIndex:
         result2 = ymd["A"].loc[2000, 2]
         assert result.index.name == ymd.index.names[2]
         assert result2.index.name == ymd.index.names[2]
+
+    def test_loc_getitem_multiindex_nonunique_len_zero(self):
+        # GH#13691
+        mi = MultiIndex.from_product([[0], [1, 1]])
+        ser = Series(0, index=mi)
+
+        res = ser.loc[[]]
+
+        expected = ser[:0]
+        tm.assert_series_equal(res, expected)
+
+        res2 = ser.loc[ser.iloc[0:0]]
+        tm.assert_series_equal(res2, expected)
+
+    def test_loc_getitem_access_none_value_in_multiindex(self):
+        # GH#34318: test that you can access a None value using .loc
+        #  through a Multiindex
+
+        ser = Series([None], pd.MultiIndex.from_arrays([["Level1"], ["Level2"]]))
+        result = ser.loc[("Level1", "Level2")]
+        assert result is None
+
+        midx = MultiIndex.from_product([["Level1"], ["Level2_a", "Level2_b"]])
+        ser = Series([None] * len(midx), dtype=object, index=midx)
+        result = ser.loc[("Level1", "Level2_a")]
+        assert result is None
+
+        ser = Series([1] * len(midx), dtype=object, index=midx)
+        result = ser.loc[("Level1", "Level2_a")]
+        assert result == 1
 
 
 def test_series_loc_getitem_label_list_missing_values():
