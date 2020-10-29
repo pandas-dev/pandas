@@ -1,4 +1,5 @@
 from datetime import datetime
+import inspect
 from itertools import permutations
 
 import numpy as np
@@ -846,3 +847,20 @@ class TestDataFrameSelectReindex:
             df.reindex(["a"], level=1)
         with pytest.raises(NotImplementedError, match=msg.format("limit")):
             df.reindex(["a"], limit=2)
+
+    def test_reindex_signature(self):
+        sig = inspect.signature(DataFrame.reindex)
+        parameters = set(sig.parameters)
+        assert parameters == {
+            "self",
+            "labels",
+            "index",
+            "columns",
+            "axis",
+            "limit",
+            "copy",
+            "level",
+            "method",
+            "fill_value",
+            "tolerance",
+        }

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    Categorical,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -371,6 +372,21 @@ class TestSetIndex:
         # round-trip
         idf = idf.reset_index().set_index("B")
         tm.assert_index_equal(idf.index, ci)
+
+    def test_set_index_preserve_categorical_dtype(self):
+        # GH#13743, GH#13854
+        df = DataFrame(
+            {
+                "A": [1, 2, 1, 1, 2],
+                "B": [10, 16, 22, 28, 34],
+                "C1": Categorical(list("abaab"), categories=list("bac"), ordered=False),
+                "C2": Categorical(list("abaab"), categories=list("bac"), ordered=True),
+            }
+        )
+        for cols in ["C1", "C2", ["A", "C1"], ["A", "C2"], ["C1", "C2"]]:
+            result = df.set_index(cols).reset_index()
+            result = result.reindex(columns=df.columns)
+            tm.assert_frame_equal(result, df)
 
     def test_set_index_datetime(self):
         # GH#3950
