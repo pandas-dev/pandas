@@ -484,7 +484,7 @@ class IntegerArray(BaseMaskedArray):
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
         if self._mask.any():

@@ -829,7 +829,8 @@ class Styler:
 
         See Also
         --------
-        Styler.where
+        Styler.where: Updates the HTML representation with a style which is
+            selected in accordance with the return value of a function.
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
@@ -870,7 +871,7 @@ class Styler:
 
         See Also
         --------
-        Styler.applymap
+        Styler.applymap: Updates the HTML representation with the result.
         """
         if other is None:
             other = ""
@@ -930,7 +931,7 @@ class Styler:
 
         See Also
         --------
-        Styler.use
+        Styler.use: Set the styles on the current Styler.
         """
         return self._todo
 
@@ -951,7 +952,7 @@ class Styler:
 
         See Also
         --------
-        Styler.export
+        Styler.export : Export the styles to applied to the current Styler.
         """
         self._todo.extend(styles)
         return self

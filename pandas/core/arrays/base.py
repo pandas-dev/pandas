@@ -232,8 +232,8 @@ class ExtensionArray:
 
         See Also
         --------
-        factorize
-        ExtensionArray.factorize
+        factorize : Top-level factorize method that dispatches here.
+        ExtensionArray.factorize : Encode the extension array as an enumerated type.
         """
         raise AbstractMethodError(cls)
 
@@ -501,7 +501,7 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
@@ -968,8 +968,8 @@ class ExtensionArray:
 
         See Also
         --------
-        numpy.take
-        api.extensions.take
+        numpy.take : Take elements from an array along an axis.
+        api.extensions.take : Take elements from an array.
 
         Notes
         -----

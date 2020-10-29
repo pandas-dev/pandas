@@ -2061,7 +2061,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         --------
         pandas.unique
         CategoricalIndex.unique
-        Series.unique
+        Series.unique : Return unique values of Series object.
 
         Examples
         --------

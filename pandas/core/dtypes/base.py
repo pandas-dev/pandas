@@ -21,8 +21,9 @@ class ExtensionDtype:
 
     See Also
     --------
-    extensions.register_extension_dtype
-    extensions.ExtensionArray
+    extensions.register_extension_dtype: Register an ExtensionType
+        with pandas as class decorator.
+    extensions.ExtensionArray: Abstract base class for custom 1-D array types.
 
     Notes
     -----
