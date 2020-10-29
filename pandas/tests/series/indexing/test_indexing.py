@@ -863,18 +863,6 @@ miscellaneous methods
 """
 
 
-def test_pop():
-    # GH 6600
-    df = DataFrame({"A": 0, "B": np.arange(5, dtype="int64"), "C": 0})
-    k = df.iloc[4]
-
-    result = k.pop("B")
-    assert result == 4
-
-    expected = Series([0, 0], index=["A", "C"], name=4)
-    tm.assert_series_equal(k, expected)
-
-
 def test_uint_drop(any_int_dtype):
     # see GH18311
     # assigning series.loc[0] = 4 changed series.dtype to int
