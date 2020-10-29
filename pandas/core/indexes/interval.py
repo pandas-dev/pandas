@@ -193,6 +193,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     _data: IntervalArray
     _values: IntervalArray
+    _can_hold_strings = False
 
     # --------------------------------------------------------------------
     # Constructors
