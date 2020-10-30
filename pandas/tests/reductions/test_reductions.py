@@ -184,7 +184,7 @@ class TestReductions:
         df = DataFrame(
             pd.date_range("2016-01-01 00:00:00", periods=3, tz="UTC"), columns=["a"]
         )
-        df["b"] = df.a.subtract(pd.Timedelta(seconds=3600))
+        df["b"] = df.a.subtract(Timedelta(seconds=3600))
         result = getattr(df, op)(axis=1)
         expected = df[expected_col].rename(None)
         tm.assert_series_equal(result, expected)
@@ -364,11 +364,11 @@ class TestIndexReductions:
     def test_minmax_tz(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # monotonic
-        idx1 = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz=tz)
+        idx1 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz=tz)
         assert idx1.is_monotonic
 
         # non-monotonic
-        idx2 = pd.DatetimeIndex(
+        idx2 = DatetimeIndex(
             ["2011-01-01", pd.NaT, "2011-01-03", "2011-01-02", pd.NaT], tz=tz
         )
         assert not idx2.is_monotonic
@@ -927,7 +927,7 @@ class TestSeriesReductions:
 
         # index min/max
         dti = pd.date_range("2012-1-1", periods=3, freq="D")
-        td = Series(dti) - pd.Timestamp("20120101")
+        td = Series(dti) - Timestamp("20120101")
 
         result = td.idxmin()
         assert result == 0
@@ -958,11 +958,11 @@ class TestSeriesReductions:
 
         # max/min
         result = td.max()
-        expected = pd.Timedelta("2 days")
+        expected = Timedelta("2 days")
         assert result == expected
 
         result = td.min()
-        expected = pd.Timedelta("1 days")
+        expected = Timedelta("1 days")
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -1017,8 +1017,8 @@ class TestDatetime64SeriesReductions:
         "nat_ser",
         [
             Series([pd.NaT, pd.NaT]),
-            Series([pd.NaT, pd.Timedelta("nat")]),
-            Series([pd.Timedelta("nat"), pd.Timedelta("nat")]),
+            Series([pd.NaT, Timedelta("nat")]),
+            Series([Timedelta("nat"), Timedelta("nat")]),
         ],
     )
     def test_minmax_nat_series(self, nat_ser):
@@ -1032,8 +1032,8 @@ class TestDatetime64SeriesReductions:
         "nat_df",
         [
             DataFrame([pd.NaT, pd.NaT]),
-            DataFrame([pd.NaT, pd.Timedelta("nat")]),
-            DataFrame([pd.Timedelta("nat"), pd.Timedelta("nat")]),
+            DataFrame([pd.NaT, Timedelta("nat")]),
+            DataFrame([Timedelta("nat"), Timedelta("nat")]),
         ],
     )
     def test_minmax_nat_dataframe(self, nat_df):
@@ -1049,8 +1049,8 @@ class TestDatetime64SeriesReductions:
 
         the_min = rng2.min()
         the_max = rng2.max()
-        assert isinstance(the_min, pd.Timestamp)
-        assert isinstance(the_max, pd.Timestamp)
+        assert isinstance(the_min, Timestamp)
+        assert isinstance(the_max, Timestamp)
         assert the_min == rng[0]
         assert the_max == rng[-1]
 
@@ -1063,13 +1063,13 @@ class TestDatetime64SeriesReductions:
         df = DataFrame({"TS": rng, "V": np.random.randn(len(rng)), "L": lvls})
 
         result = df.TS.max()
-        exp = pd.Timestamp(df.TS.iat[-1])
-        assert isinstance(result, pd.Timestamp)
+        exp = Timestamp(df.TS.iat[-1])
+        assert isinstance(result, Timestamp)
         assert result == exp
 
         result = df.TS.min()
-        exp = pd.Timestamp(df.TS.iat[0])
-        assert isinstance(result, pd.Timestamp)
+        exp = Timestamp(df.TS.iat[0])
+        assert isinstance(result, Timestamp)
         assert result == exp
 
 

@@ -192,11 +192,11 @@ def test_from_arrays_tuples(idx):
 def test_from_arrays_index_series_datetimetz():
     idx1 = pd.date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern")
     idx2 = pd.date_range("2015-01-01 10:00", freq="H", periods=3, tz="Asia/Tokyo")
-    result = pd.MultiIndex.from_arrays([idx1, idx2])
+    result = MultiIndex.from_arrays([idx1, idx2])
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
 
-    result2 = pd.MultiIndex.from_arrays([Series(idx1), Series(idx2)])
+    result2 = MultiIndex.from_arrays([Series(idx1), Series(idx2)])
     tm.assert_index_equal(result2.get_level_values(0), idx1)
     tm.assert_index_equal(result2.get_level_values(1), idx2)
 
@@ -206,11 +206,11 @@ def test_from_arrays_index_series_datetimetz():
 def test_from_arrays_index_series_timedelta():
     idx1 = pd.timedelta_range("1 days", freq="D", periods=3)
     idx2 = pd.timedelta_range("2 hours", freq="H", periods=3)
-    result = pd.MultiIndex.from_arrays([idx1, idx2])
+    result = MultiIndex.from_arrays([idx1, idx2])
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
 
-    result2 = pd.MultiIndex.from_arrays([Series(idx1), Series(idx2)])
+    result2 = MultiIndex.from_arrays([Series(idx1), Series(idx2)])
     tm.assert_index_equal(result2.get_level_values(0), idx1)
     tm.assert_index_equal(result2.get_level_values(1), idx2)
 
@@ -220,11 +220,11 @@ def test_from_arrays_index_series_timedelta():
 def test_from_arrays_index_series_period():
     idx1 = pd.period_range("2011-01-01", freq="D", periods=3)
     idx2 = pd.period_range("2015-01-01", freq="H", periods=3)
-    result = pd.MultiIndex.from_arrays([idx1, idx2])
+    result = MultiIndex.from_arrays([idx1, idx2])
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
 
-    result2 = pd.MultiIndex.from_arrays([Series(idx1), Series(idx2)])
+    result2 = MultiIndex.from_arrays([Series(idx1), Series(idx2)])
     tm.assert_index_equal(result2.get_level_values(0), idx1)
     tm.assert_index_equal(result2.get_level_values(1), idx2)
 
@@ -237,13 +237,13 @@ def test_from_arrays_index_datetimelike_mixed():
     idx3 = pd.timedelta_range("1 days", freq="D", periods=3)
     idx4 = pd.period_range("2011-01-01", freq="D", periods=3)
 
-    result = pd.MultiIndex.from_arrays([idx1, idx2, idx3, idx4])
+    result = MultiIndex.from_arrays([idx1, idx2, idx3, idx4])
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
     tm.assert_index_equal(result.get_level_values(2), idx3)
     tm.assert_index_equal(result.get_level_values(3), idx4)
 
-    result2 = pd.MultiIndex.from_arrays(
+    result2 = MultiIndex.from_arrays(
         [Series(idx1), Series(idx2), Series(idx3), Series(idx4)]
     )
     tm.assert_index_equal(result2.get_level_values(0), idx1)
@@ -259,15 +259,15 @@ def test_from_arrays_index_series_categorical():
     idx1 = pd.CategoricalIndex(list("abcaab"), categories=list("bac"), ordered=False)
     idx2 = pd.CategoricalIndex(list("abcaab"), categories=list("bac"), ordered=True)
 
-    result = pd.MultiIndex.from_arrays([idx1, idx2])
+    result = MultiIndex.from_arrays([idx1, idx2])
     tm.assert_index_equal(result.get_level_values(0), idx1)
     tm.assert_index_equal(result.get_level_values(1), idx2)
 
-    result2 = pd.MultiIndex.from_arrays([Series(idx1), Series(idx2)])
+    result2 = MultiIndex.from_arrays([Series(idx1), Series(idx2)])
     tm.assert_index_equal(result2.get_level_values(0), idx1)
     tm.assert_index_equal(result2.get_level_values(1), idx2)
 
-    result3 = pd.MultiIndex.from_arrays([idx1.values, idx2.values])
+    result3 = MultiIndex.from_arrays([idx1.values, idx2.values])
     tm.assert_index_equal(result3.get_level_values(0), idx1)
     tm.assert_index_equal(result3.get_level_values(1), idx2)
 
@@ -412,7 +412,7 @@ def test_from_tuples_with_tuple_label():
     expected = pd.DataFrame(
         [[2, 1, 2], [4, (1, 2), 3]], columns=["a", "b", "c"]
     ).set_index(["a", "b"])
-    idx = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=("a", "b"))
+    idx = MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=("a", "b"))
     result = pd.DataFrame([2, 3], columns=["c"], index=idx)
     tm.assert_frame_equal(expected, result)
 
@@ -465,13 +465,13 @@ def test_from_product_invalid_input(invalid_input):
 
 def test_from_product_datetimeindex():
     dt_index = date_range("2000-01-01", periods=2)
-    mi = pd.MultiIndex.from_product([[1, 2], dt_index])
+    mi = MultiIndex.from_product([[1, 2], dt_index])
     etalon = construct_1d_object_array_from_listlike(
         [
-            (1, pd.Timestamp("2000-01-01")),
-            (1, pd.Timestamp("2000-01-02")),
-            (2, pd.Timestamp("2000-01-01")),
-            (2, pd.Timestamp("2000-01-02")),
+            (1, Timestamp("2000-01-01")),
+            (1, Timestamp("2000-01-02")),
+            (2, Timestamp("2000-01-01")),
+            (2, Timestamp("2000-01-02")),
         ]
     )
     tm.assert_numpy_array_equal(mi.values, etalon)
@@ -488,7 +488,7 @@ def test_from_product_index_series_categorical(ordered, f):
         list("abcaab") + list("abcaab"), categories=list("bac"), ordered=ordered
     )
 
-    result = pd.MultiIndex.from_product([first, f(idx)])
+    result = MultiIndex.from_product([first, f(idx)])
     tm.assert_index_equal(result.get_level_values(1), expected)
 
 
@@ -639,10 +639,10 @@ def test_from_frame():
     df = pd.DataFrame(
         [["a", "a"], ["a", "b"], ["b", "a"], ["b", "b"]], columns=["L1", "L2"]
     )
-    expected = pd.MultiIndex.from_tuples(
+    expected = MultiIndex.from_tuples(
         [("a", "a"), ("a", "b"), ("b", "a"), ("b", "b")], names=["L1", "L2"]
     )
-    result = pd.MultiIndex.from_frame(df)
+    result = MultiIndex.from_frame(df)
     tm.assert_index_equal(expected, result)
 
 
@@ -660,7 +660,7 @@ def test_from_frame():
 def test_from_frame_error(non_frame):
     # GH 22420
     with pytest.raises(TypeError, match="Input must be a DataFrame"):
-        pd.MultiIndex.from_frame(non_frame)
+        MultiIndex.from_frame(non_frame)
 
 
 def test_from_frame_dtype_fidelity():
@@ -675,7 +675,7 @@ def test_from_frame_dtype_fidelity():
     )
     original_dtypes = df.dtypes.to_dict()
 
-    expected_mi = pd.MultiIndex.from_arrays(
+    expected_mi = MultiIndex.from_arrays(
         [
             pd.date_range("19910905", periods=6, tz="US/Eastern"),
             [1, 1, 1, 2, 2, 2],
@@ -684,7 +684,7 @@ def test_from_frame_dtype_fidelity():
         ],
         names=["dates", "a", "b", "c"],
     )
-    mi = pd.MultiIndex.from_frame(df)
+    mi = MultiIndex.from_frame(df)
     mi_dtypes = {name: mi.levels[i].dtype for i, name in enumerate(mi.names)}
 
     tm.assert_index_equal(expected_mi, mi)
@@ -698,9 +698,9 @@ def test_from_frame_valid_names(names_in, names_out):
     # GH 22420
     df = pd.DataFrame(
         [["a", "a"], ["a", "b"], ["b", "a"], ["b", "b"]],
-        columns=pd.MultiIndex.from_tuples([("L1", "x"), ("L2", "y")]),
+        columns=MultiIndex.from_tuples([("L1", "x"), ("L2", "y")]),
     )
-    mi = pd.MultiIndex.from_frame(df, names=names_in)
+    mi = MultiIndex.from_frame(df, names=names_in)
     assert mi.names == names_out
 
 
@@ -715,10 +715,10 @@ def test_from_frame_invalid_names(names, expected_error_msg):
     # GH 22420
     df = pd.DataFrame(
         [["a", "a"], ["a", "b"], ["b", "a"], ["b", "b"]],
-        columns=pd.MultiIndex.from_tuples([("L1", "x"), ("L2", "y")]),
+        columns=MultiIndex.from_tuples([("L1", "x"), ("L2", "y")]),
     )
     with pytest.raises(ValueError, match=expected_error_msg):
-        pd.MultiIndex.from_frame(df, names=names)
+        MultiIndex.from_frame(df, names=names)
 
 
 def test_index_equal_empty_iterable():

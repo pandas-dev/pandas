@@ -252,7 +252,7 @@ class TestTableOrient:
             }
         )
         result1 = pd.read_json(df.to_json())
-        result2 = pd.DataFrame.from_dict(json.loads(df.to_json()))
+        result2 = DataFrame.from_dict(json.loads(df.to_json()))
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
 

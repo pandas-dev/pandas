@@ -264,8 +264,8 @@ def test_getitem_setitem_datetimeindex():
         # see GH#18376, GH#18162
         ts[(ts.index >= lb) & (ts.index <= rb)]
 
-    lb = pd.Timestamp(datetime(1990, 1, 1, 4)).tz_localize(rng.tzinfo)
-    rb = pd.Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
+    lb = Timestamp(datetime(1990, 1, 1, 4)).tz_localize(rng.tzinfo)
+    rb = Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
     result = ts[(ts.index >= lb) & (ts.index <= rb)]
     expected = ts[4:8]
     tm.assert_series_equal(result, expected)

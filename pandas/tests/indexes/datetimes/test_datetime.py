@@ -152,7 +152,7 @@ class TestDatetimeIndex:
             assert result == expected
 
         # 9100
-        index = pd.DatetimeIndex(
+        index = DatetimeIndex(
             ["2014-12-01 03:32:39.987000-08:00", "2014-12-01 04:12:34.987000-08:00"]
         )
         for i, ts in enumerate(index):
@@ -254,7 +254,7 @@ class TestDatetimeIndex:
 
         dt = dtstart + np.arange(nsamples) * np.timedelta64(ns, "ns")
         freq = ns * offsets.Nano()
-        index = pd.DatetimeIndex(dt, freq=freq, name="time")
+        index = DatetimeIndex(dt, freq=freq, name="time")
         self.assert_index_parameters(index)
 
         new_index = pd.date_range(start=index[0], end=index[-1], freq=index.freq)
@@ -284,7 +284,7 @@ class TestDatetimeIndex:
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
-        idx2 = pd.DatetimeIndex(
+        idx2 = DatetimeIndex(
             ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"]
         )
 
@@ -340,10 +340,10 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize(
         "arr, expected",
         [
-            (pd.DatetimeIndex(["2017", "2017"]), pd.DatetimeIndex(["2017"])),
+            (DatetimeIndex(["2017", "2017"]), DatetimeIndex(["2017"])),
             (
-                pd.DatetimeIndex(["2017", "2017"], tz="US/Eastern"),
-                pd.DatetimeIndex(["2017"], tz="US/Eastern"),
+                DatetimeIndex(["2017", "2017"], tz="US/Eastern"),
+                DatetimeIndex(["2017"], tz="US/Eastern"),
             ),
         ],
     )

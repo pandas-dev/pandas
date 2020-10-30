@@ -277,12 +277,12 @@ class TestDataFrameDescribe:
             {
                 "a": [
                     3,
-                    pd.Timestamp("2012-01-02"),
-                    pd.Timestamp("2012-01-01"),
-                    pd.Timestamp("2012-01-01T12:00:00"),
-                    pd.Timestamp("2012-01-02"),
-                    pd.Timestamp("2012-01-02T12:00:00"),
-                    pd.Timestamp("2012-01-03"),
+                    Timestamp("2012-01-02"),
+                    Timestamp("2012-01-01"),
+                    Timestamp("2012-01-01T12:00:00"),
+                    Timestamp("2012-01-02"),
+                    Timestamp("2012-01-02T12:00:00"),
+                    Timestamp("2012-01-03"),
                     np.nan,
                 ],
                 "b": [3, 2, 1, 1.5, 2, 2.5, 3, 1],

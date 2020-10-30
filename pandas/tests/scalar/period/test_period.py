@@ -655,7 +655,7 @@ class TestPeriodMethods:
         per = pd.Period("1990-01-05", "B")  # Friday
         result = per.to_timestamp("B", how="E")
 
-        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -866,7 +866,7 @@ class TestPeriodProperties:
         per = Period("1990-01-05", "B")
         result = per.end_time
 
-        expected = pd.Timestamp("1990-01-06") - pd.Timedelta(nanoseconds=1)
+        expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
         assert result == expected
 
     def test_anchor_week_end_time(self):

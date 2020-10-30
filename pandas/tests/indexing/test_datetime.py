@@ -304,12 +304,8 @@ class TestDatetimeIndex:
         )
         series2 = Series([0, 1, 2, 3, 4], index=idx)
 
-        t_1 = pd.Timestamp(
-            "2017-10-29 02:30:00+02:00", tz="Europe/Berlin", freq="30min"
-        )
-        t_2 = pd.Timestamp(
-            "2017-10-29 02:00:00+01:00", tz="Europe/Berlin", freq="30min"
-        )
+        t_1 = Timestamp("2017-10-29 02:30:00+02:00", tz="Europe/Berlin", freq="30min")
+        t_2 = Timestamp("2017-10-29 02:00:00+01:00", tz="Europe/Berlin", freq="30min")
         result = series2.loc[t_1:t_2]
         expected = Series([2, 3], index=idx[2:4])
         tm.assert_series_equal(result, expected)
@@ -330,9 +326,9 @@ class TestDatetimeIndex:
 
     def test_loc_setitem_with_existing_dst(self):
         # GH 18308
-        start = pd.Timestamp("2017-10-29 00:00:00+0200", tz="Europe/Madrid")
-        end = pd.Timestamp("2017-10-29 03:00:00+0100", tz="Europe/Madrid")
-        ts = pd.Timestamp("2016-10-10 03:00:00", tz="Europe/Madrid")
+        start = Timestamp("2017-10-29 00:00:00+0200", tz="Europe/Madrid")
+        end = Timestamp("2017-10-29 03:00:00+0100", tz="Europe/Madrid")
+        ts = Timestamp("2016-10-10 03:00:00", tz="Europe/Madrid")
         idx = pd.date_range(start, end, closed="left", freq="H")
         result = DataFrame(index=idx, columns=["value"])
         result.loc[ts, "value"] = 12

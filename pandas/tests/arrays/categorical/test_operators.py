@@ -180,7 +180,7 @@ class TestCategoricalOps:
         tm.assert_numpy_array_equal(cat != 4, np.array([True, True, True]))
 
     def test_comparison_with_tuple(self):
-        cat = pd.Categorical(np.array(["foo", (0, 1), 3, (0, 1)], dtype=object))
+        cat = Categorical(np.array(["foo", (0, 1), 3, (0, 1)], dtype=object))
 
         result = cat == "foo"
         expected = np.array([True, False, False, False], dtype=bool)
@@ -337,8 +337,8 @@ class TestCategoricalOps:
     def test_compare_unordered_different_order(self):
         # https://github.com/pandas-dev/pandas/issues/16603#issuecomment-
         # 349290078
-        a = pd.Categorical(["a"], categories=["a", "b"])
-        b = pd.Categorical(["b"], categories=["b", "a"])
+        a = Categorical(["a"], categories=["a", "b"])
+        b = Categorical(["b"], categories=["b", "a"])
         assert not a.equals(b)
 
     def test_numeric_like_ops(self):
@@ -398,7 +398,7 @@ class TestCategoricalOps:
 
     def test_contains(self):
         # GH21508
-        c = pd.Categorical(list("aabbca"), categories=list("cab"))
+        c = Categorical(list("aabbca"), categories=list("cab"))
 
         assert "b" in c
         assert "z" not in c
@@ -410,7 +410,7 @@ class TestCategoricalOps:
         assert 0 not in c
         assert 1 not in c
 
-        c = pd.Categorical(list("aabbca") + [np.nan], categories=list("cab"))
+        c = Categorical(list("aabbca") + [np.nan], categories=list("cab"))
         assert np.nan in c
 
     @pytest.mark.parametrize(

@@ -14,26 +14,26 @@ class TestTimedeltaIndexShift:
 
     def test_tdi_shift_empty(self):
         # GH#9903
-        idx = pd.TimedeltaIndex([], name="xxx")
+        idx = TimedeltaIndex([], name="xxx")
         tm.assert_index_equal(idx.shift(0, freq="H"), idx)
         tm.assert_index_equal(idx.shift(3, freq="H"), idx)
 
     def test_tdi_shift_hours(self):
         # GH#9903
-        idx = pd.TimedeltaIndex(["5 hours", "6 hours", "9 hours"], name="xxx")
+        idx = TimedeltaIndex(["5 hours", "6 hours", "9 hours"], name="xxx")
         tm.assert_index_equal(idx.shift(0, freq="H"), idx)
-        exp = pd.TimedeltaIndex(["8 hours", "9 hours", "12 hours"], name="xxx")
+        exp = TimedeltaIndex(["8 hours", "9 hours", "12 hours"], name="xxx")
         tm.assert_index_equal(idx.shift(3, freq="H"), exp)
-        exp = pd.TimedeltaIndex(["2 hours", "3 hours", "6 hours"], name="xxx")
+        exp = TimedeltaIndex(["2 hours", "3 hours", "6 hours"], name="xxx")
         tm.assert_index_equal(idx.shift(-3, freq="H"), exp)
 
     def test_tdi_shift_minutes(self):
         # GH#9903
-        idx = pd.TimedeltaIndex(["5 hours", "6 hours", "9 hours"], name="xxx")
+        idx = TimedeltaIndex(["5 hours", "6 hours", "9 hours"], name="xxx")
         tm.assert_index_equal(idx.shift(0, freq="T"), idx)
-        exp = pd.TimedeltaIndex(["05:03:00", "06:03:00", "9:03:00"], name="xxx")
+        exp = TimedeltaIndex(["05:03:00", "06:03:00", "9:03:00"], name="xxx")
         tm.assert_index_equal(idx.shift(3, freq="T"), exp)
-        exp = pd.TimedeltaIndex(["04:57:00", "05:57:00", "8:57:00"], name="xxx")
+        exp = TimedeltaIndex(["04:57:00", "05:57:00", "8:57:00"], name="xxx")
         tm.assert_index_equal(idx.shift(-3, freq="T"), exp)
 
     def test_tdi_shift_int(self):

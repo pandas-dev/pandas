@@ -42,7 +42,7 @@ class TestCategoricalIndex(Base):
     def test_disallow_addsub_ops(self, func, op_name):
         # GH 10039
         # set ops (+/-) raise TypeError
-        idx = Index(pd.Categorical(["a", "b"]))
+        idx = Index(Categorical(["a", "b"]))
         cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
         msg = "|".join(
             [
@@ -182,7 +182,7 @@ class TestCategoricalIndex(Base):
             tm.assert_index_equal(result, expected)
 
     def test_insert_na_mismatched_dtype(self):
-        ci = pd.CategoricalIndex([0, 1, 1])
+        ci = CategoricalIndex([0, 1, 1])
         msg = "'fill_value=NaT' is not present in this Categorical's categories"
         with pytest.raises(ValueError, match=msg):
             ci.insert(0, pd.NaT)
@@ -437,15 +437,15 @@ class TestCategoricalIndex(Base):
 
     def test_equals_categorical_unordered(self):
         # https://github.com/pandas-dev/pandas/issues/16603
-        a = pd.CategoricalIndex(["A"], categories=["A", "B"])
-        b = pd.CategoricalIndex(["A"], categories=["B", "A"])
-        c = pd.CategoricalIndex(["C"], categories=["B", "A"])
+        a = CategoricalIndex(["A"], categories=["A", "B"])
+        b = CategoricalIndex(["A"], categories=["B", "A"])
+        c = CategoricalIndex(["C"], categories=["B", "A"])
         assert a.equals(b)
         assert not a.equals(c)
         assert not b.equals(c)
 
     def test_frame_repr(self):
-        df = pd.DataFrame({"A": [1, 2, 3]}, index=pd.CategoricalIndex(["a", "b", "c"]))
+        df = pd.DataFrame({"A": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
         result = repr(df)
         expected = "   A\na  1\nb  2\nc  3"
         assert result == expected
@@ -464,11 +464,11 @@ class TestCategoricalIndex(Base):
             # num. of uniques required to push CategoricalIndex.codes to a
             # dtype (128 categories required for .codes dtype to be int16 etc.)
             num_uniques = {np.int8: 1, np.int16: 128, np.int32: 32768}[dtype]
-            ci = pd.CategoricalIndex(range(num_uniques))
+            ci = CategoricalIndex(range(num_uniques))
         else:
             # having 2**32 - 2**31 categories would be very memory-intensive,
             # so we cheat a bit with the dtype
-            ci = pd.CategoricalIndex(range(32768))  # == 2**16 - 2**(16 - 1)
+            ci = CategoricalIndex(range(32768))  # == 2**16 - 2**(16 - 1)
             ci.values._codes = ci.values._codes.astype("int64")
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)

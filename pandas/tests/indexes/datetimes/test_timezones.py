@@ -872,8 +872,8 @@ class TestDatetimeIndexTimezones:
         tz = "Europe/Brussels"
         freq = "15min"
 
-        start = pd.Timestamp("201710290100", tz=tz)
-        end = pd.Timestamp("201710290300", tz=tz)
+        start = Timestamp("201710290100", tz=tz)
+        end = Timestamp("201710290300", tz=tz)
         index = pd.date_range(start=start, end=end, freq=freq)
 
         expected = DatetimeIndex(
@@ -1142,15 +1142,15 @@ class TestDatetimeIndexTimezones:
 
     def test_dti_union_mixed(self):
         # GH 21671
-        rng = DatetimeIndex([pd.Timestamp("2011-01-01"), pd.NaT])
-        rng2 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"], tz="Asia/Tokyo")
+        rng = DatetimeIndex([Timestamp("2011-01-01"), pd.NaT])
+        rng2 = DatetimeIndex(["2012-01-01", "2012-01-02"], tz="Asia/Tokyo")
         result = rng.union(rng2)
         expected = Index(
             [
-                pd.Timestamp("2011-01-01"),
+                Timestamp("2011-01-01"),
                 pd.NaT,
-                pd.Timestamp("2012-01-01", tz="Asia/Tokyo"),
-                pd.Timestamp("2012-01-02", tz="Asia/Tokyo"),
+                Timestamp("2012-01-01", tz="Asia/Tokyo"),
+                Timestamp("2012-01-02", tz="Asia/Tokyo"),
             ],
             dtype=object,
         )

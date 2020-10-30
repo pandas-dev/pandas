@@ -898,7 +898,7 @@ def test_apply_multi_level_name(category):
 
 def test_groupby_apply_datetime_result_dtypes():
     # GH 14849
-    data = pd.DataFrame.from_records(
+    data = DataFrame.from_records(
         [
             (pd.Timestamp(2016, 1, 1), "red", "dark", 1, "8"),
             (pd.Timestamp(2015, 1, 1), "green", "stormy", 2, "9"),

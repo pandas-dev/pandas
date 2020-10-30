@@ -1245,13 +1245,13 @@ class TestDataFrameReplace:
     def test_replace_datetime(self):
         d = {
             "fname": {
-                "out_augmented_AUG_2011.json": pd.Timestamp("2011-08"),
-                "out_augmented_JAN_2011.json": pd.Timestamp("2011-01"),
-                "out_augmented_MAY_2012.json": pd.Timestamp("2012-05"),
-                "out_augmented_SUBSIDY_WEEK.json": pd.Timestamp("2011-04"),
-                "out_augmented_AUG_2012.json": pd.Timestamp("2012-08"),
-                "out_augmented_MAY_2011.json": pd.Timestamp("2011-05"),
-                "out_augmented_SEP_2013.json": pd.Timestamp("2013-09"),
+                "out_augmented_AUG_2011.json": Timestamp("2011-08"),
+                "out_augmented_JAN_2011.json": Timestamp("2011-01"),
+                "out_augmented_MAY_2012.json": Timestamp("2012-05"),
+                "out_augmented_SUBSIDY_WEEK.json": Timestamp("2011-04"),
+                "out_augmented_AUG_2012.json": Timestamp("2012-08"),
+                "out_augmented_MAY_2011.json": Timestamp("2011-05"),
+                "out_augmented_SEP_2013.json": Timestamp("2013-09"),
             }
         }
 
@@ -1462,7 +1462,7 @@ class TestDataFrameReplace:
     @pytest.mark.parametrize(
         "replacer",
         [
-            pd.Timestamp("20170827"),
+            Timestamp("20170827"),
             np.int8(1),
             np.int16(1),
             np.float32(1),

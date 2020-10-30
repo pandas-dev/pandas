@@ -514,7 +514,7 @@ def test_duplicate_keys(keys):
     s2 = Series([10, 11, 12], name="d")
     result = concat([df, s1, s2], axis=1, keys=keys)
     expected_values = [[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]]
-    expected_columns = pd.MultiIndex.from_tuples(
+    expected_columns = MultiIndex.from_tuples(
         [(keys[0], "a"), (keys[0], "b"), (keys[1], "c"), (keys[2], "d")]
     )
     expected = DataFrame(expected_values, columns=expected_columns)

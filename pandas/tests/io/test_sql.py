@@ -697,8 +697,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
         assert df.DateCol.tolist() == [
-            pd.Timestamp(2000, 1, 3, 0, 0, 0),
-            pd.Timestamp(2000, 1, 4, 0, 0, 0),
+            Timestamp(2000, 1, 3, 0, 0, 0),
+            Timestamp(2000, 1, 4, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -708,8 +708,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
         assert df.DateCol.tolist() == [
-            pd.Timestamp(2000, 1, 3, 0, 0, 0),
-            pd.Timestamp(2000, 1, 4, 0, 0, 0),
+            Timestamp(2000, 1, 3, 0, 0, 0),
+            Timestamp(2000, 1, 4, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -717,8 +717,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
-            pd.Timestamp(1986, 12, 25, 0, 0, 0),
-            pd.Timestamp(2013, 1, 1, 0, 0, 0),
+            Timestamp(1986, 12, 25, 0, 0, 0),
+            Timestamp(2013, 1, 1, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -726,8 +726,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
-            pd.Timestamp(1986, 12, 25, 0, 0, 0),
-            pd.Timestamp(2013, 1, 1, 0, 0, 0),
+            Timestamp(1986, 12, 25, 0, 0, 0),
+            Timestamp(2013, 1, 1, 0, 0, 0),
         ]
 
         df = sql.read_sql_query(
@@ -737,8 +737,8 @@ class _TestSQLApi(PandasSQLTest):
         )
         assert issubclass(df.IntDateOnlyCol.dtype.type, np.datetime64)
         assert df.IntDateOnlyCol.tolist() == [
-            pd.Timestamp("2010-10-10"),
-            pd.Timestamp("2010-12-12"),
+            Timestamp("2010-10-10"),
+            Timestamp("2010-12-12"),
         ]
 
     def test_date_and_index(self):
