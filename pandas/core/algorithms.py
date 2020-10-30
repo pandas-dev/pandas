@@ -438,14 +438,10 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
-    if (
-        len(comps) > 1_000_000
-        and not is_object_dtype(comps)
-        and not is_object_dtype(values)
-    ):
+    if len(comps) > 1_000_000 and not is_object_dtype(comps):
         # If the the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
-        if np.isnan(values).any():
+        if isna(values).any():
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d

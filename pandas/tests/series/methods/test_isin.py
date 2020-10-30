@@ -94,7 +94,7 @@ class TestSeriesIsIn:
 @pytest.mark.slow
 def test_isin_large_series_mixed_dtypes_and_nan():
     # https://github.com/pandas-dev/pandas/issues/37094
-    # combination of object dtype for the valuesa and > 1_000_000 elements
+    # combination of object dtype for the values and > 1_000_000 elements
     ser = Series([1, 2, np.nan] * 1_000_000)
     result = ser.isin({"foo", "bar"})
     expected = Series([False] * 3 * 1_000_000)
