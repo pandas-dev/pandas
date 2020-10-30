@@ -118,19 +118,3 @@ def test_astype_object(dtype):
     # check exact element types
     assert isinstance(result[0], float)
     assert result[1] is pd.NA
-
-
-@pytest.mark.parametrize(
-    "func",
-    [
-        lambda s: s.tolist()[0],
-        lambda s: s.to_dict()[0],
-        lambda s: list(s.iteritems())[0][1],
-        lambda s: list(iter(s))[0],
-    ],
-)
-def test_conversion_methods_return_type_is_native(float_ea_dtype, func):
-    # GH 29738
-    dtype = float_ea_dtype
-    s = pd.Series([1, 2], dtype=dtype)
-    assert isinstance(func(s), float)

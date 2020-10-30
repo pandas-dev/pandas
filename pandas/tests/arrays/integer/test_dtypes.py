@@ -294,32 +294,3 @@ def test_astype_boolean():
     result = a.astype("boolean")
     expected = pd.array([True, False, True, True, None], dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "func",
-    [
-        lambda s: s.tolist()[0],
-        lambda s: s.to_dict()[0],
-        lambda s: list(s.iteritems())[0][1],
-        lambda s: list(iter(s))[0],
-    ],
-)
-def test_conversion_methods_return_type_is_native(any_nullable_int_dtype, func):
-    # GH 29738
-    dtype = any_nullable_int_dtype
-    s = pd.Series([1, 2], dtype=dtype)
-    assert isinstance(func(s), int)
-
-
-def test_conversion_to_dict_oriented_record_returns_native(any_nullable_int_dtype):
-    # GH 34665
-
-    df = pd.DataFrame({"A": [1, None]})
-    df["A"] = df["A"].astype("Int64")
-    records_as_dicts = df.to_dict(orient="records")
-    expected = [{"A": 1}, {"A": pd.NA}]
-
-    assert records_as_dicts == expected
-    assert type(records_as_dicts[0]["A"]) is int
-    assert type(records_as_dicts[1]["A"]) is pd._libs.missing.NAType
