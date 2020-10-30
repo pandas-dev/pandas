@@ -1,7 +1,7 @@
 .. _whatsnew_114:
 
-What's new in 1.1.4 (??)
-------------------------
+What's new in 1.1.4 (October 30, 2020)
+--------------------------------------
 
 These are the changes in pandas 1.1.4. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -43,14 +43,6 @@ Bug fixes
 - Bug in :meth:`GroupBy.fillna` that introduced a performance regression after 1.0.5 (:issue:`36757`)
 - Bug in :meth:`DataFrame.info` was raising a ``KeyError`` when the DataFrame has integer column names (:issue:`37245`)
 - Bug in :meth:`DataFrameGroupby.apply` would drop a :class:`CategoricalIndex` when grouped on (:issue:`35792`)
-
-.. ---------------------------------------------------------------------------
-
-.. _whatsnew_114.other:
-
-Other
-~~~~~
--
 
 .. ---------------------------------------------------------------------------
 
