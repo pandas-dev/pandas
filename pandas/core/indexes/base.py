@@ -12,6 +12,7 @@ from typing import (
     NewType,
     Optional,
     Sequence,
+    Set,
     Tuple,
     TypeVar,
     Union,
@@ -193,9 +194,9 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations: FrozenSet[str] = (
-        PandasObject._deprecations
-        | IndexOpsMixin._deprecations
+    _hidden_attrs: FrozenSet[str] = (
+        PandasObject._hidden_attrs
+        | IndexOpsMixin._hidden_attrs
         | frozenset(["contains", "set_value"])
     )
 
@@ -230,6 +231,7 @@ class Index(IndexOpsMixin, PandasObject):
     _attributes = ["name"]
     _is_numeric_dtype = False
     _can_hold_na = True
+    _can_hold_strings = True
 
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False
@@ -545,7 +547,7 @@ class Index(IndexOpsMixin, PandasObject):
             return True
         elif not hasattr(other, "_id"):
             return False
-        elif com.any_none(self._id, other._id):
+        elif self._id is None or other._id is None:
             return False
         else:
             return self._id is other._id
@@ -567,6 +569,19 @@ class Index(IndexOpsMixin, PandasObject):
         # `self` is not passed into the lambda.
         target_values = self._get_engine_target()
         return self._engine_type(lambda: target_values, len(self))
+
+    @cache_readonly
+    def _dir_additions_for_owner(self) -> Set[str_t]:
+        """
+        Add the string-like labels to the owner dataframe/series dir output.
+
+        If this is a MultiIndex, it's first level values are used.
+        """
+        return {
+            c
+            for c in self.unique(level=0)[:100]
+            if isinstance(c, str) and c.isidentifier()
+        }
 
     # --------------------------------------------------------------------
     # Array-Like Methods
@@ -613,7 +628,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.ravel
+        numpy.ndarray.ravel : Return a flattened array.
         """
         warnings.warn(
             "Index.ravel returning ndarray is deprecated; in a future version "
@@ -709,7 +724,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.take
+        numpy.ndarray.take: Return an array formed from the
+            elements of a at the given indices.
         """
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
@@ -2309,8 +2325,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        unique
-        Series.unique
+        unique : Numpy array of unique values in that column.
+        Series.unique : Return unique values of Series object.
         """
         if level is not None:
             self._validate_index_level(level)
@@ -3959,7 +3975,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         This is an ndarray or ExtensionArray.
 
-        ``_values`` are consistent between``Series`` and ``Index``.
+        ``_values`` are consistent between ``Series`` and ``Index``.
 
         It may differ from the public '.values' method.
 
@@ -3974,7 +3990,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        values
+        values : Values
         """
         return self._data
 
@@ -4265,7 +4281,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        numpy.ndarray.putmask
+        numpy.ndarray.putmask : Changes elements of an array
+            based on conditional and input values.
         """
         values = self.values.copy()
         try:
@@ -5212,7 +5229,9 @@ class Index(IndexOpsMixin, PandasObject):
             if is_bool_dtype(slc):
                 slc = lib.maybe_booleans_to_slice(slc.view("u1"))
             else:
-                slc = lib.maybe_indices_to_slice(slc.astype("i8"), len(self))
+                slc = lib.maybe_indices_to_slice(
+                    slc.astype(np.intp, copy=False), len(self)
+                )
             if isinstance(slc, np.ndarray):
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-unique "

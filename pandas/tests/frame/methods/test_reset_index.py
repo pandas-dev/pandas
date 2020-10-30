@@ -516,6 +516,32 @@ class TestResetIndex:
         assert len(deleveled.columns) == len(ymd.columns)
         assert deleveled.index.name == ymd.index.name
 
+    @pytest.mark.parametrize(
+        "ix_data, exp_data",
+        [
+            (
+                [(pd.NaT, 1), (pd.NaT, 2)],
+                {"a": [pd.NaT, pd.NaT], "b": [1, 2], "x": [11, 12]},
+            ),
+            (
+                [(pd.NaT, 1), (pd.Timestamp("2020-01-01"), 2)],
+                {"a": [pd.NaT, pd.Timestamp("2020-01-01")], "b": [1, 2], "x": [11, 12]},
+            ),
+            (
+                [(pd.NaT, 1), (pd.Timedelta(123, "d"), 2)],
+                {"a": [pd.NaT, pd.Timedelta(123, "d")], "b": [1, 2], "x": [11, 12]},
+            ),
+        ],
+    )
+    def test_reset_index_nat_multiindex(self, ix_data, exp_data):
+        # GH#36541: that reset_index() does not raise ValueError
+        ix = MultiIndex.from_tuples(ix_data, names=["a", "b"])
+        result = DataFrame({"x": [11, 12]}, index=ix)
+        result = result.reset_index()
+
+        expected = DataFrame(exp_data)
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "array, dtype",
