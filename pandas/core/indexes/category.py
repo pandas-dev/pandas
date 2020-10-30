@@ -161,6 +161,10 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     _typ = "categoricalindex"
 
+    @property
+    def _can_hold_strings(self):
+        return self.categories._can_hold_strings
+
     codes: np.ndarray
     categories: Index
     _data: Categorical
@@ -377,11 +381,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return Index.astype(self, dtype=dtype, copy=copy)
 
-    @cache_readonly
-    def _isnan(self):
-        """ return if each value is nan"""
-        return self._data.codes == -1
-
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._validate_scalar(value)
@@ -579,7 +578,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return self.get_indexer(keyarr)
 
     @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         if kind == "loc":
             return label
 

@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
+from dateutil.tz import tzoffset
 import numpy as np
 import numpy.ma as ma
 import pytest
@@ -19,6 +20,7 @@ import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
+    DatetimeIndex,
     Index,
     Interval,
     IntervalIndex,
@@ -34,6 +36,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray, period_array
+from pandas.core.internals.blocks import IntBlock
 
 
 class TestSeriesConstructors:
@@ -688,6 +691,13 @@ class TestSeriesConstructors:
         expected = Series([1, 2, 3.5]).astype(float_dtype)
         tm.assert_series_equal(s, expected)
 
+    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_dtype):
+        # GH 22585
+
+        msg = "cannot convert float NaN to integer"
+        with pytest.raises(ValueError, match=msg):
+            Series([1, 2, np.nan], dtype=any_int_dtype)
+
     def test_constructor_dtype_no_cast(self):
         # see gh-1572
         s = Series([1, 2, 3])
@@ -1053,6 +1063,11 @@ class TestSeriesConstructors:
 
     def test_constructor_dict(self):
         d = {"a": 0.0, "b": 1.0, "c": 2.0}
+
+        result = Series(d)
+        expected = Series(d, index=sorted(d.keys()))
+        tm.assert_series_equal(result, expected)
+
         result = Series(d, index=["b", "c", "d", "a"])
         expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
         tm.assert_series_equal(result, expected)
@@ -1507,3 +1522,127 @@ class TestSeriesConstructors:
         result = Series(n, index=[0])
         expected = Series(n)
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_list_of_periods_infers_period_dtype(self):
+        series = Series(list(period_range("2000-01-01", periods=10, freq="D")))
+        assert series.dtype == "Period[D]"
+
+        series = Series(
+            [pd.Period("2011-01-01", freq="D"), pd.Period("2011-02-01", freq="D")]
+        )
+        assert series.dtype == "Period[D]"
+
+    def test_constructor_subclass_dict(self, dict_subclass):
+        data = dict_subclass((x, 10.0 * x) for x in range(10))
+        series = Series(data)
+        expected = Series(dict(data.items()))
+        tm.assert_series_equal(series, expected)
+
+    def test_constructor_ordereddict(self):
+        # GH3283
+        data = OrderedDict((f"col{i}", np.random.random()) for i in range(12))
+
+        series = Series(data)
+        expected = Series(list(data.values()), list(data.keys()))
+        tm.assert_series_equal(series, expected)
+
+        # Test with subclass
+        class A(OrderedDict):
+            pass
+
+        series = Series(A(data))
+        tm.assert_series_equal(series, expected)
+
+    def test_constructor_dict_multiindex(self):
+        d = {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}
+        _d = sorted(d.items())
+        result = Series(d)
+        expected = Series(
+            [x[1] for x in _d], index=pd.MultiIndex.from_tuples([x[0] for x in _d])
+        )
+        tm.assert_series_equal(result, expected)
+
+        d["z"] = 111.0
+        _d.insert(0, ("z", d["z"]))
+        result = Series(d)
+        expected = Series(
+            [x[1] for x in _d], index=Index([x[0] for x in _d], tupleize_cols=False)
+        )
+        result = result.reindex(index=expected.index)
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dict_timedelta_index(self):
+        # GH #12169 : Resample category data with timedelta index
+        # construct Series from dict as data and TimedeltaIndex as index
+        # will result NaN in result Series data
+        expected = Series(
+            data=["A", "B", "C"], index=pd.to_timedelta([0, 10, 20], unit="s")
+        )
+
+        result = Series(
+            data={
+                pd.to_timedelta(0, unit="s"): "A",
+                pd.to_timedelta(10, unit="s"): "B",
+                pd.to_timedelta(20, unit="s"): "C",
+            },
+            index=pd.to_timedelta([0, 10, 20], unit="s"),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_infer_index_tz(self):
+        values = [188.5, 328.25]
+        tzinfo = tzoffset(None, 7200)
+        index = [
+            datetime(2012, 5, 11, 11, tzinfo=tzinfo),
+            datetime(2012, 5, 11, 12, tzinfo=tzinfo),
+        ]
+        series = Series(data=values, index=index)
+
+        assert series.index.tz == tzinfo
+
+        # it works! GH#2443
+        repr(series.index[0])
+
+
+class TestSeriesConstructorIndexCoercion:
+    def test_series_constructor_datetimelike_index_coercion(self):
+        idx = tm.makeDateIndex(10000)
+        with tm.assert_produces_warning(FutureWarning):
+            ser = Series(np.random.randn(len(idx)), idx.astype(object))
+        with tm.assert_produces_warning(FutureWarning):
+            assert ser.index.is_all_dates
+        assert isinstance(ser.index, DatetimeIndex)
+
+    def test_series_constructor_infer_multiindex(self):
+        index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
+
+        multi = Series(1.0, index=[np.array(x) for x in index_lists])
+        assert isinstance(multi.index, MultiIndex)
+
+        multi = Series(1.0, index=index_lists)
+        assert isinstance(multi.index, MultiIndex)
+
+        multi = Series(range(4), index=index_lists)
+        assert isinstance(multi.index, MultiIndex)
+
+
+class TestSeriesConstructorInternals:
+    def test_constructor_no_pandas_array(self):
+        ser = Series([1, 2, 3])
+        result = Series(ser.array)
+        tm.assert_series_equal(ser, result)
+        assert isinstance(result._mgr.blocks[0], IntBlock)
+
+    def test_from_array(self):
+        result = Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
+        assert result._mgr.blocks[0].is_extension is False
+
+        result = Series(pd.array(["2015"], dtype="datetime64[ns]"))
+        assert result._mgr.blocks[0].is_extension is False
+
+    def test_from_list_dtype(self):
+        result = Series(["1H", "2H"], dtype="timedelta64[ns]")
+        assert result._mgr.blocks[0].is_extension is False
+
+        result = Series(["2015"], dtype="datetime64[ns]")
+        assert result._mgr.blocks[0].is_extension is False
