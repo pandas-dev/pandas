@@ -207,3 +207,18 @@ I2,1,3
 
     result = parser.read_csv(StringIO(data), index_col="I11", header=0)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.slow
+def test_index_col_large_csv(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/37094
+    parser = all_parsers
+
+    N = 1_000_001
+    df = DataFrame({"a": range(N), "b": np.random.randn(N)})
+
+    with tm.ensure_clean() as path:
+        df.to_csv(path, index=False)
+        result = parser.read_csv(path, index_col=[0])
+
+    tm.assert_frame_equal(result, df.set_index("a"))
