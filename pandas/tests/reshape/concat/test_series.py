@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas as pd
@@ -66,8 +65,8 @@ class TestSeriesConcat:
         tm.assert_frame_equal(result, expected)
 
         # preserve series names, #2489
-        s = Series(randn(5), name="A")
-        s2 = Series(randn(5), name="B")
+        s = Series(np.random.randn(5), name="A")
+        s2 = Series(np.random.randn(5), name="B")
 
         result = concat([s, s2], axis=1)
         expected = DataFrame({"A": s, "B": s2})
@@ -78,8 +77,8 @@ class TestSeriesConcat:
         tm.assert_index_equal(result.columns, Index(["A", 0], dtype="object"))
 
         # must reindex, #2603
-        s = Series(randn(3), index=["c", "a", "b"], name="A")
-        s2 = Series(randn(4), index=["d", "a", "b", "c"], name="B")
+        s = Series(np.random.randn(3), index=["c", "a", "b"], name="A")
+        s2 = Series(np.random.randn(4), index=["d", "a", "b", "c"], name="B")
         result = concat([s, s2], axis=1, sort=sort)
         expected = DataFrame({"A": s, "B": s2})
         tm.assert_frame_equal(result, expected)
@@ -103,8 +102,8 @@ class TestSeriesConcat:
 
     def test_concat_series_axis1_same_names_ignore_index(self):
         dates = date_range("01-Jan-2013", "01-Jan-2014", freq="MS")[0:-1]
-        s1 = Series(randn(len(dates)), index=dates, name="value")
-        s2 = Series(randn(len(dates)), index=dates, name="value")
+        s1 = Series(np.random.randn(len(dates)), index=dates, name="value")
+        s2 = Series(np.random.randn(len(dates)), index=dates, name="value")
 
         result = concat([s1, s2], axis=1, ignore_index=True)
         expected = Index([0, 1])
