@@ -93,8 +93,19 @@ def add_special_arithmetic_methods(cls):
 
         def f(self, other):
             result = method(self, other)
+
+            if (
+                self.ndim == 1
+                and result._indexed_same(self)
+                and result.dtype == self.dtype
+            ):
+                # GH#36498 this inplace op can _actually_ be inplace.
+                self._values[:] = result._values
+                return self
+
             # Delete cacher
             self._reset_cacher()
+
             # this makes sure that we are aligned like the input
             # we are updating inplace so we want to ignore is_copy
             self._update_inplace(
