@@ -602,10 +602,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             pass
 
         elif not type(self)._is_recognized_dtype(value.dtype):
-            raise TypeError(
-                f"value should be a '{self._scalar_type.__name__}', 'NaT', "
-                f"or array of those. Got '{type(value).__name__}' instead."
-            )
+            msg = self._validation_error_message(value, True)
+            raise TypeError(msg)
+
         return value
 
     def _validate_searchsorted_value(self, value):
@@ -624,18 +623,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return self._unbox(value, setitem=True)
 
+    _validate_where_value = _validate_setitem_value
+
     def _validate_insert_value(self, value):
         value = self._validate_scalar(value)
 
         return self._unbox(value, setitem=True)
-
-    def _validate_where_value(self, other):
-        if not is_list_like(other):
-            other = self._validate_scalar(other, True)
-        else:
-            other = self._validate_listlike(other)
-
-        return self._unbox(other, setitem=True)
 
     def _unbox(
         self, other, setitem: bool = False
