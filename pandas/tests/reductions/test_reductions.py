@@ -694,10 +694,10 @@ class TestSeriesReductions:
         nser = Series([np.nan], dtype="Int64")
         if method == "mean":
             result = getattr(eser, method)()
-            assert pd.isna(result)
+            assert result is pd.NA
 
             result = getattr(nser, method)()
-            assert pd.isna(result)
+            assert result is pd.NA
 
         # timedelta64[ns]
         tdser = Series([], dtype="m8[ns]")
