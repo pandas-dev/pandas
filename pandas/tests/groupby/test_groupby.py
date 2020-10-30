@@ -2102,6 +2102,11 @@ def test_groupby_repr_truncated_group():
     dfs_from_html = pd.read_html(StringIO(html_groupby), index_col=0)
 
     # For each group only test first and last row
+    # Those rows will always be shown. No logic is needed to calculate how many
+    # rows are tested (which would mirror the implementation).
+    # Setting a fixed number would make the test very specific for the given
+    # number of groups and DataFrame length.
+    # Correctness of output is tested in test_groupby_repr
     for k, (group_name, df_group) in enumerate(df_groupby):
         dtype = df_group.iloc[0].dtype
         tm.assert_series_equal(
@@ -2133,6 +2138,11 @@ def test_groupby_repr_not_all_groups():
     dfs_from_html = pd.read_html(StringIO(html_groupby), index_col=0)
 
     # Test first and last group
+    # Those groups will always be shown. No logic is needed to calculate how
+    # many groups are tested (which would mirror the implementation).
+    # Setting a fixed number would make the test very specific for the given
+    # number of groups and DataFrame length.
+    # Correctness of output is tested in test_groupby_repr
     tm.assert_frame_equal(
         dfs_from_html[0], df_groupby.get_group(tuple(df_groupby.groups.keys())[0])
     )
