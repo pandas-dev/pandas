@@ -146,7 +146,7 @@ class TestDataFrameMisc:
         with pytest.raises(ValueError, match=msg):
             float_frame._get_agg_axis(2)
 
-    def test_nonzero(self, float_frame, float_string_frame):
+    def test_empty(self, float_frame, float_string_frame):
         empty_frame = DataFrame()
         assert empty_frame.empty
 
