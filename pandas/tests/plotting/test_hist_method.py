@@ -138,7 +138,7 @@ class TestSeriesPlots(TestPlotBase):
             ("stepfilled", True),
         ],
     )
-    def test_histtype_argument(self, histtype: str, expected: bool) -> None:
+    def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
         ser = Series(np.random.randint(1, 10))
         ax = ser.hist(histtype=histtype)
@@ -389,7 +389,7 @@ class TestDataFramePlots(TestPlotBase):
             ("stepfilled", True),
         ],
     )
-    def test_histtype_argument(self, histtype: str, expected: bool) -> None:
+    def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
         df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
         ax = df.hist(histtype=histtype)
@@ -635,7 +635,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             ("stepfilled", True),
         ],
     )
-    def test_histtype_argument(self, histtype: str, expected: bool) -> None:
+    def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
         df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
         ax = df.hist(by="a", histtype=histtype)
