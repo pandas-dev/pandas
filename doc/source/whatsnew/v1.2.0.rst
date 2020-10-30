@@ -221,10 +221,12 @@ Other enhancements
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 - Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
+- :meth:`DataFrame.corr` and :meth:`DataFrame.cov` use Welfords Method to avoid numerical issues (:issue:`37448`)
 - :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
 - :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
 - :meth:`DataFrame.to_parquet` now returns a ``bytes`` object when no ``path`` argument is passed (:issue:`37105`)
 - :class:`Rolling` now supports the ``closed`` argument for fixed windows (:issue:`34315`)
+- :class:`DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`37436`)
 
 .. _whatsnew_120.api_breaking.python:
 
