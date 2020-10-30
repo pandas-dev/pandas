@@ -1062,6 +1062,24 @@ class TestLocWithMultiIndex:
         result = ser.loc[("Level1", "Level2_a")]
         assert result == 1
 
+    def test_loc_setitem_multiindex_slice(self):
+        # GH 34870
+
+        index = pd.MultiIndex.from_tuples(
+            zip(
+                ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+                ["one", "two", "one", "two", "one", "two", "one", "two"],
+            ),
+            names=["first", "second"],
+        )
+
+        result = pd.Series([1, 1, 1, 1, 1, 1, 1, 1], index=index)
+        result.loc[("baz", "one"):("foo", "two")] = 100
+
+        expected = pd.Series([1, 1, 100, 100, 100, 100, 1, 1], index=index)
+
+        tm.assert_series_equal(result, expected)
+
 
 def test_series_loc_getitem_label_list_missing_values():
     # gh-11428
