@@ -1673,66 +1673,14 @@ class _iLocIndexer(_LocationIndexer):
 
                 # we have an equal len Frame
                 if isinstance(value, ABCDataFrame):
-                    sub_indexer = list(indexer)
-                    multiindex_indexer = isinstance(labels, ABCMultiIndex)
-                    # TODO: we are implicitly assuming value.columns is unique
-                    unique_cols = value.columns.is_unique
-
-                    if not unique_cols and value.columns.equals(self.obj.columns):
-                        # We assume we are already aligned, see
-                        # test_iloc_setitem_frame_duplicate_columns_multiple_blocks
-                        for loc in ilocs:
-                            item = item_labels[loc]
-                            if item in value:
-                                sub_indexer[info_axis] = item
-                                v = self._align_series(
-                                    tuple(sub_indexer),
-                                    value.iloc[:, loc],
-                                    multiindex_indexer,
-                                )
-                            else:
-                                v = np.nan
-
-                            self._setitem_single_column(loc, v, plane_indexer)
-
-                    elif not unique_cols:
-                        raise ValueError(
-                            "Setting with non-unique columns is not allowed."
-                        )
-
-                    else:
-                        for loc in ilocs:
-                            item = item_labels[loc]
-                            if item in value:
-                                sub_indexer[info_axis] = item
-                                v = self._align_series(
-                                    tuple(sub_indexer), value[item], multiindex_indexer
-                                )
-                            else:
-                                v = np.nan
-
-                            self._setitem_single_column(loc, v, plane_indexer)
+                    self._setitem_with_indexer_frame_value(indexer, value)
 
                 # we have an equal len ndarray/convertible to our labels
                 # hasattr first, to avoid coercing to ndarray without reason.
                 # But we may be relying on the ndarray coercion to check ndim.
                 # Why not just convert to an ndarray earlier on if needed?
                 elif np.ndim(value) == 2:
-
-                    # note that this coerces the dtype if we are mixed
-                    # GH 7551
-                    value = np.array(value, dtype=object)
-                    if len(ilocs) != value.shape[1]:
-                        raise ValueError(
-                            "Must have equal len keys and value "
-                            "when setting with an ndarray"
-                        )
-
-                    for i, loc in enumerate(ilocs):
-                        # setting with a list, re-coerces
-                        self._setitem_single_column(
-                            loc, value[:, i].tolist(), plane_indexer
-                        )
+                    self._setitem_with_indexer_2d_value(indexer, value)
 
                 elif (
                     len(labels) == 1
@@ -1765,6 +1713,67 @@ class _iLocIndexer(_LocationIndexer):
 
         else:
             self._setitem_single_block(indexer, value)
+
+    def _setitem_with_indexer_2d_value(self, indexer, value):
+        # We get here with np.ndim(value) == 2, excluding DataFrame,
+        #  which goes through _setitem_with_indexer_frame_value
+        plane_indexer = indexer[:1]
+
+        ilocs = self._ensure_iterable_column_indexer(indexer[1])
+
+        # GH#7551 Note that this coerces the dtype if we are mixed
+        value = np.array(value, dtype=object)
+        if len(ilocs) != value.shape[1]:
+            raise ValueError(
+                "Must have equal len keys and value when setting with an ndarray"
+            )
+
+        for i, loc in enumerate(ilocs):
+            # setting with a list, re-coerces
+            self._setitem_single_column(loc, value[:, i].tolist(), plane_indexer)
+
+    def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame"):
+        ilocs = self._ensure_iterable_column_indexer(indexer[1])
+
+        sub_indexer = list(indexer)
+        plane_indexer = indexer[:1]
+
+        multiindex_indexer = isinstance(self.obj.columns, ABCMultiIndex)
+
+        unique_cols = value.columns.is_unique
+
+        if not unique_cols and value.columns.equals(self.obj.columns):
+            # We assume we are already aligned, see
+            # test_iloc_setitem_frame_duplicate_columns_multiple_blocks
+            for loc in ilocs:
+                item = self.obj.columns[loc]
+                if item in value:
+                    sub_indexer[1] = item
+                    val = self._align_series(
+                        tuple(sub_indexer),
+                        value.iloc[:, loc],
+                        multiindex_indexer,
+                    )
+                else:
+                    val = np.nan
+
+                self._setitem_single_column(loc, val, plane_indexer)
+
+        elif not unique_cols:
+            raise ValueError("Setting with non-unique columns is not allowed.")
+
+        else:
+            for loc in ilocs:
+                item = self.obj.columns[loc]
+                if item in value:
+                    sub_indexer[1] = item
+                    val = self._align_series(
+                        tuple(sub_indexer), value[item], multiindex_indexer
+                    )
+                else:
+                    val = np.nan
+
+                self._setitem_single_column(loc, val, plane_indexer)
 
     def _setitem_single_column(self, loc: int, value, plane_indexer):
         # positional setting on column loc
