@@ -26,10 +26,6 @@ from pandas.core.arrays import PeriodArray
 
 
 class TestSeriesMisc:
-    def test_append_preserve_name(self, datetime_series):
-        result = datetime_series[:5].append(datetime_series[5:])
-        assert result.name == datetime_series.name
-
     def test_getitem_preserve_name(self, datetime_series):
         result = datetime_series[datetime_series > 0]
         assert result.name == datetime_series.name
