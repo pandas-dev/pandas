@@ -154,10 +154,7 @@ _all_methods = [
         ),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
     pytest.param(
         (
             pd.DataFrame,
@@ -171,10 +168,7 @@ _all_methods = [
         (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
     pytest.param(
         (
             pd.DataFrame,
@@ -684,7 +678,9 @@ def test_datetime_method(method):
         "microsecond",
         "nanosecond",
         "dayofweek",
+        "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "is_month_start",
         "is_month_end",

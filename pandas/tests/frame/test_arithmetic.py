@@ -14,6 +14,32 @@ import pandas.core.common as com
 from pandas.core.computation.expressions import _MIN_ELEMENTS, NUMEXPR_INSTALLED
 from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
+
+class DummyElement:
+    def __init__(self, value, dtype):
+        self.value = value
+        self.dtype = np.dtype(dtype)
+
+    def __array__(self):
+        return np.array(self.value, dtype=self.dtype)
+
+    def __str__(self) -> str:
+        return f"DummyElement({self.value}, {self.dtype})"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def astype(self, dtype, copy=False):
+        self.dtype = dtype
+        return self
+
+    def view(self, dtype):
+        return type(self)(self.value.view(dtype), dtype)
+
+    def any(self, axis=None):
+        return bool(self.value)
+
+
 # -------------------------------------------------------------------
 # Comparisons
 
@@ -781,6 +807,77 @@ class TestFrameArithmetic:
             columns=["bar", "foo"],
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "value, dtype",
+        [
+            (1, "i8"),
+            (1.0, "f8"),
+            (2 ** 63, "f8"),
+            (1j, "complex128"),
+            (2 ** 63, "complex128"),
+            (True, "bool"),
+            (np.timedelta64(20, "ns"), "<m8[ns]"),
+            (np.datetime64(20, "ns"), "<M8[ns]"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "op",
+        [
+            operator.add,
+            operator.sub,
+            operator.mul,
+            operator.truediv,
+            operator.mod,
+            operator.pow,
+        ],
+        ids=lambda x: x.__name__,
+    )
+    def test_binop_other(self, op, value, dtype):
+        skip = {
+            (operator.add, "bool"),
+            (operator.sub, "bool"),
+            (operator.mul, "bool"),
+            (operator.truediv, "bool"),
+            (operator.mod, "i8"),
+            (operator.mod, "complex128"),
+            (operator.pow, "bool"),
+        }
+        if (op, dtype) in skip:
+            pytest.skip(f"Invalid combination {op},{dtype}")
+
+        e = DummyElement(value, dtype)
+        s = DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+
+        invalid = {
+            (operator.pow, "<M8[ns]"),
+            (operator.mod, "<M8[ns]"),
+            (operator.truediv, "<M8[ns]"),
+            (operator.mul, "<M8[ns]"),
+            (operator.add, "<M8[ns]"),
+            (operator.pow, "<m8[ns]"),
+            (operator.mul, "<m8[ns]"),
+        }
+
+        if (op, dtype) in invalid:
+            msg = (
+                None
+                if (dtype == "<M8[ns]" and op == operator.add)
+                or (dtype == "<m8[ns]" and op == operator.mul)
+                else (
+                    f"cannot perform __{op.__name__}__ with this "
+                    "index type: (DatetimeArray|TimedeltaArray)"
+                )
+            )
+
+            with pytest.raises(TypeError, match=msg):
+                op(s, e.value)
+        else:
+            # FIXME: Since dispatching to Series, this test no longer
+            # asserts anything meaningful
+            result = op(s, e.value).dtypes
+            expected = op(s, value).dtypes
+            tm.assert_series_equal(result, expected)
 
 
 def test_frame_with_zero_len_series_corner_cases():
@@ -1601,3 +1698,16 @@ def test_arith_list_of_arraylike_raise(to_add):
         df + to_add
     with pytest.raises(ValueError, match=msg):
         to_add + df
+
+
+def test_inplace_arithmetic_series_update():
+    # https://github.com/pandas-dev/pandas/issues/36373
+    df = DataFrame({"A": [1, 2, 3]})
+    series = df["A"]
+    vals = series._values
+
+    series += 1
+    assert series._values is vals
+
+    expected = DataFrame({"A": [2, 3, 4]})
+    tm.assert_frame_equal(df, expected)
