@@ -922,6 +922,13 @@ class TestBlockPlacement:
         with pytest.raises(ValueError, match=msg):
             BlockPlacement(slc)
 
+    def test_slice_canonize_negative_stop(self):
+        # GH#???? negative stop is OK with negative step and positive start
+        slc = slice(3, -1, -2)
+
+        bp = BlockPlacement(slc)
+        assert bp.indexer == slice(3, None, -2)
+
     @pytest.mark.parametrize(
         "slc",
         [
