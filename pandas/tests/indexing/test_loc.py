@@ -1073,10 +1073,10 @@ class TestLocWithMultiIndex:
             names=["first", "second"],
         )
 
-        result = pd.Series([1, 1, 1, 1, 1, 1, 1, 1], index=index)
+        result = Series([1, 1, 1, 1, 1, 1, 1, 1], index=index)
         result.loc[("baz", "one"):("foo", "two")] = 100
 
-        expected = pd.Series([1, 1, 100, 100, 100, 100, 1, 1], index=index)
+        expected = Series([1, 1, 100, 100, 100, 100, 1, 1], index=index)
 
         tm.assert_series_equal(result, expected)
 
