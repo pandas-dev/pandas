@@ -2062,9 +2062,7 @@ def test_groups_repr_truncates(max_seq_items, expected):
 
 @td.skip_if_no("lxml")
 def test_groupby_repr():
-    """
-    All groups and all rows in a group are shown in html output.
-    """
+    # GH 34926 - All groups and all rows in a group are shown in html output.
     n_groups = 5
     length = n_groups * 5
     df = DataFrame(
@@ -2086,9 +2084,7 @@ def test_groupby_repr():
 
 @td.skip_if_no("lxml")
 def test_groupby_repr_truncated_group():
-    """
-    In the groups not all rows are shown in html output.
-    """
+    # GH 34926 - In the groups not all rows are shown in html output.
     n_groups = 10
     length = n_groups * 20
 
@@ -2120,9 +2116,7 @@ def test_groupby_repr_truncated_group():
 
 @td.skip_if_no("lxml")
 def test_groupby_repr_not_all_groups():
-    """
-    Not all groups are shown in html output.
-    """
+    # GH 34926 - Not all groups are shown in html output.
     n_groups = 30
     length = n_groups * 5
     df = DataFrame(
