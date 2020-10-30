@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas.compat import IS64, PYPY
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -127,7 +127,10 @@ def test_memory_usage(index_or_series_obj):
     )
 
     if len(obj) == 0:
-        expected = 0 if isinstance(obj, Index) else 80
+        if isinstance(obj, Index):
+            expected = 0
+        else:
+            expected = 80 if IS64 else 48
         assert res_deep == res == expected
     elif is_object or is_categorical:
         # only deep will pick them up

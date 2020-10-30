@@ -7,7 +7,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas.compat import IS64, PYPY
 
 from pandas import (
     CategoricalIndex,
@@ -475,6 +475,7 @@ def test_info_categorical():
     df.info(buf=buf)
 
 
+@pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
 def test_info_int_columns():
     # GH#37245
     df = DataFrame({1: [1, 2], 2: [2, 3]}, index=["A", "B"])

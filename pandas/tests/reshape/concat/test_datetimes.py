@@ -15,14 +15,9 @@ from pandas import (
     Timestamp,
     concat,
     date_range,
+    to_timedelta,
 )
 import pandas._testing as tm
-
-
-@pytest.fixture(params=[True, False])
-def sort(request):
-    """Boolean sort keyword for concat and DataFrame.append."""
-    return request.param
 
 
 class TestDatetimeConcat:
@@ -518,3 +513,13 @@ class TestPeriodConcat:
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
         assert result.dtype == "object"
+
+
+def test_concat_timedelta64_block():
+    rng = to_timedelta(np.arange(10), unit="s")
+
+    df = DataFrame({"time": rng})
+
+    result = concat([df, df])
+    tm.assert_frame_equal(result.iloc[:10], df)
+    tm.assert_frame_equal(result.iloc[10:], df)
