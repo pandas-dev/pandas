@@ -753,6 +753,22 @@ class TestDataFrameAnalytics:
         assert df["off1"].dtype == "timedelta64[ns]"
         assert df["off2"].dtype == "timedelta64[ns]"
 
+    def test_std_timedelta64_skipna_false(self):
+        # GH#37392
+        tdi = pd.timedelta_range("1 Day", periods=10)
+        df = DataFrame({"A": tdi, "B": tdi})
+        df.iloc[-2, -1] = pd.NaT
+
+        result = df.std(skipna=False)
+        expected = Series(
+            [df["A"].std(), pd.NaT], index=["A", "B"], dtype="timedelta64[ns]"
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = df.std(axis=1, skipna=False)
+        expected = Series([pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)])
+        tm.assert_series_equal(result, expected)
+
     def test_sum_corner(self):
         empty_frame = DataFrame()
 
@@ -1153,6 +1169,31 @@ class TestDataFrameReductions:
         exp = Series([pd.NaT], index=["foo"])
         tm.assert_series_equal(res, exp)
 
+    def test_min_max_dt64_with_NaT_skipna_false(self, tz_naive_fixture):
+        # GH#36907
+        tz = tz_naive_fixture
+        df = DataFrame(
+            {
+                "a": [
+                    Timestamp("2020-01-01 08:00:00", tz=tz),
+                    Timestamp("1920-02-01 09:00:00", tz=tz),
+                ],
+                "b": [Timestamp("2020-02-01 08:00:00", tz=tz), pd.NaT],
+            }
+        )
+
+        res = df.min(axis=1, skipna=False)
+        expected = Series([df.loc[0, "a"], pd.NaT])
+        assert expected.dtype == df["a"].dtype
+
+        tm.assert_series_equal(res, expected)
+
+        res = df.max(axis=1, skipna=False)
+        expected = Series([df.loc[0, "b"], pd.NaT])
+        assert expected.dtype == df["a"].dtype
+
+        tm.assert_series_equal(res, expected)
+
     def test_min_max_dt64_api_consistency_with_NaT(self):
         # Calling the following sum functions returned an error for dataframes but
         # returned NaT for series. These tests check that the API is consistent in
@@ -1233,17 +1274,17 @@ def test_sum_timedelta64_skipna_false():
     arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
     arr[-1, -1] = "Nat"
 
-    df = pd.DataFrame(arr)
+    df = DataFrame(arr)
 
     result = df.sum(skipna=False)
-    expected = pd.Series([pd.Timedelta(seconds=12), pd.NaT])
+    expected = Series([pd.Timedelta(seconds=12), pd.NaT])
     tm.assert_series_equal(result, expected)
 
     result = df.sum(axis=0, skipna=False)
     tm.assert_series_equal(result, expected)
 
     result = df.sum(axis=1, skipna=False)
-    expected = pd.Series(
+    expected = Series(
         [
             pd.Timedelta(seconds=1),
             pd.Timedelta(seconds=5),

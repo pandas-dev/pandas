@@ -602,10 +602,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             pass
 
         elif not type(self)._is_recognized_dtype(value.dtype):
-            raise TypeError(
-                f"value should be a '{self._scalar_type.__name__}', 'NaT', "
-                f"or array of those. Got '{type(value).__name__}' instead."
-            )
+            msg = self._validation_error_message(value, True)
+            raise TypeError(msg)
+
         return value
 
     def _validate_searchsorted_value(self, value):
@@ -624,18 +623,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return self._unbox(value, setitem=True)
 
+    _validate_where_value = _validate_setitem_value
+
     def _validate_insert_value(self, value):
         value = self._validate_scalar(value)
 
         return self._unbox(value, setitem=True)
-
-    def _validate_where_value(self, other):
-        if not is_list_like(other):
-            other = self._validate_scalar(other, True)
-        else:
-            other = self._validate_listlike(other)
-
-        return self._unbox(other, setitem=True)
 
     def _unbox(
         self, other, setitem: bool = False
@@ -1264,13 +1257,24 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Series.min : Return the minimum value in a Series.
         """
         nv.validate_min(args, kwargs)
-        nv.validate_minmax_axis(axis)
+        nv.validate_minmax_axis(axis, self.ndim)
 
-        result = nanops.nanmin(self.asi8, skipna=skipna, mask=self.isna())
-        if isna(result):
-            # Period._from_ordinal does not handle np.nan gracefully
-            return NaT
-        return self._box_func(result)
+        if is_period_dtype(self.dtype):
+            # pass datetime64 values to nanops to get correct NaT semantics
+            result = nanops.nanmin(
+                self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
+            )
+            if result is NaT:
+                return NaT
+            result = result.view("i8")
+            if axis is None or self.ndim == 1:
+                return self._box_func(result)
+            return self._from_backing_data(result)
+
+        result = nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
+        if lib.is_scalar(result):
+            return self._box_func(result)
+        return self._from_backing_data(result)
 
     def max(self, axis=None, skipna=True, *args, **kwargs):
         """
@@ -1286,25 +1290,26 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # TODO: skipna is broken with max.
         # See https://github.com/pandas-dev/pandas/issues/24265
         nv.validate_max(args, kwargs)
-        nv.validate_minmax_axis(axis)
+        nv.validate_minmax_axis(axis, self.ndim)
 
-        mask = self.isna()
-        if skipna:
-            values = self[~mask].asi8
-        elif mask.any():
-            return NaT
-        else:
-            values = self.asi8
+        if is_period_dtype(self.dtype):
+            # pass datetime64 values to nanops to get correct NaT semantics
+            result = nanops.nanmax(
+                self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
+            )
+            if result is NaT:
+                return result
+            result = result.view("i8")
+            if axis is None or self.ndim == 1:
+                return self._box_func(result)
+            return self._from_backing_data(result)
 
-        if not len(values):
-            # short-circuit for empty max / min
-            return NaT
+        result = nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
+        if lib.is_scalar(result):
+            return self._box_func(result)
+        return self._from_backing_data(result)
 
-        result = nanops.nanmax(values, skipna=skipna)
-        # Don't have to worry about NA `result`, since no NA went in.
-        return self._box_func(result)
-
-    def mean(self, skipna=True):
+    def mean(self, skipna=True, axis: Optional[int] = 0):
         """
         Return the mean value of the Array.
 
@@ -1314,6 +1319,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ----------
         skipna : bool, default True
             Whether to ignore any NaT elements.
+        axis : int, optional, default 0
 
         Returns
         -------
@@ -1337,21 +1343,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 "obj.to_timestamp(how='start').mean()"
             )
 
-        mask = self.isna()
-        if skipna:
-            values = self[~mask]
-        elif mask.any():
-            return NaT
-        else:
-            values = self
-
-        if not len(values):
-            # short-circuit for empty max / min
-            return NaT
-
-        result = nanops.nanmean(values.view("i8"), skipna=skipna)
-        # Don't have to worry about NA `result`, since no NA went in.
-        return self._box_func(result)
+        result = nanops.nanmean(
+            self._ndarray, axis=axis, skipna=skipna, mask=self.isna()
+        )
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result)
 
     def median(self, axis: Optional[int] = None, skipna: bool = True, *args, **kwargs):
         nv.validate_median(args, kwargs)
