@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
+from dateutil.tz import tzoffset
 import numpy as np
 import numpy.ma as ma
 import pytest
@@ -1587,6 +1588,20 @@ class TestSeriesConstructors:
             index=pd.to_timedelta([0, 10, 20], unit="s"),
         )
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_infer_index_tz(self):
+        values = [188.5, 328.25]
+        tzinfo = tzoffset(None, 7200)
+        index = [
+            datetime(2012, 5, 11, 11, tzinfo=tzinfo),
+            datetime(2012, 5, 11, 12, tzinfo=tzinfo),
+        ]
+        series = Series(data=values, index=index)
+
+        assert series.index.tz == tzinfo
+
+        # it works! GH#2443
+        repr(series.index[0])
 
 
 class TestSeriesConstructorIndexCoercion:
