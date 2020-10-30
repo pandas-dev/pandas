@@ -207,6 +207,8 @@ level-by-level basis.
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- Added ``day_of_week``(compatibility alias ``dayofweek``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
+- Added ``day_of_year`` (compatibility alias ``dayofyear``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
 - :meth:`DataFrame.applymap` now supports ``na_action`` (:issue:`23803`)
 - :class:`Index` with object dtype supports division and multiplication (:issue:`34160`)
@@ -219,10 +221,12 @@ Other enhancements
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 - Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
 - :meth:`Rolling.var()` and :meth:`Rolling.std()` use Kahan summation and Welfords Method to avoid numerical issues (:issue:`37051`)
+- :meth:`DataFrame.corr` and :meth:`DataFrame.cov` use Welfords Method to avoid numerical issues (:issue:`37448`)
 - :meth:`DataFrame.plot` now recognizes ``xlabel`` and ``ylabel`` arguments for plots of type ``scatter`` and ``hexbin`` (:issue:`37001`)
 - :class:`DataFrame` now supports ``divmod`` operation (:issue:`37165`)
 - :meth:`DataFrame.to_parquet` now returns a ``bytes`` object when no ``path`` argument is passed (:issue:`37105`)
 - :class:`Rolling` now supports the ``closed`` argument for fixed windows (:issue:`34315`)
+- :class:`DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`37436`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -346,6 +350,7 @@ Performance improvements
 - Performance improvement in :meth:`RollingGroupby.count` (:issue:`35625`)
 - Small performance decrease to :meth:`Rolling.min` and :meth:`Rolling.max` for fixed windows (:issue:`36567`)
 - Reduced peak memory usage in :meth:`DataFrame.to_pickle` when using ``protocol=5`` in python 3.8+ (:issue:`34244`)
+- faster ``dir`` calls when many index labels, e.g. ``dir(ser)`` (:issue:`37450`)
 - Performance improvement in :class:`ExpandingGroupby` (:issue:`37064`)
 
 .. ---------------------------------------------------------------------------
@@ -404,6 +409,7 @@ Numeric
 - Bug in :class:`IntervalArray` comparisons with :class:`Series` not returning :class:`Series` (:issue:`36908`)
 - Bug in :class:`DataFrame` allowing arithmetic operations with list of array-likes with undefined results. Behavior changed to raising ``ValueError`` (:issue:`36702`)
 - Bug in :meth:`DataFrame.std`` with ``timedelta64`` dtype and ``skipna=False`` (:issue:`37392`)
+- Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` with ``datetime64`` dtype and ``skipna=False`` (:issue:`36907`)
 
 Conversion
 ^^^^^^^^^^
