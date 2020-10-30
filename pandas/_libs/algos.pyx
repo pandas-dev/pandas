@@ -268,7 +268,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         ndarray[float64_t, ndim=2] result
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
-        float64_t vx, vy, meanx, meany, divisor, prev_meany, prev_meanx, ssqdmx,
+        float64_t vx, vy, meanx, meany, divisor, prev_meany, prev_meanx, ssqdmx
         float64_t ssqdmy, covxy
 
     N, K = (<object>mat).shape
