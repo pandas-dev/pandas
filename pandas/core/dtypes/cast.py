@@ -1321,9 +1321,8 @@ def maybe_infer_to_datetimelike(
         ),
     ):
         return value
-    elif isinstance(value, ABCSeries):
-        if isinstance(value._values, ABCDatetimeIndex):
-            return value._values
+    elif isinstance(value, ABCSeries) and isinstance(value._values, ABCDatetimeArray):
+        return value._values
 
     v = value
 
