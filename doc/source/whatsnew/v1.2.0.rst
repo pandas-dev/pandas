@@ -381,8 +381,8 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.equals` and :meth:`TimedeltaIndex.equals` incorrectly considering ``int64`` indexes as equal (:issue:`36744`)
 - Bug in :meth:`TimedeltaIndex.sum` and :meth:`Series.sum` with ``timedelta64`` dtype on an empty index or series returning ``NaT`` instead of ``Timedelta(0)`` (:issue:`31751`)
 - Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`DatetimeIndex.isin` incorrectly casting integers to datetimes (:issue:`36621`)
-- Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`DatetimeIndex.isin` failing to consider timezone-aware and timezone-naive datetimes as always different (:issue:`???`)
-- Bug in :meth:`Series.isin` with ``PeriodDtype`` dtype and :meth:`PeriodIndex.isin` failing to consider arguments with different ``PeriodDtype`` as always different (:issue:`???`)
+- Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`DatetimeIndex.isin` failing to consider timezone-aware and timezone-naive datetimes as always different (:issue:`35728`)
+- Bug in :meth:`Series.isin` with ``PeriodDtype`` dtype and :meth:`PeriodIndex.isin` failing to consider arguments with different ``PeriodDtype`` as always different (:issue:`37528`)
 
 
 Timedelta
