@@ -306,7 +306,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     def insert(self, loc: int, item):
         """
         Make new Index inserting new item at location. Follows
-        Python list.append semantics for negative values
+        Python list.append semantics for negative values.
 
         Parameters
         ----------
@@ -319,9 +319,8 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
         Raises
         ------
-        ValueError if the item is not in the categories
+        ValueError if the item is not valid for this dtype.
         """
-        # FIXME: docstring is Categorical-specific
         arr = self._data
         code = arr._validate_insert_value(item)
 
