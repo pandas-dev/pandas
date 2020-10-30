@@ -106,16 +106,34 @@ def _get_colors_from_color(
     if len(color) == 0:
         raise ValueError(f"Invalid color argument: {color}")
 
-    if isinstance(color, str) and _is_single_color(color):
-        # GH #36972
-        return [color]
-
-    if _is_floats_color(color):
-        color = cast(Sequence[float], color)
+    if _is_single_color(color):
+        color = cast(Color, color)
         return [color]
 
     color = cast(Collection[Color], color)
     return list(_gen_list_of_colors_from_iterable(color))
+
+
+def _is_single_color(color: Union[Color, Collection[Color]]) -> bool:
+    """Check if ``color`` is a single color, not a sequence of colors.
+
+    Single color is of these kinds:
+        - Named color "red"
+        - Alias "g"
+        - Sequence of floats, such as (0.1, 0.2, 0.3) or (0.1, 0.2, 0.3, 0.4).
+
+    See Also
+    --------
+    _is_single_string_color
+    """
+    if isinstance(color, str) and _is_single_string_color(color):
+        # GH #36972
+        return True
+
+    if _is_floats_color(color):
+        return True
+
+    return False
 
 
 def _gen_list_of_colors_from_iterable(color: Collection[Color]) -> Iterator[Color]:
@@ -134,7 +152,7 @@ def _is_floats_color(color: Union[Color, Collection[Color]]) -> bool:
     return bool(
         is_list_like(color)
         and (len(color) == 3 or len(color) == 4)
-        and all(isinstance(x, float) for x in color)
+        and all(isinstance(x, (int, float)) for x in color)
     )
 
 
@@ -168,7 +186,7 @@ def _random_color(column: int) -> List[float]:
     return rs.rand(3).tolist()
 
 
-def _is_single_color(color: Color) -> bool:
+def _is_single_string_color(color: Color) -> bool:
     """Check if ``color`` is a single color.
 
     Examples of single colors:
