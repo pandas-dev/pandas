@@ -177,7 +177,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "week",
         "weekday",
         "dayofweek",
+        "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "days_in_month",
         "daysinmonth",
@@ -1259,8 +1261,10 @@ default 'raise'
 
         See Also
         --------
-        Timestamp.isocalendar
-        datetime.date.isocalendar
+        Timestamp.isocalendar : Function return a 3-tuple containing ISO year,
+            week number, and weekday for the given Timestamp object.
+        datetime.date.isocalendar : Return a named tuple object with
+            three components: year, week and weekday.
 
         Examples
         --------
@@ -1533,16 +1537,18 @@ default 'raise'
     2017-01-08    6
     Freq: D, dtype: int64
     """
-    dayofweek = _field_accessor("dayofweek", "dow", _dayofweek_doc)
-    weekday = dayofweek
+    day_of_week = _field_accessor("day_of_week", "dow", _dayofweek_doc)
+    dayofweek = day_of_week
+    weekday = day_of_week
 
-    dayofyear = _field_accessor(
+    day_of_year = _field_accessor(
         "dayofyear",
         "doy",
         """
         The ordinal day of the year.
         """,
     )
+    dayofyear = day_of_year
     quarter = _field_accessor(
         "quarter",
         "q",
