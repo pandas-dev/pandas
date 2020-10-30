@@ -1,8 +1,7 @@
 import os
-from typing import Sequence, Union
+from typing import TYPE_CHECKING, Sequence, Union
 import warnings
 
-from matplotlib.axes import Axes
 import numpy as np
 from numpy import random
 
@@ -14,6 +13,9 @@ from pandas.core.dtypes.api import is_list_like
 import pandas as pd
 from pandas import DataFrame, Series, to_datetime
 import pandas._testing as tm
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 
 @td.skip_if_no_mpl
