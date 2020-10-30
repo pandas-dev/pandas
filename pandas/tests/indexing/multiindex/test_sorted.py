@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
 from pandas import DataFrame, MultiIndex, Series
@@ -115,7 +114,7 @@ class TestMultiIndexSorted:
         ]
         tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
-        s = Series(randn(8), index=index)
+        s = Series(np.random.randn(8), index=index)
 
         arrays = [np.array(x) for x in zip(*index.values)]
 
