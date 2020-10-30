@@ -104,13 +104,13 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
         types: [python]
-        exclude: ^(asv_bench|pandas/_vendored|pandas/tests|doc)/
+        exclude: ^(asv_bench|pandas/tests|doc)/
     -   id: unwanted-patterns-private-function-across-module
         name: Check for use of private functions across modules
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
         types: [python]
-        exclude: ^(asv_bench|pandas/_vendored|pandas/tests|doc)/
+        exclude: ^(asv_bench|pandas/tests|doc)/
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
