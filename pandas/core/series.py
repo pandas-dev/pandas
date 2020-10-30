@@ -1037,10 +1037,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            # extract_array so that if we set e.g. ser[-5:] = ser[:5]
-            #  we get the first five values, and not 5 NaNs
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            self.iloc[indexer] = extract_array(value, extract_numpy=True)
+            return self._set_values(indexer, value)
 
         else:
             assert not isinstance(key, tuple)
@@ -1058,11 +1056,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
                 if not self.index._should_fallback_to_positional():
-                    self.loc[key] = value
+                    self._set_labels(key, value)
                 else:
-                    self.iloc[key] = value
+                    self._set_values(key, value)
             else:
                 self.loc[key] = value
+
+    def _set_labels(self, key, value):
+        key = com.asarray_tuplesafe(key)
+        indexer: np.ndarray = self.index.get_indexer(key)
+        mask = indexer == -1
+        if mask.any():
+            raise KeyError(f"{key[mask]} not in index")
+        self._set_values(indexer, value)
+
+    def _set_values(self, key, value):
+        if isinstance(key, Series):
+            key = key._values
+        self._mgr = self._mgr.setitem(indexer=key, value=value)
+        self._maybe_update_cacher()
 
     def _set_value(self, label, value, takeable: bool = False):
         """
