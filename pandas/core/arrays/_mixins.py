@@ -233,6 +233,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             new_values = self.copy()
         return new_values
 
+    # ------------------------------------------------------------------------
+    # Reductions
+
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
         meth = getattr(self, name, None)
         if meth:
