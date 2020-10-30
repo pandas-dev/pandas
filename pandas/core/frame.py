@@ -2881,7 +2881,9 @@ class DataFrame(NDFrame):
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
             if isinstance(indexer, np.ndarray):
-                indexer = lib.maybe_indices_to_slice(indexer, len(self))
+                indexer = lib.maybe_indices_to_slice(
+                    indexer.astype(np.intp, copy=False), len(self)
+                )
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)

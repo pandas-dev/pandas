@@ -15,7 +15,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
-    ensure_int64,
     is_bool_dtype,
     is_dtype_equal,
     is_integer,
@@ -181,7 +180,7 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = ensure_int64(indices)
+        indices = np.asarray(indices, dtype=np.intp)
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):
@@ -581,7 +580,9 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
                 freq = self.freq
         else:
             if is_list_like(loc):
-                loc = lib.maybe_indices_to_slice(ensure_int64(np.array(loc)), len(self))
+                loc = lib.maybe_indices_to_slice(
+                    np.asarray(loc, dtype=np.intp), len(self)
+                )
             if isinstance(loc, slice) and loc.step in (1, None):
                 if loc.start in (0, None) or loc.stop in (len(self), None):
                     freq = self.freq
