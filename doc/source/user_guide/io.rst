@@ -3365,7 +3365,7 @@ All pandas objects are equipped with ``to_pickle`` methods which use Python's
    df
    df.to_pickle("foo.pkl")
 
-The ``read_pickle`` function in the pandas namespace can be used to load
+The ``read_pickle`` function in the ``pandas`` namespace can be used to load
 any pickled pandas object (or any other pickled object) from file:
 
 

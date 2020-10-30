@@ -18,7 +18,7 @@ API changes
 ~~~~~~~~~~~
 
   - The I/O API is now much more consistent with a set of top level ``reader`` functions
-    accessed like ``pd.read_csv()`` that generally return a pandas object.
+    accessed like ``pd.read_csv()`` that generally return a ``pandas`` object.
 
     * ``read_csv``
     * ``read_excel``
@@ -179,7 +179,7 @@ API changes
     ``bs4`` + ``html5lib`` when lxml fails to parse. a list of parsers to try
     until success is also valid
 
-  - The internal pandas class hierarchy has changed (slightly). The
+  - The internal ``pandas`` class hierarchy has changed (slightly). The
     previous ``PandasObject`` now is called ``PandasContainer`` and a new
     ``PandasObject`` has become the base class for ``PandasContainer`` as well
     as ``Index``, ``Categorical``, ``GroupBy``, ``SparseList``, and

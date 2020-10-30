@@ -188,7 +188,7 @@ your ``MyExtensionArray`` class, as follows:
 
 .. note::
 
-   Since pandas automatically calls the underlying operator on each
+   Since ``pandas`` automatically calls the underlying operator on each
    element one-by-one, this might not be as performant as implementing your own
    version of the associated operators directly on the ``ExtensionArray``.
 
@@ -303,7 +303,7 @@ dtypes included in pandas, and ensure roundtrip to pyarrow and the Parquet file 
 Subclassing pandas data structures
 ----------------------------------
 
-.. warning:: There are some easier alternatives before considering subclassing pandas data structures.
+.. warning:: There are some easier alternatives before considering subclassing ``pandas`` data structures.
 
   1. Extensible method chains with :ref:`pipe <basics.pipe>`
 
@@ -313,7 +313,7 @@ Subclassing pandas data structures
 
   4. Extending by :ref:`extension type <extending.extension-types>`
 
-This section describes how to subclass pandas data structures to meet more specific needs. There are two points that need attention:
+This section describes how to subclass ``pandas`` data structures to meet more specific needs. There are two points that need attention:
 
 1. Override constructor properties.
 2. Define original properties
@@ -327,7 +327,7 @@ Override constructor properties
 
 Each data structure has several *constructor properties* for returning a new
 data structure as the result of an operation. By overriding these properties,
-you can retain subclasses through pandas data manipulations.
+you can retain subclasses through ``pandas`` data manipulations.
 
 There are 3 constructor properties to be defined:
 
@@ -335,7 +335,7 @@ There are 3 constructor properties to be defined:
 * ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
 * ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()``.
 
-Following table shows how pandas data structures define constructor properties by default.
+Following table shows how ``pandas`` data structures define constructor properties by default.
 
 ===========================  ======================= =============
 Property Attributes          ``Series``              ``DataFrame``
@@ -411,7 +411,7 @@ Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame
 Define original properties
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To let original data structures have additional properties, you should let pandas know what properties are added. pandas maps unknown properties to data names overriding ``__getattribute__``. Defining original properties can be done in one of 2 ways:
+To let original data structures have additional properties, you should let ``pandas`` know what properties are added. ``pandas`` maps unknown properties to data names overriding ``__getattribute__``. Defining original properties can be done in one of 2 ways:
 
 1. Define ``_internal_names`` and ``_internal_names_set`` for temporary properties which WILL NOT be passed to manipulation results.
 2. Define ``_metadata`` for normal properties which will be passed to manipulation results.

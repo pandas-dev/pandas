@@ -57,7 +57,7 @@ API changes
   filter, map and zip, plus other necessary elements for Python 3
   compatibility. ``lmap``, ``lzip``, ``lrange`` and ``lfilter`` all produce
   lists instead of iterators, for compatibility with ``numpy``, subscripting
-  and pandas constructors.(:issue:`4384`, :issue:`4375`, :issue:`4372`)
+  and ``pandas`` constructors.(:issue:`4384`, :issue:`4375`, :issue:`4372`)
 - ``Series.get`` with negative indexers now returns the same as ``[]`` (:issue:`4390`)
 - Changes to how ``Index`` and ``MultiIndex`` handle metadata (``levels``,
   ``labels``, and ``names``) (:issue:`4039`):

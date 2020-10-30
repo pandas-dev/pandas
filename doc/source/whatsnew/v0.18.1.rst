@@ -381,9 +381,9 @@ NumPy function compatibility
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Compatibility between pandas array-like methods (e.g. ``sum`` and ``take``) and their ``numpy``
-counterparts has been greatly increased by augmenting the signatures of the pandas methods so
+counterparts has been greatly increased by augmenting the signatures of the ``pandas`` methods so
 as to accept arguments that can be passed in from ``numpy``, even if they are not necessarily
-used in the pandas implementation (:issue:`12644`, :issue:`12638`, :issue:`12687`)
+used in the ``pandas`` implementation (:issue:`12644`, :issue:`12638`, :issue:`12687`)
 
 - ``.searchsorted()`` for ``Index`` and ``TimedeltaIndex`` now accept a ``sorter`` argument to maintain compatibility with numpy's ``searchsorted`` function (:issue:`12238`)
 - Bug in numpy compatibility of ``np.round()`` on a ``Series`` (:issue:`12600`)
