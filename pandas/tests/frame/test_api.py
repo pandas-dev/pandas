@@ -16,16 +16,6 @@ import pandas._testing as tm
 
 
 class TestDataFrameMisc:
-    @pytest.mark.parametrize("attr", ["index", "columns"])
-    def test_copy_index_name_checking(self, float_frame, attr):
-        # don't want to be able to modify the index stored elsewhere after
-        # making a copy
-        ind = getattr(float_frame, attr)
-        ind.name = None
-        cp = float_frame.copy()
-        getattr(cp, attr).name = "foo"
-        assert getattr(float_frame, attr).name is None
-
     def test_getitem_pop_assign_name(self, float_frame):
         s = float_frame["A"]
         assert s.name == "A"
@@ -500,24 +490,6 @@ class TestDataFrameMisc:
         )
         result.iloc[0, 0] = 10
         assert df.iloc[0, 0] == 0
-
-    def test_cache_on_copy(self):
-        # GH 31784 _item_cache not cleared on copy causes incorrect reads after updates
-        df = DataFrame({"a": [1]})
-
-        df["x"] = [0]
-        df["a"]
-
-        df.copy()
-
-        df["a"].values[0] = -1
-
-        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0]}))
-
-        df["y"] = [0]
-
-        assert df["a"].values[0] == -1
-        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0], "y": [0]}))
 
     @skip_if_no("jinja2")
     def test_constructor_expanddim_lookup(self):
