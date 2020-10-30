@@ -1078,7 +1078,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         indexer: np.ndarray = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
-            raise ValueError(f"{key[mask]} not contained in the index")
+            raise KeyError(f"{key[mask]} not in index")
         self._set_values(indexer, value)
 
     def _set_values(self, key, value):
