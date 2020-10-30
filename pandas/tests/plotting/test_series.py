@@ -5,7 +5,6 @@ from datetime import datetime
 from itertools import chain
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
@@ -59,7 +58,7 @@ class TestSeriesPlots(TestPlotBase):
             _check_plot_works(self.series[:5].plot, kind=kind)
 
         _check_plot_works(self.series[:10].plot.barh)
-        ax = _check_plot_works(Series(randn(10)).plot.bar, color="black")
+        ax = _check_plot_works(Series(np.random.randn(10)).plot.bar, color="black")
         self._check_colors([ax.patches[0]], facecolors=["black"])
 
         # GH 6951
@@ -267,7 +266,7 @@ class TestSeriesPlots(TestPlotBase):
         assert result == expected
 
     def test_rotation(self):
-        df = DataFrame(randn(5, 5))
+        df = DataFrame(np.random.randn(5, 5))
         # Default rot 0
         _, ax = self.plt.subplots()
         axes = df.plot(ax=ax)
@@ -282,7 +281,7 @@ class TestSeriesPlots(TestPlotBase):
 
         rng = date_range("1/1/2000", "3/1/2000")
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
-        ser = Series(randn(len(rng)), rng)
+        ser = Series(np.random.randn(len(rng)), rng)
         _, ax = self.plt.subplots()
         ax = ser.plot(ax=ax)
         xp = DatetimeConverter.convert(datetime(1999, 1, 1), "", ax)
@@ -459,8 +458,8 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_no_overlap(self):
         from matplotlib.pyplot import gcf, subplot
 
-        x = Series(randn(2))
-        y = Series(randn(2))
+        x = Series(np.random.randn(2))
+        y = Series(np.random.randn(2))
         subplot(121)
         x.hist()
         subplot(122)
@@ -590,7 +589,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_plot_fails_with_dupe_color_and_style(self):
-        x = Series(randn(2))
+        x = Series(np.random.randn(2))
         with pytest.raises(ValueError):
             _, ax = self.plt.subplots()
             x.plot(style="k--", color="k", ax=ax)
@@ -734,7 +733,7 @@ class TestSeriesPlots(TestPlotBase):
         dr1 = date_range("1/1/2009", periods=4)
         dr2 = date_range("1/2/2009", periods=4)
         index = dr1.append(dr2)
-        values = randn(index.size)
+        values = np.random.randn(index.size)
         s = Series(values, index=index)
         _check_plot_works(s.plot)
 
@@ -763,7 +762,7 @@ class TestSeriesPlots(TestPlotBase):
 
         s = Series(np.arange(10), name="x")
         s_err = np.random.randn(10)
-        d_err = DataFrame(randn(10, 2), index=s.index, columns=["x", "y"])
+        d_err = DataFrame(np.random.randn(10, 2), index=s.index, columns=["x", "y"])
         # test line and bar plots
         kinds = ["line", "bar"]
         for kind in kinds:
@@ -785,7 +784,7 @@ class TestSeriesPlots(TestPlotBase):
         ix = date_range("1/1/2000", "1/1/2001", freq="M")
         ts = Series(np.arange(12), index=ix, name="x")
         ts_err = Series(np.random.randn(12), index=ix)
-        td_err = DataFrame(randn(12, 2), index=ix, columns=["x", "y"])
+        td_err = DataFrame(np.random.randn(12, 2), index=ix, columns=["x", "y"])
 
         ax = _check_plot_works(ts.plot, yerr=ts_err)
         self._check_has_errorbars(ax, xerr=0, yerr=1)

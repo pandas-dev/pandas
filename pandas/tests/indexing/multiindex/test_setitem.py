@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas as pd
@@ -311,7 +310,9 @@ class TestMultiIndexSetItem:
         tm.assert_frame_equal(df, result)
 
     def test_frame_setitem_multi_column(self):
-        df = DataFrame(randn(10, 4), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]])
+        df = DataFrame(
+            np.random.randn(10, 4), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]]
+        )
 
         cp = df.copy()
         cp["a"] = cp["b"]

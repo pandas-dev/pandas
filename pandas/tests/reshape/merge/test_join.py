@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas as pd
@@ -290,10 +289,10 @@ class TestJoin:
 
     def test_join_unconsolidated(self):
         # GH #331
-        a = DataFrame(randn(30, 2), columns=["a", "b"])
-        c = Series(randn(30))
+        a = DataFrame(np.random.randn(30, 2), columns=["a", "b"])
+        c = Series(np.random.randn(30))
         a["c"] = c
-        d = DataFrame(randn(30, 1), columns=["q"])
+        d = DataFrame(np.random.randn(30, 1), columns=["q"])
 
         # it works!
         a.join(d)
@@ -412,8 +411,8 @@ class TestJoin:
 
     def test_join_float64_float32(self):
 
-        a = DataFrame(randn(10, 2), columns=["a", "b"], dtype=np.float64)
-        b = DataFrame(randn(10, 1), columns=["c"], dtype=np.float32)
+        a = DataFrame(np.random.randn(10, 2), columns=["a", "b"], dtype=np.float64)
+        b = DataFrame(np.random.randn(10, 1), columns=["c"], dtype=np.float32)
         joined = a.join(b)
         assert joined.dtypes["a"] == "float64"
         assert joined.dtypes["b"] == "float64"

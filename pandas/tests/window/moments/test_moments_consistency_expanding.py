@@ -1,7 +1,6 @@
 import warnings
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 from pandas import DataFrame, Index, MultiIndex, Series, isna, notna
@@ -34,7 +33,7 @@ def _check_expanding(
 
 
 def _check_expanding_has_min_periods(func, static_comp, has_min_periods):
-    ser = Series(randn(50))
+    ser = Series(np.random.randn(50))
 
     if has_min_periods:
         result = func(ser, min_periods=30)
@@ -46,7 +45,7 @@ def _check_expanding_has_min_periods(func, static_comp, has_min_periods):
         assert isna(result.iloc[13])
         assert notna(result.iloc[14])
 
-        ser2 = Series(randn(20))
+        ser2 = Series(np.random.randn(20))
         result = func(ser2, min_periods=5)
         assert isna(result[3])
         assert notna(result[4])
@@ -62,7 +61,7 @@ def _check_expanding_has_min_periods(func, static_comp, has_min_periods):
 
 def test_expanding_corr(series):
     A = series.dropna()
-    B = (A + randn(len(A)))[:-5]
+    B = (A + np.random.randn(len(A)))[:-5]
 
     result = A.expanding().corr(B)
 
@@ -88,7 +87,7 @@ def test_expanding_quantile(series):
 
 def test_expanding_cov(series):
     A = series
-    B = (A + randn(len(A)))[:-5]
+    B = (A + np.random.randn(len(A)))[:-5]
 
     result = A.expanding().cov(B)
 

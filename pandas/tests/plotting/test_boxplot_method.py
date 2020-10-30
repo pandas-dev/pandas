@@ -2,7 +2,6 @@ import itertools
 import string
 
 import numpy as np
-from numpy import random
 import pytest
 
 import pandas.util._test_decorators as td
@@ -186,7 +185,7 @@ class TestDataFramePlots(TestPlotBase):
     )
     def test_color_kwd(self, colors_kwd, expected):
         # GH: 26214
-        df = DataFrame(random.rand(10, 2))
+        df = DataFrame(np.random.rand(10, 2))
         result = df.boxplot(color=colors_kwd, return_type="dict")
         for k, v in expected.items():
             assert result[k][0].get_color() == v
@@ -197,7 +196,7 @@ class TestDataFramePlots(TestPlotBase):
     )
     def test_color_kwd_errors(self, dict_colors, msg):
         # GH: 26214
-        df = DataFrame(random.rand(10, 2))
+        df = DataFrame(np.random.rand(10, 2))
         with pytest.raises(ValueError, match=msg):
             df.boxplot(color=dict_colors, return_type="dict")
 
@@ -293,7 +292,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         self._check_box_return_type(result, "dict", expected_keys=["Male", "Female"])
 
         columns2 = "X B C D A G Y N Q O".split()
-        df2 = DataFrame(random.randn(50, 10), columns=columns2)
+        df2 = DataFrame(np.random.randn(50, 10), columns=columns2)
         categories2 = "A B C D E F G H I J".split()
         df2["category"] = categories2 * 5
 
