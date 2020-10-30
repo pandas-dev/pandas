@@ -140,7 +140,9 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         "weekday",
         "week",
         "dayofweek",
+        "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "qyear",
         "days_in_month",
@@ -205,8 +207,6 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
             return scalars
 
         periods = np.asarray(scalars, dtype=object)
-        if copy:
-            periods = periods.copy()
 
         freq = freq or libperiod.extract_freq(periods)
         ordinals = libperiod.extract_ordinals(periods, freq)
@@ -381,12 +381,13 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         """,
     )
     week = weekofyear
-    dayofweek = _field_accessor(
-        "weekday",
+    day_of_week = _field_accessor(
+        "day_of_week",
         """
         The day of the week with Monday=0, Sunday=6.
         """,
     )
+    dayofweek = day_of_week
     weekday = dayofweek
     dayofyear = day_of_year = _field_accessor(
         "day_of_year",

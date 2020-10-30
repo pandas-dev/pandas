@@ -662,6 +662,13 @@ class TestGetLoc:
 
         assert result == slice(0, 1, None)
 
+    def test_multiindex_get_loc_list_raises(self):
+        # GH#35878
+        idx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        msg = "unhashable type"
+        with pytest.raises(TypeError, match=msg):
+            idx.get_loc([])
+
 
 class TestWhere:
     def test_where(self):
