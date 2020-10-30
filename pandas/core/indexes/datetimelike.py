@@ -473,11 +473,39 @@ class DatetimeIndexOpsMixin(ExtensionIndex):
         if level is not None:
             self._validate_index_level(level)
 
+        if not hasattr(values, "dtype"):
+            values = np.asarray(values)
+
+        if values.dtype.kind in ["f", "i", "u", "c"]:
+            # TODO: de-duplicate with equals, validate_comparison_value
+            return np.zeros(self.shape, dtype=bool)
+
         if not isinstance(values, type(self)):
+            inferrable = [
+                "timedelta",
+                "timedelta64",
+                "datetime",
+                "datetime64",
+                "date",
+                "period",
+            ]
+            if values.dtype == object:
+                inferred = lib.infer_dtype(values, skipna=False)
+                if inferred not in inferrable:
+                    if "mixed" in inferred:
+                        return self.astype(object).isin(values)
+                    return np.zeros(self.shape, dtype=bool)
+
             try:
                 values = type(self)(values)
             except ValueError:
                 return self.astype(object).isin(values)
+
+        try:
+            self._data._check_compatible_with(values)
+        except (TypeError, ValueError):
+            # Includes tzawareness mismatch and IncompatibleFrequencyError
+            return np.zeros(self.shape, dtype=bool)
 
         return algorithms.isin(self.asi8, values.asi8)
 
