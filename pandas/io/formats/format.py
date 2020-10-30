@@ -2024,12 +2024,12 @@ def buffer_put_lines(buf: IO[str], lines: List[str]) -> None:
 
 def repr_html_groupby(group_obj) -> str:
     """
-    Create a HTML representation for a grouped dataframe or series.
+    Create an HTML representation for a grouped DataFrame or Series.
 
     Parameters
     ----------
     group_obj : [DataFrameGroupBy, SeriesGroupBy]
-        A grouped dataframe or a series of a grouped dataframe.
+        Object to make HTML representation of.
     Returns
     -------
     str :
