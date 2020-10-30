@@ -1267,10 +1267,16 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         nv.validate_minmax_axis(axis, self.ndim)
 
         if is_period_dtype(self.dtype):
-            result = self.to_timestamp("S").min(axis=axis, skipna=skipna)
-            if result is not NaT:
-                result = result.to_period(self.freq)
-            return result
+            # pass datetime64 values to nanops to get correct NaT semantics
+            result = nanops.nanmin(
+                self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
+            )
+            if result is NaT:
+                return NaT
+            result = result.view("i8")
+            if axis is None or self.ndim == 1:
+                return self._box_func(result)
+            return self._from_backing_data(result)
 
         result = nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
         if lib.is_scalar(result):
@@ -1294,10 +1300,16 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         nv.validate_minmax_axis(axis, self.ndim)
 
         if is_period_dtype(self.dtype):
-            result = self.to_timestamp("S").max(axis=axis, skipna=skipna)
-            if result is not NaT:
-                result = result.to_period(self.freq)
-            return result
+            # pass datetime64 values to nanops to get correct NaT semantics
+            result = nanops.nanmax(
+                self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
+            )
+            if result is NaT:
+                return result
+            result = result.view("i8")
+            if axis is None or self.ndim == 1:
+                return self._box_func(result)
+            return self._from_backing_data(result)
 
         result = nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
         if lib.is_scalar(result):
