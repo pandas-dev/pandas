@@ -290,8 +290,18 @@ class TestReductions:
         )._values
         tm.assert_timedelta_array_equal(result, expected)
 
-    def test_std(self):
-        tdi = pd.TimedeltaIndex(["0H", "4H", "NaT", "4H", "0H", "2H"])
+    # Adding a Timestamp makes this a test for DatetimeArray.std
+    @pytest.mark.parametrize(
+        "add",
+        [
+            pd.Timedelta(0),
+            pd.Timestamp.now(),
+            pd.Timestamp.now("UTC"),
+            pd.Timestamp.now("Asia/Tokyo"),
+        ],
+    )
+    def test_std(self, add):
+        tdi = pd.TimedeltaIndex(["0H", "4H", "NaT", "4H", "0H", "2H"]) + add
         arr = tdi.array
 
         result = arr.std(skipna=True)
@@ -303,9 +313,10 @@ class TestReductions:
         assert isinstance(result, pd.Timedelta)
         assert result == expected
 
-        result = nanops.nanstd(np.asarray(arr), skipna=True)
-        assert isinstance(result, pd.Timedelta)
-        assert result == expected
+        if getattr(arr, "tz", None) is None:
+            result = nanops.nanstd(np.asarray(arr), skipna=True)
+            assert isinstance(result, pd.Timedelta)
+            assert result == expected
 
         result = arr.std(skipna=False)
         assert result is pd.NaT
@@ -313,8 +324,9 @@ class TestReductions:
         result = tdi.std(skipna=False)
         assert result is pd.NaT
 
-        result = nanops.nanstd(np.asarray(arr), skipna=False)
-        assert result is pd.NaT
+        if getattr(arr, "tz", None) is None:
+            result = nanops.nanstd(np.asarray(arr), skipna=False)
+            assert result is pd.NaT
 
     def test_median(self):
         tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06min", "0H", "2H"])

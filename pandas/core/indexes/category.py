@@ -161,6 +161,10 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     _typ = "categoricalindex"
 
+    @property
+    def _can_hold_strings(self):
+        return self.categories._can_hold_strings
+
     codes: np.ndarray
     categories: Index
     _data: Categorical
@@ -574,7 +578,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return self.get_indexer(keyarr)
 
     @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         if kind == "loc":
             return label
 
