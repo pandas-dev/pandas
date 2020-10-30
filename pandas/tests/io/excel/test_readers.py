@@ -21,7 +21,6 @@ engine_params = [
         "xlrd",
         marks=[
             td.skip_if_no("xlrd"),
-            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
         ],
     ),
     pytest.param(
@@ -35,7 +34,6 @@ engine_params = [
         None,
         marks=[
             td.skip_if_no("xlrd"),
-            pytest.mark.filterwarnings("ignore:.*(tree\\.iter|html argument)"),
         ],
     ),
     pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
