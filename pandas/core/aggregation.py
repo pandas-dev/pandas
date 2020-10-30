@@ -528,24 +528,30 @@ def transform_str_or_callable(
         return func(obj, *args, **kwargs)
 
 
-def aggregate(obj, arg: AggFuncType, *args, **kwargs):
+def aggregate(
+    obj,
+    arg: AggFuncType,
+    *args,
+    **kwargs,
+):
     """
-    provide an implementation for the aggregators
+    Provide an implementation for the aggregators.
 
     Parameters
     ----------
-    arg : string, dict, function
-    *args : args to pass on to the function
-    **kwargs : kwargs to pass on to the function
+    obj : Pandas object to compute aggregation on.
+    arg : string, dict, function.
+    *args : args to pass on to the function.
+    **kwargs : kwargs to pass on to the function.
 
     Returns
     -------
-    tuple of result, how
+    tuple of result, how.
 
     Notes
     -----
     how can be a string describe the required post-processing, or
-    None if not required
+    None if not required.
     """
     _axis = kwargs.pop("_axis", None)
     if _axis is None:
@@ -572,14 +578,17 @@ def aggregate(obj, arg: AggFuncType, *args, **kwargs):
     return result, True
 
 
-def agg_list_like(obj, arg: List[AggFuncTypeBase], _axis: int) -> FrameOrSeriesUnion:
+def agg_list_like(
+    obj,
+    arg: List[AggFuncTypeBase],
+    _axis: int,
+) -> FrameOrSeriesUnion:
     """
     Compute aggregation in the case of a list-like argument.
 
     Parameters
     ----------
-    obj : Series, DataFrame, SeriesGroupBy, or DataFrameGroupBy
-        Object to compute aggregation on.
+    obj : Pandas object to compute aggregation on.
     arg : list
         Aggregations to compute.
     _axis : int, 0 or 1
@@ -662,15 +671,16 @@ def agg_list_like(obj, arg: List[AggFuncTypeBase], _axis: int) -> FrameOrSeriesU
 
 
 def agg_dict_like(
-    obj, arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], _axis: int
+    obj,
+    arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    _axis: int,
 ) -> FrameOrSeriesUnion:
     """
     Compute aggregation in the case of a dict-like argument.
 
     Parameters
     ----------
-    obj: Series, DataFrame, SeriesGroupBy, or DataFrameGroupBy
-        Object to compute aggregation on.
+    obj : Pandas object to compute aggregation on.
     arg : dict
         label-aggregation pairs to compute.
     _axis : int, 0 or 1
