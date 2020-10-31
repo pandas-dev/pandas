@@ -17,6 +17,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    final,
 )
 import warnings
 
@@ -100,12 +101,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from typing import final
-
     from pandas import MultiIndex, RangeIndex, Series
-else:
-    # we cannot unconditionally import final on python<3.8
-    final = lambda x: x
 
 
 __all__ = ["Index"]
