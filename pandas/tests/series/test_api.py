@@ -12,10 +12,6 @@ import pandas._testing as tm
 
 
 class TestSeriesMisc:
-    def test_append_preserve_name(self, datetime_series):
-        result = datetime_series[:5].append(datetime_series[5:])
-        assert result.name == datetime_series.name
-
     def test_getitem_preserve_name(self, datetime_series):
         result = datetime_series[datetime_series > 0]
         assert result.name == datetime_series.name
@@ -143,10 +139,7 @@ class TestSeriesMisc:
             assert val == string_series[i]
 
     def test_keys(self, datetime_series):
-        # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
-        # to .keys() in a list()
-        getkeys = datetime_series.keys
-        assert getkeys() is datetime_series.index
+        assert datetime_series.keys() is datetime_series.index
 
     def test_values(self, datetime_series):
         tm.assert_almost_equal(
@@ -192,10 +185,6 @@ class TestSeriesMisc:
         # https://github.com/pandas-dev/pandas/issues/18147
         # no exception and no empty docstring
         assert pydoc.getdoc(Series.index)
-
-    def test_numpy_unique(self, datetime_series):
-        # it works!
-        np.unique(datetime_series)
 
     def test_item(self):
         s = Series([1])
