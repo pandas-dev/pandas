@@ -227,6 +227,7 @@ Other enhancements
 - :meth:`DataFrame.to_parquet` now returns a ``bytes`` object when no ``path`` argument is passed (:issue:`37105`)
 - :class:`Rolling` now supports the ``closed`` argument for fixed windows (:issue:`34315`)
 - :class:`DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`37436`)
+- :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -308,6 +309,13 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+.. _whatsnew_200.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- Sorting in descending order is now stable for :meth:`Series.sort_values` and :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses. This will affect sort order when sorting :class:`DataFrame` on multiple columns, sorting with a key function that produces duplicates, or requesting the sorting index when using :meth:`Index.sort_values`. When using :meth:`Series.value_counts`, count of missing values is no longer the last in the list of duplicate counts, and its position corresponds to the position in the original :class:`Series`. When using :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses, NaTs ignored the ``na_position`` argument and were sorted to the beggining. Now they respect ``na_position``, the default being ``last``, same as other :class:`Index` subclasses. (:issue:`35992`)
 
 .. ---------------------------------------------------------------------------
 
@@ -441,6 +449,7 @@ Indexing
 - Bug in :meth:`DataFrame.__getitem__` and :meth:`DataFrame.loc.__getitem__` with :class:`IntervalIndex` columns and a numeric indexer (:issue:`26490`)
 - Bug in :meth:`Series.loc.__getitem__` with a non-unique :class:`MultiIndex` and an empty-list indexer (:issue:`13691`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`MultiIndex` with a level named "0" (:issue:`37194`)
+- Bug in :meth:`Series.__getitem__` when using an unsigned integer array as an indexer giving incorrect results or segfaulting instead of raising ``KeyError`` (:issue:`37218`)
 
 Missing
 ^^^^^^^
@@ -476,6 +485,7 @@ I/O
 - Bug in :meth:`DataFrame.to_html`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` ignoring the ``na_rep`` argument when ``float_format`` was also specified (:issue:`9046`, :issue:`13828`)
 - Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
 - Bug in :class:`HDFStore` threw a ``TypeError`` when exporting an empty :class:`DataFrame` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
+- Bug in :class:`HDFStore` was dropping timezone information when exporting :class:`Series` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
 
 Plotting
 ^^^^^^^^
@@ -505,6 +515,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.rolling` returned wrong values with timeaware window containing ``NaN``. Raises ``ValueError`` because windows are not monotonic now (:issue:`34617`)
 - Bug in :meth:`Rolling.__iter__` where a ``ValueError`` was not raised when ``min_periods`` was larger than ``window`` (:issue:`37156`)
 - Using :meth:`Rolling.var()` instead of :meth:`Rolling.std()` avoids numerical issues for :meth:`Rolling.corr()` when :meth:`Rolling.var()` is still within floating point precision while :meth:`Rolling.std()` is not (:issue:`31286`)
+- Bug in :meth:`Rolling.median` and :meth:`Rolling.quantile` returned wrong values for :class:`BaseIndexer` subclasses with non-monotonic starting or ending points for windows (:issue:`37153`)
 
 Reshaping
 ^^^^^^^^^
@@ -514,6 +525,7 @@ Reshaping
 - Bug in func :meth:`crosstab` when using multiple columns with ``margins=True`` and ``normalize=True`` (:issue:`35144`)
 - Bug in :meth:`DataFrame.agg` with ``func={'name':<FUNC>}`` incorrectly raising ``TypeError`` when ``DataFrame.columns==['Name']`` (:issue:`36212`)
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
+- Bug in :meth:`DataFrame.pivot` did not preserve :class:`MultiIndex` level names for columns when rows and columns both multiindexed (:issue:`36360`)
 - Bug in :func:`join` returned a non deterministic level-order for the resulting :class:`MultiIndex` (:issue:`36910`)
 -
 
