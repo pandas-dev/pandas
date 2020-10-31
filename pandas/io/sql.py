@@ -13,6 +13,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
+from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import is_datetime64tz_dtype, is_dict_like, is_list_like
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -119,9 +120,14 @@ def _parse_date_columns(data_frame, parse_dates):
     return data_frame
 
 
-def _wrap_result(data, columns, index_col=None, coerce_float=True, parse_dates=None):
+def _wrap_result(
+    data, columns, index_col=None, coerce_float=True, parse_dates=None, dtype=None
+):
     """Wrap result set of query in a DataFrame."""
     frame = DataFrame.from_records(data, columns=columns, coerce_float=coerce_float)
+
+    if dtype:
+        frame = frame.astype(dtype)
 
     frame = _parse_date_columns(frame, parse_dates)
 
@@ -295,6 +301,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: None = None,
+    dtype: Optional[Dtype] = None,
 ) -> DataFrame:
     ...
 
@@ -308,6 +315,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: int = 1,
+    dtype: Optional[Dtype] = None,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -320,6 +328,7 @@ def read_sql_query(
     params=None,
     parse_dates=None,
     chunksize: Optional[int] = None,
+    dtype: Optional[Dtype] = None,
 ) -> Union[DataFrame, Iterator[DataFrame]]:
     """
     Read SQL query into a DataFrame.
@@ -381,6 +390,7 @@ def read_sql_query(
         coerce_float=coerce_float,
         parse_dates=parse_dates,
         chunksize=chunksize,
+        dtype=dtype,
     )
 
 
@@ -1225,7 +1235,13 @@ class SQLDatabase(PandasSQL):
 
     @staticmethod
     def _query_iterator(
-        result, chunksize, columns, index_col=None, coerce_float=True, parse_dates=None
+        result,
+        chunksize,
+        columns,
+        index_col=None,
+        coerce_float=True,
+        parse_dates=None,
+        dtype=None,
     ):
         """Return generator through chunked result set"""
         while True:
@@ -1239,6 +1255,7 @@ class SQLDatabase(PandasSQL):
                     index_col=index_col,
                     coerce_float=coerce_float,
                     parse_dates=parse_dates,
+                    dtype=dtype,
                 )
 
     def read_query(
@@ -1249,6 +1266,7 @@ class SQLDatabase(PandasSQL):
         parse_dates=None,
         params=None,
         chunksize=None,
+        dtype=None,
     ):
         """
         Read SQL query into a DataFrame.
@@ -1304,6 +1322,7 @@ class SQLDatabase(PandasSQL):
                 index_col=index_col,
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
+                dtype=dtype,
             )
         else:
             data = result.fetchall()
@@ -1313,6 +1332,7 @@ class SQLDatabase(PandasSQL):
                 index_col=index_col,
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
+                dtype=dtype,
             )
             return frame
 
