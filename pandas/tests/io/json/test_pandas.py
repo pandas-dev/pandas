@@ -448,8 +448,8 @@ class TestPandasContainer:
             columns=["A", "B", "C", "D"],
             index=dti,
         )
-        df["date"] = pd.Timestamp("19920106 18:21:32.12")
-        df.iloc[3, df.columns.get_loc("date")] = pd.Timestamp("20130101")
+        df["date"] = Timestamp("19920106 18:21:32.12")
+        df.iloc[3, df.columns.get_loc("date")] = Timestamp("20130101")
         df["modified"] = df["date"]
         df.iloc[1, df.columns.get_loc("modified")] = pd.NaT
 
@@ -788,9 +788,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("date_format", ["epoch", "iso"])
     @pytest.mark.parametrize("as_object", [True, False])
-    @pytest.mark.parametrize(
-        "date_typ", [datetime.date, datetime.datetime, pd.Timestamp]
-    )
+    @pytest.mark.parametrize("date_typ", [datetime.date, datetime.datetime, Timestamp])
     def test_date_index_and_values(self, date_format, as_object, date_typ):
         data = [date_typ(year=2020, month=1, day=1), pd.NaT]
         if as_object:
@@ -1023,12 +1021,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(frame, result)
 
     def test_mixed_timedelta_datetime(self):
-        frame = DataFrame(
-            {"a": [timedelta(23), pd.Timestamp("20130101")]}, dtype=object
-        )
+        frame = DataFrame({"a": [timedelta(23), Timestamp("20130101")]}, dtype=object)
 
         expected = DataFrame(
-            {"a": [pd.Timedelta(frame.a[0]).value, pd.Timestamp(frame.a[1]).value]}
+            {"a": [pd.Timedelta(frame.a[0]).value, Timestamp(frame.a[1]).value]}
         )
         result = pd.read_json(frame.to_json(date_unit="ns"), dtype={"a": "int64"})
         tm.assert_frame_equal(result, expected, check_index_type=False)
