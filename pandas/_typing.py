@@ -112,10 +112,11 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
+AggFuncTypeDict = Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
 AggFuncType = Union[
     AggFuncTypeBase,
     List[AggFuncTypeBase],
-    Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    AggFuncTypeDict,
 ]
 AggObjType = Union[
     "Series",
@@ -125,6 +126,7 @@ AggObjType = Union[
     "BaseWindow",
     "Resampler",
 ]
+
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]

@@ -23,6 +23,7 @@ from typing import (
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
+    AggFuncTypeDict,
     AggObjType,
     Axis,
     FrameOrSeries,
@@ -443,7 +444,7 @@ def transform(
             func = {col: func for col in obj}
 
     if is_dict_like(func):
-        func = cast(Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], func)
+        func = cast(AggFuncTypeDict, func)
         return transform_dict_like(obj, func, *args, **kwargs)
 
     # func is either str or callable
@@ -467,7 +468,7 @@ def transform(
 
 def transform_dict_like(
     obj: FrameOrSeries,
-    func: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    func: AggFuncTypeDict,
     *args,
     **kwargs,
 ):
@@ -561,7 +562,7 @@ def aggregate(
     if isinstance(arg, str):
         return obj._try_aggregate_string_function(arg, *args, **kwargs), None
     elif is_dict_like(arg):
-        arg = cast(Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]], arg)
+        arg = cast(AggFuncTypeDict, arg)
         return agg_dict_like(obj, arg, _axis), True
     elif is_list_like(arg):
         # we require a list, but not an 'str'
@@ -673,7 +674,7 @@ def agg_list_like(
 
 def agg_dict_like(
     obj: AggObjType,
-    arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    arg: AggFuncTypeDict,
     _axis: int,
 ) -> FrameOrSeriesUnion:
     """
@@ -702,7 +703,7 @@ def agg_dict_like(
     # eg. {'A' : ['mean']}, normalize all to
     # be list-likes
     if any(is_aggregator(x) for x in arg.values()):
-        new_arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]] = {}
+        new_arg: AggFuncTypeDict = {}
         for k, v in arg.items():
             if not isinstance(v, (tuple, list, dict)):
                 new_arg[k] = [v]
