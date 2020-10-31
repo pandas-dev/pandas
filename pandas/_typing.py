@@ -38,6 +38,8 @@ if TYPE_CHECKING:
     from pandas.core.indexes.base import Index
     from pandas.core.series import Series
 
+    from pandas.io.formats.format import EngFormatter
+
 # array-like
 
 AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
@@ -107,11 +109,13 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
+AggFuncTypeDict = Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
 AggFuncType = Union[
     AggFuncTypeBase,
     List[AggFuncTypeBase],
-    Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    AggFuncTypeDict,
 ]
+
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]
@@ -125,6 +129,10 @@ CompressionOptions = Optional[Union[str, CompressionDict]]
 # let's bind types
 ModeVar = TypeVar("ModeVar", str, None, Optional[str])
 EncodingVar = TypeVar("EncodingVar", str, None, Optional[str])
+
+
+# type of float formatter in DataFrameFormatter
+FloatFormatType = Union[str, Callable, "EngFormatter"]
 
 
 @dataclass

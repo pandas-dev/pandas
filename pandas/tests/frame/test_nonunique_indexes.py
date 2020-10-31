@@ -238,7 +238,7 @@ class TestDataFrameNonuniqueIndexes:
         )
         for index in [df.index, pd.Index(list("edcba"))]:
             this_df = df.copy()
-            expected_ser = pd.Series(index.values, index=this_df.index)
+            expected_ser = Series(index.values, index=this_df.index)
             expected_df = DataFrame(
                 {"A": expected_ser, "B": this_df["B"], "A": expected_ser},
                 columns=["A", "B", "A"],
@@ -487,16 +487,6 @@ class TestDataFrameNonuniqueIndexes:
         xp = DataFrame(vals)
         xp.columns = ["A", "A", "B"]
         tm.assert_frame_equal(rs, xp)
-
-    def test_values_duplicates(self):
-        df = DataFrame(
-            [[1, 2, "a", "b"], [1, 2, "a", "b"]], columns=["one", "one", "two", "two"]
-        )
-
-        result = df.values
-        expected = np.array([[1, 2, "a", "b"], [1, 2, "a", "b"]], dtype=object)
-
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_set_value_by_index(self):
         # See gh-12344
