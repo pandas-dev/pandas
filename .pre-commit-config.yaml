@@ -53,6 +53,16 @@ repos:
         types: [rst]
         args: [--filename=*.rst]
         additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
+
+    -   id: non-standard-imports
+        name: Check for non-standard imports
+        language: pygrep
+        entry: |
+            (?x)
+            # Check for imports from np.random.<method> instead of `from numpy import random` or  `from numpy.random import <method>`
+            from\ numpy\ import\ random|
+            from\ numpy.random\ import
+
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
