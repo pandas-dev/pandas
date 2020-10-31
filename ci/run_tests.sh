@@ -20,16 +20,13 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-if [[ $(uname) == "Linux"  ]]; then
-    PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
-elif [[ $(uname) == 'Darwin' ]]; then
-    PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
-else
-    # Windows, see if running only a subset of tests will help with py38
-    #  build failures
-    PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas/tests --ignore=pandas/tests/window/"
-fi
+PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
+if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
+    # GH#37455 windows py38 build appears to be running out of memory
+    #  skip collection of window tests
+    PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/window/"
+fi
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
