@@ -309,6 +309,13 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
+.. _whatsnew_200.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- Sorting in descending order is now stable for :meth:`Series.sort_values` and :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses. This will affect sort order when sorting :class:`DataFrame` on multiple columns, sorting with a key function that produces duplicates, or requesting the sorting index when using :meth:`Index.sort_values`. When using :meth:`Series.value_counts`, count of missing values is no longer the last in the list of duplicate counts, and its position corresponds to the position in the original :class:`Series`. When using :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses, NaTs ignored the ``na_position`` argument and were sorted to the beggining. Now they respect ``na_position``, the default being ``last``, same as other :class:`Index` subclasses. (:issue:`35992`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_120.deprecations:
@@ -477,6 +484,7 @@ I/O
 - Bug in :meth:`DataFrame.to_html`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` ignoring the ``na_rep`` argument when ``float_format`` was also specified (:issue:`9046`, :issue:`13828`)
 - Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
 - Bug in :class:`HDFStore` threw a ``TypeError`` when exporting an empty :class:`DataFrame` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
+- Bug in :class:`HDFStore` was dropping timezone information when exporting :class:`Series` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
 
 Plotting
 ^^^^^^^^
