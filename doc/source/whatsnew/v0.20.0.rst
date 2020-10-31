@@ -26,7 +26,7 @@ Highlights include:
 
 .. warning::
 
-  Pandas has changed the internal structure and layout of the code base.
+  pandas has changed the internal structure and layout of the code base.
   This can affect imports that are not from the top-level ``pandas.*`` namespace, please see the changes :ref:`here <whatsnew_0200.privacy>`.
 
 Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations <whatsnew_0200.deprecations>` before updating.
@@ -243,7 +243,7 @@ The default is to infer the compression type from the extension (``compression='
 UInt64 support improved
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has significantly improved support for operations involving unsigned,
+pandas has significantly improved support for operations involving unsigned,
 or purely non-negative, integers. Previously, handling these integers would
 result in improper rounding or data-type casting, leading to incorrect results.
 Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937`)
@@ -333,7 +333,7 @@ You must enable this by setting the ``display.html.table_schema`` option to ``Tr
 SciPy sparse matrix from/to SparseDataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
+pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
 See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:`4343`)
 
 All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
@@ -1201,7 +1201,7 @@ Modules privacy has changed
 
 Some formerly public python/c/c++/cython extension modules have been moved and/or renamed. These are all removed from the public API.
 Furthermore, the ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are now considered to be PRIVATE.
-If indicated, a deprecation warning will be issued if you reference theses modules. (:issue:`12588`)
+If indicated, a deprecation warning will be issued if you reference these modules. (:issue:`12588`)
 
 .. csv-table::
     :header: "Previous Location", "New Location", "Deprecated"
@@ -1355,7 +1355,7 @@ Deprecate Panel
 ^^^^^^^^^^^^^^^
 
 ``Panel`` is deprecated and will be removed in a future version. The recommended way to represent 3-D data are
-with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
+with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. pandas
 provides a :meth:`~Panel.to_xarray` method to automate this conversion (:issue:`13563`).
 
 .. code-block:: ipython

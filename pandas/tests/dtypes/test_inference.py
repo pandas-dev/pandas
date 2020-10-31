@@ -584,7 +584,7 @@ class TestInference:
 
     def test_maybe_convert_objects_bool_nan(self):
         # GH32146
-        ind = pd.Index([True, False, np.nan], dtype=object)
+        ind = Index([True, False, np.nan], dtype=object)
         exp = np.array([True, False, np.nan], dtype=object)
         out = lib.maybe_convert_objects(ind.values, safe=1)
         tm.assert_numpy_array_equal(out, exp)
@@ -709,6 +709,9 @@ class TestTypeInference:
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "mixed"
 
+        result = lib.infer_dtype(arr[::-1], skipna=True)
+        assert result == "mixed"
+
         arr = np.array([Decimal(1), Decimal("NaN"), Decimal(3)])
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "decimal"
@@ -727,6 +730,9 @@ class TestTypeInference:
 
         arr = np.array([1.0, 2.0, 1 + 1j], dtype="O")
         result = lib.infer_dtype(arr, skipna=skipna)
+        assert result == "mixed"
+
+        result = lib.infer_dtype(arr[::-1], skipna=skipna)
         assert result == "mixed"
 
         # gets cast to complex on array construction
@@ -815,10 +821,10 @@ class TestTypeInference:
             np.array(
                 [np.datetime64("2011-01-02"), np.timedelta64("nat")], dtype=object
             ),
-            np.array([np.datetime64("2011-01-01"), pd.Timestamp("2011-01-02")]),
-            np.array([pd.Timestamp("2011-01-02"), np.datetime64("2011-01-01")]),
-            np.array([np.nan, pd.Timestamp("2011-01-02"), 1.1]),
-            np.array([np.nan, "2011-01-01", pd.Timestamp("2011-01-02")]),
+            np.array([np.datetime64("2011-01-01"), Timestamp("2011-01-02")]),
+            np.array([Timestamp("2011-01-02"), np.datetime64("2011-01-01")]),
+            np.array([np.nan, Timestamp("2011-01-02"), 1.1]),
+            np.array([np.nan, "2011-01-01", Timestamp("2011-01-02")]),
             np.array([np.datetime64("nat"), np.timedelta64(1, "D")], dtype=object),
             np.array([np.timedelta64(1, "D"), np.datetime64("nat")], dtype=object),
         ],
@@ -827,7 +833,7 @@ class TestTypeInference:
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
     def test_infer_dtype_mixed_integer(self):
-        arr = np.array([np.nan, pd.Timestamp("2011-01-02"), 1])
+        arr = np.array([np.nan, Timestamp("2011-01-02"), 1])
         assert lib.infer_dtype(arr, skipna=True) == "mixed-integer"
 
     @pytest.mark.parametrize(
@@ -835,7 +841,7 @@ class TestTypeInference:
         [
             np.array([Timestamp("2011-01-01"), Timestamp("2011-01-02")]),
             np.array([datetime(2011, 1, 1), datetime(2012, 2, 1)]),
-            np.array([datetime(2011, 1, 1), pd.Timestamp("2011-01-02")]),
+            np.array([datetime(2011, 1, 1), Timestamp("2011-01-02")]),
         ],
     )
     def test_infer_dtype_datetime(self, arr):
@@ -843,7 +849,7 @@ class TestTypeInference:
 
     @pytest.mark.parametrize("na_value", [pd.NaT, np.nan])
     @pytest.mark.parametrize(
-        "time_stamp", [pd.Timestamp("2011-01-01"), datetime(2011, 1, 1)]
+        "time_stamp", [Timestamp("2011-01-01"), datetime(2011, 1, 1)]
     )
     def test_infer_dtype_datetime_with_na(self, na_value, time_stamp):
         # starts with nan
@@ -1056,8 +1062,8 @@ class TestTypeInference:
         assert lib.is_datetime_with_singletz_array(
             np.array(
                 [
-                    pd.Timestamp("20130101", tz="US/Eastern"),
-                    pd.Timestamp("20130102", tz="US/Eastern"),
+                    Timestamp("20130101", tz="US/Eastern"),
+                    Timestamp("20130102", tz="US/Eastern"),
                 ],
                 dtype=object,
             )
@@ -1065,8 +1071,8 @@ class TestTypeInference:
         assert not lib.is_datetime_with_singletz_array(
             np.array(
                 [
-                    pd.Timestamp("20130101", tz="US/Eastern"),
-                    pd.Timestamp("20130102", tz="CET"),
+                    Timestamp("20130101", tz="US/Eastern"),
+                    Timestamp("20130102", tz="CET"),
                 ],
                 dtype=object,
             )
@@ -1109,8 +1115,8 @@ class TestTypeInference:
     @pytest.mark.parametrize(
         "values",
         [
-            [date(2020, 1, 1), pd.Timestamp("2020-01-01")],
-            [pd.Timestamp("2020-01-01"), date(2020, 1, 1)],
+            [date(2020, 1, 1), Timestamp("2020-01-01")],
+            [Timestamp("2020-01-01"), date(2020, 1, 1)],
             [date(2020, 1, 1), pd.NaT],
             [pd.NaT, date(2020, 1, 1)],
         ],
@@ -1188,7 +1194,7 @@ class TestTypeInference:
     def test_is_period(self):
         assert lib.is_period(pd.Period("2011-01", freq="M"))
         assert not lib.is_period(pd.PeriodIndex(["2011-01"], freq="M"))
-        assert not lib.is_period(pd.Timestamp("2011-01"))
+        assert not lib.is_period(Timestamp("2011-01"))
         assert not lib.is_period(1)
         assert not lib.is_period(np.nan)
 
@@ -1217,7 +1223,7 @@ class TestTypeInference:
         inferred = lib.infer_dtype(idx._data, skipna=False)
         assert inferred == "interval"
 
-        inferred = lib.infer_dtype(pd.Series(idx), skipna=False)
+        inferred = lib.infer_dtype(Series(idx), skipna=False)
         assert inferred == "interval"
 
     @pytest.mark.parametrize("klass", [pd.array, pd.Series])
@@ -1495,7 +1501,7 @@ def test_nan_to_nat_conversions():
 
 @td.skip_if_no_scipy
 @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
-def test_is_scipy_sparse(spmatrix):  # noqa: F811
+def test_is_scipy_sparse(spmatrix):
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
 

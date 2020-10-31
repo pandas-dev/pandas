@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas.compat import IS64, PYPY
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -14,7 +14,6 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import DataFrame, Index, IntervalIndex, Series
-import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -128,7 +127,11 @@ def test_memory_usage(index_or_series_obj):
     )
 
     if len(obj) == 0:
-        assert res_deep == res == 0
+        if isinstance(obj, Index):
+            expected = 0
+        else:
+            expected = 80 if IS64 else 48
+        assert res_deep == res == expected
     elif is_object or is_categorical:
         # only deep will pick them up
         assert res_deep > res
@@ -181,7 +184,7 @@ def test_access_by_position(index):
     elif isinstance(index, pd.MultiIndex):
         pytest.skip("Can't instantiate Series from MultiIndex")
 
-    series = pd.Series(index)
+    series = Series(index)
     assert index[0] == series.iloc[0]
     assert index[5] == series.iloc[5]
     assert index[-1] == series.iloc[-1]
@@ -195,10 +198,3 @@ def test_access_by_position(index):
     msg = "single positional indexer is out-of-bounds"
     with pytest.raises(IndexError, match=msg):
         series.iloc[size]
-
-
-def test_get_indexer_non_unique_dtype_mismatch():
-    # GH 25459
-    indexes, missing = pd.Index(["A", "B"]).get_indexer_non_unique(pd.Index([0]))
-    tm.assert_numpy_array_equal(np.array([-1], dtype=np.intp), indexes)
-    tm.assert_numpy_array_equal(np.array([0], dtype=np.intp), missing)

@@ -2,7 +2,6 @@ import os
 import warnings
 
 import numpy as np
-from numpy import random
 
 from pandas.util._decorators import cache_readonly
 import pandas.util._test_decorators as td
@@ -10,7 +9,7 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, to_datetime
 import pandas._testing as tm
 
 
@@ -27,6 +26,9 @@ class TestPlotBase:
         from pandas.plotting._matplotlib import compat
 
         mpl.rcdefaults()
+
+        self.start_date_to_int64 = 812419200000000000
+        self.end_date_to_int64 = 819331200000000000
 
         self.mpl_ge_2_2_3 = compat.mpl_ge_2_2_3()
         self.mpl_ge_3_0_0 = compat.mpl_ge_3_0_0()
@@ -47,9 +49,17 @@ class TestPlotBase:
                 {
                     "gender": gender,
                     "classroom": classroom,
-                    "height": random.normal(66, 4, size=n),
-                    "weight": random.normal(161, 32, size=n),
-                    "category": random.randint(4, size=n),
+                    "height": np.random.normal(66, 4, size=n),
+                    "weight": np.random.normal(161, 32, size=n),
+                    "category": np.random.randint(4, size=n),
+                    "datetime": to_datetime(
+                        np.random.randint(
+                            self.start_date_to_int64,
+                            self.end_date_to_int64,
+                            size=n,
+                            dtype=np.int64,
+                        )
+                    ),
                 }
             )
 

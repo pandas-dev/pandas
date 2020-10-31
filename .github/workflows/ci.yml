@@ -37,12 +37,6 @@ jobs:
         ci/code_checks.sh lint
       if: always()
 
-    - name: Dependencies consistency
-      run: |
-        source activate pandas-dev
-        ci/code_checks.sh dependencies
-      if: always()
-
     - name: Checks on imported code
       run: |
         source activate pandas-dev
@@ -125,7 +119,7 @@ jobs:
     # This can be removed when the ipython directive fails when there are errors,
     # including the `tee sphinx.log` in te previous step (https://github.com/ipython/ipython/issues/11547)
     - name: Check ipython directive errors
-      run: "! grep -B1 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
+      run: "! grep -B10 \"^<<<-------------------------------------------------------------------------$\" sphinx.log"
 
     - name: Install ssh key
       run: |
