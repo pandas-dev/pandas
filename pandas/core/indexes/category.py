@@ -46,6 +46,7 @@ _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
         "_reverse_indexer",
         "searchsorted",
         "is_dtype_equal",
+        "categories_match_up_to_permutation",
         "min",
         "max",
     ],
@@ -256,7 +257,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """
         if is_categorical_dtype(other):
             other = extract_array(other)
-            if not other.is_dtype_equal(self):
+            if not other.categories_match_up_to_permutation(self):
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )
