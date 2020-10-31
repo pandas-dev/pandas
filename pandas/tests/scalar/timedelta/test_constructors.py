@@ -65,7 +65,7 @@ def test_construction():
     assert Timedelta("10 days 1 h 1m 1s") == timedelta(
         days=10, hours=1, minutes=1, seconds=1
     )
-    assert Timedelta("-10 days 1 h 1min 1s") == -timedelta(
+    assert Timedelta("-10 days 1 h 1m 1s") == -timedelta(
         days=10, hours=1, minutes=1, seconds=1
     )
     assert Timedelta("-10 days 1 h 1m 1s") == -timedelta(
