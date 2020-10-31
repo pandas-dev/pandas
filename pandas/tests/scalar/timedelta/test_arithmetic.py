@@ -927,7 +927,7 @@ class TestTimedeltaComparison:
     def test_compare_td64_ndarray(self):
         # GG#33441
         arr = np.arange(5).astype("timedelta64[ns]")
-        td = pd.Timedelta(arr[1])
+        td = Timedelta(arr[1])
 
         expected = np.array([False, True, False, False, False], dtype=bool)
 

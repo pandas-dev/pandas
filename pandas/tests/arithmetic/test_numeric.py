@@ -135,7 +135,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         right = np.array([1, 2, 3], dtype="m8[s]")
         right = box_cls(right)
 
-        expected = pd.TimedeltaIndex(["10s", "40s", "90s"])
+        expected = TimedeltaIndex(["10s", "40s", "90s"])
         if isinstance(left, Series) or box_cls is Series:
             expected = Series(expected)
 
@@ -155,7 +155,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         right = np.array([10, 40, 90], dtype="m8[s]")
         right = box_cls(right)
 
-        expected = pd.TimedeltaIndex(["1s", "2s", "3s"])
+        expected = TimedeltaIndex(["1s", "2s", "3s"])
         if isinstance(left, Series) or box_cls is Series:
             expected = Series(expected)
 
@@ -189,7 +189,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#19333
         box = box_with_array
         index = numeric_idx
-        expected = pd.TimedeltaIndex([pd.Timedelta(days=n) for n in range(len(index))])
+        expected = TimedeltaIndex([Timedelta(days=n) for n in range(len(index))])
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -244,10 +244,10 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "other",
         [
-            pd.Timedelta(hours=31),
-            pd.Timedelta(hours=31).to_pytimedelta(),
-            pd.Timedelta(hours=31).to_timedelta64(),
-            pd.Timedelta(hours=31).to_timedelta64().astype("m8[h]"),
+            Timedelta(hours=31),
+            Timedelta(hours=31).to_pytimedelta(),
+            Timedelta(hours=31).to_timedelta64(),
+            Timedelta(hours=31).to_timedelta64().astype("m8[h]"),
             np.timedelta64("NaT"),
             np.timedelta64("NaT", "D"),
             pd.offsets.Minute(3),
