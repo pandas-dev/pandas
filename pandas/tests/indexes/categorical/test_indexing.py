@@ -355,7 +355,7 @@ class TestContains:
             (1.5, True),
             (pd.Interval(0.5, 1.5), False),
             ("a", False),
-            (pd.Timestamp(1), False),
+            (Timestamp(1), False),
             (pd.Timedelta(1), False),
         ],
         ids=str,
