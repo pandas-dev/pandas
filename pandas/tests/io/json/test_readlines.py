@@ -12,7 +12,7 @@ from pandas.io.json._json import JsonReader
 
 @pytest.fixture
 def lines_json_df():
-    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     return df.to_json(lines=True, orient="records")
 
 
@@ -45,21 +45,29 @@ def test_to_jsonl():
     # GH9180
     df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
     result = df.to_json(orient="records", lines=True)
-    expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
+    expected = '{"a":1,"b":2}\n{"a":1,"b":2}\n'
     assert result == expected
 
     df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=["a", "b"])
     result = df.to_json(orient="records", lines=True)
-    expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
+    expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}\n'
     assert result == expected
     tm.assert_frame_equal(read_json(result, lines=True), df)
 
     # GH15096: escaped characters in columns and data
     df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]], columns=["a\\", "b"])
     result = df.to_json(orient="records", lines=True)
-    expected = '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}'
+    expected = '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n'
     assert result == expected
     tm.assert_frame_equal(read_json(result, lines=True), df)
+
+
+def test_to_jsonl_count_new_lines():
+    # GH36888
+    df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+    actual_new_lines_count = df.to_json(orient="records", lines=True).count("\n")
+    expected_new_lines_count = 2
+    assert actual_new_lines_count == expected_new_lines_count
 
 
 @pytest.mark.parametrize("chunksize", [1, 1.0])
@@ -104,7 +112,7 @@ def test_readjson_each_chunk(lines_json_df):
 
 def test_readjson_chunks_from_file():
     with tm.ensure_clean("test.json") as path:
-        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         df.to_json(path, lines=True, orient="records")
         chunked = pd.concat(pd.read_json(path, lines=True, chunksize=1))
         unchunked = pd.read_json(path, lines=True)
@@ -114,7 +122,7 @@ def test_readjson_chunks_from_file():
 @pytest.mark.parametrize("chunksize", [None, 1])
 def test_readjson_chunks_closes(chunksize):
     with tm.ensure_clean("test.json") as path:
-        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         df.to_json(path, lines=True, orient="records")
         reader = JsonReader(
             path,
@@ -165,7 +173,7 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
 
     {"A":3,"B":6}
     """
-    orig = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    orig = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     test = pd.read_json(j, lines=True, chunksize=chunksize)
     if chunksize is not None:
         test = pd.concat(test)
@@ -179,7 +187,7 @@ def test_readjson_unicode(monkeypatch):
             f.write('{"£©µÀÆÖÞßéöÿ":["АБВГДабвгд가"]}')
 
         result = read_json(path)
-        expected = pd.DataFrame({"£©µÀÆÖÞßéöÿ": ["АБВГДабвгд가"]})
+        expected = DataFrame({"£©µÀÆÖÞßéöÿ": ["АБВГДабвгд가"]})
         tm.assert_frame_equal(result, expected)
 
 
@@ -192,7 +200,7 @@ def test_readjson_nrows(nrows):
         {"a": 5, "b": 6}
         {"a": 7, "b": 8}"""
     result = pd.read_json(jsonl, lines=True, nrows=nrows)
-    expected = pd.DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
+    expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(result, expected)
 
 
@@ -206,7 +214,7 @@ def test_readjson_nrows_chunks(nrows, chunksize):
         {"a": 7, "b": 8}"""
     reader = read_json(jsonl, lines=True, nrows=nrows, chunksize=chunksize)
     chunked = pd.concat(reader)
-    expected = pd.DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
+    expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(chunked, expected)
 
 
@@ -226,9 +234,9 @@ def test_readjson_lines_chunks_fileurl(datapath):
     # GH 27135
     # Test reading line-format JSON from file url
     df_list_expected = [
-        pd.DataFrame([[1, 2]], columns=["a", "b"], index=[0]),
-        pd.DataFrame([[3, 4]], columns=["a", "b"], index=[1]),
-        pd.DataFrame([[5, 6]], columns=["a", "b"], index=[2]),
+        DataFrame([[1, 2]], columns=["a", "b"], index=[0]),
+        DataFrame([[3, 4]], columns=["a", "b"], index=[1]),
+        DataFrame([[5, 6]], columns=["a", "b"], index=[2]),
     ]
     os_path = datapath("io", "json", "data", "line_delimited.json")
     file_url = Path(os_path).as_uri()

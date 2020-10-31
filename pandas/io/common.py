@@ -53,7 +53,7 @@ _VALID_URLS.discard("")
 
 
 if TYPE_CHECKING:
-    from io import IOBase  # noqa: F401
+    from io import IOBase
 
 
 def is_url(url) -> bool:

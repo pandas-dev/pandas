@@ -8,7 +8,7 @@ from collections import abc
 import numbers
 import os
 import re
-from typing import Dict, List, Optional, Pattern, Sequence, Union
+from typing import Dict, List, Optional, Pattern, Sequence, Tuple, Union
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
@@ -435,7 +435,7 @@ class _HtmlFrameParser:
         to subsequent cells.
         """
         all_texts = []  # list of rows, each a list of str
-        remainder = []  # list of (index, text, nrows)
+        remainder: List[Tuple[int, str, int]] = []  # list of (index, text, nrows)
 
         for tr in rows:
             texts = []  # the output for this row
@@ -910,6 +910,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
         else:
             break
     else:
+        assert retained is not None  # for mypy
         raise retained
 
     ret = []

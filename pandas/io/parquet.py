@@ -1,5 +1,6 @@
 """ parquet compat """
 
+import io
 from typing import Any, AnyStr, Dict, List, Optional
 from warnings import catch_warnings
 
@@ -238,28 +239,29 @@ class FastParquetImpl(BaseImpl):
 
 def to_parquet(
     df: DataFrame,
-    path: FilePathOrBuffer[AnyStr],
+    path: Optional[FilePathOrBuffer] = None,
     engine: str = "auto",
     compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
     storage_options: StorageOptions = None,
     partition_cols: Optional[List[str]] = None,
     **kwargs,
-):
+) -> Optional[bytes]:
     """
     Write a DataFrame to the parquet format.
 
     Parameters
     ----------
     df : DataFrame
-    path : str or file-like object
+    path : str or file-like object, default None
         If a string, it will be used as Root Directory path
         when writing a partitioned dataset. By file-like object,
-        we refer to objects with a write() method, such as a file handler
+        we refer to objects with a write() method, such as a file handle
         (e.g. via builtin open function) or io.BytesIO. The engine
-        fastparquet does not accept file-like objects.
+        fastparquet does not accept file-like objects. If path is None,
+        a bytes object is returned.
 
-        .. versionchanged:: 0.24.0
+        .. versionchanged:: 1.2.0
 
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
@@ -298,19 +300,32 @@ def to_parquet(
 
     kwargs
         Additional keyword arguments passed to the engine
+
+    Returns
+    -------
+    bytes if no path argument is provided else None
     """
     if isinstance(partition_cols, str):
         partition_cols = [partition_cols]
     impl = get_engine(engine)
-    return impl.write(
+
+    path_or_buf: FilePathOrBuffer = io.BytesIO() if path is None else path
+
+    impl.write(
         df,
-        path,
+        path_or_buf,
         compression=compression,
         index=index,
         partition_cols=partition_cols,
         storage_options=storage_options,
         **kwargs,
     )
+
+    if path is None:
+        assert isinstance(path_or_buf, io.BytesIO)
+        return path_or_buf.getvalue()
+    else:
+        return None
 
 
 def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
@@ -321,7 +336,7 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
     ----------
     path : str, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.parquet``.
         A file URL can also be a path to a directory that contains multiple
@@ -333,7 +348,7 @@ def read_parquet(path, engine: str = "auto", columns=None, **kwargs):
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option

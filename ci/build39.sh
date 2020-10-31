@@ -1,7 +1,6 @@
 #!/bin/bash -e
 # Special build for python3.9 until numpy puts its own wheels up
 
-sudo apt-get install build-essential gcc xvfb
 pip install --no-deps -U pip wheel setuptools
 pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis
 
