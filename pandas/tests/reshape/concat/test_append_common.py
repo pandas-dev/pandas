@@ -40,7 +40,7 @@ class TestConcatAppendCommon:
             "bool": [True, False, True],
             "int64": [1, 2, 3],
             "float64": [1.1, np.nan, 3.3],
-            "category": pd.Categorical(["X", "Y", "Z"]),
+            "category": Categorical(["X", "Y", "Z"]),
             "object": ["a", "b", "c"],
             "datetime64[ns]": dt_data,
             "datetime64[ns, US/Eastern]": tz_data,
@@ -80,8 +80,8 @@ class TestConcatAppendCommon:
             vals3 = vals1
 
             if typ1 == "category":
-                exp_data = pd.Categorical(list(vals1) + list(vals2))
-                exp_data3 = pd.Categorical(list(vals1) + list(vals2) + list(vals3))
+                exp_data = Categorical(list(vals1) + list(vals2))
+                exp_data3 = Categorical(list(vals1) + list(vals2) + list(vals3))
             else:
                 exp_data = vals1 + vals2
                 exp_data3 = vals1 + vals2 + vals3
@@ -637,16 +637,14 @@ class TestConcatAppendCommon:
     def test_concat_categorical_ordered(self):
         # GH 13524
 
-        s1 = Series(pd.Categorical([1, 2, np.nan], ordered=True))
-        s2 = Series(pd.Categorical([2, 1, 2], ordered=True))
+        s1 = Series(Categorical([1, 2, np.nan], ordered=True))
+        s2 = Series(Categorical([2, 1, 2], ordered=True))
 
-        exp = Series(pd.Categorical([1, 2, np.nan, 2, 1, 2], ordered=True))
+        exp = Series(Categorical([1, 2, np.nan, 2, 1, 2], ordered=True))
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
-        exp = Series(
-            pd.Categorical([1, 2, np.nan, 2, 1, 2, 1, 2, np.nan], ordered=True)
-        )
+        exp = Series(Categorical([1, 2, np.nan, 2, 1, 2, 1, 2, np.nan], ordered=True))
         tm.assert_series_equal(pd.concat([s1, s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s1.append([s2, s1], ignore_index=True), exp)
 
@@ -725,3 +723,26 @@ class TestConcatAppendCommon:
 
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
+
+    def test_categorical_concat_append(self):
+        cat = Categorical(["a", "b"], categories=["a", "b"])
+        vals = [1, 2]
+        df = DataFrame({"cats": cat, "vals": vals})
+        cat2 = Categorical(["a", "b", "a", "b"], categories=["a", "b"])
+        vals2 = [1, 2, 1, 2]
+        exp = DataFrame({"cats": cat2, "vals": vals2}, index=Index([0, 1, 0, 1]))
+
+        tm.assert_frame_equal(pd.concat([df, df]), exp)
+        tm.assert_frame_equal(df.append(df), exp)
+
+        # GH 13524 can concat different categories
+        cat3 = Categorical(["a", "b"], categories=["a", "b", "c"])
+        vals3 = [1, 2]
+        df_different_categories = DataFrame({"cats": cat3, "vals": vals3})
+
+        res = pd.concat([df, df_different_categories], ignore_index=True)
+        exp = DataFrame({"cats": list("abab"), "vals": [1, 2, 1, 2]})
+        tm.assert_frame_equal(res, exp)
+
+        res = df.append(df_different_categories, ignore_index=True)
+        tm.assert_frame_equal(res, exp)

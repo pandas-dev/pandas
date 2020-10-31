@@ -134,7 +134,7 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
         See Also
         --------
-        GroupBy.__iter__
+        GroupBy.__iter__ : Generator yielding sequence for each group.
         """
         self._set_binner()
         return super().__iter__()
@@ -238,9 +238,12 @@ class Resampler(BaseGroupBy, ShallowMixin):
         """
     See Also
     --------
-    DataFrame.groupby.aggregate
-    DataFrame.resample.transform
-    DataFrame.aggregate
+    DataFrame.groupby.aggregate : Aggregate using callable, string, dict,
+        or list of string/callables.
+    DataFrame.resample.transform : Transforms the Series on each group
+        based on the given function.
+    DataFrame.aggregate: Aggregate using one or more
+        operations over the specified axis.
     """
     )
 
@@ -464,8 +467,8 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
         See Also
         --------
-        Series.fillna
-        DataFrame.fillna
+        Series.fillna: Fill NA/NaN values using the specified method.
+        DataFrame.fillna: Fill NA/NaN values using the specified method.
         """
         return self._upsample("pad", limit=limit)
 
@@ -839,8 +842,8 @@ class Resampler(BaseGroupBy, ShallowMixin):
 
         See Also
         --------
-        Series.asfreq
-        DataFrame.asfreq
+        Series.asfreq: Convert TimeSeries to specified frequency.
+        DataFrame.asfreq: Convert TimeSeries to specified frequency.
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
@@ -930,8 +933,13 @@ class Resampler(BaseGroupBy, ShallowMixin):
         See Also
         --------
         Series.quantile
+            Return a series, where the index is q and the values are the quantiles.
         DataFrame.quantile
+            Return a DataFrame, where the columns are the columns of self,
+            and the values are the quantiles.
         DataFrameGroupBy.quantile
+            Return a DataFrame, where the coulmns are groupby columns,
+            and the values are its quantiles.
         """
         # pandas\core\resample.py:920: error: Unexpected keyword argument "q"
         # for "_downsample"  [call-arg]
@@ -1099,7 +1107,7 @@ class DatetimeIndexResampler(Resampler):
 
         See Also
         --------
-        .fillna
+        .fillna: Fill NA/NaN values using the specified method.
 
         """
         self._set_binner()
@@ -1235,7 +1243,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         See Also
         --------
-        .fillna
+        .fillna: Fill NA/NaN values using the specified method.
 
         """
         # we may need to actually resample as if we are timestamps

@@ -4,6 +4,7 @@ import pytest
 import pandas as pd
 from pandas import (
     CategoricalDtype,
+    CategoricalIndex,
     DataFrame,
     Index,
     IntervalIndex,
@@ -495,7 +496,7 @@ class TestDataFrameSortIndex:
             columns=["a"],
             index=MultiIndex(
                 levels=[
-                    pd.CategoricalIndex(
+                    CategoricalIndex(
                         ["c", "a", "b"],
                         categories=["c", "a", "b"],
                         ordered=True,
@@ -736,6 +737,34 @@ class TestDataFrameSortIndex:
         result = result.sort_index(axis=1)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "categories",
+        [
+            pytest.param(["a", "b", "c"], id="str"),
+            pytest.param(
+                [pd.Interval(0, 1), pd.Interval(1, 2), pd.Interval(2, 3)],
+                id="pd.Interval",
+            ),
+        ],
+    )
+    def test_sort_index_with_categories(self, categories):
+        # GH#23452
+        df = DataFrame(
+            {"foo": range(len(categories))},
+            index=CategoricalIndex(
+                data=categories, categories=categories, ordered=True
+            ),
+        )
+        df.index = df.index.reorder_categories(df.index.categories[::-1])
+        result = df.sort_index()
+        expected = DataFrame(
+            {"foo": reversed(range(len(categories)))},
+            index=CategoricalIndex(
+                data=categories[::-1], categories=categories[::-1], ordered=True
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSortIndexKey:
     def test_sort_multi_index_key(self):
@@ -822,7 +851,7 @@ class TestDataFrameSortIndexKey:
                 i: pd.array([0.0, 0.0, 0.0, 0.0], dtype=pd.SparseDtype("float64", 0.0))
                 for i in range(0, 4)
             },
-            index=pd.MultiIndex.from_product([[1, 2], [1, 2]]),
+            index=MultiIndex.from_product([[1, 2], [1, 2]]),
         )
 
         result = expected.sort_index(level=0)
