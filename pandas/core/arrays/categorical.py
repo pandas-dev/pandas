@@ -417,8 +417,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # xref GH8628
         # PERF: astype category codes instead of astyping each entry
         new_categories = self.categories.astype(dtype)
-        obj = Categorical.from_codes(self.codes, categories=new_categories)
-        return np.array(obj.categories[self.codes], copy=copy)
+        return np.array(new_categories[self.codes], copy=copy)
 
     @cache_readonly
     def itemsize(self) -> int:
