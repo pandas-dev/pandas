@@ -545,6 +545,7 @@ ExtensionArray
 - Fixed bug where ``astype()`` with equal dtype and ``copy=False`` would return a new object (:issue:`284881`)
 - Fixed bug when applying a NumPy ufunc with multiple outputs to a :class:`pandas.arrays.IntegerArray` returning None (:issue:`36913`)
 - Fixed an inconsistency in :class:`PeriodArray`'s ``__init__`` signature to those of :class:`DatetimeArray` and :class:`TimedeltaArray` (:issue:`37289`)
+- Reductions for :class:`BooleanArray`, :class:`Categorical`, :class:`DatetimeArray`, :class:`FloatingArray`, :class:`IntegerArray`, :class:`PeriodArray`, :class:`TimedeltaArray`, and :class:`PandasArray` are now keyword-only methods (:issue:`37541`)
 
 Other
 ^^^^^
