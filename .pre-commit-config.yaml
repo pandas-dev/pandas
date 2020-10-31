@@ -56,13 +56,11 @@ repos:
         types: [rst]
         args: [--filename=*.rst]
         additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
-
     -   id: non-standard-imports
         name: Check for non-standard imports
         language: pygrep
         entry: |
             (?x)
-
             # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
             from\ pandas\.core\.common\ import|
             from\ pandas\.core\ import\ common|
@@ -115,7 +113,6 @@ repos:
         entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
         types: [python]
         exclude: ^(asv_bench|pandas/tests|doc)/
-
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
