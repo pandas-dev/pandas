@@ -44,6 +44,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         """
         return x
 
+    def _validate_insert_value(self, value):
+        # used by NDArrayBackedExtensionIndex.insert
+        raise AbstractMethodError(self)
+
     # ------------------------------------------------------------------------
 
     def take(
@@ -232,6 +236,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         else:
             new_values = self.copy()
         return new_values
+
+    # ------------------------------------------------------------------------
+    # Reductions
 
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
         meth = getattr(self, name, None)
