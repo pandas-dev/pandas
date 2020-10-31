@@ -125,7 +125,11 @@ class BaseMethodsTests(BaseExtensionTests):
         result = ser.sort_values(ascending=ascending, key=sort_by_key)
         expected = ser.iloc[[2, 0, 1]]
         if not ascending:
-            expected = expected[::-1]
+            # GH 35922. Expect stable sort
+            if ser.nunique() == 2:
+                expected = ser.iloc[[0, 1, 2]]
+            else:
+                expected = ser.iloc[[1, 0, 2]]
 
         self.assert_series_equal(result, expected)
 

@@ -178,7 +178,7 @@ class TestPeriodIndexOps:
 
         pidx = PeriodIndex(["2011", "2013", "NaT", "2011"], name="pidx", freq="D")
 
-        result = pidx.sort_values()
+        result = pidx.sort_values(na_position="first")
         expected = PeriodIndex(["NaT", "2011", "2011", "2013"], name="pidx", freq="D")
         tm.assert_index_equal(result, expected)
         assert result.freq == "D"
@@ -247,7 +247,7 @@ class TestPeriodIndexOps:
         )
 
         for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3)]:
-            ordered = idx.sort_values()
+            ordered = idx.sort_values(na_position="first")
             tm.assert_index_equal(ordered, expected)
             assert ordered.freq == "D"
 
@@ -255,7 +255,7 @@ class TestPeriodIndexOps:
             tm.assert_index_equal(ordered, expected[::-1])
             assert ordered.freq == "D"
 
-            ordered, indexer = idx.sort_values(return_indexer=True)
+            ordered, indexer = idx.sort_values(return_indexer=True, na_position="first")
             tm.assert_index_equal(ordered, expected)
 
             exp = np.array([0, 4, 3, 1, 2])
@@ -265,7 +265,7 @@ class TestPeriodIndexOps:
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
 
-            exp = np.array([2, 1, 3, 4, 0])
+            exp = np.array([2, 1, 3, 0, 4])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq == "D"
 
@@ -332,12 +332,8 @@ class TestPeriodIndexOps:
             idx.freq = pd.offsets.Day()
 
 
-@pytest.mark.xfail(reason="Datetime-like sort_values currently unstable (GH 35922)")
 def test_order_stability_compat():
-    # GH 35584. The new implementation of sort_values for Index.sort_values
-    # is stable when sorting in descending order. Datetime-like sort_values
-    # currently aren't stable. xfail should be removed after
-    # the implementations' behavior is synchronized (xref GH 35922)
+    # GH 35922. sort_values is stable both for normal and datetime-like Index
     pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="A")
     iidx = Index([2011, 2013, 2015, 2012, 2011], name="idx")
     ordered1, indexer1 = pidx.sort_values(return_indexer=True, ascending=False)

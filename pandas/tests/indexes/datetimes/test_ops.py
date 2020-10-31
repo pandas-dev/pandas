@@ -231,7 +231,7 @@ class TestDatetimeIndexOps:
         index = DatetimeIndex(index_dates, tz=tz, name="idx")
         expected = DatetimeIndex(expected_dates, tz=tz, name="idx")
 
-        ordered = index.sort_values()
+        ordered = index.sort_values(na_position="first")
         tm.assert_index_equal(ordered, expected)
         assert ordered.freq is None
 
@@ -239,7 +239,7 @@ class TestDatetimeIndexOps:
         tm.assert_index_equal(ordered, expected[::-1])
         assert ordered.freq is None
 
-        ordered, indexer = index.sort_values(return_indexer=True)
+        ordered, indexer = index.sort_values(return_indexer=True, na_position="first")
         tm.assert_index_equal(ordered, expected)
 
         exp = np.array([0, 4, 3, 1, 2])
@@ -249,7 +249,7 @@ class TestDatetimeIndexOps:
         ordered, indexer = index.sort_values(return_indexer=True, ascending=False)
         tm.assert_index_equal(ordered, expected[::-1])
 
-        exp = np.array([2, 1, 3, 4, 0])
+        exp = np.array([2, 1, 3, 0, 4])
         tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
         assert ordered.freq is None
 

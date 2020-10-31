@@ -153,16 +153,16 @@ def test_value_counts_bins(index_or_series):
     # these return the same
     res4 = s1.value_counts(bins=4, dropna=True)
     intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
-    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
+    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4, exp4)
 
     res4 = s1.value_counts(bins=4, dropna=False)
     intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
-    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
+    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4, exp4)
 
     res4n = s1.value_counts(bins=4, normalize=True)
-    exp4n = Series([0.5, 0.25, 0.25, 0], index=intervals.take([0, 3, 1, 2]))
+    exp4n = Series([0.5, 0.25, 0.25, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4n, exp4n)
 
     # handle NA's properly
@@ -239,7 +239,11 @@ def test_value_counts_datetime64(index_or_series):
     tm.assert_series_equal(result, expected_s)
 
     result = s.value_counts(dropna=False)
-    expected_s[pd.NaT] = 1
+    # GH 35922. NaN-like now sorts to the beginning of duplicate counts
+    idx = pd.to_datetime(
+        ["2010-01-01 00:00:00", "2008-09-09 00:00:00", pd.NaT, "2009-01-01 00:00:00"]
+    )
+    expected_s = Series([3, 2, 1, 1], index=idx)
     tm.assert_series_equal(result, expected_s)
 
     unique = s.unique()

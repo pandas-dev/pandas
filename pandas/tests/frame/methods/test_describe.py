@@ -56,7 +56,7 @@ class TestDataFrameDescribe:
         )
         result = df.describe()
         expected = DataFrame(
-            {"bool_data_1": [4, 2, True, 2], "bool_data_2": [4, 2, True, 3]},
+            {"bool_data_1": [4, 2, False, 2], "bool_data_2": [4, 2, True, 3]},
             index=["count", "unique", "top", "freq"],
         )
         tm.assert_frame_equal(result, expected)
@@ -79,7 +79,7 @@ class TestDataFrameDescribe:
         )
         result = df.describe()
         expected = DataFrame(
-            {"bool_data": [4, 2, True, 2], "str_data": [4, 3, "a", 2]},
+            {"bool_data": [4, 2, False, 2], "str_data": [4, 3, "a", 2]},
             index=["count", "unique", "top", "freq"],
         )
         tm.assert_frame_equal(result, expected)

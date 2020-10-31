@@ -10106,7 +10106,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                categorical
         count            3
         unique           3
-        top              f
+        top              d
         freq             1
 
         Excluding numeric columns from a ``DataFrame`` description.
