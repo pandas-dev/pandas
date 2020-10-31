@@ -1073,11 +1073,7 @@ class Window(BaseWindow):
             def calc(x):
                 additional_nans = np.array([np.nan] * offset)
                 x = np.concatenate((x, additional_nans))
-                # pandas\core\window\rolling.py:1165: error: Argument 2 has
-                # incompatible type "ndarray"; expected "int"  [arg-type]
-                return func(
-                    x, window, self.min_periods or len(window)  # type: ignore[arg-type]
-                )
+                return func(x, window, self.min_periods or len(window))
 
             with np.errstate(all="ignore"):
                 if values.ndim > 1:

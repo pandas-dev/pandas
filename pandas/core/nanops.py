@@ -659,7 +659,12 @@ def nanmean(
 
     the_mean = _wrap_results(the_mean, dtype)
     if datetimelike and not skipna:
-        the_mean = _mask_datetimelike_result(the_mean, axis, mask, orig_values)
+        # pandas\core\nanops.py:662: error: Argument 3 to
+        # "_mask_datetimelike_result" has incompatible type
+        # "Optional[ndarray]"; expected "ndarray"  [arg-type]
+        the_mean = _mask_datetimelike_result(
+            the_mean, axis, mask, orig_values  # type: ignore[arg-type]
+        )
     return the_mean
 
 
@@ -1009,15 +1014,15 @@ def _nanminmax(meth, fill_value_typ):
             result = getattr(values, meth)(axis)
 
         result = _wrap_results(result, dtype, fill_value)
-        # error: Incompatible return value type (got "float", expected
-        # "Union[ExtensionDtype, str, dtype, Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object]]")
-        result = _maybe_null_out(  # type: ignore[return-value]
-            result, axis, mask, values.shape
-        )
+        result = _maybe_null_out(result, axis, mask, values.shape)
 
         if datetimelike and not skipna:
-            result = _mask_datetimelike_result(result, axis, mask, orig_values)
+            # pandas\core\nanops.py:1020: error: Argument 3 to
+            # "_mask_datetimelike_result" has incompatible type
+            # "Optional[ndarray]"; expected "ndarray"  [arg-type]
+            result = _mask_datetimelike_result(
+                result, axis, mask, orig_values  # type: ignore[arg-type]
+            )
 
         return result
 

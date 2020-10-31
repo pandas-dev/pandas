@@ -1353,7 +1353,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         if axis is None or self.ndim == 1:
             return self._box_func(result)
-        return self._from_backing_data(result)
+        # pandas\core\arrays\datetimelike.py:1356: error: Argument 1 to
+        # "_from_backing_data" of "DatetimeLikeArrayMixin" has incompatible
+        # type "float"; expected "ndarray"  [arg-type]
+        return self._from_backing_data(result)  # type: ignore[arg-type]
 
     def median(self, axis: Optional[int] = None, skipna: bool = True, *args, **kwargs):
         nv.validate_median(args, kwargs)

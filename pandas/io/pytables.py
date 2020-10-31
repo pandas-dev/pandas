@@ -2977,7 +2977,10 @@ class GenericFixed(Fixed):
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
 
-        value = extract_array(obj, extract_numpy=True)
+        # pandas\io\pytables.py:2980: error: Value of type variable
+        # "AnyArrayLike" of "extract_array" cannot be "FrameOrSeries"
+        # [type-var]
+        value = extract_array(obj, extract_numpy=True)  # type: ignore[type-var]
 
         if key in self.group:
             self._handle.remove_node(self.group, key)
