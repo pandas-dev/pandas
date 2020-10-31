@@ -470,9 +470,7 @@ class _Concatenator:
                 arrs = [ser._values for ser in self.objs]
 
                 res = concat_compat(arrs, axis=0)
-                result = cons(
-                    res, index=self.new_axes[0], name=name, dtype=res.dtype
-                )
+                result = cons(res, index=self.new_axes[0], name=name, dtype=res.dtype)
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame

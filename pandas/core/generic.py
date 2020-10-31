@@ -10720,6 +10720,23 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             empty_value=False,
         )
         def any(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
+            return NDFrame.any(self, axis, bool_only, skipna, level, **kwargs)
+
+        # pandas\core\generic.py:10725: error: Cannot assign to a method
+        # [assignment]
+        cls.any = any  # type: ignore[assignment]
+
+        @doc(
+            _bool_doc,
+            desc=_all_desc,
+            name1=name1,
+            name2=name2,
+            axis_descr=axis_descr,
+            see_also=_all_see_also,
+            examples=_all_examples,
+            empty_value=True,
+        )
+        def all(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
             return NDFrame.all(self, axis, bool_only, skipna, level, **kwargs)
 
         # pandas\core\generic.py:10719: error: Cannot assign to a method

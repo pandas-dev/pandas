@@ -680,8 +680,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         result = value_counts(values, sort=False, dropna=dropna)
         index = Index(
-            cls(result.index.view("i8"), dtype=self.dtype),
-            name=result.index.name,
+            cls(result.index.view("i8"), dtype=self.dtype), name=result.index.name
         )
         return Series(result._values, index=index, name=result.name)
 
@@ -939,7 +938,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # i.e np.timedelta64("NaT"), not recognized by delta_to_nanoseconds
             new_values = np.empty(self.shape, dtype="i8")
             new_values[:] = iNaT
-
             return type(self)(new_values, dtype=self.dtype)
 
         inc = delta_to_nanoseconds(other)
