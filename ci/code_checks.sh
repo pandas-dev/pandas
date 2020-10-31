@@ -199,7 +199,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     # GH37053, Check for np.random.<method> instead of `from numpy.random import` or `from numpy import random`
     MSG='Check for numpy.random-related imports' ; echo $MSG
-    invgrep -R --include="*.py" --exclude=_testing.py -E "(from numpy.random import)|(from numpy import random)" pandas
+    invgrep -R --include="*.py" -E "(from numpy.random import)|(from numpy import random)" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
