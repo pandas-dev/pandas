@@ -1,0 +1,36 @@
+.. _whatsnew_115:
+
+What's new in 1.1.5 (??)
+------------------------
+
+These are the changes in pandas 1.1.5. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_115.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_115.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_115.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.4..v1.1.5|HEAD

@@ -2,6 +2,7 @@ from copy import deepcopy
 import datetime
 import inspect
 import pydoc
+import warnings
 
 import numpy as np
 import pytest
@@ -16,16 +17,6 @@ import pandas._testing as tm
 
 
 class TestDataFrameMisc:
-    @pytest.mark.parametrize("attr", ["index", "columns"])
-    def test_copy_index_name_checking(self, float_frame, attr):
-        # don't want to be able to modify the index stored elsewhere after
-        # making a copy
-        ind = getattr(float_frame, attr)
-        ind.name = None
-        cp = float_frame.copy()
-        getattr(cp, attr).name = "foo"
-        assert getattr(float_frame, attr).name is None
-
     def test_getitem_pop_assign_name(self, float_frame):
         s = float_frame["A"]
         assert s.name == "A"
@@ -38,13 +29,6 @@ class TestDataFrameMisc:
 
         s2 = s.loc[:]
         assert s2.name == "B"
-
-    def test_get_value(self, float_frame):
-        for idx in float_frame.index:
-            for col in float_frame.columns:
-                result = float_frame._get_value(idx, col)
-                expected = float_frame[col][idx]
-                tm.assert_almost_equal(result, expected)
 
     def test_add_prefix_suffix(self, float_frame):
         with_prefix = float_frame.add_prefix("foo#")
@@ -93,8 +77,7 @@ class TestDataFrameMisc:
             f._get_axis_number(None)
 
     def test_keys(self, float_frame):
-        getkeys = float_frame.keys
-        assert getkeys() is float_frame.columns
+        assert float_frame.keys() is float_frame.columns
 
     def test_column_contains_raises(self, float_frame):
         with pytest.raises(TypeError, match="unhashable type: 'Index'"):
@@ -143,15 +126,6 @@ class TestDataFrameMisc:
         df1.index.name = "foo"
         assert df2.index.name is None
 
-    def test_array_interface(self, float_frame):
-        with np.errstate(all="ignore"):
-            result = np.sqrt(float_frame)
-        assert isinstance(result, type(float_frame))
-        assert result.index is float_frame.index
-        assert result.columns is float_frame.columns
-
-        tm.assert_frame_equal(result, float_frame.apply(np.sqrt))
-
     def test_get_agg_axis(self, float_frame):
         cols = float_frame._get_agg_axis(0)
         assert cols is float_frame.columns
@@ -163,7 +137,7 @@ class TestDataFrameMisc:
         with pytest.raises(ValueError, match=msg):
             float_frame._get_agg_axis(2)
 
-    def test_nonzero(self, float_frame, float_string_frame):
+    def test_empty(self, float_frame, float_string_frame):
         empty_frame = DataFrame()
         assert empty_frame.empty
 
@@ -315,57 +289,10 @@ class TestDataFrameMisc:
     def test_len(self, float_frame):
         assert len(float_frame) == len(float_frame.index)
 
-    def test_values_mixed_dtypes(self, float_frame, float_string_frame):
-        frame = float_frame
-        arr = frame.values
-
-        frame_cols = frame.columns
-        for i, row in enumerate(arr):
-            for j, value in enumerate(row):
-                col = frame_cols[j]
-                if np.isnan(value):
-                    assert np.isnan(frame[col][i])
-                else:
-                    assert value == frame[col][i]
-
-        # mixed type
-        arr = float_string_frame[["foo", "A"]].values
-        assert arr[0, 0] == "bar"
-
-        df = DataFrame({"complex": [1j, 2j, 3j], "real": [1, 2, 3]})
-        arr = df.values
-        assert arr[0, 0] == 1j
-
         # single block corner case
         arr = float_frame[["A", "B"]].values
         expected = float_frame.reindex(columns=["A", "B"]).values
         tm.assert_almost_equal(arr, expected)
-
-    def test_to_numpy(self):
-        df = DataFrame({"A": [1, 2], "B": [3, 4.5]})
-        expected = np.array([[1, 3], [2, 4.5]])
-        result = df.to_numpy()
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_to_numpy_dtype(self):
-        df = DataFrame({"A": [1, 2], "B": [3, 4.5]})
-        expected = np.array([[1, 3], [2, 4]], dtype="int64")
-        result = df.to_numpy(dtype="int64")
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_to_numpy_copy(self):
-        arr = np.random.randn(4, 3)
-        df = DataFrame(arr)
-        assert df.values.base is arr
-        assert df.to_numpy(copy=False).base is arr
-        assert df.to_numpy(copy=True).base is not arr
-
-    def test_to_numpy_mixed_dtype_to_str(self):
-        # https://github.com/pandas-dev/pandas/issues/35455
-        df = DataFrame([[pd.Timestamp("2020-01-01 00:00:00"), 100.0]])
-        result = df.to_numpy(dtype=str)
-        expected = np.array([["2020-01-01 00:00:00", "100.0"]], dtype=str)
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_swapaxes(self):
         df = DataFrame(np.random.randn(10, 5))
@@ -393,18 +320,6 @@ class TestDataFrameMisc:
         # no exception and no empty docstring
         assert pydoc.getdoc(DataFrame.index)
         assert pydoc.getdoc(DataFrame.columns)
-
-    def test_more_values(self, float_string_frame):
-        values = float_string_frame.values
-        assert values.shape[1] == len(float_string_frame.columns)
-
-    def test_repr_with_mi_nat(self, float_string_frame):
-        df = DataFrame(
-            {"X": [1, 2]}, index=[[pd.NaT, pd.Timestamp("20130101")], ["a", "b"]]
-        )
-        result = repr(df)
-        expected = "              X\nNaT        a  1\n2013-01-01 b  2"
-        assert result == expected
 
     def test_items_names(self, float_string_frame):
         for k, v in float_string_frame.items():
@@ -446,10 +361,6 @@ class TestDataFrameMisc:
         result = t.dtypes.value_counts()
         expected = Series({np.dtype("object"): 10})
         tm.assert_series_equal(result, expected)
-
-    def test_values(self, float_frame):
-        float_frame.values[:, 0] = 5.0
-        assert (float_frame.values[:, 0] == 5).all()
 
     def test_deepcopy(self, float_frame):
         cp = deepcopy(float_frame)
@@ -581,33 +492,19 @@ class TestDataFrameMisc:
         result.iloc[0, 0] = 10
         assert df.iloc[0, 0] == 0
 
-    def test_cache_on_copy(self):
-        # GH 31784 _item_cache not cleared on copy causes incorrect reads after updates
-        df = DataFrame({"a": [1]})
-
-        df["x"] = [0]
-        df["a"]
-
-        df.copy()
-
-        df["a"].values[0] = -1
-
-        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0]}))
-
-        df["y"] = [0]
-
-        assert df["a"].values[0] == -1
-        tm.assert_frame_equal(df, DataFrame({"a": [-1], "x": [0], "y": [0]}))
-
     @skip_if_no("jinja2")
     def test_constructor_expanddim_lookup(self):
         # GH#33628 accessing _constructor_expanddim should not
         #  raise NotImplementedError
         df = DataFrame()
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with warnings.catch_warnings(record=True) as wrn:
             # _AXIS_NUMBERS, _AXIS_NAMES lookups
             inspect.getmembers(df)
+
+        # some versions give FutureWarning, others DeprecationWarning
+        assert len(wrn)
+        assert any(x.category in [FutureWarning, DeprecationWarning] for x in wrn)
 
         with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))

@@ -4,8 +4,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._libs.groupby import group_cumprod_float64, group_cumsum
-
 from pandas.core.dtypes.common import ensure_platform_int, is_timedelta64_dtype
 
 import pandas as pd
@@ -108,10 +106,10 @@ def test_transform_fast():
     result = df.groupby("grouping").transform("first")
 
     dates = [
-        pd.Timestamp("2014-1-1"),
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-4"),
+        Timestamp("2014-1-1"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-4"),
     ]
     expected = DataFrame(
         {"f": [1.1, 2.1, 2.1, 4.5], "d": dates, "i": [1, 2, 2, 4]},
@@ -395,9 +393,9 @@ def test_series_fast_transform_date():
     result = df.groupby("grouping")["d"].transform("first")
     dates = [
         pd.NaT,
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-4"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-4"),
     ]
     expected = Series(dates, name="d")
     tm.assert_series_equal(result, expected)
@@ -513,83 +511,6 @@ def test_transform_mixed_type():
         for key, group in grouped:
             res = f(group)
             tm.assert_frame_equal(res, result.loc[key])
-
-
-def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
-    """
-    Check a group transform that executes a cumulative function.
-
-    Parameters
-    ----------
-    pd_op : callable
-        The pandas cumulative function.
-    np_op : callable
-        The analogous one in NumPy.
-    dtype : type
-        The specified dtype of the data.
-    """
-    is_datetimelike = False
-
-    data = np.array([[1], [2], [3], [4]], dtype=dtype)
-    ans = np.zeros_like(data)
-
-    labels = np.array([0, 0, 0, 0], dtype=np.int64)
-    ngroups = 1
-    pd_op(ans, data, labels, ngroups, is_datetimelike)
-
-    tm.assert_numpy_array_equal(np_op(data), ans[:, 0], check_dtype=False)
-
-
-def test_cython_group_transform_cumsum(any_real_dtype):
-    # see gh-4095
-    dtype = np.dtype(any_real_dtype).type
-    pd_op, np_op = group_cumsum, np.cumsum
-    _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
-
-
-def test_cython_group_transform_cumprod():
-    # see gh-4095
-    dtype = np.float64
-    pd_op, np_op = group_cumprod_float64, np.cumproduct
-    _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
-
-
-def test_cython_group_transform_algos():
-    # see gh-4095
-    is_datetimelike = False
-
-    # with nans
-    labels = np.array([0, 0, 0, 0, 0], dtype=np.int64)
-    ngroups = 1
-
-    data = np.array([[1], [2], [3], [np.nan], [4]], dtype="float64")
-    actual = np.zeros_like(data)
-    actual.fill(np.nan)
-    group_cumprod_float64(actual, data, labels, ngroups, is_datetimelike)
-    expected = np.array([1, 2, 6, np.nan, 24], dtype="float64")
-    tm.assert_numpy_array_equal(actual[:, 0], expected)
-
-    actual = np.zeros_like(data)
-    actual.fill(np.nan)
-    group_cumsum(actual, data, labels, ngroups, is_datetimelike)
-    expected = np.array([1, 3, 6, np.nan, 10], dtype="float64")
-    tm.assert_numpy_array_equal(actual[:, 0], expected)
-
-    # timedelta
-    is_datetimelike = True
-    data = np.array([np.timedelta64(1, "ns")] * 5, dtype="m8[ns]")[:, None]
-    actual = np.zeros_like(data, dtype="int64")
-    group_cumsum(actual, data.view("int64"), labels, ngroups, is_datetimelike)
-    expected = np.array(
-        [
-            np.timedelta64(1, "ns"),
-            np.timedelta64(2, "ns"),
-            np.timedelta64(3, "ns"),
-            np.timedelta64(4, "ns"),
-            np.timedelta64(5, "ns"),
-        ]
-    )
-    tm.assert_numpy_array_equal(actual[:, 0].view("m8[ns]"), expected)
 
 
 @pytest.mark.parametrize(

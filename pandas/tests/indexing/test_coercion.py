@@ -29,11 +29,21 @@ def check_comprehensiveness(request):
             klass in x.name and dtype in x.name and method in x.name for x in cls_funcs
         )
 
-    for combo in combos:
-        if not has_test(combo):
-            raise AssertionError(f"test method is not defined: {cls.__name__}, {combo}")
+    opts = request.config.option
+    if opts.lf or opts.keyword:
+        # If we are running with "last-failed" or -k foo, we expect to only
+        #  run a subset of tests.
+        yield
 
-    yield
+    else:
+
+        for combo in combos:
+            if not has_test(combo):
+                raise AssertionError(
+                    f"test method is not defined: {cls.__name__}, {combo}"
+                )
+
+        yield
 
 
 class CoercionBase:
@@ -444,7 +454,7 @@ class TestInsertIndexCoercion(CoercionBase):
             with pytest.raises(TypeError, match=msg):
                 obj.insert(1, pd.Timestamp("2012-01-01", tz="Asia/Tokyo"))
 
-        msg = "cannot insert DatetimeArray with incompatible label"
+        msg = "value should be a 'Timestamp' or 'NaT'. Got 'int' instead."
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 
@@ -461,12 +471,12 @@ class TestInsertIndexCoercion(CoercionBase):
         )
 
         # ToDo: must coerce to object
-        msg = "cannot insert TimedeltaArray with incompatible label"
+        msg = "value should be a 'Timedelta' or 'NaT'. Got 'Timestamp' instead."
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, pd.Timestamp("2012-01-01"))
 
         # ToDo: must coerce to object
-        msg = "cannot insert TimedeltaArray with incompatible label"
+        msg = "value should be a 'Timedelta' or 'NaT'. Got 'int' instead."
         with pytest.raises(TypeError, match=msg):
             obj.insert(1, 1)
 

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    Categorical,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -17,6 +18,17 @@ import pandas._testing as tm
 
 
 class TestSetIndex:
+    def test_set_index_multiindex(self):
+        # segfault in GH#3308
+        d = {"t1": [2, 2.5, 3], "t2": [4, 5, 6]}
+        df = DataFrame(d)
+        tuples = [(0, 1), (0, 2), (1, 2)]
+        df["tuples"] = tuples
+
+        index = MultiIndex.from_tuples(df["tuples"])
+        # it works!
+        df.set_index(index)
+
     def test_set_index_empty_column(self):
         # GH#1971
         df = DataFrame(
@@ -360,6 +372,21 @@ class TestSetIndex:
         # round-trip
         idf = idf.reset_index().set_index("B")
         tm.assert_index_equal(idf.index, ci)
+
+    def test_set_index_preserve_categorical_dtype(self):
+        # GH#13743, GH#13854
+        df = DataFrame(
+            {
+                "A": [1, 2, 1, 1, 2],
+                "B": [10, 16, 22, 28, 34],
+                "C1": Categorical(list("abaab"), categories=list("bac"), ordered=False),
+                "C2": Categorical(list("abaab"), categories=list("bac"), ordered=True),
+            }
+        )
+        for cols in ["C1", "C2", ["A", "C1"], ["A", "C2"], ["C1", "C2"]]:
+            result = df.set_index(cols).reset_index()
+            result = result.reindex(columns=df.columns)
+            tm.assert_frame_equal(result, df)
 
     def test_set_index_datetime(self):
         # GH#3950

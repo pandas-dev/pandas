@@ -1334,15 +1334,15 @@ class TestMerge:
         left = DataFrame(
             {
                 "a": [1, 2, 3],
-                "key": pd.Categorical(["a", "a", "b"], categories=list("abc")),
+                "key": Categorical(["a", "a", "b"], categories=list("abc")),
             }
         )
-        right = DataFrame({"b": [1, 2, 3]}, index=pd.CategoricalIndex(["a", "b", "c"]))
+        right = DataFrame({"b": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
         result = left.merge(right, left_on="key", right_index=True, how="right")
         expected = DataFrame(
             {
                 "a": [1, 2, 3, None],
-                "key": pd.Categorical(["a", "a", "b", "c"]),
+                "key": Categorical(["a", "a", "b", "c"]),
                 "b": [1, 1, 2, 3],
             },
             index=[0, 1, 2, np.nan],
@@ -1687,7 +1687,7 @@ class TestMergeCategorical:
         result = pd.merge(df1, df2, on=["Foo"])
         expected = DataFrame(
             {
-                "Foo": pd.Categorical(["A", "B", "C"]),
+                "Foo": Categorical(["A", "B", "C"]),
                 "Left": ["A0", "B0", "C0"],
                 "Right": ["A1", "B1", "C1"],
             }
@@ -2226,4 +2226,60 @@ def test_categorical_non_unique_monotonic(n_categories):
         columns=["value_x", "value_y"],
         index=left_index,
     )
+    tm.assert_frame_equal(expected, result)
+
+
+def test_merge_join_categorical_multiindex():
+    # From issue 16627
+    a = {
+        "Cat1": Categorical(["a", "b", "a", "c", "a", "b"], ["a", "b", "c"]),
+        "Int1": [0, 1, 0, 1, 0, 0],
+    }
+    a = DataFrame(a)
+
+    b = {
+        "Cat": Categorical(["a", "b", "c", "a", "b", "c"], ["a", "b", "c"]),
+        "Int": [0, 0, 0, 1, 1, 1],
+        "Factor": [1.1, 1.2, 1.3, 1.4, 1.5, 1.6],
+    }
+    b = DataFrame(b).set_index(["Cat", "Int"])["Factor"]
+
+    expected = merge(
+        a,
+        b.reset_index(),
+        left_on=["Cat1", "Int1"],
+        right_on=["Cat", "Int"],
+        how="left",
+    )
+    expected = expected.drop(["Cat", "Int"], axis=1)
+    result = a.join(b, on=["Cat1", "Int1"])
+    tm.assert_frame_equal(expected, result)
+
+    # Same test, but with ordered categorical
+    a = {
+        "Cat1": Categorical(
+            ["a", "b", "a", "c", "a", "b"], ["b", "a", "c"], ordered=True
+        ),
+        "Int1": [0, 1, 0, 1, 0, 0],
+    }
+    a = DataFrame(a)
+
+    b = {
+        "Cat": Categorical(
+            ["a", "b", "c", "a", "b", "c"], ["b", "a", "c"], ordered=True
+        ),
+        "Int": [0, 0, 0, 1, 1, 1],
+        "Factor": [1.1, 1.2, 1.3, 1.4, 1.5, 1.6],
+    }
+    b = DataFrame(b).set_index(["Cat", "Int"])["Factor"]
+
+    expected = merge(
+        a,
+        b.reset_index(),
+        left_on=["Cat1", "Int1"],
+        right_on=["Cat", "Int"],
+        how="left",
+    )
+    expected = expected.drop(["Cat", "Int"], axis=1)
+    result = a.join(b, on=["Cat1", "Int1"])
     tm.assert_frame_equal(expected, result)

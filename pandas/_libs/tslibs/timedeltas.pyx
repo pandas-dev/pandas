@@ -1,4 +1,5 @@
 import collections
+import warnings
 
 import cython
 
@@ -466,6 +467,15 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
 
     try:
         unit = ''.join(unit)
+
+        if unit in ["M", "Y", "y"]:
+            warnings.warn(
+                "Units 'M', 'Y' and 'y' do not represent unambiguous "
+                "timedelta values and will be removed in a future version",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if unit == 'M':
             # To parse ISO 8601 string, 'M' should be treated as minute,
             # not month
@@ -634,9 +644,11 @@ cdef inline int64_t parse_iso_format_string(str ts) except? -1:
                 else:
                     neg = 1
             elif c in ['W', 'D', 'H', 'M']:
-                unit.append(c)
                 if c in ['H', 'M'] and len(number) > 2:
                     raise ValueError(err_msg)
+                if c == 'M':
+                    c = 'min'
+                unit.append(c)
                 r = timedelta_from_spec(number, '0', unit)
                 result += timedelta_as_neg(r, neg)
 
@@ -1056,7 +1068,8 @@ cdef class _Timedelta(timedelta):
 
         See Also
         --------
-        Timestamp.isoformat
+        Timestamp.isoformat : Function is used to convert the given
+            Timestamp object into the ISO format.
 
         Notes
         -----

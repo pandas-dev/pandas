@@ -121,6 +121,27 @@ class TestTimedeltas:
             invalid_data, to_timedelta(invalid_data, errors="ignore")
         )
 
+    @pytest.mark.parametrize(
+        "val, warning",
+        [
+            ("1M", FutureWarning),
+            ("1 M", FutureWarning),
+            ("1Y", FutureWarning),
+            ("1 Y", FutureWarning),
+            ("1y", FutureWarning),
+            ("1 y", FutureWarning),
+            ("1m", None),
+            ("1 m", None),
+            ("1 day", None),
+            ("2day", None),
+        ],
+    )
+    def test_unambiguous_timedelta_values(self, val, warning):
+        # GH36666 Deprecate use of strings denoting units with 'M', 'Y', 'm' or 'y'
+        # in pd.to_timedelta
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            to_timedelta(val)
+
     def test_to_timedelta_via_apply(self):
         # GH 5458
         expected = Series([np.timedelta64(1, "s")])

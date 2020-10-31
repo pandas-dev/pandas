@@ -66,7 +66,7 @@ def test_first_last_with_na_object(method, nulls_fixture):
         values = [2, 3]
 
     values = np.array(values, dtype=result["b"].dtype)
-    idx = pd.Index([1, 2], name="a")
+    idx = Index([1, 2], name="a")
     expected = DataFrame({"b": values}, index=idx)
 
     tm.assert_frame_equal(result, expected)
@@ -84,7 +84,7 @@ def test_nth_with_na_object(index, nulls_fixture):
         values = [2, nulls_fixture]
 
     values = np.array(values, dtype=result["b"].dtype)
-    idx = pd.Index([1, 2], name="a")
+    idx = Index([1, 2], name="a")
     expected = DataFrame({"b": values}, index=idx)
 
     tm.assert_frame_equal(result, expected)
@@ -94,7 +94,7 @@ def test_nth_with_na_object(index, nulls_fixture):
 def test_first_last_with_None(method):
     # https://github.com/pandas-dev/pandas/issues/32800
     # None should be preserved as object dtype
-    df = pd.DataFrame.from_dict({"id": ["a"], "value": [None]})
+    df = DataFrame.from_dict({"id": ["a"], "value": [None]})
     groups = df.groupby("id", as_index=False)
     result = getattr(groups, method)()
 
@@ -152,8 +152,8 @@ def test_first_strings_timestamps():
     # GH 11244
     test = DataFrame(
         {
-            pd.Timestamp("2012-01-01 00:00:00"): ["a", "b"],
-            pd.Timestamp("2012-01-02 00:00:00"): ["c", "d"],
+            Timestamp("2012-01-01 00:00:00"): ["a", "b"],
+            Timestamp("2012-01-02 00:00:00"): ["c", "d"],
             "name": ["e", "e"],
             "aaaa": ["f", "g"],
         }
@@ -398,7 +398,7 @@ def test_first_last_tz_multi_column(method, ts, alpha):
             ),
             "datetimetz": [ts, Timestamp("2013-01-03", tz="US/Eastern")],
         },
-        index=pd.Index([1, 2], name="group"),
+        index=Index([1, 2], name="group"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -496,9 +496,7 @@ def test_groupby_head_tail():
     tm.assert_frame_equal(df.loc[[0, 2]], g_not_as.head(1))
     tm.assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
 
-    empty_not_as = DataFrame(
-        columns=df.columns, index=pd.Index([], dtype=df.index.dtype)
-    )
+    empty_not_as = DataFrame(columns=df.columns, index=Index([], dtype=df.index.dtype))
     empty_not_as["A"] = empty_not_as["A"].astype(df.A.dtype)
     empty_not_as["B"] = empty_not_as["B"].astype(df.B.dtype)
     tm.assert_frame_equal(empty_not_as, g_not_as.head(0))
