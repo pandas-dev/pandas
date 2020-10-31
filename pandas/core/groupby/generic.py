@@ -51,7 +51,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCNDFrame
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.aggregation import (
@@ -538,7 +537,7 @@ class SeriesGroupBy(GroupBy[Series]):
             object.__setattr__(group, "name", name)
             res = func(group, *args, **kwargs)
 
-            if isinstance(res, ABCNDFrame):
+            if isinstance(res, NDFrame):
                 res = res._values
 
             results.append(klass(res, index=group.index))
