@@ -9,6 +9,7 @@ import pandas._testing as tm
 
 class TestCategoricalDtypes:
     def test_is_dtype_equal_deprecated(self):
+        # GH#37545
         c1 = Categorical(list("aabca"), categories=list("abc"), ordered=False)
 
         with tm.assert_produces_warning(FutureWarning):
