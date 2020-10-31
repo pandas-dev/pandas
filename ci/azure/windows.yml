@@ -16,7 +16,7 @@ jobs:
       py38_np18:
         ENV_FILE: ci/deps/azure-windows-38.yaml
         CONDA_PY: "38"
-        PATTERN: "not slow and not network"
+        PATTERN: "not slow and not network and not high_memory"
 
   steps:
     - powershell: |
