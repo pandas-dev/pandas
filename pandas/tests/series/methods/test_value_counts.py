@@ -85,15 +85,15 @@ class TestSeriesValueCounts:
 
     def test_value_counts_categorical_ordered(self):
         # most dtypes are tested in tests/base
-        values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=True)
+        values = Categorical([1, 2, 3, 1, 1, 3], ordered=True)
 
-        exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=True)
+        exp_idx = CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=True)
         exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
         ser = Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
         # check CategoricalIndex outputs the same result
-        idx = pd.CategoricalIndex(values, name="xxx")
+        idx = CategoricalIndex(values, name="xxx")
         tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
@@ -102,15 +102,15 @@ class TestSeriesValueCounts:
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_categorical_not_ordered(self):
-        values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=False)
+        values = Categorical([1, 2, 3, 1, 1, 3], ordered=False)
 
-        exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=False)
+        exp_idx = CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=False)
         exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
         ser = Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
         # check CategoricalIndex outputs the same result
-        idx = pd.CategoricalIndex(values, name="xxx")
+        idx = CategoricalIndex(values, name="xxx")
         tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
