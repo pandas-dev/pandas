@@ -46,7 +46,6 @@ _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
         "_reverse_indexer",
         "searchsorted",
         "is_dtype_equal",
-        "categories_match_up_to_permutation",
         "min",
         "max",
     ],
