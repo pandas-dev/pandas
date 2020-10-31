@@ -4,7 +4,6 @@ intended for public consumption
 """
 from __future__ import annotations
 
-import functools
 import operator
 from textwrap import dedent
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, cast
@@ -2071,42 +2070,17 @@ def safe_sort(
         strs = np.sort(values[str_pos])
         return np.concatenate([nums, np.asarray(strs, dtype=object)])
 
-    def sort_tuples(values):
-        # sorts tuples with mixed values. can handle nan vs string comparisons.
-        def cmp_func(index_x, index_y):
-            x = values[index_x]
-            y = values[index_y]
-            # shortcut loop in case both tuples are the same
-            if x == y:
-                return 0
-            # lexicographic sorting
-            for i in range(max(len(x), len(y))):
-                # check if the tuples have different lengths (shorter tuples
-                # first)
-                if i >= len(x):
-                    return -1
-                if i >= len(y):
-                    return +1
-                x_is_na = isna(x[i])
-                y_is_na = isna(y[i])
-                # values are the same -> resolve tie with next element
-                if (x_is_na and y_is_na) or (x[i] == y[i]):
-                    continue
-                # check for nan values (sort nan to the end)
-                if x_is_na and not y_is_na:
-                    return +1
-                if not x_is_na and y_is_na:
-                    return -1
-                # normal greater/less than comparison
-                if x[i] < y[i]:
-                    return -1
-                return +1
-            # both values are the same (should already have been caught)
-            return 0
+    def sort_tuples(values: np.ndarray[tuple]):
+        # convert array of tuples (1d) to array or array (2d).
+        # we need to keep the columns separately as they contain different
+        # types and nans (can't use `np.sort` as it may fail when str and nan
+        # are mixed in a column as types cannot be compared).
+        from pandas.core.sorting import lexsort_indexer
+        from pandas.core.internals.construction import to_arrays
 
-        ixs = np.arange(len(values))
-        ixs = sorted(ixs, key=functools.cmp_to_key(cmp_func))
-        return values[ixs]
+        arrays, _ = to_arrays(values, None)
+        indexer = lexsort_indexer(arrays, orders=True)
+        return values[indexer]
 
     sorter = None
 
