@@ -573,9 +573,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
         month_start = period_break(dates_, "month")
 
         def _hour_finder(label_interval, force_year_start):
-            # pandas\plotting\_matplotlib\converter.py:576: error:
-            # "PeriodIndex" has no attribute "hour"  [attr-defined]
-            _hour = dates_.hour  # type: ignore[attr-defined]
+            _hour = dates_.hour
             _prev_hour = (dates_ - 1 * dates_.freq).hour
             hour_start = (_hour - _prev_hour) != 0
             info_maj[day_start] = True
@@ -589,9 +587,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
 
         def _minute_finder(label_interval):
             hour_start = period_break(dates_, "hour")
-            # pandas\plotting\_matplotlib\converter.py:590: error:
-            # "PeriodIndex" has no attribute "minute"  [attr-defined]
-            _minute = dates_.minute  # type: ignore[attr-defined]
+            _minute = dates_.minute
             _prev_minute = (dates_ - 1 * dates_.freq).minute
             minute_start = (_minute - _prev_minute) != 0
             info_maj[hour_start] = True
@@ -604,9 +600,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
 
         def _second_finder(label_interval):
             minute_start = period_break(dates_, "minute")
-            # pandas\plotting\_matplotlib\converter.py:603: error:
-            # "PeriodIndex" has no attribute "second"  [attr-defined]
-            _second = dates_.second  # type: ignore[attr-defined]
+            _second = dates_.second
             _prev_second = (dates_ - 1 * dates_.freq).second
             second_start = (_second - _prev_second) != 0
             info["maj"][minute_start] = True
