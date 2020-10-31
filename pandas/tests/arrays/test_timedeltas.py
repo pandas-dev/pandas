@@ -214,7 +214,7 @@ class TestReductions:
 
     def test_min_max(self):
         vals = ["3H", "3H", "NaT", "2H", "5H", "4H"]
-        vals = [pd.Timedelta(x) for x in vals]
+        vals = [Timedelta(x) for x in vals]
         arr = TimedeltaArray._from_sequence(vals)
 
         result = arr.min()
