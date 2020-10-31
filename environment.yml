@@ -17,9 +17,8 @@ dependencies:
   # code checks
   - black=20.8b1
   - cpplint
-  - flake8<3.8.0  # temporary pin, GH#34150
+  - flake8
   - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
-  - flake8-rst>=0.6.0,<=0.7.0  # linting of code blocks in rst files
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.782
   - pre-commit
@@ -58,6 +57,7 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=1.21
   - pytest-asyncio
+  - pytest-instafail
 
   # downstream tests
   - seaborn
@@ -99,7 +99,7 @@ dependencies:
   - python-snappy  # required by pyarrow
 
   - pyqt>=5.9.2  # pandas.read_clipboard
-  - pytables>=3.4.4  # pandas.read_hdf, DataFrame.to_hdf
+  - pytables>=3.5.1  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs>=0.4.0  # file IO when using 's3://...' path
   - fsspec>=0.7.4  # for generic remote file operations
   - gcsfs>=0.6.0  # file IO when using 'gcs://...' path
@@ -112,4 +112,3 @@ dependencies:
   - pip:
     - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@master
     - git+https://github.com/numpy/numpydoc
-    - pyflakes>=2.2.0

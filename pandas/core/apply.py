@@ -216,7 +216,23 @@ class FrameApply(metaclass=abc.ABCMeta):
 
     def apply_raw(self):
         """ apply to the values as a numpy array """
-        result = np.apply_along_axis(self.f, self.axis, self.values)
+
+        def wrap_function(func):
+            """
+            Wrap user supplied function to work around numpy issue.
+
+            see https://github.com/numpy/numpy/issues/8352
+            """
+
+            def wrapper(*args, **kwargs):
+                result = func(*args, **kwargs)
+                if isinstance(result, str):
+                    result = np.array(result, dtype=object)
+                return result
+
+            return wrapper
+
+        result = np.apply_along_axis(wrap_function(self.f), self.axis, self.values)
 
         # TODO: mixed type case
         if result.ndim == 2:

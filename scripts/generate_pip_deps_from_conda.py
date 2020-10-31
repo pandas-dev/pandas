@@ -94,7 +94,7 @@ def main(conda_fname, pip_fname, compare=False):
         f"# This file is auto-generated from {fname}, do not modify.\n"
         "# See that file for comments about the need/usage of each dependency.\n\n"
     )
-    pip_content = header + "\n".join(pip_deps)
+    pip_content = header + "\n".join(pip_deps) + "\n"
 
     if compare:
         with open(pip_fname) as pip_fd:
