@@ -67,7 +67,6 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-import pandas as pd
 from pandas.core import algorithms, base, generic, nanops, ops
 from pandas.core.accessor import CachedAccessor
 from pandas.core.aggregation import aggregate, transform
@@ -76,6 +75,7 @@ from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
+    array as pd_array,
     create_series_with_explicit_dtype,
     extract_array,
     is_empty_data,
@@ -181,9 +181,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata: List[str] = ["name"]
     _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
-    _deprecations = (
-        base.IndexOpsMixin._deprecations
-        | generic.NDFrame._deprecations
+    _hidden_attrs = (
+        base.IndexOpsMixin._hidden_attrs
+        | generic.NDFrame._hidden_attrs
         | frozenset(["compress", "ptp"])
     )
 
@@ -1048,10 +1048,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
         if isinstance(key, slice):
-            # extract_array so that if we set e.g. ser[-5:] = ser[:5]
-            #  we get the first five values, and not 5 NaNs
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            self.iloc[indexer] = extract_array(value, extract_numpy=True)
+            return self._set_values(indexer, value)
 
         else:
             assert not isinstance(key, tuple)
@@ -1069,11 +1067,27 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
                 if not self.index._should_fallback_to_positional():
-                    self.loc[key] = value
+                    self._set_labels(key, value)
                 else:
-                    self.iloc[key] = value
+                    self._set_values(key, value)
             else:
                 self.loc[key] = value
+
+    def _set_labels(self, key, value):
+        key = com.asarray_tuplesafe(key)
+        indexer: np.ndarray = self.index.get_indexer(key)
+        mask = indexer == -1
+        if mask.any():
+            raise KeyError(f"{key[mask]} not in index")
+        self._set_values(indexer, value)
+
+    def _set_values(self, key, value):
+        if isinstance(key, Series):
+            key = key._values
+        self._mgr = self._mgr.setitem(  # type: ignore[assignment]
+            indexer=key, value=value
+        )
+        self._maybe_update_cacher()
 
     def _set_value(self, label, value, takeable: bool = False):
         """
@@ -1471,6 +1485,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         str
             {klass} in Markdown-friendly format.
+
+        Notes
+        -----
+        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
 
         Examples
         --------
@@ -4193,7 +4211,7 @@ Keep all original rows and also all original values
         if len(mapped) and isinstance(mapped[0], Series):
             # GH 25959 use pd.array instead of tolist
             # so extension arrays can be used
-            return self._constructor_expanddim(pd.array(mapped), index=self.index)
+            return self._constructor_expanddim(pd_array(mapped), index=self.index)
         else:
             return self._constructor(mapped, index=self.index).__finalize__(
                 self, method="apply"
