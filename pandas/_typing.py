@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta, tzinfo
 from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
+from mmap import mmap
 from pathlib import Path
 from typing import (
     IO,
@@ -77,13 +78,6 @@ Dtype = Union[
     "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
 ]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
-FilePathOrBuffer = Union[
-    str, Path, IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper
-]
-FileOrBuffer = Union[
-    str, IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper
-]
-Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper]
 
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
 # `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
@@ -138,6 +132,10 @@ AggObjType = Union[
     "Resampler",
 ]
 
+# filenames and file-like-objects
+Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
+FileOrBuffer = Union[str, Buffer[T]]
+FilePathOrBuffer = Union[Path, FileOrBuffer[T]]
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]
@@ -176,9 +174,32 @@ class IOArgs(Generic[ModeVar, EncodingVar]):
 
 
 @dataclass
-class HandleArgs:
-    """Return value of io/common.py:get_handle"""
+class IOHandleArgs:
+    """
+    Return value of io/common.py:get_handle
+
+    handle: The file handle to be used.
+    created_handles: All file handles that are created by get_handle
+    is_wrapped: Whether a TextIOWrapper needs to be detached.
+    """
 
     handle: Buffer
     created_handles: List[Buffer]
     is_wrapped: bool
+
+    def close(self) -> None:
+        """
+        Close all created buffers.
+
+        Note: If a TextIOWrapper was inserted, it is flushed and detached to
+        avoid closing the potentially user-created buffer.
+        """
+        if self.is_wrapped:
+            assert isinstance(self.handle, TextIOWrapper)
+            self.handle.flush()
+            self.handle.detach()
+            self.created_handles.remove(self.handle)
+        for handle in self.created_handles:
+            handle.close()
+        self.created_handles = []
+        self.is_wrapped = False

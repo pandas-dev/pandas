@@ -1034,11 +1034,11 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(df, result)
 
             # test the round trip using file handle - to_csv -> read_csv
-            handleArgs = get_handle(
+            handle_args = get_handle(
                 filename, "w", compression=compression, encoding=encoding
             )
-            with handleArgs.handle:
-                df.to_csv(handleArgs.handle, encoding=encoding)
+            df.to_csv(handle_args.handle, encoding=encoding)
+            handle_args.close()
             result = pd.read_csv(
                 filename,
                 compression=compression,

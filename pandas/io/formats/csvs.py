@@ -3,7 +3,7 @@ Module for formatting output data into CSV files.
 """
 
 import csv as csvlib
-from io import StringIO, TextIOWrapper
+from io import StringIO
 import os
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Sequence, Union
 
@@ -240,7 +240,7 @@ class CSVFormatter:
         """
         # get a handle or wrap an existing handle to take care of 1) compression and
         # 2) text -> byte conversion
-        handleArgs = get_handle(
+        handle_args = get_handle(
             self.path_or_buf,
             self.mode,
             encoding=self.encoding,
@@ -251,7 +251,7 @@ class CSVFormatter:
         try:
             # Note: self.encoding is irrelevant here
             self.writer = csvlib.writer(
-                handleArgs.handle,  # type: ignore[arg-type]
+                handle_args.handle,  # type: ignore[arg-type]
                 lineterminator=self.line_terminator,
                 delimiter=self.sep,
                 quoting=self.quoting,
@@ -263,19 +263,8 @@ class CSVFormatter:
             self._save()
 
         finally:
-            if handleArgs.is_wrapped:
-                # get_handle uses TextIOWrapper for non-binary handles. TextIOWrapper
-                # closes the wrapped handle if it is not detached.
-                assert isinstance(handleArgs.handle, TextIOWrapper)
-                handleArgs.handle.flush()
-                handleArgs.handle.detach()
-                handleArgs.created_handles.remove(handleArgs.handle)
-            for handle in handleArgs.created_handles:
-                handle.close()
-            if (
-                self.should_close
-                and not self.path_or_buf.closed  # type: ignore[union-attr]
-            ):
+            handle_args.close()
+            if self.should_close:
                 assert not isinstance(self.path_or_buf, str)
                 self.path_or_buf.close()
 

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import abc
 import functools
-from io import StringIO, TextIOWrapper
+from io import StringIO
 from itertools import islice
 import os
 from typing import Any, Callable, Mapping, Optional, Tuple, Type, Union
@@ -12,8 +12,8 @@ import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
-    HandleArgs,
     IndexLabel,
+    IOHandleArgs,
     JSONSerializable,
     StorageOptions,
 )
@@ -103,17 +103,11 @@ def to_json(
         s = convert_to_line_delimits(s)
 
     if path_or_buf is not None:
-        handleArgs = get_handle(path_or_buf, "w", compression=compression)
+        handle_args = get_handle(path_or_buf, "w", compression=compression)
         try:
-            handleArgs.handle.write(s)
+            handle_args.handle.write(s)
         finally:
-            if handleArgs.is_wrapped:
-                assert isinstance(handleArgs.handle, TextIOWrapper)
-                handleArgs.handle.flush()
-                handleArgs.handle.detach()
-                handleArgs.created_handles.remove(handleArgs.handle)
-            for handle in handleArgs.created_handles:
-                handle.close()
+            handle_args.close()
             if should_close:
                 path_or_buf.close()
     else:
@@ -633,7 +627,7 @@ class JsonReader(abc.Iterator):
         self.chunksize = chunksize
         self.nrows_seen = 0
         self.nrows = nrows
-        self.handleArgs: Optional[HandleArgs] = None
+        self.handle_args: Optional[IOHandleArgs] = None
 
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
@@ -682,13 +676,13 @@ class JsonReader(abc.Iterator):
                 pass
 
         if exists or not isinstance(filepath_or_buffer, str):
-            self.handleArgs = get_handle(
+            self.handle_args = get_handle(
                 filepath_or_buffer,
                 "r",
                 encoding=self.encoding,
                 compression=self.compression,
             )
-            filepath_or_buffer = self.handleArgs.handle
+            filepath_or_buffer = self.handle_args.handle
 
         return filepath_or_buffer
 
@@ -754,14 +748,8 @@ class JsonReader(abc.Iterator):
 
         If an open stream or file was passed, we leave it open.
         """
-        if self.handleArgs is None:
-            return
-        if self.handleArgs.is_wrapped:
-            assert isinstance(self.handleArgs.handle, TextIOWrapper)
-            self.handleArgs.handle.detach()
-            self.handleArgs.created_handles.remove(self.handleArgs.handle)
-        for handle in self.handleArgs.created_handles:
-            handle.close()
+        if self.handle_args is not None:
+            self.handle_args.close()
 
     def __next__(self):
         if self.nrows:

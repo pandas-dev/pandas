@@ -92,16 +92,17 @@ def to_pickle(
         mode="wb",
         storage_options=storage_options,
     )
-    handleArgs = get_handle(
+    handle_args = get_handle(
         ioargs.filepath_or_buffer, "wb", compression=ioargs.compression, is_text=False
     )
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
-        pickle.dump(obj, handleArgs.handle, protocol=protocol)  # type: ignore[arg-type]
+        pickle.dump(
+            obj, handle_args.handle, protocol=protocol  # type: ignore[arg-type]
+        )
     finally:
-        for handle in handleArgs.created_handles:
-            handle.close()
+        handle_args.close()
         if ioargs.should_close:
             assert not isinstance(ioargs.filepath_or_buffer, str)
             try:
@@ -190,7 +191,7 @@ def read_pickle(
     ioargs = get_filepath_or_buffer(
         filepath_or_buffer, compression=compression, storage_options=storage_options
     )
-    handleArgs = get_handle(
+    handle_args = get_handle(
         ioargs.filepath_or_buffer, "rb", compression=ioargs.compression, is_text=False
     )
 
@@ -205,18 +206,17 @@ def read_pickle(
             with warnings.catch_warnings(record=True):
                 # We want to silence any warnings about, e.g. moved modules.
                 warnings.simplefilter("ignore", Warning)
-                return pickle.load(handleArgs.handle)  # type: ignore[arg-type]
+                return pickle.load(handle_args.handle)  # type: ignore[arg-type]
         except excs_to_catch:
             # e.g.
             #  "No module named 'pandas.core.sparse.series'"
             #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
-            return pc.load(handleArgs.handle, encoding=None)
+            return pc.load(handle_args.handle, encoding=None)
     except UnicodeDecodeError:
         # e.g. can occur for files written in py27; see GH#28645 and GH#31988
-        return pc.load(handleArgs.handle, encoding="latin-1")
+        return pc.load(handle_args.handle, encoding="latin-1")
     finally:
-        for handle in handleArgs.created_handles:
-            handle.close()
+        handle_args.close()
         if ioargs.should_close:
             assert not isinstance(ioargs.filepath_or_buffer, str)
             try:

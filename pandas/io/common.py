@@ -18,6 +18,7 @@ from typing import (
     Optional,
     Tuple,
     Type,
+    cast,
 )
 from urllib.parse import (
     urljoin,
@@ -36,8 +37,8 @@ from pandas._typing import (
     EncodingVar,
     FileOrBuffer,
     FilePathOrBuffer,
-    HandleArgs,
     IOArgs,
+    IOHandleArgs,
     ModeVar,
     StorageOptions,
 )
@@ -467,7 +468,7 @@ def get_handle(
     memory_map: bool = False,
     is_text: bool = True,
     errors: Optional[str] = None,
-) -> HandleArgs:
+) -> IOHandleArgs:
     """
     Get file handle for given path/buffer and mode.
 
@@ -511,19 +512,9 @@ def get_handle(
         See the errors argument for :func:`open` for a full list
         of options.
 
-        .. versionadded:: 1.1.0
+    .. versionchanged:: 1.2.0
 
-    Returns
-    -------
-    handleArgs :
-        handle: The file handle to be used.
-        created_handles: All file handles that are created by get_handle
-            (iterate over it to close buffers).
-        is_wrapped: Whether TextIOWrapper is added (cannot close it as it closes
-            wrapped buffers: flush&detach it and close all remaining buffers
-            in created_handles).
-
-        .. versionadded:: 1.2.0
+    Returns the dataclass IOHandleArgs
     """
     need_text_wrapping: Tuple[Type["IOBase"], ...]
     try:
@@ -629,16 +620,17 @@ def get_handle(
             f, encoding=encoding, errors=errors, newline=""  # type: ignore[arg-type]
         )
         handles.append(f)
-        is_wrapped = True
+        # do not mark as wrapped when the user provided a string
+        is_wrapped = not is_path
 
     if memory_map and hasattr(f, "fileno"):
         assert not isinstance(f, str)
         try:
-            wrapped = _MMapWrapper(f)  # type: ignore[arg-type]
+            wrapped = cast(mmap.mmap, _MMapWrapper(f))  # type: ignore[arg-type]
             f.close()
             handles.remove(f)
-            handles.append(wrapped)  # type: ignore[arg-type]
-            f = wrapped  # type: ignore[assignment]
+            handles.append(wrapped)
+            f = wrapped
         except Exception:
             # we catch any errors that may have occurred
             # because that is consistent with the lower-level
@@ -648,7 +640,7 @@ def get_handle(
 
     handles.reverse()  # close the most recently added buffer first
     assert not isinstance(f, str)
-    return HandleArgs(
+    return IOHandleArgs(
         handle=f,
         created_handles=handles,
         is_wrapped=is_wrapped,
