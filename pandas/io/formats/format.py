@@ -1600,12 +1600,13 @@ def format_percentiles(
     to_end = 100 - unique_pcts[-1] if unique_pcts[-1] < 100 else None
 
     # Least precision that keeps percentiles unique after rounding
-    prec = -np.floor(
+
+    # pandas\io\formats\format.py:1603: error: Unsupported operand type for
+    # unary - ("Union[ndarray, generic]")  [operator]
+    prec = -np.floor(  # type: ignore[operator]
         np.log10(np.min(np.ediff1d(unique_pcts, to_begin=to_begin, to_end=to_end)))
     ).astype(int)
-    # error: Incompatible types in assignment (expression has type "Union[int,
-    # ndarray, generic]", variable has type "Union[ndarray, generic]")
-    prec = max(1, prec)  # type: ignore[assignment]
+    prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
     out[int_idx] = percentiles[int_idx].astype(int).astype(str)
     out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)

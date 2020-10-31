@@ -367,8 +367,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if null_mask.any():
             # Reinsert -1 placeholders for previously removed missing values
             full_codes = -np.ones(null_mask.shape, dtype=codes.dtype)
-            full_codes[~null_mask] = codes
-            codes = full_codes
+            # pandas\core\arrays\categorical.py:370: error: Unsupported target
+            # for indexed assignment ("Union[ndarray, generic]")  [index]
+            full_codes[~null_mask] = codes  # type: ignore[index]
+            # pandas\core\arrays\categorical.py:371: error: Incompatible types
+            # in assignment (expression has type "Union[ndarray, generic]",
+            # variable has type "ndarray")  [assignment]
+            codes = full_codes  # type: ignore[assignment]
 
         self._dtype = self._dtype.update_dtype(dtype)
         self._codes = coerce_indexer_dtype(codes, dtype.categories)

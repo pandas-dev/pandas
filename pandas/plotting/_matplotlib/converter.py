@@ -168,17 +168,13 @@ class TimeFormatter(Formatter):
 
         Parameters
         ----------
-        x : float
-            The time of day specified as seconds since 00:00 (midnight),
-            with up to microsecond precision.
-        pos
-            Unused
+        x : float The time of day specified as seconds since 00:00 (midnight),
+            with up to microsecond precision. pos Unused
 
         Returns
         -------
-        str
-            A string in HH:MM:SS.mmmuuu format. Microseconds,
-            milliseconds and seconds are only displayed if non-zero.
+        str A string in HH:MM:SS.mmmuuu format. Microseconds, milliseconds and
+            seconds are only displayed if non-zero.
         """
         fmt = "%H:%M:%S.%f"
         s = int(x)
@@ -222,8 +218,8 @@ class PeriodConverter(dates.DateConverter):
         elif isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
         elif lib.infer_dtype(values, skipna=False) == "period":
-            # https://github.com/pandas-dev/pandas/issues/24304
-            # convert ndarray[period] -> PeriodIndex
+            # https://github.com/pandas-dev/pandas/issues/24304 convert
+            # ndarray[period] -> PeriodIndex
             return PeriodIndex(values, freq=axis.freq).asi8
         elif isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
@@ -273,8 +269,8 @@ class DatetimeConverter(dates.DateConverter):
             return try_parse(values)
         elif isinstance(values, (list, tuple, np.ndarray, Index, Series)):
             if isinstance(values, Series):
-                # https://github.com/matplotlib/matplotlib/issues/11391
-                # Series was skipped. Convert to DatetimeIndex to get asi8
+                # https://github.com/matplotlib/matplotlib/issues/11391 Series
+                # was skipped. Convert to DatetimeIndex to get asi8
                 values = Index(values)
             if isinstance(values, Index):
                 values = values.values
@@ -298,8 +294,8 @@ class DatetimeConverter(dates.DateConverter):
         """
         Return the :class:`~matplotlib.units.AxisInfo` for *unit*.
 
-        *unit* is a tzinfo instance or None.
-        The *axis* argument is required but not used.
+        *unit* is a tzinfo instance or None. The *axis* argument is required
+        but not used.
         """
         tz = unit
 
@@ -479,10 +475,8 @@ def period_break(dates: PeriodIndex, period: str) -> np.ndarray:
 
     Parameters
     ----------
-    dates : PeriodIndex
-        Array of intervals to monitor.
-    period : string
-        Name of the period to monitor.
+    dates : PeriodIndex Array of intervals to monitor. period : string Name of
+        the period to monitor.
     """
     current = getattr(dates, period)
     previous = getattr(dates - 1 * dates.freq, period)
@@ -891,16 +885,11 @@ class TimeSeries_DateLocator(Locator):
 
     Parameters
     ----------
-    freq : {var}
-        Valid frequency specifier.
-    minor_locator : {False, True}, optional
-        Whether the locator is for minor ticks (True) or not.
-    dynamic_mode : {True, False}, optional
-        Whether the locator should work in dynamic mode.
-    base : {int}, optional
-    quarter : {int}, optional
-    month : {int}, optional
-    day : {int}, optional
+    freq : {var} Valid frequency specifier. minor_locator : {False, True},
+        optional Whether the locator is for minor ticks (True) or not.
+        dynamic_mode : {True, False}, optional Whether the locator should work
+        in dynamic mode. base : {int}, optional quarter : {int}, optional month
+        : {int}, optional day : {int}, optional
     """
 
     def __init__(
@@ -982,12 +971,9 @@ class TimeSeries_DateFormatter(Formatter):
 
     Parameters
     ----------
-    freq : {int, string}
-        Valid frequency specifier.
-    minor_locator : bool, default False
-        Whether the current formatter should apply to minor ticks (True) or
-        major ticks (False).
-    dynamic_mode : bool, default True
+    freq : {int, string} Valid frequency specifier. minor_locator : bool,
+        default False Whether the current formatter should apply to minor ticks
+        (True) or major ticks (False). dynamic_mode : bool, default True
         Whether the formatter works in dynamic mode or not.
     """
 
@@ -1072,7 +1058,12 @@ class TimeSeries_TimedeltaFormatter(Formatter):
 
     def __call__(self, x, pos=0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
-        n_decimals = int(np.ceil(np.log10(100 * 1e9 / (vmax - vmin))))
+        # pandas\plotting\_matplotlib\converter.py:1075: error: Argument 1 to
+        # "int" has incompatible type "Union[ndarray, generic]"; expected
+        # "Union[str, bytes, SupportsInt, _SupportsIndex]"  [arg-type]
+        n_decimals = int(
+            np.ceil(np.log10(100 * 1e9 / (vmax - vmin)))  # type: ignore[arg-type]
+        )
         if n_decimals > 9:
             n_decimals = 9
         return self.format_timedelta_ticks(x, pos, n_decimals)
