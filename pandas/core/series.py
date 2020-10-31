@@ -3288,11 +3288,8 @@ Keep all original rows and also all original values
             raise ValueError(f"invalid na_position: {na_position}")
 
         # GH 35922. Make sorting stable by leveraging nargsort
-        if key:
-            ser = ensure_key_mapped(self, key)
-            sorted_index = nargsort(ser._values, kind, ascending, na_position)
-        else:
-            sorted_index = nargsort(self._values, kind, ascending, na_position)
+        values_to_sort = ensure_key_mapped(self, key)._values if key else self._values
+        sorted_index = nargsort(values_to_sort, kind, ascending, na_position)
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index]
