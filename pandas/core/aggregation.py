@@ -30,7 +30,7 @@ from pandas._typing import (
     Label,
 )
 
-from pandas.core.dtypes.abcs.ndframe import ABCNDFrame
+from pandas.core.dtypes.abcs import ABCNDFrame
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import is_dict_like, is_list_like
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries

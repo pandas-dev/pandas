@@ -21,8 +21,16 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
+from pandas.util._decorators import Appender, doc, rewrite_axis_style_signature
+
+from pandas.core import indexing
+from pandas.core.base import PandasObject, SelectionMixin
+from pandas.core.shared_docs import _shared_docs
+
+from pandas.io.formats import format as fmt
+
 if TYPE_CHECKING:
-    from pandas._libs import lib
     from pandas._libs.tslibs import BaseOffset
     from pandas._typing import (
         Axis,
@@ -41,25 +49,17 @@ if TYPE_CHECKING:
         ValueKeyFunc,
     )
     from pandas.errors import AbstractMethodError
-    from pandas.util._decorators import Appender, doc, rewrite_axis_style_signature
 
     from pandas.core.dtypes.generic import ABCSeries
 
-    import pandas as pd
-    from pandas.core import indexing
-    from pandas.core.base import PandasObject, SelectionMixin
     import pandas.core.common as com
     from pandas.core.flags import Flags
-    from pandas.core.frame import DataFrame
     from pandas.core.indexes.api import Index, MultiIndex
     from pandas.core.internals import BlockManager
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
-    from pandas.core.shared_docs import _shared_docs
-    from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling
+    from pandas.core.window import Expanding, ExponentialMovingWindow
     from pandas.core.window.indexers import BaseIndexer
-
-    from pandas.io.formats import format as fmt
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -7771,7 +7771,7 @@ class ABCNDFrame(ABC, PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         raise AbstractMethodError(cls)
 
-    @doc(Rolling)
+    # @doc(Rolling)
     def rolling(
         self,
         window: Union[int, timedelta, BaseOffset, BaseIndexer],
@@ -7784,13 +7784,13 @@ class ABCNDFrame(ABC, PandasObject, SelectionMixin, indexing.IndexingMixin):
     ):
         raise AbstractMethodError(self)
 
-    @doc(Expanding)
+    # @doc(Expanding)
     def expanding(
         self, min_periods: int = 1, center: Optional[bool_t] = None, axis: Axis = 0
     ) -> Expanding:
         raise AbstractMethodError(self)
 
-    @doc(ExponentialMovingWindow)
+    # @doc(ExponentialMovingWindow)
     def ewm(
         self,
         com: Optional[float] = None,

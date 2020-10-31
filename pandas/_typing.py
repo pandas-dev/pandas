@@ -29,7 +29,6 @@ import numpy as np
 if TYPE_CHECKING:
     from pandas._libs import Period, Timedelta, Timestamp
 
-    from pandas.core.dtypes.abcs.ndframe import ABCNDFrame
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
