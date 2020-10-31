@@ -8,7 +8,7 @@ import pytest
 from pandas.compat.numpy import is_numpy_dev
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
@@ -888,6 +888,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         original_series[:3] = [7, 8, 9]
         assert all(sliced_series[:3] == [7, 8, 9])
 
+    @pytest.mark.xfail(reason="accidental fix reverted - GH37497")
     def test_loc_copy_vs_view(self):
         # GH 15631
         x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
@@ -975,6 +976,108 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         result = Series(index=range(2010, 2020), dtype=np.float64)
         result.loc[2015:2010:-1] = [6, 5, 4, 3, 2, 1]
+
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_str_to_small_float_conversion_type(self):
+        # GH#20388
+        np.random.seed(13)
+        col_data = [str(np.random.random() * 1e-12) for _ in range(5)]
+        result = DataFrame(col_data, columns=["A"])
+        expected = DataFrame(col_data, columns=["A"], dtype=object)
+        tm.assert_frame_equal(result, expected)
+
+        # change the dtype of the elements from object to float one by one
+        result.loc[result.index, "A"] = [float(x) for x in col_data]
+        expected = DataFrame(col_data, columns=["A"], dtype=float)
+        tm.assert_frame_equal(result, expected)
+
+
+class TestLocWithMultiIndex:
+    @pytest.mark.parametrize(
+        "keys, expected",
+        [
+            (["b", "a"], [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            (["a", "b"], [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [1, 2]), [["a", "a", "b", "b"], [1, 2, 1, 2]]),
+            ((["a", "b"], [2, 1]), [["a", "a", "b", "b"], [2, 1, 2, 1]]),
+            ((["b", "a"], [2, 1]), [["b", "b", "a", "a"], [2, 1, 2, 1]]),
+            ((["b", "a"], [1, 2]), [["b", "b", "a", "a"], [1, 2, 1, 2]]),
+            ((["c", "a"], [2, 1]), [["c", "a", "a"], [1, 2, 1]]),
+        ],
+    )
+    @pytest.mark.parametrize("dim", ["index", "columns"])
+    def test_loc_getitem_multilevel_index_order(self, dim, keys, expected):
+        # GH#22797
+        # Try to respect order of keys given for MultiIndex.loc
+        kwargs = {dim: [["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]]}
+        df = DataFrame(np.arange(25).reshape(5, 5), **kwargs)
+        exp_index = MultiIndex.from_arrays(expected)
+        if dim == "index":
+            res = df.loc[keys, :]
+            tm.assert_index_equal(res.index, exp_index)
+        elif dim == "columns":
+            res = df.loc[:, keys]
+            tm.assert_index_equal(res.columns, exp_index)
+
+    def test_loc_preserve_names(self, multiindex_year_month_day_dataframe_random_data):
+        ymd = multiindex_year_month_day_dataframe_random_data
+
+        result = ymd.loc[2000]
+        result2 = ymd["A"].loc[2000]
+        assert result.index.names == ymd.index.names[1:]
+        assert result2.index.names == ymd.index.names[1:]
+
+        result = ymd.loc[2000, 2]
+        result2 = ymd["A"].loc[2000, 2]
+        assert result.index.name == ymd.index.names[2]
+        assert result2.index.name == ymd.index.names[2]
+
+    def test_loc_getitem_multiindex_nonunique_len_zero(self):
+        # GH#13691
+        mi = MultiIndex.from_product([[0], [1, 1]])
+        ser = Series(0, index=mi)
+
+        res = ser.loc[[]]
+
+        expected = ser[:0]
+        tm.assert_series_equal(res, expected)
+
+        res2 = ser.loc[ser.iloc[0:0]]
+        tm.assert_series_equal(res2, expected)
+
+    def test_loc_getitem_access_none_value_in_multiindex(self):
+        # GH#34318: test that you can access a None value using .loc
+        #  through a Multiindex
+
+        ser = Series([None], pd.MultiIndex.from_arrays([["Level1"], ["Level2"]]))
+        result = ser.loc[("Level1", "Level2")]
+        assert result is None
+
+        midx = MultiIndex.from_product([["Level1"], ["Level2_a", "Level2_b"]])
+        ser = Series([None] * len(midx), dtype=object, index=midx)
+        result = ser.loc[("Level1", "Level2_a")]
+        assert result is None
+
+        ser = Series([1] * len(midx), dtype=object, index=midx)
+        result = ser.loc[("Level1", "Level2_a")]
+        assert result == 1
+
+    def test_loc_setitem_multiindex_slice(self):
+        # GH 34870
+
+        index = pd.MultiIndex.from_tuples(
+            zip(
+                ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+                ["one", "two", "one", "two", "one", "two", "one", "two"],
+            ),
+            names=["first", "second"],
+        )
+
+        result = Series([1, 1, 1, 1, 1, 1, 1, 1], index=index)
+        result.loc[("baz", "one"):("foo", "two")] = 100
+
+        expected = Series([1, 1, 100, 100, 100, 100, 1, 1], index=index)
 
         tm.assert_series_equal(result, expected)
 
@@ -1128,3 +1231,153 @@ def test_loc_with_period_index_indexer():
     tm.assert_frame_equal(df, df.loc[list(idx)])
     tm.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
     tm.assert_frame_equal(df, df.loc[list(idx)])
+
+
+class TestLocSeries:
+    @pytest.mark.parametrize("val,expected", [(2 ** 63 - 1, 3), (2 ** 63, 4)])
+    def test_loc_uint64(self, val, expected):
+        # see GH#19399
+        ser = Series({2 ** 63 - 1: 3, 2 ** 63: 4})
+        assert ser.loc[val] == expected
+
+    def test_loc_getitem(self, string_series, datetime_series):
+        inds = string_series.index[[3, 4, 7]]
+        tm.assert_series_equal(string_series.loc[inds], string_series.reindex(inds))
+        tm.assert_series_equal(string_series.iloc[5::2], string_series[5::2])
+
+        # slice with indices
+        d1, d2 = datetime_series.index[[5, 15]]
+        result = datetime_series.loc[d1:d2]
+        expected = datetime_series.truncate(d1, d2)
+        tm.assert_series_equal(result, expected)
+
+        # boolean
+        mask = string_series > string_series.median()
+        tm.assert_series_equal(string_series.loc[mask], string_series[mask])
+
+        # ask for index value
+        assert datetime_series.loc[d1] == datetime_series[d1]
+        assert datetime_series.loc[d2] == datetime_series[d2]
+
+    def test_loc_getitem_not_monotonic(self, datetime_series):
+        d1, d2 = datetime_series.index[[5, 15]]
+
+        ts2 = datetime_series[::2][[1, 2, 0]]
+
+        msg = r"Timestamp\('2000-01-10 00:00:00'\)"
+        with pytest.raises(KeyError, match=msg):
+            ts2.loc[d1:d2]
+        with pytest.raises(KeyError, match=msg):
+            ts2.loc[d1:d2] = 0
+
+    def test_loc_getitem_setitem_integer_slice_keyerrors(self):
+        ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+
+        # this is OK
+        cp = ser.copy()
+        cp.iloc[4:10] = 0
+        assert (cp.iloc[4:10] == 0).all()
+
+        # so is this
+        cp = ser.copy()
+        cp.iloc[3:11] = 0
+        assert (cp.iloc[3:11] == 0).values.all()
+
+        result = ser.iloc[2:6]
+        result2 = ser.loc[3:11]
+        expected = ser.reindex([4, 6, 8, 10])
+
+        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result2, expected)
+
+        # non-monotonic, raise KeyError
+        s2 = ser.iloc[list(range(5)) + list(range(9, 4, -1))]
+        with pytest.raises(KeyError, match=r"^3$"):
+            s2.loc[3:11]
+        with pytest.raises(KeyError, match=r"^3$"):
+            s2.loc[3:11] = 0
+
+    def test_loc_getitem_iterator(self, string_series):
+        idx = iter(string_series.index[:10])
+        result = string_series.loc[idx]
+        tm.assert_series_equal(result, string_series[:10])
+
+    def test_loc_setitem_boolean(self, string_series):
+        mask = string_series > string_series.median()
+
+        result = string_series.copy()
+        result.loc[mask] = 0
+        expected = string_series
+        expected[mask] = 0
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_corner(self, string_series):
+        inds = list(string_series.index[[5, 8, 12]])
+        string_series.loc[inds] = 5
+        msg = r"\['foo'\] not in index"
+        with pytest.raises(KeyError, match=msg):
+            string_series.loc[inds + ["foo"]] = 5
+
+    def test_basic_setitem_with_labels(self, datetime_series):
+        indices = datetime_series.index[[5, 10, 15]]
+
+        cp = datetime_series.copy()
+        exp = datetime_series.copy()
+        cp[indices] = 0
+        exp.loc[indices] = 0
+        tm.assert_series_equal(cp, exp)
+
+        cp = datetime_series.copy()
+        exp = datetime_series.copy()
+        cp[indices[0] : indices[2]] = 0
+        exp.loc[indices[0] : indices[2]] = 0
+        tm.assert_series_equal(cp, exp)
+
+    def test_loc_setitem_listlike_of_ints(self):
+
+        # integer indexes, be careful
+        ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+        inds = [0, 4, 6]
+        arr_inds = np.array([0, 4, 6])
+
+        cp = ser.copy()
+        exp = ser.copy()
+        ser[inds] = 0
+        ser.loc[inds] = 0
+        tm.assert_series_equal(cp, exp)
+
+        cp = ser.copy()
+        exp = ser.copy()
+        ser[arr_inds] = 0
+        ser.loc[arr_inds] = 0
+        tm.assert_series_equal(cp, exp)
+
+        inds_notfound = [0, 4, 5, 6]
+        arr_inds_notfound = np.array([0, 4, 5, 6])
+        msg = r"\[5\] not in index"
+        with pytest.raises(KeyError, match=msg):
+            ser[inds_notfound] = 0
+        with pytest.raises(Exception, match=msg):
+            ser[arr_inds_notfound] = 0
+
+    def test_loc_setitem_dt64tz_values(self):
+        # GH#12089
+        ser = Series(
+            date_range("2011-01-01", periods=3, tz="US/Eastern"),
+            index=["a", "b", "c"],
+        )
+        s2 = ser.copy()
+        expected = Timestamp("2011-01-03", tz="US/Eastern")
+        s2.loc["a"] = expected
+        result = s2.loc["a"]
+        assert result == expected
+
+        s2 = ser.copy()
+        s2.iloc[0] = expected
+        result = s2.iloc[0]
+        assert result == expected
+
+        s2 = ser.copy()
+        s2["a"] = expected
+        result = s2["a"]
+        assert result == expected

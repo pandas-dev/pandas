@@ -95,7 +95,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     ----------
     day
     dayofweek
+    day_of_week
     dayofyear
+    day_of_year
     days_in_month
     daysinmonth
     end_time
@@ -148,7 +150,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _supports_partial_string_indexing = True
 
     # --------------------------------------------------------------------
-    # methods that dispatch to array and wrap result in PeriodIndex
+    # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
     @doc(PeriodArray.asfreq)
@@ -160,6 +162,24 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def to_timestamp(self, freq=None, how="start") -> DatetimeIndex:
         arr = self._data.to_timestamp(freq, how)
         return DatetimeIndex._simple_new(arr, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.hour.fget)
+    def hour(self) -> Int64Index:
+        return Int64Index(self._data.hour, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.minute.fget)
+    def minute(self) -> Int64Index:
+        return Int64Index(self._data.minute, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.second.fget)
+    def second(self) -> Int64Index:
+        return Int64Index(self._data.second, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Constructors
