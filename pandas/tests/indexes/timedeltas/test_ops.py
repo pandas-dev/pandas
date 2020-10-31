@@ -134,7 +134,7 @@ class TestTimedeltaIndexOps:
             ordered, indexer = idx.sort_values(return_indexer=True, ascending=False)
             tm.assert_index_equal(ordered, expected[::-1])
 
-            exp = np.array([2, 1, 3, 4, 0])
+            exp = np.array([2, 1, 3, 0, 4])
             tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
             assert ordered.freq is None
 
@@ -181,13 +181,13 @@ class TestTimedeltaIndexOps:
     def test_infer_freq(self, freq_sample):
         # GH#11018
         idx = pd.timedelta_range("1", freq=freq_sample, periods=10)
-        result = pd.TimedeltaIndex(idx.asi8, freq="infer")
+        result = TimedeltaIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
         assert result.freq == freq_sample
 
     def test_repeat(self):
         index = pd.timedelta_range("1 days", periods=2, freq="D")
-        exp = pd.TimedeltaIndex(["1 days", "1 days", "2 days", "2 days"])
+        exp = TimedeltaIndex(["1 days", "1 days", "2 days", "2 days"])
         for res in [index.repeat(2), np.repeat(index, 2)]:
             tm.assert_index_equal(res, exp)
             assert res.freq is None
@@ -211,17 +211,17 @@ class TestTimedeltaIndexOps:
             assert res.freq is None
 
     def test_nat(self):
-        assert pd.TimedeltaIndex._na_value is pd.NaT
-        assert pd.TimedeltaIndex([])._na_value is pd.NaT
+        assert TimedeltaIndex._na_value is pd.NaT
+        assert TimedeltaIndex([])._na_value is pd.NaT
 
-        idx = pd.TimedeltaIndex(["1 days", "2 days"])
+        idx = TimedeltaIndex(["1 days", "2 days"])
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
         assert idx.hasnans is False
         tm.assert_numpy_array_equal(idx._nan_idxs, np.array([], dtype=np.intp))
 
-        idx = pd.TimedeltaIndex(["1 days", "NaT"])
+        idx = TimedeltaIndex(["1 days", "NaT"])
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
@@ -230,7 +230,7 @@ class TestTimedeltaIndexOps:
 
     def test_equals(self):
         # GH 13107
-        idx = pd.TimedeltaIndex(["1 days", "2 days", "NaT"])
+        idx = TimedeltaIndex(["1 days", "2 days", "NaT"])
         assert idx.equals(idx)
         assert idx.equals(idx.copy())
         assert idx.equals(idx.astype(object))
@@ -239,7 +239,7 @@ class TestTimedeltaIndexOps:
         assert not idx.equals(list(idx))
         assert not idx.equals(Series(idx))
 
-        idx2 = pd.TimedeltaIndex(["2 days", "1 days", "NaT"])
+        idx2 = TimedeltaIndex(["2 days", "1 days", "NaT"])
         assert not idx.equals(idx2)
         assert not idx.equals(idx2.copy())
         assert not idx.equals(idx2.astype(object))
