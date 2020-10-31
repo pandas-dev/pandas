@@ -610,26 +610,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                     freq = self.freq
         return freq
 
+    @doc(NDArrayBackedExtensionIndex.delete)
     def delete(self, loc):
         result = super().delete(loc)
         result._data._freq = self._get_delete_freq(loc)
         return result
 
+    @doc(NDArrayBackedExtensionIndex.insert)
     def insert(self, loc: int, item):
-        """
-        Make new Index inserting new item at location
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-            if not either a Python datetime or a numpy integer-like, returned
-            Index dtype will be object rather than datetime.
-
-        Returns
-        -------
-        new_index : Index
-        """
         result = super().insert(loc, item)
 
         result._data._freq = self._get_insert_freq(loc, item)
