@@ -1,8 +1,6 @@
 """ Test cases for misc plot functions """
 
 import numpy as np
-from numpy import random
-from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
@@ -101,7 +99,7 @@ class TestDataFramePlots(TestPlotBase):
         scatter_matrix = plotting.scatter_matrix
 
         with tm.RNGContext(42):
-            df = DataFrame(randn(100, 3))
+            df = DataFrame(np.random.randn(100, 3))
 
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(
@@ -166,9 +164,9 @@ class TestDataFramePlots(TestPlotBase):
         length = 10
         df = DataFrame(
             {
-                "A": random.rand(length),
-                "B": random.rand(length),
-                "C": random.rand(length),
+                "A": np.random.rand(length),
+                "B": np.random.rand(length),
+                "C": np.random.rand(length),
                 "Name": ["A"] * length,
             }
         )
@@ -353,11 +351,11 @@ class TestDataFramePlots(TestPlotBase):
         # GH17525
         df = DataFrame(np.zeros((10, 10)))
 
-        # Make sure that the random seed isn't reset by get_standard_colors
+        # Make sure that the np.random.seed isn't reset by get_standard_colors
         plotting.parallel_coordinates(df, 0)
-        rand1 = random.random()
+        rand1 = np.random.random()
         plotting.parallel_coordinates(df, 0)
-        rand2 = random.random()
+        rand2 = np.random.random()
         assert rand1 != rand2
 
         # Make sure it produces the same colors every time it's called

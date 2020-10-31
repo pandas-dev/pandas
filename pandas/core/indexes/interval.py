@@ -193,6 +193,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     _data: IntervalArray
     _values: IntervalArray
+    _can_hold_strings = False
 
     # --------------------------------------------------------------------
     # Constructors
@@ -830,7 +831,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         #  positional in this case
         return self.dtype.subtype.kind in ["m", "M"]
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
@@ -1289,10 +1290,8 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            range_func = date_range
+            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
         else:
-            range_func = timedelta_range
-
-        breaks = range_func(start=start, end=end, periods=periods, freq=freq)
+            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

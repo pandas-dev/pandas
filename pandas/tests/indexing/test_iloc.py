@@ -739,6 +739,15 @@ class TestiLoc2:
         expected = DataFrame([[0.0, 4.0], [8.0, 12.0], [4.0, 5.0], [6.0, np.nan]])
         tm.assert_frame_equal(result, expected)
 
+    def test_iloc_getitem_singlerow_slice_categoricaldtype_gives_series(self):
+        # GH#29521
+        df = DataFrame({"x": pd.Categorical("a b c d e".split())})
+        result = df.iloc[0]
+        raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
+        expected = Series(raw_cat, index=["x"], name=0, dtype="category")
+
+        tm.assert_series_equal(result, expected)
+
 
 class TestILocSetItemDuplicateColumns:
     def test_iloc_setitem_scalar_duplicate_columns(self):
@@ -767,3 +776,31 @@ class TestILocSetItemDuplicateColumns:
         )
         df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
         assert df.dtypes.iloc[2] == np.int64
+
+
+class TestILocSeries:
+    def test_iloc(self):
+        ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+
+        for i in range(len(ser)):
+            result = ser.iloc[i]
+            exp = ser[ser.index[i]]
+            tm.assert_almost_equal(result, exp)
+
+        # pass a slice
+        result = ser.iloc[slice(1, 3)]
+        expected = ser.loc[2:4]
+        tm.assert_series_equal(result, expected)
+
+        # test slice is a view
+        result[:] = 0
+        assert (ser[1:3] == 0).all()
+
+        # list of integers
+        result = ser.iloc[[0, 2, 3, 4, 5]]
+        expected = ser.reindex(ser.index[[0, 2, 3, 4, 5]])
+        tm.assert_series_equal(result, expected)
+
+    def test_iloc_getitem_nonunique(self):
+        ser = Series([0, 1, 2], index=[0, 1, 0])
+        assert ser.iloc[2] == 2
