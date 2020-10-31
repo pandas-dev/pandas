@@ -236,3 +236,21 @@ def test_groupby_quantile_skips_invalid_dtype(q):
     result = df.groupby("a").quantile(q)
     expected = df.groupby("a")[["b"]].quantile(q)
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_timedelta_quantile():
+    # GH: 29485
+    df = DataFrame(
+        {"value": pd.to_timedelta(np.arange(4), unit="s"), "group": [1, 1, 2, 2]}
+    )
+    result = df.groupby("group").quantile(0.99)
+    expected = DataFrame(
+        {
+            "value": [
+                pd.Timedelta("0 days 00:00:00.990000"),
+                pd.Timedelta("0 days 00:00:02.990000"),
+            ]
+        },
+        index=pd.Index([1, 2], name="group"),
+    )
+    tm.assert_frame_equal(result, expected)
