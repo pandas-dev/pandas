@@ -427,7 +427,7 @@ class TestMultiIndexSetItem:
 
     def test_setitem_nonmonotonic(self):
         # https://github.com/pandas-dev/pandas/issues/31449
-        index = pd.MultiIndex.from_tuples(
+        index = MultiIndex.from_tuples(
             [("a", "c"), ("b", "x"), ("a", "d")], names=["l1", "l2"]
         )
         df = DataFrame(data=[0, 1, 2], index=index, columns=["e"])
