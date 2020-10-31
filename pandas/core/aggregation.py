@@ -23,6 +23,7 @@ from typing import (
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
+    AggObjType,
     Axis,
     FrameOrSeries,
     FrameOrSeriesUnion,
@@ -529,7 +530,7 @@ def transform_str_or_callable(
 
 
 def aggregate(
-    obj,
+    obj: AggObjType,
     arg: AggFuncType,
     *args,
     **kwargs,
@@ -579,7 +580,7 @@ def aggregate(
 
 
 def agg_list_like(
-    obj,
+    obj: AggObjType,
     arg: List[AggFuncTypeBase],
     _axis: int,
 ) -> FrameOrSeriesUnion:
@@ -671,7 +672,7 @@ def agg_list_like(
 
 
 def agg_dict_like(
-    obj,
+    obj: AggObjType,
     arg: Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
     _axis: int,
 ) -> FrameOrSeriesUnion:
