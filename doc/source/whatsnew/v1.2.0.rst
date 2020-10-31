@@ -517,7 +517,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.rolling` returned wrong values with timeaware window containing ``NaN``. Raises ``ValueError`` because windows are not monotonic now (:issue:`34617`)
 - Bug in :meth:`Rolling.__iter__` where a ``ValueError`` was not raised when ``min_periods`` was larger than ``window`` (:issue:`37156`)
 - Using :meth:`Rolling.var()` instead of :meth:`Rolling.std()` avoids numerical issues for :meth:`Rolling.corr()` when :meth:`Rolling.var()` is still within floating point precision while :meth:`Rolling.std()` is not (:issue:`31286`)
-- Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
+- Bug in :meth:`df.groupby(..).quantile() <pandas.core.groupby.DataFrameGroupBy.quantile>` and :meth:`df.resample(..).quantile() <pandas.core.resample.Resampler.quantile>` raised ``TypeError`` when values were of type ``Timedelta`` (:issue:`29485`)
 - Bug in :meth:`Rolling.median` and :meth:`Rolling.quantile` returned wrong values for :class:`BaseIndexer` subclasses with non-monotonic starting or ending points for windows (:issue:`37153`)
 - Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
 
