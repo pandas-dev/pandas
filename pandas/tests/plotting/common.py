@@ -176,7 +176,7 @@ class TestPlotBase:
         for patch in collections:
             assert patch.get_visible() == visible
 
-    def _check_filling(
+    def _check_patches_all_filled(
         self, axes: Union["Axes", Sequence["Axes"]], filled: bool = True
     ) -> None:
         """
