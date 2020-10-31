@@ -86,7 +86,7 @@ class TestIntervalIndex:
             [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
             [-np.inf, -100, -10, 0.5, 1, 1.5, 3.8, 101, 202, np.inf],
             pd.to_datetime(["20170101", "20170202", "20170303", "20170404"]),
-            pd.to_timedelta(["1ns", "2ms", "3s", "4M", "5H", "6D"]),
+            pd.to_timedelta(["1ns", "2ms", "3s", "4min", "5H", "6D"]),
         ],
     )
     def test_length(self, closed, breaks):
@@ -868,7 +868,7 @@ class TestIntervalIndex:
     def test_is_all_dates(self):
         # GH 23576
         year_2017 = pd.Interval(
-            pd.Timestamp("2017-01-01 00:00:00"), pd.Timestamp("2018-01-01 00:00:00")
+            Timestamp("2017-01-01 00:00:00"), Timestamp("2018-01-01 00:00:00")
         )
         year_2017_index = pd.IntervalIndex([year_2017])
         assert not year_2017_index._is_all_dates
@@ -912,7 +912,7 @@ def test_searchsorted_different_argument_classes(klass):
 
 
 @pytest.mark.parametrize(
-    "arg", [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2]
+    "arg", [[1, 2], ["a", "b"], [Timestamp("2020-01-01", tz="Europe/London")] * 2]
 )
 def test_searchsorted_invalid_argument(arg):
     values = IntervalIndex([Interval(0, 1), Interval(1, 2)])

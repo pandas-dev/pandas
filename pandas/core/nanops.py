@@ -2,6 +2,7 @@ import functools
 import itertools
 import operator
 from typing import Any, Optional, Tuple, Union, cast
+import warnings
 
 import numpy as np
 
@@ -228,7 +229,7 @@ def _maybe_get_mask(
             # Boolean data cannot contain nulls, so signal via mask being None
             return None
 
-        if skipna:
+        if skipna or needs_i8_conversion(values.dtype):
             mask = isna(values)
 
     return mask
@@ -327,7 +328,10 @@ def _na_ok_dtype(dtype: DtypeObj) -> bool:
 
 def _wrap_results(result, dtype: DtypeObj, fill_value=None):
     """ wrap our results if needed """
-    if is_datetime64_any_dtype(dtype):
+    if result is NaT:
+        pass
+
+    elif is_datetime64_any_dtype(dtype):
         if fill_value is None:
             # GH#24293
             fill_value = iNaT
@@ -336,7 +340,13 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
             assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
-            result = Timestamp(result, tz=tz)
+            if tz is not None:
+                # we get here e.g. via nanmean when we call it on a DTA[tz]
+                result = Timestamp(result, tz=tz)
+            elif isna(result):
+                result = np.datetime64("NaT", "ns")
+            else:
+                result = np.int64(result).view("datetime64[ns]")
         else:
             # If we have float dtype, taking a view will give the wrong result
             result = result.astype(dtype)
@@ -378,18 +388,17 @@ def _na_for_min_count(
     if is_numeric_dtype(values):
         values = values.astype("float64")
     fill_value = na_value_for_dtype(values.dtype)
+    if fill_value is NaT:
+        fill_value = values.dtype.type("NaT", "ns")
 
     if values.ndim == 1:
         return fill_value
+    elif axis is None:
+        return fill_value
     else:
-        assert axis is not None  # assertion to make mypy happy
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
-        # calling np.full with dtype parameter throws an ValueError when called
-        # with dtype=np.datetime64 and and fill_value=pd.NaT
-        try:
-            result = np.full(result_shape, fill_value, dtype=values.dtype)
-        except ValueError:
-            result = np.full(result_shape, fill_value)
+
+        result = np.full(result_shape, fill_value, dtype=values.dtype)
         return result
 
 
@@ -498,18 +507,43 @@ def nansum(
     >>> nanops.nansum(s)
     3.0
     """
+    orig_values = values
+
     values, mask, dtype, dtype_max, _ = _get_values(
         values, skipna, fill_value=0, mask=mask
     )
     dtype_sum = dtype_max
+    datetimelike = False
     if is_float_dtype(dtype):
         dtype_sum = dtype
     elif is_timedelta64_dtype(dtype):
+        datetimelike = True
         dtype_sum = np.float64
+
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
 
-    return _wrap_results(the_sum, dtype)
+    the_sum = _wrap_results(the_sum, dtype)
+    if datetimelike and not skipna:
+        the_sum = _mask_datetimelike_result(the_sum, axis, mask, orig_values)
+    return the_sum
+
+
+def _mask_datetimelike_result(
+    result: Union[np.ndarray, np.datetime64, np.timedelta64],
+    axis: Optional[int],
+    mask: np.ndarray,
+    orig_values: np.ndarray,
+):
+    if isinstance(result, np.ndarray):
+        # we need to apply the mask
+        result = result.astype("i8").view(orig_values.dtype)
+        axis_mask = mask.any(axis=axis)
+        result[axis_mask] = iNaT
+    else:
+        if mask.any():
+            result = NaT
+    return result
 
 
 @disallow(PeriodDtype)
@@ -544,21 +578,25 @@ def nanmean(
     >>> nanops.nanmean(s)
     1.5
     """
+    orig_values = values
+
     values, mask, dtype, dtype_max, _ = _get_values(
         values, skipna, fill_value=0, mask=mask
     )
     dtype_sum = dtype_max
     dtype_count = np.float64
+
     # not using needs_i8_conversion because that includes period
-    if (
-        is_integer_dtype(dtype)
-        or is_datetime64_any_dtype(dtype)
-        or is_timedelta64_dtype(dtype)
-    ):
+    datetimelike = False
+    if dtype.kind in ["m", "M"]:
+        datetimelike = True
+        dtype_sum = np.float64
+    elif is_integer_dtype(dtype):
         dtype_sum = np.float64
     elif is_float_dtype(dtype):
         dtype_sum = dtype
         dtype_count = dtype
+
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = _ensure_numeric(values.sum(axis, dtype=dtype_sum))
 
@@ -573,7 +611,10 @@ def nanmean(
     else:
         the_mean = the_sum / count if count > 0 else np.nan
 
-    return _wrap_results(the_mean, dtype)
+    the_mean = _wrap_results(the_mean, dtype)
+    if datetimelike and not skipna:
+        the_mean = _mask_datetimelike_result(the_mean, axis, mask, orig_values)
+    return the_mean
 
 
 @bottleneck_switch()
@@ -605,7 +646,11 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
         mask = notna(x)
         if not skipna and not mask.all():
             return np.nan
-        return np.nanmedian(x[mask])
+        with warnings.catch_warnings():
+            # Suppress RuntimeWarning about All-NaN slice
+            warnings.filterwarnings("ignore", "All-NaN slice encountered")
+            res = np.nanmedian(x[mask])
+        return res
 
     values, mask, dtype, _, _ = _get_values(values, skipna, mask=mask)
     if not is_float_dtype(values.dtype):
@@ -633,20 +678,45 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
                 )
 
             # fastpath for the skipna case
-            return _wrap_results(np.nanmedian(values, axis), dtype)
+            with warnings.catch_warnings():
+                # Suppress RuntimeWarning about All-NaN slice
+                warnings.filterwarnings("ignore", "All-NaN slice encountered")
+                res = np.nanmedian(values, axis)
+            return _wrap_results(res, dtype)
 
         # must return the correct shape, but median is not defined for the
         # empty set so return nans of shape "everything but the passed axis"
         # since "axis" is where the reduction would occur if we had a nonempty
         # array
-        shp = np.array(values.shape)
-        dims = np.arange(values.ndim)
-        ret = np.empty(shp[dims != axis])
-        ret.fill(np.nan)
+        ret = get_empty_reduction_result(values.shape, axis, np.float_, np.nan)
         return _wrap_results(ret, dtype)
 
     # otherwise return a scalar value
     return _wrap_results(get_median(values) if notempty else np.nan, dtype)
+
+
+def get_empty_reduction_result(
+    shape: Tuple[int, ...], axis: int, dtype: np.dtype, fill_value: Any
+) -> np.ndarray:
+    """
+    The result from a reduction on an empty ndarray.
+
+    Parameters
+    ----------
+    shape : Tuple[int]
+    axis : int
+    dtype : np.dtype
+    fill_value : Any
+
+    Returns
+    -------
+    np.ndarray
+    """
+    shp = np.array(shape)
+    dims = np.arange(len(shape))
+    ret = np.empty(shp[dims != axis], dtype=dtype)
+    ret.fill(fill_value)
+    return ret
 
 
 def _get_counts_nanvar(
@@ -695,7 +765,6 @@ def _get_counts_nanvar(
     return count, d
 
 
-@disallow("M8")
 @bottleneck_switch(ddof=1)
 def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     """
@@ -725,6 +794,9 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanstd(s)
     1.0
     """
+    if values.dtype == "M8[ns]":
+        values = values.view("m8[ns]")
+
     orig_dtype = values.dtype
     values, mask, _, _, _ = _get_values(values, skipna, mask=mask)
 
@@ -859,9 +931,12 @@ def _nanminmax(meth, fill_value_typ):
         mask: Optional[np.ndarray] = None,
     ) -> Dtype:
 
+        orig_values = values
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
+
+        datetimelike = orig_values.dtype.kind in ["m", "M"]
 
         if (axis is not None and values.shape[axis] == 0) or values.size == 0:
             try:
@@ -873,7 +948,12 @@ def _nanminmax(meth, fill_value_typ):
             result = getattr(values, meth)(axis)
 
         result = _wrap_results(result, dtype, fill_value)
-        return _maybe_null_out(result, axis, mask, values.shape)
+        result = _maybe_null_out(result, axis, mask, values.shape)
+
+        if datetimelike and not skipna:
+            result = _mask_datetimelike_result(result, axis, mask, orig_values)
+
+        return result
 
     return reduction
 

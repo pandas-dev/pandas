@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import Timedelta
 import pandas._testing as tm
+from pandas.core import nanops
 from pandas.core.arrays import TimedeltaArray
 
 
@@ -79,7 +81,7 @@ class TestTimedeltaArray:
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
-        arr = TimedeltaArray._from_sequence([pd.Timedelta("1H"), pd.Timedelta("2H")])
+        arr = TimedeltaArray._from_sequence([Timedelta("1H"), Timedelta("2H")])
         result = arr.astype(dtype)
 
         if np.dtype(dtype).kind == "u":
@@ -93,15 +95,15 @@ class TestTimedeltaArray:
 
     def test_setitem_clears_freq(self):
         a = TimedeltaArray(pd.timedelta_range("1H", periods=2, freq="H"))
-        a[0] = pd.Timedelta("1H")
+        a[0] = Timedelta("1H")
         assert a.freq is None
 
     @pytest.mark.parametrize(
         "obj",
         [
-            pd.Timedelta(seconds=1),
-            pd.Timedelta(seconds=1).to_timedelta64(),
-            pd.Timedelta(seconds=1).to_pytimedelta(),
+            Timedelta(seconds=1),
+            Timedelta(seconds=1).to_timedelta64(),
+            Timedelta(seconds=1).to_pytimedelta(),
         ],
     )
     def test_setitem_objects(self, obj):
@@ -110,7 +112,7 @@ class TestTimedeltaArray:
         arr = TimedeltaArray(tdi, freq=tdi.freq)
 
         arr[0] = obj
-        assert arr[0] == pd.Timedelta(seconds=1)
+        assert arr[0] == Timedelta(seconds=1)
 
     @pytest.mark.parametrize(
         "other",
@@ -175,7 +177,7 @@ class TestUnaryOps:
 
 
 class TestReductions:
-    @pytest.mark.parametrize("name", ["sum", "std", "min", "max", "median"])
+    @pytest.mark.parametrize("name", ["std", "min", "max", "median", "mean"])
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reductions_empty(self, name, skipna):
         tdi = pd.TimedeltaIndex([])
@@ -187,15 +189,28 @@ class TestReductions:
         result = getattr(arr, name)(skipna=skipna)
         assert result is pd.NaT
 
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_sum_empty(self, skipna):
+        tdi = pd.TimedeltaIndex([])
+        arr = tdi.array
+
+        result = tdi.sum(skipna=skipna)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(0)
+
+        result = arr.sum(skipna=skipna)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(0)
+
     def test_min_max(self):
         arr = TimedeltaArray._from_sequence(["3H", "3H", "NaT", "2H", "5H", "4H"])
 
         result = arr.min()
-        expected = pd.Timedelta("2H")
+        expected = Timedelta("2H")
         assert result == expected
 
         result = arr.max()
-        expected = pd.Timedelta("5H")
+        expected = Timedelta("5H")
         assert result == expected
 
         result = arr.min(skipna=False)
@@ -209,12 +224,12 @@ class TestReductions:
         arr = tdi.array
 
         result = arr.sum(skipna=True)
-        expected = pd.Timedelta(hours=17)
-        assert isinstance(result, pd.Timedelta)
+        expected = Timedelta(hours=17)
+        assert isinstance(result, Timedelta)
         assert result == expected
 
         result = tdi.sum(skipna=True)
-        assert isinstance(result, pd.Timedelta)
+        assert isinstance(result, Timedelta)
         assert result == expected
 
         result = arr.sum(skipna=False)
@@ -230,11 +245,11 @@ class TestReductions:
         assert result is pd.NaT
 
         result = arr.sum(min_count=1)
-        assert isinstance(result, pd.Timedelta)
+        assert isinstance(result, Timedelta)
         assert result == expected
 
         result = tdi.sum(min_count=1)
-        assert isinstance(result, pd.Timedelta)
+        assert isinstance(result, Timedelta)
         assert result == expected
 
     def test_npsum(self):
@@ -243,48 +258,125 @@ class TestReductions:
         arr = tdi.array
 
         result = np.sum(tdi)
-        expected = pd.Timedelta(hours=17)
-        assert isinstance(result, pd.Timedelta)
+        expected = Timedelta(hours=17)
+        assert isinstance(result, Timedelta)
         assert result == expected
 
         result = np.sum(arr)
-        assert isinstance(result, pd.Timedelta)
+        assert isinstance(result, Timedelta)
         assert result == expected
 
-    def test_std(self):
-        tdi = pd.TimedeltaIndex(["0H", "4H", "NaT", "4H", "0H", "2H"])
+    def test_sum_2d_skipna_false(self):
+        arr = np.arange(8).astype(np.int64).view("m8[s]").astype("m8[ns]").reshape(4, 2)
+        arr[-1, -1] = "Nat"
+
+        tda = TimedeltaArray(arr)
+
+        result = tda.sum(skipna=False)
+        assert result is pd.NaT
+
+        result = tda.sum(axis=0, skipna=False)
+        expected = pd.TimedeltaIndex([Timedelta(seconds=12), pd.NaT])._values
+        tm.assert_timedelta_array_equal(result, expected)
+
+        result = tda.sum(axis=1, skipna=False)
+        expected = pd.TimedeltaIndex(
+            [
+                Timedelta(seconds=1),
+                Timedelta(seconds=5),
+                Timedelta(seconds=9),
+                pd.NaT,
+            ]
+        )._values
+        tm.assert_timedelta_array_equal(result, expected)
+
+    # Adding a Timestamp makes this a test for DatetimeArray.std
+    @pytest.mark.parametrize(
+        "add",
+        [
+            Timedelta(0),
+            pd.Timestamp.now(),
+            pd.Timestamp.now("UTC"),
+            pd.Timestamp.now("Asia/Tokyo"),
+        ],
+    )
+    def test_std(self, add):
+        tdi = pd.TimedeltaIndex(["0H", "4H", "NaT", "4H", "0H", "2H"]) + add
         arr = tdi.array
 
         result = arr.std(skipna=True)
-        expected = pd.Timedelta(hours=2)
-        assert isinstance(result, pd.Timedelta)
+        expected = Timedelta(hours=2)
+        assert isinstance(result, Timedelta)
         assert result == expected
 
         result = tdi.std(skipna=True)
-        assert isinstance(result, pd.Timedelta)
+        assert isinstance(result, Timedelta)
         assert result == expected
+
+        if getattr(arr, "tz", None) is None:
+            result = nanops.nanstd(np.asarray(arr), skipna=True)
+            assert isinstance(result, Timedelta)
+            assert result == expected
 
         result = arr.std(skipna=False)
         assert result is pd.NaT
 
         result = tdi.std(skipna=False)
         assert result is pd.NaT
+
+        if getattr(arr, "tz", None) is None:
+            result = nanops.nanstd(np.asarray(arr), skipna=False)
+            assert result is pd.NaT
 
     def test_median(self):
         tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06m", "0H", "2H"])
         arr = tdi.array
 
         result = arr.median(skipna=True)
-        expected = pd.Timedelta(hours=2)
-        assert isinstance(result, pd.Timedelta)
+        expected = Timedelta(hours=2)
+        assert isinstance(result, Timedelta)
         assert result == expected
 
         result = tdi.median(skipna=True)
-        assert isinstance(result, pd.Timedelta)
+        assert isinstance(result, Timedelta)
         assert result == expected
 
-        result = arr.std(skipna=False)
+        result = arr.median(skipna=False)
         assert result is pd.NaT
 
-        result = tdi.std(skipna=False)
+        result = tdi.median(skipna=False)
         assert result is pd.NaT
+
+    def test_mean(self):
+        tdi = pd.TimedeltaIndex(["0H", "3H", "NaT", "5H06m", "0H", "2H"])
+        arr = tdi._data
+
+        # manually verified result
+        expected = Timedelta(arr.dropna()._ndarray.mean())
+
+        result = arr.mean()
+        assert result == expected
+        result = arr.mean(skipna=False)
+        assert result is pd.NaT
+
+        result = arr.dropna().mean(skipna=False)
+        assert result == expected
+
+        result = arr.mean(axis=0)
+        assert result == expected
+
+    def test_mean_2d(self):
+        tdi = pd.timedelta_range("14 days", periods=6)
+        tda = tdi._data.reshape(3, 2)
+
+        result = tda.mean(axis=0)
+        expected = tda[1]
+        tm.assert_timedelta_array_equal(result, expected)
+
+        result = tda.mean(axis=1)
+        expected = tda[:, 0] + Timedelta(hours=12)
+        tm.assert_timedelta_array_equal(result, expected)
+
+        result = tda.mean(axis=None)
+        expected = tdi.mean()
+        assert result == expected

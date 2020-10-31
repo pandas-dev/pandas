@@ -29,11 +29,21 @@ def check_comprehensiveness(request):
             klass in x.name and dtype in x.name and method in x.name for x in cls_funcs
         )
 
-    for combo in combos:
-        if not has_test(combo):
-            raise AssertionError(f"test method is not defined: {cls.__name__}, {combo}")
+    opts = request.config.option
+    if opts.lf or opts.keyword:
+        # If we are running with "last-failed" or -k foo, we expect to only
+        #  run a subset of tests.
+        yield
 
-    yield
+    else:
+
+        for combo in combos:
+            if not has_test(combo):
+                raise AssertionError(
+                    f"test method is not defined: {cls.__name__}, {combo}"
+                )
+
+        yield
 
 
 class CoercionBase:
