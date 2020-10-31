@@ -355,7 +355,7 @@ class TestDataFrameIndexingCategorical:
     def test_setitem_single_row_categorical(self):
         # GH 25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
-        categories = pd.Categorical(df["Alpha"], categories=["a", "b", "c"])
+        categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
         df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]

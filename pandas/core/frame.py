@@ -423,7 +423,7 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrame
 
     _constructor_sliced: Type[Series] = Series
-    _deprecations: FrozenSet[str] = NDFrame._deprecations | frozenset([])
+    _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
     _accessors: Set[str] = {"sparse"}
 
     @property
@@ -691,7 +691,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        ndarray.shape
+        ndarray.shape : Tuple of array dimensions.
 
         Examples
         --------
@@ -3033,6 +3033,10 @@ class DataFrame(NDFrame, OpsMixin):
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
+            if isinstance(indexer, np.ndarray):
+                indexer = lib.maybe_indices_to_slice(
+                    indexer.astype(np.intp, copy=False), len(self)
+                )
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
@@ -5684,8 +5688,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts()
         num_legs  num_wings
         4         0            2
-        6         0            1
         2         2            1
+        6         0            1
         dtype: int64
 
         >>> df.value_counts(sort=False)
@@ -5705,8 +5709,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts(normalize=True)
         num_legs  num_wings
         4         0            0.50
-        6         0            0.25
         2         2            0.25
+        6         0            0.25
         dtype: float64
         """
         if subset is None:

@@ -288,7 +288,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     __array_priority__ = 1000
     _dtype = CategoricalDtype(ordered=False)
     # tolist is not actually deprecated, just suppressed in the __dir__
-    _deprecations = PandasObject._deprecations | frozenset(["tolist"])
+    _hidden_attrs = PandasObject._hidden_attrs | frozenset(["tolist"])
     _typ = "categorical"
     _can_hold_na = True
 
@@ -2090,7 +2090,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         --------
         pandas.unique
         CategoricalIndex.unique
-        Series.unique
+        Series.unique : Return unique values of Series object.
 
         Examples
         --------

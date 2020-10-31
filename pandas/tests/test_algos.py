@@ -23,11 +23,21 @@ import pandas as pd
 from pandas import (
     Categorical,
     CategoricalIndex,
+    DataFrame,
     DatetimeIndex,
     Index,
     IntervalIndex,
+    MultiIndex,
+    NaT,
+    Period,
+    PeriodIndex,
     Series,
+    Timedelta,
     Timestamp,
+    date_range,
+    timedelta_range,
+    to_datetime,
+    to_timedelta,
 )
 import pandas._testing as tm
 import pandas.core.algorithms as algos
@@ -36,6 +46,40 @@ import pandas.core.common as com
 
 
 class TestFactorize:
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_factorize(self, index_or_series_obj, sort):
+        obj = index_or_series_obj
+        result_codes, result_uniques = obj.factorize(sort=sort)
+
+        constructor = Index
+        if isinstance(obj, MultiIndex):
+            constructor = MultiIndex.from_tuples
+        expected_uniques = constructor(obj.unique())
+
+        if sort:
+            expected_uniques = expected_uniques.sort_values()
+
+        # construct an integer ndarray so that
+        # `expected_uniques.take(expected_codes)` is equal to `obj`
+        expected_uniques_list = list(expected_uniques)
+        expected_codes = [expected_uniques_list.index(val) for val in obj]
+        expected_codes = np.asarray(expected_codes, dtype=np.intp)
+
+        tm.assert_numpy_array_equal(result_codes, expected_codes)
+        tm.assert_index_equal(result_uniques, expected_uniques)
+
+    def test_series_factorize_na_sentinel_none(self):
+        # GH#35667
+        values = np.array([1, 2, 1, np.nan])
+        ser = Series(values)
+        codes, uniques = ser.factorize(na_sentinel=None)
+
+        expected_codes = np.array([0, 1, 0, 2], dtype=np.intp)
+        expected_uniques = Index([1.0, 2.0, np.nan])
+
+        tm.assert_numpy_array_equal(codes, expected_codes)
+        tm.assert_index_equal(uniques, expected_uniques)
+
     def test_basic(self):
 
         codes, uniques = algos.factorize(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -111,34 +155,34 @@ class TestFactorize:
         tm.assert_index_equal(uniques, exp)
 
         # period
-        v1 = pd.Period("201302", freq="M")
-        v2 = pd.Period("201303", freq="M")
+        v1 = Period("201302", freq="M")
+        v2 = Period("201303", freq="M")
         x = Series([v1, v1, v1, v2, v2, v1])
 
         # periods are not 'sorted' as they are converted back into an index
         codes, uniques = algos.factorize(x)
         exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        tm.assert_index_equal(uniques, pd.PeriodIndex([v1, v2]))
+        tm.assert_index_equal(uniques, PeriodIndex([v1, v2]))
 
         codes, uniques = algos.factorize(x, sort=True)
         exp = np.array([0, 0, 0, 1, 1, 0], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        tm.assert_index_equal(uniques, pd.PeriodIndex([v1, v2]))
+        tm.assert_index_equal(uniques, PeriodIndex([v1, v2]))
 
         # GH 5986
-        v1 = pd.to_timedelta("1 day 1 min")
-        v2 = pd.to_timedelta("1 day")
+        v1 = to_timedelta("1 day 1 min")
+        v2 = to_timedelta("1 day")
         x = Series([v1, v2, v1, v1, v2, v2, v1])
         codes, uniques = algos.factorize(x)
         exp = np.array([0, 1, 0, 0, 1, 1, 0], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        tm.assert_index_equal(uniques, pd.to_timedelta([v1, v2]))
+        tm.assert_index_equal(uniques, to_timedelta([v1, v2]))
 
         codes, uniques = algos.factorize(x, sort=True)
         exp = np.array([1, 0, 1, 1, 0, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        tm.assert_index_equal(uniques, pd.to_timedelta([v2, v1]))
+        tm.assert_index_equal(uniques, to_timedelta([v2, v1]))
 
     def test_factorize_nan(self):
         # nan should map to na_sentinel, not reverse_indexer[na_sentinel]
@@ -241,7 +285,7 @@ class TestFactorize:
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     def test_object_factorize(self, writable):
-        data = np.array(["a", "c", None, np.nan, "a", "b", pd.NaT, "c"], dtype=object)
+        data = np.array(["a", "c", None, np.nan, "a", "b", NaT, "c"], dtype=object)
         data.setflags(write=writable)
         expected_codes = np.array([0, 1, -1, -1, 0, 2, -1, 1], dtype=np.intp)
         expected_uniques = np.array(["a", "c", "b"], dtype=object)
@@ -404,7 +448,7 @@ class TestUnique:
 
     def test_on_index_object(self):
 
-        mindex = pd.MultiIndex.from_arrays(
+        mindex = MultiIndex.from_arrays(
             [np.arange(5).repeat(5), np.tile(np.arange(5), 5)]
         )
         expected = mindex.values
@@ -456,7 +500,7 @@ class TestUnique:
             dtype="M8[ns]",
         )
 
-        dt_index = pd.to_datetime(
+        dt_index = to_datetime(
             [
                 "2015-01-03T00:00:00.000000000",
                 "2015-01-01T00:00:00.000000000",
@@ -493,7 +537,7 @@ class TestUnique:
         # GH 9431
         expected = np.array([31200, 45678, 10000], dtype="m8[ns]")
 
-        td_index = pd.to_timedelta([31200, 45678, 31200, 10000, 45678])
+        td_index = to_timedelta([31200, 45678, 31200, 10000, 45678])
         result = algos.unique(td_index)
         tm.assert_numpy_array_equal(result, expected)
         assert result.dtype == expected.dtype
@@ -772,7 +816,7 @@ class TestIsin:
 
     def test_i8(self):
 
-        arr = pd.date_range("20130101", periods=3).values
+        arr = date_range("20130101", periods=3).values
         result = algos.isin(arr, [arr[0]])
         expected = np.array([True, False, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -785,7 +829,7 @@ class TestIsin:
         expected = np.array([True, True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        arr = pd.timedelta_range("1 day", periods=3).values
+        arr = timedelta_range("1 day", periods=3).values
         result = algos.isin(arr, [arr[0]])
         expected = np.array([True, False, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -799,7 +843,7 @@ class TestIsin:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_large(self):
-        s = pd.date_range("20000101", periods=2000000, freq="s").values
+        s = date_range("20000101", periods=2000000, freq="s").values
         result = algos.isin(s, s[0:2])
         expected = np.zeros(len(s), dtype=bool)
         expected[0] = True
@@ -950,27 +994,27 @@ class TestIsin:
     def test_isin_int_df_string_search(self):
         """Comparing df with int`s (1,2) with a string at isin() ("1")
         -> should not match values because int 1 is not equal str 1"""
-        df = pd.DataFrame({"values": [1, 2]})
+        df = DataFrame({"values": [1, 2]})
         result = df.isin(["1"])
-        expected_false = pd.DataFrame({"values": [False, False]})
+        expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
     @pytest.mark.xfail(reason="problem related with issue #34125")
     def test_isin_nan_df_string_search(self):
         """Comparing df with nan value (np.nan,2) with a string at isin() ("NaN")
         -> should not match values because np.nan is not equal str NaN"""
-        df = pd.DataFrame({"values": [np.nan, 2]})
+        df = DataFrame({"values": [np.nan, 2]})
         result = df.isin(["NaN"])
-        expected_false = pd.DataFrame({"values": [False, False]})
+        expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
     @pytest.mark.xfail(reason="problem related with issue #34125")
     def test_isin_float_df_string_search(self):
         """Comparing df with floats (1.4245,2.32441) with a string at isin() ("1.4245")
         -> should not match values because float 1.4245 is not equal str 1.4245"""
-        df = pd.DataFrame({"values": [1.4245, 2.32441]})
+        df = DataFrame({"values": [1.4245, 2.32441]})
         result = df.isin(["1.4245"])
-        expected_false = pd.DataFrame({"values": [False, False]})
+        expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
 
@@ -1016,8 +1060,8 @@ class TestValueCounts:
             algos.value_counts(["1", 1], bins=1)
 
     def test_value_counts_nat(self):
-        td = Series([np.timedelta64(10000), pd.NaT], dtype="timedelta64[ns]")
-        dt = pd.to_datetime(["NaT", "2014-01-01"])
+        td = Series([np.timedelta64(10000), NaT], dtype="timedelta64[ns]")
+        dt = to_datetime(["NaT", "2014-01-01"])
 
         for s in [td, dt]:
             vc = algos.value_counts(s)
@@ -1051,7 +1095,7 @@ class TestValueCounts:
         tm.assert_series_equal(res, exp)
 
         # GH 12424
-        res = pd.to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
+        res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
         exp = Series(["2362-01-01", np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 
@@ -1134,7 +1178,7 @@ class TestValueCounts:
         )
         tm.assert_series_equal(
             Series([True, True, False, None]).value_counts(dropna=False),
-            Series([2, 1, 1], index=[True, False, np.nan]),
+            Series([2, 1, 1], index=[True, np.nan, False]),
         )
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0]).value_counts(dropna=True),
@@ -1153,7 +1197,7 @@ class TestValueCounts:
         # 32-bit linux has a different ordering
         if IS64:
             result = Series([10.3, 5.0, 5.0, None]).value_counts(dropna=False)
-            expected = Series([2, 1, 1], index=[5.0, 10.3, np.nan])
+            expected = Series([2, 1, 1], index=[5.0, np.nan, 10.3])
             tm.assert_series_equal(result, expected)
 
     def test_value_counts_normalized(self):
@@ -1164,12 +1208,12 @@ class TestValueCounts:
             s_typed = s.astype(t)
             result = s_typed.value_counts(normalize=True, dropna=False)
             expected = Series(
-                [0.6, 0.2, 0.2], index=Series([np.nan, 2.0, 1.0], dtype=t)
+                [0.6, 0.2, 0.2], index=Series([np.nan, 1.0, 2.0], dtype=t)
             )
             tm.assert_series_equal(result, expected)
 
             result = s_typed.value_counts(normalize=True, dropna=True)
-            expected = Series([0.5, 0.5], index=Series([2.0, 1.0], dtype=t))
+            expected = Series([0.5, 0.5], index=Series([1.0, 2.0], dtype=t))
             tm.assert_series_equal(result, expected)
 
     def test_value_counts_uint64(self):
@@ -1180,7 +1224,7 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2 ** 63], dtype=object)
-        expected = Series([1, 1], index=[-1, 2 ** 63])
+        expected = Series([1, 1], index=[2 ** 63, -1])
         result = algos.value_counts(arr)
 
         # 32-bit linux has a different ordering
@@ -1323,9 +1367,9 @@ class TestDuplicated:
         cases = [
             np.array([Timestamp(d) for d in dt]),
             np.array([Timestamp(d, tz="US/Eastern") for d in dt]),
-            np.array([pd.Period(d, freq="D") for d in dt]),
+            np.array([Period(d, freq="D") for d in dt]),
             np.array([np.datetime64(d) for d in dt]),
-            np.array([pd.Timedelta(d) for d in td]),
+            np.array([Timedelta(d) for d in td]),
         ]
 
         exp_first = np.array(
@@ -1530,7 +1574,7 @@ class TestHashTable:
             s.loc[500] = np.nan
         elif htable == ht.PyObjectHashTable:
             # use different NaN types for object column
-            s.loc[500:502] = [np.nan, None, pd.NaT]
+            s.loc[500:502] = [np.nan, None, NaT]
 
         # create duplicated selection
         s_duplicated = s.sample(frac=3, replace=True).reset_index(drop=True)
@@ -1570,7 +1614,7 @@ class TestHashTable:
             s.loc[500] = np.nan
         elif htable == ht.PyObjectHashTable:
             # use different NaN types for object column
-            s.loc[500:502] = [np.nan, None, pd.NaT]
+            s.loc[500:502] = [np.nan, None, NaT]
 
         # create duplicated selection
         s_duplicated = s.sample(frac=3, replace=True).reset_index(drop=True)
@@ -1647,11 +1691,13 @@ class TestRank:
         _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
         _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))
 
-    def test_basic(self):
+    def test_basic(self, writable):
         exp = np.array([1, 2], dtype=np.float64)
 
         for dtype in np.typecodes["AllInteger"]:
-            s = Series([1, 100], dtype=dtype)
+            data = np.array([1, 100], dtype=dtype)
+            data.setflags(write=writable)
+            s = Series(data)
             tm.assert_numpy_array_equal(algos.rank(s), exp)
 
     def test_uint64_overflow(self):
@@ -2307,7 +2353,7 @@ class TestDiff:
         tm.assert_numpy_array_equal(result, expected.T)
 
     def test_diff_ea_axis(self):
-        dta = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")._data
+        dta = date_range("2016-01-01", periods=3, tz="US/Pacific")._data
 
         msg = "cannot diff DatetimeArray on axis=1"
         with pytest.raises(ValueError, match=msg):

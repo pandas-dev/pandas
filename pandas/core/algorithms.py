@@ -507,11 +507,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
     if len(comps) > 1_000_000 and not is_object_dtype(comps):
         # If the the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
-
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "ExtensionArray"; expected "Union[bool, int, float, complex,
-        # _SupportsArray, Sequence[Any]]"
-        if np.isnan(values).any():  # type: ignore[arg-type]
+        if isna(values).any():
             f = lambda c, v: np.logical_or(np.in1d(c, v), np.isnan(c))
         else:
             f = np.in1d
@@ -1253,10 +1249,8 @@ class SelectNSeries(SelectN):
 
         # slow method
         if n >= len(self.obj):
-            reverse_it = self.keep == "last" or method == "nlargest"
             ascending = method == "nsmallest"
-            slc = np.s_[::-1] if reverse_it else np.s_[:]
-            return dropped[slc].sort_values(ascending=ascending).head(n)
+            return dropped.sort_values(ascending=ascending).head(n)
 
         # fast method
         arr, pandas_dtype = _ensure_data(dropped.values)
