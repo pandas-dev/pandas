@@ -32,7 +32,7 @@ class TestShift:
         # GH22397
         assert ser.shift(shift_size) is not ser
 
-    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1M")])
+    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1min")])
     def test_datetime_shift_always_copy(self, move_by_freq):
         # GH#22397
         ser = Series(range(5), index=date_range("2017", periods=5))
