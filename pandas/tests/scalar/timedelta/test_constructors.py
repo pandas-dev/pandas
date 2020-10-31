@@ -40,8 +40,8 @@ def test_construction():
     assert Timedelta("1 hr") == timedelta(hours=1)
     assert Timedelta("1 hours") == timedelta(hours=1)
     assert Timedelta("-1 hours") == -timedelta(hours=1)
-    assert Timedelta("1 min") == timedelta(minutes=1)
-    assert Timedelta("1.5 min") == timedelta(seconds=90)
+    assert Timedelta("1 m") == timedelta(minutes=1)
+    assert Timedelta("1.5 m") == timedelta(seconds=90)
     assert Timedelta("1 minute") == timedelta(minutes=1)
     assert Timedelta("1 minutes") == timedelta(minutes=1)
     assert Timedelta("1 s") == timedelta(seconds=1)
@@ -62,19 +62,19 @@ def test_construction():
     # combos
     assert Timedelta("10 days 1 hour") == timedelta(days=10, hours=1)
     assert Timedelta("10 days 1 h") == timedelta(days=10, hours=1)
-    assert Timedelta("10 days 1 h 1min 1s") == timedelta(
+    assert Timedelta("10 days 1 h 1m 1s") == timedelta(
         days=10, hours=1, minutes=1, seconds=1
     )
     assert Timedelta("-10 days 1 h 1min 1s") == -timedelta(
         days=10, hours=1, minutes=1, seconds=1
     )
-    assert Timedelta("-10 days 1 h 1min 1s") == -timedelta(
+    assert Timedelta("-10 days 1 h 1m 1s") == -timedelta(
         days=10, hours=1, minutes=1, seconds=1
     )
-    assert Timedelta("-10 days 1 h 1min 1s 3us") == -timedelta(
+    assert Timedelta("-10 days 1 h 1m 1s 3us") == -timedelta(
         days=10, hours=1, minutes=1, seconds=1, microseconds=3
     )
-    assert Timedelta("-10 days 1 h 1.5min 1s 3us") == -timedelta(
+    assert Timedelta("-10 days 1 h 1.5m 1s 3us") == -timedelta(
         days=10, hours=1, minutes=1, seconds=31, microseconds=3
     )
 
@@ -82,11 +82,11 @@ def test_construction():
     # (only allowed on the days)
     msg = "only leading negative signs are allowed"
     with pytest.raises(ValueError, match=msg):
-        Timedelta("-10 days -1 h 1.5min 1s 3us")
+        Timedelta("-10 days -1 h 1.5m 1s 3us")
 
     # only leading neg signs are allowed
     with pytest.raises(ValueError, match=msg):
-        Timedelta("10 days -1 h 1.5min 1s 3us")
+        Timedelta("10 days -1 h 1.5m 1s 3us")
 
     # no units specified
     msg = "no units specified"

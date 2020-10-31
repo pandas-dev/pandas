@@ -113,9 +113,9 @@ def numeric_idx(request):
 
 @pytest.fixture(
     params=[
-        pd.Timedelta("5min4s").to_pytimedelta(),
-        pd.Timedelta("5min4s"),
-        pd.Timedelta("5min4s").to_timedelta64(),
+        pd.Timedelta("5m4s").to_pytimedelta(),
+        pd.Timedelta("5m4s"),
+        pd.Timedelta("5m4s").to_timedelta64(),
     ],
     ids=lambda x: type(x).__name__,
 )

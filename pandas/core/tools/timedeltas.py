@@ -28,7 +28,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
         The data to be converted to timedelta.
 
         .. deprecated:: 1.2
-            Strings with units 'M', 'Y', 'm' and 'y' do not represent
+            Strings with units 'M', 'Y' and 'y' do not represent
             unambiguous timedelta values and will be removed in a future version
 
     unit : str, optional

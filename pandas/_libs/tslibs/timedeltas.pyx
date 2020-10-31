@@ -1,5 +1,4 @@
 import collections
-import re
 import warnings
 
 import cython
@@ -469,9 +468,9 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
     try:
         unit = ''.join(unit)
 
-        if unit in ["M", "Y", "m", "y"]:
+        if unit in ["M", "Y", "y"]:
             warnings.warn(
-                "Units 'M', 'Y', 'm' and 'y' do not represent unambiguous "
+                "Units 'M', 'Y' and 'y' do not represent unambiguous "
                 "timedelta values and will be removed in a future version",
                 FutureWarning,
                 stacklevel=2,

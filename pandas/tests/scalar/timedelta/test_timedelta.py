@@ -160,11 +160,11 @@ class TestTimedeltas:
         assert result.astype("int64") == iNaT
 
     @pytest.mark.parametrize(
-        "unit, np_unit, warning",
-        [(value, "W", False) for value in ["W", "w"]]
-        + [(value, "D", False) for value in ["D", "d", "days", "day", "Days", "Day"]]
+        "unit, np_unit",
+        [(value, "W") for value in ["W", "w"]]
+        + [(value, "D") for value in ["D", "d", "days", "day", "Days", "Day"]]
         + [
-            (value, "m", FutureWarning if value == "m" else False)  # type: ignore[misc]
+            (value, "m")
             for value in [
                 "m",
                 "minute",
@@ -178,7 +178,7 @@ class TestTimedeltas:
             ]
         ]
         + [
-            (value, "s", False)
+            (value, "s")
             for value in [
                 "s",
                 "seconds",
@@ -191,7 +191,7 @@ class TestTimedeltas:
             ]
         ]
         + [
-            (value, "ms", False)
+            (value, "ms")
             for value in [
                 "ms",
                 "milliseconds",
@@ -208,7 +208,7 @@ class TestTimedeltas:
             ]
         ]
         + [
-            (value, "us", False)
+            (value, "us")
             for value in [
                 "us",
                 "microseconds",
@@ -225,7 +225,7 @@ class TestTimedeltas:
             ]
         ]
         + [
-            (value, "ns", False)
+            (value, "ns")
             for value in [
                 "ns",
                 "nanoseconds",
@@ -243,7 +243,7 @@ class TestTimedeltas:
         ],
     )
     @pytest.mark.parametrize("wrapper", [np.array, list, pd.Index])
-    def test_unit_parser(self, unit, np_unit, wrapper, warning):
+    def test_unit_parser(self, unit, np_unit, wrapper):
         # validate all units, GH 6855, GH 21762
         # array-likes
         expected = TimedeltaIndex(
@@ -255,11 +255,9 @@ class TestTimedeltas:
         tm.assert_index_equal(result, expected)
 
         str_repr = [f"{x}{unit}" for x in np.arange(5)]
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
-            result = to_timedelta(wrapper(str_repr))
+        result = to_timedelta(wrapper(str_repr))
         tm.assert_index_equal(result, expected)
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
-            result = to_timedelta(wrapper(str_repr))
+        result = to_timedelta(wrapper(str_repr))
         tm.assert_index_equal(result, expected)
 
         # scalar
@@ -269,11 +267,9 @@ class TestTimedeltas:
         result = Timedelta(2, unit=unit)
         assert result == expected
 
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
-            result = to_timedelta(f"2{unit}")
+        result = to_timedelta(f"2{unit}")
         assert result == expected
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
-            result = Timedelta(f"2{unit}")
+        result = Timedelta(f"2{unit}")
         assert result == expected
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
@@ -309,7 +305,7 @@ class TestTimedeltas:
 
     def test_to_numpy_alias(self):
         # GH 24653: alias .to_numpy() for scalars
-        td = Timedelta("10min7s")
+        td = Timedelta("10m7s")
         assert td.to_timedelta64() == td.to_numpy()
 
     @pytest.mark.parametrize(

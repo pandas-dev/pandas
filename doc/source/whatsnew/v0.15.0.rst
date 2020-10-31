@@ -161,18 +161,12 @@ Construct a scalar
 
 Access fields for a ``Timedelta``
 
-.. code-block:: ipython
+.. ipython:: python
 
-    In [14]: td = pd.Timedelta('1 hour 3m 15.5us')
-
-    In [15]: td.seconds
-    Out[15]: 3780
-
-    In [16]: td.microseconds
-    Out[16]: 15
-
-    In [17]: td.nanoseconds
-    Out[17]: 500
+   td = pd.Timedelta('1 hour 3m 15.5us')
+   td.seconds
+   td.microseconds
+   td.nanoseconds
 
 Construct a ``TimedeltaIndex``
 
@@ -1035,35 +1029,16 @@ Other:
 
   If ``Period`` freq is ``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``, ``Timedelta``-like can be added if the result can have same freq. Otherwise, only the same ``offsets`` can be added.
 
-  .. code-block:: ipython
+  .. ipython:: ipython
 
-    In [104]: idx = pd.period_range('2014-07-01 09:00', periods=5, freq='H')
+     idx = pd.period_range('2014-07-01 09:00', periods=5, freq='H')
+     idx
+     idx + pd.offsets.Hour(2)
+     idx + pd.Timedelta('120m')
 
-    In [105]: idx
-    Out[105]:
-    PeriodIndex(['2014-07-01 09:00', '2014-07-01 10:00', '2014-07-01 11:00',
-                 '2014-07-01 12:00', '2014-07-01 13:00'],
-                dtype='period[H]', freq='H')
-
-    In [106]: idx + pd.offsets.Hour(2)
-    Out[106]:
-    PeriodIndex(['2014-07-01 11:00', '2014-07-01 12:00', '2014-07-01 13:00',
-                 '2014-07-01 14:00', '2014-07-01 15:00'],
-                dtype='period[H]', freq='H')
-
-    In [107]: idx + pd.Timedelta('120m')
-    Out[107]:
-    PeriodIndex(['2014-07-01 11:00', '2014-07-01 12:00', '2014-07-01 13:00',
-                 '2014-07-01 14:00', '2014-07-01 15:00'],
-                dtype='period[H]', freq='H')
-
-    In [108]: idx = pd.period_range('2014-07', periods=5, freq='M')
-
-    In [109]: idx
-    Out[109]: PeriodIndex(['2014-07', '2014-08', '2014-09', '2014-10', '2014-11'], dtype='period[M]', freq='M')
-
-    In [110]: idx + pd.offsets.MonthEnd(3)
-    Out[110]: PeriodIndex(['2014-10', '2014-11', '2014-12', '2015-01', '2015-02'], dtype='period[M]', freq='M')
+     idx = pd.period_range('2014-07', periods=5, freq='M')
+     idx
+     idx + pd.offsets.MonthEnd(3)
 
 - Added experimental compatibility with ``openpyxl`` for versions >= 2.0. The ``DataFrame.to_excel``
   method ``engine`` keyword now recognizes ``openpyxl1`` and ``openpyxl2``

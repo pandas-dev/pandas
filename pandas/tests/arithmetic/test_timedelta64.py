@@ -1856,8 +1856,8 @@ class TestTimedeltaArraylikeMulDivOps:
         "scalar_td",
         [
             timedelta(minutes=10, seconds=7),
-            Timedelta("10min7s"),
-            Timedelta("10min7s").to_timedelta64(),
+            Timedelta("10m7s"),
+            Timedelta("10m7s").to_timedelta64(),
         ],
         ids=lambda x: type(x).__name__,
     )
@@ -2056,7 +2056,7 @@ class TestTimedeltaArraylikeMulDivOps:
         tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         vector = vector.astype(any_real_dtype)
 
-        expected = Series(["2.95D", "1D 23H 12min", "NaT"], dtype="timedelta64[ns]")
+        expected = Series(["2.95D", "1D 23H 12m", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)
         expected = tm.box_expected(expected, xbox)
