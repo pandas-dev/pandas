@@ -40,7 +40,7 @@ def test_unstack():
     tm.assert_frame_equal(unstacked, expected)
 
     # GH5873
-    idx = pd.MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
+    idx = MultiIndex.from_arrays([[101, 102], [3.5, np.nan]])
     ts = Series([1, 2], index=idx)
     left = ts.unstack()
     right = DataFrame(
@@ -48,7 +48,7 @@ def test_unstack():
     )
     tm.assert_frame_equal(left, right)
 
-    idx = pd.MultiIndex.from_arrays(
+    idx = MultiIndex.from_arrays(
         [
             ["cat", "cat", "cat", "dog", "dog"],
             ["a", "a", "b", "a", "b"],
@@ -61,13 +61,13 @@ def test_unstack():
         columns=["cat", "dog"],
     )
     tpls = [("a", 1), ("a", 2), ("b", np.nan), ("b", 1)]
-    right.index = pd.MultiIndex.from_tuples(tpls)
+    right.index = MultiIndex.from_tuples(tpls)
     tm.assert_frame_equal(ts.unstack(level=0), right)
 
 
 def test_unstack_tuplename_in_multiindex():
     # GH 19966
-    idx = pd.MultiIndex.from_product(
+    idx = MultiIndex.from_product(
         [["a", "b", "c"], [1, 2, 3]], names=[("A", "a"), ("B", "b")]
     )
     ser = Series(1, index=idx)
@@ -75,7 +75,7 @@ def test_unstack_tuplename_in_multiindex():
 
     expected = DataFrame(
         [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-        columns=pd.MultiIndex.from_tuples([("a",), ("b",), ("c",)], names=[("A", "a")]),
+        columns=MultiIndex.from_tuples([("a",), ("b",), ("c",)], names=[("A", "a")]),
         index=pd.Index([1, 2, 3], name=("B", "b")),
     )
     tm.assert_frame_equal(result, expected)
@@ -87,16 +87,14 @@ def test_unstack_tuplename_in_multiindex():
         (
             ("A", "a"),
             [[1, 1], [1, 1], [1, 1], [1, 1]],
-            pd.MultiIndex.from_tuples(
-                [(1, 3), (1, 4), (2, 3), (2, 4)], names=["B", "C"]
-            ),
-            pd.MultiIndex.from_tuples([("a",), ("b",)], names=[("A", "a")]),
+            MultiIndex.from_tuples([(1, 3), (1, 4), (2, 3), (2, 4)], names=["B", "C"]),
+            MultiIndex.from_tuples([("a",), ("b",)], names=[("A", "a")]),
         ),
         (
             (("A", "a"), "B"),
             [[1, 1, 1, 1], [1, 1, 1, 1]],
             pd.Index([3, 4], name="C"),
-            pd.MultiIndex.from_tuples(
+            MultiIndex.from_tuples(
                 [("a", 1), ("a", 2), ("b", 1), ("b", 2)], names=[("A", "a"), "B"]
             ),
         ),
@@ -106,7 +104,7 @@ def test_unstack_mixed_type_name_in_multiindex(
     unstack_idx, expected_values, expected_index, expected_columns
 ):
     # GH 19966
-    idx = pd.MultiIndex.from_product(
+    idx = MultiIndex.from_product(
         [["a", "b"], [1, 2], [3, 4]], names=[("A", "a"), "B", "C"]
     )
     ser = Series(1, index=idx)

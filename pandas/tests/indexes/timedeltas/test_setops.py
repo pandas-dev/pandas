@@ -35,7 +35,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, tdi)
 
         result = left.union(right, sort=False)
-        expected = pd.TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
+        expected = TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
         tm.assert_index_equal(result, expected)
 
     def test_union_coverage(self):
@@ -230,7 +230,7 @@ class TestTimedeltaIndexDifference:
 
     def test_difference_sort(self, sort):
 
-        index = pd.TimedeltaIndex(
+        index = TimedeltaIndex(
             ["5 days", "3 days", "2 days", "4 days", "1 days", "0 days"]
         )
 
