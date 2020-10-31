@@ -339,7 +339,13 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
             assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
-            result = Timestamp(result, tz=tz)
+            if tz is not None:
+                # we get here e.g. via nanmean when we call it on a DTA[tz]
+                result = Timestamp(result, tz=tz)
+            elif isna(result):
+                result = np.datetime64("NaT", "ns")
+            else:
+                result = np.int64(result).view("datetime64[ns]")
         else:
             # If we have float dtype, taking a view will give the wrong result
             result = result.astype(dtype)
@@ -386,8 +392,9 @@ def _na_for_min_count(
 
     if values.ndim == 1:
         return fill_value
+    elif axis is None:
+        return fill_value
     else:
-        assert axis is not None  # assertion to make mypy happy
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]
 
         result = np.full(result_shape, fill_value, dtype=values.dtype)
@@ -749,7 +756,6 @@ def _get_counts_nanvar(
     return count, d
 
 
-@disallow("M8")
 @bottleneck_switch(ddof=1)
 def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     """
@@ -779,6 +785,9 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanstd(s)
     1.0
     """
+    if values.dtype == "M8[ns]":
+        values = values.view("m8[ns]")
+
     orig_dtype = values.dtype
     values, mask, _, _, _ = _get_values(values, skipna, mask=mask)
 
@@ -913,9 +922,12 @@ def _nanminmax(meth, fill_value_typ):
         mask: Optional[np.ndarray] = None,
     ) -> Dtype:
 
+        orig_values = values
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
+
+        datetimelike = orig_values.dtype.kind in ["m", "M"]
 
         if (axis is not None and values.shape[axis] == 0) or values.size == 0:
             try:
@@ -927,7 +939,12 @@ def _nanminmax(meth, fill_value_typ):
             result = getattr(values, meth)(axis)
 
         result = _wrap_results(result, dtype, fill_value)
-        return _maybe_null_out(result, axis, mask, values.shape)
+        result = _maybe_null_out(result, axis, mask, values.shape)
+
+        if datetimelike and not skipna:
+            result = _mask_datetimelike_result(result, axis, mask, orig_values)
+
+        return result
 
     return reduction
 
