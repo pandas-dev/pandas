@@ -2,6 +2,7 @@ import functools
 import itertools
 import operator
 from typing import Any, Optional, Tuple, Union, cast
+import warnings
 
 import numpy as np
 
@@ -645,7 +646,11 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
         mask = notna(x)
         if not skipna and not mask.all():
             return np.nan
-        return np.nanmedian(x[mask])
+        with warnings.catch_warnings():
+            # Suppress RuntimeWarning about All-NaN slice
+            warnings.filterwarnings("ignore", "All-NaN slice encountered")
+            res = np.nanmedian(x[mask])
+        return res
 
     values, mask, dtype, _, _ = _get_values(values, skipna, mask=mask)
     if not is_float_dtype(values.dtype):
@@ -673,7 +678,11 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
                 )
 
             # fastpath for the skipna case
-            return _wrap_results(np.nanmedian(values, axis), dtype)
+            with warnings.catch_warnings():
+                # Suppress RuntimeWarning about All-NaN slice
+                warnings.filterwarnings("ignore", "All-NaN slice encountered")
+                res = np.nanmedian(values, axis)
+            return _wrap_results(res, dtype)
 
         # must return the correct shape, but median is not defined for the
         # empty set so return nans of shape "everything but the passed axis"
@@ -756,7 +765,6 @@ def _get_counts_nanvar(
     return count, d
 
 
-@disallow("M8")
 @bottleneck_switch(ddof=1)
 def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     """
@@ -786,6 +794,9 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     >>> nanops.nanstd(s)
     1.0
     """
+    if values.dtype == "M8[ns]":
+        values = values.view("m8[ns]")
+
     orig_dtype = values.dtype
     values, mask, _, _, _ = _get_values(values, skipna, mask=mask)
 

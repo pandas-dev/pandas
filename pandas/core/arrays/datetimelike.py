@@ -507,7 +507,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             )
             fill_value = new_fill
 
-        return self._unbox(fill_value)
+        return self._unbox(fill_value, setitem=True)
 
     def _validate_scalar(self, value, allow_listlike: bool = False):
         """
@@ -602,10 +602,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             pass
 
         elif not type(self)._is_recognized_dtype(value.dtype):
-            raise TypeError(
-                f"value should be a '{self._scalar_type.__name__}', 'NaT', "
-                f"or array of those. Got '{type(value).__name__}' instead."
-            )
+            msg = self._validation_error_message(value, True)
+            raise TypeError(msg)
+
         return value
 
     def _validate_searchsorted_value(self, value):
@@ -624,18 +623,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return self._unbox(value, setitem=True)
 
+    _validate_where_value = _validate_setitem_value
+
     def _validate_insert_value(self, value):
         value = self._validate_scalar(value)
 
         return self._unbox(value, setitem=True)
-
-    def _validate_where_value(self, other):
-        if not is_list_like(other):
-            other = self._validate_scalar(other, True)
-        else:
-            other = self._validate_listlike(other)
-
-        return self._unbox(other, setitem=True)
 
     def _unbox(
         self, other, setitem: bool = False
@@ -1363,21 +1356,20 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if axis is not None and abs(axis) >= self.ndim:
             raise ValueError("abs(axis) must be less than ndim")
 
-        if self.size == 0:
-            if self.ndim == 1 or axis is None:
-                return NaT
-            shape = list(self.shape)
-            del shape[axis]
-            shape = [1 if x == 0 else x for x in shape]
-            result = np.empty(shape, dtype="i8")
-            result.fill(iNaT)
+        if is_period_dtype(self.dtype):
+            # pass datetime64 values to nanops to get correct NaT semantics
+            result = nanops.nanmedian(
+                self._ndarray.view("M8[ns]"), axis=axis, skipna=skipna
+            )
+            result = result.view("i8")
+            if axis is None or self.ndim == 1:
+                return self._box_func(result)
             return self._from_backing_data(result)
 
-        mask = self.isna()
-        result = nanops.nanmedian(self.asi8, axis=axis, skipna=skipna, mask=mask)
+        result = nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
         if axis is None or self.ndim == 1:
             return self._box_func(result)
-        return self._from_backing_data(result.astype("i8"))
+        return self._from_backing_data(result)
 
 
 class DatelikeOps(DatetimeLikeArrayMixin):

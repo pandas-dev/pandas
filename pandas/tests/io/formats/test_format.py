@@ -1009,7 +1009,7 @@ class TestDataFrameFormatting:
 
         # GH 12211
         df = DataFrame(
-            {"date": [pd.Timestamp("20130101").tz_localize("UTC")] + [pd.NaT] * 5}
+            {"date": [Timestamp("20130101").tz_localize("UTC")] + [pd.NaT] * 5}
         )
 
         with option_context("display.max_rows", 5):
@@ -1019,7 +1019,7 @@ class TestDataFrameFormatting:
             assert "..." in result
             assert "[6 rows x 1 columns]" in result
 
-        dts = [pd.Timestamp("2011-01-01", tz="US/Eastern")] * 5 + [pd.NaT] * 5
+        dts = [Timestamp("2011-01-01", tz="US/Eastern")] * 5 + [pd.NaT] * 5
         df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
             expected = (
@@ -1033,7 +1033,7 @@ class TestDataFrameFormatting:
             )
             assert repr(df) == expected
 
-        dts = [pd.NaT] * 5 + [pd.Timestamp("2011-01-01", tz="US/Eastern")] * 5
+        dts = [pd.NaT] * 5 + [Timestamp("2011-01-01", tz="US/Eastern")] * 5
         df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
             expected = (
@@ -1047,8 +1047,8 @@ class TestDataFrameFormatting:
             )
             assert repr(df) == expected
 
-        dts = [pd.Timestamp("2011-01-01", tz="Asia/Tokyo")] * 5 + [
-            pd.Timestamp("2011-01-01", tz="US/Eastern")
+        dts = [Timestamp("2011-01-01", tz="Asia/Tokyo")] * 5 + [
+            Timestamp("2011-01-01", tz="US/Eastern")
         ] * 5
         df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context("display.max_rows", 5):
@@ -2184,7 +2184,7 @@ class TestSeriesFormatting:
 
         # object dtype, longer than unicode repr
         s = Series(
-            [1, 22, 3333, 44444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
+            [1, 22, 3333, 44444], index=[1, "AB", Timestamp("2011-01-01"), "あああ"]
         )
         expected = (
             "1                          1\n"
@@ -2282,7 +2282,7 @@ class TestSeriesFormatting:
             # object dtype, longer than unicode repr
             s = Series(
                 [1, 22, 3333, 44444],
-                index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"],
+                index=[1, "AB", Timestamp("2011-01-01"), "あああ"],
             )
             expected = (
                 "1                          1\n"
