@@ -613,7 +613,7 @@ class TestGrouping:
         [
             (
                 "transform",
-                Series(name=2, dtype=np.float64, index=pd.Index([])),
+                Series(name=2, dtype=np.float64, index=Index([])),
             ),
             (
                 "agg",
