@@ -118,7 +118,12 @@ AggFuncType = Union[
     Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
 ]
 AggObjType = Union[
-    Series, DataFrame, SeriesGroupBy, DataFrameGroupBy, BaseWindow, Resampler
+    "Series",
+    "DataFrame",
+    "SeriesGroupBy",
+    "DataFrameGroupBy",
+    "BaseWindow",
+    "Resampler",
 ]
 
 # for arbitrary kwargs passed during reading/writing files
