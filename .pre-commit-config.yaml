@@ -66,8 +66,14 @@ repos:
             from\ pandas\.core\ import\ common|
 
             # Check for imports from collections.abc instead of `from collections import abc`
-            from\ collections\.abc\ import|
+            from\ collections\.abc\ import
 
+    -   id: non-standard-numpy.random-related-imports
+        name: Check for non-standard numpy.random-related imports
+        language: pygrep
+        exclude: pandas/_testing.py
+        entry: |
+            (?x)
             # Check for imports from np.random.<method> instead of `from numpy import random` or  `from numpy.random import <method>`
             from\ numpy\ import\ random|
             from\ numpy.random\ import
