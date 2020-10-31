@@ -30,6 +30,8 @@ import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_block_managers
 
 if TYPE_CHECKING:
+    from pandas.core.dtypes.abcs.ndframe import ABCNDFrame
+
     from pandas import DataFrame, Series
     from pandas.core.generic import NDFrame
 
@@ -55,7 +57,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
+    objs: Union[Iterable["ABCNDFrame"], Mapping[Label, "ABCNDFrame"]],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -70,7 +72,7 @@ def concat(
 
 
 def concat(
-    objs: Union[Iterable["NDFrame"], Mapping[Label, "NDFrame"]],
+    objs,
     axis=0,
     join="outer",
     ignore_index: bool = False,

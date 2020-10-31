@@ -532,7 +532,7 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
         self._selection = selection
 
-        assert isinstance(obj, NDFrame), type(obj)
+        # assert isinstance(obj, NDFrame), type(obj)
 
         self.level = level
 

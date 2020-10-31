@@ -29,6 +29,7 @@ import numpy as np
 if TYPE_CHECKING:
     from pandas._libs import Period, Timedelta, Timestamp
 
+    from pandas.core.dtypes.abcs.ndframe import ABCNDFrame
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
@@ -81,7 +82,7 @@ FrameOrSeriesUnion = Union["DataFrame", "Series"]
 # used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
-FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
+FrameOrSeries = TypeVar("FrameOrSeries", bound="ABCNDFrame")
 
 Axis = Union[str, int]
 Label = Optional[Hashable]
