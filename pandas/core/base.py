@@ -314,7 +314,7 @@ class IndexOpsMixin(OpsMixin):
 
     # ndarray compatibility
     __array_priority__ = 1000
-    _deprecations: FrozenSet[str] = frozenset(
+    _hidden_attrs: FrozenSet[str] = frozenset(
         ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
 
@@ -366,7 +366,7 @@ class IndexOpsMixin(OpsMixin):
 
     def item(self):
         """
-        Return the first element of the underlying data as a python scalar.
+        Return the first element of the underlying data as a Python scalar.
 
         Returns
         -------
@@ -1200,6 +1200,16 @@ class IndexOpsMixin(OpsMixin):
 
         >>> ser.searchsorted([1, 3], side='right')
         array([1, 3])
+
+        >>> ser = pd.Series(pd.to_datetime(['3/11/2000', '3/12/2000', '3/13/2000']))
+        >>> ser
+        0   2000-03-11
+        1   2000-03-12
+        2   2000-03-13
+        dtype: datetime64[ns]
+
+        >>> ser.searchsorted('3/14/2000')
+        3
 
         >>> ser = pd.Categorical(
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True

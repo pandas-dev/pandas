@@ -42,6 +42,7 @@ class NumericIndex(Index):
     _default_dtype: np.dtype
 
     _is_numeric_dtype = True
+    _can_hold_strings = False
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
         cls._validate_dtype(dtype)
@@ -95,7 +96,7 @@ class NumericIndex(Index):
     # Indexing Methods
 
     @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         assert kind in ["loc", "getitem", None]
 
         # we will try to coerce to integers

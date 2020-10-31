@@ -161,6 +161,10 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     _typ = "categoricalindex"
 
+    @property
+    def _can_hold_strings(self):
+        return self.categories._can_hold_strings
+
     codes: np.ndarray
     categories: Index
     _data: Categorical
@@ -235,20 +239,23 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return super()._shallow_copy(values=values, name=name)
 
-    def _is_dtype_compat(self, other) -> bool:
+    def _is_dtype_compat(self, other) -> Categorical:
         """
         *this is an internal non-public method*
 
         provide a comparison between the dtype of self and other (coercing if
         needed)
 
+        Returns
+        -------
+        Categorical
+
         Raises
         ------
         TypeError if the dtypes are not compatible
         """
         if is_categorical_dtype(other):
-            if isinstance(other, CategoricalIndex):
-                other = other._values
+            other = extract_array(other)
             if not other.is_dtype_equal(self):
                 raise TypeError(
                     "categories must match existing categories when appending"
@@ -263,6 +270,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 raise TypeError(
                     "cannot append a non-category item to a CategoricalIndex"
                 )
+            other = other._values
 
         return other
 
@@ -372,11 +380,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 return self.copy() if copy else self
 
         return Index.astype(self, dtype=dtype, copy=copy)
-
-    @cache_readonly
-    def _isnan(self):
-        """ return if each value is nan"""
-        return self._data.codes == -1
 
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
@@ -575,7 +578,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         return self.get_indexer(keyarr)
 
     @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         if kind == "loc":
             return label
 

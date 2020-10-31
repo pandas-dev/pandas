@@ -95,7 +95,9 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     ----------
     day
     dayofweek
+    day_of_week
     dayofyear
+    day_of_year
     days_in_month
     daysinmonth
     end_time
@@ -148,7 +150,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     _supports_partial_string_indexing = True
 
     # --------------------------------------------------------------------
-    # methods that dispatch to array and wrap result in PeriodIndex
+    # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
     @doc(PeriodArray.asfreq)
@@ -160,6 +162,24 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
     def to_timestamp(self, freq=None, how="start") -> DatetimeIndex:
         arr = self._data.to_timestamp(freq, how)
         return DatetimeIndex._simple_new(arr, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.hour.fget)
+    def hour(self) -> Int64Index:
+        return Int64Index(self._data.hour, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.minute.fget)
+    def minute(self) -> Int64Index:
+        return Int64Index(self._data.minute, name=self.name)
+
+    # error: Decorated property not supported  [misc]
+    @property  # type:ignore[misc]
+    @doc(PeriodArray.second.fget)
+    def second(self) -> Int64Index:
+        return Int64Index(self._data.second, name=self.name)
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -214,7 +234,7 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             if data is None and ordinal is not None:
                 # we strangely ignore `ordinal` if data is passed.
                 ordinal = np.asarray(ordinal, dtype=np.int64)
-                data = PeriodArray(ordinal, freq)
+                data = PeriodArray(ordinal, freq=freq)
             else:
                 # don't pass copy here, since we copy later.
                 data = period_array(data=data, freq=freq)
@@ -622,12 +642,11 @@ class PeriodIndex(DatetimeIndexOpsMixin, Int64Index):
             #  why is that check not needed?
             raise ValueError
 
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
-        # TODO: Check for non-True use_lhs/use_rhs
+    def _get_string_slice(self, key: str):
         parsed, reso = parse_time_string(key, self.freq)
         reso = Resolution.from_attrname(reso)
         try:
-            return self._partial_date_slice(reso, parsed, use_lhs, use_rhs)
+            return self._partial_date_slice(reso, parsed)
         except KeyError as err:
             raise KeyError(key) from err
 

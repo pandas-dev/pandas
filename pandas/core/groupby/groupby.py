@@ -79,8 +79,9 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 _common_see_also = """
         See Also
         --------
-        Series.%(name)s
-        DataFrame.%(name)s
+        Series.%(name)s : Apply a function %(name)s to a Series.
+        DataFrame.%(name)s : Apply a function %(name)s
+            to each row or column of a DataFrame.
 """
 
 _apply_docs = dict(
@@ -318,9 +319,12 @@ Returns
 
 See Also
 --------
-%(klass)s.groupby.apply
-%(klass)s.groupby.aggregate
-%(klass)s.transform
+%(klass)s.groupby.apply : Apply function func group-wise
+    and combine the results together.
+%(klass)s.groupby.aggregate : Aggregate using one or more
+    operations over the specified axis.
+%(klass)s.transform : Transforms the Series on each group
+    based on the given function.
 
 Notes
 -----
@@ -427,9 +431,12 @@ Returns
 
 See Also
 --------
-{klass}.groupby.apply
-{klass}.groupby.transform
-{klass}.aggregate
+{klass}.groupby.apply : Apply function func group-wise
+    and combine the results together.
+{klass}.groupby.transform : Aggregate using one or more
+    operations over the specified axis.
+{klass}.aggregate : Transforms the Series on each group
+    based on the given function.
 
 Notes
 -----
@@ -489,6 +496,21 @@ _KeysArgType = Union[
 class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
     _group_selection: Optional[IndexLabel] = None
     _apply_allowlist: FrozenSet[str] = frozenset()
+    _hidden_attrs = PandasObject._hidden_attrs | {
+        "as_index",
+        "axis",
+        "dropna",
+        "exclusions",
+        "grouper",
+        "group_keys",
+        "keys",
+        "level",
+        "mutated",
+        "obj",
+        "observed",
+        "sort",
+        "squeeze",
+    }
 
     def __init__(
         self,
@@ -1004,8 +1026,9 @@ b  2""",
     ):
         with group_selection_context(self):
             # try a cython aggregation if we can
+            result = None
             try:
-                return self._cython_agg_general(
+                result = self._cython_agg_general(
                     how=alias,
                     alt=npfunc,
                     numeric_only=numeric_only,
@@ -1024,8 +1047,9 @@ b  2""",
                     raise
 
             # apply a non-cython aggregation
-            result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
-            return result
+            if result is None:
+                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
+            return result.__finalize__(self.obj, method="groupby")
 
     def _cython_agg_general(
         self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -1194,12 +1218,12 @@ b  2""",
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
-            if ax.has_duplicates:
+            if ax.has_duplicates and not result.axes[self.axis].equals(ax):
                 indexer, _ = result.index.get_indexer_non_unique(ax.values)
                 indexer = algorithms.unique1d(indexer)
                 result = result.take(indexer, axis=self.axis)
             else:
-                result = result.reindex(ax, axis=self.axis)
+                result = result.reindex(ax, axis=self.axis, copy=False)
 
         elif self.group_keys:
 
@@ -1854,8 +1878,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        pad
-        backfill
+        pad : Returns Series with minimum number of char in object.
+        backfill : Backward fill the missing values in the dataset.
         """
         # Need int value for Cython
         if limit is None:
@@ -1889,10 +1913,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        Series.pad
-        DataFrame.pad
-        Series.fillna
-        DataFrame.fillna
+        Series.pad: Returns Series with minimum number of char in object.
+        DataFrame.pad: Object with missing values filled or None if inplace=True.
+        Series.fillna: Fill NaN values of a Series.
+        DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("ffill", limit=limit)
 
@@ -1915,10 +1939,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         See Also
         --------
-        Series.backfill
-        DataFrame.backfill
-        Series.fillna
-        DataFrame.fillna
+        Series.backfill :  Backward fill the missing values in the dataset.
+        DataFrame.backfill:  Backward fill the missing values in the dataset.
+        Series.fillna: Fill NaN values of a Series.
+        DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("bfill", limit=limit)
 
@@ -2571,9 +2595,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     except TypeError as e:
                         error_msg = str(e)
                         continue
+                vals = vals.astype(cython_dtype, copy=False)
                 if needs_2d:
                     vals = vals.reshape((-1, 1))
-                vals = vals.astype(cython_dtype, copy=False)
                 func = partial(func, vals)
 
             func = partial(func, labels)

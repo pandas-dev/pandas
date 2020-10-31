@@ -37,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import take_1d
 from pandas.core.arrays.interval import IntervalArray, _interval_shared_docs
@@ -192,11 +191,9 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
 
-    # Immutable, so we are able to cache computations like isna in '_mask'
-    _mask = None
-
     _data: IntervalArray
     _values: IntervalArray
+    _can_hold_strings = False
 
     # --------------------------------------------------------------------
     # Constructors
@@ -341,15 +338,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         result = self._simple_new(self._data, name=name)
         result._cache = self._cache
         return result
-
-    @cache_readonly
-    def _isnan(self):
-        """
-        Return a mask indicating if each value is NA.
-        """
-        if self._mask is None:
-            self._mask = isna(self.left)
-        return self._mask
 
     @cache_readonly
     def _engine(self):
@@ -843,7 +831,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         #  positional in this case
         return self.dtype.subtype.kind in ["m", "M"]
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
@@ -1302,10 +1290,8 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            range_func = date_range
+            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
         else:
-            range_func = timedelta_range
-
-        breaks = range_func(start=start, end=end, periods=periods, freq=freq)
+            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)
