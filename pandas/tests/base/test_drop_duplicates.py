@@ -1,12 +1,14 @@
 from datetime import datetime
 
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._testing as tm
 
 
-def test_drop_duplicates_series_vs_dataframe():
+@pytest.mark.parametrize("keep", ["first", "last", False])
+def test_drop_duplicates_series_vs_dataframe(keep):
     # GH 14192
     df = pd.DataFrame(
         {
@@ -24,7 +26,6 @@ def test_drop_duplicates_series_vs_dataframe():
         }
     )
     for column in df.columns:
-        for keep in ["first", "last", False]:
-            dropped_frame = df[[column]].drop_duplicates(keep=keep)
-            dropped_series = df[column].drop_duplicates(keep=keep)
-            tm.assert_frame_equal(dropped_frame, dropped_series.to_frame())
+        dropped_frame = df[[column]].drop_duplicates(keep=keep)
+        dropped_series = df[column].drop_duplicates(keep=keep)
+        tm.assert_frame_equal(dropped_frame, dropped_series.to_frame())

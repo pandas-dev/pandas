@@ -9,7 +9,7 @@ import pytest
 from pandas._libs.tslibs import conversion, timezones
 
 import pandas as pd
-from pandas import Index, Series, Timestamp, date_range, period_range
+from pandas import DataFrame, Index, Series, Timestamp, date_range, period_range
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
 
@@ -17,6 +17,40 @@ from pandas.tseries.offsets import BDay
 
 
 class TestSeriesGetitemScalars:
+    def test_getitem_out_of_bounds_indexerror(self, datetime_series):
+        # don't segfault, GH#495
+        msg = r"index \d+ is out of bounds for axis 0 with size \d+"
+        with pytest.raises(IndexError, match=msg):
+            datetime_series[len(datetime_series)]
+
+    def test_getitem_out_of_bounds_empty_rangeindex_keyerror(self):
+        # GH#917
+        # With a RangeIndex, an int key gives a KeyError
+        ser = Series([], dtype=object)
+        with pytest.raises(KeyError, match="-1"):
+            ser[-1]
+
+    def test_getitem_keyerror_with_int64index(self):
+        ser = Series(np.random.randn(6), index=[0, 0, 1, 1, 2, 2])
+
+        with pytest.raises(KeyError, match=r"^5$"):
+            ser[5]
+
+        with pytest.raises(KeyError, match=r"^'c'$"):
+            ser["c"]
+
+        # not monotonic
+        ser = Series(np.random.randn(6), index=[2, 2, 0, 0, 1, 1])
+
+        with pytest.raises(KeyError, match=r"^5$"):
+            ser[5]
+
+        with pytest.raises(KeyError, match=r"^'c'$"):
+            ser["c"]
+
+    def test_getitem_int64(self, datetime_series):
+        idx = np.int64(5)
+        assert datetime_series[idx] == datetime_series[5]
 
     # TODO: better name/GH ref?
     def test_getitem_regression(self):
@@ -126,6 +160,16 @@ class TestSeriesGetitemListLike:
         with pytest.raises(KeyError, match="5"):
             ser[key]
 
+    def test_getitem_uint_array_key(self, uint_dtype):
+        # GH #37218
+        ser = Series([1, 2, 3])
+        key = np.array([4], dtype=uint_dtype)
+
+        with pytest.raises(KeyError, match="4"):
+            ser[key]
+        with pytest.raises(KeyError, match="4"):
+            ser.loc[key]
+
 
 class TestGetitemBooleanMask:
     def test_getitem_boolean(self, string_series):
@@ -228,6 +272,22 @@ class TestGetitemBooleanMask:
         tm.assert_series_equal(sel, exp)
 
 
+class TestGetitemCallable:
+    def test_getitem_callable(self):
+        # GH#12533
+        ser = Series(4, index=list("ABCD"))
+        result = ser[lambda x: "A"]
+        assert result == ser.loc["A"]
+
+        result = ser[lambda x: ["A", "B"]]
+        expected = ser.loc[["A", "B"]]
+        tm.assert_series_equal(result, expected)
+
+        result = ser[lambda x: [True, False, True, True]]
+        expected = ser.iloc[[0, 2, 3]]
+        tm.assert_series_equal(result, expected)
+
+
 def test_getitem_generator(string_series):
     gen = (x > 0 for x in string_series)
     result = string_series[gen]
@@ -241,3 +301,37 @@ def test_getitem_ndim_deprecated():
     s = Series([0, 1])
     with tm.assert_produces_warning(FutureWarning):
         s[:, None]
+
+
+def test_getitem_multilevel_scalar_slice_not_implemented(
+    multiindex_year_month_day_dataframe_random_data,
+):
+    # not implementing this for now
+    df = multiindex_year_month_day_dataframe_random_data
+    ser = df["A"]
+
+    msg = r"\(2000, slice\(3, 4, None\)\)"
+    with pytest.raises(TypeError, match=msg):
+        ser[2000, 3:4]
+
+
+def test_getitem_dataframe_raises():
+    rng = list(range(10))
+    ser = Series(10, index=rng)
+    df = DataFrame(rng, index=rng)
+    msg = (
+        "Indexing a Series with DataFrame is not supported, "
+        "use the appropriate DataFrame column"
+    )
+    with pytest.raises(TypeError, match=msg):
+        ser[df > 5]
+
+
+def test_getitem_assignment_series_aligment():
+    # https://github.com/pandas-dev/pandas/issues/37427
+    # with getitem, when assigning with a Series, it is not first aligned
+    ser = Series(range(10))
+    idx = np.array([2, 4, 9])
+    ser[idx] = Series([10, 11, 12])
+    expected = Series([0, 1, 10, 3, 11, 5, 6, 7, 8, 12])
+    tm.assert_series_equal(ser, expected)

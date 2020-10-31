@@ -199,7 +199,7 @@ class TestCasting(base.BaseCastingTests):
     )
     def test_consistent_casting(self, dtype, expected):
         # GH 28448
-        result = pd.Categorical(pd.Timestamp("2015-01-01")).astype(dtype)
+        result = Categorical(Timestamp("2015-01-01")).astype(dtype)
         assert result == expected
 
 
