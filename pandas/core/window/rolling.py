@@ -1906,8 +1906,10 @@ class RollingAndExpandingMixin(BaseWindow):
             b = b.rolling(
                 window=window, min_periods=self.min_periods, center=self.center
             )
-
-            return a.cov(b, **kwargs) / (a.std(**kwargs) * b.std(**kwargs))
+            # GH 31286: Through using var instead of std we can avoid numerical
+            # issues when the result of var is withing floating proint precision
+            # while std is not.
+            return a.cov(b, **kwargs) / (a.var(**kwargs) * b.var(**kwargs)) ** 0.5
 
         return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
