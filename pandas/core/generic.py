@@ -10106,7 +10106,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                categorical
         count            3
         unique           3
-        top              f
+        top              d
         freq             1
 
         Excluding numeric columns from a ``DataFrame`` description.
@@ -11114,6 +11114,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Wrap arithmetic method to operate inplace.
         """
         result = op(self, other)
+
+        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
+            # GH#36498 this inplace op can _actually_ be inplace.
+            self._values[:] = result._values
+            return self
 
         # Delete cacher
         self._reset_cacher()

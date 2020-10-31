@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
 from pandas import DataFrame, Series, concat
@@ -63,7 +62,7 @@ def test_different_input_array_raise_exception(name, binary_ew_data):
     msg = "Input arrays must be of the same type!"
     # exception raised is Exception
     with pytest.raises(Exception, match=msg):
-        getattr(A.ewm(com=20, min_periods=5), name)(randn(50))
+        getattr(A.ewm(com=20, min_periods=5), name)(np.random.randn(50))
 
 
 @pytest.mark.slow
