@@ -1234,7 +1234,7 @@ class _MergeOperation:
                 raise MergeError(
                     'Can only pass argument "left_on" OR "left_index" not both.'
                 )
-            if not self.right_index or self.right_on is None:
+            if not self.right_index and self.right_on is None:
                 raise MergeError('Must pass "right_on" OR "right_index".')
             n = len(self.left_on)
             if self.right_index:
@@ -1249,7 +1249,7 @@ class _MergeOperation:
                 raise MergeError(
                     'Can only pass argument "right_on" OR "right_index" not both.'
                 )
-            if not self.left_index or self.left_on is None:
+            if not self.left_index and self.left_on is None:
                 raise MergeError('Must pass "left_on" OR "left_index".')
             n = len(self.right_on)
             if self.left_index:
