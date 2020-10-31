@@ -1441,9 +1441,9 @@ def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
                 weights_sum = 0
                 weights_dot = 0
                 for j in range(num_not_nan):
-                        weight = 0.5 ** ((times_float[i] - times_masked[j]) / halflife_float)
-                        weights_sum += weight
-                        weights_dot += weight * observations[j]
+                    weight = 0.5 ** ((times_float[i] - times_masked[j]) / halflife_float)
+                    weights_sum += weight
+                    weights_dot += weight * observations[j]
 
                 last_result = weights_dot / weights_sum
 
