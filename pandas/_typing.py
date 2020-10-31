@@ -35,8 +35,11 @@ if TYPE_CHECKING:
     from pandas.core.arrays.base import ExtensionArray  # noqa: F401
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame  # noqa: F401
+    from pandas.core.groupby.generic import DataFrameGroupBy, SeriesGroupBy
     from pandas.core.indexes.base import Index
+    from pandas.core.resample import Resampler
     from pandas.core.series import Series
+    from pandas.core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
 
@@ -114,6 +117,14 @@ AggFuncType = Union[
     AggFuncTypeBase,
     List[AggFuncTypeBase],
     AggFuncTypeDict,
+]
+AggObjType = Union[
+    "Series",
+    "DataFrame",
+    "SeriesGroupBy",
+    "DataFrameGroupBy",
+    "BaseWindow",
+    "Resampler",
 ]
 
 
