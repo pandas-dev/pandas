@@ -714,7 +714,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # lab is a Categorical with categories an IntervalIndex
             lab = cut(Series(val), bins, include_lowest=True)
             lev = lab.cat.categories
-            lab = lev.take(lab.cat.codes)
+            lab = lev.take(lab.cat.codes, allow_fill=True, fill_value=lev._na_value)
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab.dtype):

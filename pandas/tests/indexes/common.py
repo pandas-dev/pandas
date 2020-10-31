@@ -407,6 +407,17 @@ class Base:
         with pytest.raises(ValueError, match=msg):
             idx.take(indices, mode="clip")
 
+    def test_take_minus1_without_fill(self, index):
+        # -1 does not get treated as NA unless allow_fill=True is passed
+        if len(index) == 0:
+            # Test is not applicable
+            return
+
+        result = index.take([0, 0, -1])
+
+        expected = index.take([0, 0, len(index) - 1])
+        tm.assert_index_equal(result, expected)
+
     def test_repeat(self):
         rep = 2
         i = self.create_index()
