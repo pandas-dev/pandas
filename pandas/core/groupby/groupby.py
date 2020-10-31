@@ -717,20 +717,27 @@ class BaseGroupBy(PandasObject, SelectionMixin, Generic[FrameOrSeries]):
 
         # the values/counts are repeated according to the group index
         # shortcut if we have an already ordered grouper
-        if not self.grouper.is_monotonic:
-            # row order is scrambled => sort the rows by position in original index
-            original_positions = Index(
-                np.concatenate(self._get_indices(self.grouper.result_index))
-            )
-            result.set_axis(original_positions, axis=self.axis, inplace=True)
-            result = result.sort_index(axis=self.axis)
+        if self.grouper.is_monotonic:
+            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+            return result
 
-            if len(original_positions) < len(self._selected_obj):
-                sorted_indexer = result.index
-                result.index = self._selected_obj.index[sorted_indexer]
-                return result
+        # row order is scrambled => sort the rows by position in original index
+        original_positions = Index(
+            np.concatenate(self._get_indices(self.grouper.result_index))
+        )
+        result.set_axis(original_positions, axis=self.axis, inplace=True)
+        result = result.sort_index(axis=self.axis)
 
-        result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+        rows_dropped = len(result.index) < len(self._selected_obj)
+
+        # get index by slicing original index according to original positions
+        # slice drops attrs => use set_axis when no rows were dropped
+        if rows_dropped:
+            sorted_indexer = result.index
+            result.index = self._selected_obj.index[sorted_indexer]
+        else:
+            result.set_axis(self.obj._get_axis(self.axis), axis=self.axis, inplace=True)
+
         return result
 
     def _dir_additions(self) -> Set[str]:
