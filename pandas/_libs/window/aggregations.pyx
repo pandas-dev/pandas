@@ -1417,7 +1417,7 @@ def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
     cdef:
         Py_ssize_t i, j, num_not_nan = 0, N = len(vals)
         bint is_not_nan
-        float64_t last_result, weights_dot, weights_sum, weight, halflife_flot
+        float64_t last_result, weights_dot, weights_sum, weight, halflife_float
         float64_t[:] times_float
         float64_t[:] observations = np.zeros(N, dtype=float)
         float64_t[:] times_masked = np.zeros(N, dtype=float)
@@ -1426,7 +1426,7 @@ def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
     if N == 0:
         return output
 
-    halflife_float = <float>halflife
+    halflife_float = <float64_t>halflife
     times_float = times.astype(float)
     last_result = vals[0]
 
