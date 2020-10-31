@@ -14,7 +14,7 @@ from pandas._typing import Level
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import is_array_like, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -252,7 +252,7 @@ def align_method_FRAME(
                 f"dimension must be <= 2: {right.shape}"
             )
 
-    elif is_list_like(right) and not isinstance(right, (ABCSeries, ABCDataFrame)):
+    elif is_list_like(right) and not isinstance(right, ABCNDFrame):
         # GH 36702. Raise when attempting arithmetic with list of array-like.
         if any(is_array_like(el) for el in right):
             raise ValueError(

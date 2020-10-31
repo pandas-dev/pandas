@@ -4,7 +4,7 @@ import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
 
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.shared_docs import _shared_docs
@@ -28,8 +28,8 @@ _doc_template = """
 def flex_binary_moment(arg1, arg2, f, pairwise=False):
 
     if not (
-        isinstance(arg1, (np.ndarray, ABCSeries, ABCDataFrame))
-        and isinstance(arg2, (np.ndarray, ABCSeries, ABCDataFrame))
+        isinstance(arg1, (np.ndarray, ABCNDFrame))
+        and isinstance(arg2, (np.ndarray, ABCNDFrame))
     ):
         raise TypeError(
             "arguments to moment function must be of type np.ndarray/Series/DataFrame"

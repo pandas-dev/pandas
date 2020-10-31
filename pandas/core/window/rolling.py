@@ -42,8 +42,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
+    ABCNDFrame,
     ABCPeriodIndex,
-    ABCSeries,
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import notna
@@ -144,7 +144,7 @@ class BaseWindow(ShallowMixin, SelectionMixin):
             "neither",
         ]:
             raise ValueError("closed must be 'right', 'left', 'both' or 'neither'")
-        if not isinstance(self.obj, (ABCSeries, ABCDataFrame)):
+        if not isinstance(self.obj, ABCNDFrame):
             raise TypeError(f"invalid type: {type(self)}")
         if isinstance(self.window, BaseIndexer):
             # Validate that the passed BaseIndexer subclass has

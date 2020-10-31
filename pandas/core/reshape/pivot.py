@@ -17,7 +17,7 @@ from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
 
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
@@ -587,7 +587,7 @@ def crosstab(
     colnames = _get_names(columns, colnames, prefix="col")
 
     common_idx = None
-    pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]
+    pass_objs = [x for x in index + columns if isinstance(x, ABCNDFrame)]
     if pass_objs:
         common_idx = get_objs_combined_axis(pass_objs, intersect=True, sort=False)
 

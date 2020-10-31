@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCNDFrame, ABCSeries
 from pandas.core.dtypes.missing import array_equals, isna
 
 import pandas.core.algorithms as algos
@@ -406,7 +406,7 @@ class BlockManager(PandasObject):
             if aligned_args:
 
                 for k, obj in aligned_args.items():
-                    if isinstance(obj, (ABCSeries, ABCDataFrame)):
+                    if isinstance(obj, ABCNDFrame):
                         # The caller is responsible for ensuring that
                         #  obj.axes[-1].equals(self.items)
                         if obj.ndim == 1:

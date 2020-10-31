@@ -454,11 +454,9 @@ def transform(
 
     # Functions that transform may return empty Series/DataFrame
     # when the dtype is not appropriate
-    if isinstance(result, (ABCSeries, ABCDataFrame)) and result.empty:
+    if isinstance(result, ABCNDFrame) and result.empty:
         raise ValueError("Transform function failed")
-    if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
-        obj.index
-    ):
+    if not isinstance(result, ABCNDFrame) or not result.index.equals(obj.index):
         raise ValueError("Function did not transform")
 
     return result

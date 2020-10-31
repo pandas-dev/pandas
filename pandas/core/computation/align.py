@@ -11,7 +11,7 @@ import numpy as np
 from pandas._typing import FrameOrSeries
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCNDFrame, ABCSeries
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -134,7 +134,7 @@ def align_terms(terms):
         terms = list(com.flatten(terms))
     except TypeError:
         # can't iterate so it must just be a constant or single variable
-        if isinstance(terms.value, (ABCSeries, ABCDataFrame)):
+        if isinstance(terms.value, ABCNDFrame):
             typ = type(terms.value)
             return typ, _zip_axes_from_type(typ, terms.value.axes)
         return np.result_type(terms.type), None

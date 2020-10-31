@@ -10,7 +10,7 @@ import numpy as np
 from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Label
 
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import ABCDataFrame, ABCNDFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.categorical import (
@@ -306,7 +306,7 @@ class _Concatenator:
         copy: bool = True,
         sort=False,
     ):
-        if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
+        if isinstance(objs, (ABCNDFrame, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "
                 f'objects, you passed an object of type "{type(objs).__name__}"'
@@ -352,7 +352,7 @@ class _Concatenator:
         # consolidate data & figure out what our result ndim is going to be
         ndims = set()
         for obj in objs:
-            if not isinstance(obj, (ABCSeries, ABCDataFrame)):
+            if not isinstance(obj, ABCNDFrame):
                 msg = (
                     f"cannot concatenate object of type '{type(obj)}'; "
                     "only Series and DataFrame objs are valid"

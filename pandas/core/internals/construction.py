@@ -32,6 +32,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
     ABCIndexClass,
+    ABCNDFrame,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -578,7 +579,7 @@ def _list_of_series_to_arrays(
 ) -> Tuple[List[Scalar], Union[Index, List[Axis]]]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
-        pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
+        pass_data = [x for x in data if isinstance(x, ABCNDFrame)]
         columns = get_objs_combined_axis(pass_data, sort=False)
 
     indexer_cache: Dict[int, Scalar] = {}
