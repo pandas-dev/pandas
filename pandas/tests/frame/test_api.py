@@ -2,6 +2,7 @@ from copy import deepcopy
 import datetime
 import inspect
 import pydoc
+import warnings
 
 import numpy as np
 import pytest
@@ -561,9 +562,13 @@ class TestDataFrameMisc:
         #  raise NotImplementedError
         df = DataFrame()
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with warnings.catch_warnings(record=True) as wrn:
             # _AXIS_NUMBERS, _AXIS_NAMES lookups
             inspect.getmembers(df)
+
+        # some versions give FutureWarning, others DeprecationWarning
+        assert len(wrn)
+        assert any(x.category in [FutureWarning, DeprecationWarning] for x in wrn)
 
         with pytest.raises(NotImplementedError, match="Not supported for DataFrames!"):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
