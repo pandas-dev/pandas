@@ -1035,9 +1035,9 @@ class SeriesParser(Parser):
         elif self.orient in ["columns", "index"]:
             # error: "create_series_with_explicit_dtype"
             #  gets multiple values for keyword argument "dtype_if_empty
-            self.obj = create_series_with_explicit_dtype(
+            self.obj = create_series_with_explicit_dtype(  # type: ignore[misc]
                 *data, dtype_if_empty=object
-            )  # type:ignore[misc]
+            )
         else:
             self.obj = create_series_with_explicit_dtype(data, dtype_if_empty=object)
 

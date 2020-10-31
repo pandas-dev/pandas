@@ -4711,9 +4711,7 @@ class DataFrame(NDFrame, OpsMixin):
             return frame
 
     @overload
-    # https://github.com/python/mypy/issues/6580
-    # Overloaded function signatures 1 and 2 overlap with incompatible return types
-    def reset_index(  # type: ignore[misc]
+    def reset_index(
         self,
         level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
         drop: bool = ...,
@@ -4723,8 +4721,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         ...
 
+    # https://github.com/python/mypy/issues/6580
+    # Overloaded function signatures 1 and 2 overlap with incompatible return types
     @overload
-    def reset_index(
+    def reset_index(  # type: ignore[misc]
         self,
         level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
         drop: bool = ...,
@@ -5335,8 +5335,7 @@ class DataFrame(NDFrame, OpsMixin):
     # TODO: Just move the sort_values doc here.
     @Substitution(**_shared_doc_kwargs)
     @Appender(NDFrame.sort_values.__doc__)
-    # error: Signature of "sort_values" incompatible with supertype "NDFrame"
-    def sort_values(  # type: ignore[override]
+    def sort_values(
         self,
         by,
         axis=0,
