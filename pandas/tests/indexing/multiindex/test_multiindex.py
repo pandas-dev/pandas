@@ -86,6 +86,8 @@ class TestMultiIndexBasic:
 
 
 def test_combine_first_with_nan_multiindex():
+    # GH#36562
+
     mi1 = MultiIndex.from_arrays(
         [["b", "b", "c", "a", "b", np.nan], [1, 2, 3, 4, 5, 6]], names=["a", "b"]
     )
