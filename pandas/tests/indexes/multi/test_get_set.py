@@ -228,9 +228,9 @@ def test_set_codes(idx):
     assert_matching(idx.codes, codes)
 
     # label changing for levels of different magnitude of categories
-    ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
+    ind = MultiIndex.from_tuples([(0, i) for i in range(130)])
     new_codes = range(129, -1, -1)
-    expected = pd.MultiIndex.from_tuples([(0, i) for i in new_codes])
+    expected = MultiIndex.from_tuples([(0, i) for i in new_codes])
 
     # [w/o mutation]
     result = ind.set_codes(codes=new_codes, level=1)
@@ -295,8 +295,8 @@ def test_set_names_with_nlevel_1(inplace):
     # GH 21149
     # Ensure that .set_names for MultiIndex with
     # nlevels == 1 does not raise any errors
-    expected = pd.MultiIndex(levels=[[0, 1]], codes=[[0, 1]], names=["first"])
-    m = pd.MultiIndex.from_product([[0, 1]])
+    expected = MultiIndex(levels=[[0, 1]], codes=[[0, 1]], names=["first"])
+    m = MultiIndex.from_product([[0, 1]])
     result = m.set_names("first", level=0, inplace=inplace)
 
     if inplace:
@@ -326,7 +326,7 @@ def test_set_value_keeps_names():
     # motivating example from #3742
     lev1 = ["hans", "hans", "hans", "grethe", "grethe", "grethe"]
     lev2 = ["1", "2", "3"] * 2
-    idx = pd.MultiIndex.from_arrays([lev1, lev2], names=["Name", "Number"])
+    idx = MultiIndex.from_arrays([lev1, lev2], names=["Name", "Number"])
     df = pd.DataFrame(
         np.random.randn(6, 4), columns=["one", "two", "three", "four"], index=idx
     )
@@ -342,14 +342,12 @@ def test_set_levels_with_iterable():
     # GH23273
     sizes = [1, 2, 3]
     colors = ["black"] * 3
-    index = pd.MultiIndex.from_arrays([sizes, colors], names=["size", "color"])
+    index = MultiIndex.from_arrays([sizes, colors], names=["size", "color"])
 
     result = index.set_levels(map(int, ["3", "2", "1"]), level="size")
 
     expected_sizes = [3, 2, 1]
-    expected = pd.MultiIndex.from_arrays(
-        [expected_sizes, colors], names=["size", "color"]
-    )
+    expected = MultiIndex.from_arrays([expected_sizes, colors], names=["size", "color"])
     tm.assert_index_equal(result, expected)
 
 
