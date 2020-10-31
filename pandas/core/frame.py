@@ -7491,6 +7491,40 @@ NaN 12.3   33.0
     2    8.0
     3    NaN
     dtype: float64
+    
+    
+    
+    k-hot Encoding
+    
+    >>> df
+    	      ImageId	ClassId
+    0	0002cc93b.jpg	1
+    1	0007a71bf.jpg	3
+    2	0014fce06.jpg	1
+    3	000f6bf48.jpg	4
+    4	0014fce06.jpg	3
+    
+    >>> maximum_id = df.ClassId.max()
+    4
+        
+    Group by ImageId and aggregate all ClassId's to give a list of classes for each image serving as index
+    
+    >>> df = df.groupby("ImageId").agg({"ClassId":lambda x:x.tolist()})
+          ImageId	ClassId
+    0002cc93b.jpg	['1']
+    0007a71bf.jpg	['3']
+    000f6bf48.jpg	['4']
+    0014fce06.jpg	['1', '3']
+
+   Replace each ClassId list with a k-hot encoded list  
+    
+    >>> df["ClassId"] = df["ClassId"].apply(lambda x:[1 if i+1 in x else 0 for i in range(maximum)] )
+    >>> df
+          ImageId   ClassId
+    0002cc93b.jpg	[1, 0, 0, 0]
+    0007a71bf.jpg	[0, 0, 1, 0]
+    000f6bf48.jpg	[0, 0, 0, 1]
+    0014fce06.jpg	[1, 0, 1, 0]   
     """
     )
 
