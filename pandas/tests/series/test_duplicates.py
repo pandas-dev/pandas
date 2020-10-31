@@ -21,6 +21,11 @@ def test_nunique():
     assert s.nunique() == 0
 
 
+def test_numpy_unique(datetime_series):
+    # it works!
+    np.unique(datetime_series)
+
+
 def test_unique():
     # GH714 also, dtype=float
     s = Series([1.2345] * 100)
