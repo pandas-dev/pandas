@@ -1159,9 +1159,7 @@ class SQLDatabase(PandasSQL):
 
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy connectable"""
-        return self.connectable.execution_options().execute(
-            *args, **kwargs
-        )
+        return self.connectable.execution_options().execute(*args, **kwargs)
 
     def read_table(
         self,
