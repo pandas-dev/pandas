@@ -1178,7 +1178,7 @@ class TestValueCounts:
         )
         tm.assert_series_equal(
             Series([True, True, False, None]).value_counts(dropna=False),
-            Series([2, 1, 1], index=[True, False, np.nan]),
+            Series([2, 1, 1], index=[True, np.nan, False]),
         )
         tm.assert_series_equal(
             Series([10.3, 5.0, 5.0]).value_counts(dropna=True),
@@ -1197,7 +1197,7 @@ class TestValueCounts:
         # 32-bit linux has a different ordering
         if IS64:
             result = Series([10.3, 5.0, 5.0, None]).value_counts(dropna=False)
-            expected = Series([2, 1, 1], index=[5.0, 10.3, np.nan])
+            expected = Series([2, 1, 1], index=[5.0, np.nan, 10.3])
             tm.assert_series_equal(result, expected)
 
     def test_value_counts_normalized(self):
@@ -1208,12 +1208,12 @@ class TestValueCounts:
             s_typed = s.astype(t)
             result = s_typed.value_counts(normalize=True, dropna=False)
             expected = Series(
-                [0.6, 0.2, 0.2], index=Series([np.nan, 2.0, 1.0], dtype=t)
+                [0.6, 0.2, 0.2], index=Series([np.nan, 1.0, 2.0], dtype=t)
             )
             tm.assert_series_equal(result, expected)
 
             result = s_typed.value_counts(normalize=True, dropna=True)
-            expected = Series([0.5, 0.5], index=Series([2.0, 1.0], dtype=t))
+            expected = Series([0.5, 0.5], index=Series([1.0, 2.0], dtype=t))
             tm.assert_series_equal(result, expected)
 
     def test_value_counts_uint64(self):
@@ -1224,7 +1224,7 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2 ** 63], dtype=object)
-        expected = Series([1, 1], index=[-1, 2 ** 63])
+        expected = Series([1, 1], index=[2 ** 63, -1])
         result = algos.value_counts(arr)
 
         # 32-bit linux has a different ordering
@@ -1691,11 +1691,13 @@ class TestRank:
         _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
         _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))
 
-    def test_basic(self):
+    def test_basic(self, writable):
         exp = np.array([1, 2], dtype=np.float64)
 
         for dtype in np.typecodes["AllInteger"]:
-            s = Series([1, 100], dtype=dtype)
+            data = np.array([1, 100], dtype=dtype)
+            data.setflags(write=writable)
+            s = Series(data)
             tm.assert_numpy_array_equal(algos.rank(s), exp)
 
     def test_uint64_overflow(self):

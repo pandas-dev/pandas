@@ -2580,7 +2580,7 @@ class TestDataFrameConstructors:
             [pd.Interval(-20, -10), pd.Interval(-10, 0), pd.Interval(0, 10)]
         )
         series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
-        frame = pd.DataFrame.from_records(series_of_dicts, index=index)
+        frame = DataFrame.from_records(series_of_dicts, index=index)
         expected = DataFrame(
             {"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3]}, index=index
         )
@@ -2696,6 +2696,19 @@ class TestDataFrameConstructors:
 
         df = DataFrame({"A": np.random.randn(len(rng)), "B": dates})
         assert np.issubdtype(df["B"].dtype, np.dtype("M8[ns]"))
+
+    def test_dataframe_constructor_infer_multiindex(self):
+        index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
+
+        multi = DataFrame(
+            np.random.randn(4, 4),
+            index=[np.array(x) for x in index_lists],
+        )
+        assert isinstance(multi.index, MultiIndex)
+        assert not isinstance(multi.columns, MultiIndex)
+
+        multi = DataFrame(np.random.randn(4, 4), columns=index_lists)
+        assert isinstance(multi.columns, MultiIndex)
 
     @pytest.mark.parametrize(
         "input_vals",

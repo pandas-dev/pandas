@@ -545,7 +545,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_interval_dtype(other_dtype):
                 if self.closed != other.categories.closed:
                     return invalid_comparison(self, other, op)
-                other = other.categories.take(other.codes)
+
+                other = other.categories.take(
+                    other.codes, allow_fill=True, fill_value=other.categories._na_value
+                )
 
         # interval-like -> need same closed and matching endpoints
         if is_interval_dtype(other_dtype):

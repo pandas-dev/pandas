@@ -329,8 +329,7 @@ def _generate_marginal_results(
                 piece = piece.copy()
                 try:
                     piece[all_key] = margin[key]
-                except TypeError:
-
+                except ValueError:
                     # we cannot reshape, so coerce the axis
                     piece.set_axis(
                         piece._get_axis(cat_axis)._to_safe_for_reshape(),

@@ -54,7 +54,7 @@ class TestCategoricalConstructors:
 
     def test_constructor_empty_boolean(self):
         # see gh-22702
-        cat = pd.Categorical([], categories=[True, False])
+        cat = Categorical([], categories=[True, False])
         categories = sorted(cat.categories.tolist())
         assert categories == [False, True]
 
@@ -412,7 +412,7 @@ class TestCategoricalConstructors:
 
     def test_constructor_np_strs(self):
         # GH#31499 Hastable.map_locations needs to work on np.str_ objects
-        cat = pd.Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
+        cat = Categorical(["1", "0", "1"], [np.str_("0"), np.str_("1")])
         assert all(isinstance(x, np.str_) for x in cat.categories)
 
     def test_constructor_from_categorical_with_dtype(self):
@@ -637,48 +637,48 @@ class TestCategoricalConstructors:
 
     def test_constructor_string_and_tuples(self):
         # GH 21416
-        c = pd.Categorical(np.array(["c", ("a", "b"), ("b", "a"), "c"], dtype=object))
+        c = Categorical(np.array(["c", ("a", "b"), ("b", "a"), "c"], dtype=object))
         expected_index = Index([("a", "b"), ("b", "a"), "c"])
         assert c.categories.equals(expected_index)
 
     def test_interval(self):
         idx = pd.interval_range(0, 10, periods=10)
-        cat = pd.Categorical(idx, categories=idx)
+        cat = Categorical(idx, categories=idx)
         expected_codes = np.arange(10, dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
 
         # infer categories
-        cat = pd.Categorical(idx)
+        cat = Categorical(idx)
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
 
         # list values
-        cat = pd.Categorical(list(idx))
+        cat = Categorical(list(idx))
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
 
         # list values, categories
-        cat = pd.Categorical(list(idx), categories=list(idx))
+        cat = Categorical(list(idx), categories=list(idx))
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
 
         # shuffled
         values = idx.take([1, 2, 0])
-        cat = pd.Categorical(values, categories=idx)
+        cat = Categorical(values, categories=idx)
         tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype="int8"))
         tm.assert_index_equal(cat.categories, idx)
 
         # extra
         values = pd.interval_range(8, 11, periods=3)
-        cat = pd.Categorical(values, categories=idx)
+        cat = Categorical(values, categories=idx)
         expected_codes = np.array([8, 9, -1], dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)
 
         # overlapping
         idx = pd.IntervalIndex([pd.Interval(0, 2), pd.Interval(0, 1)])
-        cat = pd.Categorical(idx, categories=idx)
+        cat = Categorical(idx, categories=idx)
         expected_codes = np.array([0, 1], dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)

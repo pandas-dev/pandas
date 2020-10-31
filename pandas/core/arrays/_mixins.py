@@ -44,6 +44,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         """
         return x
 
+    def _validate_insert_value(self, value):
+        # used by NDArrayBackedExtensionIndex.insert
+        raise AbstractMethodError(self)
+
     # ------------------------------------------------------------------------
 
     def take(
@@ -51,12 +55,17 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         indices: Sequence[int],
         allow_fill: bool = False,
         fill_value: Any = None,
+        axis: int = 0,
     ) -> _T:
         if allow_fill:
             fill_value = self._validate_fill_value(fill_value)
 
         new_data = take(
-            self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
+            self._ndarray,
+            indices,
+            allow_fill=allow_fill,
+            fill_value=fill_value,
+            axis=axis,
         )
         return self._from_backing_data(new_data)
 
@@ -232,6 +241,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         else:
             new_values = self.copy()
         return new_values
+
+    # ------------------------------------------------------------------------
+    # Reductions
 
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
         meth = getattr(self, name, None)
