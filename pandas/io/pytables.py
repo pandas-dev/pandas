@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCExtensionArray
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
@@ -63,6 +62,7 @@ from pandas import (
 from pandas.core.arrays import Categorical, DatetimeArray, PeriodArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import PyTablesExpr, maybe_expression
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
 
 from pandas.io.common import stringify_path
@@ -2968,11 +2968,12 @@ class GenericFixed(Fixed):
         node._v_attrs.value_type = str(value.dtype)
         node._v_attrs.shape = value.shape
 
-    def write_array(self, key: str, value: ArrayLike, items: Optional[Index] = None):
-        # TODO: we only have one test that gets here, the only EA
+    def write_array(self, key: str, obj: FrameOrSeries, items: Optional[Index] = None):
+        # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
-        assert isinstance(value, (np.ndarray, ABCExtensionArray)), type(value)
+
+        value = extract_array(obj, extract_numpy=True)
 
         if key in self.group:
             self._handle.remove_node(self.group, key)
@@ -3077,7 +3078,7 @@ class SeriesFixed(GenericFixed):
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
         self.write_index("index", obj.index)
-        self.write_array("values", obj.values)
+        self.write_array("values", obj)
         self.attrs.name = obj.name
 
 
