@@ -207,8 +207,6 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
             return scalars
 
         periods = np.asarray(scalars, dtype=object)
-        if copy:
-            periods = periods.copy()
 
         freq = freq or libperiod.extract_freq(periods)
         ordinals = libperiod.extract_ordinals(periods, freq)

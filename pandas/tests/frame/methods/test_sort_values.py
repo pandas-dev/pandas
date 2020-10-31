@@ -242,7 +242,7 @@ class TestDataFrameSortValues:
 
     def test_sort_values_stable_categorial(self):
         # GH#16793
-        df = DataFrame({"x": pd.Categorical(np.repeat([1, 2, 3, 4], 5), ordered=True)})
+        df = DataFrame({"x": Categorical(np.repeat([1, 2, 3, 4], 5), ordered=True)})
         expected = df.copy()
         sorted_df = df.sort_values("x", kind="mergesort")
         tm.assert_frame_equal(sorted_df, expected)
@@ -385,7 +385,7 @@ class TestDataFrameSortValues:
 
         df = DataFrame(
             {
-                column_name: pd.Categorical(
+                column_name: Categorical(
                     ["A", np.nan, "B", np.nan, "C"], categories=categories, ordered=True
                 )
             }
@@ -477,7 +477,7 @@ class TestDataFrameSortValues:
     def test_sort_values_na_position_with_categories_raises(self):
         df = DataFrame(
             {
-                "c": pd.Categorical(
+                "c": Categorical(
                     ["A", np.nan, "B", np.nan, "C"],
                     categories=["A", "B", "C"],
                     ordered=True,
@@ -703,7 +703,7 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         def sorter(key):
             if key.name == "y":
                 return pd.Series(
-                    pd.Categorical(key, categories=categories, ordered=ordered)
+                    Categorical(key, categories=categories, ordered=ordered)
                 )
             return key
 

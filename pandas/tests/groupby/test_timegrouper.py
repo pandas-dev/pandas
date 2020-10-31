@@ -363,7 +363,7 @@ class TestGroupBy:
         for df in [df_original, df_reordered]:
             grouped = df.groupby(pd.Grouper(freq="M", key="Date"))
             for t, expected in zip(dt_list, expected_list):
-                dt = pd.Timestamp(t)
+                dt = Timestamp(t)
                 result = grouped.get_group(dt)
                 tm.assert_frame_equal(result, expected)
 
@@ -378,7 +378,7 @@ class TestGroupBy:
         for df in [df_original, df_reordered]:
             grouped = df.groupby(["Buyer", pd.Grouper(freq="M", key="Date")])
             for (b, t), expected in zip(g_list, expected_list):
-                dt = pd.Timestamp(t)
+                dt = Timestamp(t)
                 result = grouped.get_group((b, dt))
                 tm.assert_frame_equal(result, expected)
 
@@ -395,7 +395,7 @@ class TestGroupBy:
         for df in [df_original, df_reordered]:
             grouped = df.groupby(pd.Grouper(freq="M"))
             for t, expected in zip(dt_list, expected_list):
-                dt = pd.Timestamp(t)
+                dt = Timestamp(t)
                 result = grouped.get_group(dt)
                 tm.assert_frame_equal(result, expected)
 
@@ -452,7 +452,7 @@ class TestGroupBy:
         result = df.groupby(level="date").groups
         dates = ["2015-01-05", "2015-01-04", "2015-01-03", "2015-01-02", "2015-01-01"]
         expected = {
-            pd.Timestamp(date): pd.DatetimeIndex([date], name="date") for date in dates
+            Timestamp(date): pd.DatetimeIndex([date], name="date") for date in dates
         }
         tm.assert_dict_equal(result, expected)
 
@@ -662,9 +662,9 @@ class TestGroupBy:
         # GH 6410 / numpy 4328
         # 32-bit under 1.9-dev indexing issue
 
-        df = DataFrame({"A": range(2), "B": [pd.Timestamp("2000-01-1")] * 2})
+        df = DataFrame({"A": range(2), "B": [Timestamp("2000-01-1")] * 2})
         result = df.groupby("A")["B"].transform(min)
-        expected = Series([pd.Timestamp("2000-01-1")] * 2, name="B")
+        expected = Series([Timestamp("2000-01-1")] * 2, name="B")
         tm.assert_series_equal(result, expected)
 
     def test_groupby_with_timezone_selection(self):
