@@ -207,6 +207,7 @@ level-by-level basis.
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- Added SS02 check to ``code_checks.sh``. This will add a check in CI to make sure summary in docstrings begins with capital letter. (:issue:`25113`)
 - Added ``day_of_week``(compatibility alias ``dayofweek``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
 - Added ``day_of_year`` (compatibility alias ``dayofyear``) property to ``Timestamp``, ``DatetimeIndex``, ``Period``, ``PeriodIndex`` (:issue:`9605`)
 - Added :meth:`~DataFrame.set_flags` for setting table-wide flags on a ``Series`` or ``DataFrame`` (:issue:`28394`)
