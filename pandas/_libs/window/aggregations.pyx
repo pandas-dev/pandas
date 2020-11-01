@@ -626,7 +626,7 @@ cdef inline void remove_kurt(float64_t val, int64_t *nobs,
 def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp):
     cdef:
-        float64_t val, prev, sum_val = 0
+        float64_t val, prev, sum_val = 0.0
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
         int64_t nobs = 0, i, j, s, e, N = len(values), nobs_mean = 0
         ndarray[float64_t] output
