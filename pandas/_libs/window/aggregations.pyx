@@ -542,7 +542,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
     mean_val = sum_val / nobs_mean
     # Other cases would lead to imprecision for smallest values
     if min_val - mean_val > -1e5:
-        values = values - round(sum_val / nobs_mean)
+        values = values - round(mean_val)
 
     with nogil:
         for i in range(0, N):
@@ -721,7 +721,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
     mean_val = sum_val / nobs_mean
     # Other cases would lead to imprecision for smallest values
     if min_val - mean_val > -1e4:
-        values = values - round(sum_val / nobs_mean)
+        values = values - round(mean_val)
 
     with nogil:
 
