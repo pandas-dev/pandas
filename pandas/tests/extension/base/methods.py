@@ -241,12 +241,11 @@ class BaseMethodsTests(BaseExtensionTests):
         s1 = pd.Series(orig_data1)
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 + x2)
-        with np.errstate(over="ignore"):
-            expected = pd.Series(
-                orig_data1._from_sequence(
-                    [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
-                )
-            )
+
+        arr = pd.array(
+            [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))], dtype="Int64"
+        )
+        expected = pd.Series(arr, dtype="boolean")
         self.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
