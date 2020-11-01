@@ -1544,7 +1544,10 @@ class DataFrame(NDFrame, OpsMixin):
                 for row in self.itertuples(index=False, name=None)
             )
             return [
-                into_c((k, com.maybe_box_datetimelike(v)) for k, v in row.items())
+                into_c(
+                    (k, com.maybe_box_datetimelike(v, native=True))
+                    for k, v in row.items()
+                )
                 for row in rows
             ]
 
