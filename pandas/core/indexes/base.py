@@ -4490,7 +4490,7 @@ class Index(IndexOpsMixin, PandasObject):
                 loc = loc.indices(len(self))[-1]
             return self[loc]
 
-    def asof_locs(self, where, mask):
+    def asof_locs(self, where: "Index", mask) -> np.ndarray:
         """
         Return the locations (indices) of labels in the index.
 
@@ -4518,13 +4518,13 @@ class Index(IndexOpsMixin, PandasObject):
             which correspond to the return values of the `asof` function
             for every element in `where`.
         """
-        locs = self.values[mask].searchsorted(where.values, side="right")
+        locs = self._values[mask].searchsorted(where._values, side="right")
         locs = np.where(locs > 0, locs - 1, 0)
 
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
-        result[(locs == 0) & (where.values < self.values[first])] = -1
+        result[(locs == 0) & (where._values < self._values[first])] = -1
 
         return result
 
