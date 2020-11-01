@@ -365,8 +365,7 @@ class ConditionBinOp(BinOp):
 
 class JointConditionBinOp(ConditionBinOp):
     def evaluate(self):
-        tmp = f"({self.lhs.condition} {self.op} {self.rhs.condition})"
-        self.condition = tmp
+        self.condition = f"({self.lhs.condition} {self.op} {self.rhs.condition})"
         return self
 
 

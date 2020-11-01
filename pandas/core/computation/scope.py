@@ -133,15 +133,17 @@ class Scope:
             # pandas\core\computation\scope.py:132: error: Incompatible types
             # in assignment (expression has type "ChainMap[str, Any]", variable
             # has type "DeepChainMap[str, Any]")  [assignment]
-            tmp = self.scope.new_child((global_dict or frame.f_globals).copy())
-            self.scope = tmp  # type: ignore[assignment]
+            self.scope = self.scope.new_child(  # type: ignore[assignment]
+                (global_dict or frame.f_globals).copy()
+            )
             if not isinstance(local_dict, Scope):
                 # pandas\core\computation\scope.py:134: error: Incompatible
                 # types in assignment (expression has type "ChainMap[str,
                 # Any]", variable has type "DeepChainMap[str, Any]")
                 # [assignment]
-                tmp = self.scope.new_child((local_dict or frame.f_locals).copy())
-                self.scope = tmp  # type: ignore[assignment]
+                self.scope = self.scope.new_child(  # type: ignore[assignment]
+                    (local_dict or frame.f_locals).copy()
+                )
         finally:
             del frame
 

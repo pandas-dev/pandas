@@ -598,9 +598,9 @@ class ExcelFormatter:
                     # "len" has incompatible type
                     # "Union[Sequence[Optional[Hashable]], bool]"; expected
                     # "Sized"  [arg-type]
-                    tmp = len(self.header)  # type: ignore[arg-type]
                     raise ValueError(
-                        f"Writing {len(self.columns)} cols but got {tmp} aliases"
+                        f"Writing {len(self.columns)} "  # type: ignore[arg-type]
+                        f"cols but got {len(self.header)} aliases"
                     )
                 else:
                     colnames = self.header
