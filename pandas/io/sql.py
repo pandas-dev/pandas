@@ -1715,7 +1715,13 @@ class SQLiteDatabase(PandasSQL):
 
     @staticmethod
     def _query_iterator(
-        cursor, chunksize, columns, index_col=None, coerce_float=True, parse_dates=None
+        cursor,
+        chunksize,
+        columns,
+        index_col=None,
+        coerce_float=True,
+        parse_dates=None,
+        dtype=None,
     ):
         """Return generator through chunked result set"""
         while True:
@@ -1732,6 +1738,7 @@ class SQLiteDatabase(PandasSQL):
                     index_col=index_col,
                     coerce_float=coerce_float,
                     parse_dates=parse_dates,
+                    dtype=dtype,
                 )
 
     def read_query(
@@ -1742,6 +1749,7 @@ class SQLiteDatabase(PandasSQL):
         params=None,
         parse_dates=None,
         chunksize=None,
+        dtype=None,
     ):
 
         args = _convert_params(sql, params)
@@ -1756,6 +1764,7 @@ class SQLiteDatabase(PandasSQL):
                 index_col=index_col,
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
+                dtype=dtype,
             )
         else:
             data = self._fetchall_as_list(cursor)
@@ -1767,6 +1776,7 @@ class SQLiteDatabase(PandasSQL):
                 index_col=index_col,
                 coerce_float=coerce_float,
                 parse_dates=parse_dates,
+                dtype=dtype,
             )
             return frame
 
