@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
 
@@ -2190,6 +2191,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 # error: Incompatible types in assignment (expression has type
                 # "str", variable has type "Optional[Type[int64]]")
                 inference = "datetime64[ns]"  # type: ignore[assignment]
+                vals = np.asarray(vals).astype(float)
+            elif is_timedelta64_dtype(vals.dtype):
+                inference = "timedelta64[ns]"
                 vals = np.asarray(vals).astype(float)
 
             return vals, inference

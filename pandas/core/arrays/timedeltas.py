@@ -374,6 +374,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def sum(
         self,
+        *,
         axis=None,
         dtype=None,
         out=None,

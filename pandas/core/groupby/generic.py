@@ -721,7 +721,11 @@ class SeriesGroupBy(GroupBy[Series]):
             # error: "ndarray" has no attribute "cat"
             lev = lab.cat.categories  # type: ignore[attr-defined]
             # error: "ndarray" has no attribute "cat"
-            lab = lev.take(lab.cat.codes)  # type: ignore[attr-defined]
+            lab = lev.take(
+                lab.cat.codes,  # type: ignore[attr-defined]
+                allow_fill=True,
+                fill_value=lev._na_value,
+            )
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab.dtype):
@@ -1664,8 +1668,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
         """
         indexed_output = {key.position: val for key, val in output.items()}
-        name = self._obj_with_exclusions._get_axis(1 - self.axis).name
-        columns = Index([key.label for key in output], name=name)
+        columns = Index([key.label for key in output])
+        columns._set_names(self._obj_with_exclusions._get_axis(1 - self.axis).names)
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns
