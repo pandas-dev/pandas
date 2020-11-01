@@ -14,8 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
--
+- Fixed regression in :func:`read_sql_table` raising a ``sqlalchemy.exc.OperationalError`` when column names contained a percentage sign (:issue:`37517`)
 
 .. ---------------------------------------------------------------------------
 
