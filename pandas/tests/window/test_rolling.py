@@ -1108,7 +1108,7 @@ def test_rolling_skew_kurt_numerical_stability(method):
 )
 def test_rolling_skew_kurt_large_value_range(method, values):
     # GH: 37557
-    s = pd.Series([3000000, 1, 1, 2, 3, 4, 999])
+    s = Series([3000000, 1, 1, 2, 3, 4, 999])
     result = getattr(s.rolling(4), method)()
-    expected = pd.Series([np.nan] * 3 + values)
+    expected = Series([np.nan] * 3 + values)
     tm.assert_series_equal(result, expected)
