@@ -14,8 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
--
+- Fixed regression in :meth:`DataFrame.to_hdf` was not dropping missing rows with ``dropna=True`` (:issue:`35719`)
 
 .. ---------------------------------------------------------------------------
 
