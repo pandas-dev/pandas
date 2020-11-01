@@ -5568,8 +5568,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts()
         num_legs  num_wings
         4         0            2
-        6         0            1
         2         2            1
+        6         0            1
         dtype: int64
 
         >>> df.value_counts(sort=False)
@@ -5589,8 +5589,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts(normalize=True)
         num_legs  num_wings
         4         0            0.50
-        6         0            0.25
         2         2            0.25
+        6         0            0.25
         dtype: float64
         """
         if subset is None:

@@ -27,7 +27,7 @@ from pandas.core.arrays.categorical import Categorical, contains
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.extension import ExtensionIndex, inherit_names
+from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_names
 import pandas.core.missing as missing
 from pandas.core.ops import get_op_result_name
 
@@ -66,7 +66,7 @@ _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
     typ="method",
     overwrite=True,
 )
-class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
+class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     """
     Index based on an underlying :class:`Categorical`.
 
@@ -427,17 +427,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         cat = Categorical(values, dtype=self.dtype)
         return type(self)._simple_new(cat, name=self.name)
 
-    def putmask(self, mask, value):
-        try:
-            code_value = self._data._validate_where_value(value)
-        except (TypeError, ValueError):
-            return self.astype(object).putmask(mask, value)
-
-        codes = self._data._ndarray.copy()
-        np.putmask(codes, mask, code_value)
-        cat = self._data._from_backing_data(codes)
-        return type(self)._simple_new(cat, name=self.name)
-
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
         """
         Create index with target's values (move/add/delete values as necessary)
@@ -666,44 +655,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         """
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
-
-    def delete(self, loc):
-        """
-        Make new Index with passed location(-s) deleted
-
-        Returns
-        -------
-        new_index : Index
-        """
-        codes = np.delete(self.codes, loc)
-        cat = self._data._from_backing_data(codes)
-        return type(self)._simple_new(cat, name=self.name)
-
-    def insert(self, loc: int, item):
-        """
-        Make new Index inserting new item at location. Follows
-        Python list.append semantics for negative values
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        new_index : Index
-
-        Raises
-        ------
-        ValueError if the item is not in the categories
-
-        """
-        code = self._data._validate_insert_value(item)
-
-        codes = self.codes
-        codes = np.concatenate((codes[:loc], [code], codes[loc:]))
-        cat = self._data._from_backing_data(codes)
-        return type(self)._simple_new(cat, name=self.name)
 
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others
