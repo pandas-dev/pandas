@@ -490,7 +490,7 @@ cdef inline void remove_skew(float64_t val, int64_t *nobs,
 def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp):
     cdef:
-        float64_t val, prev, sum_val = 0.0
+        float64_t val, prev, mean = 0.0
         float64_t x = 0, xx = 0, xxx = 0
         int64_t nobs = 0, i, j, N = len(values), nobs_mean = 0
         int64_t s, e
@@ -507,9 +507,9 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
         for i in range(0, N):
             val = values[i]
             if notnan(val):
-                sum_val += val
                 nobs_mean += 1
-    values = values - sum_val / nobs_mean
+                mean = mean + 1 / nobs_mean * (val - mean)
+    values = values - mean
 
     with nogil:
         for i in range(0, N):
@@ -626,7 +626,7 @@ cdef inline void remove_kurt(float64_t val, int64_t *nobs,
 def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp):
     cdef:
-        float64_t val, prev, sum_val = 0.0
+        float64_t val, prev, mean = 0.0
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
         int64_t nobs = 0, i, j, s, e, N = len(values), nobs_mean = 0
         ndarray[float64_t] output
@@ -642,9 +642,9 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
         for i in range(0, N):
             val = values[i]
             if notnan(val):
-                sum_val += val
                 nobs_mean += 1
-    values = values - sum_val / nobs_mean
+                mean = mean + 1 / nobs_mean * (val - mean)
+    values = values - mean
 
     with nogil:
 
