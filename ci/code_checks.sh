@@ -38,8 +38,8 @@ function invgrep {
 }
 
 function check_namespace {
-    local -r CLASS="${1}"
-    grep -R -l --include "*.py" " ${CLASS}(" pandas/tests | xargs grep -n "pd\.${CLASS}("
+    local -r CLASS=${1}
+    grep -R -l --include "*.py" " ${CLASS}(" pandas/tests | xargs grep -n "pd\.${CLASS}[(\.]"
     test $? -gt 0
 }
 
@@ -146,7 +146,7 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Check for inconsistent use of pandas namespace in tests' ; echo $MSG
-    for class in "Series" "DataFrame" "Index"; do
+    for class in "Series" "DataFrame" "Index" "MultiIndex" "Timestamp" "Timedelta" "TimedeltaIndex" "DatetimeIndex" "Categorical"; do
         check_namespace ${class}
         RET=$(($RET + $?))
     done
