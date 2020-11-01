@@ -89,13 +89,25 @@ class AsType:
         )
 
         for col in ("int", "float", "timestamp"):
-            self.df[col + "as_str"] = self.df[col].astype(str)
+            self.df[col + "_as_str"] = self.df[col].astype(str)
 
         for col in self.df.columns:
             self.df[col] = self.df[col].astype("category")
 
-    def astype_unicode(self):
-        [self.df[col].astype("unicode") for col in self.df.columns]
+    def astype_str(self):
+        [self.df[col].astype("str") for col in "int float timestamp".split()]
+
+    def astype_int(self):
+        [self.df[col].astype("int") for col in "int_as_str timestamp".split()]
+
+    def astype_float(self):
+        [
+            self.df[col].astype("float")
+            for col in "float_as_str int int_as_str timestamp".split()
+        ]
+
+    def astype_datetime(self):
+        self.df["float"].astype(pd.DatetimeTZDtype(tz="US/Pacific"))
 
 
 class Concat:
