@@ -2005,8 +2005,6 @@ class ObjectValuesExtensionBlock(ExtensionBlock):
     def _can_hold_element(self, element: Any) -> bool:
         if is_valid_nat_for_dtype(element, self.dtype):
             return True
-        if element is NaT:
-            return True
         if isinstance(element, list) and len(element) == 0:
             return True
         tipo = maybe_infer_dtype_type(element)
