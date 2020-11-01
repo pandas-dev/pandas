@@ -5372,6 +5372,34 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return result
 
+    def is_unique(
+        self, subset: Optional[Union[Hashable, Sequence[Hashable]]] = None
+    ) -> Series:
+        """
+        Return boolean Series denoting columns with unique values.
+
+        Parameter
+        ---------
+        subset : column label or sequence of labels, optional
+            Only consider certain columns for finding uniques. by default use columns.
+
+        Returns
+        -------
+        Series
+
+        See Also:
+        ---------
+        DataFrame.duplicated : Indicate duplicate rows.
+        """
+        if subset is not None:
+            subset = subset if is_list_like(subset) else [subset]
+            return self.loc[:, subset].is_unique()
+
+        if len(self.columns):
+            return self.apply(Series._is_unique)
+        else:
+            return self._constructor_sliced(dtype=bool)
+
     def duplicated(
         self,
         subset: Optional[Union[Hashable, Sequence[Hashable]]] = None,
@@ -5405,6 +5433,7 @@ class DataFrame(NDFrame, OpsMixin):
         Series.duplicated : Equivalent method on Series.
         Series.drop_duplicates : Remove duplicate values from Series.
         DataFrame.drop_duplicates : Remove duplicate values from DataFrame.
+        DataFrame.is_unique : Indicate columns with unique values.
 
         Examples
         --------

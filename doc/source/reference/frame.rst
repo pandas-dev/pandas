@@ -190,6 +190,7 @@ Reindexing / selection / label manipulation
    DataFrame.head
    DataFrame.idxmax
    DataFrame.idxmin
+   DataFrame.is_unique
    DataFrame.last
    DataFrame.reindex
    DataFrame.reindex_like
