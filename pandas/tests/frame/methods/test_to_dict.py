@@ -261,20 +261,26 @@ class TestDataFrameToDict:
 
         df = DataFrame(
             {
-                "a": [1, 2, 3],
-                "b": [1.0, 2.0, 3.0],
-                "c": ["X", "Y", "Z"],
-                "d": [datetime(2018, 1, 1), datetime(2019, 2, 2), datetime(2020, 3, 3)],
+                "bool": [True, True, False],
+                "datetime": [
+                    datetime(2018, 1, 1),
+                    datetime(2019, 2, 2),
+                    datetime(2020, 3, 3),
+                ],
+                "float": [1.0, 2.0, 3.0],
+                "int": [1, 2, 3],
+                "str": ["X", "Y", "Z"],
             }
         )
 
-        expected = {"a": int, "b": float, "c": str, "d": datetime}
+        expected = {
+            "int": int,
+            "float": float,
+            "str": str,
+            "datetime": datetime,
+            "bool": bool,
+        }
 
         for df_dict in df.to_dict("records"):
-            result = {
-                "a": type(df_dict["a"]),
-                "b": type(df_dict["b"]),
-                "c": type(df_dict["c"]),
-                "d": type(df_dict["d"]),
-            }
+            result = {col: type(df_dict[col]) for col in list(df.columns)}
             assert result == expected
