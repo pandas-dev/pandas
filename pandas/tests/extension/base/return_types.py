@@ -58,20 +58,3 @@ class BaseReturnTypeTests(BaseExtensionTests):
         native_dtype = self.get_native_dtype(all_data.dtype)
 
         assert all(isinstance(val, native_dtype) or isna(val) for val in func(s))
-
-
-# class TestFrameReturnTypesArePythonNative:
-#     def test_boolean(self, boolean_data, frame_conversion):
-#         # GH 29738
-#         s = pd.DataFrame({"A": boolean_data}, dtype="boolean")
-#         assert all(isinstance(val, bool) or isna(val) for val in frame_conversion(s))
-
-#     def test_float(self, float_data, float_ea_dtype, frame_conversion):
-#         # GH 29738
-#         s = pd.DataFrame({"A": float_data}, dtype=float_ea_dtype)
-#         assert all(isinstance(val, float) or isna(val) for val in frame_conversion(s))
-
-#     def test_int(self, int_data, any_nullable_int_dtype, frame_conversion):
-#         # GH 29738
-#         s = pd.DataFrame({"A": int_data}, dtype=any_nullable_int_dtype)
-#         assert all(isinstance(val, int) or isna(val) for val in frame_conversion(s))
