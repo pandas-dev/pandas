@@ -1,3 +1,5 @@
+import string
+import sys
 import warnings
 
 import numpy as np
@@ -69,14 +71,25 @@ class Constructor:
 
 class AsType:
     def setup(self):
-        N = 10 ** 6
+        N = 10 ** 5
+
+        random_pick = np.random.default_rng().choice
+
+        categories = {
+            "str": list(string.ascii_letters),
+            "int": np.random.randint(2 ** 16, size=154),
+            "float": sys.maxsize * np.random.random((38,)),
+            "timestamp": [
+                pd.Timestamp(x, unit="s") for x in np.random.randint(2 ** 18, size=578)
+            ],
+        }
 
         self.df = pd.DataFrame(
-            np.random.default_rng()
-            .choice(np.array(list("abcde")), 4 * N)
-            .reshape(N, 4),
-            columns=list("ABCD"),
+            {col: random_pick(cats, N) for col, cats in categories.items()}
         )
+
+        for col in ("int", "float", "timestamp"):
+            self.df[col + "as_str"] = self.df[col].astype(str)
 
         for col in self.df.columns:
             self.df[col] = self.df[col].astype("category")
