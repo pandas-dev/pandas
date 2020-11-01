@@ -320,7 +320,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
-            if not isinstance(values, np.ndarray):
+            if not isinstance(values, (np.ndarray, ExtensionArray)):
                 values = com.convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
