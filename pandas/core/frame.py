@@ -5378,8 +5378,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return boolean Series denoting columns with unique values.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         subset : column label or sequence of labels, optional
             Only consider certain columns for finding uniques. by default use columns.
 
@@ -5387,8 +5387,8 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         Series
 
-        See Also:
-        ---------
+        See Also
+        --------
         DataFrame.duplicated : Indicate duplicate rows.
         """
         if subset is not None:
