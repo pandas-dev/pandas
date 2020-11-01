@@ -769,7 +769,7 @@ class Index(IndexOpsMixin, PandasObject):
                 values, indices, allow_fill=allow_fill, fill_value=na_value
             )
         else:
-            taken = values.take(indices)
+            taken = algos.take(values, indices, allow_fill=False, fill_value=na_value)
         return taken
 
     _index_shared_docs[
@@ -4542,9 +4542,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
-        if not isinstance(
-            self, (ABCMultiIndex, ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
-        ):
+        if not isinstance(self, ABCMultiIndex):
             _as = nargsort(
                 items=idx, ascending=ascending, na_position=na_position, key=key
             )

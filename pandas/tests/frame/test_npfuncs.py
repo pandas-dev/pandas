@@ -14,3 +14,12 @@ class TestAsArray:
         # may change from object in the future
         expected = np.array([[1, 1], [2, 2]], dtype="object")
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_np_sqrt(self, float_frame):
+        with np.errstate(all="ignore"):
+            result = np.sqrt(float_frame)
+        assert isinstance(result, type(float_frame))
+        assert result.index is float_frame.index
+        assert result.columns is float_frame.columns
+
+        tm.assert_frame_equal(result, float_frame.apply(np.sqrt))

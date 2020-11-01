@@ -831,7 +831,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         #  positional in this case
         return self.dtype.subtype.kind in ["m", "M"]
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
@@ -872,7 +872,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             other = self._na_value
         values = np.where(cond, self._values, other)
         result = IntervalArray(values)
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     def delete(self, loc):
         """
@@ -907,13 +907,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
         result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
-        return self._shallow_copy(result)
-
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        result = self._data.take(
-            indices, axis=axis, allow_fill=allow_fill, fill_value=fill_value, **kwargs
-        )
         return self._shallow_copy(result)
 
     # --------------------------------------------------------------------
