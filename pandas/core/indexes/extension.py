@@ -1,7 +1,7 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import List
+from typing import List, TypeVar
 
 import numpy as np
 
@@ -17,6 +17,8 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
+
+_T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 
 
 def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
@@ -338,3 +340,8 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         np.putmask(new_values, mask, value)
         new_arr = self._data._from_backing_data(new_values)
         return type(self)._simple_new(new_arr, name=self.name)
+
+    def _wrap_joined_index(self: _T, joined: np.ndarray, other: _T) -> _T:
+        name = get_op_result_name(self, other)
+        arr = self._data._from_backing_data(joined)
+        return type(self)._simple_new(arr, name=name)
