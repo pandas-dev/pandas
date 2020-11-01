@@ -1052,7 +1052,7 @@ class HDFStore:
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
-        dropna: bool = Optional[None],
+        dropna: bool = False,
     ):
         """
         Store object in HDFStore.
