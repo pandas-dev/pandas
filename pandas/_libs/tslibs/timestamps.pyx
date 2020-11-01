@@ -912,7 +912,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.fromtimestamp(ts)
 
-        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        Timestamp[, tz] -> tz's local time from POSIX timestamp.
         """
         return cls(datetime.fromtimestamp(ts))
 
@@ -934,7 +934,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields.
+        Date, time -> datetime with same date and time fields.
         """
         return cls(datetime.combine(date, time))
 
@@ -1153,7 +1153,7 @@ timedelta}, default 'raise'
 
     def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp floored to this resolution.
+        Return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -1192,7 +1192,7 @@ timedelta}, default 'raise'
 
     def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp ceiled to this resolution.
+        Return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -1377,7 +1377,7 @@ default 'raise'
         fold=0,
     ):
         """
-        implements datetime.replace, handles nanoseconds.
+        Implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------
