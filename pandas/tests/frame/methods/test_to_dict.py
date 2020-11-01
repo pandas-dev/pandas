@@ -257,18 +257,19 @@ class TestDataFrameToDict:
         assert result == expected
 
     def test_to_dict_orient_dtype(self):
-        # GH#22620
-        # Input Data
-        input_data = {
-            "a": [1, 2, 3],
-            "b": [1.0, 2.0, 3.0],
-            "c": ["X", "Y", "Z"],
-            "d": [datetime(2018, 1, 1), datetime(2019, 2, 2), datetime(2020, 3, 3)],
-        }
-        df = DataFrame(input_data)
-        # Expected Dtypes
+        # GH22620 & GH21256
+
+        df = DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": [1.0, 2.0, 3.0],
+                "c": ["X", "Y", "Z"],
+                "d": [datetime(2018, 1, 1), datetime(2019, 2, 2), datetime(2020, 3, 3)],
+            }
+        )
+
         expected = {"a": int, "b": float, "c": str, "d": datetime}
-        # Extracting dtypes out of to_dict operation
+
         for df_dict in df.to_dict("records"):
             result = {
                 "a": type(df_dict["a"]),
