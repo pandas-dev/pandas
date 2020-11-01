@@ -1245,7 +1245,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # --------------------------------------------------------------
     # Reductions
 
-    def min(self, axis=None, skipna=True, *args, **kwargs):
+    def min(self, *, axis=None, skipna=True, **kwargs):
         """
         Return the minimum value of the Array or minimum along
         an axis.
@@ -1256,7 +1256,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Index.min : Return the minimum value in an Index.
         Series.min : Return the minimum value in a Series.
         """
-        nv.validate_min(args, kwargs)
+        nv.validate_min((), kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
         if is_period_dtype(self.dtype):
@@ -1276,7 +1276,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return self._box_func(result)
         return self._from_backing_data(result)
 
-    def max(self, axis=None, skipna=True, *args, **kwargs):
+    def max(self, *, axis=None, skipna=True, **kwargs):
         """
         Return the maximum value of the Array or maximum along
         an axis.
@@ -1289,7 +1289,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         # TODO: skipna is broken with max.
         # See https://github.com/pandas-dev/pandas/issues/24265
-        nv.validate_max(args, kwargs)
+        nv.validate_max((), kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
         if is_period_dtype(self.dtype):
@@ -1309,7 +1309,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return self._box_func(result)
         return self._from_backing_data(result)
 
-    def mean(self, skipna=True, axis: Optional[int] = 0):
+    def mean(self, *, skipna=True, axis: Optional[int] = 0):
         """
         Return the mean value of the Array.
 
@@ -1350,8 +1350,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return self._box_func(result)
         return self._from_backing_data(result)
 
-    def median(self, axis: Optional[int] = None, skipna: bool = True, *args, **kwargs):
-        nv.validate_median(args, kwargs)
+    def median(self, *, axis: Optional[int] = None, skipna: bool = True, **kwargs):
+        nv.validate_median((), kwargs)
 
         if axis is not None and abs(axis) >= self.ndim:
             raise ValueError("abs(axis) must be less than ndim")

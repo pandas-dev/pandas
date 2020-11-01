@@ -424,7 +424,7 @@ class BooleanArray(BaseMaskedArray):
         data[self._mask] = -1
         return data
 
-    def any(self, skipna: bool = True, **kwargs):
+    def any(self, *, skipna: bool = True, **kwargs):
         """
         Return whether any element is True.
 
@@ -492,7 +492,7 @@ class BooleanArray(BaseMaskedArray):
             else:
                 return self.dtype.na_value
 
-    def all(self, skipna: bool = True, **kwargs):
+    def all(self, *, skipna: bool = True, **kwargs):
         """
         Return whether all elements are True.
 
