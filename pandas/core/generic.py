@@ -3034,7 +3034,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Write row names (index).
         na_rep : str, default 'NaN'
             Missing data representation.
-        formatters : list of functions or dict of {{str: function}}, optional
+        formatters : list of functions/str or dict of {{str: function}}, optional
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
@@ -3135,6 +3135,22 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multicolumn_format = config.get_option("display.latex.multicolumn_format")
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
+
+        if is_list_like(formatters) and not isinstance(formatters, dict):
+            formatter_elems_type = all(
+                isinstance(elem, str) or callable(elem) for elem in formatters
+            )
+            if formatter_elems_type:
+                formatters = [
+                    (lambda style: lambda x: "{0:{1}}".format(x, style))(style)
+                    if isinstance(style, str)
+                    else style
+                    for style in formatters
+                ]
+            else:
+                raise ValueError(
+                    "Formatters elements should be f-strings or callable functions"
+                )
 
         self = cast("DataFrame", self)
         formatter = DataFrameFormatter(

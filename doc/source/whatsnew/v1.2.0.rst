@@ -547,6 +547,18 @@ ExtensionArray
 - Fixed an inconsistency in :class:`PeriodArray`'s ``__init__`` signature to those of :class:`DatetimeArray` and :class:`TimedeltaArray` (:issue:`37289`)
 - Reductions for :class:`BooleanArray`, :class:`Categorical`, :class:`DatetimeArray`, :class:`FloatingArray`, :class:`IntegerArray`, :class:`PeriodArray`, :class:`TimedeltaArray`, and :class:`PandasArray` are now keyword-only methods (:issue:`37541`)
 
+ToLatex
+^^^^^^^
+
+- Can now substitute simple fstrings in place of callable functions in to_latex
+
+.. ipython:: python
+    data = [[1, 2, 3], [4, 5, 6], [7, 8, 9.001]]
+    df = pd.DataFrame(data, columns=["a", "b", "c"], 
+        index=["foo", "bar", "foobar"])
+    result = df.to_latex(formatters=["d", ".2f", lambda x: f"{x:.3f}"])
+
+
 Other
 ^^^^^
 

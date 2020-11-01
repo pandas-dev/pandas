@@ -121,6 +121,27 @@ class TestToLatex:
         )
         assert result == expected
 
+    def test_to_latex_with_float_format_list(self):
+        # GH: 26278
+        data = [[1, 2, 3], [4, 5, 6], [7, 8, 9.001]]
+        df = DataFrame(data, columns=["a", "b", "c"], index=["foo", "bar", "foobar"])
+
+        result = df.to_latex(formatters=["d", ".2f", lambda x: f"{x:.3f}"])
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lrrr}
+            \toprule
+            {} & a &    b &     c \\
+            \midrule
+            foo    & 1 & 2.00 & 3.000 \\
+            bar    & 4 & 5.00 & 6.000 \\
+            foobar & 7 & 8.00 & 9.001 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
     def test_to_latex_empty_tabular(self):
         df = DataFrame()
         result = df.to_latex()
