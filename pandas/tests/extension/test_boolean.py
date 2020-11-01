@@ -99,6 +99,10 @@ class TestMissing(base.BaseMissingTests):
     pass
 
 
+class TestReturnTypes(base.BaseReturnTypeTests):
+    pass
+
+
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 

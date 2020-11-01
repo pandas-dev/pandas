@@ -169,6 +169,10 @@ class TestMissing(base.BaseMissingTests):
     pass
 
 
+class TestReturnTypes(base.BaseReturnTypeTests):
+    pass
+
+
 class TestMethods(base.BaseMethodsTests):
     @pytest.mark.skip(reason="uses nullable integer")
     def test_value_counts(self, all_data, dropna):

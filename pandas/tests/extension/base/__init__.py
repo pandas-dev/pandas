@@ -63,4 +63,5 @@ from .reduce import (  # noqa
     BaseNumericReduceTests,
 )
 from .reshaping import BaseReshapingTests  # noqa
+from .return_types import BaseReturnTypeTests  # noqa
 from .setitem import BaseSetitemTests  # noqa
