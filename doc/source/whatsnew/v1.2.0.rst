@@ -347,7 +347,7 @@ Performance improvements
 - Small performance decrease to :meth:`Rolling.min` and :meth:`Rolling.max` for fixed windows (:issue:`36567`)
 - Reduced peak memory usage in :meth:`DataFrame.to_pickle` when using ``protocol=5`` in python 3.8+ (:issue:`34244`)
 - Performance improvement in :class:`ExpandingGroupby` (:issue:`37064`)
-- Performance improvement in :meth:`DataFrame.astype` for :class:`Categorical` (:issue:`8628`)
+- Performance improvement in :meth:`Series.astype` and :meth:`DataFrame.astype` for :class:`Categorical` (:issue:`8628`)
 
 .. ---------------------------------------------------------------------------
 
