@@ -1087,3 +1087,13 @@ def test_rolling_corr_timedelta_index(index, window):
     result = x.rolling(window).corr(y)
     expected = Series([np.nan, np.nan, 1, 1, 1], index=index)
     tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["skew", "kurt"])
+def test_rolling_skew_kurt_numerical_stability(method):
+    # GH: 6929
+    s = pd.Series(np.random.rand(10))
+    expected = getattr(s.rolling(3), method)()
+    s = s + 5000
+    result = getattr(s.rolling(3), method)()
+    tm.assert_series_equal(result, expected)

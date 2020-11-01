@@ -255,3 +255,13 @@ def test_expanding_sem(constructor):
         result = pd.Series(result[0].values)
     expected = pd.Series([np.nan] + [0.707107] * 2)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["skew", "kurt"])
+def test_expanding_skew_kurt_numerical_stability(method):
+    # GH: 6929
+    s = pd.Series(np.random.rand(10))
+    expected = getattr(s.expanding(3), method)()
+    s = s + 5000
+    result = getattr(s.expanding(3), method)()
+    tm.assert_series_equal(result, expected)
