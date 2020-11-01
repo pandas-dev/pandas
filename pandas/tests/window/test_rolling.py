@@ -1099,8 +1099,13 @@ def test_rolling_skew_kurt_numerical_stability(method):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(("method", "values"), [("skew", [2.0, 0.854563, 0.0, 1.999984]),
-                                                ("kurt", [4.0, -1.289256, -1.2, 3.999946])])
+@pytest.mark.parametrize(
+    ("method", "values"),
+    [
+        ("skew", [2.0, 0.854563, 0.0, 1.999984]),
+        ("kurt", [4.0, -1.289256, -1.2, 3.999946]),
+    ],
+)
 def test_rolling_skew_kurt_large_value_range(method, values):
     # GH: 37557
     s = pd.Series([3000000, 1, 1, 2, 3, 4, 999])
