@@ -695,12 +695,13 @@ cdef inline void remove_kurt(float64_t val, int64_t *nobs,
 def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp):
     cdef:
-        float64_t val, prev, compensation_xxxx_add = 0, compensation_xxxx_remove = 0
+        float64_t val, prev, mean_val, min_val, sum_val = 0
+        float64_t compensation_xxxx_add = 0, compensation_xxxx_remove = 0
         float64_t compensation_xxx_remove = 0, compensation_xxx_add = 0
         float64_t compensation_xx_remove = 0, compensation_xx_add = 0
         float64_t compensation_x_remove = 0, compensation_x_add = 0
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
-        int64_t nobs = 0, i, j, s, e, N = len(values)
+        int64_t nobs = 0, i, j, s, e, N = len(values), nobs_mean = 0
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
 
@@ -709,6 +710,18 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
         start, end
     )
     output = np.empty(N, dtype=float)
+    min_val = np.nanmin(values)
+
+    with nogil:
+        for i in range(0, N):
+            val = values[i]
+            if notnan(val):
+                nobs_mean += 1
+                sum_val += val
+    mean_val = sum_val / nobs_mean
+    # Other cases would lead to imprecision for smallest values
+    if min_val - mean_val > -1e4:
+        values = values - round(sum_val / nobs_mean)
 
     with nogil:
 
