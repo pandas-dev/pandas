@@ -467,13 +467,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         data = parser.read(nrows)
     finally:
         parser.close()
-
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        try:
-            ioargs.filepath_or_buffer.close()
-        except ValueError:
-            pass
+        ioargs.close()
 
     return data
 

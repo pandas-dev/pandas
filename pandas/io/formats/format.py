@@ -1046,6 +1046,11 @@ class DataFrameRenderer:
         """
         from pandas.io.formats.csvs import CSVFormatter
 
+        created_buffer = False
+        if path_or_buf is None:
+            path_or_buf = StringIO()
+            created_buffer = True
+
         csv_formatter = CSVFormatter(
             path_or_buf=path_or_buf,
             line_terminator=line_terminator,
@@ -1067,9 +1072,11 @@ class DataFrameRenderer:
         )
         csv_formatter.save()
 
-        if path_or_buf is None:
-            assert isinstance(csv_formatter.path_or_buf, StringIO)
-            return csv_formatter.path_or_buf.getvalue()
+        if created_buffer:
+            assert isinstance(path_or_buf, StringIO)
+            content = path_or_buf.getvalue()
+            path_or_buf.close()
+            return content
 
         return None
 

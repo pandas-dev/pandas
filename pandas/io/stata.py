@@ -1058,19 +1058,20 @@ class StataReader(StataParser, abc.Iterator):
         self._lines_read = 0
 
         self._native_byteorder = _set_endianness(sys.byteorder)
-        path_or_buf = stringify_path(path_or_buf)
-        if isinstance(path_or_buf, str):
-            path_or_buf = get_filepath_or_buffer(
-                path_or_buf, storage_options=storage_options
-            ).filepath_or_buffer
+        self.ioargs = get_filepath_or_buffer(
+            path_or_buf, storage_options=storage_options
+        )
 
-        if isinstance(path_or_buf, (str, bytes)):
-            self.path_or_buf = open(path_or_buf, "rb")
+        if isinstance(self.ioargs.filepath_or_buffer, (str, bytes)):
+            self.ioargs.filepath_or_buffer = open(self.ioargs.filepath_or_buffer, "rb")
+            self.ioargs.should_close = True
         elif hasattr(path_or_buf, "read"):
             # Copy to BytesIO, and ensure no encoding
-            pb: Any = path_or_buf
-            contents = pb.read()
-            self.path_or_buf = BytesIO(contents)
+            contents = self.ioargs.filepath_or_buffer.read()
+            self.ioargs.close()
+            self.ioargs.filepath_or_buffer = BytesIO(contents)  # type: ignore[arg-type]
+            self.ioargs.should_close = True
+        self.path_or_buf = cast(BytesIO, self.ioargs.filepath_or_buffer)
 
         self._read_header()
         self._setup_dtype()
@@ -1085,10 +1086,7 @@ class StataReader(StataParser, abc.Iterator):
 
     def close(self) -> None:
         """ close the handle if its open """
-        try:
-            self.path_or_buf.close()
-        except OSError:
-            pass
+        self.ioargs.close()
 
     def _set_encoding(self) -> None:
         """

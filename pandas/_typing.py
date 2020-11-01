@@ -172,6 +172,15 @@ class IOArgs(Generic[ModeVar, EncodingVar]):
     should_close: bool
     mode: Union[ModeVar, str]
 
+    def close(self) -> None:
+        """
+        Close the buffer if it was created by get_filepath_or_buffer.
+        """
+        if self.should_close:
+            assert not isinstance(self.filepath_or_buffer, str)
+            self.filepath_or_buffer.close()
+        self.should_close = False
+
 
 @dataclass
 class IOHandleArgs:

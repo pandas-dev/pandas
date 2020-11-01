@@ -350,12 +350,17 @@ def read_excel(
 class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
         # If filepath_or_buffer is a url, load the data into a BytesIO
+        self.handles = []
         if is_url(filepath_or_buffer):
             filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
+            self.handles.append(filepath_or_buffer)
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
-            filepath_or_buffer = get_filepath_or_buffer(
+            ioargs = get_filepath_or_buffer(
                 filepath_or_buffer, storage_options=storage_options
-            ).filepath_or_buffer
+            )
+            filepath_or_buffer = ioargs.filepath_or_buffer
+            if ioargs.should_close:
+                self.handles.append(filepath_or_buffer)
 
         if isinstance(filepath_or_buffer, self._workbook_class):
             self.book = filepath_or_buffer
@@ -382,7 +387,8 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self):
-        pass
+        for handle in self.handles:
+            handle.close()
 
     @property
     @abc.abstractmethod

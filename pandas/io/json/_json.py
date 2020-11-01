@@ -60,17 +60,6 @@ def to_json(
             "'index=False' is only valid when 'orient' is 'split' or 'table'"
         )
 
-    if path_or_buf is not None:
-        ioargs = get_filepath_or_buffer(
-            path_or_buf,
-            compression=compression,
-            mode="wt",
-            storage_options=storage_options,
-        )
-        path_or_buf = ioargs.filepath_or_buffer
-        should_close = ioargs.should_close
-        compression = ioargs.compression
-
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
 
@@ -103,13 +92,20 @@ def to_json(
         s = convert_to_line_delimits(s)
 
     if path_or_buf is not None:
-        handle_args = get_handle(path_or_buf, "w", compression=compression)
+        ioargs = get_filepath_or_buffer(
+            path_or_buf,
+            compression=compression,
+            mode="wt",
+            storage_options=storage_options,
+        )
+        handle_args = get_handle(
+            ioargs.filepath_or_buffer, "w", compression=ioargs.compression
+        )
         try:
             handle_args.handle.write(s)
         finally:
             handle_args.close()
-            if should_close:
-                path_or_buf.close()
+            ioargs.close()
     else:
         return s
 
@@ -542,12 +538,10 @@ def read_json(
         dtype = True
     if convert_axes is None and orient != "table":
         convert_axes = True
-    if encoding is None:
-        encoding = "utf-8"
 
     ioargs = get_filepath_or_buffer(
         path_or_buf,
-        encoding=encoding,
+        encoding=encoding or "utf-8",
         compression=compression,
         storage_options=storage_options,
     )
@@ -574,9 +568,7 @@ def read_json(
         return json_reader
 
     result = json_reader.read()
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        ioargs.filepath_or_buffer.close()
+    ioargs.close()
 
     return result
 

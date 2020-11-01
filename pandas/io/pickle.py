@@ -103,12 +103,7 @@ def to_pickle(
         )
     finally:
         handle_args.close()
-        if ioargs.should_close:
-            assert not isinstance(ioargs.filepath_or_buffer, str)
-            try:
-                ioargs.filepath_or_buffer.close()
-            except ValueError:
-                pass
+        ioargs.close()
 
 
 def read_pickle(
@@ -217,9 +212,4 @@ def read_pickle(
         return pc.load(handle_args.handle, encoding="latin-1")
     finally:
         handle_args.close()
-        if ioargs.should_close:
-            assert not isinstance(ioargs.filepath_or_buffer, str)
-            try:
-                ioargs.filepath_or_buffer.close()
-            except ValueError:
-                pass
+        ioargs.close()

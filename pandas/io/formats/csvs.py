@@ -3,7 +3,6 @@ Module for formatting output data into CSV files.
 """
 
 import csv as csvlib
-from io import StringIO
 import os
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Sequence, Union
 
@@ -39,7 +38,7 @@ class CSVFormatter:
     def __init__(
         self,
         formatter: "DataFrameFormatter",
-        path_or_buf: Optional[FilePathOrBuffer[str]] = None,
+        path_or_buf: FilePathOrBuffer[str] = "",
         sep: str = ",",
         cols: Optional[Sequence[Label]] = None,
         index_label: Optional[IndexLabel] = None,
@@ -60,24 +59,13 @@ class CSVFormatter:
 
         self.obj = self.fmt.frame
 
-        self.encoding = encoding or "utf-8"
-
-        if path_or_buf is None:
-            path_or_buf = StringIO()
-
-        ioargs = get_filepath_or_buffer(
+        self.ioargs = get_filepath_or_buffer(
             path_or_buf,
-            encoding=self.encoding,
+            encoding=encoding,
             compression=compression,
             mode=mode,
             storage_options=storage_options,
         )
-
-        self.compression = ioargs.compression.pop("method")
-        self.compression_args = ioargs.compression
-        self.path_or_buf = ioargs.filepath_or_buffer
-        self.should_close = ioargs.should_close
-        self.mode = ioargs.mode
 
         self.sep = sep
         self.index_label = self._initialize_index_label(index_label)
@@ -241,11 +229,11 @@ class CSVFormatter:
         # get a handle or wrap an existing handle to take care of 1) compression and
         # 2) text -> byte conversion
         handle_args = get_handle(
-            self.path_or_buf,
-            self.mode,
-            encoding=self.encoding,
+            self.ioargs.filepath_or_buffer,
+            self.ioargs.mode,
+            encoding=self.ioargs.encoding,
             errors=self.errors,
-            compression=dict(self.compression_args, method=self.compression),
+            compression=self.ioargs.compression,
         )
 
         try:
@@ -264,9 +252,7 @@ class CSVFormatter:
 
         finally:
             handle_args.close()
-            if self.should_close:
-                assert not isinstance(self.path_or_buf, str)
-                self.path_or_buf.close()
+            self.ioargs.close()
 
     def _save(self) -> None:
         if self._need_to_save_header:
