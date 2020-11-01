@@ -32,6 +32,7 @@ class BaseCastingTests(BaseExtensionTests):
         expected = list(data)
         assert result == expected
 
+    @pytest.mark.skip(reason="Floating precision issues")
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)
         expected = pd.Series([str(x) for x in data[:5]], dtype=str)
