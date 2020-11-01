@@ -2909,8 +2909,7 @@ def set_timezone(tz: str):
                 pass
         else:
             os.environ["TZ"] = tz
-            # pandas\_testing.py:2845: error: Module has no attribute "tzset"
-            time.tzset()  # type: ignore[attr-defined]
+            time.tzset()
 
     orig_tz = os.environ.get("TZ")
     setTZ(tz)

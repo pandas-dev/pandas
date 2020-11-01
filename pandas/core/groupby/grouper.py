@@ -350,7 +350,7 @@ class Grouper:
             ):
                 # pandas\core\groupby\grouper.py:348: error: Item "None" of
                 # "Optional[Any]" has no attribute "take"  [union-attr]
-                ax = self._grouper.take(obj.index)  # type: ignore
+                ax = self._grouper.take(obj.index)  # type: ignore[union-attr]
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")

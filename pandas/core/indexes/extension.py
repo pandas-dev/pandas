@@ -333,7 +333,14 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     def putmask(self, mask, value):
         try:
-            value = self._data._validate_where_value(value)
+            # pandas\core\indexes\extension.py:336: error:
+            # "NDArrayBackedExtensionArray" has no attribute
+            # "_validate_where_value"; maybe "_validate_insert_value",
+            # "_validate_setitem_value", or "_validate_shift_value"?
+            # [attr-defined]
+            value = self._data._validate_where_value(  # type: ignore[attr-defined]
+                value
+            )
         except (TypeError, ValueError):
             return self.astype(object).putmask(mask, value)
 
