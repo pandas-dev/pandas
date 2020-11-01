@@ -116,8 +116,8 @@ class TestCategoricalDtypes:
         expected = np.array(cat)
         tm.assert_numpy_array_equal(result, expected)
 
-        msg = "could not convert string to float"
-        with pytest.raises(ValueError, match=msg):
+        msg = "Cannot cast Index to dtype float64"
+        with pytest.raises(TypeError, match=msg):
             cat.astype(float)
 
         # numeric
