@@ -1710,6 +1710,9 @@ class _iLocIndexer(_LocationIndexer):
                     self._setitem_single_column(loc, v, plane_indexer)
         else:
 
+            if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
+                raise ValueError(r"Cannot set values with ndim > 2")
+
             # scalar value
             for loc in ilocs:
                 self._setitem_single_column(loc, value, plane_indexer)
