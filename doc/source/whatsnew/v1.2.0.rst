@@ -390,6 +390,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.equals` and :meth:`TimedeltaIndex.equals` incorrectly considering ``int64`` indexes as equal (:issue:`36744`)
 - Bug in :meth:`TimedeltaIndex.sum` and :meth:`Series.sum` with ``timedelta64`` dtype on an empty index or series returning ``NaT`` instead of ``Timedelta(0)`` (:issue:`31751`)
 - Bug in :meth:`DatetimeArray.shift` incorrectly allowing ``fill_value`` with a mismatched timezone (:issue:`37299`)
+- Bug in adding a :class:`BusinessDay` with nonzero ``offset`` to a non-scalar other (:issue:`37457`)
 
 Timedelta
 ^^^^^^^^^
