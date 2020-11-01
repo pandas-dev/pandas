@@ -4525,7 +4525,7 @@ class DataFrame(NDFrame, OpsMixin):
         append : bool, default False
             Whether to append columns to existing index.
         inplace : bool, default False
-            Modify the DataFrame in place (do not create a new object).
+            If set to True, modifies the DataFrame in place (do not create a new object).
         verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
