@@ -78,7 +78,7 @@ def consensus_name_attr(objs):
     return name
 
 
-def maybe_box_datetimelike(value, dtype=None):
+def maybe_box_datetimelike(value, dtype=None, native=False):
     # turn a datetime like into a Timestamp/timedelta as needed
     if dtype == object:
         # If we dont have datetime64/timedelta64 dtype, we dont want to
@@ -86,9 +86,11 @@ def maybe_box_datetimelike(value, dtype=None):
         return value
 
     if isinstance(value, (np.datetime64, datetime)):
-        value = tslibs.Timestamp(value)
+        ts = tslibs.Timestamp(value)
+        value = ts.to_pydatetime() if native else ts
     elif isinstance(value, (np.timedelta64, timedelta)):
-        value = tslibs.Timedelta(value)
+        td = tslibs.Timedelta(value)
+        value = td.to_pydatetime() if native else td
 
     return value
 
