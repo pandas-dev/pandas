@@ -25,7 +25,7 @@ class TestAstype:
         )
 
         result = ci.astype("interval")
-        expected = ii.take([0, 1, -1])
+        expected = ii.take([0, 1, -1], allow_fill=True, fill_value=np.nan)
         tm.assert_index_equal(result, expected)
 
         result = IntervalIndex(result.values)
