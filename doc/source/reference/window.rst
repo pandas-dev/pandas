@@ -44,6 +44,7 @@ Weighted window functions
 
 .. autosummary::
    :toctree: api/
+
    Window.mean
    Window.sum
    Window.var
