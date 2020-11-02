@@ -277,7 +277,7 @@ class TestDataFrameToDict:
             "int": int,
             "float": float,
             "str": str,
-            "datetime": datetime,
+            "datetime": Timestamp,
             "bool": bool,
         }
 
