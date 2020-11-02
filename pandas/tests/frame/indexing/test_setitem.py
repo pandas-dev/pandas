@@ -185,6 +185,53 @@ class TestDataFrameSetItem:
 
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_dt64_ndarray_with_NaT_and_diff_time_units(self):
+        # GH#7492
+        data_ns = np.array([1, "nat"], dtype="datetime64[ns]")
+        result = Series(data_ns).to_frame()
+        result["new"] = data_ns
+        expected = DataFrame({0: [1, None], "new": [1, None]}, dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+        # OutOfBoundsDatetime error shouldn't occur
+        data_s = np.array([1, "nat"], dtype="datetime64[s]")
+        result["new"] = data_s
+        expected = DataFrame({0: [1, None], "new": [1e9, None]}, dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
+    def test_frame_setitem_datetime64_col_other_units(self, unit):
+        # Check that non-nano dt64 values get cast to dt64 on setitem
+        #  into a not-yet-existing column
+        n = 100
+
+        dtype = np.dtype(f"M8[{unit}]")
+        vals = np.arange(n, dtype=np.int64).view(dtype)
+        ex_vals = vals.astype("datetime64[ns]")
+
+        df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
+        df[unit] = vals
+
+        assert df[unit].dtype == np.dtype("M8[ns]")
+        assert (df[unit].values == ex_vals).all()
+
+    @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
+    def test_frame_setitem_existing_datetime64_col_other_units(self, unit):
+        # Check that non-nano dt64 values get cast to dt64 on setitem
+        #  into an already-existing dt64 column
+        n = 100
+
+        dtype = np.dtype(f"M8[{unit}]")
+        vals = np.arange(n, dtype=np.int64).view(dtype)
+        ex_vals = vals.astype("datetime64[ns]")
+
+        df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
+        df["dates"] = np.arange(n, dtype=np.int64).view("M8[ns]")
+
+        # We overwrite existing dt64 column with new, non-nano dt64 vals
+        df["dates"] = vals
+        assert (df["dates"].values == ex_vals).all()
+
     def test_setitem_dt64tz(self, timezone_frame):
 
         df = timezone_frame

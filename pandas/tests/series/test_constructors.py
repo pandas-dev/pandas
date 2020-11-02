@@ -1045,6 +1045,16 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, expected)
         assert result.dtype == "Period[D]"
 
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet")
+    def test_construct_from_ints_including_iNaT_scalar_period_dtype(self):
+        series = Series([0, 1000, 2000, pd._libs.iNaT], dtype="period[D]")
+
+        val = series[3]
+        assert isna(val)
+
+        series[2] = val
+        assert isna(series[2])
+
     def test_constructor_period_incompatible_frequency(self):
         data = [pd.Period("2000", "D"), pd.Period("2001", "A")]
         result = Series(data)

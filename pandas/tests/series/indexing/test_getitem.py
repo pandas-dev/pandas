@@ -271,6 +271,21 @@ class TestGetitemBooleanMask:
         exp = string_series[string_series > 0]
         tm.assert_series_equal(sel, exp)
 
+    def test_getitem_boolean_contiguous_preserve_freq(self):
+        rng = date_range("1/1/2000", "3/1/2000", freq="B")
+
+        mask = np.zeros(len(rng), dtype=bool)
+        mask[10:20] = True
+
+        masked = rng[mask]
+        expected = rng[10:20]
+        assert expected.freq == rng.freq
+        tm.assert_index_equal(masked, expected)
+
+        mask[22] = True
+        masked = rng[mask]
+        assert masked.freq is None
+
 
 class TestGetitemCallable:
     def test_getitem_callable(self):
