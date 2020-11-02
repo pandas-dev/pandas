@@ -1,16 +1,26 @@
 """ Test cases for DataFrame.plot """
 
+from datetime import date, datetime
+import itertools
+import string
 import warnings
 
 import numpy as np
+from numpy.random import rand, randn
 import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.api import is_list_like
+
 import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
 import pandas._testing as tm
+from pandas.core.arrays import integer_array
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+
+from pandas.io.formats.printing import pprint_thing
+import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl
@@ -38,9 +48,10 @@ class TestDataFrameColor(TestPlotBase):
         for ax, exp in zip(axes, expected):
             self._check_visible(ax.get_xticklabels(), visible=exp)
 
+
     def test_mpl2_color_cycle_str(self):
         # GH 15516
-        df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])
+        df = DataFrame(randn(10, 3), columns=["a", "b", "c"])
         colors = ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always", "MatplotlibDeprecationWarning")
@@ -68,7 +79,7 @@ class TestDataFrameColor(TestPlotBase):
         _check_plot_works(df.plot, x="x", y="y", color=(1, 0, 0, 0.5))
 
     def test_color_empty_string(self):
-        df = DataFrame(np.random.randn(10, 2))
+        df = DataFrame(randn(10, 2))
         with pytest.raises(ValueError):
             df.plot(color="")
 
@@ -112,7 +123,7 @@ class TestDataFrameColor(TestPlotBase):
 
         default_colors = self._unpack_cycler(plt.rcParams)
 
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(randn(5, 5))
         ax = df.plot.bar()
         self._check_colors(ax.patches[::5], facecolors=default_colors[:5])
         tm.close()
@@ -145,7 +156,7 @@ class TestDataFrameColor(TestPlotBase):
         tm.close()
 
     def test_bar_user_colors(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {"A": range(4), "B": range(1, 5), "color": ["red", "blue", "blue", "red"]}
         )
         # This should *only* work when `y` is specified, else
@@ -166,7 +177,7 @@ class TestDataFrameColor(TestPlotBase):
         # interfere with x-axis label and ticklabels with
         # ipython inline backend.
         random_array = np.random.random((1000, 3))
-        df = DataFrame(random_array, columns=["A label", "B label", "C label"])
+        df = pd.DataFrame(random_array, columns=["A label", "B label", "C label"])
 
         ax1 = df.plot.scatter(x="A label", y="B label")
         ax2 = df.plot.scatter(x="A label", y="B label", c="C label")
@@ -184,24 +195,11 @@ class TestDataFrameColor(TestPlotBase):
         )
 
     @pytest.mark.slow
-    def test_if_hexbin_xaxis_label_is_visible(self):
-        # addressing issue #10678, to ensure colobar does not
-        # interfere with x-axis label and ticklabels with
-        # ipython inline backend.
-        random_array = np.random.random((1000, 3))
-        df = DataFrame(random_array, columns=["A label", "B label", "C label"])
-
-        ax = df.plot.hexbin("A label", "B label", gridsize=12)
-        assert all(vis.get_visible() for vis in ax.xaxis.get_minorticklabels())
-        assert all(vis.get_visible() for vis in ax.xaxis.get_majorticklabels())
-        assert ax.xaxis.get_label().get_visible()
-
-    @pytest.mark.slow
     def test_if_scatterplot_colorbars_are_next_to_parent_axes(self):
         import matplotlib.pyplot as plt
 
         random_array = np.random.random((1000, 3))
-        df = DataFrame(random_array, columns=["A label", "B label", "C label"])
+        df = pd.DataFrame(random_array, columns=["A label", "B label", "C label"])
 
         fig, axes = plt.subplots(1, 2)
         df.plot.scatter("A label", "B label", c="C label", ax=axes[0])
@@ -217,7 +215,7 @@ class TestDataFrameColor(TestPlotBase):
     @pytest.mark.parametrize("cmap", [None, "Greys"])
     def test_scatter_with_c_column_name_with_colors(self, cmap):
         # https://github.com/pandas-dev/pandas/issues/34316
-        df = DataFrame(
+        df = pd.DataFrame(
             [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
             columns=["length", "width"],
         )
@@ -225,45 +223,12 @@ class TestDataFrameColor(TestPlotBase):
         ax = df.plot.scatter(x=0, y=1, c="species", cmap=cmap)
         assert ax.collections[0].colorbar is None
 
-    def test_scatter_colors(self):
-        df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
-        with pytest.raises(TypeError):
-            df.plot.scatter(x="a", y="b", c="c", color="green")
-
-        default_colors = self._unpack_cycler(self.plt.rcParams)
-
-        ax = df.plot.scatter(x="a", y="b", c="c")
-        tm.assert_numpy_array_equal(
-            ax.collections[0].get_facecolor()[0],
-            np.array(self.colorconverter.to_rgba(default_colors[0])),
-        )
-
-        ax = df.plot.scatter(x="a", y="b", color="white")
-        tm.assert_numpy_array_equal(
-            ax.collections[0].get_facecolor()[0],
-            np.array([1, 1, 1, 1], dtype=np.float64),
-        )
-
-    def test_scatter_colorbar_different_cmap(self):
-        # GH 33389
-        import matplotlib.pyplot as plt
-
-        df = DataFrame({"x": [1, 2, 3], "y": [1, 3, 2], "c": [1, 2, 3]})
-        df["x2"] = df["x"] + 1
-
-        fig, ax = plt.subplots()
-        df.plot("x", "y", c="c", kind="scatter", cmap="cividis", ax=ax)
-        df.plot("x2", "y", c="c", kind="scatter", cmap="magma", ax=ax)
-
-        assert ax.collections[0].cmap.name == "cividis"
-        assert ax.collections[1].cmap.name == "magma"
-
     @pytest.mark.slow
     def test_line_colors(self):
         from matplotlib import cm
 
         custom_colors = "rgcby"
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(randn(5, 5))
 
         ax = df.plot(color=custom_colors)
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
@@ -306,7 +271,7 @@ class TestDataFrameColor(TestPlotBase):
     @pytest.mark.slow
     def test_dont_modify_colors(self):
         colors = ["r", "g", "b"]
-        DataFrame(np.random.rand(10, 2)).plot(color=colors)
+        pd.DataFrame(np.random.rand(10, 2)).plot(color=colors)
         assert len(colors) == 3
 
     @pytest.mark.slow
@@ -316,11 +281,12 @@ class TestDataFrameColor(TestPlotBase):
 
         default_colors = self._unpack_cycler(self.plt.rcParams)
 
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(randn(5, 5))
 
         axes = df.plot(subplots=True)
         for ax, c in zip(axes, list(default_colors)):
-            self._check_colors(ax.get_lines(), linecolors=[c])
+            c = [c]
+            self._check_colors(ax.get_lines(), linecolors=c)
         tm.close()
 
         # single color char
@@ -384,7 +350,7 @@ class TestDataFrameColor(TestPlotBase):
         from matplotlib.collections import PolyCollection
 
         custom_colors = "rgcby"
-        df = DataFrame(np.random.rand(5, 5))
+        df = DataFrame(rand(5, 5))
 
         ax = df.plot.area(color=custom_colors)
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
@@ -427,7 +393,7 @@ class TestDataFrameColor(TestPlotBase):
     def test_hist_colors(self):
         default_colors = self._unpack_cycler(self.plt.rcParams)
 
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(randn(5, 5))
         ax = df.plot.hist()
         self._check_colors(ax.patches[::10], facecolors=default_colors[:5])
         tm.close()
@@ -464,7 +430,7 @@ class TestDataFrameColor(TestPlotBase):
         from matplotlib import cm
 
         custom_colors = "rgcby"
-        df = DataFrame(np.random.rand(5, 5))
+        df = DataFrame(rand(5, 5))
 
         ax = df.plot.kde(color=custom_colors)
         self._check_colors(ax.get_lines(), linecolors=custom_colors)
@@ -486,7 +452,7 @@ class TestDataFrameColor(TestPlotBase):
 
         default_colors = self._unpack_cycler(self.plt.rcParams)
 
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(randn(5, 5))
 
         axes = df.plot(kind="kde", subplots=True)
         for ax, c in zip(axes, list(default_colors)):
@@ -554,7 +520,7 @@ class TestDataFrameColor(TestPlotBase):
 
         default_colors = self._unpack_cycler(self.plt.rcParams)
 
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(randn(5, 5))
         bp = df.plot.box(return_type="dict")
         _check_colors(bp, default_colors[0], default_colors[0], default_colors[2])
         tm.close()
@@ -604,6 +570,23 @@ class TestDataFrameColor(TestPlotBase):
             # Color contains invalid key results in ValueError
             df.plot.box(color=dict(boxes="red", xxxx="blue"))
 
+    @pytest.mark.parametrize(
+        "props, expected",
+        [
+            ("boxprops", "boxes"),
+            ("whiskerprops", "whiskers"),
+            ("capprops", "caps"),
+            ("medianprops", "medians"),
+        ],
+    )
+    def test_specified_props_kwd_plot_box(self, props, expected):
+        # GH 30346
+        df = DataFrame({k: np.random.random(100) for k in "ABC"})
+        kwd = {props: dict(color="C1")}
+        result = df.plot.box(return_type="dict", **kwd)
+
+        assert result[expected][0].get_color() == "C1"
+
     def test_default_color_cycle(self):
         import cycler
         import matplotlib.pyplot as plt
@@ -611,31 +594,24 @@ class TestDataFrameColor(TestPlotBase):
         colors = list("rgbk")
         plt.rcParams["axes.prop_cycle"] = cycler.cycler("color", colors)
 
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(randn(5, 3))
         ax = df.plot()
 
         expected = self._unpack_cycler(plt.rcParams)[:3]
         self._check_colors(ax.get_lines(), linecolors=expected)
 
-    @pytest.mark.slow
-    def test_no_color_bar(self):
-        df = self.hexbin_df
-        ax = df.plot.hexbin(x="A", y="B", colorbar=None)
-        assert ax.collections[0].colorbar is None
+    def test_invalid_colormap(self):
+        df = DataFrame(randn(3, 2), columns=["A", "B"])
 
-    @pytest.mark.slow
-    def test_mixing_cmap_and_colormap_raises(self):
-        df = self.hexbin_df
-        msg = "Only specify one of `cmap` and `colormap`"
-        with pytest.raises(TypeError, match=msg):
-            df.plot.hexbin(x="A", y="B", cmap="YlGn", colormap="BuGn")
+        with pytest.raises(ValueError):
+            df.plot(colormap="invalid_colormap")
 
     def test_passed_bar_colors(self):
         import matplotlib as mpl
 
         color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)]
         colormap = mpl.colors.ListedColormap(color_tuples)
-        barplot = DataFrame([[1, 2, 3]]).plot(kind="bar", cmap=colormap)
+        barplot = pd.DataFrame([[1, 2, 3]]).plot(kind="bar", cmap=colormap)
         assert color_tuples == [c.get_facecolor() for c in barplot.patches]
 
     def test_rcParams_bar_colors(self):
@@ -643,21 +619,15 @@ class TestDataFrameColor(TestPlotBase):
 
         color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)]
         with mpl.rc_context(rc={"axes.prop_cycle": mpl.cycler("color", color_tuples)}):
-            barplot = DataFrame([[1, 2, 3]]).plot(kind="bar")
+            barplot = pd.DataFrame([[1, 2, 3]]).plot(kind="bar")
         assert color_tuples == [c.get_facecolor() for c in barplot.patches]
 
     def test_colors_of_columns_with_same_name(self):
         # ISSUE 11136 -> https://github.com/pandas-dev/pandas/issues/11136
         # Creating a DataFrame with duplicate column labels and testing colors of them.
-        df = DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
-        df1 = DataFrame({"a": [2, 4, 6]})
+        df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
+        df1 = pd.DataFrame({"a": [2, 4, 6]})
         df_concat = pd.concat([df, df1], axis=1)
         result = df_concat.plot()
         for legend, line in zip(result.get_legend().legendHandles, result.lines):
             assert legend.get_color() == line.get_color()
-
-    def test_invalid_colormap(self):
-        df = DataFrame(np.random.randn(3, 2), columns=["A", "B"])
-
-        with pytest.raises(ValueError):
-            df.plot(colormap="invalid_colormap")
