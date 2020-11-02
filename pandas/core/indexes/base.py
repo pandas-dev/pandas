@@ -740,44 +740,36 @@ class Index(IndexOpsMixin, PandasObject):
         if kwargs:
             nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
-        if self._can_hold_na:
-            taken = self._assert_take_fillable(
-                self._values,
-                indices,
-                allow_fill=allow_fill,
-                fill_value=fill_value,
-                na_value=self._na_value,
-            )
-        else:
-            if allow_fill and fill_value is not None:
+        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+
+        # Note: we discard fill_value and use self._na_value, only relevant
+        #  in the case where allow_fill is True and fill_value is not None
+        taken = algos.take(
+            self._values, indices, allow_fill=allow_fill, fill_value=self._na_value
+        )
+        return self._shallow_copy(taken)
+
+    def _maybe_disallow_fill(self, allow_fill: bool, fill_value, indices) -> bool:
+        """
+        We only use pandas-style take when allow_fill is True _and_
+        fill_value is not None.
+        """
+        if allow_fill and fill_value is not None:
+            # only fill if we are passing a non-None fill_value
+            if self._can_hold_na:
+                if (indices < -1).any():
+                    raise ValueError(
+                        "When allow_fill=True and fill_value is not None, "
+                        "all indices must be >= -1"
+                    )
+            else:
                 cls_name = type(self).__name__
                 raise ValueError(
                     f"Unable to fill values because {cls_name} cannot contain NA"
                 )
-            taken = self._values.take(indices)
-        return self._shallow_copy(taken)
-
-    def _assert_take_fillable(
-        self, values, indices, allow_fill=True, fill_value=None, na_value=np.nan
-    ):
-        """
-        Internal method to handle NA filling of take.
-        """
-        indices = ensure_platform_int(indices)
-
-        # only fill if we are passing a non-None fill_value
-        if allow_fill and fill_value is not None:
-            if (indices < -1).any():
-                raise ValueError(
-                    "When allow_fill=True and fill_value is not None, "
-                    "all indices must be >= -1"
-                )
-            taken = algos.take(
-                values, indices, allow_fill=allow_fill, fill_value=na_value
-            )
         else:
-            taken = algos.take(values, indices, allow_fill=False, fill_value=na_value)
-        return taken
+            allow_fill = False
+        return allow_fill
 
     _index_shared_docs[
         "repeat"
@@ -2512,14 +2504,35 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def __and__(self, other):
+        warnings.warn(
+            "Index.__and__ operating as a set operation is deprecated, "
+            "in the future this will be a logical operation matching "
+            "Series.__and__.  Use index.intersection(other) instead",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.intersection(other)
 
     @final
     def __or__(self, other):
+        warnings.warn(
+            "Index.__or__ operating as a set operation is deprecated, "
+            "in the future this will be a logical operation matching "
+            "Series.__or__.  Use index.union(other) instead",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.union(other)
 
     @final
     def __xor__(self, other):
+        warnings.warn(
+            "Index.__xor__ operating as a set operation is deprecated, "
+            "in the future this will be a logical operation matching "
+            "Series.__xor__.  Use index.symmetric_difference(other) instead",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self.symmetric_difference(other)
 
     @final
@@ -4490,7 +4503,7 @@ class Index(IndexOpsMixin, PandasObject):
                 loc = loc.indices(len(self))[-1]
             return self[loc]
 
-    def asof_locs(self, where, mask):
+    def asof_locs(self, where: "Index", mask) -> np.ndarray:
         """
         Return the locations (indices) of labels in the index.
 
@@ -4518,13 +4531,13 @@ class Index(IndexOpsMixin, PandasObject):
             which correspond to the return values of the `asof` function
             for every element in `where`.
         """
-        locs = self.values[mask].searchsorted(where.values, side="right")
+        locs = self._values[mask].searchsorted(where._values, side="right")
         locs = np.where(locs > 0, locs - 1, 0)
 
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
-        result[(locs == 0) & (where.values < self.values[first])] = -1
+        result[(locs == 0) & (where._values < self._values[first])] = -1
 
         return result
 
