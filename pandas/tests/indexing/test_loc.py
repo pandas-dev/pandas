@@ -1,4 +1,5 @@
 """ test label based indexing with loc """
+from datetime import time
 from io import StringIO
 import re
 
@@ -991,6 +992,27 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result.loc[result.index, "A"] = [float(x) for x in col_data]
         expected = DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_getitem_time_object(self, frame_or_series):
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        mask = (rng.hour == 9) & (rng.minute == 30)
+
+        df = DataFrame(np.random.randn(len(rng), 3), index=rng)
+        if frame_or_series is Series:
+            df = df[0]
+
+        result_df = df.loc[time(9, 30)]
+        exp_df = df.loc[mask]
+        tm.assert_equal(result_df, exp_df)
+
+        chunk = df.loc["1/4/2000":]
+        result = chunk.loc[time(9, 30)]
+        expected = result_df[-1:]
+
+        # Without resetting the freqs, these are 5 min and 1440 min, respectively
+        result.index = result.index._with_freq(None)
+        expected.index = expected.index._with_freq(None)
+        tm.assert_equal(result, expected)
 
 
 class TestLocWithMultiIndex:
