@@ -352,7 +352,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def __iter__(self):
         if self.ndim > 1:
-            return (self[n] for n in range(len(self)))
+            for i in range(len(self)):
+                yield self[i]
         else:
             # convert in chunks of 10k for efficiency
             data = self.asi8

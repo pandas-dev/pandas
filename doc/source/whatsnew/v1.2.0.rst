@@ -228,6 +228,7 @@ Other enhancements
 - :class:`Rolling` now supports the ``closed`` argument for fixed windows (:issue:`34315`)
 - :class:`DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`37436`)
 - :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
+- :meth:`testing.assert_index_equal` now has a ``check_order`` parameter that allows indexes to be checked in an order-insensitive manner (:issue:`37478`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -338,6 +339,7 @@ Deprecations
 - Deprecated slice-indexing on timezone-aware :class:`DatetimeIndex` with naive ``datetime`` objects, to match scalar indexing behavior (:issue:`36148`)
 - :meth:`Index.ravel` returning a ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
 - Deprecate use of strings denoting units with 'M', 'Y' or 'y' in :func:`~pandas.to_timedelta` (:issue:`36666`)
+- :class:`Index` methods ``&``, ``|``, and ``^`` behaving as the set operations :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference`, respectively, are deprecated and in the future will behave as pointwise boolean operations matching :class:`Series` behavior.  Use the named set methods instead (:issue:`36758`)
 
 .. ---------------------------------------------------------------------------
 
@@ -390,6 +392,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.equals` and :meth:`TimedeltaIndex.equals` incorrectly considering ``int64`` indexes as equal (:issue:`36744`)
 - Bug in :meth:`TimedeltaIndex.sum` and :meth:`Series.sum` with ``timedelta64`` dtype on an empty index or series returning ``NaT`` instead of ``Timedelta(0)`` (:issue:`31751`)
 - Bug in :meth:`DatetimeArray.shift` incorrectly allowing ``fill_value`` with a mismatched timezone (:issue:`37299`)
+- Bug in adding a :class:`BusinessDay` with nonzero ``offset`` to a non-scalar other (:issue:`37457`)
 
 Timedelta
 ^^^^^^^^^
@@ -530,7 +533,7 @@ Reshaping
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
 - Bug in :meth:`DataFrame.pivot` did not preserve :class:`MultiIndex` level names for columns when rows and columns both multiindexed (:issue:`36360`)
 - Bug in :func:`join` returned a non deterministic level-order for the resulting :class:`MultiIndex` (:issue:`36910`)
--
+- Bug in :meth:`DataFrame.combine_first()` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
 
 Sparse
 ^^^^^^

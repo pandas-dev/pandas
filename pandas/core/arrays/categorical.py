@@ -83,7 +83,9 @@ def _cat_compare_op(op):
 
             if not self.ordered and not self.categories.equals(other.categories):
                 # both unordered and different order
-                other_codes = _get_codes_for_values(other, self.categories)
+                other_codes = recode_for_categories(
+                    other.codes, other.categories, self.categories, copy=False
+                )
             else:
                 other_codes = other._codes
 
@@ -320,7 +322,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
-            if not isinstance(values, np.ndarray):
+            if not isinstance(values, (np.ndarray, ExtensionArray)):
                 values = com.convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
@@ -354,9 +356,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values.dtype):
-            old_codes = (
-                values._values.codes if isinstance(values, ABCSeries) else values.codes
-            )
+            old_codes = extract_array(values).codes
             codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories
             )
@@ -1177,11 +1177,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # -------------------------------------------------------------
     # Validators; ideally these can be de-duplicated
 
-    def _validate_where_value(self, value):
-        if is_scalar(value):
-            return self._validate_fill_value(value)
-        return self._validate_listlike(value)
-
     def _validate_insert_value(self, value) -> int:
         return self._validate_fill_value(value)
 
@@ -1700,17 +1695,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # Indexing on codes is more efficient if categories are the same,
             #  so we can apply some optimizations based on the degree of
             #  dtype-matching.
-            if self.categories.equals(target.categories):
-                # We use the same codes, so can go directly to the engine
-                codes = target.codes
-            elif self.is_dtype_equal(target):
-                # We have the same categories up to a reshuffling of codes.
-                codes = recode_for_categories(
-                    target.codes, target.categories, self.categories
-                )
-            else:
-                code_indexer = self.categories.get_indexer(target.categories)
-                codes = take_1d(code_indexer, target.codes, fill_value=-1)
+            codes = recode_for_categories(
+                target.codes, target.categories, self.categories, copy=False
+            )
         else:
             codes = self.categories.get_indexer(target)
 
@@ -2466,9 +2453,11 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 # utility routines
 
 
-def _get_codes_for_values(values, categories):
+def _get_codes_for_values(values, categories) -> np.ndarray:
     """
     utility routine to turn values into codes given the specified categories
+
+    If `values` is known to be a Categorical, use recode_for_categories instead.
     """
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
 
@@ -2498,7 +2487,9 @@ def _get_codes_for_values(values, categories):
     return coerce_indexer_dtype(t.lookup(vals), cats)
 
 
-def recode_for_categories(codes: np.ndarray, old_categories, new_categories):
+def recode_for_categories(
+    codes: np.ndarray, old_categories, new_categories, copy: bool = True
+) -> np.ndarray:
     """
     Convert a set of codes for to a new set of categories
 
@@ -2506,6 +2497,8 @@ def recode_for_categories(codes: np.ndarray, old_categories, new_categories):
     ----------
     codes : np.ndarray
     old_categories, new_categories : Index
+    copy: bool, default True
+        Whether to copy if the codes are unchanged.
 
     Returns
     -------
@@ -2521,14 +2514,19 @@ def recode_for_categories(codes: np.ndarray, old_categories, new_categories):
     """
     if len(old_categories) == 0:
         # All null anyway, so just retain the nulls
-        return codes.copy()
+        if copy:
+            return codes.copy()
+        return codes
     elif new_categories.equals(old_categories):
         # Same categories, so no need to actually recode
-        return codes.copy()
+        if copy:
+            return codes.copy()
+        return codes
+
     indexer = coerce_indexer_dtype(
         new_categories.get_indexer(old_categories), new_categories
     )
-    new_codes = take_1d(indexer, codes.copy(), fill_value=-1)
+    new_codes = take_1d(indexer, codes, fill_value=-1)
     return new_codes
 
 
