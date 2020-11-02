@@ -120,8 +120,8 @@ def git_get_keywords(versionfile_abs):
     # _version.py.
     keywords = {}
     try:
-        with open(versionfile_abs) as f:
-            for line in f.readlines():
+        with open(versionfile_abs) as fd:
+            for line in fd.readlines():
                 if line.strip().startswith("git_refnames ="):
                     mo = re.search(r'=\s*"(.*)"', line)
                     if mo:
