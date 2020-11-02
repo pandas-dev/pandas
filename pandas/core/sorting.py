@@ -29,6 +29,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from pandas import MultiIndex
     from pandas.core.indexes.base import Index
 
 _INT64_MAX = np.iinfo(np.int64).max
@@ -327,6 +328,7 @@ def nargsort(
     ascending: bool = True,
     na_position: str = "last",
     key: Optional[Callable] = None,
+    mask: Optional[np.ndarray] = None,
 ):
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
@@ -341,19 +343,27 @@ def nargsort(
     ascending : bool, default True
     na_position : {'first', 'last'}, default 'last'
     key : Optional[Callable], default None
+    mask : Optional[np.ndarray], default None
+        Passed when called by ExtensionArray.argsort.
     """
 
     if key is not None:
         items = ensure_key_mapped(items, key)
         return nargsort(
-            items, kind=kind, ascending=ascending, na_position=na_position, key=None
+            items,
+            kind=kind,
+            ascending=ascending,
+            na_position=na_position,
+            key=None,
+            mask=mask,
         )
 
     items = extract_array(items)
-    mask = np.asarray(isna(items))
+    if mask is None:
+        mask = np.asarray(isna(items))
 
     if is_extension_array_dtype(items):
-        items = items._values_for_argsort()
+        return items.argsort(ascending=ascending, kind=kind, na_position=na_position)
     else:
         items = np.asanyarray(items)
 
@@ -406,7 +416,9 @@ def nargminmax(values, method: str):
     return non_nan_idx[func(non_nans)]
 
 
-def ensure_key_mapped_multiindex(index, key: Callable, level=None):
+def _ensure_key_mapped_multiindex(
+    index: "MultiIndex", key: Callable, level=None
+) -> "MultiIndex":
     """
     Returns a new MultiIndex in which key has been applied
     to all levels specified in level (or all levels if level
@@ -432,7 +444,6 @@ def ensure_key_mapped_multiindex(index, key: Callable, level=None):
     labels : MultiIndex
         Resulting MultiIndex with modified levels.
     """
-    from pandas.core.indexes.api import MultiIndex
 
     if level is not None:
         if isinstance(level, (str, int)):
@@ -451,7 +462,7 @@ def ensure_key_mapped_multiindex(index, key: Callable, level=None):
         for level in range(index.nlevels)
     ]
 
-    labels = MultiIndex.from_arrays(mapped)
+    labels = type(index).from_arrays(mapped)
 
     return labels
 
@@ -475,7 +486,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
         return values
 
     if isinstance(values, ABCMultiIndex):
-        return ensure_key_mapped_multiindex(values, key, level=levels)
+        return _ensure_key_mapped_multiindex(values, key, level=levels)
 
     result = key(values.copy())
     if len(result) != len(values):

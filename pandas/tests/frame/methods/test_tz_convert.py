@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, date_range
+from pandas import DataFrame, Index, MultiIndex, Series, date_range
 import pandas._testing as tm
 
 
@@ -88,3 +88,19 @@ class TestTZConvert:
         with pytest.raises(ValueError, match="not valid"):
             df = DataFrame(index=l0)
             df = getattr(df, fn)("US/Pacific", level=1)
+
+    @pytest.mark.parametrize("klass", [Series, DataFrame])
+    @pytest.mark.parametrize("copy", [True, False])
+    def test_tz_convert_copy_inplace_mutate(self, copy, klass):
+        # GH#6326
+        obj = klass(
+            np.arange(0, 5),
+            index=date_range("20131027", periods=5, freq="1H", tz="Europe/Berlin"),
+        )
+        orig = obj.copy()
+        result = obj.tz_convert("UTC", copy=copy)
+        expected = klass(np.arange(0, 5), index=obj.index.tz_convert("UTC"))
+        tm.assert_equal(result, expected)
+        tm.assert_equal(obj, orig)
+        assert result.index is not obj.index
+        assert result is not obj

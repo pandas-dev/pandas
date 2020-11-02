@@ -27,8 +27,8 @@ class TestGetItem:
 
     def test_getitem_slice_keeps_name(self):
         # GH4226
-        st = pd.Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
-        et = pd.Timestamp("2013-07-02 00:00:00", tz="America/Los_Angeles")
+        st = Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
+        et = Timestamp("2013-07-02 00:00:00", tz="America/Los_Angeles")
         dr = pd.date_range(st, et, freq="H", name="timebucket")
         assert dr[1:].name == dr.name
 
@@ -321,23 +321,19 @@ class TestTake:
 
     def test_take_fill_value(self):
         # GH#12631
-        idx = pd.DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], name="xxx")
+        idx = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], name="xxx")
         result = idx.take(np.array([1, 0, -1]))
-        expected = pd.DatetimeIndex(
-            ["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx"
-        )
+        expected = DatetimeIndex(["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # fill_value
         result = idx.take(np.array([1, 0, -1]), fill_value=True)
-        expected = pd.DatetimeIndex(["2011-02-01", "2011-01-01", "NaT"], name="xxx")
+        expected = DatetimeIndex(["2011-02-01", "2011-01-01", "NaT"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
         result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-        expected = pd.DatetimeIndex(
-            ["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx"
-        )
+        expected = DatetimeIndex(["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         msg = (
@@ -354,25 +350,25 @@ class TestTake:
             idx.take(np.array([1, -5]))
 
     def test_take_fill_value_with_timezone(self):
-        idx = pd.DatetimeIndex(
+        idx = DatetimeIndex(
             ["2011-01-01", "2011-02-01", "2011-03-01"], name="xxx", tz="US/Eastern"
         )
         result = idx.take(np.array([1, 0, -1]))
-        expected = pd.DatetimeIndex(
+        expected = DatetimeIndex(
             ["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx", tz="US/Eastern"
         )
         tm.assert_index_equal(result, expected)
 
         # fill_value
         result = idx.take(np.array([1, 0, -1]), fill_value=True)
-        expected = pd.DatetimeIndex(
+        expected = DatetimeIndex(
             ["2011-02-01", "2011-01-01", "NaT"], name="xxx", tz="US/Eastern"
         )
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
         result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-        expected = pd.DatetimeIndex(
+        expected = DatetimeIndex(
             ["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx", tz="US/Eastern"
         )
         tm.assert_index_equal(result, expected)
@@ -475,7 +471,7 @@ class TestGetLoc:
         # GH#35114
         # Case where key's total microseconds happens to match iNaT % 1e6 // 1000
         tic = time(minute=12, second=43, microsecond=145224)
-        dti = pd.DatetimeIndex([pd.NaT])
+        dti = DatetimeIndex([pd.NaT])
 
         loc = dti.get_loc(tic)
         expected = np.array([], dtype=np.intp)
@@ -484,11 +480,11 @@ class TestGetLoc:
     def test_get_loc_tz_aware(self):
         # https://github.com/pandas-dev/pandas/issues/32140
         dti = pd.date_range(
-            pd.Timestamp("2019-12-12 00:00:00", tz="US/Eastern"),
-            pd.Timestamp("2019-12-13 00:00:00", tz="US/Eastern"),
+            Timestamp("2019-12-12 00:00:00", tz="US/Eastern"),
+            Timestamp("2019-12-13 00:00:00", tz="US/Eastern"),
             freq="5s",
         )
-        key = pd.Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
+        key = Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
         result = dti.get_loc(key, method="nearest")
         assert result == 7433
 
@@ -589,15 +585,13 @@ class TestGetIndexer:
     @pytest.mark.parametrize(
         "target",
         [
-            [date(2020, 1, 1), pd.Timestamp("2020-01-02")],
-            [pd.Timestamp("2020-01-01"), date(2020, 1, 2)],
+            [date(2020, 1, 1), Timestamp("2020-01-02")],
+            [Timestamp("2020-01-01"), date(2020, 1, 2)],
         ],
     )
     def test_get_indexer_mixed_dtypes(self, target):
         # https://github.com/pandas-dev/pandas/issues/33741
-        values = pd.DatetimeIndex(
-            [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")]
-        )
+        values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
         result = values.get_indexer(target)
         expected = np.array([0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -605,18 +599,26 @@ class TestGetIndexer:
     @pytest.mark.parametrize(
         "target, positions",
         [
-            ([date(9999, 1, 1), pd.Timestamp("2020-01-01")], [-1, 0]),
-            ([pd.Timestamp("2020-01-01"), date(9999, 1, 1)], [0, -1]),
+            ([date(9999, 1, 1), Timestamp("2020-01-01")], [-1, 0]),
+            ([Timestamp("2020-01-01"), date(9999, 1, 1)], [0, -1]),
             ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
         ],
     )
     def test_get_indexer_out_of_bounds_date(self, target, positions):
-        values = pd.DatetimeIndex(
-            [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")]
-        )
+        values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
         result = values.get_indexer(target)
         expected = np.array(positions, dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_pad_requires_monotonicity(self):
+        rng = date_range("1/1/2000", "3/1/2000", freq="B")
+
+        # neither monotonic increasing or decreasing
+        rng2 = rng[[1, 0, 2]]
+
+        msg = "index must be monotonic increasing or decreasing"
+        with pytest.raises(ValueError, match=msg):
+            rng2.get_indexer(rng, method="pad")
 
 
 class TestMaybeCastSliceBound:
