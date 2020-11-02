@@ -2126,7 +2126,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def categories_match_up_to_permutation(self, other: "Categorical") -> bool:
+    def _categories_match_up_to_permutation(self, other: "Categorical") -> bool:
         """
         Returns True if categoricals are the same dtype
           same categories, and same ordered
