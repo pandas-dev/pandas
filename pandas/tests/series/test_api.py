@@ -22,21 +22,6 @@ class TestSeriesMisc:
         result = datetime_series[5:10]
         assert result.name == datetime_series.name
 
-    def test_pickle_datetimes(self, datetime_series):
-        unp_ts = self._pickle_roundtrip(datetime_series)
-        tm.assert_series_equal(unp_ts, datetime_series)
-
-    def test_pickle_strings(self, string_series):
-        unp_series = self._pickle_roundtrip(string_series)
-        tm.assert_series_equal(unp_series, string_series)
-
-    def _pickle_roundtrip(self, obj):
-
-        with tm.ensure_clean() as path:
-            obj.to_pickle(path)
-            unpickled = pd.read_pickle(path)
-            return unpickled
-
     def test_tab_completion(self):
         # GH 9910
         s = Series(list("abcd"))
@@ -130,43 +115,10 @@ class TestSeriesMisc:
     def test_contains(self, datetime_series):
         tm.assert_contains_all(datetime_series.index, datetime_series)
 
-    def test_iter_datetimes(self, datetime_series):
-        for i, val in enumerate(datetime_series):
-            assert val == datetime_series[i]
-
-    def test_iter_strings(self, string_series):
-        for i, val in enumerate(string_series):
-            assert val == string_series[i]
-
-    def test_keys(self, datetime_series):
-        assert datetime_series.keys() is datetime_series.index
-
     def test_values(self, datetime_series):
         tm.assert_almost_equal(
             datetime_series.values, datetime_series, check_dtype=False
         )
-
-    def test_iteritems_datetimes(self, datetime_series):
-        for idx, val in datetime_series.iteritems():
-            assert val == datetime_series[idx]
-
-    def test_iteritems_strings(self, string_series):
-        for idx, val in string_series.iteritems():
-            assert val == string_series[idx]
-
-        # assert is lazy (generators don't define reverse, lists do)
-        assert not hasattr(string_series.iteritems(), "reverse")
-
-    def test_items_datetimes(self, datetime_series):
-        for idx, val in datetime_series.items():
-            assert val == datetime_series[idx]
-
-    def test_items_strings(self, string_series):
-        for idx, val in string_series.items():
-            assert val == string_series[idx]
-
-        # assert is lazy (generators don't define reverse, lists do)
-        assert not hasattr(string_series.items(), "reverse")
 
     def test_raise_on_info(self):
         s = Series(np.random.randn(10))
