@@ -424,7 +424,7 @@ class BooleanArray(BaseMaskedArray):
         data[self._mask] = -1
         return data
 
-    def any(self, skipna: bool = True, **kwargs):
+    def any(self, *, skipna: bool = True, **kwargs):
         """
         Return whether any element is True.
 
@@ -492,7 +492,7 @@ class BooleanArray(BaseMaskedArray):
             else:
                 return self.dtype.na_value
 
-    def all(self, skipna: bool = True, **kwargs):
+    def all(self, *, skipna: bool = True, **kwargs):
         """
         Return whether all elements are True.
 
@@ -664,6 +664,11 @@ class BooleanArray(BaseMaskedArray):
                 dtype = "bool"
             result = np.zeros(len(self._data), dtype=dtype)
         else:
+            if op_name in {"pow", "rpow"} and isinstance(other, np.bool_):
+                # Avoid DeprecationWarning: In future, it will be an error
+                #  for 'np.bool_' scalars to be interpreted as an index
+                other = bool(other)
+
             with np.errstate(all="ignore"):
                 result = op(self._data, other)
 

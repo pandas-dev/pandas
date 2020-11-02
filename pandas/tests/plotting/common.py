@@ -1,4 +1,5 @@
 import os
+from typing import TYPE_CHECKING, Sequence, Union
 import warnings
 
 import numpy as np
@@ -11,6 +12,9 @@ from pandas.core.dtypes.api import is_list_like
 import pandas as pd
 from pandas import DataFrame, Series, to_datetime
 import pandas._testing as tm
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 
 @td.skip_if_no_mpl
@@ -171,6 +175,24 @@ class TestPlotBase:
 
         for patch in collections:
             assert patch.get_visible() == visible
+
+    def _check_patches_all_filled(
+        self, axes: Union["Axes", Sequence["Axes"]], filled: bool = True
+    ) -> None:
+        """
+        Check for each artist whether it is filled or not
+
+        Parameters
+        ----------
+        axes : matplotlib Axes object, or its list-like
+        filled : bool
+            expected filling
+        """
+
+        axes = self._flatten_visible(axes)
+        for ax in axes:
+            for patch in ax.patches:
+                assert patch.fill == filled
 
     def _get_colors_mapped(self, series, colors):
         unique = series.unique()

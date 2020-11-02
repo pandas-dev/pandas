@@ -667,6 +667,7 @@ def assert_index_equal(
     check_less_precise: Union[bool, int] = no_default,
     check_exact: bool = True,
     check_categorical: bool = True,
+    check_order: bool = True,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     obj: str = "Index",
@@ -696,6 +697,12 @@ def assert_index_equal(
         Whether to compare number exactly.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
+    check_order : bool, default True
+        Whether to compare the order of index entries as well as their values.
+        If True, both indexes must contain the same elements, in the same order.
+        If False, both indexes must contain the same elements, but in any order.
+
+        .. versionadded:: 1.2.0
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -761,6 +768,11 @@ def assert_index_equal(
         msg2 = f"{len(left)}, {left}"
         msg3 = f"{len(right)}, {right}"
         raise_assert_detail(obj, msg1, msg2, msg3)
+
+    # If order doesn't matter then sort the index entries
+    if not check_order:
+        left = left.sort_values()
+        right = right.sort_values()
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
@@ -1584,9 +1596,6 @@ def assert_frame_equal(
             obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
         )
 
-    if check_like:
-        left, right = left.reindex_like(right), right
-
     if check_flags:
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
@@ -1598,6 +1607,7 @@ def assert_frame_equal(
         check_names=check_names,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_order=not check_like,
         rtol=rtol,
         atol=atol,
         obj=f"{obj}.index",
@@ -1611,10 +1621,14 @@ def assert_frame_equal(
         check_names=check_names,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_order=not check_like,
         rtol=rtol,
         atol=atol,
         obj=f"{obj}.columns",
     )
+
+    if check_like:
+        left, right = left.reindex_like(right), right
 
     # compare by blocks
     if by_blocks:

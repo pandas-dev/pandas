@@ -1327,32 +1327,6 @@ class TestDataFrameIndexing:
         expected = df.iloc[:, 2:]
         tm.assert_frame_equal(result, expected)
 
-    def test_set_value_with_index_dtype_change(self):
-        df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
-
-        # this is actually ambiguous as the 2 is interpreted as a positional
-        # so column is not created
-        df = df_orig.copy()
-        df._set_value("C", 2, 1.0)
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        # assert list(df.columns) == list(df_orig.columns) + [2]
-
-        df = df_orig.copy()
-        df.loc["C", 2] = 1.0
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        # assert list(df.columns) == list(df_orig.columns) + [2]
-
-        # create both new
-        df = df_orig.copy()
-        df._set_value("C", "D", 1.0)
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        assert list(df.columns) == list(df_orig.columns) + ["D"]
-
-        df = df_orig.copy()
-        df.loc["C", "D"] = 1.0
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        assert list(df.columns) == list(df_orig.columns) + ["D"]
-
     # TODO: rename?  remove?
     def test_single_element_ix_dont_upcast(self, float_frame):
         float_frame["E"] = 1
