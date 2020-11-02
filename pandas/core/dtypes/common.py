@@ -1698,7 +1698,7 @@ def infer_dtype_from_object(dtype):
         elif dtype in ["period"]:
             raise NotImplementedError
 
-        if dtype == "datetime" or dtype == "timedelta":
+        if dtype in ["datetime", "timedelta"]:
             dtype += "64"
         try:
             return infer_dtype_from_object(getattr(np, dtype))
@@ -1733,7 +1733,7 @@ def _validate_date_like_dtype(dtype) -> None:
         typ = np.datetime_data(dtype)[0]
     except ValueError as e:
         raise TypeError(e) from e
-    if typ != "generic" and typ != "ns":
+    if typ not in ["generic", "ns"]:
         raise ValueError(
             f"{repr(dtype.name)} is too specific of a frequency, "
             f"try passing {repr(dtype.type.__name__)}"

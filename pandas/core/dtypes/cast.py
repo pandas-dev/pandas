@@ -126,12 +126,11 @@ def is_nested_object(obj) -> bool:
     This may not be necessarily be performant.
 
     """
-    if isinstance(obj, ABCSeries) and is_object_dtype(obj.dtype):
-
-        if any(isinstance(v, ABCSeries) for v in obj._values):
-            return True
-
-    return False
+    return bool(
+        isinstance(obj, ABCSeries)
+        and is_object_dtype(obj.dtype)
+        and any(isinstance(v, ABCSeries) for v in obj._values)
+    )
 
 
 def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
@@ -335,10 +334,11 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
     from pandas.core.arrays.boolean import BooleanDtype
     from pandas.core.arrays.integer import Int64Dtype
 
-    if how in ["add", "cumsum", "sum"] and (dtype == np.dtype(bool)):
-        return np.dtype(np.int64)
-    elif how in ["add", "cumsum", "sum"] and isinstance(dtype, BooleanDtype):
-        return Int64Dtype()
+    if how in ["add", "cumsum", "sum"]:
+        if dtype == np.dtype(bool):
+            return np.dtype(np.int64)
+        elif isinstance(dtype, BooleanDtype):
+            return Int64Dtype()
     return dtype
 
 
@@ -481,9 +481,11 @@ def maybe_casted_values(
     """
 
     values = index._values
-    if not isinstance(index, (ABCPeriodIndex, ABCDatetimeIndex)):
-        if values.dtype == np.object_:
-            values = lib.maybe_convert_objects(values)
+    if (
+        not isinstance(index, (ABCPeriodIndex, ABCDatetimeIndex))
+        and values.dtype == np.object_
+    ):
+        values = lib.maybe_convert_objects(values)
 
     # if we have the codes, extract the values with a mask
     if codes is not None:
@@ -725,8 +727,8 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
 
     # a 1-element ndarray
     if isinstance(val, np.ndarray):
-        msg = "invalid ndarray passed to infer_dtype_from_scalar"
         if val.ndim != 0:
+            msg = "invalid ndarray passed to infer_dtype_from_scalar"
             raise ValueError(msg)
 
         dtype = val.dtype
@@ -1552,7 +1554,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     numpy.find_common_type
 
     """
-    if len(types) == 0:
+    if not types:
         raise ValueError("no types given")
 
     first = types[0]
@@ -1841,12 +1843,16 @@ def validate_numeric_casting(dtype: np.dtype, value: Scalar) -> None:
     ------
     ValueError
     """
-    if issubclass(dtype.type, (np.integer, np.bool_)):
-        if is_float(value) and np.isnan(value):
-            raise ValueError("Cannot assign nan to integer series")
-
-    if issubclass(dtype.type, (np.integer, np.floating, complex)) and not issubclass(
-        dtype.type, np.bool_
+    if (
+        issubclass(dtype.type, (np.integer, np.bool_))
+        and is_float(value)
+        and np.isnan(value)
     ):
-        if is_bool(value):
-            raise ValueError("Cannot assign bool to float/integer series")
+        raise ValueError("Cannot assign nan to integer series")
+
+    if (
+        issubclass(dtype.type, (np.integer, np.floating, complex))
+        and not issubclass(dtype.type, np.bool_)
+        and is_bool(value)
+    ):
+        raise ValueError("Cannot assign bool to float/integer series")
