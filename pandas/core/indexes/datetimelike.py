@@ -482,7 +482,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
-        other = self._data._validate_where_value(other)
+        other = self._data._validate_setitem_value(other)
 
         result = np.where(cond, self._data._ndarray, other)
         arr = self._data._from_backing_data(result)
