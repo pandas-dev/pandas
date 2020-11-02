@@ -410,24 +410,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if not fastpath:
             labels = ensure_index(labels)
 
-        if labels._is_all_dates:
-            if not isinstance(labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-                try:
-                    labels = DatetimeIndex(labels)
-                    # need to set here because we changed the index
-                    if fastpath:
-                        self._mgr.set_axis(axis, labels)
-                    warnings.warn(
-                        "Automatically casting object-dtype Index of datetimes to "
-                        "DatetimeIndex is deprecated and will be removed in a "
-                        "future version.  Explicitly cast to DatetimeIndex instead.",
-                        FutureWarning,
-                        stacklevel=3,
-                    )
-                except (tslibs.OutOfBoundsDatetime, ValueError):
-                    # labels may exceeds datetime bounds,
-                    # or not be a DatetimeIndex
-                    pass
+        if labels._is_all_dates and not isinstance(
+            labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
+        ):
+            try:
+                labels = DatetimeIndex(labels)
+                # need to set here because we changed the index
+                if fastpath:
+                    self._mgr.set_axis(axis, labels)
+                warnings.warn(
+                    "Automatically casting object-dtype Index of datetimes to "
+                    "DatetimeIndex is deprecated and will be removed in a "
+                    "future version.  Explicitly cast to DatetimeIndex instead.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+            except (tslibs.OutOfBoundsDatetime, ValueError):
+                # labels may exceeds datetime bounds,
+                # or not be a DatetimeIndex
+                pass
 
         object.__setattr__(self, "_index", labels)
         if not fastpath:
@@ -1011,7 +1012,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._set_with_engine(key, value)
         except (KeyError, ValueError):
             values = self._values
-            if is_integer(key) and not self.index.inferred_type == "integer":
+            if is_integer(key) and self.index.inferred_type != "integer":
                 # positional setter
                 values[key] = value
             else:
@@ -1345,9 +1346,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             max_rows=max_rows,
             length=show_dimensions,
         )
-        result = buf.getvalue()
-
-        return result
+        return buf.getvalue()
 
     def to_string(
         self,
@@ -1914,8 +1913,7 @@ Name: Max Speed, dtype: float64
         ['b', 'a', 'c']
         Categories (3, object): ['a' < 'b' < 'c']
         """
-        result = super().unique()
-        return result
+        return super().unique()
 
     def drop_duplicates(self, keep="first", inplace=False) -> Optional["Series"]:
         """
@@ -2630,9 +2628,7 @@ Name: Max Speed, dtype: float64
             return self._constructor(
                 np.dot(lvals, rvals), index=other.columns
             ).__finalize__(self, method="dot")
-        elif isinstance(other, Series):
-            return np.dot(lvals, rvals)
-        elif isinstance(rvals, np.ndarray):
+        elif isinstance(other, Series) or isinstance(rvals, np.ndarray):
             return np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
@@ -2729,8 +2725,7 @@ Name: Max Speed, dtype: float64
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
-            to_concat = [self]
-            to_concat.extend(to_append)
+            to_concat = [self, *to_append]
         else:
             to_concat = [self, to_append]
         if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):
@@ -2773,8 +2768,7 @@ Name: Max Speed, dtype: float64
             result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
-        ret = this._construct_result(result, name)
-        return ret
+        return this._construct_result(result, name)
 
     def _construct_result(
         self, result: Union[ArrayLike, Tuple[ArrayLike, ArrayLike]], name: Label
@@ -3825,9 +3819,7 @@ Keep all original rows and also all original values
         else:
             index = self.index.repeat(counts)
 
-        result = self._constructor(values, index=index, name=self.name)
-
-        return result
+        return self._constructor(values, index=index, name=self.name)
 
     def unstack(self, level=-1, fill_value=None):
         """

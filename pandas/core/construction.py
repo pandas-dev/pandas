@@ -347,8 +347,7 @@ def array(
     elif is_timedelta64_ns_dtype(dtype):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
-    result = PandasArray._from_sequence(data, dtype=dtype, copy=copy)
-    return result
+    return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
 
 
 def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
@@ -551,9 +550,13 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
         Otherwise an object array is returned.
     """
     # perf shortcut as this is the most common case
-    if isinstance(arr, np.ndarray):
-        if maybe_castable(arr) and not copy and dtype is None:
-            return arr
+    if (
+        isinstance(arr, np.ndarray)
+        and maybe_castable(arr)
+        and not copy
+        and dtype is None
+    ):
+        return arr
 
     if isinstance(dtype, ExtensionDtype) and (dtype.kind != "M" or is_sparse(dtype)):
         # create an extension array from its dtype
@@ -575,9 +578,11 @@ def _try_cast(arr, dtype: Optional[DtypeObj], copy: bool, raise_cast_failure: bo
 
         # Take care in creating object arrays (but iterators are not
         # supported):
-        if is_object_dtype(dtype) and (
-            is_list_like(subarr)
-            and not (is_iterator(subarr) or isinstance(subarr, np.ndarray))
+        if (
+            is_object_dtype(dtype)
+            and is_list_like(subarr)
+            and not is_iterator(subarr)
+            and not isinstance(subarr, np.ndarray)
         ):
             subarr = construct_1d_object_array_from_listlike(subarr)
         elif not is_extension_array_dtype(subarr):

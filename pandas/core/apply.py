@@ -377,9 +377,10 @@ class FrameRowApply(FrameApply):
             else:
                 raise
 
-        if not isinstance(results[0], ABCSeries):
-            if len(result.index) == len(self.res_columns):
-                result.index = self.res_columns
+        if not isinstance(results[0], ABCSeries) and len(result.index) == len(
+            self.res_columns
+        ):
+            result.index = self.res_columns
 
         if len(result.columns) == len(res_index):
             result.columns = res_index
