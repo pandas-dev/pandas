@@ -139,7 +139,6 @@ class TestFancy:
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0
 
-    @pytest.mark.xfail(reason="gh-32896")
     def test_setitem_ndarray_3d_does_not_fail_for_iloc_empty_dataframe(self):
         # when fixing this, please remove the pytest.skip in test_setitem_ndarray_3d
         i = Index([])
