@@ -39,11 +39,6 @@ class TestAtTime:
         expected = ts.at_time(time(9, 30))
         tm.assert_equal(result, expected)
 
-        # TODO: this is testing loc, not at_time
-        result = ts.loc[time(9, 30)]
-        expected = ts.loc[(rng.hour == 9) & (rng.minute == 30)]
-        tm.assert_equal(result, expected)
-
     def test_at_time_midnight(self, frame_or_series):
         # midnight, everything
         rng = date_range("1/1/2000", "1/31/2000")

@@ -997,17 +997,17 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         mask = (rng.hour == 9) & (rng.minute == 30)
 
-        df = DataFrame(np.random.randn(len(rng), 3), index=rng)
+        obj = DataFrame(np.random.randn(len(rng), 3), index=rng)
         if frame_or_series is Series:
-            df = df[0]
+            obj = obj[0]
 
-        result_df = df.loc[time(9, 30)]
-        exp_df = df.loc[mask]
-        tm.assert_equal(result_df, exp_df)
+        result = obj.loc[time(9, 30)]
+        exp = obj.loc[mask]
+        tm.assert_equal(result, exp)
 
-        chunk = df.loc["1/4/2000":]
+        chunk = obj.loc["1/4/2000":]
         result = chunk.loc[time(9, 30)]
-        expected = result_df[-1:]
+        expected = result[-1:]
 
         # Without resetting the freqs, these are 5 min and 1440 min, respectively
         result.index = result.index._with_freq(None)
