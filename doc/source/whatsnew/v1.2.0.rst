@@ -338,6 +338,7 @@ Deprecations
 - Deprecated slice-indexing on timezone-aware :class:`DatetimeIndex` with naive ``datetime`` objects, to match scalar indexing behavior (:issue:`36148`)
 - :meth:`Index.ravel` returning a ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
 - Deprecate use of strings denoting units with 'M', 'Y' or 'y' in :func:`~pandas.to_timedelta` (:issue:`36666`)
+- :class:`Index` methods ``&``, ``|``, and ``^`` behaving as the set operations :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference`, respectively, are deprecated and in the future will behave as pointwise boolean operations matching :class:`Series` behavior.  Use the named set methods instead (:issue:`36758`)
 
 .. ---------------------------------------------------------------------------
 
@@ -390,6 +391,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.equals` and :meth:`TimedeltaIndex.equals` incorrectly considering ``int64`` indexes as equal (:issue:`36744`)
 - Bug in :meth:`TimedeltaIndex.sum` and :meth:`Series.sum` with ``timedelta64`` dtype on an empty index or series returning ``NaT`` instead of ``Timedelta(0)`` (:issue:`31751`)
 - Bug in :meth:`DatetimeArray.shift` incorrectly allowing ``fill_value`` with a mismatched timezone (:issue:`37299`)
+- Bug in adding a :class:`BusinessDay` with nonzero ``offset`` to a non-scalar other (:issue:`37457`)
 - Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`DatetimeIndex.isin` incorrectly casting integers to datetimes (:issue:`36621`)
 - Bug in :meth:`Series.isin` with ``datetime64[ns]`` dtype and :meth:`DatetimeIndex.isin` failing to consider timezone-aware and timezone-naive datetimes as always different (:issue:`35728`)
 - Bug in :meth:`Series.isin` with ``PeriodDtype`` dtype and :meth:`PeriodIndex.isin` failing to consider arguments with different ``PeriodDtype`` as always different (:issue:`37528`)
@@ -533,7 +535,7 @@ Reshaping
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
 - Bug in :meth:`DataFrame.pivot` did not preserve :class:`MultiIndex` level names for columns when rows and columns both multiindexed (:issue:`36360`)
 - Bug in :func:`join` returned a non deterministic level-order for the resulting :class:`MultiIndex` (:issue:`36910`)
--
+- Bug in :meth:`DataFrame.combine_first()` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
 
 Sparse
 ^^^^^^
@@ -548,6 +550,7 @@ ExtensionArray
 - Fixed bug where ``astype()`` with equal dtype and ``copy=False`` would return a new object (:issue:`284881`)
 - Fixed bug when applying a NumPy ufunc with multiple outputs to a :class:`pandas.arrays.IntegerArray` returning None (:issue:`36913`)
 - Fixed an inconsistency in :class:`PeriodArray`'s ``__init__`` signature to those of :class:`DatetimeArray` and :class:`TimedeltaArray` (:issue:`37289`)
+- Reductions for :class:`BooleanArray`, :class:`Categorical`, :class:`DatetimeArray`, :class:`FloatingArray`, :class:`IntegerArray`, :class:`PeriodArray`, :class:`TimedeltaArray`, and :class:`PandasArray` are now keyword-only methods (:issue:`37541`)
 
 Other
 ^^^^^
