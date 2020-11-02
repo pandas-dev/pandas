@@ -48,6 +48,7 @@ class TestDataFrameColor(TestPlotBase):
         for ax, exp in zip(axes, expected):
             self._check_visible(ax.get_xticklabels(), visible=exp)
 
+
     def test_mpl2_color_cycle_str(self):
         # GH 15516
         df = DataFrame(randn(10, 3), columns=["a", "b", "c"])
@@ -155,7 +156,7 @@ class TestDataFrameColor(TestPlotBase):
         tm.close()
 
     def test_bar_user_colors(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {"A": range(4), "B": range(1, 5), "color": ["red", "blue", "blue", "red"]}
         )
         # This should *only* work when `y` is specified, else
@@ -176,7 +177,7 @@ class TestDataFrameColor(TestPlotBase):
         # interfere with x-axis label and ticklabels with
         # ipython inline backend.
         random_array = np.random.random((1000, 3))
-        df = DataFrame(random_array, columns=["A label", "B label", "C label"])
+        df = pd.DataFrame(random_array, columns=["A label", "B label", "C label"])
 
         ax1 = df.plot.scatter(x="A label", y="B label")
         ax2 = df.plot.scatter(x="A label", y="B label", c="C label")
@@ -198,7 +199,7 @@ class TestDataFrameColor(TestPlotBase):
         import matplotlib.pyplot as plt
 
         random_array = np.random.random((1000, 3))
-        df = DataFrame(random_array, columns=["A label", "B label", "C label"])
+        df = pd.DataFrame(random_array, columns=["A label", "B label", "C label"])
 
         fig, axes = plt.subplots(1, 2)
         df.plot.scatter("A label", "B label", c="C label", ax=axes[0])
@@ -214,7 +215,7 @@ class TestDataFrameColor(TestPlotBase):
     @pytest.mark.parametrize("cmap", [None, "Greys"])
     def test_scatter_with_c_column_name_with_colors(self, cmap):
         # https://github.com/pandas-dev/pandas/issues/34316
-        df = DataFrame(
+        df = pd.DataFrame(
             [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
             columns=["length", "width"],
         )
@@ -270,7 +271,7 @@ class TestDataFrameColor(TestPlotBase):
     @pytest.mark.slow
     def test_dont_modify_colors(self):
         colors = ["r", "g", "b"]
-        DataFrame(np.random.rand(10, 2)).plot(color=colors)
+        pd.DataFrame(np.random.rand(10, 2)).plot(color=colors)
         assert len(colors) == 3
 
     @pytest.mark.slow
@@ -610,7 +611,7 @@ class TestDataFrameColor(TestPlotBase):
 
         color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)]
         colormap = mpl.colors.ListedColormap(color_tuples)
-        barplot = DataFrame([[1, 2, 3]]).plot(kind="bar", cmap=colormap)
+        barplot = pd.DataFrame([[1, 2, 3]]).plot(kind="bar", cmap=colormap)
         assert color_tuples == [c.get_facecolor() for c in barplot.patches]
 
     def test_rcParams_bar_colors(self):
@@ -618,14 +619,14 @@ class TestDataFrameColor(TestPlotBase):
 
         color_tuples = [(0.9, 0, 0, 1), (0, 0.9, 0, 1), (0, 0, 0.9, 1)]
         with mpl.rc_context(rc={"axes.prop_cycle": mpl.cycler("color", color_tuples)}):
-            barplot = DataFrame([[1, 2, 3]]).plot(kind="bar")
+            barplot = pd.DataFrame([[1, 2, 3]]).plot(kind="bar")
         assert color_tuples == [c.get_facecolor() for c in barplot.patches]
 
     def test_colors_of_columns_with_same_name(self):
         # ISSUE 11136 -> https://github.com/pandas-dev/pandas/issues/11136
         # Creating a DataFrame with duplicate column labels and testing colors of them.
-        df = DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
-        df1 = DataFrame({"a": [2, 4, 6]})
+        df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
+        df1 = pd.DataFrame({"a": [2, 4, 6]})
         df_concat = pd.concat([df, df1], axis=1)
         result = df_concat.plot()
         for legend, line in zip(result.get_legend().legendHandles, result.lines):
