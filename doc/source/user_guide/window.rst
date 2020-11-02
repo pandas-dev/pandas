@@ -17,7 +17,7 @@ necessary parameters and then subsequently call the aggregation function.
    s.rolling(window=2).sum()
 
 The windows are comprised by looking back the length of the window from the current observation.
-The result above can be derived by taking the sum of the following, windowed partitions of data:
+The result above can be derived by taking the sum of the following windowed partitions of data:
 
 .. ipython:: python
 
@@ -43,7 +43,7 @@ Expanding window                ``expanding``      ``Expanding``                
 Exponentially Weighted window   ``ewm``            ``ExponentialMovingWindow``   No                           No
 =============================   =================  ===========================   ===========================  ========================
 
-As noted above, some methods support specifying a window based on a timespan:
+As noted above, some operations support specifying a window based on a time offset:
 
 .. ipython:: python
 
@@ -60,7 +60,7 @@ which will first group the data by the specified keys and then perform a windowi
 
 .. note::
 
-   Windowing operations currently only support operation on numeric data (integer and float)
+   Windowing operations currently only support numeric data (integer and float)
    and will always return ``float64`` values.
 
 .. warning::
@@ -85,6 +85,8 @@ non-``np.nan`` values a window must have; otherwise, the resulting value is ``np
    s.rolling(window=3, min_periods=2).sum()
 
 
+.. _window.generic:
+
 Rolling window
 --------------
 
@@ -104,6 +106,7 @@ time based index must be monotonic.
 
 For all supported aggregation functions, see :ref:`api.functions_rolling`.
 
+.. _window.center:
 
 Centering windows
 ~~~~~~~~~~~~~~~~~
@@ -175,7 +178,7 @@ ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``
 and will automatically be passed to ``get_window_bounds`` and the defined method must
 always accept these arguments.
 
-For example, if we have the following ``DataFrame``:
+For example, if we have the following :class:``DataFrame``:
 
 .. ipython:: python
 
@@ -256,7 +259,7 @@ Rolling apply
 The :meth:`~Rolling.apply` function takes an extra ``func`` argument and performs
 generic rolling computations. The ``func`` argument should be a single function
 that produces a single value from an ndarray input. ``raw`` specifies whether
-the windows are cast as :class:`Series` objects ``raw=False`` or ndarray objects ``raw=True``.
+the windows are cast as :class:`Series` objects (``raw=False``) or ndarray objects (``raw=True``).
 
 .. ipython:: python
 
@@ -266,6 +269,8 @@ the windows are cast as :class:`Series` objects ``raw=False`` or ndarray objects
    s = pd.Series(range(10))
    s.rolling(window=4).apply(mad, raw=True)
 
+
+.. _window.numba_engine:
 
 Numba engine
 ~~~~~~~~~~~~
@@ -375,6 +380,8 @@ can even be omitted:
    )
    covs
 
+
+.. _window.weighted:
 
 Weighted window
 ---------------
