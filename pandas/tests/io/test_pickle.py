@@ -564,22 +564,15 @@ def test_pickle_timeseries_periodindex():
 )
 def test_pickle_preserve_name(name):
 
-    unpickled = _pickle_roundtrip(tm.makeTimeSeries(name=name))
+    unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=name))
     assert unpickled.name == name
 
 
 def test_pickle_datetimes(datetime_series):
-    unp_ts = _pickle_roundtrip(datetime_series)
+    unp_ts = tm.round_trip_pickle(datetime_series)
     tm.assert_series_equal(unp_ts, datetime_series)
 
 
 def test_pickle_strings(string_series):
-    unp_series = _pickle_roundtrip(string_series)
+    unp_series = tm.round_trip_pickle(string_series)
     tm.assert_series_equal(unp_series, string_series)
-
-
-def _pickle_roundtrip(obj):
-    with tm.ensure_clean() as path:
-        obj.to_pickle(path)
-        unpickled = pd.read_pickle(path)
-    return unpickled
