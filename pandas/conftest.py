@@ -290,6 +290,16 @@ unique_nulls_fixture2 = unique_nulls_fixture
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
+
+
+@pytest.fixture(params=[pd.DataFrame, pd.Series])
+def frame_or_series(request):
+    """
+    Fixture to parametrize over DataFrame and Series.
+    """
+    return request.param
+
+
 @pytest.fixture(
     params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
 )
