@@ -258,7 +258,7 @@ class MultiIndex(Index):
     of the mentioned helper methods.
     """
 
-    _deprecations = Index._deprecations | frozenset()
+    _hidden_attrs = Index._hidden_attrs | frozenset()
 
     # initialize to zero-length tuples to make everything work
     _typ = "multiindex"
@@ -1539,7 +1539,10 @@ class MultiIndex(Index):
         return if the index is monotonic increasing (only equal or
         increasing) values.
         """
-        if all(x.is_monotonic for x in self.levels):
+        if any(-1 in code for code in self.codes):
+            return False
+
+        if all(level.is_monotonic for level in self.levels):
             # If each level is sorted, we can operate on the codes directly. GH27495
             return libalgos.is_lexsorted(
                 [x.astype("int64", copy=False) for x in self.codes]
@@ -2015,29 +2018,13 @@ class MultiIndex(Index):
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
-        taken = self._assert_take_fillable(
-            self.codes,
-            indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            na_value=-1,
-        )
-        return MultiIndex(
-            levels=self.levels, codes=taken, names=self.names, verify_integrity=False
-        )
 
-    def _assert_take_fillable(
-        self, values, indices, allow_fill=True, fill_value=None, na_value=None
-    ):
-        """ Internal method to handle NA filling of take """
         # only fill if we are passing a non-None fill_value
-        if allow_fill and fill_value is not None:
-            if (indices < -1).any():
-                msg = (
-                    "When allow_fill=True and fill_value is not None, "
-                    "all indices must be >= -1"
-                )
-                raise ValueError(msg)
+        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+
+        na_value = -1
+
+        if allow_fill:
             taken = [lab.take(indices) for lab in self.codes]
             mask = indices == -1
             if mask.any():
@@ -2049,7 +2036,10 @@ class MultiIndex(Index):
                 taken = masked
         else:
             taken = [lab.take(indices) for lab in self.codes]
-        return taken
+
+        return MultiIndex(
+            levels=self.levels, codes=taken, names=self.names, verify_integrity=False
+        )
 
     def append(self, other):
         """
@@ -2766,7 +2756,7 @@ class MultiIndex(Index):
 
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
-            if not isinstance(loc, np.ndarray) or loc.dtype != "int64":
+            if not isinstance(loc, np.ndarray) or loc.dtype != np.intp:
                 return loc
 
             loc = lib.maybe_indices_to_slice(loc, len(self))
@@ -2813,7 +2803,7 @@ class MultiIndex(Index):
             stacklevel=10,
         )
 
-        loc = np.arange(start, stop, dtype="int64")
+        loc = np.arange(start, stop, dtype=np.intp)
 
         for i, k in enumerate(follow_key, len(lead_key)):
             mask = self.codes[i][loc] == self._get_loc_single_level_index(
@@ -3136,12 +3126,12 @@ class MultiIndex(Index):
                 r = r.nonzero()[0]
             return Int64Index(r)
 
-        def _update_indexer(idxr, indexer=indexer):
+        def _update_indexer(idxr: Optional[Index], indexer: Optional[Index]) -> Index:
             if indexer is None:
                 indexer = Index(np.arange(n))
             if idxr is None:
                 return indexer
-            return indexer & idxr
+            return indexer.intersection(idxr)
 
         for i, k in enumerate(seq):
 
@@ -3159,7 +3149,9 @@ class MultiIndex(Index):
                         idxrs = _convert_to_indexer(
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
-                        indexers = idxrs if indexers is None else indexers | idxrs
+                        indexers = (idxrs if indexers is None else indexers).union(
+                            idxrs
+                        )
                     except KeyError:
 
                         # ignore not founds

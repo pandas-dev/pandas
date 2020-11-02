@@ -8,8 +8,6 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
-    is_float,
-    is_integer,
     is_scalar,
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
@@ -246,7 +244,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 return lbound
             else:
                 return lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
-        elif is_integer(label) or is_float(label):
+        elif not isinstance(label, self._data._recognized_scalars):
             self._invalid_indexer("slice", label)
 
         return label

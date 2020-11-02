@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, period_range
+from pandas import DataFrame, Index, MultiIndex, date_range, period_range
 import pandas._testing as tm
 
 
@@ -222,6 +222,31 @@ def test_suppress_future_warning_with_sort_kw(sort_kw):
 
 
 class TestDataFrameJoin:
+    def test_join(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+
+        a = frame.loc[frame.index[:5], ["A"]]
+        b = frame.loc[frame.index[2:], ["B", "C"]]
+
+        joined = a.join(b, how="outer").reindex(frame.index)
+        expected = frame.copy()
+        expected.values[np.isnan(joined.values)] = np.nan
+
+        assert not np.isnan(joined.values).all()
+
+        # TODO what should join do with names ?
+        tm.assert_frame_equal(joined, expected, check_names=False)
+
+    def test_join_segfault(self):
+        # GH#1532
+        df1 = DataFrame({"a": [1, 1], "b": [1, 2], "x": [1, 2]})
+        df2 = DataFrame({"a": [2, 2], "b": [1, 2], "y": [1, 2]})
+        df1 = df1.set_index(["a", "b"])
+        df2 = df2.set_index(["a", "b"])
+        # it works!
+        for how in ["left", "right", "outer"]:
+            df1.join(df2, how=how)
+
     def test_join_str_datetime(self):
         str_dates = ["20120209", "20120222"]
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
@@ -316,3 +341,24 @@ class TestDataFrameJoin:
         with tm.assert_produces_warning(UserWarning):
             result = df1.join(df2, on="a")
         tm.assert_frame_equal(result, expected)
+
+    def test_frame_join_tzaware(self):
+        test1 = DataFrame(
+            np.zeros((6, 3)),
+            index=date_range(
+                "2012-11-15 00:00:00", periods=6, freq="100L", tz="US/Central"
+            ),
+        )
+        test2 = DataFrame(
+            np.zeros((3, 3)),
+            index=date_range(
+                "2012-11-15 00:00:00", periods=3, freq="250L", tz="US/Central"
+            ),
+            columns=range(3, 6),
+        )
+
+        result = test1.join(test2, how="outer")
+        expected = test1.index.union(test2.index)
+
+        tm.assert_index_equal(result.index, expected)
+        assert result.index.tz.zone == "US/Central"

@@ -1,6 +1,5 @@
 from datetime import date, datetime
 import itertools
-import operator
 import re
 
 import numpy as np
@@ -9,7 +8,7 @@ import pytest
 from pandas._libs.internals import BlockPlacement
 
 import pandas as pd
-from pandas import Categorical, DataFrame, DatetimeIndex, Index, MultiIndex, Series
+from pandas import Categorical, DataFrame, DatetimeIndex, Index, Series
 import pandas._testing as tm
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray, SparseArray, TimedeltaArray
@@ -923,6 +922,13 @@ class TestBlockPlacement:
         with pytest.raises(ValueError, match=msg):
             BlockPlacement(slc)
 
+    def test_slice_canonize_negative_stop(self):
+        # GH#37524 negative stop is OK with negative step and positive start
+        slc = slice(3, -1, -2)
+
+        bp = BlockPlacement(slc)
+        assert bp.indexer == slice(3, None, -2)
+
     @pytest.mark.parametrize(
         "slc",
         [
@@ -1042,31 +1048,6 @@ class TestBlockPlacement:
             BlockPlacement(val).add(-10)
 
 
-class DummyElement:
-    def __init__(self, value, dtype):
-        self.value = value
-        self.dtype = np.dtype(dtype)
-
-    def __array__(self):
-        return np.array(self.value, dtype=self.dtype)
-
-    def __str__(self) -> str:
-        return f"DummyElement({self.value}, {self.dtype})"
-
-    def __repr__(self) -> str:
-        return str(self)
-
-    def astype(self, dtype, copy=False):
-        self.dtype = dtype
-        return self
-
-    def view(self, dtype):
-        return type(self)(self.value.view(dtype), dtype)
-
-    def any(self, axis=None):
-        return bool(self.value)
-
-
 class TestCanHoldElement:
     def test_datetime_block_can_hold_element(self):
         block = create_block("datetime", [0])
@@ -1095,81 +1076,10 @@ class TestCanHoldElement:
         with pytest.raises(TypeError, match=msg):
             arr[0] = val
 
-    @pytest.mark.parametrize(
-        "value, dtype",
-        [
-            (1, "i8"),
-            (1.0, "f8"),
-            (2 ** 63, "f8"),
-            (1j, "complex128"),
-            (2 ** 63, "complex128"),
-            (True, "bool"),
-            (np.timedelta64(20, "ns"), "<m8[ns]"),
-            (np.datetime64(20, "ns"), "<M8[ns]"),
-        ],
-    )
-    @pytest.mark.parametrize(
-        "op",
-        [
-            operator.add,
-            operator.sub,
-            operator.mul,
-            operator.truediv,
-            operator.mod,
-            operator.pow,
-        ],
-        ids=lambda x: x.__name__,
-    )
-    def test_binop_other(self, op, value, dtype):
-        skip = {
-            (operator.add, "bool"),
-            (operator.sub, "bool"),
-            (operator.mul, "bool"),
-            (operator.truediv, "bool"),
-            (operator.mod, "i8"),
-            (operator.mod, "complex128"),
-            (operator.pow, "bool"),
-        }
-        if (op, dtype) in skip:
-            pytest.skip(f"Invalid combination {op},{dtype}")
-
-        e = DummyElement(value, dtype)
-        s = DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
-
-        invalid = {
-            (operator.pow, "<M8[ns]"),
-            (operator.mod, "<M8[ns]"),
-            (operator.truediv, "<M8[ns]"),
-            (operator.mul, "<M8[ns]"),
-            (operator.add, "<M8[ns]"),
-            (operator.pow, "<m8[ns]"),
-            (operator.mul, "<m8[ns]"),
-        }
-
-        if (op, dtype) in invalid:
-            msg = (
-                None
-                if (dtype == "<M8[ns]" and op == operator.add)
-                or (dtype == "<m8[ns]" and op == operator.mul)
-                else (
-                    f"cannot perform __{op.__name__}__ with this "
-                    "index type: (DatetimeArray|TimedeltaArray)"
-                )
-            )
-
-            with pytest.raises(TypeError, match=msg):
-                op(s, e.value)
-        else:
-            # FIXME: Since dispatching to Series, this test no longer
-            # asserts anything meaningful
-            result = op(s, e.value).dtypes
-            expected = op(s, value).dtypes
-            tm.assert_series_equal(result, expected)
-
 
 class TestShouldStore:
     def test_should_store_categorical(self):
-        cat = pd.Categorical(["A", "B", "C"])
+        cat = Categorical(["A", "B", "C"])
         df = DataFrame(cat)
         blk = df._mgr.blocks[0]
 
@@ -1211,7 +1121,7 @@ def test_validate_ndim():
 def test_block_shape():
     idx = Index([0, 1, 2, 3, 4])
     a = Series([1, 2, 3]).reindex(idx)
-    b = Series(pd.Categorical([1, 2, 3])).reindex(idx)
+    b = Series(Categorical([1, 2, 3])).reindex(idx)
 
     assert a._mgr.blocks[0].mgr_locs.indexer == b._mgr.blocks[0].mgr_locs.indexer
 
@@ -1236,45 +1146,10 @@ def test_make_block_no_pandas_array():
     assert result.is_extension is False
 
 
-def test_dataframe_not_equal():
-    # see GH28839
-    df1 = DataFrame({"a": [1, 2], "b": ["s", "d"]})
-    df2 = DataFrame({"a": ["s", "d"], "b": [1, 2]})
-    assert df1.equals(df2) is False
-
-
 def test_missing_unicode_key():
     df = DataFrame({"a": [1]})
     with pytest.raises(KeyError, match="\u05d0"):
         df.loc[:, "\u05d0"]  # should not raise UnicodeEncodeError
-
-
-def test_set_change_dtype_slice():
-    # GH#8850
-    cols = MultiIndex.from_tuples([("1st", "a"), ("2nd", "b"), ("3rd", "c")])
-    df = DataFrame([[1.0, 2, 3], [4.0, 5, 6]], columns=cols)
-    df["2nd"] = df["2nd"] * 2.0
-
-    blocks = df._to_dict_of_blocks()
-    assert sorted(blocks.keys()) == ["float64", "int64"]
-    tm.assert_frame_equal(
-        blocks["float64"], DataFrame([[1.0, 4.0], [4.0, 10.0]], columns=cols[:2])
-    )
-    tm.assert_frame_equal(blocks["int64"], DataFrame([[3], [6]], columns=cols[2:]))
-
-
-def test_interleave_non_unique_cols():
-    df = DataFrame(
-        [[pd.Timestamp("20130101"), 3.5], [pd.Timestamp("20130102"), 4.5]],
-        columns=["x", "x"],
-        index=[1, 2],
-    )
-
-    df_unique = df.copy()
-    df_unique.columns = ["x", "y"]
-    assert df_unique.values.shape == df.values.shape
-    tm.assert_numpy_array_equal(df_unique.values[0], df.values[0])
-    tm.assert_numpy_array_equal(df_unique.values[1], df.values[1])
 
 
 def test_single_block_manager_fastpath_deprecated():
