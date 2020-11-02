@@ -1,23 +1,30 @@
 """ Test cases for DataFrame.plot """
 
+from datetime import date, datetime
+import itertools
 import string
 import warnings
 
 import numpy as np
+from numpy.random import rand, randn
 import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.api import is_list_like
+
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase
+from pandas.core.arrays import integer_array
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 from pandas.io.formats.printing import pprint_thing
+import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl
-class TestDataFramePlotsSubplots(TestPlotBase):
+class TestDataFrameGroupby(TestPlotBase):
     def setup_method(self, method):
         TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
@@ -194,7 +201,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
                 pd.to_datetime("2017-08-02 00:00:00"),
             ],
         }
-        testdata = DataFrame(data)
+        testdata = pd.DataFrame(data)
         ax_period = testdata.plot(x="numeric", y="period")
         assert (
             ax_period.get_lines()[0].get_data()[1] == testdata["period"].values
@@ -396,6 +403,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self._check_bar_alignment(df, kind="barh", subplots=True)
         self._check_bar_alignment(df, kind="barh", subplots=True, width=0.9)
 
+
     @pytest.mark.slow
     def test_bar_log_no_subplots(self):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
@@ -488,7 +496,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
     def test_subplots_sharex_false(self):
         # test when sharex is set to False, two plots should have different
         # labels, GH 25160
-        df = DataFrame(np.random.rand(10, 2))
+        df = pd.DataFrame(np.random.rand(10, 2))
         df.iloc[5:, 1] = np.nan
         df.iloc[:5, 0] = np.nan
 
@@ -513,10 +521,10 @@ class TestDataFramePlotsSubplots(TestPlotBase):
     )
     @pytest.mark.parametrize("kind", ["line", "area", "bar"])
     def test_xlabel_ylabel_dataframe_subplots(
-        self, kind, index_name, old_label, new_label
+            self, kind, index_name, old_label, new_label
     ):
         # GH 9093
-        df = DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
         df.index.name = index_name
 
         # default is the ylabel is not shown and xlabel is index name
@@ -528,171 +536,3 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         axes = df.plot(kind=kind, ylabel=new_label, xlabel=new_label, subplots=True)
         assert all(ax.get_ylabel() == str(new_label) for ax in axes)
         assert all(ax.get_xlabel() == str(new_label) for ax in axes)
-
-    @pytest.mark.slow
-    def test_bar_stacked_center(self):
-        # GH2157
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-        self._check_bar_alignment(df, kind="bar", stacked=True)
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=0.9)
-        self._check_bar_alignment(df, kind="barh", stacked=True)
-        self._check_bar_alignment(df, kind="barh", stacked=True, width=0.9)
-
-    @pytest.mark.slow
-    def test_bar_center(self):
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-        self._check_bar_alignment(df, kind="bar", stacked=False)
-        self._check_bar_alignment(df, kind="bar", stacked=False, width=0.9)
-        self._check_bar_alignment(df, kind="barh", stacked=False)
-        self._check_bar_alignment(df, kind="barh", stacked=False, width=0.9)
-
-    @pytest.mark.slow
-    def test_bar_align_single_column(self):
-        df = DataFrame(np.random.randn(5))
-        self._check_bar_alignment(df, kind="bar", stacked=False)
-        self._check_bar_alignment(df, kind="bar", stacked=True)
-        self._check_bar_alignment(df, kind="barh", stacked=False)
-        self._check_bar_alignment(df, kind="barh", stacked=True)
-        self._check_bar_alignment(df, kind="bar", subplots=True)
-        self._check_bar_alignment(df, kind="barh", subplots=True)
-
-    @pytest.mark.slow
-    def test_bar_edge(self):
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-
-        self._check_bar_alignment(df, kind="bar", stacked=True, align="edge")
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=0.9, align="edge")
-        self._check_bar_alignment(df, kind="barh", stacked=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", stacked=True, width=0.9, align="edge"
-        )
-
-        self._check_bar_alignment(df, kind="bar", stacked=False, align="edge")
-        self._check_bar_alignment(
-            df, kind="bar", stacked=False, width=0.9, align="edge"
-        )
-        self._check_bar_alignment(df, kind="barh", stacked=False, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", stacked=False, width=0.9, align="edge"
-        )
-
-        self._check_bar_alignment(df, kind="bar", subplots=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="bar", subplots=True, width=0.9, align="edge"
-        )
-        self._check_bar_alignment(df, kind="barh", subplots=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", subplots=True, width=0.9, align="edge"
-        )
-
-    @pytest.mark.slow
-    def test_bar_barwidth_position(self):
-        df = DataFrame(np.random.randn(5, 5))
-        self._check_bar_alignment(
-            df, kind="bar", stacked=False, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=0.9, position=0.2)
-        self._check_bar_alignment(
-            df, kind="barh", stacked=False, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(
-            df, kind="barh", stacked=True, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(
-            df, kind="bar", subplots=True, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(
-            df, kind="barh", subplots=True, width=0.9, position=0.2
-        )
-
-    @pytest.mark.slow
-    def test_bar_barwidth_position_int(self):
-        # GH 12979
-        df = DataFrame(np.random.randn(5, 5))
-
-        for w in [1, 1.0]:
-            ax = df.plot.bar(stacked=True, width=w)
-            ticks = ax.xaxis.get_ticklocs()
-            tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4]))
-            assert ax.get_xlim() == (-0.75, 4.75)
-            # check left-edge of bars
-            assert ax.patches[0].get_x() == -0.5
-            assert ax.patches[-1].get_x() == 3.5
-
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=1)
-        self._check_bar_alignment(df, kind="barh", stacked=False, width=1)
-        self._check_bar_alignment(df, kind="barh", stacked=True, width=1)
-        self._check_bar_alignment(df, kind="bar", subplots=True, width=1)
-        self._check_bar_alignment(df, kind="barh", subplots=True, width=1)
-
-    def _check_bar_alignment(
-        self,
-        df,
-        kind="bar",
-        stacked=False,
-        subplots=False,
-        align="center",
-        width=0.5,
-        position=0.5,
-    ):
-
-        axes = df.plot(
-            kind=kind,
-            stacked=stacked,
-            subplots=subplots,
-            align=align,
-            width=width,
-            position=position,
-            grid=True,
-        )
-
-        axes = self._flatten_visible(axes)
-
-        for ax in axes:
-            if kind == "bar":
-                axis = ax.xaxis
-                ax_min, ax_max = ax.get_xlim()
-                min_edge = min(p.get_x() for p in ax.patches)
-                max_edge = max(p.get_x() + p.get_width() for p in ax.patches)
-            elif kind == "barh":
-                axis = ax.yaxis
-                ax_min, ax_max = ax.get_ylim()
-                min_edge = min(p.get_y() for p in ax.patches)
-                max_edge = max(p.get_y() + p.get_height() for p in ax.patches)
-            else:
-                raise ValueError
-
-            # GH 7498
-            # compare margins between lim and bar edges
-            tm.assert_almost_equal(ax_min, min_edge - 0.25)
-            tm.assert_almost_equal(ax_max, max_edge + 0.25)
-
-            p = ax.patches[0]
-            if kind == "bar" and (stacked is True or subplots is True):
-                edge = p.get_x()
-                center = edge + p.get_width() * position
-            elif kind == "bar" and stacked is False:
-                center = p.get_x() + p.get_width() * len(df.columns) * position
-                edge = p.get_x()
-            elif kind == "barh" and (stacked is True or subplots is True):
-                center = p.get_y() + p.get_height() * position
-                edge = p.get_y()
-            elif kind == "barh" and stacked is False:
-                center = p.get_y() + p.get_height() * len(df.columns) * position
-                edge = p.get_y()
-            else:
-                raise ValueError
-
-            # Check the ticks locates on integer
-            assert (axis.get_ticklocs() == np.arange(len(df))).all()
-
-            if align == "center":
-                # Check whether the bar locates on center
-                tm.assert_almost_equal(axis.get_ticklocs()[0], center)
-            elif align == "edge":
-                # Check whether the bar's edge starts from the tick
-                tm.assert_almost_equal(axis.get_ticklocs()[0], edge)
-            else:
-                raise ValueError
-
-        return axes
