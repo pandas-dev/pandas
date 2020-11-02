@@ -426,10 +426,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(other, DatetimeIndex):
             if (
-                self.tz is not None
-                and other.tz is None
-                or self.tz is None
-                and other.tz is not None
+                (self.tz is not None)
+                and (other.tz is None)
+                or (self.tz is None)
+                and (other.tz is not None)
             ):
                 raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
             if not timezones.tz_compare(self.tz, other.tz):
