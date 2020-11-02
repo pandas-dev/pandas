@@ -1,13 +1,43 @@
-from datetime import time
+from datetime import datetime, time
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, date_range
+from pandas._libs.tslibs import timezones
+
+from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
 
 
 class TestBetweenTime:
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_localized_between_time(self, tzstr, frame_or_series):
+        tz = timezones.maybe_get_tz(tzstr)
+
+        rng = date_range("4/16/2012", "5/1/2012", freq="H")
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        if frame_or_series is DataFrame:
+            ts = ts.to_frame()
+
+        ts_local = ts.tz_localize(tzstr)
+
+        t1, t2 = time(10, 0), time(11, 0)
+        result = ts_local.between_time(t1, t2)
+        expected = ts.between_time(t1, t2).tz_localize(tzstr)
+        tm.assert_equal(result, expected)
+        assert timezones.tz_compare(result.index.tz, tz)
+
+    def test_between_time_types(self, frame_or_series):
+        # GH11818
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        obj = DataFrame({"A": 0}, index=rng)
+        if frame_or_series is Series:
+            obj = obj["A"]
+
+        msg = r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\] to a time"
+        with pytest.raises(ValueError, match=msg):
+            obj.between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
+
     def test_between_time(self, close_open_fixture, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
