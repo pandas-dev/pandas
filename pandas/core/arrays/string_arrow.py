@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import abc
 from distutils.version import LooseVersion
-from typing import Any, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Optional, Sequence, Type, Union
 
 import numpy as np
 
@@ -209,28 +209,6 @@ class ArrowStringArray(ExtensionArray):
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self.data
-
-    @property
-    def size(self) -> int:
-        """
-        Return the number of elements in this array.
-
-        Returns
-        -------
-        size : int
-        """
-        return len(self.data)
-
-    @property
-    def shape(self) -> Tuple[int]:
-        """Return the shape of the data."""
-        # This may be patched by pandas to support pseudo-2D operations.
-        return (len(self.data),)
-
-    @property
-    def ndim(self) -> int:
-        """Return the number of dimensions of the underlying data."""
-        return 1
 
     def __len__(self) -> int:
         """
