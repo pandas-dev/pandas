@@ -521,7 +521,7 @@ class TestInt64Index(NumericInt):
             Index([-1], dtype=uint_dtype)
 
     def test_constructor_unwraps_index(self):
-        idx = pd.Index([1, 2])
+        idx = Index([1, 2])
         result = pd.Int64Index(idx)
         expected = np.array([1, 2], dtype="int64")
         tm.assert_numpy_array_equal(result._data, expected)
@@ -613,7 +613,7 @@ class TestUInt64Index(NumericInt):
 def test_int_float_union_dtype(dtype):
     # https://github.com/pandas-dev/pandas/issues/26778
     # [u]int | float -> float
-    index = pd.Index([0, 2, 3], dtype=dtype)
+    index = Index([0, 2, 3], dtype=dtype)
     other = pd.Float64Index([0.5, 1.5])
     expected = pd.Float64Index([0.0, 0.5, 1.5, 2.0, 3.0])
     result = index.union(other)
@@ -637,7 +637,7 @@ def test_range_float_union_dtype():
 
 @pytest.mark.parametrize(
     "box",
-    [list, lambda x: np.array(x, dtype=object), lambda x: pd.Index(x, dtype=object)],
+    [list, lambda x: np.array(x, dtype=object), lambda x: Index(x, dtype=object)],
 )
 def test_uint_index_does_not_convert_to_float64(box):
     # https://github.com/pandas-dev/pandas/issues/28279
@@ -667,8 +667,8 @@ def test_uint_index_does_not_convert_to_float64(box):
 
 def test_float64_index_equals():
     # https://github.com/pandas-dev/pandas/issues/35217
-    float_index = pd.Index([1.0, 2, 3])
-    string_index = pd.Index(["1", "2", "3"])
+    float_index = Index([1.0, 2, 3])
+    string_index = Index(["1", "2", "3"])
 
     result = float_index.equals(string_index)
     assert result is False
@@ -679,8 +679,8 @@ def test_float64_index_equals():
 
 def test_float64_index_difference():
     # https://github.com/pandas-dev/pandas/issues/35217
-    float_index = pd.Index([1.0, 2, 3])
-    string_index = pd.Index(["1", "2", "3"])
+    float_index = Index([1.0, 2, 3])
+    string_index = Index(["1", "2", "3"])
 
     result = float_index.difference(string_index)
     tm.assert_index_equal(result, float_index)
