@@ -177,24 +177,26 @@ class TestWhere:
 
         i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        msg = "value should be a 'Timestamp', 'NaT', or array of those. Got"
+        msg2 = "Cannot compare tz-naive and tz-aware datetime-like objects"
+        with pytest.raises(TypeError, match=msg2):
             # passing tz-naive ndarray to tzaware DTI
             dti.where(notna(i2), i2.values)
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg2):
             # passing tz-aware DTI to tznaive DTI
             dti.tz_localize(None).where(notna(i2), i2)
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             dti.where(notna(i2), i2.tz_localize(None).to_period("D"))
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             dti.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             dti.where(notna(i2), i2.asi8)
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             # non-matching scalar
             dti.where(notna(i2), pd.Timedelta(days=4))
 
@@ -203,7 +205,7 @@ class TestWhere:
         dti = pd.date_range("2013-01-01", periods=3, tz=tz)
         cond = np.array([True, False, True])
 
-        msg = "Where requires matching dtype"
+        msg = "value should be a 'Timestamp', 'NaT', or array of those. Got"
         with pytest.raises(TypeError, match=msg):
             # wrong-dtyped NaT
             dti.where(cond, np.timedelta64("NaT", "ns"))
