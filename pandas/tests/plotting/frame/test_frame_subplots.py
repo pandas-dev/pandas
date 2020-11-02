@@ -399,7 +399,6 @@ class TestDataFrameGroupby(TestPlotBase):
         self._check_bar_alignment(df, kind="barh", subplots=True)
         self._check_bar_alignment(df, kind="barh", subplots=True, width=0.9)
 
-
     @pytest.mark.slow
     def test_bar_log_no_subplots(self):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
