@@ -125,8 +125,8 @@ def import_optional_dependency(
     else:
         module_to_get = module
     minimum_version = min_version if min_version is not None else VERSIONS.get(name)
-    version = _get_version(module_to_get)
     if minimum_version:
+        version = _get_version(module_to_get)
         if distutils.version.LooseVersion(version) < minimum_version:
             assert on_version in {"warn", "raise", "ignore"}
             msg = (
