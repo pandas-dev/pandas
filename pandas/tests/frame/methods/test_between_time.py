@@ -8,9 +8,12 @@ import pandas._testing as tm
 
 
 class TestBetweenTime:
-    def test_between_time(self, close_open_fixture):
+    def test_between_time(self, close_open_fixture, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        if frame_or_series is not DataFrame:
+            ts = ts[0]
+
         stime = time(0, 0)
         etime = time(1, 0)
         inc_start, inc_end = close_open_fixture
@@ -37,11 +40,13 @@ class TestBetweenTime:
 
         result = ts.between_time("00:00", "01:00")
         expected = ts.between_time(stime, etime)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         # across midnight
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        if frame_or_series is not DataFrame:
+            ts = ts[0]
         stime = time(22, 0)
         etime = time(9, 0)
 
@@ -65,12 +70,15 @@ class TestBetweenTime:
             else:
                 assert (t < etime) or (t >= stime)
 
-    def test_between_time_raises(self):
+    def test_between_time_raises(self, frame_or_series):
         # GH#20725
-        df = DataFrame([[1, 2, 3], [4, 5, 6]])
+        obj = DataFrame([[1, 2, 3], [4, 5, 6]])
+        if frame_or_series is not DataFrame:
+            obj = obj[0]
+
         msg = "Index must be DatetimeIndex"
         with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
-            df.between_time(start_time="00:00", end_time="12:00")
+            obj.between_time(start_time="00:00", end_time="12:00")
 
     def test_between_time_axis(self, axis):
         # GH#8839
