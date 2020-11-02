@@ -1,6 +1,5 @@
 import numpy as np
 
-import pandas as pd
 from pandas import DataFrame, Series, date_range, timedelta_range
 import pandas._testing as tm
 
@@ -55,17 +54,3 @@ class TestTimeSeries:
         s.map(f)
         s.apply(f)
         DataFrame(s).applymap(f)
-
-    def test_view_tz(self):
-        # GH#24024
-        ser = Series(pd.date_range("2000", periods=4, tz="US/Central"))
-        result = ser.view("i8")
-        expected = Series(
-            [
-                946706400000000000,
-                946792800000000000,
-                946879200000000000,
-                946965600000000000,
-            ]
-        )
-        tm.assert_series_equal(result, expected)
