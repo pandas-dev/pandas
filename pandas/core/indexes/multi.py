@@ -3126,12 +3126,12 @@ class MultiIndex(Index):
                 r = r.nonzero()[0]
             return Int64Index(r)
 
-        def _update_indexer(idxr, indexer=indexer):
+        def _update_indexer(idxr: Optional[Index], indexer: Optional[Index]) -> Index:
             if indexer is None:
                 indexer = Index(np.arange(n))
             if idxr is None:
                 return indexer
-            return indexer & idxr
+            return indexer.intersection(idxr)
 
         for i, k in enumerate(seq):
 
@@ -3149,7 +3149,9 @@ class MultiIndex(Index):
                         idxrs = _convert_to_indexer(
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
-                        indexers = idxrs if indexers is None else indexers | idxrs
+                        indexers = (idxrs if indexers is None else indexers).union(
+                            idxrs
+                        )
                     except KeyError:
 
                         # ignore not founds
