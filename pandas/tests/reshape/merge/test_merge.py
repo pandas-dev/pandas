@@ -1334,15 +1334,15 @@ class TestMerge:
         left = DataFrame(
             {
                 "a": [1, 2, 3],
-                "key": pd.Categorical(["a", "a", "b"], categories=list("abc")),
+                "key": Categorical(["a", "a", "b"], categories=list("abc")),
             }
         )
-        right = DataFrame({"b": [1, 2, 3]}, index=pd.CategoricalIndex(["a", "b", "c"]))
+        right = DataFrame({"b": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
         result = left.merge(right, left_on="key", right_index=True, how="right")
         expected = DataFrame(
             {
                 "a": [1, 2, 3, None],
-                "key": pd.Categorical(["a", "a", "b", "c"]),
+                "key": Categorical(["a", "a", "b", "c"]),
                 "b": [1, 1, 2, 3],
             },
             index=[0, 1, 2, np.nan],
@@ -1687,7 +1687,7 @@ class TestMergeCategorical:
         result = pd.merge(df1, df2, on=["Foo"])
         expected = DataFrame(
             {
-                "Foo": pd.Categorical(["A", "B", "C"]),
+                "Foo": Categorical(["A", "B", "C"]),
                 "Left": ["A0", "B0", "C0"],
                 "Right": ["A1", "B1", "C1"],
             }
