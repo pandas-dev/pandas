@@ -29,10 +29,10 @@ Overview
 
 pandas supports 4 types of windowing operations:
 
-# . Rolling window: Generic fixed or variable sliding window over the values.
-# . Weighted window: Weighted, non-rectangular window supplied by the ``scipy.signal`` library.
-# . Expanding window: Accumulating window over the values.
-# . Exponentially Weighted window: Accumulating and exponentially weighted window over the values.
+#. Rolling window: Generic fixed or variable sliding window over the values.
+#. Weighted window: Weighted, non-rectangular window supplied by the ``scipy.signal`` library.
+#. Expanding window: Accumulating window over the values.
+#. Exponentially Weighted window: Accumulating and exponentially weighted window over the values.
 
 =============================   =================  ===========================   ===========================  ========================
 Concept                         Method             Returned Object               Supports time-based windows  Supports chained groupby
@@ -55,7 +55,7 @@ which will first group the data by the specified keys and then perform a windowi
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': ['a', 'b', 'a', 'b', 'a'], 'B': range(5))
+   df = pd.DataFrame({'A': ['a', 'b', 'a', 'b', 'a'], 'B': range(5)})
    df.groupby('A').expanding().sum()
 
 .. note::
@@ -80,9 +80,10 @@ non-``np.nan`` values a window must have; otherwise, the resulting value is ``np
 .. ipython:: python
 
    s = pd.Series([np.nan, 1, 2, np.nan, np.nan, 3])
+   s.rolling(window=3, min_periods=1).sum()
+   s.rolling(window=3, min_periods=2).sum()
    # Equivalent to min_periods=3
    s.rolling(window=3, min_periods=None).sum()
-   s.rolling(window=3, min_periods=2).sum()
 
 
 .. _window.generic:
@@ -96,7 +97,7 @@ time based index must be monotonic.
 
 .. ipython:: python
 
-   times = ['2020-01-01', '2020-01-03', '2020-01-04', '2020-01-05, '2020-01-29']
+   times = ['2020-01-01', '2020-01-03', '2020-01-04', '2020-01-05', '2020-01-29']
    s = pd.Series(range(5), index=pd.DatetimeIndex(times))
    s
    # Window with 2 observations
@@ -129,14 +130,14 @@ Rolling window endpoints
 The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed``
 parameter:
 
-.. csv-table::
-    :header: "``closed``", "Description", "Default for"
-    :widths: 20, 30, 30
-
-    ``right``, close right endpoint,
-    ``left``, close left endpoint,
-    ``both``, close both endpoints,
-    ``neither``, open endpoints,
+=============  ====================
+Value          Behavior
+=============  ====================
+``right'``     close right endpoint
+``'left'``     close left endpoint
+``'both'``     close both endpoints
+``'neither'``  open endpoints
+=============  ====================
 
 For example, having the right endpoint open is useful in many problems that require that there is no contamination
 from present information back to past information. This allows the rolling window to compute statistics
@@ -282,10 +283,8 @@ if installed as an optional dependency. The apply aggregation can be executed us
 ``engine='numba'`` and ``engine_kwargs`` arguments (``raw`` must also be set to ``True``).
 Numba will be applied in potentially two routines:
 
-1. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__
-the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
-
-2. The engine will JIT the for loop where the apply function is applied to each window.
+#. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
+#. The engine will JIT the for loop where the apply function is applied to each window.
 
 The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
 `numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
