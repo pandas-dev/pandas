@@ -38,7 +38,7 @@ from pandas._typing import (
     FileOrBuffer,
     FilePathOrBuffer,
     IOArgs,
-    IOHandleArgs,
+    IOHandles,
     ModeVar,
     StorageOptions,
 )
@@ -468,7 +468,7 @@ def get_handle(
     memory_map: bool = False,
     is_text: bool = True,
     errors: Optional[str] = None,
-) -> IOHandleArgs:
+) -> IOHandles:
     """
     Get file handle for given path/buffer and mode.
 
@@ -514,7 +514,7 @@ def get_handle(
 
     .. versionchanged:: 1.2.0
 
-    Returns the dataclass IOHandleArgs
+    Returns the dataclass IOHandles
     """
     need_text_wrapping: Tuple[Type["IOBase"], ...]
     try:
@@ -640,7 +640,7 @@ def get_handle(
 
     handles.reverse()  # close the most recently added buffer first
     assert not isinstance(f, str)
-    return IOHandleArgs(
+    return IOHandles(
         handle=f,
         created_handles=handles,
         is_wrapped=is_wrapped,

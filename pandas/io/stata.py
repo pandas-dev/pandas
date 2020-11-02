@@ -28,7 +28,7 @@ from pandas._typing import (
     Buffer,
     CompressionOptions,
     FilePathOrBuffer,
-    IOHandleArgs,
+    IOHandles,
     Label,
     StorageOptions,
 )
@@ -1932,7 +1932,7 @@ def _open_file_binary_write(
     fname: FilePathOrBuffer,
     compression: CompressionOptions,
     storage_options: StorageOptions = None,
-) -> Tuple[IOHandleArgs, CompressionOptions]:
+) -> Tuple[IOHandles, CompressionOptions]:
     """
     Open a binary file or no-op if file-like.
 
@@ -1956,7 +1956,7 @@ def _open_file_binary_write(
     ioargs = get_filepath_or_buffer(
         fname, mode="wb", compression=compression, storage_options=storage_options
     )
-    handle_args = get_handle(
+    handles = get_handle(
         ioargs.filepath_or_buffer,
         "wb",
         compression=ioargs.compression,
@@ -1966,8 +1966,8 @@ def _open_file_binary_write(
         ioargs.filepath_or_buffer, str
     ):
         # add handle created by get_filepath_or_buffer
-        handle_args.created_handles.append(ioargs.filepath_or_buffer)
-    return handle_args, ioargs.compression
+        handles.created_handles.append(ioargs.filepath_or_buffer)
+    return handles, ioargs.compression
 
 
 def _set_endianness(endianness: str) -> str:
@@ -2235,7 +2235,7 @@ class StataWriter(StataParser):
         """
         Helper to call encode before writing to file for Python 3 compat.
         """
-        self.handle_args.handle.write(
+        self.handles.handle.write(
             to_write.encode(self._encoding)  # type: ignore[arg-type]
         )
 
@@ -2243,7 +2243,7 @@ class StataWriter(StataParser):
         """
         Helper to assert file is open before writing.
         """
-        self.handle_args.handle.write(value)  # type: ignore[arg-type]
+        self.handles.handle.write(value)  # type: ignore[arg-type]
 
     def _prepare_categoricals(self, data: DataFrame) -> DataFrame:
         """
@@ -2507,14 +2507,14 @@ supported types."""
                     self.data[col] = encoded
 
     def write_file(self) -> None:
-        self.handle_args, compression = _open_file_binary_write(
+        self.handles, compression = _open_file_binary_write(
             self._fname, self._compression, storage_options=self.storage_options
         )
         if compression is not None:
             # ZipFile creates a file (with the same name) for each write call.
             # Write it first into a buffer and then write the buffer to the ZipFile.
-            self._output_file = self.handle_args.handle
-            self.handle_args.handle = BytesIO()
+            self._output_file = self.handles.handle
+            self.handles.handle = BytesIO()
         try:
             self._write_header(data_label=self._data_label, time_stamp=self._time_stamp)
             self._write_map()
@@ -2556,14 +2556,14 @@ supported types."""
         """
         # write compression
         if self._output_file is not None:
-            assert isinstance(self.handle_args.handle, BytesIO)
-            bio = self.handle_args.handle
+            assert isinstance(self.handles.handle, BytesIO)
+            bio = self.handles.handle
             bio.seek(0)
-            self.handle_args.handle = self._output_file
-            self.handle_args.handle.write(bio.read())  # type: ignore[arg-type]
+            self.handles.handle = self._output_file
+            self.handles.handle.write(bio.read())  # type: ignore[arg-type]
             bio.close()
         # close any created handles
-        self.handle_args.close()
+        self.handles.close()
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
@@ -3115,8 +3115,8 @@ class StataWriter117(StataWriter):
 
     def _update_map(self, tag: str) -> None:
         """Update map location for tag with file position"""
-        assert self.handle_args.handle is not None
-        self._map[tag] = self.handle_args.handle.tell()
+        assert self.handles.handle is not None
+        self._map[tag] = self.handles.handle.tell()
 
     def _write_header(
         self,
@@ -3187,7 +3187,7 @@ class StataWriter117(StataWriter):
             self._map = dict(
                 (
                     ("stata_data", 0),
-                    ("map", self.handle_args.handle.tell()),
+                    ("map", self.handles.handle.tell()),
                     ("variable_types", 0),
                     ("varnames", 0),
                     ("sortlist", 0),
@@ -3203,7 +3203,7 @@ class StataWriter117(StataWriter):
                 )
             )
         # Move to start of map
-        self.handle_args.handle.seek(self._map["map"])
+        self.handles.handle.seek(self._map["map"])
         bio = BytesIO()
         for val in self._map.values():
             bio.write(struct.pack(self._byteorder + "Q", val))

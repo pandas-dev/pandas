@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+import dataclasses
 from datetime import datetime, timedelta, tzinfo
 from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
 from mmap import mmap
@@ -155,10 +155,12 @@ EncodingVar = TypeVar("EncodingVar", str, None, Optional[str])
 FloatFormatType = Union[str, Callable, "EngFormatter"]
 
 
-@dataclass
+@dataclasses.dataclass
 class IOArgs(Generic[ModeVar, EncodingVar]):
     """
     Return value of io/common.py:get_filepath_or_buffer.
+
+    This is used to easily close created fsspec objects.
 
     Note (copy&past from io/parsers):
     filepath_or_buffer can be Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
@@ -168,9 +170,9 @@ class IOArgs(Generic[ModeVar, EncodingVar]):
 
     filepath_or_buffer: FileOrBuffer
     encoding: EncodingVar
-    compression: CompressionDict
-    should_close: bool
     mode: Union[ModeVar, str]
+    compression: CompressionDict
+    should_close: bool = False
 
     def close(self) -> None:
         """
@@ -182,10 +184,13 @@ class IOArgs(Generic[ModeVar, EncodingVar]):
         self.should_close = False
 
 
-@dataclass
-class IOHandleArgs:
+@dataclasses.dataclass
+class IOHandles:
     """
     Return value of io/common.py:get_handle
+
+    This is used to easily close created buffers and to handle corner cases when
+    TextIOWrapper is inserted.
 
     handle: The file handle to be used.
     created_handles: All file handles that are created by get_handle
@@ -193,8 +198,8 @@ class IOHandleArgs:
     """
 
     handle: Buffer
-    created_handles: List[Buffer]
-    is_wrapped: bool
+    created_handles: List[Buffer] = dataclasses.field(default_factory=list)
+    is_wrapped: bool = False
 
     def close(self) -> None:
         """

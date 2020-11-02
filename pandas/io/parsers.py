@@ -20,7 +20,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer, IOHandleArgs, StorageOptions, Union
+from pandas._typing import FilePathOrBuffer, IOHandles, StorageOptions, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -1398,7 +1398,7 @@ class ParserBase:
             )
 
     def close(self):
-        self.handle_args.close()
+        self.handles.close()
 
     @property
     def _has_complex_date_col(self):
@@ -1849,13 +1849,9 @@ class CParserWrapper(ParserBase):
                     + "Please use memory_map=False instead."
                 )
 
-            self.handle_args = IOHandleArgs(
-                handle=src,
-                created_handles=[],
-                is_wrapped=False,
-            )
+            self.handles = IOHandles(handle=src)
         else:
-            self.handle_args = get_handle(
+            self.handles = get_handle(
                 src,
                 mode="r",
                 encoding=kwds.get("encoding", None),
@@ -1873,7 +1869,7 @@ class CParserWrapper(ParserBase):
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
-        self._reader = parsers.TextReader(self.handle_args.handle, **kwds)
+        self._reader = parsers.TextReader(self.handles.handle, **kwds)
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -2246,7 +2242,7 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        self.handle_args = get_handle(
+        self.handles = get_handle(
             f,
             "r",
             encoding=self.encoding,
@@ -2255,10 +2251,10 @@ class PythonParser(ParserBase):
         )
 
         # Set self.data to something that can read lines.
-        if hasattr(self.handle_args.handle, "readline"):
-            self._make_reader(self.handle_args.handle)
+        if hasattr(self.handles.handle, "readline"):
+            self._make_reader(self.handles.handle)
         else:
-            self.data = self.handle_args.handle
+            self.data = self.handles.handle
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.

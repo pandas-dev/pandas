@@ -92,17 +92,15 @@ def to_pickle(
         mode="wb",
         storage_options=storage_options,
     )
-    handle_args = get_handle(
+    handles = get_handle(
         ioargs.filepath_or_buffer, "wb", compression=ioargs.compression, is_text=False
     )
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
-        pickle.dump(
-            obj, handle_args.handle, protocol=protocol  # type: ignore[arg-type]
-        )
+        pickle.dump(obj, handles.handle, protocol=protocol)  # type: ignore[arg-type]
     finally:
-        handle_args.close()
+        handles.close()
         ioargs.close()
 
 
@@ -186,7 +184,7 @@ def read_pickle(
     ioargs = get_filepath_or_buffer(
         filepath_or_buffer, compression=compression, storage_options=storage_options
     )
-    handle_args = get_handle(
+    handles = get_handle(
         ioargs.filepath_or_buffer, "rb", compression=ioargs.compression, is_text=False
     )
 
@@ -201,15 +199,15 @@ def read_pickle(
             with warnings.catch_warnings(record=True):
                 # We want to silence any warnings about, e.g. moved modules.
                 warnings.simplefilter("ignore", Warning)
-                return pickle.load(handle_args.handle)  # type: ignore[arg-type]
+                return pickle.load(handles.handle)  # type: ignore[arg-type]
         except excs_to_catch:
             # e.g.
             #  "No module named 'pandas.core.sparse.series'"
             #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
-            return pc.load(handle_args.handle, encoding=None)
+            return pc.load(handles.handle, encoding=None)
     except UnicodeDecodeError:
         # e.g. can occur for files written in py27; see GH#28645 and GH#31988
-        return pc.load(handle_args.handle, encoding="latin-1")
+        return pc.load(handles.handle, encoding="latin-1")
     finally:
-        handle_args.close()
+        handles.close()
         ioargs.close()

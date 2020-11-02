@@ -13,7 +13,7 @@ from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
     IndexLabel,
-    IOHandleArgs,
+    IOHandles,
     JSONSerializable,
     StorageOptions,
 )
@@ -92,19 +92,21 @@ def to_json(
         s = convert_to_line_delimits(s)
 
     if path_or_buf is not None:
+        # open fsspec URLs
         ioargs = get_filepath_or_buffer(
             path_or_buf,
             compression=compression,
             mode="wt",
             storage_options=storage_options,
         )
-        handle_args = get_handle(
+        # apply compression and byte/text conversion
+        handles = get_handle(
             ioargs.filepath_or_buffer, "w", compression=ioargs.compression
         )
         try:
-            handle_args.handle.write(s)
+            handles.handle.write(s)
         finally:
-            handle_args.close()
+            handles.close()
             ioargs.close()
     else:
         return s
@@ -619,7 +621,7 @@ class JsonReader(abc.Iterator):
         self.chunksize = chunksize
         self.nrows_seen = 0
         self.nrows = nrows
-        self.handle_args: Optional[IOHandleArgs] = None
+        self.handles: Optional[IOHandles] = None
 
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
@@ -668,13 +670,13 @@ class JsonReader(abc.Iterator):
                 pass
 
         if exists or not isinstance(filepath_or_buffer, str):
-            self.handle_args = get_handle(
+            self.handles = get_handle(
                 filepath_or_buffer,
                 "r",
                 encoding=self.encoding,
                 compression=self.compression,
             )
-            filepath_or_buffer = self.handle_args.handle
+            filepath_or_buffer = self.handles.handle
 
         return filepath_or_buffer
 
@@ -740,8 +742,8 @@ class JsonReader(abc.Iterator):
 
         If an open stream or file was passed, we leave it open.
         """
-        if self.handle_args is not None:
-            self.handle_args.close()
+        if self.handles is not None:
+            self.handles.close()
 
     def __next__(self):
         if self.nrows:

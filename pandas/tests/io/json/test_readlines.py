@@ -143,7 +143,7 @@ def test_readjson_chunks_closes(chunksize):
         )
         reader.read()
         assert (
-            reader.handle_args.handle.closed
+            reader.handles.handle.closed
         ), f"didn't close stream with chunksize = {chunksize}"
 
 

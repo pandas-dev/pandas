@@ -226,9 +226,8 @@ class CSVFormatter:
         """
         Create the writer & save.
         """
-        # get a handle or wrap an existing handle to take care of 1) compression and
-        # 2) text -> byte conversion
-        handle_args = get_handle(
+        # apply compression and byte/text conversion
+        handles = get_handle(
             self.ioargs.filepath_or_buffer,
             self.ioargs.mode,
             encoding=self.ioargs.encoding,
@@ -239,7 +238,7 @@ class CSVFormatter:
         try:
             # Note: self.encoding is irrelevant here
             self.writer = csvlib.writer(
-                handle_args.handle,  # type: ignore[arg-type]
+                handles.handle,  # type: ignore[arg-type]
                 lineterminator=self.line_terminator,
                 delimiter=self.sep,
                 quoting=self.quoting,
@@ -251,7 +250,9 @@ class CSVFormatter:
             self._save()
 
         finally:
-            handle_args.close()
+            # close compression and byte/text wrapper
+            handles.close()
+            # close any fsspec-like objects
             self.ioargs.close()
 
     def _save(self) -> None:
