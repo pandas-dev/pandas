@@ -1105,9 +1105,6 @@ class IndexOpsMixin(OpsMixin):
         obj = remove_na_arraylike(self) if dropna else self
         return len(obj.unique())
 
-    def _is_unique(self) -> bool:
-        return self.nunique(dropna=False) == len(self)
-
     @property
     def is_unique(self) -> bool:
         """
@@ -1117,7 +1114,7 @@ class IndexOpsMixin(OpsMixin):
         -------
         bool
         """
-        return self._is_unique()
+        return self.nunique(dropna=False) == len(self)
 
     @property
     def is_monotonic(self) -> bool:

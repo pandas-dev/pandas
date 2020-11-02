@@ -5396,7 +5396,7 @@ class DataFrame(NDFrame, OpsMixin):
             self = self[subset]
 
         if len(self.columns):
-            return self.apply(Series._is_unique)
+            return self.apply(lambda x: x.is_unique)
         else:
             return self._constructor_sliced(dtype=bool)
 
