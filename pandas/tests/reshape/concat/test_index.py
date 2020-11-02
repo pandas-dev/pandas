@@ -204,11 +204,11 @@ class TestMultiIndexConcat:
 
     def test_concat_multiindex_with_none_in_index_names(self):
         # GH 15787
-        index = pd.MultiIndex.from_product([[1], range(5)], names=["level1", None])
+        index = MultiIndex.from_product([[1], range(5)], names=["level1", None])
         df = DataFrame({"col": range(5)}, index=index, dtype=np.int32)
 
         result = concat([df, df], keys=[1, 2], names=["level2"])
-        index = pd.MultiIndex.from_product(
+        index = MultiIndex.from_product(
             [[1, 2], [1], range(5)], names=["level2", "level1", None]
         )
         expected = DataFrame({"col": list(range(5)) * 2}, index=index, dtype=np.int32)
@@ -219,7 +219,7 @@ class TestMultiIndexConcat:
         level1 = [1] * 7
         no_name = list(range(5)) + list(range(2))
         tuples = list(zip(level2, level1, no_name))
-        index = pd.MultiIndex.from_tuples(tuples, names=["level2", "level1", None])
+        index = MultiIndex.from_tuples(tuples, names=["level2", "level1", None])
         expected = DataFrame({"col": no_name}, index=index, dtype=np.int32)
         tm.assert_frame_equal(result, expected)
 
@@ -242,14 +242,14 @@ class TestMultiIndexConcat:
         # GH 9967
         from copy import deepcopy
 
-        example_multiindex1 = pd.MultiIndex.from_product([["a"], ["b"]])
+        example_multiindex1 = MultiIndex.from_product([["a"], ["b"]])
         example_dataframe1 = DataFrame([0], index=example_multiindex1)
 
-        example_multiindex2 = pd.MultiIndex.from_product([["a"], ["c"]])
+        example_multiindex2 = MultiIndex.from_product([["a"], ["c"]])
         example_dataframe2 = DataFrame([1], index=example_multiindex2)
 
         example_dict = {"s1": example_dataframe1, "s2": example_dataframe2}
-        expected_index = pd.MultiIndex(
+        expected_index = MultiIndex(
             levels=[["s1", "s2"], ["a"], ["b", "c"]],
             codes=[[0, 1], [0, 0], [0, 1]],
             names=["testname", None, None],

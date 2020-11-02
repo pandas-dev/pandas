@@ -29,6 +29,7 @@ import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from pandas import MultiIndex
     from pandas.core.indexes.base import Index
 
 _INT64_MAX = np.iinfo(np.int64).max
@@ -415,7 +416,9 @@ def nargminmax(values, method: str):
     return non_nan_idx[func(non_nans)]
 
 
-def ensure_key_mapped_multiindex(index, key: Callable, level=None):
+def _ensure_key_mapped_multiindex(
+    index: "MultiIndex", key: Callable, level=None
+) -> "MultiIndex":
     """
     Returns a new MultiIndex in which key has been applied
     to all levels specified in level (or all levels if level
@@ -441,7 +444,6 @@ def ensure_key_mapped_multiindex(index, key: Callable, level=None):
     labels : MultiIndex
         Resulting MultiIndex with modified levels.
     """
-    from pandas.core.indexes.api import MultiIndex
 
     if level is not None:
         if isinstance(level, (str, int)):
@@ -460,7 +462,7 @@ def ensure_key_mapped_multiindex(index, key: Callable, level=None):
         for level in range(index.nlevels)
     ]
 
-    labels = MultiIndex.from_arrays(mapped)
+    labels = type(index).from_arrays(mapped)
 
     return labels
 
@@ -484,7 +486,7 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
         return values
 
     if isinstance(values, ABCMultiIndex):
-        return ensure_key_mapped_multiindex(values, key, level=levels)
+        return _ensure_key_mapped_multiindex(values, key, level=levels)
 
     result = key(values.copy())
     if len(result) != len(values):
