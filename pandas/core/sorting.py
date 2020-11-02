@@ -217,7 +217,7 @@ def decons_group_index(comp_labels, shape):
     x = comp_labels
     for i in reversed(range(len(shape))):
         labels = (x - y) % (factor * shape[i]) // factor
-        np.putmask(labels, comp_labels < 0, -1)
+        np.putmask(labels, x < 0, -1)
         label_list.append(labels)
         y = labels * factor
         factor *= shape[i]
@@ -462,9 +462,7 @@ def _ensure_key_mapped_multiindex(
         for level in range(index.nlevels)
     ]
 
-    labels = type(index).from_arrays(mapped)
-
-    return labels
+    return type(index).from_arrays(mapped)
 
 
 def ensure_key_mapped(values, key: Optional[Callable], levels=None):

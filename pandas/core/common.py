@@ -128,8 +128,10 @@ def is_bool_indexer(key: Any) -> bool:
             key = np.asarray(key)
 
             if not lib.is_bool_array(key):
-                na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
                 if isna(key).any():
+                    na_msg = (
+                        "Cannot mask with non-boolean array containing NA / NaN values"
+                    )
                     raise ValueError(na_msg)
                 return False
             return True
