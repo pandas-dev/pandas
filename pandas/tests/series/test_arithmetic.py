@@ -731,17 +731,23 @@ def test_series_ops_name_retention(flex, box, names, all_binary_operators):
     left = Series(range(10), name=names[0])
     right = Series(range(10), name=names[1])
 
+    name = op.__name__.strip("_")
+    is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
+    is_rlogical = is_logical and name.startswith("r")
+
     right = box(right)
     if flex:
-        name = op.__name__.strip("_")
-        if name in ["and", "rand", "xor", "rxor", "or", "ror"]:
+        if is_logical:
             # Series doesn't have these as flex methods
             return
         result = getattr(left, name)(right)
     else:
-        result = op(left, right)
+        # GH#37374 logical ops behaving as set ops deprecated
+        warn = FutureWarning if is_rlogical and box is Index else None
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            result = op(left, right)
 
-    if box is pd.Index and op.__name__.strip("_") in ["rxor", "ror", "rand"]:
+    if box is pd.Index and is_rlogical:
         # Index treats these as set operators, so does not defer
         assert isinstance(result, pd.Index)
         return
