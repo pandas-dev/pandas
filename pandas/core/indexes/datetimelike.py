@@ -239,9 +239,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         i8 = self.asi8
         try:
             # quick check
-            if len(i8) and self.is_monotonic:
-                if i8[0] != iNaT:
-                    return self._data._box_func(i8[0])
+            if len(i8) and self.is_monotonic and i8[0] != iNaT:
+                return self._data._box_func(i8[0])
 
             if self.hasnans:
                 if skipna:
@@ -296,9 +295,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         i8 = self.asi8
         try:
             # quick check
-            if len(i8) and self.is_monotonic:
-                if i8[-1] != iNaT:
-                    return self._data._box_func(i8[-1])
+            if len(i8) and self.is_monotonic and i8[-1] != iNaT:
+                return self._data._box_func(i8[-1])
 
             if self.hasnans:
                 if skipna:
@@ -579,9 +577,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                     loc = lib.maybe_indices_to_slice(
                         np.asarray(loc, dtype=np.intp), len(self)
                     )
-                if isinstance(loc, slice) and loc.step in (1, None):
-                    if loc.start in (0, None) or loc.stop in (len(self), None):
-                        freq = self.freq
+                if (
+                    isinstance(loc, slice)
+                    and loc.step in (1, None)
+                    and (loc.start in (0, None) or loc.stop in (len(self), None))
+                ):
+                    freq = self.freq
         return freq
 
     def _get_insert_freq(self, loc, item):
@@ -599,7 +600,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             if self.size:
                 if item is NaT:
                     pass
-                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                elif loc in [0, -len(self)] and item + self.freq == self[0]:
                     freq = self.freq
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
@@ -684,8 +685,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
     @Appender(Index.difference.__doc__)
     def difference(self, other, sort=None):
-        new_idx = super().difference(other, sort=sort)._with_freq(None)
-        return new_idx
+        return super().difference(other, sort=sort)._with_freq(None)
 
     def intersection(self, other, sort=False):
         """
@@ -727,10 +727,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
 
         if not isinstance(other, type(self)):
             result = Index.intersection(self, other, sort=sort)
-            if isinstance(result, type(self)):
-                if result.freq is None:
-                    # TODO: no tests rely on this; needed?
-                    result = result._with_freq("infer")
+            if isinstance(result, type(self)) and result.freq is None:
+                # TODO: no tests rely on this; needed?
+                result = result._with_freq("infer")
             return result
 
         elif not self._can_fast_intersect(other):
@@ -876,13 +875,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             elif result.freq is None:
                 # TODO: no tests rely on this; needed?
                 result = result._with_freq("infer")
-            return result
         else:
             i8self = Int64Index._simple_new(self.asi8)
             i8other = Int64Index._simple_new(other.asi8)
             i8result = i8self._union(i8other, sort=sort)
             result = type(self)(i8result, dtype=self.dtype, freq="infer")
-            return result
+
+        return result
 
     # --------------------------------------------------------------------
     # Join Methods

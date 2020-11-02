@@ -227,8 +227,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
         freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
 
-        result = cls._simple_new(data, freq=freq)
-        return result
+        return cls._simple_new(data, freq=freq)
 
     @classmethod
     def _from_sequence_not_strict(
@@ -338,10 +337,9 @@ class TimedeltaArray(dtl.TimelikeOps):
             if self._hasnans:
                 # avoid double-copying
                 result = self._data.astype(dtype, copy=False)
-                values = self._maybe_mask_results(
+                return self._maybe_mask_results(
                     result, fill_value=None, convert="float64"
                 )
-                return values
             result = self._data.astype(dtype, copy=copy)
             return result.astype("i8")
         elif is_timedelta64_ns_dtype(dtype):
