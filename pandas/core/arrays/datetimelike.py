@@ -623,8 +623,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return self._unbox(value, setitem=True)
 
-    _validate_where_value = _validate_setitem_value
-
     def _validate_insert_value(self, value):
         value = self._validate_scalar(value)
 
