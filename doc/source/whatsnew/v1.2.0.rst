@@ -343,6 +343,7 @@ Deprecations
 
 .. ---------------------------------------------------------------------------
 
+
 .. _whatsnew_120.performance:
 
 Performance improvements
