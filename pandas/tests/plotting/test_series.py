@@ -994,5 +994,5 @@ class TestSeriesPlots(TestPlotBase):
     def test_timedelta_index(self, index):
         # GH37454
         xlims = (3, 1)
-        ax = pd.Series([1, 2], index=index).plot(xlim=(xlims))
+        ax = Series([1, 2], index=index).plot(xlim=(xlims))
         assert ax.get_xlim() == (3, 1)
