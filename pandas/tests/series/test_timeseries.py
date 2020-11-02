@@ -1,26 +1,10 @@
 import numpy as np
 
-import pandas as pd
 from pandas import DataFrame, Series, date_range, timedelta_range
 import pandas._testing as tm
 
 
 class TestTimeSeries:
-    def test_contiguous_boolean_preserve_freq(self):
-        rng = date_range("1/1/2000", "3/1/2000", freq="B")
-
-        mask = np.zeros(len(rng), dtype=bool)
-        mask[10:20] = True
-
-        masked = rng[mask]
-        expected = rng[10:20]
-        assert expected.freq == rng.freq
-        tm.assert_index_equal(masked, expected)
-
-        mask[22] = True
-        masked = rng[mask]
-        assert masked.freq is None
-
     def test_promote_datetime_date(self):
         rng = date_range("1/1/2000", periods=20)
         ts = Series(np.random.randn(20), index=rng)
@@ -55,17 +39,3 @@ class TestTimeSeries:
         s.map(f)
         s.apply(f)
         DataFrame(s).applymap(f)
-
-    def test_view_tz(self):
-        # GH#24024
-        ser = Series(pd.date_range("2000", periods=4, tz="US/Central"))
-        result = ser.view("i8")
-        expected = Series(
-            [
-                946706400000000000,
-                946792800000000000,
-                946879200000000000,
-                946965600000000000,
-            ]
-        )
-        tm.assert_series_equal(result, expected)
