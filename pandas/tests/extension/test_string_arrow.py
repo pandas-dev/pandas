@@ -65,8 +65,8 @@ class TestConstructors(base.BaseConstructorsTests):
     pass
 
 
-#  class TestReshaping(base.BaseReshapingTests):
-#     pass
+class TestReshaping(base.BaseReshapingTests):
+    pass
 
 
 class TestGetitem(base.BaseGetitemTests):
@@ -77,52 +77,52 @@ class TestSetitem(base.BaseSetitemTests):
     pass
 
 
-# class TestMissing(base.BaseMissingTests):
-#     pass
+class TestMissing(base.BaseMissingTests):
+    pass
 
 
-# class TestNoReduce(base.BaseNoReduceTests):
-#     @pytest.mark.parametrize("skipna", [True, False])
-#     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
-#         op_name = all_numeric_reductions
-#
-#         if op_name in ["min", "max"]:
-#             return None
-#
-#         s = pd.Series(data)
-#         with pytest.raises(TypeError):
-#             getattr(s, op_name)(skipna=skipna)
+class TestNoReduce(base.BaseNoReduceTests):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+
+        if op_name in ["min", "max"]:
+            return None
+
+        s = pd.Series(data)
+        with pytest.raises(TypeError):
+            getattr(s, op_name)(skipna=skipna)
 
 
-# class TestMethods(base.BaseMethodsTests):
-#     @pytest.mark.skip(reason="returns nullable")
-#     def test_value_counts(self, all_data, dropna):
-#         return super().test_value_counts(all_data, dropna)
+class TestMethods(base.BaseMethodsTests):
+    @pytest.mark.skip(reason="returns nullable")
+    def test_value_counts(self, all_data, dropna):
+        return super().test_value_counts(all_data, dropna)
 
 
-# class TestCasting(base.BaseCastingTests):
-#     pass
+class TestCasting(base.BaseCastingTests):
+    pass
 
 
-# class TestComparisonOps(base.BaseComparisonOpsTests):
-#     def _compare_other(self, s, data, op_name, other):
-#         result = getattr(s, op_name)(other)
-#         expected = getattr(s.astype(object), op_name)(other).astype("boolean")
-#         self.assert_series_equal(result, expected)
+class TestComparisonOps(base.BaseComparisonOpsTests):
+    def _compare_other(self, s, data, op_name, other):
+        result = getattr(s, op_name)(other)
+        expected = getattr(s.astype(object), op_name)(other).astype("boolean")
+        self.assert_series_equal(result, expected)
 
-#     def test_compare_scalar(self, data, all_compare_operators):
-#         op_name = all_compare_operators
-#         s = pd.Series(data)
-#         self._compare_other(s, data, op_name, "abc")
-
-
-# class TestParsing(base.BaseParsingTests):
-#     pass
+    def test_compare_scalar(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+        self._compare_other(s, data, op_name, "abc")
 
 
-# class TestPrinting(base.BasePrintingTests):
-#     pass
+class TestParsing(base.BaseParsingTests):
+    pass
 
 
-# class TestGroupBy(base.BaseGroupbyTests):
-#     pass
+class TestPrinting(base.BasePrintingTests):
+    pass
+
+
+class TestGroupBy(base.BaseGroupbyTests):
+    pass
