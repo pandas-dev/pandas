@@ -593,7 +593,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
         if is_dtype_equal(dtype, self._dtype):
             if not copy:
                 return self
-            elif copy:
+            else:
                 return self.copy()
         if is_period_dtype(dtype):
             return self.asfreq(dtype.freq)
@@ -1084,11 +1084,9 @@ def _make_field_arrays(*fields):
             elif length is None:
                 length = len(x)
 
-    arrays = [
+    return [
         np.asarray(x)
         if isinstance(x, (np.ndarray, list, ABCSeries))
         else np.repeat(x, length)
         for x in fields
     ]
-
-    return arrays

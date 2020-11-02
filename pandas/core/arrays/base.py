@@ -335,8 +335,7 @@ class ExtensionArray:
         # This needs to be implemented so that pandas recognizes extension
         # arrays as list-like. The default implementation makes successive
         # calls to ``__getitem__``, which may be slower than necessary.
-        for i in range(len(self)):
-            yield self[i]
+        yield from self
 
     def __eq__(self, other: Any) -> ArrayLike:
         """
@@ -460,7 +459,7 @@ class ExtensionArray:
         if is_dtype_equal(dtype, self.dtype):
             if not copy:
                 return self
-            elif copy:
+            else:
                 return self.copy()
         if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
@@ -544,14 +543,13 @@ class ExtensionArray:
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 
         values = self._values_for_argsort()
-        result = nargsort(
+        return nargsort(
             values,
             kind=kind,
             ascending=ascending,
             na_position=na_position,
             mask=np.asarray(self.isna()),
         )
-        return result
 
     def argmin(self):
         """
@@ -780,12 +778,12 @@ class ExtensionArray:
         boolean
             Whether the arrays are equivalent.
         """
-        if not type(self) == type(other):
+        if type(self) != type(other):
             return False
         other = cast(ExtensionArray, other)
         if not is_dtype_equal(self.dtype, other.dtype):
             return False
-        elif not len(self) == len(other):
+        elif len(self) != len(other):
             return False
         else:
             equal_values = self == other
