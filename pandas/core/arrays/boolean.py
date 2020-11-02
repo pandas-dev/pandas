@@ -664,6 +664,11 @@ class BooleanArray(BaseMaskedArray):
                 dtype = "bool"
             result = np.zeros(len(self._data), dtype=dtype)
         else:
+            if op_name in {"pow", "rpow"} and isinstance(other, np.bool_):
+                # Avoid DeprecationWarning: In future, it will be an error
+                #  for 'np.bool_' scalars to be interpreted as an index
+                other = bool(other)
+
             with np.errstate(all="ignore"):
                 result = op(self._data, other)
 
