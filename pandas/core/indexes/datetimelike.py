@@ -485,7 +485,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         values = self._data._ndarray
 
         try:
-            other = self._data._validate_where_value(other)
+            other = self._data._validate_setitem_value(other)
         except (TypeError, ValueError) as err:
             # Includes tzawareness mismatch and IncompatibleFrequencyError
             oth = getattr(other, "dtype", other)
