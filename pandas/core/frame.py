@@ -6032,7 +6032,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Combination-Related
 
-    @Appender(
+    @doc(_shared_docs["compare"],
         """
 Returns
 -------
@@ -6134,9 +6134,7 @@ Keep all original rows and columns and also all original values
 2    b     b  3.0   3.0  3.0   4.0
 3    b     b  NaN   NaN  4.0   4.0
 4    a     a  5.0   5.0  5.0   5.0
-"""
-    )
-    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
+""", klass=_shared_doc_kwargs["klass"])
     def compare(
         self,
         other: DataFrame,
