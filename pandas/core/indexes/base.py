@@ -137,9 +137,10 @@ def _new_Index(cls, d):
 
         return _new_PeriodIndex(cls, **d)
 
-    if issubclass(cls, ABCMultiIndex) and "labels" in d and "codes" not in d:
-        # GH#23752 "labels" kwarg has been replaced with "codes"
-        d["codes"] = d.pop("labels")
+    if issubclass(cls, ABCMultiIndex):
+        if "labels" in d and "codes" not in d:
+            # GH#23752 "labels" kwarg has been replaced with "codes"
+            d["codes"] = d.pop("labels")
 
     return cls.__new__(cls, **d)
 
@@ -5269,11 +5270,11 @@ class Index(IndexOpsMixin, PandasObject):
                 slc = lib.maybe_indices_to_slice(
                     slc.astype(np.intp, copy=False), len(self)
                 )
-        if isinstance(slc, np.ndarray):
-            raise KeyError(
-                f"Cannot get {side} slice bound for non-unique "
-                f"label: {repr(original_label)}"
-            )
+            if isinstance(slc, np.ndarray):
+                raise KeyError(
+                    f"Cannot get {side} slice bound for non-unique "
+                    f"label: {repr(original_label)}"
+                )
 
         if isinstance(slc, slice):
             if side == "left":
