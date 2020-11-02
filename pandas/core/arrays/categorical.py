@@ -78,7 +78,7 @@ def _cat_compare_op(op):
             # the same (maybe up to ordering, depending on ordered)
 
             msg = "Categoricals can only be compared if 'categories' are the same."
-            if not self.categories_match_up_to_permutation(other):
+            if not self._categories_match_up_to_permutation(other):
                 raise TypeError(msg)
 
             if not self.ordered and not self.categories.equals(other.categories):
@@ -2113,7 +2113,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         if not isinstance(other, Categorical):
             return False
-        elif self.categories_match_up_to_permutation(other):
+        elif self._categories_match_up_to_permutation(other):
             other_codes = self._validate_listlike(other)
             return np.array_equal(self._codes, other_codes)
         return False
@@ -2144,12 +2144,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def is_dtype_equal(self, other) -> bool:
         warn(
             "Categorical.is_dtype_equal is deprecated and will be removed "
-            "in a future version, use categories_match_up_to_permutation instead",
+            "in a future version",
             FutureWarning,
             stacklevel=2,
         )
         try:
-            return self.categories_match_up_to_permutation(other)
+            return self._categories_match_up_to_permutation(other)
         except (AttributeError, TypeError):
             return False
 
