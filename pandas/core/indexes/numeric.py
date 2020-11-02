@@ -120,6 +120,8 @@ class NumericIndex(Index):
             # force conversion to object
             # so we don't lose the bools
             raise TypeError
+        elif isinstance(value, str) or lib.is_complex(value):
+            raise TypeError
 
         return value
 
