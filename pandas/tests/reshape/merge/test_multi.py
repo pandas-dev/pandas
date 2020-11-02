@@ -1,12 +1,11 @@
 import numpy as np
 from numpy.random import randn
-import pytest
-
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
+import pytest
 
 
 @pytest.fixture
@@ -482,6 +481,56 @@ class TestMergeMulti:
         result = df.merge(df, on=[df.index.year], how="inner")
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_datetime_multi_index_empty_df(self):
+
+        midx1 = pd.MultiIndex.from_tuples(
+            [[pd.Timestamp("1950-01-01"), "A"], [pd.Timestamp("1950-01-02"), "B"]],
+            names=["date", "panel"],
+        )
+        left = DataFrame(
+            data={
+                "data": [1.5, 1.5],
+            },
+            index=midx1,
+        )
+
+        midx2 = pd.MultiIndex.from_tuples([], names=["date", "panel"])
+
+        right = DataFrame(index=midx2, columns=["state"])
+
+        midx3 = pd.MultiIndex.from_tuples(
+            [[pd.Timestamp("1950-01-01"), "A"], [pd.Timestamp("1950-01-02"), "B"]],
+            names=["date", "panel"],
+        )
+
+        expected_left_merge = DataFrame(
+            data={
+                "data": [1.5, 1.5],
+                "state": [None, None],
+            },
+            index=midx3,
+        )
+
+        expected_right_merge = DataFrame(
+            data={
+                "state": [None, None],
+                "data": [1.5, 1.5],
+            },
+            index=midx3,
+        )
+
+        result_left_merge = left.merge(right, how="left", on=["date", "panel"])
+        tm.assert_frame_equal(result_left_merge, expected_left_merge)
+
+        result_right_merge = right.merge(left, how="right", on=["date", "panel"])
+        tm.assert_frame_equal(result_right_merge, expected_right_merge)
+
+        result_left_join = left.join(right, how="left")
+        tm.assert_frame_equal(result_left_join, expected_left_merge)
+
+        result_right_join = right.join(left, how="right")
+        tm.assert_frame_equal(result_right_join, expected_right_merge)
+
     def test_join_multi_levels(self):
 
         # GH 3662
@@ -837,36 +886,3 @@ class TestJoinMultiMulti:
         )
 
         tm.assert_frame_equal(result, expected)
-
-
-def test_merge_datetime_index_empty_df():
-
-    midx1 = pd.MultiIndex.from_tuples(
-        [[pd.Timestamp("1950-01-01"), "A"], [pd.Timestamp("1950-01-02"), "B"]],
-        names=["date", "panel"],
-    )
-    frame = DataFrame(
-        data={
-            "data": [1.5, 1.5],
-        },
-        index=midx1,
-    )
-
-    midx2 = pd.MultiIndex.from_tuples([], names=["date", "panel"])
-
-    other = DataFrame(index=midx2, columns=["state"])
-
-    midx3 = pd.MultiIndex.from_tuples(
-        [[pd.Timestamp("1950-01-01"), "A"], [pd.Timestamp("1950-01-02"), "B"]],
-        names=["date", "panel"],
-    )
-
-    expected = DataFrame(
-        data={
-            "data": [1.5, 1.5],
-            "state": [None, None],
-        },
-        index=midx3,
-    )
-    result = frame.merge(other, how="left", on=["date", "panel"])
-    tm.assert_frame_equal(result, expected)

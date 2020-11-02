@@ -365,15 +365,6 @@ Performance improvements
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_120.regressions:
-
-Fixed regressions
-~~~~~~~~~~~~~~~~~
-- Fixed regression in :func:`merge` on merging datetime index with empty DF (:issue:`36895`)
-
-.. ---------------------------------------------------------------------------
-
-
 .. _whatsnew_120.bug_fixes:
 
 Bug fixes
@@ -475,7 +466,7 @@ MultiIndex
 
 - Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
 - Bug in :meth:`DataFrame.reset_index` with ``NaT`` values in index raises ``ValueError`` with message ``"cannot convert float NaN to integer"`` (:issue:`36541`)
--
+- Fixed regression in :func:`merge` on merging DatetimeIndex with empty DataFrame (:issue:`36895`)
 
 I/O
 ^^^
