@@ -4,12 +4,36 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import timezones
+import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Series, date_range
 import pandas._testing as tm
 
 
 class TestBetweenTime:
+    @td.skip_if_has_locale
+    def test_between_time_formats(self, frame_or_series):
+        # GH#11818
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        if frame_or_series is Series:
+            ts = ts[0]
+
+        strings = [
+            ("2:00", "2:30"),
+            ("0200", "0230"),
+            ("2:00am", "2:30am"),
+            ("0200am", "0230am"),
+            ("2:00:00", "2:30:00"),
+            ("020000", "023000"),
+            ("2:00:00am", "2:30:00am"),
+            ("020000am", "023000am"),
+        ]
+        expected_length = 28
+
+        for time_string in strings:
+            assert len(ts.between_time(*time_string)) == expected_length
+
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_localized_between_time(self, tzstr, frame_or_series):
         tz = timezones.maybe_get_tz(tzstr)
@@ -110,7 +134,23 @@ class TestBetweenTime:
         with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
             obj.between_time(start_time="00:00", end_time="12:00")
 
-    def test_between_time_axis(self, axis):
+    def test_between_time_axis(self, frame_or_series):
+        # GH#8839
+        rng = date_range("1/1/2000", periods=100, freq="10min")
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        if frame_or_series is DataFrame:
+            ts = ts.to_frame()
+
+        stime, etime = ("08:00:00", "09:00:00")
+        expected_length = 7
+
+        assert len(ts.between_time(stime, etime)) == expected_length
+        assert len(ts.between_time(stime, etime, axis=0)) == expected_length
+        msg = f"No axis named {ts.ndim} for object type {type(ts).__name__}"
+        with pytest.raises(ValueError, match=msg):
+            ts.between_time(stime, etime, axis=ts.ndim)
+
+    def test_between_time_axis_aliases(self, axis):
         # GH#8839
         rng = date_range("1/1/2000", periods=100, freq="10min")
         ts = DataFrame(np.random.randn(len(rng), len(rng)))
