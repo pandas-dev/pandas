@@ -120,7 +120,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         "ceil",
     ]
 
-    # Note: ndim must be defined to ensure NaT.__richcmp(TimedeltaArray)
+    # Note: ndim must be defined to ensure NaT.__richcmp__(TimedeltaArray)
     #  operates pointwise.
 
     def _box_func(self, x) -> Union[Timedelta, NaTType]:
@@ -370,6 +370,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def sum(
         self,
+        *,
         axis=None,
         dtype=None,
         out=None,
@@ -381,15 +382,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         nv.validate_sum(
             (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)
         )
-        if not len(self):
-            return NaT
-        if not skipna and self._hasnans:
-            return NaT
 
         result = nanops.nansum(
-            self._data, axis=axis, skipna=skipna, min_count=min_count
+            self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
-        return Timedelta(result)
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result)
 
     def std(
         self,
@@ -403,13 +402,11 @@ class TimedeltaArray(dtl.TimelikeOps):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
         )
-        if not len(self):
-            return NaT
-        if not skipna and self._hasnans:
-            return NaT
 
-        result = nanops.nanstd(self._data, axis=axis, skipna=skipna, ddof=ddof)
-        return Timedelta(result)
+        result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result)
 
     # ----------------------------------------------------------------
     # Rendering Methods
@@ -524,7 +521,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def __truediv__(self, other):
         # timedelta / X is well-defined for timedelta-like or numeric X
 
-        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+        if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
             if other is NaT:
                 # specifically timedelta64-NaT
@@ -581,7 +578,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @unpack_zerodim_and_defer("__rtruediv__")
     def __rtruediv__(self, other):
         # X / timedelta is defined only for timedelta-like X
-        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+        if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
             if other is NaT:
                 # specifically timedelta64-NaT
@@ -624,7 +621,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def __floordiv__(self, other):
 
         if is_scalar(other):
-            if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            if isinstance(other, self._recognized_scalars):
                 other = Timedelta(other)
                 if other is NaT:
                     # treat this specifically as timedelta-NaT
@@ -688,7 +685,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def __rfloordiv__(self, other):
 
         if is_scalar(other):
-            if isinstance(other, (timedelta, np.timedelta64, Tick)):
+            if isinstance(other, self._recognized_scalars):
                 other = Timedelta(other)
                 if other is NaT:
                     # treat this specifically as timedelta-NaT
@@ -734,21 +731,21 @@ class TimedeltaArray(dtl.TimelikeOps):
     @unpack_zerodim_and_defer("__mod__")
     def __mod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+        if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
         return self - (self // other) * other
 
     @unpack_zerodim_and_defer("__rmod__")
     def __rmod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+        if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
         return other - (other // self) * self
 
     @unpack_zerodim_and_defer("__divmod__")
     def __divmod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+        if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
 
         res1 = self // other
@@ -758,7 +755,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @unpack_zerodim_and_defer("__rdivmod__")
     def __rdivmod__(self, other):
         # Note: This is a naive implementation, can likely be optimized
-        if isinstance(other, (timedelta, np.timedelta64, Tick)):
+        if isinstance(other, self._recognized_scalars):
             other = Timedelta(other)
 
         res1 = other // self

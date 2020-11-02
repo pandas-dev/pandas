@@ -14,8 +14,6 @@ from pandas._libs.tslib import Timestamp
 from pandas.compat.numpy import np_datetime64_compat
 from pandas.util._test_decorators import async_mark
 
-from pandas.core.dtypes.generic import ABCIndex
-
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -114,7 +112,7 @@ class TestIndex(Base):
 
         tm.assert_index_equal(result, index)
 
-        if isinstance(index, pd.DatetimeIndex):
+        if isinstance(index, DatetimeIndex):
             assert result.tz == index.tz
             if cast_as_obj:
                 # GH#23524 check that Index(dti, dtype=object) does not
@@ -224,7 +222,7 @@ class TestIndex(Base):
         "klass,dtype,na_val",
         [
             (pd.Float64Index, np.float64, np.nan),
-            (pd.DatetimeIndex, "datetime64[ns]", pd.NaT),
+            (DatetimeIndex, "datetime64[ns]", pd.NaT),
         ],
     )
     def test_index_ctor_infer_nan_nat(self, klass, dtype, na_val):
@@ -338,7 +336,7 @@ class TestIndex(Base):
             assert isinstance(index, TimedeltaIndex)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
-    @pytest.mark.parametrize("klass", [Index, pd.DatetimeIndex])
+    @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
     def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, klass):
         # Test constructing with a datetimetz dtype
         # .values produces numpy datetimes, so these are considered naive
@@ -351,25 +349,25 @@ class TestIndex(Base):
         dtype = index.dtype
 
         if attr == "asi8":
-            result = pd.DatetimeIndex(arg).tz_localize(tz_naive_fixture)
+            result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
         else:
             result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            result = pd.DatetimeIndex(arg).astype(dtype)
+            result = DatetimeIndex(arg).astype(dtype)
         else:
             result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            result = pd.DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
+            result = DatetimeIndex(list(arg)).tz_localize(tz_naive_fixture)
         else:
             result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            result = pd.DatetimeIndex(list(arg)).astype(dtype)
+            result = DatetimeIndex(list(arg)).astype(dtype)
         else:
             result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
@@ -604,7 +602,7 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
     def test_empty_fancy_raises(self, index):
-        # pd.DatetimeIndex is excluded, because it overrides getitem and should
+        # DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
         empty_farr = np.array([], dtype=np.float_)
         empty_index = type(index)([])
@@ -1010,19 +1008,20 @@ class TestIndex(Base):
         tm.assert_index_equal(result, expected)
 
         # __xor__ syntax
-        expected = index1 ^ index2
+        with tm.assert_produces_warning(FutureWarning):
+            expected = index1 ^ index2
         assert tm.equalContents(result, expected)
         assert result.name is None
 
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable(self, opname):
-        a = Index([3, pd.Timestamp("2000"), 1])
-        b = Index([2, pd.Timestamp("1999"), 1])
+        a = Index([3, Timestamp("2000"), 1])
+        b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b)
 
         # sort=None, the default
         result = op(a)
-        expected = Index([3, pd.Timestamp("2000"), 2, pd.Timestamp("1999")])
+        expected = Index([3, Timestamp("2000"), 2, Timestamp("1999")])
         if opname == "difference":
             expected = expected[:2]
         tm.assert_index_equal(result, expected)
@@ -1037,8 +1036,8 @@ class TestIndex(Base):
     def test_difference_incomparable_true(self, opname):
         # TODO decide on True behaviour
         # # sort=True, raises
-        a = Index([3, pd.Timestamp("2000"), 1])
-        b = Index([2, pd.Timestamp("1999"), 1])
+        a = Index([3, Timestamp("2000"), 1])
+        b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b, sort=True)
 
         with pytest.raises(TypeError, match="Cannot compare"):
@@ -2005,7 +2004,7 @@ class TestIndex(Base):
         [
             (pd.Int64Index([]), np.int64),
             (pd.Float64Index([]), np.float64),
-            (pd.DatetimeIndex([]), np.datetime64),
+            (DatetimeIndex([]), np.datetime64),
         ],
     )
     def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self, labels, dtype):
@@ -2016,7 +2015,7 @@ class TestIndex(Base):
     def test_reindex_no_type_preserve_target_empty_mi(self):
         index = Index(list("abc"))
         result = index.reindex(
-            pd.MultiIndex([pd.Int64Index([]), pd.Float64Index([])], [[], []])
+            MultiIndex([pd.Int64Index([]), pd.Float64Index([])], [[], []])
         )[0]
         assert result.levels[0].dtype.type == np.int64
         assert result.levels[1].dtype.type == np.float64
@@ -2348,12 +2347,12 @@ class TestMixedIntIndex(Base):
         "index,expected",
         [
             (
-                pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
-                pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
+                DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
+                DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
             ),
             (
-                pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03", pd.NaT]),
-                pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
+                DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03", pd.NaT]),
+                DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"]),
             ),
             (
                 pd.TimedeltaIndex(["1 days", "2 days", "3 days"]),
@@ -2518,10 +2517,6 @@ class TestIndexUtils:
     ],
 )
 def test_generated_op_names(opname, index):
-    if isinstance(index, ABCIndex) and opname == "rsub":
-        # Index.__rsub__ does not exist; though the method does exist
-        # for subclasses.  see GH#19723
-        return
     opname = f"__{opname}__"
     method = getattr(index, opname)
     assert method.__name__ == opname
@@ -2621,7 +2616,7 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
     def construct(dtype):
         if dtype is dtlike_dtypes[-1]:
             # PeriodArray will try to cast ints to strings
-            return pd.DatetimeIndex(vals).astype(dtype)
+            return DatetimeIndex(vals).astype(dtype)
         return Index(vals, dtype=dtype)
 
     left = construct(ldtype)

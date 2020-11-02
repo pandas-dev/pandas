@@ -7,8 +7,18 @@ import pytz
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
+from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
+
 import pandas as pd
-from pandas import Categorical, Index, Series, bdate_range, date_range, isna
+from pandas import (
+    Categorical,
+    Index,
+    IntervalIndex,
+    Series,
+    bdate_range,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 from pandas.core import nanops, ops
 
@@ -741,3 +751,89 @@ def test_series_ops_name_retention(flex, box, names, all_binary_operators):
         assert result.name == names[2]
     else:
         assert result.name == names[0]
+
+
+class TestNamePreservation:
+    def test_binop_maybe_preserve_name(self, datetime_series):
+        # names match, preserve
+        result = datetime_series * datetime_series
+        assert result.name == datetime_series.name
+        result = datetime_series.mul(datetime_series)
+        assert result.name == datetime_series.name
+
+        result = datetime_series * datetime_series[:-2]
+        assert result.name == datetime_series.name
+
+        # names don't match, don't preserve
+        cp = datetime_series.copy()
+        cp.name = "something else"
+        result = datetime_series + cp
+        assert result.name is None
+        result = datetime_series.add(cp)
+        assert result.name is None
+
+        ops = ["add", "sub", "mul", "div", "truediv", "floordiv", "mod", "pow"]
+        ops = ops + ["r" + op for op in ops]
+        for op in ops:
+            # names match, preserve
+            ser = datetime_series.copy()
+            result = getattr(ser, op)(ser)
+            assert result.name == datetime_series.name
+
+            # names don't match, don't preserve
+            cp = datetime_series.copy()
+            cp.name = "changed"
+            result = getattr(ser, op)(cp)
+            assert result.name is None
+
+    def test_scalarop_preserve_name(self, datetime_series):
+        result = datetime_series * 2
+        assert result.name == datetime_series.name
+
+
+def test_none_comparison(series_with_simple_index):
+    series = series_with_simple_index
+    if isinstance(series.index, IntervalIndex):
+        # IntervalIndex breaks on "series[0] = np.nan" below
+        pytest.skip("IntervalIndex doesn't support assignment")
+    if len(series) < 1:
+        pytest.skip("Test doesn't make sense on empty data")
+
+    # bug brought up by #1079
+    # changed from TypeError in 0.17.0
+    series[0] = np.nan
+
+    # noinspection PyComparisonWithNone
+    result = series == None  # noqa
+    assert not result.iat[0]
+    assert not result.iat[1]
+
+    # noinspection PyComparisonWithNone
+    result = series != None  # noqa
+    assert result.iat[0]
+    assert result.iat[1]
+
+    result = None == series  # noqa
+    assert not result.iat[0]
+    assert not result.iat[1]
+
+    result = None != series  # noqa
+    assert result.iat[0]
+    assert result.iat[1]
+
+    if is_datetime64_dtype(series.dtype) or is_datetime64tz_dtype(series.dtype):
+        # Following DatetimeIndex (and Timestamp) convention,
+        # inequality comparisons with Series[datetime64] raise
+        msg = "Invalid comparison"
+        with pytest.raises(TypeError, match=msg):
+            None > series
+        with pytest.raises(TypeError, match=msg):
+            series > None
+    else:
+        result = None > series
+        assert not result.iat[0]
+        assert not result.iat[1]
+
+        result = series < None
+        assert not result.iat[0]
+        assert not result.iat[1]

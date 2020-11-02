@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 import re
 
 import numpy as np
-from numpy.random import randint
 import pytest
 
 from pandas._libs import lib
@@ -367,7 +366,12 @@ class TestStringMethods:
         tm.assert_series_equal(ds, s)
 
     def test_iter_object_try_string(self):
-        ds = Series([slice(None, randint(10), randint(10, 20)) for _ in range(4)])
+        ds = Series(
+            [
+                slice(None, np.random.randint(10), np.random.randint(10, 20))
+                for _ in range(4)
+            ]
+        )
 
         i, s = 100, "h"
 
@@ -641,7 +645,9 @@ class TestStringMethods:
         u = np.array(["A", "B", "C", "D"])
         expected_outer = Series(["aaA", "bbB", "c-C", "ddD", "-e-"])
         # joint index of rhs [t, u]; u will be forced have index of s
-        rhs_idx = t.index & s.index if join == "inner" else t.index | s.index
+        rhs_idx = (
+            t.index.intersection(s.index) if join == "inner" else t.index.union(s.index)
+        )
 
         expected = expected_outer.loc[s.index.join(rhs_idx, how=join)]
         result = s.str.cat([t, u], join=join, na_rep="-")
