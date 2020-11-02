@@ -475,10 +475,10 @@ class ExcelFormatter:
         if cols is not None:
 
             # all missing, raise
-            if not len(Index(cols) & df.columns):
+            if not len(Index(cols).intersection(df.columns)):
                 raise KeyError("passes columns are not ALL present dataframe")
 
-            if len(Index(cols) & df.columns) != len(cols):
+            if len(Index(cols).intersection(df.columns)) != len(cols):
                 # Deprecated in GH#17295, enforced in 1.0.0
                 raise KeyError("Not all names specified in 'columns' are found")
 

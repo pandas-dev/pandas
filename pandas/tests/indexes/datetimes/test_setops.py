@@ -300,7 +300,8 @@ class TestDatetimeIndexSetOps:
         index_1 = date_range("1/1/2012", periods=4, freq="12H")
         index_2 = index_1 + DateOffset(hours=1)
 
-        result = index_1 & index_2
+        with tm.assert_produces_warning(FutureWarning):
+            result = index_1 & index_2
         assert len(result) == 0
 
     @pytest.mark.parametrize("tz", tz)

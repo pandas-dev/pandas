@@ -269,11 +269,13 @@ class TestSeriesLogicalOps:
         idx2 = Index([1, 0, 1, 0])
 
         expected = Index.symmetric_difference(idx1, ser)
-        result = idx1 ^ ser
+        with tm.assert_produces_warning(FutureWarning):
+            result = idx1 ^ ser
         tm.assert_index_equal(result, expected)
 
         expected = Index.symmetric_difference(idx2, ser)
-        result = idx2 ^ ser
+        with tm.assert_produces_warning(FutureWarning):
+            result = idx2 ^ ser
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -304,11 +306,13 @@ class TestSeriesLogicalOps:
         idx2 = Index([1, 0, 1, 0])
 
         expected = Series(op(idx1.values, ser.values))
-        result = op(ser, idx1)
+        with tm.assert_produces_warning(FutureWarning):
+            result = op(ser, idx1)
         tm.assert_series_equal(result, expected)
 
         expected = Series(op(idx2.values, ser.values))
-        result = op(ser, idx2)
+        with tm.assert_produces_warning(FutureWarning):
+            result = op(ser, idx2)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -324,7 +328,9 @@ class TestSeriesLogicalOps:
         # multi-set Index ops are buggy, so let's avoid duplicates...
         ser = Series([True, False])
         idx = Index([False, True])
-        result = op(ser, idx)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # behaving as set ops is deprecated, will become logical ops
+            result = op(ser, idx)
         tm.assert_index_equal(result, expected)
 
     def test_logical_ops_label_based(self):

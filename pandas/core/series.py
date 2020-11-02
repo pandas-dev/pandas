@@ -725,7 +725,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # it to handle *args.
             index = alignable[0].index
             for s in alignable[1:]:
-                index |= s.index
+                index = index.union(s.index)
             inputs = tuple(
                 x.reindex(index) if issubclass(t, Series) else x
                 for x, t in zip(inputs, types)

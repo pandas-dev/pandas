@@ -268,7 +268,7 @@ class JSONTableWriter(FrameWriter):
         if (
             (obj.ndim == 1)
             and (obj.name in set(obj.index.names))
-            or len(obj.columns & obj.index.names)
+            or len(obj.columns.intersection(obj.index.names))
         ):
             msg = "Overlapping names between the index and columns"
             raise ValueError(msg)
