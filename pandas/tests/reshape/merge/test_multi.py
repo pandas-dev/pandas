@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas as pd
@@ -197,14 +196,12 @@ class TestMergeMulti:
         # GH29522
         s = pd.Series(
             range(6),
-            pd.MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
+            MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
             name="Amount",
         )
-        df = pd.DataFrame(
-            {"lev1": list("AAABBB"), "lev2": [1, 2, 3, 1, 2, 3], "col": 0}
-        )
+        df = DataFrame({"lev1": list("AAABBB"), "lev2": [1, 2, 3, 1, 2, 3], "col": 0})
         result = pd.merge(df, s.reset_index(), on=["lev1", "lev2"])
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {
                 "lev1": list("AAABBB"),
                 "lev2": [1, 2, 3, 1, 2, 3],
@@ -408,10 +405,10 @@ class TestMergeMulti:
         left = DataFrame(
             {
                 "id": list("abcde"),
-                "v1": randn(5),
-                "v2": randn(5),
+                "v1": np.random.randn(5),
+                "v2": np.random.randn(5),
                 "dummy": list("abcde"),
-                "v3": randn(5),
+                "v3": np.random.randn(5),
             },
             columns=["id", "v1", "v2", "dummy", "v3"],
         )
@@ -797,19 +794,19 @@ class TestJoinMultiMulti:
         tm.assert_frame_equal(result, expected)
 
     def test_single_common_level(self):
-        index_left = pd.MultiIndex.from_tuples(
+        index_left = MultiIndex.from_tuples(
             [("K0", "X0"), ("K0", "X1"), ("K1", "X2")], names=["key", "X"]
         )
 
-        left = pd.DataFrame(
+        left = DataFrame(
             {"A": ["A0", "A1", "A2"], "B": ["B0", "B1", "B2"]}, index=index_left
         )
 
-        index_right = pd.MultiIndex.from_tuples(
+        index_right = MultiIndex.from_tuples(
             [("K0", "Y0"), ("K1", "Y1"), ("K2", "Y2"), ("K2", "Y3")], names=["key", "Y"]
         )
 
-        right = pd.DataFrame(
+        right = DataFrame(
             {"C": ["C0", "C1", "C2", "C3"], "D": ["D0", "D1", "D2", "D3"]},
             index=index_right,
         )
@@ -825,15 +822,15 @@ class TestJoinMultiMulti:
         # GH 25760
         # GH 28956
 
-        midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
-        midx3 = pd.MultiIndex.from_tuples([(4, 1), (3, 2), (3, 1)], names=["b", "a"])
+        midx1 = MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
+        midx3 = MultiIndex.from_tuples([(4, 1), (3, 2), (3, 1)], names=["b", "a"])
 
-        left = pd.DataFrame(index=midx1, data={"x": [10, 20, 30, 40]})
-        right = pd.DataFrame(index=midx3, data={"y": ["foo", "bar", "fing"]})
+        left = DataFrame(index=midx1, data={"x": [10, 20, 30, 40]})
+        right = DataFrame(index=midx3, data={"y": ["foo", "bar", "fing"]})
 
         result = left.join(right)
 
-        expected = pd.DataFrame(
+        expected = DataFrame(
             index=midx1,
             data={"x": [10, 20, 30, 40], "y": ["fing", "foo", "bar", np.nan]},
         )

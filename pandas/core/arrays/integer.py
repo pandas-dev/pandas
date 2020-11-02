@@ -484,7 +484,7 @@ class IntegerArray(BaseMaskedArray):
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
         if self._mask.any():
@@ -603,19 +603,19 @@ class IntegerArray(BaseMaskedArray):
 
         return self._maybe_mask_result(result, mask, other, op_name)
 
-    def sum(self, skipna=True, min_count=0, **kwargs):
+    def sum(self, *, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
         return super()._reduce("sum", skipna=skipna, min_count=min_count)
 
-    def prod(self, skipna=True, min_count=0, **kwargs):
+    def prod(self, *, skipna=True, min_count=0, **kwargs):
         nv.validate_prod((), kwargs)
         return super()._reduce("prod", skipna=skipna, min_count=min_count)
 
-    def min(self, skipna=True, **kwargs):
+    def min(self, *, skipna=True, **kwargs):
         nv.validate_min((), kwargs)
         return super()._reduce("min", skipna=skipna)
 
-    def max(self, skipna=True, **kwargs):
+    def max(self, *, skipna=True, **kwargs):
         nv.validate_max((), kwargs)
         return super()._reduce("max", skipna=skipna)
 

@@ -36,6 +36,7 @@ from numpy cimport (
     float32_t,
     float64_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint64_t,
@@ -490,7 +491,7 @@ def has_infs_f8(const float64_t[:] arr) -> bool:
     return False
 
 
-def maybe_indices_to_slice(ndarray[int64_t] indices, int max_len):
+def maybe_indices_to_slice(ndarray[intp_t] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
         int k, vstart, vlast, v
@@ -650,6 +651,11 @@ cpdef ndarray[object] ensure_string_array(
     """
     cdef:
         Py_ssize_t i = 0, n = len(arr)
+
+    if hasattr(arr, "to_numpy"):
+        arr = arr.to_numpy()
+    elif not isinstance(arr, np.ndarray):
+        arr = np.array(arr, dtype="object")
 
     result = np.asarray(arr, dtype="object")
 
@@ -2019,7 +2025,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
             seen.bool_ = True
-        elif val is None:
+        elif val is None or val is C_NA:
             seen.saw_null()
             floats[i] = complexes[i] = NaN
         elif hasattr(val, '__len__') and len(val) == 0:

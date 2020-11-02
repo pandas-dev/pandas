@@ -77,10 +77,10 @@ class TestTimedelta64ArrayLikeComparisons:
         box = box_with_array
         xbox = box if box not in [pd.Index, pd.array] else np.ndarray
 
-        ser = pd.Series([timedelta(days=1), timedelta(days=2)])
+        ser = Series([timedelta(days=1), timedelta(days=2)])
         ser = tm.box_expected(ser, box)
         actual = ser > td_scalar
-        expected = pd.Series([False, True])
+        expected = Series([False, True])
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(actual, expected)
 
@@ -119,7 +119,7 @@ class TestTimedelta64ArrayLikeComparisons:
     def test_td64arr_cmp_mixed_invalid(self):
         rng = timedelta_range("1 days", periods=5)._data
 
-        other = np.array([0, 1, 2, rng[3], pd.Timestamp.now()])
+        other = np.array([0, 1, 2, rng[3], Timestamp.now()])
         result = rng == other
         expected = np.array([False, False, False, True, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -143,10 +143,8 @@ class TestTimedelta64ArrayComparisons:
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_comp_nat(self, dtype):
-        left = pd.TimedeltaIndex(
-            [pd.Timedelta("1 days"), pd.NaT, pd.Timedelta("3 days")]
-        )
-        right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta("3 days")])
+        left = TimedeltaIndex([Timedelta("1 days"), pd.NaT, Timedelta("3 days")])
+        right = TimedeltaIndex([pd.NaT, pd.NaT, Timedelta("3 days")])
 
         lhs, rhs = left, right
         if dtype is object:
@@ -173,7 +171,7 @@ class TestTimedelta64ArrayComparisons:
         tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_comparisons_nat(self):
-        tdidx1 = pd.TimedeltaIndex(
+        tdidx1 = TimedeltaIndex(
             [
                 "1 day",
                 pd.NaT,
@@ -183,7 +181,7 @@ class TestTimedelta64ArrayComparisons:
                 "5 day 00:00:03",
             ]
         )
-        tdidx2 = pd.TimedeltaIndex(
+        tdidx2 = TimedeltaIndex(
             ["2 day", "2 day", pd.NaT, pd.NaT, "1 day 00:00:02", "5 days 00:00:03"]
         )
         tdarr = np.array(
@@ -722,14 +720,14 @@ class TestTimedeltaArraylikeAddSubOps:
 
         sn = pd.to_timedelta(Series([pd.NaT], dtype="m8[ns]"))
 
-        df1 = pd.DataFrame(["00:00:01"]).apply(pd.to_timedelta)
-        df2 = pd.DataFrame(["00:00:02"]).apply(pd.to_timedelta)
+        df1 = DataFrame(["00:00:01"]).apply(pd.to_timedelta)
+        df2 = DataFrame(["00:00:02"]).apply(pd.to_timedelta)
         with pytest.raises(TypeError, match=msg):
             # Passing datetime64-dtype data to TimedeltaIndex is no longer
             #  supported GH#29794
-            pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+            DataFrame([pd.NaT]).apply(pd.to_timedelta)
 
-        dfn = pd.DataFrame([pd.NaT.value]).apply(pd.to_timedelta)
+        dfn = DataFrame([pd.NaT.value]).apply(pd.to_timedelta)
 
         scalar1 = pd.to_timedelta("00:00:01")
         scalar2 = pd.to_timedelta("00:00:02")
@@ -1030,7 +1028,7 @@ class TestTimedeltaArraylikeAddSubOps:
         dti = pd.date_range("2016-01-01", periods=3)
         tdi = dti - dti.shift(1)
         dtarr = dti.values
-        expected = pd.DatetimeIndex(dtarr) - tdi
+        expected = DatetimeIndex(dtarr) - tdi
 
         tdi = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1047,7 +1045,7 @@ class TestTimedeltaArraylikeAddSubOps:
         dti = pd.date_range("2016-01-01", periods=3)
         tdi = dti - dti.shift(1)
         dtarr = dti.values
-        expected = pd.DatetimeIndex(dtarr) + tdi
+        expected = DatetimeIndex(dtarr) + tdi
 
         tdi = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1062,7 +1060,7 @@ class TestTimedeltaArraylikeAddSubOps:
         other = np.datetime64("NaT")
 
         tdi = timedelta_range("1 day", periods=3)
-        expected = pd.DatetimeIndex(["NaT", "NaT", "NaT"])
+        expected = DatetimeIndex(["NaT", "NaT", "NaT"])
 
         tdser = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1104,7 +1102,7 @@ class TestTimedeltaArraylikeAddSubOps:
     )
     def test_td64arr_addsub_numeric_scalar_invalid(self, box_with_array, other):
         # vector-like others are tested in test_td64arr_add_sub_numeric_arr_invalid
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdarr = tm.box_expected(tdser, box_with_array)
 
         assert_invalid_addsub_type(tdarr, other)
@@ -1122,7 +1120,7 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_td64arr_addsub_numeric_arr_invalid(
         self, box_with_array, vec, any_real_dtype
     ):
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         tdarr = tm.box_expected(tdser, box_with_array)
 
         vector = vec.astype(any_real_dtype)
@@ -1246,9 +1244,9 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_td64arr_add_sub_td64_nat(self, box_with_array):
         # GH#23320 special handling for timedelta64("NaT")
         box = box_with_array
-        tdi = pd.TimedeltaIndex([NaT, Timedelta("1s")])
+        tdi = TimedeltaIndex([NaT, Timedelta("1s")])
         other = np.timedelta64("NaT")
-        expected = pd.TimedeltaIndex(["NaT"] * 2)
+        expected = TimedeltaIndex(["NaT"] * 2)
 
         obj = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
@@ -1472,14 +1470,14 @@ class TestTimedeltaArraylikeAddSubOps:
         tdarr = tm.box_expected(tdi, box)
 
         other = np.array(
-            [pd.Timedelta(days=1), pd.offsets.Day(2), pd.Timestamp("2000-01-04")]
+            [Timedelta(days=1), pd.offsets.Day(2), Timestamp("2000-01-04")]
         )
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = tdarr + other
 
         expected = pd.Index(
-            [pd.Timedelta(days=2), pd.Timedelta(days=4), pd.Timestamp("2000-01-07")]
+            [Timedelta(days=2), Timedelta(days=4), Timestamp("2000-01-07")]
         )
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(result, expected)
@@ -1492,9 +1490,7 @@ class TestTimedeltaArraylikeAddSubOps:
         with tm.assert_produces_warning(PerformanceWarning):
             result = other - tdarr
 
-        expected = pd.Index(
-            [pd.Timedelta(0), pd.Timedelta(0), pd.Timestamp("2000-01-01")]
-        )
+        expected = pd.Index([Timedelta(0), Timedelta(0), Timestamp("2000-01-01")])
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(result, expected)
 
@@ -1556,7 +1552,7 @@ class TestTimedeltaArraylikeMulDivOps:
         idx = tm.box_expected(idx, box)
         expected = tm.box_expected(expected, xbox)
 
-        result = idx * pd.Series(np.arange(5, dtype="int64"))
+        result = idx * Series(np.arange(5, dtype="int64"))
         tm.assert_equal(result, expected)
 
     def test_tdi_mul_float_series(self, box_with_array):
@@ -1765,8 +1761,8 @@ class TestTimedeltaArraylikeMulDivOps:
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
 
-        left = pd.Series([1000, 222330, 30], dtype="timedelta64[ns]")
-        right = pd.Series([1000, 222330, None], dtype="timedelta64[ns]")
+        left = Series([1000, 222330, 30], dtype="timedelta64[ns]")
+        right = Series([1000, 222330, None], dtype="timedelta64[ns]")
 
         left = tm.box_expected(left, box)
         right = tm.box_expected(right, box)
@@ -1988,7 +1984,7 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_numeric_scalar(self, box_with_array, one):
         # GH#4521
         # divide/multiply by integers
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         expected = Series(["-59 Days", "-59 Days", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)
@@ -2011,7 +2007,7 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_div_numeric_scalar(self, box_with_array, two):
         # GH#4521
         # divide/multiply by integers
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         expected = Series(["29.5D", "29.5D", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)
@@ -2033,7 +2029,7 @@ class TestTimedeltaArraylikeMulDivOps:
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
 
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         vector = vector.astype(any_real_dtype)
 
         expected = Series(["1180 Days", "1770 Days", "NaT"], dtype="timedelta64[ns]")
@@ -2057,7 +2053,7 @@ class TestTimedeltaArraylikeMulDivOps:
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
 
-        tdser = pd.Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         vector = vector.astype(any_real_dtype)
 
         expected = Series(["2.95D", "1D 23H 12m", "NaT"], dtype="timedelta64[ns]")
@@ -2188,9 +2184,9 @@ class TestTimedelta64ArrayLikeArithmetic:
 
 def test_add_timestamp_to_timedelta():
     # GH: 35897
-    timestamp = pd.Timestamp.now()
+    timestamp = Timestamp.now()
     result = timestamp + pd.timedelta_range("0s", "1s", periods=31)
-    expected = pd.DatetimeIndex(
+    expected = DatetimeIndex(
         [
             timestamp
             + (

@@ -1,7 +1,7 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import List
+from typing import List, TypeVar
 
 import numpy as np
 
@@ -13,9 +13,12 @@ from pandas.core.dtypes.common import is_dtype_equal, is_object_dtype
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
+
+_T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 
 
 def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
@@ -277,3 +280,79 @@ class ExtensionIndex(Index):
         # pass copy=False because any copying will be done in the
         #  _data.astype call above
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
+
+    @cache_readonly
+    def _isnan(self) -> np.ndarray:
+        return self._data.isna()
+
+    @doc(Index.equals)
+    def equals(self, other) -> bool:
+        # Dispatch to the ExtensionArray's .equals method.
+        if self.is_(other):
+            return True
+
+        if not isinstance(other, type(self)):
+            return False
+
+        return self._data.equals(other._data)
+
+
+class NDArrayBackedExtensionIndex(ExtensionIndex):
+    """
+    Index subclass for indexes backed by NDArrayBackedExtensionArray.
+    """
+
+    _data: NDArrayBackedExtensionArray
+
+    def delete(self, loc):
+        """
+        Make new Index with passed location(-s) deleted
+
+        Returns
+        -------
+        new_index : Index
+        """
+        new_vals = np.delete(self._data._ndarray, loc)
+        arr = self._data._from_backing_data(new_vals)
+        return type(self)._simple_new(arr, name=self.name)
+
+    def insert(self, loc: int, item):
+        """
+        Make new Index inserting new item at location. Follows
+        Python list.append semantics for negative values.
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        new_index : Index
+
+        Raises
+        ------
+        ValueError if the item is not valid for this dtype.
+        """
+        arr = self._data
+        code = arr._validate_insert_value(item)
+
+        new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
+        new_arr = arr._from_backing_data(new_vals)
+        return type(self)._simple_new(new_arr, name=self.name)
+
+    def putmask(self, mask, value):
+        try:
+            value = self._data._validate_where_value(value)
+        except (TypeError, ValueError):
+            return self.astype(object).putmask(mask, value)
+
+        new_values = self._data._ndarray.copy()
+        np.putmask(new_values, mask, value)
+        new_arr = self._data._from_backing_data(new_values)
+        return type(self)._simple_new(new_arr, name=self.name)
+
+    def _wrap_joined_index(self: _T, joined: np.ndarray, other: _T) -> _T:
+        name = get_op_result_name(self, other)
+        arr = self._data._from_backing_data(joined)
+        return type(self)._simple_new(arr, name=name)
