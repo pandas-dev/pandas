@@ -5393,7 +5393,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         if subset is not None:
             subset = subset if is_list_like(subset) else [subset]
-            return self.loc[:, subset].is_unique()
+            self = self[subset]
 
         if len(self.columns):
             return self.apply(Series._is_unique)
