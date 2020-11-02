@@ -827,8 +827,12 @@ def is_nonnegative_int(value: Optional[int]) -> None:
     ValueError
         When the value is not None or is a negative integer
     """
-    if isinstance(value, int) and value >= 0 or value is None:
+    if value is None:
         return
+
+    elif isinstance(value, int):
+        if value >= 0:
+            return
 
     msg = "Value must be a nonnegative integer or None"
     raise ValueError(msg)
