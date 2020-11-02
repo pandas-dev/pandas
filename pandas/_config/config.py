@@ -392,7 +392,7 @@ class option_context(ContextDecorator):
     """
 
     def __init__(self, *args):
-        if not (len(args) % 2 == 0 and len(args) >= 2):
+        if len(args) % 2 != 0 or len(args) < 2:
             raise ValueError(
                 "Need to invoke as option_context(pat, val, [(pat, val), ...])."
             )
@@ -648,7 +648,7 @@ def _build_option_description(k: str) -> str:
         s += f"\n    [default: {o.defval}] [currently: {_get_option(k, True)}]"
 
     if d:
-        rkey = d.rkey if d.rkey else ""
+        rkey = d.rkey or ""
         s += "\n    (Deprecated"
         s += f", use `{rkey}` instead."
         s += ")"
@@ -827,12 +827,8 @@ def is_nonnegative_int(value: Optional[int]) -> None:
     ValueError
         When the value is not None or is a negative integer
     """
-    if value is None:
+    if isinstance(value, int) and value >= 0 or value is None:
         return
-
-    elif isinstance(value, int):
-        if value >= 0:
-            return
 
     msg = "Value must be a nonnegative integer or None"
     raise ValueError(msg)

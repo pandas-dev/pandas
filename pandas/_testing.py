@@ -729,8 +729,7 @@ def assert_index_equal(
         unique = index.levels[level]
         level_codes = index.codes[level]
         filled = take_1d(unique._values, level_codes, fill_value=unique._na_value)
-        values = unique._shallow_copy(filled, name=index.names[level])
-        return values
+        return unique._shallow_copy(filled, name=index.names[level])
 
     if check_less_precise is not no_default:
         warnings.warn(
@@ -1871,8 +1870,7 @@ def makeTimedeltaIndex(k=10, freq="D", name=None, **kwargs):
 
 def makePeriodIndex(k=10, name=None, **kwargs):
     dt = datetime(2000, 1, 1)
-    dr = pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
-    return dr
+    return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
 
 
 def makeMultiIndex(k=10, names=None, **kwargs):
@@ -2511,9 +2509,12 @@ def network(
 
     @wraps(t)
     def wrapper(*args, **kwargs):
-        if check_before_test and not raise_on_error:
-            if not can_connect(url, error_classes):
-                skip()
+        if (
+            check_before_test
+            and not raise_on_error
+            and not can_connect(url, error_classes)
+        ):
+            skip()
         try:
             return t(*args, **kwargs)
         except Exception as err:
@@ -2928,8 +2929,7 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
         Expected output of to_csv() in current OS.
     """
     sep = os.linesep
-    expected = sep.join(rows_list) + sep
-    return expected
+    return sep.join(rows_list) + sep
 
 
 def external_error_raised(expected_exception: Type[Exception]) -> ContextManager:
