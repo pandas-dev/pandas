@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from collections import abc
+from distutils.version import LooseVersion
 from typing import Any, Optional, Sequence, Tuple, Type, Union
 
 import numpy as np
-import pyarrow as pa
-import pyarrow.compute as pc
 
 from pandas._libs import missing as libmissing
 from pandas._typing import ArrayLike
@@ -21,6 +22,16 @@ from pandas.api.types import (
 )
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import check_array_indexer
+
+try:
+    import pyarrow as pa
+except ImportError:
+    pa = None
+else:
+    try:
+        import pyarrow.compute as pc
+    except ImportError:
+        pass
 
 
 def _as_pandas_scalar(arrow_scalar: pa.Scalar) -> Optional[str]:
@@ -160,6 +171,7 @@ class ArrowStringArray(ExtensionArray):
     """
 
     def __init__(self, values):
+        self._chk_pyarrow_available()
         if isinstance(values, pa.Array):
             self.data = pa.chunked_array([values])
         elif isinstance(values, pa.ChunkedArray):
@@ -168,7 +180,17 @@ class ArrowStringArray(ExtensionArray):
             raise ValueError(f"Unsupported type '{type(values)}' for ArrowStringArray")
 
     @classmethod
+    def _chk_pyarrow_available(cls) -> None:
+        # TODO: maybe update import_optional_dependency to allow a minimum
+        # version to be specified rather than use the global minimum
+        if pa is None or LooseVersion(pa.__version__) < "1.0.0":
+            msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+            raise ImportError(msg)
+
+    @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
+        cls._chk_pyarrow_available()
+
         # TODO(ARROW-9407): Accept pd.NA in Arrow
         scalars_corrected = [None if pd.isna(x) else x for x in scalars]
         return cls(pa.array(scalars_corrected, type=pa.string()))
