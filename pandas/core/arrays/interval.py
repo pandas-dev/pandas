@@ -586,8 +586,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 result[i] = op(self[i], obj)
             except TypeError:
                 if obj is NA:
-                    # comparison returns NA, which we (for now?) treat like
-                    #  other NAs
+                    # comparison with np.nan returns NA
                     # github.com/pandas-dev/pandas/pull/37124#discussion_r509095092
                     result[i] = op is operator.ne
                 else:
