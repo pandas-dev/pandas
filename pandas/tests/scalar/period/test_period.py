@@ -1554,3 +1554,9 @@ def test_negone_ordinals():
     repr(period)
     period = Period(ordinal=-1, freq="W")
     repr(period)
+
+
+def test_invalid_frequency_error_message():
+    msg = "Invalid frequency: <WeekOfMonth: week=0, weekday=0>"
+    with pytest.raises(ValueError, match=msg):
+        Period("2012-01-02", freq="WOM-1MON")
