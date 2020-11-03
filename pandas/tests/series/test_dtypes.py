@@ -6,7 +6,7 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, date_range
+from pandas import Categorical, DataFrame, Series
 import pandas._testing as tm
 
 
@@ -147,27 +147,6 @@ class TestSeriesDtypes:
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
-
-    def test_intercept_astype_object(self):
-        series = Series(date_range("1/1/2000", periods=10))
-
-        # This test no longer makes sense, as
-        # Series is by default already M8[ns].
-        expected = series.astype("object")
-
-        df = DataFrame({"a": series, "b": np.random.randn(len(series))})
-        exp_dtypes = Series(
-            [np.dtype("datetime64[ns]"), np.dtype("float64")], index=["a", "b"]
-        )
-        tm.assert_series_equal(df.dtypes, exp_dtypes)
-
-        result = df.values.squeeze()
-        assert (result[:, 0] == expected.values).all()
-
-        df = DataFrame({"a": series, "b": ["foo"] * len(series)})
-
-        result = df.values.squeeze()
-        assert (result[:, 0] == expected.values).all()
 
     def test_series_to_categorical(self):
         # see gh-16524: test conversion of Series to Categorical

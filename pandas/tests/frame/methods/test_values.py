@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import DataFrame, NaT, Series, Timestamp, date_range, period_range
 import pandas._testing as tm
@@ -44,8 +45,9 @@ class TestDataFrameValues:
 
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_values_casts_period_to_object(self):
-        series = Series(period_range("2000-01-01", periods=10, freq="D"))
+    @pytest.mark.parametrize("constructor", [date_range, period_range])
+    def test_values_casts_datetimelike_to_object(self, constructor):
+        series = Series(constructor("2000-01-01", periods=10, freq="D"))
 
         expected = series.astype("object")
 
