@@ -22,6 +22,7 @@ from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
+    maybe_box_datetimelike,
 )
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -815,7 +816,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return self.fill_value
         else:
             val = self.sp_values[sp_loc]
-            val = com.maybe_box_datetimelike(val, self.sp_values.dtype)
+            val = maybe_box_datetimelike(val, self.sp_values.dtype)
             return val
 
     def take(self, indices, allow_fill=False, fill_value=None) -> "SparseArray":

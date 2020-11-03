@@ -134,6 +134,21 @@ def is_nested_object(obj) -> bool:
     return False
 
 
+def maybe_box_datetimelike(value, dtype=None):
+    # turn a datetime like into a Timestamp/timedelta as needed
+    if dtype == object:
+        # If we dont have datetime64/timedelta64 dtype, we dont want to
+        #  box datetimelike scalars
+        return value
+
+    if isinstance(value, (np.datetime64, datetime)):
+        value = tslib.Timestamp(value)
+    elif isinstance(value, (np.timedelta64, timedelta)):
+        value = tslib.Timedelta(value)
+
+    return value
+
+
 def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
     """
     try to cast to the specified dtype (e.g. convert back to bool/int

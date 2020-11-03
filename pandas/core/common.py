@@ -6,7 +6,6 @@ Note: pandas.core.common is *not* part of the public API.
 
 from collections import abc, defaultdict
 import contextlib
-from datetime import datetime, timedelta
 from functools import partial
 import inspect
 from typing import Any, Collection, Iterable, Iterator, List, Union, cast
@@ -14,11 +13,14 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslibs
+from pandas._libs import lib
 from pandas._typing import AnyArrayLike, Scalar, T
 from pandas.compat.numpy import np_version_under1p18
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+    maybe_box_datetimelike,
+)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -76,23 +78,6 @@ def consensus_name_attr(objs):
         except ValueError:
             name = None
     return name
-
-
-def maybe_box_datetimelike(value, dtype=None, native=False):
-    # turn a datetime like into a Timestamp/timedelta as needed
-    if dtype == object:
-        # If we dont have datetime64/timedelta64 dtype, we dont want to
-        #  box datetimelike scalars
-        return value
-
-    if isinstance(value, (np.datetime64, datetime)):
-        ts = tslibs.Timestamp(value)
-        value = ts.to_pydatetime() if native else ts
-    elif isinstance(value, (np.timedelta64, timedelta)):
-        td = tslibs.Timedelta(value)
-        value = td.to_pydatetime() if native else td
-
-    return value
 
 
 def is_bool_indexer(key: Any) -> bool:
