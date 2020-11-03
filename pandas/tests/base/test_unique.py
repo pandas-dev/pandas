@@ -122,10 +122,10 @@ def test_unique_bad_unicode(idx_or_series_w_bad_unicode):
         expected = np.array(["\ud83d"], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+
 def test_nunique_dropna():
     # test for #37566
-    s = pd.Series(['yes','yes', pd.NA, np.nan, None, pd.NaT])
-    res = s.nunique(dropna = True)
+    s = pd.Series(['yes', 'yes', pd.NA, np.nan, None, pd.NaT])
+    res = s.nunique(dropna=True)
     expected = 1
     assert res == expected
-    
