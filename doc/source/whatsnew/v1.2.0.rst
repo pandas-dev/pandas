@@ -340,6 +340,7 @@ Deprecations
 - :meth:`Index.ravel` returning a ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
 - Deprecate use of strings denoting units with 'M', 'Y' or 'y' in :func:`~pandas.to_timedelta` (:issue:`36666`)
 - :class:`Index` methods ``&``, ``|``, and ``^`` behaving as the set operations :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference`, respectively, are deprecated and in the future will behave as pointwise boolean operations matching :class:`Series` behavior.  Use the named set methods instead (:issue:`36758`)
+- :meth:`Categorical.is_dtype_equal` and :meth:`CategoricalIndex.is_dtype_equal` are deprecated, will be removed in a future version (:issue:`37545`)
 
 .. ---------------------------------------------------------------------------
 
@@ -455,6 +456,7 @@ Indexing
 - Bug in :meth:`Series.loc.__getitem__` with a non-unique :class:`MultiIndex` and an empty-list indexer (:issue:`13691`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`MultiIndex` with a level named "0" (:issue:`37194`)
 - Bug in :meth:`Series.__getitem__` when using an unsigned integer array as an indexer giving incorrect results or segfaulting instead of raising ``KeyError`` (:issue:`37218`)
+- Bug in :meth:`Index.where` incorrectly casting numeric values to strings (:issue:`37591`)
 
 Missing
 ^^^^^^^
