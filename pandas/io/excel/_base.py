@@ -8,7 +8,7 @@ from typing import Any, Mapping, Union
 from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import IOArgs, StorageOptions
+from pandas._typing import StorageOptions
 from pandas.errors import EmptyDataError
 from pandas.util._decorators import Appender, deprecate_nonkeyword_arguments
 
@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_lik
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import (
+    IOArgs,
     get_filepath_or_buffer,
     is_url,
     stringify_path,

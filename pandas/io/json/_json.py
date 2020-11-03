@@ -13,7 +13,6 @@ from pandas._libs.tslibs import iNaT
 from pandas._typing import (
     CompressionOptions,
     IndexLabel,
-    IOHandles,
     JSONSerializable,
     StorageOptions,
 )
@@ -27,7 +26,12 @@ from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.generic import NDFrame
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import get_compression_method, get_filepath_or_buffer, get_handle
+from pandas.io.common import (
+    IOHandles,
+    get_compression_method,
+    get_filepath_or_buffer,
+    get_handle,
+)
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import validate_integer

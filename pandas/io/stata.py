@@ -28,7 +28,6 @@ from pandas._typing import (
     Buffer,
     CompressionOptions,
     FilePathOrBuffer,
-    IOHandles,
     Label,
     StorageOptions,
 )
@@ -54,7 +53,12 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
 
-from pandas.io.common import get_filepath_or_buffer, get_handle, stringify_path
+from pandas.io.common import (
+    IOHandles,
+    get_filepath_or_buffer,
+    get_handle,
+    stringify_path,
+)
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "

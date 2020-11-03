@@ -2,6 +2,7 @@
 
 import bz2
 from collections import abc
+import dataclasses
 import gzip
 from io import BufferedIOBase, BytesIO, RawIOBase, TextIOWrapper
 import mmap
@@ -13,11 +14,13 @@ from typing import (
     Any,
     AnyStr,
     Dict,
+    Generic,
     List,
     Mapping,
     Optional,
     Tuple,
     Type,
+    Union,
     cast,
 )
 from urllib.parse import (
@@ -37,8 +40,6 @@ from pandas._typing import (
     EncodingVar,
     FileOrBuffer,
     FilePathOrBuffer,
-    IOArgs,
-    IOHandles,
     ModeVar,
     StorageOptions,
 )
@@ -56,6 +57,70 @@ _VALID_URLS.discard("")
 
 if TYPE_CHECKING:
     from io import IOBase
+
+
+@dataclasses.dataclass
+class IOArgs(Generic[ModeVar, EncodingVar]):
+    """
+    Return value of io/common.py:get_filepath_or_buffer.
+
+    This is used to easily close created fsspec objects.
+
+    Note (copy&past from io/parsers):
+    filepath_or_buffer can be Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
+    though mypy handling of conditional imports is difficult.
+    See https://github.com/python/mypy/issues/1297
+    """
+
+    filepath_or_buffer: FileOrBuffer
+    encoding: EncodingVar
+    mode: Union[ModeVar, str]
+    compression: CompressionDict
+    should_close: bool = False
+
+    def close(self) -> None:
+        """
+        Close the buffer if it was created by get_filepath_or_buffer.
+        """
+        if self.should_close:
+            assert not isinstance(self.filepath_or_buffer, str)
+            self.filepath_or_buffer.close()
+        self.should_close = False
+
+
+@dataclasses.dataclass
+class IOHandles:
+    """
+    Return value of io/common.py:get_handle
+
+    This is used to easily close created buffers and to handle corner cases when
+    TextIOWrapper is inserted.
+
+    handle: The file handle to be used.
+    created_handles: All file handles that are created by get_handle
+    is_wrapped: Whether a TextIOWrapper needs to be detached.
+    """
+
+    handle: Buffer
+    created_handles: List[Buffer] = dataclasses.field(default_factory=list)
+    is_wrapped: bool = False
+
+    def close(self) -> None:
+        """
+        Close all created buffers.
+
+        Note: If a TextIOWrapper was inserted, it is flushed and detached to
+        avoid closing the potentially user-created buffer.
+        """
+        if self.is_wrapped:
+            assert isinstance(self.handle, TextIOWrapper)
+            self.handle.flush()
+            self.handle.detach()
+            self.created_handles.remove(self.handle)
+        for handle in self.created_handles:
+            handle.close()
+        self.created_handles = []
+        self.is_wrapped = False
 
 
 def is_url(url) -> bool:
