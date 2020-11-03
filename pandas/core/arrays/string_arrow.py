@@ -190,10 +190,7 @@ class ArrowStringArray(ExtensionArray):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         cls._chk_pyarrow_available()
-
-        # TODO(ARROW-9407): Accept pd.NA in Arrow
-        scalars_corrected = [None if pd.isna(x) else x for x in scalars]
-        return cls(pa.array(scalars_corrected, type=pa.string()))
+        return cls(pa.array(scalars, type=pa.string(), from_pandas=True))
 
     @property
     def dtype(self) -> ArrowStringDtype:
