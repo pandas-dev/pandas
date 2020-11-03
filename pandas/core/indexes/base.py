@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_platform_int,
-    is_bool,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -4079,23 +4078,16 @@ class Index(IndexOpsMixin, PandasObject):
         if other is None:
             other = self._na_value
 
-        dtype = self.dtype
         values = self.values
 
-        if is_bool(other) or is_bool_dtype(other):
-
-            # bools force casting
-            values = values.astype(object)
-            dtype = None
+        try:
+            self._validate_fill_value(other)
+        except (ValueError, TypeError):
+            return self.astype(object).where(cond, other)
 
         values = np.where(cond, values, other)
 
-        if self._is_numeric_dtype and np.any(isna(values)):
-            # We can't coerce to the numeric dtype of "self" (unless
-            # it's float) if there are NaN values in our output.
-            dtype = None
-
-        return Index(values, dtype=dtype, name=self.name)
+        return Index(values, name=self.name)
 
     # construction helpers
     @final
