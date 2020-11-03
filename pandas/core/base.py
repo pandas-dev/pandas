@@ -1032,10 +1032,11 @@ class IndexOpsMixin(OpsMixin):
         >>> s.nunique()
         4
         """
-        uniqs = self.unique()
+        if dropna:
+            uniqs = self.dropna().unique()
+        else:
+            uniqs = self.unique()
         n = len(uniqs)
-        if dropna and isna(uniqs).any():
-            n -= 1
         return n
 
     @property
