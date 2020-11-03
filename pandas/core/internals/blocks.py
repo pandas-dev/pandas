@@ -919,10 +919,11 @@ class Block(PandasObject):
 
             elif lib.is_scalar(value) and not isna(value):
                 dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-
             else:
                 # e.g. we are bool dtype and value is nan
                 # TODO: watch out for case with listlike value and scalar/empty indexer
+                if is_list_like(value) and is_empty_indexer(indexer, np.array(value)):
+                    return self
                 dtype, _ = maybe_promote(np.array(value).dtype)
                 return self.astype(dtype).setitem(indexer, value)
 

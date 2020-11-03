@@ -285,3 +285,10 @@ class TestDataFrameSetItem:
         df.iloc[indexer, 1] = df.iloc[indexer, 1] * 2
         expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
         tm.assert_frame_equal(df, expected)
+
+    def test_setitem_only_false_indexer_dtype_changed(self):
+        # GH: 37550
+        df = DataFrame({"a": ["a"], "b": [1], "c": [1]})
+        df.loc[[False], ["b"]] = 10 - df["c"]
+        expected = DataFrame({"a": ["a"], "b": [1], "c": [1]})
+        tm.assert_frame_equal(df, expected)
