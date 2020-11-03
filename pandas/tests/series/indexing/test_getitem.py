@@ -1,7 +1,7 @@
 """
 Series.__getitem__ test classes are organized by the type of key passed.
 """
-from datetime import datetime
+from datetime import datetime, time
 
 import numpy as np
 import pytest
@@ -82,6 +82,16 @@ class TestSeriesGetitemScalars:
 
         result = ser["1/3/2000"]
         tm.assert_almost_equal(result, ser[2])
+
+    def test_getitem_time_object(self):
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        mask = (rng.hour == 9) & (rng.minute == 30)
+        result = ts[time(9, 30)]
+        expected = ts[mask]
+        result.index = result.index._with_freq(None)
+        tm.assert_series_equal(result, expected)
 
 
 class TestSeriesGetitemSlices:
