@@ -36,6 +36,14 @@ from pandas.core.tools import datetimes as tools
 
 
 class TestTimeConversionFormats:
+    def test_to_datetime_readonly(self):
+        # GH#34857
+        arr = np.array([], dtype=object)
+        arr.setflags(write=False)
+        result = to_datetime(arr)
+        expected = to_datetime([])
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_format(self, cache):
         values = ["1/1/2000", "1/2/2000", "1/3/2000"]
