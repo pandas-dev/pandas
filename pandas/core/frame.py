@@ -7918,17 +7918,13 @@ NaN 12.3   33.0
         else:
             to_concat = [self, other]
         return (
-            (
-                concat(
-                    to_concat,
-                    ignore_index=ignore_index,
-                    verify_integrity=verify_integrity,
-                    sort=sort,
-                )
+            concat(
+                to_concat,
+                ignore_index=ignore_index,
+                verify_integrity=verify_integrity,
+                sort=sort,
             )
-            .__finalize__(self)
-            .__finalize__(other, method="append")
-        )
+        ).__finalize__(self)
 
     def join(
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
