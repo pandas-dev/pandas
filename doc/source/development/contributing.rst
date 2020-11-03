@@ -837,8 +837,14 @@ to run its checks by running::
 
 without having to have done ``pre-commit install`` beforehand.
 
-Note that if you have conflicting installations of ``virtualenv``, then you may get an
-error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_.
+.. note::
+
+    If you have conflicting installations of ``virtualenv``, then you may get an
+    error - see `here <https://github.com/pypa/virtualenv/issues/1875>`_.
+
+    Also, due to a `bug in virtualenv <https://github.com/pypa/virtualenv/issues/1986>`_,
+    you may run into issues if you're using conda. To solve this, you can downgrade
+    ``virtualenv`` to version ``20.0.33``.
 
 Backwards compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~

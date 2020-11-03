@@ -1327,32 +1327,6 @@ class TestDataFrameIndexing:
         expected = df.iloc[:, 2:]
         tm.assert_frame_equal(result, expected)
 
-    def test_set_value_with_index_dtype_change(self):
-        df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
-
-        # this is actually ambiguous as the 2 is interpreted as a positional
-        # so column is not created
-        df = df_orig.copy()
-        df._set_value("C", 2, 1.0)
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        # assert list(df.columns) == list(df_orig.columns) + [2]
-
-        df = df_orig.copy()
-        df.loc["C", 2] = 1.0
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        # assert list(df.columns) == list(df_orig.columns) + [2]
-
-        # create both new
-        df = df_orig.copy()
-        df._set_value("C", "D", 1.0)
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        assert list(df.columns) == list(df_orig.columns) + ["D"]
-
-        df = df_orig.copy()
-        df.loc["C", "D"] = 1.0
-        assert list(df.index) == list(df_orig.index) + ["C"]
-        assert list(df.columns) == list(df_orig.columns) + ["D"]
-
     # TODO: rename?  remove?
     def test_single_element_ix_dont_upcast(self, float_frame):
         float_frame["E"] = 1
@@ -1456,11 +1430,11 @@ class TestDataFrameIndexing:
 
         # insert a duplicate element to the index
         trange = pd.date_range(
-            start=pd.Timestamp(year=2017, month=1, day=1),
-            end=pd.Timestamp(year=2017, month=1, day=5),
+            start=Timestamp(year=2017, month=1, day=1),
+            end=Timestamp(year=2017, month=1, day=5),
         )
 
-        trange = trange.insert(loc=5, item=pd.Timestamp(year=2017, month=1, day=5))
+        trange = trange.insert(loc=5, item=Timestamp(year=2017, month=1, day=5))
 
         df = DataFrame(0, index=trange, columns=["A", "B"])
         bool_idx = np.array([False, False, False, False, False, True])
@@ -1530,12 +1504,12 @@ class TestDataFrameIndexing:
 
     def test_loc_setitem_datetime_coercion(self):
         # gh-1048
-        df = DataFrame({"c": [pd.Timestamp("2010-10-01")] * 3})
+        df = DataFrame({"c": [Timestamp("2010-10-01")] * 3})
         df.loc[0:1, "c"] = np.datetime64("2008-08-08")
-        assert pd.Timestamp("2008-08-08") == df.loc[0, "c"]
-        assert pd.Timestamp("2008-08-08") == df.loc[1, "c"]
+        assert Timestamp("2008-08-08") == df.loc[0, "c"]
+        assert Timestamp("2008-08-08") == df.loc[1, "c"]
         df.loc[2, "c"] = date(2005, 5, 5)
-        assert pd.Timestamp("2005-05-05") == df.loc[2, "c"]
+        assert Timestamp("2005-05-05") == df.loc[2, "c"]
 
     def test_loc_setitem_datetimelike_with_inference(self):
         # GH 7592
@@ -1812,27 +1786,27 @@ def test_object_casting_indexing_wraps_datetimelike():
     )
 
     ser = df.loc[0]
-    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[1], Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
 
     ser = df.iloc[0]
-    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[1], Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
 
     ser = df.xs(0, axis=0)
-    assert isinstance(ser.values[1], pd.Timestamp)
+    assert isinstance(ser.values[1], Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
 
     mgr = df._mgr
     mgr._rebuild_blknos_and_blklocs()
     arr = mgr.fast_xs(0)
-    assert isinstance(arr[1], pd.Timestamp)
+    assert isinstance(arr[1], Timestamp)
     assert isinstance(arr[2], pd.Timedelta)
 
     blk = mgr.blocks[mgr.blknos[1]]
     assert blk.dtype == "M8[ns]"  # we got the right block
     val = blk.iget((0, 0))
-    assert isinstance(val, pd.Timestamp)
+    assert isinstance(val, Timestamp)
 
     blk = mgr.blocks[mgr.blknos[2]]
     assert blk.dtype == "m8[ns]"  # we got the right block

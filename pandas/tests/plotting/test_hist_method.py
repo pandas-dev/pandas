@@ -1,7 +1,6 @@
 """ Test cases for .hist method """
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
@@ -103,8 +102,8 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_no_overlap(self):
         from matplotlib.pyplot import gcf, subplot
 
-        x = Series(randn(2))
-        y = Series(randn(2))
+        x = Series(np.random.randn(2))
+        y = Series(np.random.randn(2))
         subplot(121)
         x.hist()
         subplot(122)
@@ -128,6 +127,21 @@ class TestSeriesPlots(TestPlotBase):
         ax1 = fig1.add_subplot(111)
         with pytest.raises(AssertionError):
             self.ts.hist(ax=ax1, figure=fig2)
+
+    @pytest.mark.parametrize(
+        "histtype, expected",
+        [
+            ("bar", True),
+            ("barstacked", True),
+            ("step", False),
+            ("stepfilled", True),
+        ],
+    )
+    def test_histtype_argument(self, histtype, expected):
+        # GH23992 Verify functioning of histtype argument
+        ser = Series(np.random.randint(1, 10))
+        ax = ser.hist(histtype=histtype)
+        self._check_patches_all_filled(ax, filled=expected)
 
     @pytest.mark.parametrize(
         "by, expected_axes_num, expected_layout", [(None, 1, (1, 1)), ("b", 2, (1, 2))]
@@ -163,7 +177,7 @@ class TestDataFramePlots(TestPlotBase):
             _check_plot_works(self.hist_df.hist)
 
         # make sure layout is handled
-        df = DataFrame(randn(100, 2))
+        df = DataFrame(np.random.randn(100, 2))
         df[2] = to_datetime(
             np.random.randint(
                 self.start_date_to_int64,
@@ -178,11 +192,11 @@ class TestDataFramePlots(TestPlotBase):
         assert not axes[1, 1].get_visible()
 
         _check_plot_works(df[[2]].hist)
-        df = DataFrame(randn(100, 1))
+        df = DataFrame(np.random.randn(100, 1))
         _check_plot_works(df.hist)
 
         # make sure layout is handled
-        df = DataFrame(randn(100, 5))
+        df = DataFrame(np.random.randn(100, 5))
         df[5] = to_datetime(
             np.random.randint(
                 self.start_date_to_int64,
@@ -269,7 +283,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_hist_layout(self):
-        df = DataFrame(randn(100, 2))
+        df = DataFrame(np.random.randn(100, 2))
         df[2] = to_datetime(
             np.random.randint(
                 self.start_date_to_int64,
@@ -365,6 +379,21 @@ class TestDataFramePlots(TestPlotBase):
 
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "histtype, expected",
+        [
+            ("bar", True),
+            ("barstacked", True),
+            ("step", False),
+            ("stepfilled", True),
+        ],
+    )
+    def test_histtype_argument(self, histtype, expected):
+        # GH23992 Verify functioning of histtype argument
+        df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
+        ax = df.hist(histtype=histtype)
+        self._check_patches_all_filled(ax, filled=expected)
+
     @pytest.mark.parametrize("by", [None, "c"])
     @pytest.mark.parametrize("column", [None, "b"])
     def test_hist_with_legend(self, by, column):
@@ -404,7 +433,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        df = DataFrame(randn(500, 1), columns=["A"])
+        df = DataFrame(np.random.randn(500, 1), columns=["A"])
         df["B"] = to_datetime(
             np.random.randint(
                 self.start_date_to_int64,
@@ -595,3 +624,18 @@ class TestDataFrameGroupByPlots(TestPlotBase):
 
         assert ax1._shared_y_axes.joined(ax1, ax2)
         assert ax2._shared_y_axes.joined(ax1, ax2)
+
+    @pytest.mark.parametrize(
+        "histtype, expected",
+        [
+            ("bar", True),
+            ("barstacked", True),
+            ("step", False),
+            ("stepfilled", True),
+        ],
+    )
+    def test_histtype_argument(self, histtype, expected):
+        # GH23992 Verify functioning of histtype argument
+        df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
+        ax = df.hist(by="a", histtype=histtype)
+        self._check_patches_all_filled(ax, filled=expected)

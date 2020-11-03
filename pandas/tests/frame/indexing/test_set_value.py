@@ -3,7 +3,7 @@ import pytest
 
 from pandas.core.dtypes.common import is_float_dtype
 
-from pandas import isna
+from pandas import DataFrame, isna
 
 
 class TestSetValue:
@@ -38,3 +38,29 @@ class TestSetValue:
         msg = "could not convert string to float: 'sam'"
         with pytest.raises(ValueError, match=msg):
             res._set_value("foobar", "baz", "sam")
+
+    def test_set_value_with_index_dtype_change(self):
+        df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
+
+        # this is actually ambiguous as the 2 is interpreted as a positional
+        # so column is not created
+        df = df_orig.copy()
+        df._set_value("C", 2, 1.0)
+        assert list(df.index) == list(df_orig.index) + ["C"]
+        # assert list(df.columns) == list(df_orig.columns) + [2]
+
+        df = df_orig.copy()
+        df.loc["C", 2] = 1.0
+        assert list(df.index) == list(df_orig.index) + ["C"]
+        # assert list(df.columns) == list(df_orig.columns) + [2]
+
+        # create both new
+        df = df_orig.copy()
+        df._set_value("C", "D", 1.0)
+        assert list(df.index) == list(df_orig.index) + ["C"]
+        assert list(df.columns) == list(df_orig.columns) + ["D"]
+
+        df = df_orig.copy()
+        df.loc["C", "D"] = 1.0
+        assert list(df.index) == list(df_orig.index) + ["C"]
+        assert list(df.columns) == list(df_orig.columns) + ["D"]
