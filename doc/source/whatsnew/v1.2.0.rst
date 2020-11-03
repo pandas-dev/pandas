@@ -469,7 +469,6 @@ MultiIndex
 
 - Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
 - Bug in :meth:`DataFrame.reset_index` with ``NaT`` values in index raises ``ValueError`` with message ``"cannot convert float NaN to integer"`` (:issue:`36541`)
--
 
 I/O
 ^^^
@@ -536,6 +535,7 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot` did not preserve :class:`MultiIndex` level names for columns when rows and columns both multiindexed (:issue:`36360`)
 - Bug in :func:`join` returned a non deterministic level-order for the resulting :class:`MultiIndex` (:issue:`36910`)
 - Bug in :meth:`DataFrame.combine_first()` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
+- Fixed regression in :func:`merge` on merging DatetimeIndex with empty DataFrame (:issue:`36895`)
 
 Sparse
 ^^^^^^
