@@ -6,7 +6,7 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import DataFrame, Series
 import pandas._testing as tm
 
 # ----------------------------------------------------------------------
@@ -459,75 +459,22 @@ class TestNDFrame:
             with pytest.raises(ValueError, match=msg):
                 obj.take(indices, mode="clip")
 
+    @pytest.mark.parametrize("klass", [DataFrame, Series])
     @pytest.mark.parametrize("is_copy", [True, False])
-    def test_depr_take_kwarg_is_copy(self, is_copy):
+    def test_depr_take_kwarg_is_copy(self, is_copy, klass):
         # GH 27357
-        df = DataFrame({"A": [1, 2, 3]})
+        obj = DataFrame({"A": [1, 2, 3]})
+        if klass is Series:
+            obj = obj["A"]
+
         msg = (
             "is_copy is deprecated and will be removed in a future version. "
             "'take' always returns a copy, so there is no need to specify this."
         )
         with tm.assert_produces_warning(FutureWarning) as w:
-            df.take([0, 1], is_copy=is_copy)
+            obj.take([0, 1], is_copy=is_copy)
 
         assert w[0].message.args[0] == msg
-
-        s = Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            s.take([0, 1], is_copy=is_copy)
-
-    def test_equals(self):
-        # Add object dtype column with nans
-        index = np.random.random(10)
-        df1 = DataFrame(np.random.random(10), index=index, columns=["floats"])
-        df1["text"] = "the sky is so blue. we could use more chocolate.".split()
-        df1["start"] = date_range("2000-1-1", periods=10, freq="T")
-        df1["end"] = date_range("2000-1-1", periods=10, freq="D")
-        df1["diff"] = df1["end"] - df1["start"]
-        df1["bool"] = np.arange(10) % 3 == 0
-        df1.loc[::2] = np.nan
-        df2 = df1.copy()
-        assert df1["text"].equals(df2["text"])
-        assert df1["start"].equals(df2["start"])
-        assert df1["end"].equals(df2["end"])
-        assert df1["diff"].equals(df2["diff"])
-        assert df1["bool"].equals(df2["bool"])
-        assert df1.equals(df2)
-        assert not df1.equals(object)
-
-        # different dtype
-        different = df1.copy()
-        different["floats"] = different["floats"].astype("float32")
-        assert not df1.equals(different)
-
-        # different index
-        different_index = -index
-        different = df2.set_index(different_index)
-        assert not df1.equals(different)
-
-        # different columns
-        different = df2.copy()
-        different.columns = df2.columns[::-1]
-        assert not df1.equals(different)
-
-        # DatetimeIndex
-        index = pd.date_range("2000-1-1", periods=10, freq="T")
-        df1 = df1.set_index(index)
-        df2 = df1.copy()
-        assert df1.equals(df2)
-
-        # MultiIndex
-        df3 = df1.set_index(["text"], append=True)
-        df2 = df1.set_index(["text"], append=True)
-        assert df3.equals(df2)
-
-        df2 = df1.set_index(["floats"], append=True)
-        assert not df3.equals(df2)
-
-        # NaN in index
-        df3 = df1.set_index(["floats"], append=True)
-        df2 = df1.set_index(["floats"], append=True)
-        assert df3.equals(df2)
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_axis_classmethods(self, box):
