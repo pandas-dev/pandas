@@ -564,11 +564,11 @@ class TestNDFrame:
 
     def test_slice_shift_deprecated(self):
         # GH 37601
-        df = pd.DataFrame({'A': [1, 2, 3, 4]})
+        df = pd.DataFrame({"A": [1, 2, 3, 4]})
         s = pd.Series([1, 2, 3, 4])
 
         with tm.assert_produces_warning(FutureWarning):
-            df['A'].slice_shift()
+            df["A"].slice_shift()
 
         with tm.assert_produces_warning(FutureWarning):
             s.slice_shift()
