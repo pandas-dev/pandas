@@ -19,6 +19,7 @@ from pandas.util._exceptions import rewrite_exception
 from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
+    maybe_box_datetimelike,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -36,7 +37,6 @@ from pandas.core.dtypes.common import (
     is_number,
     is_object_dtype,
     is_scalar,
-    maybe_box_datetimelike,
 )
 
 from pandas.core.algorithms import take_1d
