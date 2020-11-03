@@ -260,18 +260,14 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    @classmethod
-    def _rebox_native(cls, value: int) -> np.int64:
-        return np.int64(value)
-
     def _unbox_scalar(
         self, value: Union[Period, NaTType], setitem: bool = False
     ) -> int:
         if value is NaT:
-            return value.value
+            return np.int64(value.value)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value, setitem=setitem)
-            return value.ordinal
+            return np.int64(value.ordinal)
         else:
             raise ValueError(f"'value' should be a Period. Got '{value}' instead.")
 
