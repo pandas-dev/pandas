@@ -274,10 +274,9 @@ cdef class TextReader:
     # source: StringIO or file object
 
     ..versionchange:: 1.2.0
-        removed 'compression' argument (outsourced to CParserWrapper).
-        removed 'memory_map' argument: CParserWrapper converts all
-            non-memory-mapped files to file handles. The remaining
-            (string) objects will be opened with 'memory_map=True'.
+        removed 'compression', 'memory_map', and 'encoding' argument.
+        These arguments are outsourced to CParserWrapper.
+        'source' has to be a file handle.
     """
 
     cdef:
@@ -323,7 +322,6 @@ cdef class TextReader:
                   quotechar=b'"',
                   quoting=0,
                   lineterminator=None,
-                  encoding=None,
                   comment=None,
                   decimal=b'.',
                   thousands=None,
@@ -347,13 +345,7 @@ cdef class TextReader:
                   bint skip_blank_lines=True):
 
         # set encoding for native Python and C library
-        if encoding is not None:
-            if not isinstance(encoding, bytes):
-                encoding = encoding.encode('utf-8')
-            encoding = encoding.lower()
-            self.c_encoding = <char*>encoding
-        else:
-            self.c_encoding = NULL
+        self.c_encoding = NULL
 
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
@@ -595,33 +587,14 @@ cdef class TextReader:
         cdef:
             void *ptr
 
-        self.parser.cb_io = NULL
-        self.parser.cb_cleanup = NULL
-
-        if isinstance(source, str):
-            encoding = sys.getfilesystemencoding() or "utf-8"
-            source = source.encode(encoding)
-            ptr = new_mmap(source)
-            if ptr == NULL:
-                # fall back
-                ptr = new_file_source(source, self.parser.chunksize)
-                self.parser.cb_io = &buffer_file_bytes
-                self.parser.cb_cleanup = &del_file_source
-            else:
-                self.parser.cb_io = &buffer_mmap_bytes
-                self.parser.cb_cleanup = &del_mmap
-            self.parser.source = ptr
-
-        elif hasattr(source, "read"):
-            # e.g., StringIO
-
-            ptr = new_rd_source(source)
-            self.parser.source = ptr
-            self.parser.cb_io = &buffer_rd_bytes
-            self.parser.cb_cleanup = &del_rd_source
-        else:
+        if not hasattr(source, "read"):
             raise IOError(f'Expected file path name or file-like object, '
                           f'got {type(source)} type')
+
+        ptr = new_rd_source(source)
+        self.parser.source = ptr
+        self.parser.cb_io = &buffer_rd_bytes
+        self.parser.cb_cleanup = &del_rd_source
 
     cdef _get_header(self):
         # header is now a list of lists, so field_count should use header[0]

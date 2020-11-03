@@ -20,7 +20,7 @@ import pandas._libs.ops as libops
 import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
-from pandas._typing import FilePathOrBuffer, IOHandles, StorageOptions, Union
+from pandas._typing import FilePathOrBuffer, StorageOptions, Union
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -1834,14 +1834,7 @@ class CParserWrapper(ParserBase):
 
         if kwds.get("memory_map", False):
             # memory-mapped files are directly handled by the TextReader.
-            # compression and file-object were never supported by it.
             src = stringify_path(src)
-
-            if not isinstance(src, str):
-                raise ValueError(
-                    "read_csv supports only string-like objects with engine='c' "
-                    + "and memory_map=True. Please use engine='python' instead."
-                )
 
             if get_compression_method(kwds.get("compression", None))[0] is not None:
                 raise ValueError(
@@ -1849,18 +1842,19 @@ class CParserWrapper(ParserBase):
                     + "Please use memory_map=False instead."
                 )
 
-            self.handles = IOHandles(handle=src)
-        else:
-            self.handles = get_handle(
-                src,
-                mode="r",
-                encoding=kwds.get("encoding", None),
-                compression=kwds.get("compression", None),
-                is_text=True,
-            )
-            kwds.pop("encoding", None)
+        self.handles = get_handle(
+            src,
+            mode="r",
+            encoding=kwds.get("encoding", None),
+            compression=kwds.get("compression", None),
+            memory_map=kwds.get("memory_map", False),
+            is_text=True,
+        )
+        kwds.pop("encoding", None)
         kwds.pop("memory_map", None)
         kwds.pop("compression", None)
+        if kwds.get("memory_map", False) and hasattr(self.handles.handle, "mmap"):
+            self.handles.handle = self.handles.handle.mmap
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False

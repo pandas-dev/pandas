@@ -2295,28 +2295,20 @@ def test_memory_map_compression_error(c_parser_only):
             parser.read_csv(path, memory_map=True, compression="gzip")
 
 
-def test_memory_map_file_handle_error(all_parsers):
+def test_memory_map_file_handle(all_parsers):
     """
-    c-parsers do support only string-like files with memory_map=True.
+    Support some buffers with memory_map=True.
 
     GH 36997
     """
     parser = all_parsers
     expected = DataFrame({"a": [1], "b": [2]})
-    msg = (
-        "read_csv supports only string-like objects with engine='c' "
-        + "and memory_map=True. Please use engine='python' instead."
+
+    handle = StringIO()
+    expected.to_csv(handle, index=False)
+    handle.seek(0)
+
+    tm.assert_frame_equal(
+        parser.read_csv(handle, memory_map=True),
+        expected,
     )
-
-    handle = StringIO("a,b\n1,2")
-
-    if parser.engine != "python":
-        # c engine should fail
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(handle, memory_map=True)
-    else:
-        # verify that python engine supports the same call
-        tm.assert_frame_equal(
-            parser.read_csv(handle, memory_map=True),
-            expected,
-        )
