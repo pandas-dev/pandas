@@ -24,6 +24,9 @@ The result above can be derived by taking the sum of the following windowed part
    for window in s.rolling(window=2):
        print(window)
 
+
+.. _window.overview:
+
 Overview
 --------
 
@@ -84,6 +87,15 @@ non-``np.nan`` values a window must have; otherwise, the resulting value is ``np
    s.rolling(window=3, min_periods=2).sum()
    # Equivalent to min_periods=3
    s.rolling(window=3, min_periods=None).sum()
+
+
+Additionally, all windowing operations supports the ``aggregate`` method for returning a result
+of multiple aggregations applied to a window.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": range(5), "B": range(10, 16)})
+   df.expanding().agg([np.sum, np.mean, np.std])
 
 
 .. _window.generic:

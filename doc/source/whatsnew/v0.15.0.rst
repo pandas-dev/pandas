@@ -405,7 +405,7 @@ Rolling/expanding moments improvements
 
 - :func:`rolling_window` now normalizes the weights properly in rolling mean mode (`mean=True`) so that
   the calculated weighted means (e.g. 'triang', 'gaussian') are distributed about the same means as those
-  calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization <stats.moments.normalization>` for further details. (:issue:`7618`)
+  calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization <window.weighted>` for further details. (:issue:`7618`)
 
   .. ipython:: python
 

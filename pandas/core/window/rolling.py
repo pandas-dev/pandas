@@ -1250,7 +1250,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     Notes
     -----
-    See :ref:`stats.rolling_apply` for extended documentation and performance
+    See :ref:`window.numba_engine` for extended documentation and performance
     considerations for the Numba engine.
     """
     )

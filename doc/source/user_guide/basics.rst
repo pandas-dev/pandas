@@ -945,7 +945,7 @@ Aggregation API
 
 The aggregation API allows one to express possibly multiple aggregation operations in a single concise way.
 This API is similar across pandas objects, see :ref:`groupby API <groupby.aggregate>`, the
-:ref:`window functions API <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
+:ref:`window API <window.overview>`, and the :ref:`resample API <timeseries.aggregate>`.
 The entry point for aggregation is :meth:`DataFrame.aggregate`, or the alias
 :meth:`DataFrame.agg`.
 
