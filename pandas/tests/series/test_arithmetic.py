@@ -7,8 +7,19 @@ import pytz
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
+from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
+
 import pandas as pd
-from pandas import Categorical, Index, Series, bdate_range, date_range, isna
+from pandas import (
+    Categorical,
+    Index,
+    IntervalIndex,
+    Series,
+    Timedelta,
+    bdate_range,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 from pandas.core import nanops, ops
 
@@ -266,6 +277,25 @@ class TestSeriesArithmetic:
 
         assert ser.index is dti
         assert ser_utc.index is dti_utc
+
+    def test_arithmetic_with_duplicate_index(self):
+
+        # GH#8363
+        # integer ops with a non-unique index
+        index = [2, 2, 3, 3, 4]
+        ser = Series(np.arange(1, 6, dtype="int64"), index=index)
+        other = Series(np.arange(5, dtype="int64"), index=index)
+        result = ser - other
+        expected = Series(1, index=[2, 2, 3, 3, 4])
+        tm.assert_series_equal(result, expected)
+
+        # GH#8363
+        # datetime ops with a non-unique index
+        ser = Series(date_range("20130101 09:00:00", periods=5), index=index)
+        other = Series(date_range("20130101", periods=5), index=index)
+        result = ser - other
+        expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
+        tm.assert_series_equal(result, expected)
 
 
 # ------------------------------------------------------------------
@@ -721,17 +751,23 @@ def test_series_ops_name_retention(flex, box, names, all_binary_operators):
     left = Series(range(10), name=names[0])
     right = Series(range(10), name=names[1])
 
+    name = op.__name__.strip("_")
+    is_logical = name in ["and", "rand", "xor", "rxor", "or", "ror"]
+    is_rlogical = is_logical and name.startswith("r")
+
     right = box(right)
     if flex:
-        name = op.__name__.strip("_")
-        if name in ["and", "rand", "xor", "rxor", "or", "ror"]:
+        if is_logical:
             # Series doesn't have these as flex methods
             return
         result = getattr(left, name)(right)
     else:
-        result = op(left, right)
+        # GH#37374 logical ops behaving as set ops deprecated
+        warn = FutureWarning if is_rlogical and box is Index else None
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            result = op(left, right)
 
-    if box is pd.Index and op.__name__.strip("_") in ["rxor", "ror", "rand"]:
+    if box is pd.Index and is_rlogical:
         # Index treats these as set operators, so does not defer
         assert isinstance(result, pd.Index)
         return
@@ -779,3 +815,51 @@ class TestNamePreservation:
     def test_scalarop_preserve_name(self, datetime_series):
         result = datetime_series * 2
         assert result.name == datetime_series.name
+
+
+def test_none_comparison(series_with_simple_index):
+    series = series_with_simple_index
+    if isinstance(series.index, IntervalIndex):
+        # IntervalIndex breaks on "series[0] = np.nan" below
+        pytest.skip("IntervalIndex doesn't support assignment")
+    if len(series) < 1:
+        pytest.skip("Test doesn't make sense on empty data")
+
+    # bug brought up by #1079
+    # changed from TypeError in 0.17.0
+    series[0] = np.nan
+
+    # noinspection PyComparisonWithNone
+    result = series == None  # noqa
+    assert not result.iat[0]
+    assert not result.iat[1]
+
+    # noinspection PyComparisonWithNone
+    result = series != None  # noqa
+    assert result.iat[0]
+    assert result.iat[1]
+
+    result = None == series  # noqa
+    assert not result.iat[0]
+    assert not result.iat[1]
+
+    result = None != series  # noqa
+    assert result.iat[0]
+    assert result.iat[1]
+
+    if is_datetime64_dtype(series.dtype) or is_datetime64tz_dtype(series.dtype):
+        # Following DatetimeIndex (and Timestamp) convention,
+        # inequality comparisons with Series[datetime64] raise
+        msg = "Invalid comparison"
+        with pytest.raises(TypeError, match=msg):
+            None > series
+        with pytest.raises(TypeError, match=msg):
+            series > None
+    else:
+        result = None > series
+        assert not result.iat[0]
+        assert not result.iat[1]
+
+        result = series < None
+        assert not result.iat[0]
+        assert not result.iat[1]

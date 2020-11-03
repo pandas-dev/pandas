@@ -354,6 +354,7 @@ class TestDataFrameCombineFirst:
 
         tm.assert_frame_equal(res, exp)
 
+<<<<<<< HEAD
 
 def test_combine_first_with_nan_multiindex():
     # gh-36562
@@ -382,3 +383,16 @@ def test_combine_first_with_nan_multiindex():
         index=mi_expected,
     )
     tm.assert_frame_equal(res, expected)
+=======
+    def test_combine_first_string_dtype_only_na(self):
+        # GH: 37519
+        df = DataFrame({"a": ["962", "85"], "b": [pd.NA] * 2}, dtype="string")
+        df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype="string")
+        df.set_index(["a", "b"], inplace=True)
+        df2.set_index(["a", "b"], inplace=True)
+        result = df.combine_first(df2)
+        expected = DataFrame(
+            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype="string"
+        ).set_index(["a", "b"])
+        tm.assert_frame_equal(result, expected)
+>>>>>>> upstream/master
