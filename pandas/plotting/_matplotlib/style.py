@@ -32,10 +32,42 @@ def get_standard_colors(
     color_type: str = "default",
     color: Optional[Union[Dict[str, Color], Color, Collection[Color]]] = None,
 ):
+    """
+    Get standard colors based on `colormap`, `color_type` or `color` inputs.
+
+    Parameters
+    ----------
+    num_colors : int
+        Minimum number of colors to be returned.
+        Ignored if `color` is a dictionary.
+    colormap : :py:class:`matplotlib.colors.Colormap`, optional
+        Matplotlib colormap.
+        When provided, the resulting colors will be derived from the colormap.
+    color_type : {"default", "random"}, optional
+        Type of colors to derive. Used if provided `color` and `colormap` are None.
+        Ignored if either `color` or `colormap` are not None.
+    color : dict or str or sequence, optional
+        Color(s) to be used for deriving sequence of colors.
+        Can be either be a dictionary, or a single color (single color string,
+        or sequence of floats representing a single color),
+        or a sequence of colors.
+
+    Returns
+    -------
+    dict or list
+        Standard colors. Can either be a mapping if `color` was a dictionary,
+        or a list of colors with a length of `num_colors` or more.
+
+    Warns
+    -----
+    UserWarning
+        If both `colormap` and `color` are provided.
+        Parameter `color` will override.
+    """
     if isinstance(color, dict):
         return color
 
-    colors = _get_colors(
+    colors = _derive_colors(
         color=color,
         colormap=colormap,
         color_type=color_type,
@@ -45,14 +77,45 @@ def get_standard_colors(
     return _cycle_colors(colors, num_colors=num_colors)
 
 
-def _get_colors(
+def _derive_colors(
     *,
     color: Optional[Union[Color, Collection[Color]]],
     colormap: Optional[Union[str, "Colormap"]],
     color_type: str,
     num_colors: int,
 ) -> List[Color]:
-    """Get colors from user input."""
+    """
+    Derive colors from either `colormap`, `color_type` or `color` inputs.
+
+    Get a list of colors either from `colormap`, or from `color`,
+    or from `color_type` (if both `colormap` and `color` are None).
+
+    Parameters
+    ----------
+    color : str or sequence, optional
+        Color(s) to be used for deriving sequence of colors.
+        Can be either be a single color (single color string, or sequence of floats
+        representing a single color), or a sequence of colors.
+    colormap : :py:class:`matplotlib.colors.Colormap`, optional
+        Matplotlib colormap.
+        When provided, the resulting colors will be derived from the colormap.
+    color_type : {"default", "random"}, optional
+        Type of colors to derive. Used if provided `color` and `colormap` are None.
+        Ignored if either `color` or `colormap`` are not None.
+    num_colors : int
+        Number of colors to be extracted.
+
+    Returns
+    -------
+    list
+        List of colors extracted.
+
+    Warns
+    -----
+    UserWarning
+        If both `colormap` and `color` are provided.
+        Parameter `color` will override.
+    """
     if color is None and colormap is not None:
         return _get_colors_from_colormap(colormap, num_colors=num_colors)
     elif color is not None:
@@ -115,10 +178,10 @@ def _get_colors_from_color(
 
 
 def _is_single_color(color: Union[Color, Collection[Color]]) -> bool:
-    """Check if ``color`` is a single color, not a sequence of colors.
+    """Check if `color` is a single color, not a sequence of colors.
 
     Single color is of these kinds:
-        - Named color "red"
+        - Named color "red", "C0", "firebrick"
         - Alias "g"
         - Sequence of floats, such as (0.1, 0.2, 0.3) or (0.1, 0.2, 0.3, 0.4).
 
@@ -167,7 +230,7 @@ def _get_colors_from_color_type(color_type: str, num_colors: int) -> List[Color]
 
 
 def _get_default_colors(num_colors: int) -> List[Color]:
-    """Get ``num_colors`` of default colors from matplotlib rc params."""
+    """Get `num_colors` of default colors from matplotlib rc params."""
     import matplotlib.pyplot as plt
 
     colors = [c["color"] for c in plt.rcParams["axes.prop_cycle"]]
@@ -175,7 +238,7 @@ def _get_default_colors(num_colors: int) -> List[Color]:
 
 
 def _get_random_colors(num_colors: int) -> List[Color]:
-    """Get ``num_colors`` of random colors."""
+    """Get `num_colors` of random colors."""
     return [_random_color(num) for num in range(num_colors)]
 
 
@@ -187,9 +250,9 @@ def _random_color(column: int) -> List[float]:
 
 
 def _is_single_string_color(color: Color) -> bool:
-    """Check if ``color`` is a single color.
+    """Check if `color` is a single string color.
 
-    Examples of single colors:
+    Examples of single string colors:
         - 'r'
         - 'g'
         - 'red'
@@ -205,7 +268,7 @@ def _is_single_string_color(color: Color) -> bool:
     Returns
     -------
     bool
-        True if ``color`` looks like a valid color.
+        True if `color` looks like a valid color.
         False otherwise.
     """
     conv = matplotlib.colors.ColorConverter()
