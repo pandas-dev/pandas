@@ -28,7 +28,7 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.core.indexes.api import Index
 
-from pandas.io.common import get_filepath_or_buffer, get_handle
+from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
     from pandas.io.formats.format import DataFrameFormatter
@@ -59,13 +59,11 @@ class CSVFormatter:
 
         self.obj = self.fmt.frame
 
-        self.ioargs = get_filepath_or_buffer(
-            path_or_buf,
-            encoding=encoding,
-            compression=compression,
-            mode=mode,
-            storage_options=storage_options,
-        )
+        self.filepath_or_buffer = path_or_buf
+        self.encoding = encoding
+        self.compression = compression
+        self.mode = mode
+        self.storage_options = storage_options
 
         self.sep = sep
         self.index_label = self._initialize_index_label(index_label)
@@ -228,11 +226,12 @@ class CSVFormatter:
         """
         # apply compression and byte/text conversion
         handles = get_handle(
-            self.ioargs.filepath_or_buffer,
-            self.ioargs.mode,
-            encoding=self.ioargs.encoding,
+            self.filepath_or_buffer,
+            self.mode,
+            encoding=self.encoding,
             errors=self.errors,
-            compression=self.ioargs.compression,
+            compression=self.compression,
+            storage_options=self.storage_options,
         )
 
         try:
@@ -250,10 +249,7 @@ class CSVFormatter:
             self._save()
 
         finally:
-            # close compression and byte/text wrapper
             handles.close()
-            # close any fsspec-like objects
-            self.ioargs.close()
 
     def _save(self) -> None:
         if self._need_to_save_header:

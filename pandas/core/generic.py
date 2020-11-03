@@ -3221,7 +3221,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             File path or object, if None is provided the result is returned as
             a string.  If a non-binary file object is passed, it should be opened
             with `newline=''`, disabling universal newlines. If a binary
-            file object is passed, `mode` needs to contain a `'b'`.
+            file object is passed, `mode` might need to contain a `'b'`.
 
             .. versionchanged:: 0.24.0
 

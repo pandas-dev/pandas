@@ -7,7 +7,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas import DataFrame, Int64Index, RangeIndex
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 
 
 def to_feather(
@@ -41,7 +41,7 @@ def to_feather(
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    ioargs = get_filepath_or_buffer(path, mode="wb", storage_options=storage_options)
+    handles = get_handle(path, "wb", storage_options=storage_options, is_text=False)
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
@@ -79,9 +79,9 @@ def to_feather(
     if df.columns.inferred_type not in valid_types:
         raise ValueError("feather must have string column names")
 
-    feather.write_feather(df, ioargs.filepath_or_buffer, **kwargs)
+    feather.write_feather(df, handles.handle, **kwargs)
 
-    ioargs.close()
+    handles.close()
 
 
 def read_feather(
@@ -129,12 +129,12 @@ def read_feather(
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    ioargs = get_filepath_or_buffer(path, storage_options=storage_options)
+    handles = get_handle(path, "rb", storage_options=storage_options, is_text=False)
 
     df = feather.read_feather(
-        ioargs.filepath_or_buffer, columns=columns, use_threads=bool(use_threads)
+        handles.handle, columns=columns, use_threads=bool(use_threads)
     )
 
-    ioargs.close()
+    handles.close()
 
     return df

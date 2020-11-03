@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 from pandas._typing import FilePathOrBuffer
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -50,8 +50,8 @@ def read_orc(
 
     import pyarrow.orc
 
-    ioargs = get_filepath_or_buffer(path)
-    orc_file = pyarrow.orc.ORCFile(ioargs.filepath_or_buffer)
+    handles = get_handle(path, "rb", is_text=False)
+    orc_file = pyarrow.orc.ORCFile(handles.handle)
     result = orc_file.read(columns=columns, **kwargs).to_pandas()
-    ioargs.close()
+    handles.close()
     return result

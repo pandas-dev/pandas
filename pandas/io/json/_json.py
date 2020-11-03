@@ -3,7 +3,6 @@ from collections import abc
 import functools
 from io import StringIO
 from itertools import islice
-import os
 from typing import Any, Callable, Mapping, Optional, Tuple, Type, Union
 
 import numpy as np
@@ -28,9 +27,11 @@ from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
     IOHandles,
-    get_compression_method,
-    get_filepath_or_buffer,
+    file_exists,
     get_handle,
+    is_fsspec_url,
+    is_url,
+    stringify_path,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
@@ -96,24 +97,14 @@ def to_json(
         s = convert_to_line_delimits(s)
 
     if path_or_buf is not None:
-        # open fsspec URLs
-        ioargs = get_filepath_or_buffer(
-            path_or_buf,
-            compression=compression,
-            mode="wt",
-            storage_options=storage_options,
-        )
         # apply compression and byte/text conversion
         handles = get_handle(
-            ioargs.filepath_or_buffer, "w", compression=ioargs.compression
+            path_or_buf, "wt", compression=compression, storage_options=storage_options
         )
         try:
             handles.handle.write(s)
         finally:
-            # close compression and byte/text wrapper
             handles.close()
-            # close any fsspec-like objects
-            ioargs.close()
     else:
         return s
 
@@ -549,15 +540,8 @@ def read_json(
     if convert_axes is None and orient != "table":
         convert_axes = True
 
-    ioargs = get_filepath_or_buffer(
-        path_or_buf,
-        encoding=encoding or "utf-8",
-        compression=compression,
-        storage_options=storage_options,
-    )
-
     json_reader = JsonReader(
-        ioargs.filepath_or_buffer,
+        path_or_buf,
         orient=orient,
         typ=typ,
         dtype=dtype,
@@ -567,20 +551,18 @@ def read_json(
         numpy=numpy,
         precise_float=precise_float,
         date_unit=date_unit,
-        encoding=ioargs.encoding,
+        encoding=encoding,
         lines=lines,
         chunksize=chunksize,
-        compression=ioargs.compression,
+        compression=compression,
         nrows=nrows,
+        storage_options=storage_options,
     )
 
     if chunksize:
         return json_reader
 
-    result = json_reader.read()
-    ioargs.close()
-
-    return result
+    return json_reader.read()
 
 
 class JsonReader(abc.Iterator):
@@ -609,10 +591,8 @@ class JsonReader(abc.Iterator):
         chunksize: Optional[int],
         compression: CompressionOptions,
         nrows: Optional[int],
+        storage_options: StorageOptions = None,
     ):
-
-        compression_method, compression = get_compression_method(compression)
-        compression = dict(compression, method=compression_method)
 
         self.orient = orient
         self.typ = typ
@@ -625,6 +605,7 @@ class JsonReader(abc.Iterator):
         self.date_unit = date_unit
         self.encoding = encoding
         self.compression = compression
+        self.storage_options = storage_options
         self.lines = lines
         self.chunksize = chunksize
         self.nrows_seen = 0
@@ -669,20 +650,19 @@ class JsonReader(abc.Iterator):
         It returns input types (2) and (3) unchanged.
         """
         # if it is a string but the file does not exist, it might be a JSON string
-        exists = False
-        if isinstance(filepath_or_buffer, str):
-            try:
-                exists = os.path.exists(filepath_or_buffer)
-            # gh-5874: if the filepath is too long will raise here
-            except (TypeError, ValueError):
-                pass
-
-        if exists or not isinstance(filepath_or_buffer, str):
+        filepath_or_buffer = stringify_path(filepath_or_buffer)
+        if (
+            not isinstance(filepath_or_buffer, str)
+            or is_url(filepath_or_buffer)
+            or is_fsspec_url(filepath_or_buffer)
+            or file_exists(filepath_or_buffer)
+        ):
             self.handles = get_handle(
                 filepath_or_buffer,
                 "r",
                 encoding=self.encoding,
                 compression=self.compression,
+                storage_options=self.storage_options,
             )
             filepath_or_buffer = self.handles.handle
 

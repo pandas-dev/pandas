@@ -6,7 +6,7 @@ import warnings
 from pandas._typing import CompressionOptions, FilePathOrBuffer, StorageOptions
 from pandas.compat import pickle_compat as pc
 
-from pandas.io.common import get_filepath_or_buffer, get_handle
+from pandas.io.common import get_handle
 
 
 def to_pickle(
@@ -86,24 +86,19 @@ def to_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    ioargs = get_filepath_or_buffer(
-        filepath_or_buffer,
-        compression=compression,
-        mode="wb",
-        storage_options=storage_options,
-    )
     handles = get_handle(
-        ioargs.filepath_or_buffer, "wb", compression=ioargs.compression, is_text=False
+        filepath_or_buffer,
+        "wb",
+        compression=compression,
+        is_text=False,
+        storage_options=storage_options,
     )
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
         pickle.dump(obj, handles.handle, protocol=protocol)  # type: ignore[arg-type]
     finally:
-        # close compression and byte/text wrapper
         handles.close()
-        # close any fsspec-like objects
-        ioargs.close()
 
 
 def read_pickle(
@@ -183,11 +178,12 @@ def read_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    ioargs = get_filepath_or_buffer(
-        filepath_or_buffer, compression=compression, storage_options=storage_options
-    )
     handles = get_handle(
-        ioargs.filepath_or_buffer, "rb", compression=ioargs.compression, is_text=False
+        filepath_or_buffer,
+        "rb",
+        compression=compression,
+        is_text=False,
+        storage_options=storage_options,
     )
 
     # 1) try standard library Pickle
@@ -211,7 +207,4 @@ def read_pickle(
         # e.g. can occur for files written in py27; see GH#28645 and GH#31988
         return pc.load(handles.handle, encoding="latin-1")
     finally:
-        # close compression and byte/text wrapper
         handles.close()
-        # close any fsspec-like objects
-        ioargs.close()
