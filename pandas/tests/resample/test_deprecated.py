@@ -43,20 +43,20 @@ def test_deprecating_on_loffset_and_base():
     idx = pd.date_range("2001-01-01", periods=4, freq="T")
     df = DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         pd.Grouper(freq="10s", base=0)
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         pd.Grouper(freq="10s", loffset="0s")
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby("a").resample("3T", base=0).sum()
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby("a").resample("3T", loffset="0s").sum()
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.resample("3T", base=0).sum()
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.resample("3T", loffset="0s").sum()
     msg = "'offset' and 'base' cannot be present at the same time"
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         with pytest.raises(ValueError, match=msg):
             df.groupby("a").resample("3T", base=0, offset=0).sum()
 
@@ -76,7 +76,7 @@ def test_resample_loffset_arg_type(frame, create_index, arg):
     expected_index += timedelta(hours=2)
     expected = DataFrame({"value": expected_means}, index=expected_index)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result_agg = df.resample("2D", loffset="2H").agg(arg)
 
     if isinstance(arg, list):
@@ -93,7 +93,7 @@ def test_resample_loffset(loffset):
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
     s = Series(np.random.randn(14), index=rng)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = s.resample(
             "5min", closed="right", label="right", loffset=loffset
         ).mean()
@@ -112,7 +112,7 @@ def test_resample_loffset(loffset):
     # to weekly
     result = ser.resample("w-sun").last()
     business_day_offset = BDay()
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         expected = ser.resample("w-sun", loffset=-business_day_offset).last()
     assert result.index[0] - business_day_offset == expected.index[0]
 
@@ -122,7 +122,7 @@ def test_resample_loffset_upsample():
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="min")
     s = Series(np.random.randn(14), index=rng)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = s.resample(
             "5min", closed="right", label="right", loffset=timedelta(minutes=1)
         ).ffill()
@@ -138,7 +138,7 @@ def test_resample_loffset_count():
     rng = date_range(start_time, periods=100, freq="S")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = ts.resample("10S", loffset="1s").count()
 
     expected_index = date_range(start_time, periods=10, freq="10S") + timedelta(
@@ -150,7 +150,7 @@ def test_resample_loffset_count():
 
     # Same issue should apply to .size() since it goes through
     #   same code path
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = ts.resample("10S", loffset="1s").size()
 
     tm.assert_series_equal(result, expected)
@@ -160,7 +160,7 @@ def test_resample_base():
     rng = date_range("1/1/2000 00:00:00", "1/1/2000 02:00", freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         resampled = ts.resample("5min", base=2).mean()
     exp_rng = date_range("12/31/1999 23:57:00", "1/1/2000 01:57", freq="5min")
     tm.assert_index_equal(resampled.index, exp_rng)
@@ -174,7 +174,7 @@ def test_resample_float_base():
     s = Series(np.arange(3), index=dt)
 
     base = 17 + 43.51 / 60
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = s.resample("3min", base=base).size()
     expected = Series(
         3, index=pd.DatetimeIndex(["2018-11-26 16:17:43.51"], freq="3min")
@@ -196,7 +196,7 @@ def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
     expected_index += timedelta(hours=2)
     expected = DataFrame({"value": expected_means}, index=expected_index)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result_agg = df.resample("2D", loffset="2H", kind=kind).agg(agg_arg)
     if isinstance(agg_arg, list):
         expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
@@ -228,7 +228,7 @@ def test_resample_with_non_zero_base(start, end, start_freq, end_freq, base, off
     # GH 23882
     s = Series(0, index=pd.period_range(start, end, freq=start_freq))
     s = s + np.arange(len(s))
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = s.resample(end_freq, base=base).mean()
     result = result.to_timestamp(end_freq)
 
@@ -239,7 +239,7 @@ def test_resample_with_non_zero_base(start, end, start_freq, end_freq, base, off
 
     # to_timestamp casts 24H -> D
     result = result.asfreq(end_freq) if end_freq == "24H" else result
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         expected = s.to_timestamp().resample(end_freq, base=base).mean()
     if end_freq == "M":
         # TODO: is non-tick the relevant characteristic? (GH 33815)
@@ -252,7 +252,7 @@ def test_resample_base_with_timedeltaindex():
     rng = timedelta_range(start="0s", periods=25, freq="s")
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         with_base = ts.resample("2s", base=5).mean()
     without_base = ts.resample("2s").mean()
 
