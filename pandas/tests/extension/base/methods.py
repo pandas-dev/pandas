@@ -242,14 +242,17 @@ class BaseMethodsTests(BaseExtensionTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 + x2)
 
-        expected = pd.Series(
-            pd.array([a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]),
-            dtype=orig_data1.dtype,
-        )
+        # FIXME: construct expected for boolean case and enable
+        if orig_data1.dtype == "boolean":
+            return
 
-        # TODO: expected currently has an incorrect dtype
-        # fix construction and set check_type=True in assertion
-        self.assert_series_equal(result, expected, check_dtype=False)
+        with np.errstate(over="ignore"):
+            expected = pd.Series(
+                orig_data1._from_sequence(
+                    [a + b for (a, b) in zip(orig_data1, orig_data2)]
+                )
+            )
+        self.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 + x2)
@@ -449,7 +452,7 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize(
         "repeats, kwargs, error, msg",
         [
-            (2, dict(axis=1), ValueError, "'axis"),
+            (2, dict(axis=1), ValueError, "axis"),
             (-1, dict(), ValueError, "negative"),
             ([1, 2], dict(), ValueError, "shape"),
             (2, dict(foo="bar"), TypeError, "'foo'"),
