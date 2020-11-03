@@ -9347,12 +9347,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
         Equivalent to `shift` without copying data.
-
         The shifted data will not include the dropped periods and the
         shifted axis will be smaller than the original.
 
         .. deprecated:: 1.2.0
-            slice_shift is deprecated, use DataFrame/Series.shift instead.
+            slice_shift is deprecated,
+            use DataFrame/Series.shift instead.
 
         Parameters
         ----------
