@@ -485,22 +485,21 @@ class TestMergeMulti:
     def test_merge_datetime_multi_index_empty_df(self, merge_type):
         # see gh-36895
 
-        midx1 = MultiIndex.from_tuples(
-            [[Timestamp("1950-01-01"), "A"], [Timestamp("1950-01-02"), "B"]],
-            names=["date", "panel"],
-        )
         left = DataFrame(
             data={
                 "data": [1.5, 1.5],
             },
-            index=midx1,
+            index=MultiIndex.from_tuples(
+                [[Timestamp("1950-01-01"), "A"], [Timestamp("1950-01-02"), "B"]],
+                names=["date", "panel"],
+            ),
         )
 
-        midx2 = MultiIndex.from_tuples([], names=["date", "panel"])
+        right = DataFrame(
+            index=MultiIndex.from_tuples([], names=["date", "panel"]), columns=["state"]
+        )
 
-        right = DataFrame(index=midx2, columns=["state"])
-
-        midx3 = MultiIndex.from_tuples(
+        expected_index = MultiIndex.from_tuples(
             [[Timestamp("1950-01-01"), "A"], [Timestamp("1950-01-02"), "B"]],
             names=["date", "panel"],
         )
@@ -511,9 +510,9 @@ class TestMergeMulti:
                     "data": [1.5, 1.5],
                     "state": [None, None],
                 },
-                index=midx3,
+                index=expected_index,
             )
-            results = left.merge(right, how="left", on=["date", "panel"])
+            results_merge = left.merge(right, how="left", on=["date", "panel"])
             results_join = left.join(right, how="left")
         else:
             expected = DataFrame(
@@ -521,12 +520,12 @@ class TestMergeMulti:
                     "state": [None, None],
                     "data": [1.5, 1.5],
                 },
-                index=midx3,
+                index=expected_index,
             )
-            results = right.merge(left, how="right", on=["date", "panel"])
+            results_merge = right.merge(left, how="right", on=["date", "panel"])
             results_join = right.join(left, how="right")
 
-        tm.assert_frame_equal(results, expected)
+        tm.assert_frame_equal(results_merge, expected)
         tm.assert_frame_equal(results_join, expected)
 
     def test_join_multi_levels(self):
