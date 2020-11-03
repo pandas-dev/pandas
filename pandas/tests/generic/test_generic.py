@@ -5,7 +5,6 @@ import pytest
 
 from pandas.core.dtypes.common import is_scalar
 
-import pandas as pd
 from pandas import DataFrame, Series
 import pandas._testing as tm
 
@@ -434,12 +433,11 @@ class TestNDFrame:
             with pytest.raises(ValueError, match=msg):
                 obj.take(indices, mode="clip")
 
-    @pytest.mark.parametrize("klass", [DataFrame, Series])
     @pytest.mark.parametrize("is_copy", [True, False])
-    def test_depr_take_kwarg_is_copy(self, is_copy, klass):
+    def test_depr_take_kwarg_is_copy(self, is_copy, frame_or_series):
         # GH 27357
         obj = DataFrame({"A": [1, 2, 3]})
-        if klass is Series:
+        if frame_or_series is Series:
             obj = obj["A"]
 
         msg = (
@@ -451,8 +449,8 @@ class TestNDFrame:
 
         assert w[0].message.args[0] == msg
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_axis_classmethods(self, box):
+    def test_axis_classmethods(self, frame_or_series):
+        box = frame_or_series
         obj = box(dtype=object)
         values = box._AXIS_TO_AXIS_NUMBER.keys()
         for v in values:
@@ -460,24 +458,23 @@ class TestNDFrame:
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_axis_names_deprecated(self, box):
+    def test_axis_names_deprecated(self, frame_or_series):
         # GH33637
+        box = frame_or_series
         obj = box(dtype=object)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             obj._AXIS_NAMES
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_axis_numbers_deprecated(self, box):
+    def test_axis_numbers_deprecated(self, frame_or_series):
         # GH33637
+        box = frame_or_series
         obj = box(dtype=object)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             obj._AXIS_NUMBERS
 
-    @pytest.mark.parametrize("as_frame", [True, False])
-    def test_flags_identity(self, as_frame):
+    def test_flags_identity(self, frame_or_series):
         s = Series([1, 2])
-        if as_frame:
+        if frame_or_series is DataFrame:
             s = s.to_frame()
 
         assert s.flags is s.flags
