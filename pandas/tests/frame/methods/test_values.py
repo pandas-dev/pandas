@@ -1,6 +1,6 @@
 import numpy as np
 
-from pandas import DataFrame, NaT, Timestamp, date_range
+from pandas import DataFrame, NaT, Series, Timestamp, date_range, period_range
 import pandas._testing as tm
 
 
@@ -43,6 +43,21 @@ class TestDataFrameValues:
         expected = np.array([[1, 2, "a", "b"], [1, 2, "a", "b"]], dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_values_casts_period_to_object(self):
+        series = Series(period_range("2000-01-01", periods=10, freq="D"))
+
+        expected = series.astype("object")
+
+        df = DataFrame({"a": series, "b": np.random.randn(len(series))})
+
+        result = df.values.squeeze()
+        assert (result[:, 0] == expected.values).all()
+
+        df = DataFrame({"a": series, "b": ["foo"] * len(series)})
+
+        result = df.values.squeeze()
+        assert (result[:, 0] == expected.values).all()
 
     def test_frame_values_with_tz(self):
         tz = "US/Central"
