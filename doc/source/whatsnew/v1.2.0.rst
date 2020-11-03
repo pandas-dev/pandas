@@ -488,6 +488,7 @@ I/O
 - Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
 - Bug in :class:`HDFStore` threw a ``TypeError`` when exporting an empty :class:`DataFrame` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
 - Bug in :class:`HDFStore` was dropping timezone information when exporting :class:`Series` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
+- In :meth:`to_latex` ``formatters`` now handles ``fstring`` and ``callable`` paramaters (:issue:`26278`)
 
 Plotting
 ^^^^^^^^
@@ -546,17 +547,6 @@ ExtensionArray
 - Fixed bug when applying a NumPy ufunc with multiple outputs to a :class:`pandas.arrays.IntegerArray` returning None (:issue:`36913`)
 - Fixed an inconsistency in :class:`PeriodArray`'s ``__init__`` signature to those of :class:`DatetimeArray` and :class:`TimedeltaArray` (:issue:`37289`)
 - Reductions for :class:`BooleanArray`, :class:`Categorical`, :class:`DatetimeArray`, :class:`FloatingArray`, :class:`IntegerArray`, :class:`PeriodArray`, :class:`TimedeltaArray`, and :class:`PandasArray` are now keyword-only methods (:issue:`37541`)
-
-ToLatex
-^^^^^^^
-
-- Can now substitute simple fstrings in place of callable functions in to_latex
-
-.. ipython:: python
-    data = [[1, 2, 3], [4, 5, 6], [7, 8, 9.001]]
-    df = pd.DataFrame(data, columns=["a", "b", "c"], index=["1", "2", "3"])
-    result = df.to_latex(formatters=["d", ".2f", lambda x: f"{x:.3f}"])
-
 
 Other
 ^^^^^
