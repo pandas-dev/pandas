@@ -202,7 +202,7 @@ class ArrowStringArray(ExtensionArray):
         """
         return ArrowStringDtype()
 
-    def __array__(self, *args, **kwargs) -> "np.ndarray":
+    def __array__(self, dtype=None) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
         return self.data.__array__(*args, **kwargs)
 
