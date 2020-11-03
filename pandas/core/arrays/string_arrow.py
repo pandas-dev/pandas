@@ -6,7 +6,7 @@ from typing import Any, Optional, Sequence, Type, Union
 
 import numpy as np
 
-from pandas._libs import missing as libmissing
+from pandas._libs import lib, missing as libmissing
 from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -204,11 +204,20 @@ class ArrowStringArray(ExtensionArray):
 
     def __array__(self, dtype=None) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
-        return self.data.__array__(*args, **kwargs)
+        return self.to_numpy(dtype=dtype)
 
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self.data
+
+    def to_numpy(
+        self, dtype=None, copy: bool = False, na_value=lib.no_default
+    ) -> np.ndarray:
+        """
+        Convert to a NumPy ndarray.
+        """
+        # TODO: copy and na_value arguments are ignored
+        return self.data.__array__(dtype=dtype)
 
     def __len__(self) -> int:
         """
