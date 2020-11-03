@@ -579,9 +579,11 @@ class TestIntervalIndex:
         actual = self.index == self.index.left
         tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
-        msg = (
-            "not supported between instances of 'int' and "
-            "'pandas._libs.interval.Interval'"
+        msg = "|".join(
+            [
+                "not supported between instances of 'int' and '.*.Interval'",
+                r"Invalid comparison between dtype=interval\[int64\] and ",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             self.index > 0
