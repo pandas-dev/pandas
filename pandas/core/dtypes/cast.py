@@ -19,7 +19,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib, tslib
+from pandas._libs import lib, tslibs
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -142,9 +142,9 @@ def maybe_box_datetimelike(value, dtype=None):
         return value
 
     if isinstance(value, (np.datetime64, datetime)):
-        value = tslib.Timestamp(value)
+        value = tslibs.Timestamp(value)
     elif isinstance(value, (np.timedelta64, timedelta)):
-        value = tslib.Timedelta(value)
+        value = tslibs.Timedelta(value)
 
     return value
 
@@ -1352,7 +1352,7 @@ def maybe_infer_to_datetimelike(
         # safe coerce to datetime64
         try:
             # GH19671
-            v = tslib.array_to_datetime(v, require_iso8601=True, errors="raise")[0]
+            v = tslibs.array_to_datetime(v, require_iso8601=True, errors="raise")[0]
         except ValueError:
 
             # we might have a sequence of the same-datetimes with tz's
