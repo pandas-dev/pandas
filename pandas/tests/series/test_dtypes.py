@@ -120,18 +120,20 @@ class TestSeriesDtypes:
             s.astype("object").astype(CategoricalDtype()), roundtrip_expected
         )
 
+    def test_invalid_conversions(self):
         # invalid conversion (these are NOT a dtype)
+        cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
+        ser = Series(np.random.randint(0, 10000, 100)).sort_values()
+        ser = pd.cut(ser, range(0, 10500, 500), right=False, labels=cat)
+
         msg = (
             "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
             "not understood"
         )
-
-        for invalid in [
-            lambda x: x.astype(Categorical),
-            lambda x: x.astype("object").astype(Categorical),
-        ]:
-            with pytest.raises(TypeError, match=msg):
-                invalid(s)
+        with pytest.raises(TypeError, match=msg):
+            ser.astype(Categorical)
+        with pytest.raises(TypeError, match=msg):
+            ser.astype("object").astype(Categorical)
 
     @pytest.mark.parametrize("dtype", np.typecodes["All"])
     def test_astype_empty_constructor_equality(self, dtype):
@@ -156,19 +158,6 @@ class TestSeriesDtypes:
         expected = Series(["a", "b", "c"], dtype="category")
 
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "data",
-        [
-            pd.period_range("2000", periods=4),
-            pd.IntervalIndex.from_breaks([1, 2, 3, 4]),
-        ],
-    )
-    def test_values_compatibility(self, data):
-        # https://github.com/pandas-dev/pandas/issues/23995
-        result = Series(data).values
-        expected = np.array(data.astype(object))
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_reindex_astype_order_consistency(self):
         # GH 17444
