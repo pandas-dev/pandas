@@ -375,7 +375,7 @@ Numba as an argument
 
 Additionally, we can leverage the power of `Numba <https://numba.pydata.org/>`__
 by calling it as an argument in :meth:`~Rolling.apply`. See :ref:`Computation tools
-<stats.rolling_apply>` for an extensive example.
+<window.numba_engine>` for an extensive example.
 
 Vectorize
 ~~~~~~~~~
