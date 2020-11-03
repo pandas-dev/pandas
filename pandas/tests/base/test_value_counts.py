@@ -239,7 +239,7 @@ def test_value_counts_datetime64(index_or_series):
     tm.assert_series_equal(result, expected_s)
 
     result = s.value_counts(dropna=False)
-    expected_s = pd.concat([pd.Series([4], index=DatetimeIndex([pd.NaT])), expected_s])
+    expected_s = pd.concat([Series([4], index=DatetimeIndex([pd.NaT])), expected_s])
     tm.assert_series_equal(result, expected_s)
 
     unique = s.unique()
