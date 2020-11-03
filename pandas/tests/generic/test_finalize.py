@@ -424,8 +424,6 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("where", np.array([[True]]))),
     (pd.Series, ([1, 2],), operator.methodcaller("mask", np.array([True, False]))),
     (pd.DataFrame, frame_data, operator.methodcaller("mask", np.array([[True]]))),
-    (pd.Series, ([1, 2],), operator.methodcaller("slice_shift")),
-    (pd.DataFrame, frame_data, operator.methodcaller("slice_shift")),
     pytest.param(
         (
             pd.Series,
