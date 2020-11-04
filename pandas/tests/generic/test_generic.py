@@ -480,3 +480,14 @@ class TestNDFrame:
         assert s.flags is s.flags
         s2 = s.copy()
         assert s2.flags is not s.flags
+
+    def test_slice_shift_deprecated(self):
+        # GH 37601
+        df = DataFrame({"A": [1, 2, 3, 4]})
+        s = Series([1, 2, 3, 4])
+
+        with tm.assert_produces_warning(FutureWarning):
+            df["A"].slice_shift()
+
+        with tm.assert_produces_warning(FutureWarning):
+            s.slice_shift()
