@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import Categorical, CategoricalIndex, Index, PeriodIndex, Series
 import pandas._testing as tm
 import pandas.core.common as com
@@ -40,28 +39,28 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
 
     @pytest.mark.parametrize(
         "other",
-        [pd.Categorical(["b", "a"]), pd.Categorical(["b", "a"], categories=["b", "a"])],
+        [Categorical(["b", "a"]), Categorical(["b", "a"], categories=["b", "a"])],
     )
     def test_setitem_same_but_unordered(self, other):
         # GH-24142
-        target = pd.Categorical(["a", "b"], categories=["a", "b"])
+        target = Categorical(["a", "b"], categories=["a", "b"])
         mask = np.array([True, False])
         target[mask] = other[mask]
-        expected = pd.Categorical(["b", "b"], categories=["a", "b"])
+        expected = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_categorical_equal(target, expected)
 
     @pytest.mark.parametrize(
         "other",
         [
-            pd.Categorical(["b", "a"], categories=["b", "a", "c"]),
-            pd.Categorical(["b", "a"], categories=["a", "b", "c"]),
-            pd.Categorical(["a", "a"], categories=["a"]),
-            pd.Categorical(["b", "b"], categories=["b"]),
+            Categorical(["b", "a"], categories=["b", "a", "c"]),
+            Categorical(["b", "a"], categories=["a", "b", "c"]),
+            Categorical(["a", "a"], categories=["a"]),
+            Categorical(["b", "b"], categories=["b"]),
         ],
     )
     def test_setitem_different_unordered_raises(self, other):
         # GH-24142
-        target = pd.Categorical(["a", "b"], categories=["a", "b"])
+        target = Categorical(["a", "b"], categories=["a", "b"])
         mask = np.array([True, False])
         msg = "Cannot set a Categorical with another, without identical categories"
         with pytest.raises(ValueError, match=msg):
@@ -70,14 +69,14 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
     @pytest.mark.parametrize(
         "other",
         [
-            pd.Categorical(["b", "a"]),
-            pd.Categorical(["b", "a"], categories=["b", "a"], ordered=True),
-            pd.Categorical(["b", "a"], categories=["a", "b", "c"], ordered=True),
+            Categorical(["b", "a"]),
+            Categorical(["b", "a"], categories=["b", "a"], ordered=True),
+            Categorical(["b", "a"], categories=["a", "b", "c"], ordered=True),
         ],
     )
     def test_setitem_same_ordered_raises(self, other):
         # Gh-24142
-        target = pd.Categorical(["a", "b"], categories=["a", "b"], ordered=True)
+        target = Categorical(["a", "b"], categories=["a", "b"], ordered=True)
         mask = np.array([True, False])
         msg = "Cannot set a Categorical with another, without identical categories"
         with pytest.raises(ValueError, match=msg):
@@ -85,11 +84,27 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
 
     def test_setitem_tuple(self):
         # GH#20439
-        cat = pd.Categorical([(0, 1), (0, 2), (0, 1)])
+        cat = Categorical([(0, 1), (0, 2), (0, 1)])
 
         # This should not raise
         cat[1] = cat[0]
         assert cat[1] == (0, 1)
+
+    def test_setitem_listlike(self):
+
+        # GH#9469
+        # properly coerce the input indexers
+        np.random.seed(1)
+        c = Categorical(
+            np.random.randint(0, 5, size=150000).astype(np.int8)
+        ).add_categories([-1000])
+        indexer = np.array([100000]).astype(np.int64)
+        c[indexer] = -1000
+
+        # we are asserting the code result here
+        # which maps to the -1000 category
+        result = c.codes[np.array([100000]).astype(np.int64)]
+        tm.assert_numpy_array_equal(result, np.array([5], dtype="int8"))
 
 
 class TestCategoricalIndexing:
@@ -200,15 +215,15 @@ class TestCategoricalIndexing:
             tm.assert_numpy_array_equal(exp_miss, res_miss)
 
     def test_where_unobserved_nan(self):
-        ser = Series(pd.Categorical(["a", "b"]))
+        ser = Series(Categorical(["a", "b"]))
         result = ser.where([True, False])
-        expected = Series(pd.Categorical(["a", None], categories=["a", "b"]))
+        expected = Series(Categorical(["a", None], categories=["a", "b"]))
         tm.assert_series_equal(result, expected)
 
         # all NA
-        ser = Series(pd.Categorical(["a", "b"]))
+        ser = Series(Categorical(["a", "b"]))
         result = ser.where([False, False])
-        expected = Series(pd.Categorical([None, None], categories=["a", "b"]))
+        expected = Series(Categorical([None, None], categories=["a", "b"]))
         tm.assert_series_equal(result, expected)
 
     def test_where_unobserved_categories(self):

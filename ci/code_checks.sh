@@ -38,8 +38,8 @@ function invgrep {
 }
 
 function check_namespace {
-    local -r CLASS="${1}"
-    grep -R -l --include "*.py" " ${CLASS}(" pandas/tests | xargs grep -n "pd\.${CLASS}("
+    local -r CLASS=${1}
+    grep -R -l --include "*.py" " ${CLASS}(" pandas/tests | xargs grep -n "pd\.${CLASS}[(\.]"
     test $? -gt 0
 }
 
@@ -71,38 +71,6 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
     # we can lint all header files since they aren't "generated" like C files are.
     MSG='Linting .c and .h' ; echo $MSG
     cpplint --quiet --extensions=c,h --headers=h --recursive --filter=-readability/casting,-runtime/int,-build/include_subdir pandas/_libs/src/*.h pandas/_libs/src/parser pandas/_libs/ujson pandas/_libs/tslibs/src/datetime pandas/_libs/*.cpp
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of not concatenated strings' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" --format="##[error]{source_path}:{line_number}:{msg}" .
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate" .
-    fi
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for strings with wrong placed spaces' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" --format="##[error]{source_path}:{line_number}:{msg}" .
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace" .
-    fi
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for import of private attributes across modules' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored --format="##[error]{source_path}:{line_number}:{msg}" pandas/
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored pandas/
-    fi
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of private functions across modules' ; echo $MSG
-    if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ --format="##[error]{source_path}:{line_number}:{msg}" pandas/
-    else
-        $BASE_DIR/scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module" --included-file-extensions="py" --excluded-file-paths=pandas/tests,asv_bench/,pandas/_vendored,doc/ pandas/
-    fi
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -154,31 +122,8 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # -------------------------------------------------------------------------
-    # Type annotations
-
-    MSG='Check for use of comment-based annotation syntax' ; echo $MSG
-    invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for missing error codes with # type: ignore' ; echo $MSG
-    invgrep -R --include="*.py" -P '# type:\s?ignore(?!\[)' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias' ; echo $MSG
-    invgrep -R --include="*.py" --exclude=_typing.py -E 'Union\[.*(Series.*DataFrame|DataFrame.*Series).*\]' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # -------------------------------------------------------------------------
-    MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
-    invgrep -R --include=*.{py,pyx} '\.__class__' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check code for instances of os.remove' ; echo $MSG
-    invgrep -R --include="*.py*" --exclude "common.py" --exclude "test_writers.py" --exclude "test_store.py" -E "os\.remove" pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for inconsistent use of pandas namespace in tests' ; echo $MSG
-    for class in "Series" "DataFrame" "Index"; do
+    for class in "Series" "DataFrame" "Index" "MultiIndex" "Timestamp" "Timedelta" "TimedeltaIndex" "DatetimeIndex" "Categorical"; do
         check_namespace ${class}
         RET=$(($RET + $?))
     done

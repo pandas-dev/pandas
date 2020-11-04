@@ -48,7 +48,7 @@ class TestDatetimeIndexOps:
         assert len(result) == 5 * len(rng)
 
         index = pd.date_range("2001-01-01", periods=2, freq="D", tz=tz)
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2001-01-01", "2001-01-01", "2001-01-02", "2001-01-02"], tz=tz
         )
         for res in [index.repeat(2), np.repeat(index, 2)]:
@@ -56,15 +56,15 @@ class TestDatetimeIndexOps:
             assert res.freq is None
 
         index = pd.date_range("2001-01-01", periods=2, freq="2D", tz=tz)
-        exp = pd.DatetimeIndex(
+        exp = DatetimeIndex(
             ["2001-01-01", "2001-01-01", "2001-01-03", "2001-01-03"], tz=tz
         )
         for res in [index.repeat(2), np.repeat(index, 2)]:
             tm.assert_index_equal(res, exp)
             assert res.freq is None
 
-        index = pd.DatetimeIndex(["2001-01-01", "NaT", "2003-01-01"], tz=tz)
-        exp = pd.DatetimeIndex(
+        index = DatetimeIndex(["2001-01-01", "NaT", "2003-01-01"], tz=tz)
+        exp = DatetimeIndex(
             [
                 "2001-01-01",
                 "2001-01-01",
@@ -231,7 +231,7 @@ class TestDatetimeIndexOps:
         index = DatetimeIndex(index_dates, tz=tz, name="idx")
         expected = DatetimeIndex(expected_dates, tz=tz, name="idx")
 
-        ordered = index.sort_values()
+        ordered = index.sort_values(na_position="first")
         tm.assert_index_equal(ordered, expected)
         assert ordered.freq is None
 
@@ -239,7 +239,7 @@ class TestDatetimeIndexOps:
         tm.assert_index_equal(ordered, expected[::-1])
         assert ordered.freq is None
 
-        ordered, indexer = index.sort_values(return_indexer=True)
+        ordered, indexer = index.sort_values(return_indexer=True, na_position="first")
         tm.assert_index_equal(ordered, expected)
 
         exp = np.array([0, 4, 3, 1, 2])
@@ -249,7 +249,7 @@ class TestDatetimeIndexOps:
         ordered, indexer = index.sort_values(return_indexer=True, ascending=False)
         tm.assert_index_equal(ordered, expected[::-1])
 
-        exp = np.array([2, 1, 3, 4, 0])
+        exp = np.array([2, 1, 3, 0, 4])
         tm.assert_numpy_array_equal(indexer, exp, check_dtype=False)
         assert ordered.freq is None
 
@@ -296,23 +296,23 @@ class TestDatetimeIndexOps:
     def test_infer_freq(self, freq_sample):
         # GH 11018
         idx = pd.date_range("2011-01-01 09:00:00", freq=freq_sample, periods=10)
-        result = pd.DatetimeIndex(idx.asi8, freq="infer")
+        result = DatetimeIndex(idx.asi8, freq="infer")
         tm.assert_index_equal(idx, result)
         assert result.freq == freq_sample
 
     def test_nat(self, tz_naive_fixture):
         tz = tz_naive_fixture
-        assert pd.DatetimeIndex._na_value is pd.NaT
-        assert pd.DatetimeIndex([])._na_value is pd.NaT
+        assert DatetimeIndex._na_value is pd.NaT
+        assert DatetimeIndex([])._na_value is pd.NaT
 
-        idx = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], tz=tz)
+        idx = DatetimeIndex(["2011-01-01", "2011-01-02"], tz=tz)
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
         assert idx.hasnans is False
         tm.assert_numpy_array_equal(idx._nan_idxs, np.array([], dtype=np.intp))
 
-        idx = pd.DatetimeIndex(["2011-01-01", "NaT"], tz=tz)
+        idx = DatetimeIndex(["2011-01-01", "NaT"], tz=tz)
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
@@ -321,7 +321,7 @@ class TestDatetimeIndexOps:
 
     def test_equals(self):
         # GH 13107
-        idx = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "NaT"])
+        idx = DatetimeIndex(["2011-01-01", "2011-01-02", "NaT"])
         assert idx.equals(idx)
         assert idx.equals(idx.copy())
         assert idx.equals(idx.astype(object))
@@ -330,7 +330,7 @@ class TestDatetimeIndexOps:
         assert not idx.equals(list(idx))
         assert not idx.equals(Series(idx))
 
-        idx2 = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "NaT"], tz="US/Pacific")
+        idx2 = DatetimeIndex(["2011-01-01", "2011-01-02", "NaT"], tz="US/Pacific")
         assert not idx.equals(idx2)
         assert not idx.equals(idx2.copy())
         assert not idx.equals(idx2.astype(object))
@@ -339,7 +339,7 @@ class TestDatetimeIndexOps:
         assert not idx.equals(Series(idx2))
 
         # same internal, different tz
-        idx3 = pd.DatetimeIndex(idx.asi8, tz="US/Pacific")
+        idx3 = DatetimeIndex(idx.asi8, tz="US/Pacific")
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)
         assert not idx.equals(idx3.copy())
