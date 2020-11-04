@@ -24,6 +24,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in metadata propagation for ``groupby`` iterator (:issue:`37343`)
+- Bug in :func:`to_datetime` and :func:`to_timedelta` with a read-only array incorrectly raising (:issue:`34857`)
 -
 
 .. ---------------------------------------------------------------------------
