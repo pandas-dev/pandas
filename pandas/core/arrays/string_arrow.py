@@ -170,6 +170,8 @@ class ArrowStringArray(ExtensionArray):
     Length: 4, dtype: arrow_string
     """
 
+    _dtype = ArrowStringDtype()
+
     def __init__(self, values):
         self._chk_pyarrow_available()
         if isinstance(values, pa.Array):
@@ -197,7 +199,7 @@ class ArrowStringArray(ExtensionArray):
         """
         An instance of 'ArrowStringDtype'.
         """
-        return ArrowStringDtype()
+        return self._dtype
 
     def __array__(self, dtype=None) -> np.ndarray:
         """Correctly construct numpy arrays when passed to `np.asarray()`."""
