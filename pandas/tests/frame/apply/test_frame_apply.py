@@ -356,12 +356,17 @@ class TestDataFrameApply:
         result = float_frame.apply(np.mean, axis=1)
         tm.assert_series_equal(result, expected)
 
-    def test_apply_reduce_rows_to_dict(self):
-        # GH 25196
-        data = DataFrame([[1, 2], [3, 4]])
-        expected = Series([{0: 1, 1: 3}, {0: 2, 1: 4}])
-        result = data.apply(dict)
-        tm.assert_series_equal(result, expected)
+    def test_apply_reduce_to_dict(self):
+        # GH 25196 37544
+        data = DataFrame([[1, 2], [3, 4]], columns=["c0", "c1"], index=["i0", "i1"])
+
+        result0 = data.apply(dict, axis=0)
+        expected0 = Series([{"i0": 1, "i1": 3}, {"i0": 2, "i1": 4}], index=data.columns)
+        tm.assert_series_equal(result0, expected0)
+
+        result1 = data.apply(dict, axis=1)
+        expected1 = Series([{"c0": 1, "c1": 2}, {"c0": 3, "c1": 4}], index=data.index)
+        tm.assert_series_equal(result1, expected1)
 
     def test_apply_differently_indexed(self):
         df = DataFrame(np.random.randn(20, 10))
