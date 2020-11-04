@@ -399,11 +399,13 @@ Datetimelike
 - Bug in :meth:`TimedeltaIndex.sum` and :meth:`Series.sum` with ``timedelta64`` dtype on an empty index or series returning ``NaT`` instead of ``Timedelta(0)`` (:issue:`31751`)
 - Bug in :meth:`DatetimeArray.shift` incorrectly allowing ``fill_value`` with a mismatched timezone (:issue:`37299`)
 - Bug in adding a :class:`BusinessDay` with nonzero ``offset`` to a non-scalar other (:issue:`37457`)
+- Bug in :func:`to_datetime` with a read-only array incorrectly raising (:issue:`34857`)
 
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`TimedeltaIndex`, :class:`Series`, and :class:`DataFrame` floor-division with ``timedelta64`` dtypes and ``NaT`` in the denominator (:issue:`35529`)
 - Bug in parsing of ISO 8601 durations in :class:`Timedelta`, :meth:`pd.to_datetime` (:issue:`37159`, fixes :issue:`29773` and :issue:`36204`)
+- Bug in :func:`to_timedelta` with a read-only array incorrectly raising (:issue:`34857`)
 
 Timezones
 ^^^^^^^^^
