@@ -268,6 +268,7 @@ def to_hdf(
             data_columns=data_columns,
             errors=errors,
             encoding=encoding,
+            dropna=dropna,
         )
 
     path_or_buf = stringify_path(path_or_buf)
@@ -1051,6 +1052,7 @@ class HDFStore:
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
+        dropna: bool = False,
     ):
         """
         Store object in HDFStore.
@@ -1100,6 +1102,7 @@ class HDFStore:
             encoding=encoding,
             errors=errors,
             track_times=track_times,
+            dropna=dropna,
         )
 
     def remove(self, key: str, where=None, start=None, stop=None):

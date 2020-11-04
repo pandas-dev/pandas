@@ -121,6 +121,8 @@ class NumericIndex(Index):
             # force conversion to object
             # so we don't lose the bools
             raise TypeError
+        if isinstance(value, str):
+            raise TypeError
 
         return value
 

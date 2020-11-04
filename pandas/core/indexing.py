@@ -1582,7 +1582,11 @@ class _iLocIndexer(_LocationIndexer):
                             return
 
                         # add a new item with the dtype setup
-                        self.obj[key] = infer_fill_value(value)
+                        if com.is_null_slice(indexer[0]):
+                            # We are setting an entire column
+                            self.obj[key] = value
+                        else:
+                            self.obj[key] = infer_fill_value(value)
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
@@ -1631,6 +1635,8 @@ class _iLocIndexer(_LocationIndexer):
 
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)
+        if len(indexer) > self.ndim:
+            raise IndexError("too many indices for array")
 
         if isinstance(value, ABCSeries):
             value = self._align_series(indexer, value)
