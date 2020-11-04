@@ -1334,15 +1334,15 @@ class TestMerge:
         left = DataFrame(
             {
                 "a": [1, 2, 3],
-                "key": pd.Categorical(["a", "a", "b"], categories=list("abc")),
+                "key": Categorical(["a", "a", "b"], categories=list("abc")),
             }
         )
-        right = DataFrame({"b": [1, 2, 3]}, index=pd.CategoricalIndex(["a", "b", "c"]))
+        right = DataFrame({"b": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
         result = left.merge(right, left_on="key", right_index=True, how="right")
         expected = DataFrame(
             {
                 "a": [1, 2, 3, None],
-                "key": pd.Categorical(["a", "a", "b", "c"]),
+                "key": Categorical(["a", "a", "b", "c"]),
                 "b": [1, 1, 2, 3],
             },
             index=[0, 1, 2, np.nan],
@@ -1687,7 +1687,7 @@ class TestMergeCategorical:
         result = pd.merge(df1, df2, on=["Foo"])
         expected = DataFrame(
             {
-                "Foo": pd.Categorical(["A", "B", "C"]),
+                "Foo": Categorical(["A", "B", "C"]),
                 "Left": ["A0", "B0", "C0"],
                 "Right": ["A1", "B1", "C1"],
             }
@@ -1707,8 +1707,8 @@ class TestMergeCategorical:
         tm.assert_series_equal(result, expected)
 
         # categories are preserved
-        assert left.X.values.is_dtype_equal(merged.X.values)
-        assert right.Z.values.is_dtype_equal(merged.Z.values)
+        assert left.X.values._categories_match_up_to_permutation(merged.X.values)
+        assert right.Z.values._categories_match_up_to_permutation(merged.Z.values)
 
     @pytest.mark.parametrize(
         "change",
@@ -1725,7 +1725,7 @@ class TestMergeCategorical:
         X = change(right.X.astype("object"))
         right = right.assign(X=X)
         assert is_categorical_dtype(left.X.values.dtype)
-        # assert not left.X.values.is_dtype_equal(right.X.values)
+        # assert not left.X.values._categories_match_up_to_permutation(right.X.values)
 
         merged = pd.merge(left, right, on="X", how=join_type)
 

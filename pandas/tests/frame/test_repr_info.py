@@ -9,8 +9,10 @@ from pandas import (
     Categorical,
     DataFrame,
     MultiIndex,
+    NaT,
     PeriodIndex,
     Series,
+    Timestamp,
     date_range,
     option_context,
     period_range,
@@ -35,6 +37,12 @@ class TestDataFrameReprInfoEtc:
         index[0] = ["faz", "boo"]
         df.index = index
         repr(df)
+
+    def test_repr_with_mi_nat(self, float_string_frame):
+        df = DataFrame({"X": [1, 2]}, index=[[NaT, Timestamp("20130101")], ["a", "b"]])
+        result = repr(df)
+        expected = "              X\nNaT        a  1\n2013-01-01 b  2"
+        assert result == expected
 
     def test_multiindex_na_repr(self):
         # only an issue with long columns

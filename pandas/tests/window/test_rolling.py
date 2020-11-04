@@ -919,6 +919,67 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     tm.assert_series_equal(result, expected)
 
 
+def test_timeoffset_as_window_parameter_for_corr():
+    # GH: 28266
+    exp = DataFrame(
+        {
+            "B": [
+                np.nan,
+                np.nan,
+                0.9999999999999998,
+                -1.0,
+                1.0,
+                -0.3273268353539892,
+                0.9999999999999998,
+                1.0,
+                0.9999999999999998,
+                1.0,
+            ],
+            "A": [
+                np.nan,
+                np.nan,
+                -1.0,
+                1.0000000000000002,
+                -0.3273268353539892,
+                0.9999999999999966,
+                1.0,
+                1.0000000000000002,
+                1.0,
+                1.0000000000000002,
+            ],
+        },
+        index=pd.MultiIndex.from_tuples(
+            [
+                (pd.Timestamp("20130101 09:00:00"), "B"),
+                (pd.Timestamp("20130101 09:00:00"), "A"),
+                (pd.Timestamp("20130102 09:00:02"), "B"),
+                (pd.Timestamp("20130102 09:00:02"), "A"),
+                (pd.Timestamp("20130103 09:00:03"), "B"),
+                (pd.Timestamp("20130103 09:00:03"), "A"),
+                (pd.Timestamp("20130105 09:00:05"), "B"),
+                (pd.Timestamp("20130105 09:00:05"), "A"),
+                (pd.Timestamp("20130106 09:00:06"), "B"),
+                (pd.Timestamp("20130106 09:00:06"), "A"),
+            ]
+        ),
+    )
+
+    df = DataFrame(
+        {"B": [0, 1, 2, 4, 3], "A": [7, 4, 6, 9, 3]},
+        index=[
+            pd.Timestamp("20130101 09:00:00"),
+            pd.Timestamp("20130102 09:00:02"),
+            pd.Timestamp("20130103 09:00:03"),
+            pd.Timestamp("20130105 09:00:05"),
+            pd.Timestamp("20130106 09:00:06"),
+        ],
+    )
+
+    res = df.rolling(window="3d").corr()
+
+    tm.assert_frame_equal(exp, res)
+
+
 @pytest.mark.parametrize("method", ["var", "sum", "mean", "skew", "kurt", "min", "max"])
 def test_rolling_decreasing_indices(method):
     """
@@ -1011,4 +1072,33 @@ def test_rolling_non_monotonic(method, expected):
 
     result = getattr(df.rolling(indexer), method)()
     expected = DataFrame({"values": expected})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("index", "window"),
+    [([0, 1, 2, 3, 4], 2), (pd.date_range("2001-01-01", freq="D", periods=5), "2D")],
+)
+def test_rolling_corr_timedelta_index(index, window):
+    # GH: 31286
+    x = Series([1, 2, 3, 4, 5], index=index)
+    y = x.copy()
+    x[0:2] = 0.0
+    result = x.rolling(window).corr(y)
+    expected = Series([np.nan, np.nan, 1, 1, 1], index=index)
+    tm.assert_almost_equal(result, expected)
+
+
+def test_groupby_rolling_nan_included():
+    # GH 35542
+    data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
+    df = DataFrame(data)
+    result = df.groupby("group", dropna=False).rolling(1, min_periods=1).mean()
+    expected = DataFrame(
+        {"B": [0.0, 2.0, 3.0, 1.0, 4.0]},
+        index=pd.MultiIndex.from_tuples(
+            [("g1", 0), ("g1", 2), ("g2", 3), (np.nan, 1), (np.nan, 4)],
+            names=["group", None],
+        ),
+    )
     tm.assert_frame_equal(result, expected)

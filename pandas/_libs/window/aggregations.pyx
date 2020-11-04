@@ -1,14 +1,13 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
 import cython
-from cython import Py_ssize_t
 
 from libcpp.deque cimport deque
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float32_t, float64_t, int64_t, ndarray, uint8_t
+from numpy cimport float32_t, float64_t, int64_t, ndarray
 
 cnp.import_array()
 
@@ -686,6 +685,11 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
         int64_t nobs = 0, N = len(values), s, e, win
         int midpoint
         ndarray[float64_t] output
+        bint is_monotonic_increasing_bounds
+
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
@@ -705,7 +709,7 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
             s = start[i]
             e = end[i]
 
-            if i == 0:
+            if i == 0 or not is_monotonic_increasing_bounds:
 
                 # setup
                 for j in range(s, e):
@@ -733,7 +737,6 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
                     if notnan(val):
                         skiplist_remove(sl, val)
                         nobs -= 1
-
             if nobs >= minp:
                 midpoint = <int>(nobs / 2)
                 if nobs % 2:
@@ -747,6 +750,10 @@ def roll_median_c(ndarray[float64_t] values, ndarray[int64_t] start,
                 res = NaN
 
             output[i] = res
+
+            if not is_monotonic_increasing_bounds:
+                nobs = 0
+                sl = skiplist_init(<int>win)
 
     skiplist_destroy(sl)
     if err:
@@ -935,7 +942,7 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
     cdef:
         float64_t val, prev, midpoint, idx_with_fraction
         skiplist_t *skiplist
-        int64_t nobs = 0, i, j, s, e, N = len(values)
+        int64_t nobs = 0, i, j, s, e, N = len(values), win
         Py_ssize_t idx
         ndarray[float64_t] output
         float64_t vlow, vhigh
@@ -950,6 +957,9 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
     except KeyError:
         raise ValueError(f"Interpolation '{interpolation}' is not supported")
 
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
     output = np.empty(N, dtype=float)
@@ -967,7 +977,10 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
             s = start[i]
             e = end[i]
 
-            if i == 0:
+            if i == 0 or not is_monotonic_increasing_bounds:
+                if not is_monotonic_increasing_bounds:
+                    nobs = 0
+                    skiplist = skiplist_init(<int>win)
 
                 # setup
                 for j in range(s, e):
@@ -977,7 +990,6 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
                         skiplist_insert(skiplist, val)
 
             else:
-
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = values[j]
@@ -991,7 +1003,6 @@ def roll_quantile(ndarray[float64_t, cast=True] values, ndarray[int64_t] start,
                     if notnan(val):
                         skiplist_remove(skiplist, val)
                         nobs -= 1
-
             if nobs >= minp:
                 if nobs == 1:
                     # Single value in skip list
@@ -1386,7 +1397,7 @@ def roll_weighted_var(float64_t[:] values, float64_t[:] weights,
 # ----------------------------------------------------------------------
 # Exponentially weighted moving average
 
-def ewma_time(ndarray[float64_t] vals, int minp, ndarray[int64_t] times,
+def ewma_time(const float64_t[:] vals, int minp, ndarray[int64_t] times,
               int64_t halflife):
     """
     Compute exponentially-weighted moving average using halflife and time
@@ -1404,30 +1415,40 @@ def ewma_time(ndarray[float64_t] vals, int minp, ndarray[int64_t] times,
     ndarray
     """
     cdef:
-        Py_ssize_t i, num_not_nan = 0, N = len(vals)
+        Py_ssize_t i, j, num_not_nan = 0, N = len(vals)
         bint is_not_nan
-        float64_t last_result
-        ndarray[uint8_t] mask = np.zeros(N, dtype=np.uint8)
-        ndarray[float64_t] weights, observations, output = np.empty(N, dtype=np.float64)
+        float64_t last_result, weights_dot, weights_sum, weight, halflife_float
+        float64_t[:] times_float
+        float64_t[:] observations = np.zeros(N, dtype=float)
+        float64_t[:] times_masked = np.zeros(N, dtype=float)
+        ndarray[float64_t] output = np.empty(N, dtype=float)
 
     if N == 0:
         return output
 
+    halflife_float = <float64_t>halflife
+    times_float = times.astype(float)
     last_result = vals[0]
 
-    for i in range(N):
-        is_not_nan = vals[i] == vals[i]
-        num_not_nan += is_not_nan
-        if is_not_nan:
-            mask[i] = 1
-            weights = 0.5 ** ((times[i] - times[mask.view(np.bool_)]) / halflife)
-            observations = vals[mask.view(np.bool_)]
-            last_result = np.sum(weights * observations) / np.sum(weights)
+    with nogil:
+        for i in range(N):
+            is_not_nan = vals[i] == vals[i]
+            num_not_nan += is_not_nan
+            if is_not_nan:
+                times_masked[num_not_nan-1] = times_float[i]
+                observations[num_not_nan-1] = vals[i]
 
-        if num_not_nan >= minp:
-            output[i] = last_result
-        else:
-            output[i] = NaN
+                weights_sum = 0
+                weights_dot = 0
+                for j in range(num_not_nan):
+                    weight = 0.5 ** (
+                        (times_float[i] - times_masked[j]) / halflife_float)
+                    weights_sum += weight
+                    weights_dot += weight * observations[j]
+
+                last_result = weights_dot / weights_sum
+
+            output[i] = last_result if num_not_nan >= minp else NaN
 
     return output
 

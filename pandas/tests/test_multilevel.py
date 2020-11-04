@@ -21,42 +21,6 @@ AGG_FUNCTIONS = [
 
 
 class TestMultiLevel:
-    def test_append(self, multiindex_dataframe_random_data):
-        frame = multiindex_dataframe_random_data
-
-        a, b = frame[:5], frame[5:]
-
-        result = a.append(b)
-        tm.assert_frame_equal(result, frame)
-
-        result = a["A"].append(b["A"])
-        tm.assert_series_equal(result, frame["A"])
-
-    def test_dataframe_constructor_infer_multiindex(self):
-        multi = DataFrame(
-            np.random.randn(4, 4),
-            index=[np.array(["a", "a", "b", "b"]), np.array(["x", "y", "x", "y"])],
-        )
-        assert isinstance(multi.index, MultiIndex)
-        assert not isinstance(multi.columns, MultiIndex)
-
-        multi = DataFrame(
-            np.random.randn(4, 4), columns=[["a", "a", "b", "b"], ["x", "y", "x", "y"]]
-        )
-        assert isinstance(multi.columns, MultiIndex)
-
-    def test_series_constructor_infer_multiindex(self):
-        multi = Series(
-            1.0, index=[np.array(["a", "a", "b", "b"]), np.array(["x", "y", "x", "y"])]
-        )
-        assert isinstance(multi.index, MultiIndex)
-
-        multi = Series(1.0, index=[["a", "a", "b", "b"], ["x", "y", "x", "y"]])
-        assert isinstance(multi.index, MultiIndex)
-
-        multi = Series(range(4), index=[["a", "a", "b", "b"], ["x", "y", "x", "y"]])
-        assert isinstance(multi.index, MultiIndex)
-
     def test_reindex_level(self, multiindex_year_month_day_dataframe_random_data):
         # axis=0
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -278,18 +242,17 @@ class TestMultiLevel:
             expected = df.groupby(level=0).agg(alt)
             tm.assert_frame_equal(result, expected)
 
-    def test_frame_series_agg_multiple_levels(
-        self, multiindex_year_month_day_dataframe_random_data
+    @pytest.mark.parametrize("klass", [Series, DataFrame])
+    def test_agg_multiple_levels(
+        self, multiindex_year_month_day_dataframe_random_data, klass
     ):
         ymd = multiindex_year_month_day_dataframe_random_data
+        if klass is Series:
+            ymd = ymd["A"]
 
         result = ymd.sum(level=["year", "month"])
         expected = ymd.groupby(level=["year", "month"]).sum()
-        tm.assert_frame_equal(result, expected)
-
-        result = ymd["A"].sum(level=["year", "month"])
-        expected = ymd["A"].groupby(level=["year", "month"]).sum()
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     def test_groupby_multilevel(self, multiindex_year_month_day_dataframe_random_data):
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -449,7 +412,7 @@ class TestMultiLevel:
         # GH 20757
         data = [["x", 1]]
         columns = [("a", "b", np.nan), ("a", "c", 0.0)]
-        df = DataFrame(data, columns=pd.MultiIndex.from_tuples(columns))
+        df = DataFrame(data, columns=MultiIndex.from_tuples(columns))
         expected = df.dtypes.a.b
         result = df.a.b.dtypes
         tm.assert_series_equal(result, expected)

@@ -207,7 +207,7 @@ cdef slice slice_canonize(slice s):
     Convert slice to canonical bounded form.
     """
     cdef:
-        Py_ssize_t start = 0, stop = 0, step = 1, length
+        Py_ssize_t start = 0, stop = 0, step = 1
 
     if s.step is None:
         step = 1
@@ -239,7 +239,7 @@ cdef slice slice_canonize(slice s):
             if stop > start:
                 stop = start
 
-    if start < 0 or (stop < 0 and s.stop is not None):
+    if start < 0 or (stop < 0 and s.stop is not None and step > 0):
         raise ValueError("unbounded slice")
 
     if stop < 0:
