@@ -181,6 +181,11 @@ class ArrowStringArray(ExtensionArray):
         else:
             raise ValueError(f"Unsupported type '{type(values)}' for ArrowStringArray")
 
+        if not pa.types.is_string(self.data.type):
+            raise ValueError(
+                "ArrowStringArray requires an array of strings or pandas.NA"
+            )
+
     @classmethod
     def _chk_pyarrow_available(cls) -> None:
         # TODO: maybe update import_optional_dependency to allow a minimum

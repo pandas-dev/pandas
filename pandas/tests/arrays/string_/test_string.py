@@ -314,6 +314,22 @@ def test_constructor_raises(cls):
         cls(np.array(["a", pd.NaT], dtype=object))
 
 
+@td.skip_if_no("pyarrow", min_version="1.0.0")
+def test_constructor_pyarrow_not_string_raises(cls):
+    import pyarrow as pa
+
+    if cls is pd.arrays.StringArray:
+        msg = "'values' must be a NumPy array"
+    else:
+        msg = "ArrowStringArray requires an array of strings or pandas.NA"
+
+    with pytest.raises(ValueError, match=msg):
+        cls(pa.array([1, 2, 3]))
+
+    with pytest.raises(ValueError, match=msg):
+        cls(pa.chunked_array(pa.array([1, 2, 3])))
+
+
 @pytest.mark.parametrize("copy", [True, False])
 def test_from_sequence_no_mutate(copy, cls, request):
     if cls is ArrowStringArray:
