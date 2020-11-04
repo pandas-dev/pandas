@@ -30,7 +30,7 @@ def idx_multitype():
     first_axis = [1, 2, 3]
     second_axis = list("abc")
     third_axis = pd.date_range("20200101", periods=2, tz="UTC")
-    mi = pd.MultiIndex.from_product(
+    mi = MultiIndex.from_product(
         [first_axis, second_axis, third_axis], names=["int", "string", "dt"]
     )
     return mi
