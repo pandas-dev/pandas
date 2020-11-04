@@ -24,7 +24,7 @@ import numpy as np
 from pandas._libs import NaT, iNaT, lib
 import pandas._libs.groupby as libgroupby
 import pandas._libs.reduction as libreduction
-from pandas._typing import F, FrameOrSeries, Label
+from pandas._typing import F, FrameOrSeries, Label, Shape
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
@@ -116,7 +116,7 @@ class BaseGrouper:
         return self._groupings
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> Shape:
         return tuple(ping.ngroups for ping in self.groupings)
 
     def __iter__(self):
