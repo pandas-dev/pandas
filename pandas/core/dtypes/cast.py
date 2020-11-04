@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
     List,
     Optional,
     Sequence,
@@ -815,7 +816,7 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
     return dtype, val
 
 
-def dict_compat(d):
+def dict_compat(d: Dict[Scalar, Scalar]) -> Dict[Scalar, Scalar]:
     """
     Convert datetimelike-keyed dicts to a Timestamp-keyed dict.
 
