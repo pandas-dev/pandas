@@ -360,7 +360,7 @@ class DataFrame(NDFrame, OpsMixin):
     Parameters
     ----------
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
-        Dict can contain Series, arrays, constants, or list-like objects. If
+        Dict can contain Series, arrays, constants, dataclass or list-like objects. If
         data is a dict, column order follows insertion-order.
 
         .. versionchanged:: 0.25.0
@@ -420,6 +420,16 @@ class DataFrame(NDFrame, OpsMixin):
     0  1  2  3
     1  4  5  6
     2  7  8  9
+
+    Constructing DataFrame from dataclass:
+
+    >>> from dataclasses import make_dataclass
+    >>> Point = make_dataclass("Point", [("x", int), ("y", int)])
+    >>> pd.DataFrame([Point(0, 0), Point(0, 3), Point(2, 3)])
+        x  y
+    0  0  0
+    1  0  3
+    2  2  3
     """
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
