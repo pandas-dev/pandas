@@ -172,7 +172,7 @@ class TestDatetime64SeriesComparison:
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize("dtype", [None, object])
     @pytest.mark.parametrize(
-        "operator, expected",
+        "op, expected",
         [
             (operator.eq, Series([False, False, True])),
             (operator.ne, Series([True, True, False])),
@@ -188,7 +188,7 @@ class TestDatetime64SeriesComparison:
         index_or_series,
         reverse,
         pair,
-        operator,
+        op,
         expected,
     ):
         box = index_or_series
@@ -200,7 +200,7 @@ class TestDatetime64SeriesComparison:
         left = Series(l, dtype=dtype)
         right = box(r, dtype=dtype)
 
-        result = operator(left, right)
+        result = op(left, right)
 
         tm.assert_series_equal(result, expected)
 
