@@ -2196,7 +2196,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * Series:
 
                 - default is 'index'
-                - allowed values are: {'split','records','index','table'}.
+                - allowed values are: {'split', 'records', 'index', 'table'}.
 
             * DataFrame:
 
