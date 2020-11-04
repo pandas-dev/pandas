@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import StringIO, TextIOWrapper
+from io import StringIO
 import itertools
 import re
 import sys
@@ -63,7 +63,13 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import get_filepath_or_buffer, get_handle, validate_header_arg
+from pandas.io.common import (
+    get_compression_method,
+    get_filepath_or_buffer,
+    get_handle,
+    stringify_path,
+    validate_header_arg,
+)
 from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
@@ -428,17 +434,16 @@ def _validate_names(names):
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
-    encoding = kwds.get("encoding", None)
     storage_options = kwds.get("storage_options", None)
-    if encoding is not None:
-        encoding = re.sub("_", "-", encoding).lower()
-        kwds["encoding"] = encoding
-    compression = kwds.get("compression", "infer")
 
     ioargs = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression, storage_options=storage_options
+        filepath_or_buffer,
+        kwds.get("encoding", None),
+        kwds.get("compression", "infer"),
+        storage_options=storage_options,
     )
     kwds["compression"] = ioargs.compression
+    kwds["encoding"] = ioargs.encoding
 
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
@@ -461,14 +466,10 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     try:
         data = parser.read(nrows)
     finally:
+        # close compression and byte/text wrapper
         parser.close()
-
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        try:
-            ioargs.filepath_or_buffer.close()
-        except ValueError:
-            pass
+        # close any fsspec-like objects
+        ioargs.close()
 
     return data
 
@@ -794,10 +795,8 @@ class TextFileReader(abc.Iterator):
 
         _validate_skipfooter(kwds)
 
-        if kwds.get("dialect") is not None:
-            dialect = kwds["dialect"]
-            if dialect in csv.list_dialects():
-                dialect = csv.get_dialect(dialect)
+        dialect = _extract_dialect(kwds)
+        if dialect is not None:
             kwds = _merge_with_dialect_properties(dialect, kwds)
 
         if kwds.get("header", "infer") == "infer":
@@ -1352,10 +1351,6 @@ class ParserBase:
 
         self._first_chunk = True
 
-        # GH 13932
-        # keep references to file handles opened by the parser itself
-        self.handles = []
-
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
         """
         Check if parse_dates are in columns.
@@ -1405,8 +1400,7 @@ class ParserBase:
             )
 
     def close(self):
-        for f in self.handles:
-            f.close()
+        self.handles.close()
 
     @property
     def _has_complex_date_col(self):
@@ -1840,23 +1834,29 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        encoding = kwds.get("encoding")
+        if kwds.get("memory_map", False):
+            # memory-mapped files are directly handled by the TextReader.
+            src = stringify_path(src)
 
-        # parsers.TextReader doesn't support compression dicts
-        if isinstance(kwds.get("compression"), dict):
-            kwds["compression"] = kwds["compression"]["method"]
+            if get_compression_method(kwds.get("compression", None))[0] is not None:
+                raise ValueError(
+                    "read_csv does not support compression with memory_map=True. "
+                    + "Please use memory_map=False instead."
+                )
 
-        if kwds.get("compression") is None and encoding:
-            if isinstance(src, str):
-                src = open(src, "rb")
-                self.handles.append(src)
-
-            # Handle the file object with universal line mode enabled.
-            # We will handle the newline character ourselves later on.
-            if hasattr(src, "read") and not hasattr(src, "encoding"):
-                src = TextIOWrapper(src, encoding=encoding, newline="")
-
-            kwds["encoding"] = "utf-8"
+        self.handles = get_handle(
+            src,
+            mode="r",
+            encoding=kwds.get("encoding", None),
+            compression=kwds.get("compression", None),
+            memory_map=kwds.get("memory_map", False),
+            is_text=True,
+        )
+        kwds.pop("encoding", None)
+        kwds.pop("memory_map", None)
+        kwds.pop("compression", None)
+        if kwds.get("memory_map", False) and hasattr(self.handles.handle, "mmap"):
+            self.handles.handle = self.handles.handle.mmap
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -1865,7 +1865,7 @@ class CParserWrapper(ParserBase):
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
-        self._reader = parsers.TextReader(src, **kwds)
+        self._reader = parsers.TextReader(self.handles.handle, **kwds)
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -1944,11 +1944,10 @@ class CParserWrapper(ParserBase):
 
         self._implicit_index = self._reader.leading_cols > 0
 
-    def close(self):
-        for f in self.handles:
-            f.close()
+    def close(self) -> None:
+        super().close()
 
-        # close additional handles opened by C parser (for compression)
+        # close additional handles opened by C parser
         try:
             self._reader.close()
         except ValueError:
@@ -2179,7 +2178,7 @@ def TextParser(*args, **kwds):
     return TextFileReader(*args, **kwds)
 
 
-def count_empty_vals(vals):
+def count_empty_vals(vals) -> int:
     return sum(1 for v in vals if v == "" or v is None)
 
 
@@ -2239,20 +2238,19 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        f, handles = get_handle(
+        self.handles = get_handle(
             f,
             "r",
             encoding=self.encoding,
             compression=self.compression,
             memory_map=self.memory_map,
         )
-        self.handles.extend(handles)
 
         # Set self.data to something that can read lines.
-        if hasattr(f, "readline"):
-            self._make_reader(f)
+        if hasattr(self.handles.handle, "readline"):
+            self._make_reader(self.handles.handle)
         else:
-            self.data = f
+            self.data = self.handles.handle
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
@@ -3739,6 +3737,50 @@ def _refine_defaults_read(
     return kwds
 
 
+def _extract_dialect(kwds: Dict[str, Any]) -> Optional[csv.Dialect]:
+    """
+    Extract concrete csv dialect instance.
+
+    Returns
+    -------
+    csv.Dialect or None
+    """
+    if kwds.get("dialect") is None:
+        return None
+
+    dialect = kwds["dialect"]
+    if dialect in csv.list_dialects():
+        dialect = csv.get_dialect(dialect)
+
+    _validate_dialect(dialect)
+
+    return dialect
+
+
+MANDATORY_DIALECT_ATTRS = (
+    "delimiter",
+    "doublequote",
+    "escapechar",
+    "skipinitialspace",
+    "quotechar",
+    "quoting",
+)
+
+
+def _validate_dialect(dialect: csv.Dialect) -> None:
+    """
+    Validate csv dialect instance.
+
+    Raises
+    ------
+    ValueError
+        If incorrect dialect is provided.
+    """
+    for param in MANDATORY_DIALECT_ATTRS:
+        if not hasattr(dialect, param):
+            raise ValueError(f"Invalid dialect {dialect} provided")
+
+
 def _merge_with_dialect_properties(
     dialect: csv.Dialect,
     defaults: Dict[str, Any],
@@ -3757,30 +3799,11 @@ def _merge_with_dialect_properties(
     -------
     kwds : dict
         Updated keyword arguments, merged with dialect parameters.
-
-    Raises
-    ------
-    ValueError
-        If incorrect dialect is provided.
     """
     kwds = defaults.copy()
 
-    # Any valid dialect should have these attributes.
-    # If any are missing, we will raise automatically.
-    mandatory_dialect_attrs = (
-        "delimiter",
-        "doublequote",
-        "escapechar",
-        "skipinitialspace",
-        "quotechar",
-        "quoting",
-    )
-
-    for param in mandatory_dialect_attrs:
-        try:
-            dialect_val = getattr(dialect, param)
-        except AttributeError as err:
-            raise ValueError(f"Invalid dialect {dialect} provided") from err
+    for param in MANDATORY_DIALECT_ATTRS:
+        dialect_val = getattr(dialect, param)
 
         parser_default = _parser_defaults[param]
         provided = kwds.get(param, parser_default)

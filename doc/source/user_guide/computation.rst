@@ -451,6 +451,10 @@ The list of recognized types are the `scipy.signal window functions
 * ``slepian`` (needs width)
 * ``exponential`` (needs tau).
 
+.. versionadded:: 1.2.0
+
+All Scipy window types, concurrent with your installed version, are recognized ``win_types``.
+
 .. ipython:: python
 
    ser = pd.Series(np.random.randn(10), index=pd.date_range("1/1/2000", periods=10))
@@ -652,9 +656,9 @@ parameter:
     :header: "``closed``", "Description", "Default for"
     :widths: 20, 30, 30
 
-    ``right``, close right endpoint, time-based windows
+    ``right``, close right endpoint,
     ``left``, close left endpoint,
-    ``both``, close both endpoints, fixed windows
+    ``both``, close both endpoints,
     ``neither``, open endpoints,
 
 For example, having the right endpoint open is useful in many problems that require that there is no contamination
@@ -680,9 +684,6 @@ from present information back to past information. This allows the rolling windo
    df["neither"] = df.rolling("2s", closed="neither").x.sum()
 
    df
-
-Currently, this feature is only implemented for time-based windows.
-For fixed windows, the closed parameter cannot be set and the rolling window will always have both endpoints closed.
 
 .. _stats.iter_rolling_window:
 

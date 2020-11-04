@@ -1,13 +1,37 @@
 from collections import ChainMap
+import inspect
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import DataFrame, Index, MultiIndex, Series
 import pandas._testing as tm
 
 
 class TestRename:
+    def test_rename_signature(self):
+        sig = inspect.signature(DataFrame.rename)
+        parameters = set(sig.parameters)
+        assert parameters == {
+            "self",
+            "mapper",
+            "index",
+            "columns",
+            "axis",
+            "inplace",
+            "copy",
+            "level",
+            "errors",
+        }
+
+    @pytest.mark.parametrize("klass", [Series, DataFrame])
+    def test_rename_mi(self, klass):
+        obj = klass(
+            [11, 21, 31],
+            index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]),
+        )
+        obj.rename(str.lower)
+
     def test_rename(self, float_frame):
         mapping = {"A": "a", "B": "b", "C": "c", "D": "d"}
 

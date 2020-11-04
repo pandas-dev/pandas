@@ -20,7 +20,7 @@ def test_equals(idx):
 
     if idx.nlevels == 1:
         # do not test MultiIndex
-        assert not idx.equals(pd.Series(idx))
+        assert not idx.equals(Series(idx))
 
 
 def test_equals_op(idx):
@@ -202,7 +202,7 @@ def test_equals_operator(idx):
 
 def test_equals_missing_values():
     # make sure take is not using -1
-    i = pd.MultiIndex.from_tuples([(0, pd.NaT), (0, pd.Timestamp("20130101"))])
+    i = MultiIndex.from_tuples([(0, pd.NaT), (0, pd.Timestamp("20130101"))])
     result = i[0:1].equals(i[0])
     assert not result
     result = i[1:2].equals(i[1])
@@ -255,14 +255,14 @@ def test_multiindex_compare():
     # Ensure comparison operations for MultiIndex with nlevels == 1
     # behave consistently with those for MultiIndex with nlevels > 1
 
-    midx = pd.MultiIndex.from_product([[0, 1]])
+    midx = MultiIndex.from_product([[0, 1]])
 
     # Equality self-test: MultiIndex object vs self
-    expected = pd.Series([True, True])
-    result = pd.Series(midx == midx)
+    expected = Series([True, True])
+    result = Series(midx == midx)
     tm.assert_series_equal(result, expected)
 
     # Greater than comparison: MultiIndex object vs self
-    expected = pd.Series([False, False])
-    result = pd.Series(midx > midx)
+    expected = Series([False, False])
+    result = Series(midx > midx)
     tm.assert_series_equal(result, expected)
