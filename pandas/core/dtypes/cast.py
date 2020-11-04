@@ -2,6 +2,8 @@
 Routines for casting.
 """
 
+from __future__ import annotations
+
 from contextlib import suppress
 from datetime import date, datetime, timedelta
 from typing import (
@@ -271,7 +273,7 @@ def maybe_downcast_numeric(result, dtype: DtypeObj, do_round: bool = False):
     return result
 
 
-def maybe_cast_result(result, obj: "Series", numeric_only: bool = False, how: str = ""):
+def maybe_cast_result(result, obj: Series, numeric_only: bool = False, how: str = ""):
     """
     Try casting result to a different type if appropriate
 
@@ -1537,7 +1539,7 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
     return value
 
 
-def find_common_type(types: List[DtypeObj]) -> DtypeObj:
+def find_common_type(types: Union[List[DtypeObj], Series]) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
 
@@ -1554,7 +1556,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     numpy.find_common_type
 
     """
-    if not types:
+    if not len(types):
         raise ValueError("no types given")
 
     first = types[0]
