@@ -7924,7 +7924,7 @@ NaN 12.3   33.0
                 verify_integrity=verify_integrity,
                 sort=sort,
             )
-        ).__finalize__(self)
+        ).__finalize__(self, method="append")
 
     def join(
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
