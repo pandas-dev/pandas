@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import numpy as np
-import pytest
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -24,15 +23,6 @@ import pandas._testing as tm
 
 
 class TestDataFrameAlterAxes:
-    def test_set_index_directly(self, float_string_frame):
-        df = float_string_frame
-        idx = Index(np.arange(len(df))[::-1])
-
-        df.index = idx
-        tm.assert_index_equal(df.index, idx)
-        with pytest.raises(ValueError, match="Length mismatch"):
-            df.index = idx[::2]
-
     def test_convert_dti_to_series(self):
         # don't cast a DatetimeIndex WITH a tz, leave as object
         # GH 6032
@@ -100,12 +90,6 @@ class TestDataFrameAlterAxes:
         df.index = df["ts"]
         df.pop("ts")
         tm.assert_frame_equal(df, expected)
-
-    def test_set_columns(self, float_string_frame):
-        cols = Index(np.arange(len(float_string_frame.columns)))
-        float_string_frame.columns = cols
-        with pytest.raises(ValueError, match="Length mismatch"):
-            float_string_frame.columns = cols[::2]
 
     def test_dti_set_index_reindex(self):
         # GH 6631
