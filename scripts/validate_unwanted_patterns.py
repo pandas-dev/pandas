@@ -474,7 +474,7 @@ if __name__ == "__main__":
 
     sys.exit(
         main(
-            function=globals().get(args.validation_type),  # type: ignore
+            function=globals().get(args.validation_type),
             source_path=args.paths,
             output_format=args.format,
         )
