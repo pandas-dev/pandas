@@ -67,6 +67,6 @@ be located.
     This test likely belongs in one of:
     - tests.arrays
 
-8) Is your test for _all_ ExtensionArray subclasses (the "EA Interface")?
+8) Is your test for *all* ExtensionArray subclasses (the "EA Interface")?
     This test likely belongs in one of:
     - tests.extension
