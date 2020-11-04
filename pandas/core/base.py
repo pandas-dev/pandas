@@ -1032,12 +1032,8 @@ class IndexOpsMixin(OpsMixin):
         >>> s.nunique()
         4
         """
-        if dropna:
-            uniqs = self.dropna().unique()
-        else:
-            uniqs = self.unique()
-        n = len(uniqs)
-        return n
+        obj = self.dropna() if dropna else self
+        return len(obj.unique())
 
     @property
     def is_unique(self) -> bool:
