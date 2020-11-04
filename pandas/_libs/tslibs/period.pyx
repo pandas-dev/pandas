@@ -2438,7 +2438,7 @@ cpdef int freq_to_dtype_code(BaseOffset freq) except? -1:
     try:
         return freq._period_dtype_code
     except AttributeError as err:
-        raise ValueError(INVALID_FREQ_ERR_MSG) from err
+        raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
 
 
 cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,

@@ -57,6 +57,28 @@ class SharedSetAxisTests:
         with pytest.raises(ValueError, match="No axis named"):
             obj.set_axis(list("abc"), axis=axis)
 
+    def test_set_axis_setattr_index_not_collection(self, obj):
+        # wrong type
+        msg = (
+            r"Index\(\.\.\.\) must be called with a collection of some "
+            r"kind, None was passed"
+        )
+        with pytest.raises(TypeError, match=msg):
+            obj.index = None
+
+    def test_set_axis_setattr_index_wrong_length(self, obj):
+        # wrong length
+        msg = (
+            f"Length mismatch: Expected axis has {len(obj)} elements, "
+            f"new values have {len(obj)-1} elements"
+        )
+        with pytest.raises(ValueError, match=msg):
+            obj.index = np.arange(len(obj) - 1)
+
+        if obj.ndim == 2:
+            with pytest.raises(ValueError, match="Length mismatch"):
+                obj.columns = obj.columns[::2]
+
 
 class TestDataFrameSetAxis(SharedSetAxisTests):
     @pytest.fixture
