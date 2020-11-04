@@ -395,7 +395,7 @@ class TestCompression:
 
     @pytest.mark.parametrize("cruft", ["__MACOSX/", ".DS_STORE"])
     def test_load_zip_with_hidden_folders(self, cruft, get_random_path):
-        # Test loading .zip files that have extraneous metadata in hidden folders (issue #37098)
+        # Test loading .zip files with platform-specific hidden folders (issue #37098)
         base = get_random_path
         path1 = f"{base}.raw"
         path2 = f"{base}.zip"
