@@ -52,12 +52,11 @@ def _check_engine(engine: Optional[str]) -> str:
     # TODO: validate this in a more general way (thinking of future engines
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
-    if engine == "numexpr":
-        if not NUMEXPR_INSTALLED:
-            raise ImportError(
-                "'numexpr' is not installed or an unsupported version. Cannot use "
-                "engine='numexpr' for query/eval if 'numexpr' is not installed"
-            )
+    if engine == "numexpr" and not NUMEXPR_INSTALLED:
+        raise ImportError(
+            "'numexpr' is not installed or an unsupported version. Cannot use "
+            "engine='numexpr' for query/eval if 'numexpr' is not installed"
+        )
 
     return engine
 

@@ -15,11 +15,10 @@ repos:
     -   id: flake8
         name: flake8 (cython template)
         files: \.pxi\.in$
-        types:
-          - file
+        types: [text]
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.6.3
+    rev: 5.6.4
     hooks:
     -   id: isort
         name: isort (python)
@@ -27,21 +26,25 @@ repos:
         name: isort (cython)
         types: [cython]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.2
+    rev: v2.7.3
     hooks:
     -   id: pyupgrade
         args: [--py37-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: rst-backticks
+      - id: rst-directive-colons
+        types: [text]
+      - id: rst-inline-touching-normal
+        types: [text]
 -   repo: local
     hooks:
     -   id: pip_to_conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
         language: python
-        entry: python -m scripts.generate_pip_deps_from_conda
+        entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
         additional_dependencies: [pyyaml]
@@ -53,19 +56,6 @@ repos:
         types: [rst]
         args: [--filename=*.rst]
         additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
-    -   id: incorrect-sphinx-directives
-        name: Check for incorrect Sphinx directives
-        language: pygrep
-        entry: |
-            (?x)
-            # Check for cases of e.g. .. warning: instead of .. warning::
-            \.\.\ (
-                autosummary|contents|currentmodule|deprecated|
-                function|image|important|include|ipython|literalinclude|
-                math|module|note|raw|seealso|toctree|versionadded|
-                versionchanged|warning
-            ):[^:]
-        files: \.(py|pyx|rst)$
     -   id: non-standard-imports
         name: Check for non-standard imports
         language: pygrep
@@ -76,9 +66,17 @@ repos:
             from\ pandas\.core\ import\ common|
 
             # Check for imports from collections.abc instead of `from collections import abc`
-            from\ collections\.abc\ import|
+            from\ collections\.abc\ import
 
-            from\ numpy\ import\ nan
+    -   id: non-standard-numpy.random-related-imports
+        name: Check for non-standard numpy.random-related imports excluding pandas/_testing.py
+        language: pygrep
+        exclude: pandas/_testing.py
+        entry: |
+            (?x)
+            # Check for imports from np.random.<method> instead of `from numpy import random` or `from numpy.random import <method>`
+            from\ numpy\ import\ random|
+            from\ numpy.random\ import
         types: [python]
     -   id: non-standard-imports-in-tests
         name: Check for non-standard imports in test suite
@@ -99,12 +97,34 @@ repos:
         language: pygrep
         entry: (\.\. code-block ::|\.\. ipython ::)
         files: \.(py|pyx|rst)$
+    -   id: unwanted-patterns-strings-to-concatenate
+        name: Check for use of not concatenated strings
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
+        files: \.(py|pyx|pxd|pxi)$
+    -   id: unwanted-patterns-strings-with-wrong-placed-whitespace
+        name: Check for strings with wrong placed spaces
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
+        files: \.(py|pyx|pxd|pxi)$
+    -   id: unwanted-patterns-private-import-across-module
+        name: Check for import of private attributes across modules
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
+        types: [python]
+        exclude: ^(asv_bench|pandas/tests|doc)/
+    -   id: unwanted-patterns-private-function-across-module
+        name: Check for use of private functions across modules
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
+        types: [python]
+        exclude: ^(asv_bench|pandas/tests|doc)/
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
     -   id: yesqa
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v3.3.0
     hooks:
     -   id: end-of-file-fixer
         exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$

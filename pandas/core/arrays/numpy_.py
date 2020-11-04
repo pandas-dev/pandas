@@ -271,77 +271,83 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Reductions
 
-    def any(self, axis=None, out=None, keepdims=False, skipna=True):
+    def any(self, *, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_any((), dict(out=out, keepdims=keepdims))
         return nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
 
-    def all(self, axis=None, out=None, keepdims=False, skipna=True):
+    def all(self, *, axis=None, out=None, keepdims=False, skipna=True):
         nv.validate_all((), dict(out=out, keepdims=keepdims))
         return nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
 
-    def min(self, skipna: bool = True, **kwargs) -> Scalar:
+    def min(self, *, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_min((), kwargs)
         result = masked_reductions.min(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
         return result
 
-    def max(self, skipna: bool = True, **kwargs) -> Scalar:
+    def max(self, *, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
         return result
 
-    def sum(self, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+    def sum(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
         nv.validate_sum((), kwargs)
         return nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
 
-    def prod(self, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+    def prod(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
         nv.validate_prod((), kwargs)
         return nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
 
-    def mean(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def mean(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_mean((), dict(dtype=dtype, out=out, keepdims=keepdims))
         return nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
 
     def median(
-        self, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
+        self, *, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
     ):
         nv.validate_median(
             (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)
         )
         return nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
 
-    def std(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+    def std(
+        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+    ):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="std"
         )
         return nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
 
-    def var(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+    def var(
+        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+    ):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="var"
         )
         return nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
 
-    def sem(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):
+    def sem(
+        self, *, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True
+    ):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="sem"
         )
         return nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
 
-    def kurt(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def kurt(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="kurt"
         )
         return nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
 
-    def skew(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
+    def skew(self, *, axis=None, dtype=None, out=None, keepdims=False, skipna=True):
         nv.validate_stat_ddof_func(
             (), dict(dtype=dtype, out=out, keepdims=keepdims), fname="skew"
         )
