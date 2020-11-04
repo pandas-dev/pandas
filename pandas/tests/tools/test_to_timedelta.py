@@ -9,10 +9,12 @@ import pandas._testing as tm
 
 
 class TestTimedeltas:
-    def test_to_timedelta_readonly(self):
+    @pytest.mark.parametrize("readonly", [True, False])
+    def test_to_timedelta_readonly(self, readonly):
         # GH#34857
         arr = np.array([], dtype=object)
-        arr.setflags(write=False)
+        if readonly:
+            arr.setflags(write=False)
         result = to_timedelta(arr)
         expected = to_timedelta([])
         tm.assert_index_equal(result, expected)
