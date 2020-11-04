@@ -1556,7 +1556,7 @@ def find_common_type(types: Union[List[DtypeObj], Series]) -> DtypeObj:
     numpy.find_common_type
 
     """
-    if not len(types):
+    if len(types) == 0:
         raise ValueError("no types given")
 
     first = types[0]
