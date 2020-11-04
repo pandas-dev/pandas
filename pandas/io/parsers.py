@@ -466,7 +466,9 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     try:
         data = parser.read(nrows)
     finally:
+        # close compression and byte/text wrapper
         parser.close()
+        # close any fsspec-like objects
         ioargs.close()
 
     return data
@@ -1945,7 +1947,7 @@ class CParserWrapper(ParserBase):
     def close(self) -> None:
         super().close()
 
-        # close additional handles opened by C parser (for memory_map)
+        # close additional handles opened by C parser
         try:
             self._reader.close()
         except ValueError:

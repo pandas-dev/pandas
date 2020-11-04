@@ -100,7 +100,9 @@ def to_pickle(
     try:
         pickle.dump(obj, handles.handle, protocol=protocol)  # type: ignore[arg-type]
     finally:
+        # close compression and byte/text wrapper
         handles.close()
+        # close any fsspec-like objects
         ioargs.close()
 
 
@@ -209,5 +211,7 @@ def read_pickle(
         # e.g. can occur for files written in py27; see GH#28645 and GH#31988
         return pc.load(handles.handle, encoding="latin-1")
     finally:
+        # close compression and byte/text wrapper
         handles.close()
+        # close any fsspec-like objects
         ioargs.close()

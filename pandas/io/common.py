@@ -84,7 +84,10 @@ class IOArgs(Generic[ModeVar, EncodingVar]):
         """
         if self.should_close:
             assert not isinstance(self.filepath_or_buffer, str)
-            self.filepath_or_buffer.close()
+            try:
+                self.filepath_or_buffer.close()
+            except (OSError, ValueError):
+                pass
         self.should_close = False
 
 
@@ -117,8 +120,11 @@ class IOHandles:
             self.handle.flush()
             self.handle.detach()
             self.created_handles.remove(self.handle)
-        for handle in self.created_handles:
-            handle.close()
+        try:
+            for handle in self.created_handles:
+                handle.close()
+        except (OSError, ValueError):
+            pass
         self.created_handles = []
         self.is_wrapped = False
 

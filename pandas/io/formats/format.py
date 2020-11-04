@@ -1046,13 +1046,12 @@ class DataFrameRenderer:
         """
         from pandas.io.formats.csvs import CSVFormatter
 
-        created_buffer = False
-        if path_or_buf is None:
+        created_buffer = path_or_buf is None
+        if created_buffer:
             path_or_buf = StringIO()
-            created_buffer = True
 
         csv_formatter = CSVFormatter(
-            path_or_buf=path_or_buf,
+            path_or_buf=path_or_buf,  # type: ignore[arg-type]
             line_terminator=line_terminator,
             sep=sep,
             encoding=encoding,

@@ -110,7 +110,9 @@ def to_json(
         try:
             handles.handle.write(s)
         finally:
+            # close compression and byte/text wrapper
             handles.close()
+            # close any fsspec-like objects
             ioargs.close()
     else:
         return s

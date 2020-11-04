@@ -1,4 +1,3 @@
-import dataclasses
 from datetime import datetime, timedelta, tzinfo
 from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
 from mmap import mmap
@@ -11,7 +10,6 @@ from typing import (
     Callable,
     Collection,
     Dict,
-    Generic,
     Hashable,
     List,
     Mapping,
