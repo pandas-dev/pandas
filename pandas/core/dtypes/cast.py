@@ -32,7 +32,7 @@ from pandas._libs.tslibs import (
     ints_to_pytimedelta,
 )
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -1591,7 +1591,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
 
 
 def cast_scalar_to_array(
-    shape: Tuple, value: Scalar, dtype: Optional[DtypeObj] = None
+    shape: Shape, value: Scalar, dtype: Optional[DtypeObj] = None
 ) -> np.ndarray:
     """
     Create np.ndarray of specified shape and dtype, filled with values.
