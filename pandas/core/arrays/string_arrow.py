@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import abc
 from distutils.version import LooseVersion
-from typing import Any, Optional, Sequence, Type, Union
+from typing import Any, Sequence, Type, Union
 
 import numpy as np
 
@@ -32,14 +32,6 @@ else:
         import pyarrow.compute as pc
     except ImportError:
         pass
-
-
-def _as_pandas_scalar(arrow_scalar: pa.Scalar) -> Optional[str]:
-    scalar = arrow_scalar.as_py()
-    if scalar is None:
-        return libmissing.NA
-    else:
-        return scalar
 
 
 @register_extension_dtype
@@ -305,7 +297,14 @@ class ArrowStringArray(ExtensionArray):
         if isinstance(value, pa.ChunkedArray):
             return type(self)(value)
         else:
-            return _as_pandas_scalar(value)
+            return self._as_pandas_scalar(value)
+
+    def _as_pandas_scalar(self, arrow_scalar: pa.Scalar):
+        scalar = arrow_scalar.as_py()
+        if scalar is None:
+            return self._dtype.na_value
+        else:
+            return scalar
 
     def fillna(self, value=None, method=None, limit=None):
         raise NotImplementedError("fillna")
