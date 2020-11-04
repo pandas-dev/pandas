@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in metadata propagation for ``groupby`` iterator (:issue:`37343`)
 -
 
 .. ---------------------------------------------------------------------------
