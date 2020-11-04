@@ -148,14 +148,9 @@ def maybe_box_datetimelike(value, dtype=None):
     -------
     scalar
     """
-
-    # turn a datetime like into a Timestamp/timedelta as needed
     if dtype == object:
-        # If we dont have datetime64/timedelta64 dtype, we dont want to
-        #  box datetimelike scalars
-        return value
-
-    if isinstance(value, (np.datetime64, datetime)):
+        pass
+    elif isinstance(value, (np.datetime64, datetime)):
         value = tslibs.Timestamp(value)
     elif isinstance(value, (np.timedelta64, timedelta)):
         value = tslibs.Timedelta(value)
