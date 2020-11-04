@@ -281,17 +281,15 @@ class PandasArray(
 
     def min(self, *, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_min((), kwargs)
-        result = masked_reductions.min(
+        return masked_reductions.min(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
-        return result
 
     def max(self, *, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_max((), kwargs)
-        result = masked_reductions.max(
+        return masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
-        return result
 
     def sum(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
         nv.validate_sum((), kwargs)
