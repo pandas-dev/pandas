@@ -122,29 +122,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # -------------------------------------------------------------------------
-    # Type annotations
-
-    MSG='Check for use of comment-based annotation syntax' ; echo $MSG
-    invgrep -R --include="*.py" -P '# type: (?!ignore)' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for missing error codes with # type: ignore' ; echo $MSG
-    invgrep -R --include="*.py" -P '# type:\s?ignore(?!\[)' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias' ; echo $MSG
-    invgrep -R --include="*.py" --exclude=_typing.py -E 'Union\[.*(Series.*DataFrame|DataFrame.*Series).*\]' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # -------------------------------------------------------------------------
-    MSG='Check for use of foo.__class__ instead of type(foo)' ; echo $MSG
-    invgrep -R --include=*.{py,pyx} '\.__class__' pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check code for instances of os.remove' ; echo $MSG
-    invgrep -R --include="*.py*" --exclude "common.py" --exclude "test_writers.py" --exclude "test_store.py" -E "os\.remove" pandas/tests/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for inconsistent use of pandas namespace in tests' ; echo $MSG
     for class in "Series" "DataFrame" "Index" "MultiIndex" "Timestamp" "Timedelta" "TimedeltaIndex" "DatetimeIndex" "Categorical"; do
         check_namespace ${class}
