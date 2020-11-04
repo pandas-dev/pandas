@@ -268,7 +268,8 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         ndarray[float64_t, ndim=2] result
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
-        float64_t vx, vy, sumx, sumy, sumxx, sumyy, meanx, meany, divisor
+        float64_t vx, vy, meanx, meany, divisor, prev_meany, prev_meanx, ssqdmx
+        float64_t ssqdmy, covxy
 
     N, K = (<object>mat).shape
 
@@ -283,37 +284,29 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     with nogil:
         for xi in range(K):
             for yi in range(xi + 1):
-                nobs = sumxx = sumyy = sumx = sumy = 0
+                # Welford's method for the variance-calculation
+                # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+                nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
                         vx = mat[i, xi]
                         vy = mat[i, yi]
                         nobs += 1
-                        sumx += vx
-                        sumy += vy
+                        prev_meanx = meanx
+                        prev_meany = meany
+                        meanx = meanx + 1 / nobs * (vx - meanx)
+                        meany = meany + 1 / nobs * (vy - meany)
+                        ssqdmx = ssqdmx + (vx - meanx) * (vx - prev_meanx)
+                        ssqdmy = ssqdmy + (vy - meany) * (vy - prev_meany)
+                        covxy = covxy + (vx - meanx) * (vy - prev_meany)
 
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
                 else:
-                    meanx = sumx / nobs
-                    meany = sumy / nobs
-
-                    # now the cov numerator
-                    sumx = 0
-
-                    for i in range(N):
-                        if mask[i, xi] and mask[i, yi]:
-                            vx = mat[i, xi] - meanx
-                            vy = mat[i, yi] - meany
-
-                            sumx += vx * vy
-                            sumxx += vx * vx
-                            sumyy += vy * vy
-
-                    divisor = (nobs - 1.0) if cov else sqrt(sumxx * sumyy)
+                    divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
 
                     if divisor != 0:
-                        result[xi, yi] = result[yi, xi] = sumx / divisor
+                        result[xi, yi] = result[yi, xi] = covxy / divisor
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
 
@@ -325,7 +318,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def nancorr_spearman(const float64_t[:, :] mat, Py_ssize_t minp=1) -> ndarray:
+def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
@@ -799,7 +792,7 @@ ctypedef fused rank_t:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def rank_1d(
-    rank_t[:] in_arr,
+    ndarray[rank_t, ndim=1] in_arr,
     ties_method="average",
     bint ascending=True,
     na_option="keep",
@@ -1018,7 +1011,7 @@ def rank_1d(
 
 
 def rank_2d(
-    rank_t[:, :] in_arr,
+    ndarray[rank_t, ndim=2] in_arr,
     int axis=0,
     ties_method="average",
     bint ascending=True,

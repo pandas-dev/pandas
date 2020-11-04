@@ -10,10 +10,12 @@ from pandas import (
     Interval,
     NaT,
     Period,
+    PeriodIndex,
     Series,
     Timestamp,
     date_range,
     notna,
+    period_range,
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
@@ -183,6 +185,53 @@ class TestDataFrameSetItem:
 
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_dt64_ndarray_with_NaT_and_diff_time_units(self):
+        # GH#7492
+        data_ns = np.array([1, "nat"], dtype="datetime64[ns]")
+        result = Series(data_ns).to_frame()
+        result["new"] = data_ns
+        expected = DataFrame({0: [1, None], "new": [1, None]}, dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+        # OutOfBoundsDatetime error shouldn't occur
+        data_s = np.array([1, "nat"], dtype="datetime64[s]")
+        result["new"] = data_s
+        expected = DataFrame({0: [1, None], "new": [1e9, None]}, dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
+    def test_frame_setitem_datetime64_col_other_units(self, unit):
+        # Check that non-nano dt64 values get cast to dt64 on setitem
+        #  into a not-yet-existing column
+        n = 100
+
+        dtype = np.dtype(f"M8[{unit}]")
+        vals = np.arange(n, dtype=np.int64).view(dtype)
+        ex_vals = vals.astype("datetime64[ns]")
+
+        df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
+        df[unit] = vals
+
+        assert df[unit].dtype == np.dtype("M8[ns]")
+        assert (df[unit].values == ex_vals).all()
+
+    @pytest.mark.parametrize("unit", ["h", "m", "s", "ms", "D", "M", "Y"])
+    def test_frame_setitem_existing_datetime64_col_other_units(self, unit):
+        # Check that non-nano dt64 values get cast to dt64 on setitem
+        #  into an already-existing dt64 column
+        n = 100
+
+        dtype = np.dtype(f"M8[{unit}]")
+        vals = np.arange(n, dtype=np.int64).view(dtype)
+        ex_vals = vals.astype("datetime64[ns]")
+
+        df = DataFrame({"ints": np.arange(n)}, index=np.arange(n))
+        df["dates"] = np.arange(n, dtype=np.int64).view("M8[ns]")
+
+        # We overwrite existing dt64 column with new, non-nano dt64 vals
+        df["dates"] = vals
+        assert (df["dates"].values == ex_vals).all()
+
     def test_setitem_dt64tz(self, timezone_frame):
 
         df = timezone_frame
@@ -213,3 +262,26 @@ class TestDataFrameSetItem:
         result = df2["B"]
         tm.assert_series_equal(notna(result), Series([True, False, True], name="B"))
         tm.assert_series_equal(df2.dtypes, df.dtypes)
+
+    def test_setitem_periodindex(self):
+        rng = period_range("1/1/2000", periods=5, name="index")
+        df = DataFrame(np.random.randn(5, 3), index=rng)
+
+        df["Index"] = rng
+        rs = Index(df["Index"])
+        tm.assert_index_equal(rs, rng, check_names=False)
+        assert rs.name == "Index"
+        assert rng.name == "index"
+
+        rs = df.reset_index().set_index("index")
+        assert isinstance(rs.index, PeriodIndex)
+        tm.assert_index_equal(rs.index, rng)
+
+    @pytest.mark.parametrize("klass", [list, np.array])
+    def test_iloc_setitem_bool_indexer(self, klass):
+        # GH: 36741
+        df = DataFrame({"flag": ["x", "y", "z"], "value": [1, 3, 4]})
+        indexer = klass([True, False, False])
+        df.iloc[indexer, 1] = df.iloc[indexer, 1] * 2
+        expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
+        tm.assert_frame_equal(df, expected)
