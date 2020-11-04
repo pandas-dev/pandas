@@ -343,7 +343,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     def putmask(self, mask, value):
         try:
-            value = self._data._validate_where_value(value)
+            value = self._data._validate_setitem_value(value)
         except (TypeError, ValueError):
             return self.astype(object).putmask(mask, value)
 
