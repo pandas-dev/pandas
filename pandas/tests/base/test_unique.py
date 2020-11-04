@@ -123,9 +123,9 @@ def test_unique_bad_unicode(idx_or_series_w_bad_unicode):
         tm.assert_numpy_array_equal(result, expected)
 
 
-def test_nunique_dropna():
-    # test for #37566
+@pytest.mark.parametrize("dropna", [True, False])
+def test_nunique_dropna(dropna):
+    # GH37566
     s = pd.Series(['yes', 'yes', pd.NA, np.nan, None, pd.NaT])
     res = s.nunique(dropna=True)
-    expected = 1
-    assert res == expected
+    assert res == 1 if dropna else 5
