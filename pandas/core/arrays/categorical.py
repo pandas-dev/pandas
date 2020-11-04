@@ -1655,21 +1655,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = self._ndarray.copy()
             mask = self.isna()
 
+            new_codes = self._validate_setitem_value(value)
+
             if isinstance(value, (np.ndarray, Categorical)):
                 # We get ndarray or Categorical if called via Series.fillna,
                 #  where it will unwrap another aligned Series before getting here
-
-                not_categories = ~algorithms.isin(value, self.categories)
-                if not isna(value[not_categories]).all():
-                    # All entries in `value` must either be a category or NA
-                    raise ValueError("fill value must be in categories")
-
-                values_codes = _get_codes_for_values(value, self.categories)
-                codes[mask] = values_codes[mask]
+                codes[mask] = new_codes[mask]
 
             else:
-                new_code = self._validate_fill_value(value)
-                codes[mask] = new_code
+                codes[mask] = new_codes
 
         return self._from_backing_data(codes)
 

@@ -60,7 +60,10 @@ class TestCategoricalMissing:
             ),
             (dict(), "Must specify a fill 'value' or 'method'."),
             (dict(method="bad"), "Invalid fill method. Expecting .* bad"),
-            (dict(value=Series([1, 2, 3, 4, "a"])), "fill value must be in categories"),
+            (
+                dict(value=Series([1, 2, 3, 4, "a"])),
+                "Cannot setitem on a Categorical with a new category",
+            ),
         ],
     )
     def test_fillna_raises(self, fillna_kwargs, msg):
