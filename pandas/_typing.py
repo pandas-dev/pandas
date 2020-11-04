@@ -27,6 +27,8 @@ import numpy as np
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
+    from typing import final
+
     from pandas._libs import Period, Timedelta, Timestamp
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -35,10 +37,17 @@ if TYPE_CHECKING:
     from pandas.core.arrays.base import ExtensionArray  # noqa: F401
     from pandas.core.frame import DataFrame
     from pandas.core.generic import NDFrame  # noqa: F401
+    from pandas.core.groupby.generic import DataFrameGroupBy, SeriesGroupBy
     from pandas.core.indexes.base import Index
+    from pandas.core.resample import Resampler
     from pandas.core.series import Series
+    from pandas.core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
+else:
+    # typing.final does not exist until py38
+    final = lambda x: x
+
 
 # array-like
 
@@ -109,11 +118,21 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
+AggFuncTypeDict = Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]]
 AggFuncType = Union[
     AggFuncTypeBase,
     List[AggFuncTypeBase],
-    Dict[Label, Union[AggFuncTypeBase, List[AggFuncTypeBase]]],
+    AggFuncTypeDict,
 ]
+AggObjType = Union[
+    "Series",
+    "DataFrame",
+    "SeriesGroupBy",
+    "DataFrameGroupBy",
+    "BaseWindow",
+    "Resampler",
+]
+
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]

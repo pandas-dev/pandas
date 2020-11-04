@@ -217,6 +217,7 @@ Other enhancements
 - ``Styler`` now allows direct CSS class name addition to individual data cells (:issue:`36159`)
 - :meth:`Rolling.mean()` and :meth:`Rolling.sum()` use Kahan summation to calculate the mean to avoid numerical problems (:issue:`10319`, :issue:`11645`, :issue:`13254`, :issue:`32761`, :issue:`36031`)
 - :meth:`DatetimeIndex.searchsorted`, :meth:`TimedeltaIndex.searchsorted`, :meth:`PeriodIndex.searchsorted`, and :meth:`Series.searchsorted` with datetimelike dtypes will now try to cast string arguments (listlike and scalar) to the matching datetimelike type (:issue:`36346`)
+-
 - Added methods :meth:`IntegerArray.prod`, :meth:`IntegerArray.min`, and :meth:`IntegerArray.max` (:issue:`33790`)
 - Where possible :meth:`RangeIndex.difference` and :meth:`RangeIndex.symmetric_difference` will return :class:`RangeIndex` instead of :class:`Int64Index` (:issue:`36564`)
 - Added :meth:`Rolling.sem()` and :meth:`Expanding.sem()` to compute the standard error of mean (:issue:`26476`).
@@ -227,6 +228,8 @@ Other enhancements
 - :meth:`DataFrame.to_parquet` now returns a ``bytes`` object when no ``path`` argument is passed (:issue:`37105`)
 - :class:`Rolling` now supports the ``closed`` argument for fixed windows (:issue:`34315`)
 - :class:`DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`37436`)
+- :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
+- :meth:`testing.assert_index_equal` now has a ``check_order`` parameter that allows indexes to be checked in an order-insensitive manner (:issue:`37478`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -309,6 +312,13 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
+.. _whatsnew_200.api.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+
+- Sorting in descending order is now stable for :meth:`Series.sort_values` and :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses. This will affect sort order when sorting :class:`DataFrame` on multiple columns, sorting with a key function that produces duplicates, or requesting the sorting index when using :meth:`Index.sort_values`. When using :meth:`Series.value_counts`, count of missing values is no longer the last in the list of duplicate counts, and its position corresponds to the position in the original :class:`Series`. When using :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses, NaTs ignored the ``na_position`` argument and were sorted to the beggining. Now they respect ``na_position``, the default being ``last``, same as other :class:`Index` subclasses. (:issue:`35992`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_120.deprecations:
@@ -329,6 +339,11 @@ Deprecations
 - :meth:`Rolling.count` with ``min_periods=None`` will default to the size of the window in a future version (:issue:`31302`)
 - Deprecated slice-indexing on timezone-aware :class:`DatetimeIndex` with naive ``datetime`` objects, to match scalar indexing behavior (:issue:`36148`)
 - :meth:`Index.ravel` returning a ``np.ndarray`` is deprecated, in the future this will return a view on the same index (:issue:`19956`)
+- Deprecate use of strings denoting units with 'M', 'Y' or 'y' in :func:`~pandas.to_timedelta` (:issue:`36666`)
+- :class:`Index` methods ``&``, ``|``, and ``^`` behaving as the set operations :meth:`Index.intersection`, :meth:`Index.union`, and :meth:`Index.symmetric_difference`, respectively, are deprecated and in the future will behave as pointwise boolean operations matching :class:`Series` behavior.  Use the named set methods instead (:issue:`36758`)
+- :meth:`Categorical.is_dtype_equal` and :meth:`CategoricalIndex.is_dtype_equal` are deprecated, will be removed in a future version (:issue:`37545`)
+- :meth:`Series.slice_shift` and :meth:`DataFrame.slice_shift` are deprecated, use :meth:`Series.shift` or :meth:`DataFrame.shift` instead (:issue:`37601`)
+
 
 .. ---------------------------------------------------------------------------
 
@@ -379,7 +394,11 @@ Datetimelike
 - Bug in :class:`DatetimeIndex.shift` incorrectly raising when shifting empty indexes (:issue:`14811`)
 - :class:`Timestamp` and :class:`DatetimeIndex` comparisons between timezone-aware and timezone-naive objects now follow the standard library ``datetime`` behavior, returning ``True``/``False`` for ``!=``/``==`` and raising for inequality comparisons (:issue:`28507`)
 - Bug in :meth:`DatetimeIndex.equals` and :meth:`TimedeltaIndex.equals` incorrectly considering ``int64`` indexes as equal (:issue:`36744`)
+- :meth:`to_json` and :meth:`read_json` now implements timezones parsing when orient structure is 'table'.
+- :meth:`astype` now attempts to convert to 'datetime64[ns, tz]' directly from 'object' with inferred timezone from string (:issue:`35973`).
 - Bug in :meth:`TimedeltaIndex.sum` and :meth:`Series.sum` with ``timedelta64`` dtype on an empty index or series returning ``NaT`` instead of ``Timedelta(0)`` (:issue:`31751`)
+- Bug in :meth:`DatetimeArray.shift` incorrectly allowing ``fill_value`` with a mismatched timezone (:issue:`37299`)
+- Bug in adding a :class:`BusinessDay` with nonzero ``offset`` to a non-scalar other (:issue:`37457`)
 
 Timedelta
 ^^^^^^^^^
@@ -425,7 +444,7 @@ Strings
 
 Interval
 ^^^^^^^^
-
+- Bug in :meth:`IntervalIndex.take` with negative indices and ``fill_value=None`` (:issue:`37330`)
 -
 -
 
@@ -442,6 +461,7 @@ Indexing
 - Bug in :meth:`Series.loc.__getitem__` with a non-unique :class:`MultiIndex` and an empty-list indexer (:issue:`13691`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`MultiIndex` with a level named "0" (:issue:`37194`)
 - Bug in :meth:`Series.__getitem__` when using an unsigned integer array as an indexer giving incorrect results or segfaulting instead of raising ``KeyError`` (:issue:`37218`)
+- Bug in :meth:`Index.where` incorrectly casting numeric values to strings (:issue:`37591`)
 
 Missing
 ^^^^^^^
@@ -454,7 +474,7 @@ MultiIndex
 
 - Bug in :meth:`DataFrame.xs` when used with :class:`IndexSlice` raises ``TypeError`` with message ``"Expected label or tuple of labels"`` (:issue:`35301`)
 - Bug in :meth:`DataFrame.reset_index` with ``NaT`` values in index raises ``ValueError`` with message ``"cannot convert float NaN to integer"`` (:issue:`36541`)
--
+- Bug in :meth:`DataFrame.combine_first` when used with :class:`MultiIndex` containing string and ``NaN`` values raises ``TypeError`` (:issue:`36562`)
 
 I/O
 ^^^
@@ -477,6 +497,8 @@ I/O
 - Bug in :meth:`DataFrame.to_html`, :meth:`DataFrame.to_string`, and :meth:`DataFrame.to_latex` ignoring the ``na_rep`` argument when ``float_format`` was also specified (:issue:`9046`, :issue:`13828`)
 - Bug in output rendering of complex numbers showing too many trailing zeros (:issue:`36799`)
 - Bug in :class:`HDFStore` threw a ``TypeError`` when exporting an empty :class:`DataFrame` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
+- Bug in :class:`HDFStore` was dropping timezone information when exporting :class:`Series` with ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`20594`)
+- Bug in :meth:`DataFrame.to_hdf` was not dropping missing rows with ``dropna=True`` (:issue:`35719`)
 
 Plotting
 ^^^^^^^^
@@ -506,7 +528,9 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.rolling` returned wrong values with timeaware window containing ``NaN``. Raises ``ValueError`` because windows are not monotonic now (:issue:`34617`)
 - Bug in :meth:`Rolling.__iter__` where a ``ValueError`` was not raised when ``min_periods`` was larger than ``window`` (:issue:`37156`)
 - Using :meth:`Rolling.var()` instead of :meth:`Rolling.std()` avoids numerical issues for :meth:`Rolling.corr()` when :meth:`Rolling.var()` is still within floating point precision while :meth:`Rolling.std()` is not (:issue:`31286`)
+- Bug in :meth:`df.groupby(..).quantile() <pandas.core.groupby.DataFrameGroupBy.quantile>` and :meth:`df.resample(..).quantile() <pandas.core.resample.Resampler.quantile>` raised ``TypeError`` when values were of type ``Timedelta`` (:issue:`29485`)
 - Bug in :meth:`Rolling.median` and :meth:`Rolling.quantile` returned wrong values for :class:`BaseIndexer` subclasses with non-monotonic starting or ending points for windows (:issue:`37153`)
+- Bug in :meth:`DataFrame.groupby` dropped ``nan`` groups from result with ``dropna=False`` when grouping over a single column (:issue:`35646`, :issue:`35542`)
 
 Reshaping
 ^^^^^^^^^
@@ -516,8 +540,10 @@ Reshaping
 - Bug in func :meth:`crosstab` when using multiple columns with ``margins=True`` and ``normalize=True`` (:issue:`35144`)
 - Bug in :meth:`DataFrame.agg` with ``func={'name':<FUNC>}`` incorrectly raising ``TypeError`` when ``DataFrame.columns==['Name']`` (:issue:`36212`)
 - Bug in :meth:`Series.transform` would give incorrect results or raise when the argument ``func`` was dictionary (:issue:`35811`)
+- Bug in :meth:`DataFrame.pivot` did not preserve :class:`MultiIndex` level names for columns when rows and columns both multiindexed (:issue:`36360`)
 - Bug in :func:`join` returned a non deterministic level-order for the resulting :class:`MultiIndex` (:issue:`36910`)
--
+- Bug in :meth:`DataFrame.combine_first()` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
+- Fixed regression in :func:`merge` on merging DatetimeIndex with empty DataFrame (:issue:`36895`)
 
 Sparse
 ^^^^^^
@@ -532,6 +558,7 @@ ExtensionArray
 - Fixed bug where ``astype()`` with equal dtype and ``copy=False`` would return a new object (:issue:`284881`)
 - Fixed bug when applying a NumPy ufunc with multiple outputs to a :class:`pandas.arrays.IntegerArray` returning None (:issue:`36913`)
 - Fixed an inconsistency in :class:`PeriodArray`'s ``__init__`` signature to those of :class:`DatetimeArray` and :class:`TimedeltaArray` (:issue:`37289`)
+- Reductions for :class:`BooleanArray`, :class:`Categorical`, :class:`DatetimeArray`, :class:`FloatingArray`, :class:`IntegerArray`, :class:`PeriodArray`, :class:`TimedeltaArray`, and :class:`PandasArray` are now keyword-only methods (:issue:`37541`)
 
 Other
 ^^^^^

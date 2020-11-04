@@ -1592,7 +1592,11 @@ class _iLocIndexer(_LocationIndexer):
                             return
 
                         # add a new item with the dtype setup
-                        self.obj[key] = infer_fill_value(value)
+                        if com.is_null_slice(indexer[0]):
+                            # We are setting an entire column
+                            self.obj[key] = value
+                        else:
+                            self.obj[key] = infer_fill_value(value)
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
@@ -1625,94 +1629,94 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_with_indexer_missing(indexer, value)
                 return
 
-        # set
-        item_labels = self.obj._get_axis(info_axis)
-
         # align and set the values
         if take_split_path:
             # We have to operate column-wise
-
-            # Above we only set take_split_path to True for 2D cases
-            assert self.ndim == 2
-            assert info_axis == 1
-
-            if not isinstance(indexer, tuple):
-                indexer = _tuplify(self.ndim, indexer)
-
-            if isinstance(value, ABCSeries):
-                value = self._align_series(indexer, value)
-
-            info_idx = indexer[info_axis]
-            if is_integer(info_idx):
-                info_idx = [info_idx]
-            labels = item_labels[info_idx]
-
-            # Ensure we have something we can iterate over
-            ilocs = self._ensure_iterable_column_indexer(indexer[1])
-
-            plane_indexer = indexer[:1]
-            lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
-            # lplane_indexer gives the expected length of obj[indexer[0]]
-
-            if len(labels) == 1:
-                # We can operate on a single column
-
-                # require that we are setting the right number of values that
-                # we are indexing
-                if is_list_like_indexer(value) and 0 != lplane_indexer != len(value):
-                    # Exclude zero-len for e.g. boolean masking that is all-false
-                    raise ValueError(
-                        "cannot set using a multi-index "
-                        "selection indexer with a different "
-                        "length than the value"
-                    )
-
-            # we need an iterable, with a ndim of at least 1
-            # eg. don't pass through np.array(0)
-            if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
-
-                # we have an equal len Frame
-                if isinstance(value, ABCDataFrame):
-                    self._setitem_with_indexer_frame_value(indexer, value)
-
-                # we have an equal len ndarray/convertible to our labels
-                # hasattr first, to avoid coercing to ndarray without reason.
-                # But we may be relying on the ndarray coercion to check ndim.
-                # Why not just convert to an ndarray earlier on if needed?
-                elif np.ndim(value) == 2:
-                    self._setitem_with_indexer_2d_value(indexer, value)
-
-                elif (
-                    len(labels) == 1
-                    and lplane_indexer == len(value)
-                    and not is_scalar(plane_indexer[0])
-                ):
-                    # we have an equal len list/ndarray
-                    # We only get here with len(labels) == len(ilocs) == 1
-                    self._setitem_single_column(ilocs[0], value, plane_indexer)
-
-                elif lplane_indexer == 0 and len(value) == len(self.obj.index):
-                    # We get here in one case via .loc with a all-False mask
-                    pass
-
-                else:
-                    # per-label values
-                    if len(ilocs) != len(value):
-                        raise ValueError(
-                            "Must have equal len keys and value "
-                            "when setting with an iterable"
-                        )
-
-                    for loc, v in zip(ilocs, value):
-                        self._setitem_single_column(loc, v, plane_indexer)
-            else:
-
-                # scalar value
-                for loc in ilocs:
-                    self._setitem_single_column(loc, value, plane_indexer)
-
+            self._setitem_with_indexer_split_path(indexer, value)
         else:
             self._setitem_single_block(indexer, value)
+
+    def _setitem_with_indexer_split_path(self, indexer, value):
+        """
+        Setitem column-wise.
+        """
+        # Above we only set take_split_path to True for 2D cases
+        assert self.ndim == 2
+
+        if not isinstance(indexer, tuple):
+            indexer = _tuplify(self.ndim, indexer)
+        if len(indexer) > self.ndim:
+            raise IndexError("too many indices for array")
+
+        if isinstance(value, ABCSeries):
+            value = self._align_series(indexer, value)
+
+        # Ensure we have something we can iterate over
+        ilocs = self._ensure_iterable_column_indexer(indexer[1])
+
+        plane_indexer = indexer[:1]
+        lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
+        # lplane_indexer gives the expected length of obj[indexer[0]]
+
+        if len(ilocs) == 1:
+            # We can operate on a single column
+
+            # require that we are setting the right number of values that
+            # we are indexing
+            if is_list_like_indexer(value) and 0 != lplane_indexer != len(value):
+                # Exclude zero-len for e.g. boolean masking that is all-false
+                raise ValueError(
+                    "cannot set using a multi-index "
+                    "selection indexer with a different "
+                    "length than the value"
+                )
+
+        # we need an iterable, with a ndim of at least 1
+        # eg. don't pass through np.array(0)
+        if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
+
+            # we have an equal len Frame
+            if isinstance(value, ABCDataFrame):
+                self._setitem_with_indexer_frame_value(indexer, value)
+
+            # we have an equal len ndarray/convertible to our ilocs
+            # hasattr first, to avoid coercing to ndarray without reason.
+            # But we may be relying on the ndarray coercion to check ndim.
+            # Why not just convert to an ndarray earlier on if needed?
+            elif np.ndim(value) == 2:
+                self._setitem_with_indexer_2d_value(indexer, value)
+
+            elif (
+                len(ilocs) == 1
+                and lplane_indexer == len(value)
+                and not is_scalar(plane_indexer[0])
+            ):
+                # we have an equal len list/ndarray
+                # We only get here with len(ilocs) == 1
+                self._setitem_single_column(ilocs[0], value, plane_indexer)
+
+            elif lplane_indexer == 0 and len(value) == len(self.obj.index):
+                # We get here in one case via .loc with a all-False mask
+                pass
+
+            else:
+                # per-label values
+                if len(ilocs) != len(value):
+                    raise ValueError(
+                        "Must have equal len keys and value "
+                        "when setting with an iterable"
+                    )
+
+                for loc, v in zip(ilocs, value):
+                    self._setitem_single_column(loc, v, plane_indexer)
+        else:
+
+            if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
+                raise ValueError(r"Cannot set values with ndim > 2")
+
+            # scalar value
+            for loc in ilocs:
+                self._setitem_single_column(loc, value, plane_indexer)
 
     def _setitem_with_indexer_2d_value(self, indexer, value):
         # We get here with np.ndim(value) == 2, excluding DataFrame,

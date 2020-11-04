@@ -2196,7 +2196,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * Series:
 
                 - default is 'index'
-                - allowed values are: {'split','records','index','table'}.
+                - allowed values are: {'split', 'records', 'index', 'table'}.
 
             * DataFrame:
 
@@ -9347,9 +9347,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
         Equivalent to `shift` without copying data.
-
         The shifted data will not include the dropped periods and the
         shifted axis will be smaller than the original.
+
+        .. deprecated:: 1.2.0
+            slice_shift is deprecated,
+            use DataFrame/Series.shift instead.
 
         Parameters
         ----------
@@ -9365,6 +9368,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         While the `slice_shift` is faster than `shift`, you may pay for it
         later during alignment.
         """
+
+        msg = (
+            "The 'slice_shift' method is deprecated "
+            "and will be removed in a future version. "
+            "You can use DataFrame/Series.shift instead"
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         if periods == 0:
             return self
 
@@ -10106,7 +10117,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                categorical
         count            3
         unique           3
-        top              f
+        top              d
         freq             1
 
         Excluding numeric columns from a ``DataFrame`` description.
