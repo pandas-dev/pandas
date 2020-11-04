@@ -4,7 +4,6 @@ import collections
 from datetime import timedelta
 import functools
 import gc
-from io import StringIO
 import json
 import operator
 import pickle
@@ -109,7 +108,11 @@ from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import Expanding, ExponentialMovingWindow, Rolling, Window
 
 from pandas.io.formats import format as fmt
-from pandas.io.formats.format import DataFrameFormatter, format_percentiles
+from pandas.io.formats.format import (
+    DataFrameFormatter,
+    DataFrameRenderer,
+    format_percentiles,
+)
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
@@ -197,7 +200,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     ]
     _internal_names_set: Set[str] = set(_internal_names)
     _accessors: Set[str] = set()
-    _deprecations: FrozenSet[str] = frozenset(["get_values", "tshift"])
+    _hidden_attrs: FrozenSet[str] = frozenset(["get_values", "tshift"])
     _metadata: List[str] = []
     _is_copy = None
     _mgr: BlockManager
@@ -257,7 +260,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        DataFrame.flags
+        DataFrame.flags : Global flags applying to this object.
         """
         if self._attrs is None:
             self._attrs = {}
@@ -278,8 +281,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         See Also
         --------
-        Flags
-        DataFrame.attrs
+        Flags : Flags that apply to pandas objects.
+        DataFrame.attrs : Global metadata applying to this dataset.
 
         Notes
         -----
@@ -2193,7 +2196,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * Series:
 
                 - default is 'index'
-                - allowed values are: {'split','records','index','table'}.
+                - allowed values are: {'split', 'records', 'index', 'table'}.
 
             * DataFrame:
 
@@ -2777,7 +2780,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
-            values are 0, 1, 2, 3, 4. A negative value for the protocol
+            values are 0, 1, 2, 3, 4, 5. A negative value for the protocol
             parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html.
@@ -3013,6 +3016,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         .. versionchanged:: 1.0.0
            Added caption and label arguments.
 
+        .. versionchanged:: 1.2.0
+           Added position argument, changed meaning of caption argument.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -3074,10 +3080,15 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             centered labels (instead of top-aligned) across the contained
             rows, separating groups via clines. The default will be read
             from the pandas config module.
-        caption : str, optional
-            The LaTeX caption to be placed inside ``\caption{{}}`` in the output.
+        caption : str or tuple, optional
+            Tuple (full_caption, short_caption),
+            which results in ``\caption[short_caption]{{full_caption}}``;
+            if a single string is passed, no short caption will be set.
 
             .. versionadded:: 1.0.0
+
+            .. versionchanged:: 1.2.0
+               Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
 
         label : str, optional
             The LaTeX label to be placed inside ``\label{{}}`` in the output.
@@ -3087,6 +3098,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{{}}`` in the output.
+
+            .. versionadded:: 1.2.0
         {returns}
         See Also
         --------
@@ -3097,8 +3110,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Examples
         --------
         >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                    mask=['red', 'purple'],
-        ...                    weapon=['sai', 'bo staff']))
+        ...                   mask=['red', 'purple'],
+        ...                   weapon=['sai', 'bo staff']))
         >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
         \begin{{tabular}}{{lll}}
          \toprule
@@ -3139,7 +3152,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             escape=escape,
             decimal=decimal,
         )
-        return formatter.to_latex(
+        return DataFrameRenderer(formatter).to_latex(
             buf=buf,
             column_format=column_format,
             longtable=longtable,
@@ -3172,7 +3185,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         date_format: Optional[str] = None,
         doublequote: bool_t = True,
         escapechar: Optional[str] = None,
-        decimal: Optional[str] = ".",
+        decimal: str = ".",
         errors: str = "strict",
         storage_options: StorageOptions = None,
     ) -> Optional[str]:
@@ -3330,10 +3343,16 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
-        from pandas.io.formats.csvs import CSVFormatter
+        formatter = DataFrameFormatter(
+            frame=df,
+            header=header,
+            index=index,
+            na_rep=na_rep,
+            float_format=float_format,
+            decimal=decimal,
+        )
 
-        formatter = CSVFormatter(
-            df,
+        return DataFrameRenderer(formatter).to_csv(
             path_or_buf,
             line_terminator=line_terminator,
             sep=sep,
@@ -3341,11 +3360,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             errors=errors,
             compression=compression,
             quoting=quoting,
-            na_rep=na_rep,
-            float_format=float_format,
-            cols=columns,
-            header=header,
-            index=index,
+            columns=columns,
             index_label=index_label,
             mode=mode,
             chunksize=chunksize,
@@ -3353,16 +3368,8 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             date_format=date_format,
             doublequote=doublequote,
             escapechar=escapechar,
-            decimal=decimal,
             storage_options=storage_options,
         )
-        formatter.save()
-
-        if path_or_buf is None:
-            assert isinstance(formatter.path_or_buf, StringIO)
-            return formatter.path_or_buf.getvalue()
-
-        return None
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -3677,7 +3684,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         index = self.index
         if isinstance(index, MultiIndex):
             try:
-                loc, new_index = self.index.get_loc_level(key, drop_level=drop_level)
+                loc, new_index = self.index._get_loc_level(
+                    key, level=0, drop_level=drop_level
+                )
             except TypeError as e:
                 raise TypeError(f"Expected label or tuple of labels, got {key}") from e
         else:
@@ -5354,7 +5363,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
             # For subclasses using _metadata.
-            for name in self._metadata:
+            for name in set(self._metadata) & set(other._metadata):
                 assert isinstance(name, str)
                 object.__setattr__(self, name, getattr(other, name, None))
 
@@ -5430,12 +5439,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         add the string-like attributes from the info_axis.
         If info_axis is a MultiIndex, it's first level values are used.
         """
-        additions = {
-            c
-            for c in self._info_axis.unique(level=0)[:100]
-            if isinstance(c, str) and c.isidentifier()
-        }
-        return super()._dir_additions().union(additions)
+        additions = super()._dir_additions()
+        if self._info_axis._can_hold_strings:
+            additions.update(self._info_axis._dir_additions_for_owner)
+        return additions
 
     # ----------------------------------------------------------------------
     # Consolidation of internals
@@ -7309,7 +7316,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         -------
         {klass}
             Mask of bool values for each element in {klass} that
-            indicates whether an element is not an NA value.
+            indicates whether an element is an NA value.
 
         See Also
         --------
@@ -9340,9 +9347,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
         Equivalent to `shift` without copying data.
-
         The shifted data will not include the dropped periods and the
         shifted axis will be smaller than the original.
+
+        .. deprecated:: 1.2.0
+            slice_shift is deprecated,
+            use DataFrame/Series.shift instead.
 
         Parameters
         ----------
@@ -9358,6 +9368,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         While the `slice_shift` is faster than `shift`, you may pay for it
         later during alignment.
         """
+
+        msg = (
+            "The 'slice_shift' method is deprecated "
+            "and will be removed in a future version. "
+            "You can use DataFrame/Series.shift instead"
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         if periods == 0:
             return self
 
@@ -10099,7 +10117,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                categorical
         count            3
         unique           3
-        top              f
+        top              d
         freq             1
 
         Excluding numeric columns from a ``DataFrame`` description.
@@ -11107,6 +11125,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         Wrap arithmetic method to operate inplace.
         """
         result = op(self, other)
+
+        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
+            # GH#36498 this inplace op can _actually_ be inplace.
+            self._values[:] = result._values
+            return self
 
         # Delete cacher
         self._reset_cacher()

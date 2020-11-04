@@ -44,6 +44,10 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         """
         return x
 
+    def _validate_insert_value(self, value):
+        # used by NDArrayBackedExtensionIndex.insert
+        raise AbstractMethodError(self)
+
     # ------------------------------------------------------------------------
 
     def take(
@@ -51,12 +55,17 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         indices: Sequence[int],
         allow_fill: bool = False,
         fill_value: Any = None,
+        axis: int = 0,
     ) -> _T:
         if allow_fill:
             fill_value = self._validate_fill_value(fill_value)
 
         new_data = take(
-            self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value
+            self._ndarray,
+            indices,
+            allow_fill=allow_fill,
+            fill_value=fill_value,
+            axis=axis,
         )
         return self._from_backing_data(new_data)
 
@@ -233,6 +242,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             new_values = self.copy()
         return new_values
 
+    # ------------------------------------------------------------------------
+    # Reductions
+
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
         meth = getattr(self, name, None)
         if meth:
@@ -240,3 +252,24 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         else:
             msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
             raise TypeError(msg)
+
+    # ------------------------------------------------------------------------
+
+    def __repr__(self) -> str:
+        if self.ndim == 1:
+            return super().__repr__()
+
+        from pandas.io.formats.printing import format_object_summary
+
+        # the short repr has no trailing newline, while the truncated
+        # repr does. So we include a newline in our template, and strip
+        # any trailing newlines from format_object_summary
+        lines = [
+            format_object_summary(x, self._formatter(), indent_for_name=False).rstrip(
+                ", \n"
+            )
+            for x in self
+        ]
+        data = ",\n".join(lines)
+        class_name = f"<{type(self).__name__}>"
+        return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"

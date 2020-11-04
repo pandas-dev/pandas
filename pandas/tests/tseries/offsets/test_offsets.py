@@ -678,6 +678,11 @@ class TestCommon(Base):
         expected = off.is_anchored()
         assert result == expected
 
+    def test_offsets_hashable(self, offset_types):
+        # GH: 37267
+        off = self._get_offset(offset_types)
+        assert hash(off) is not None
+
 
 class TestDateOffset(Base):
     def setup_method(self, method):
@@ -744,6 +749,13 @@ class TestBusinessDay(Base):
         offset = self.offset + timedelta(hours=2)
 
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
+
+    def test_with_offset_index(self):
+        dti = DatetimeIndex([self.d])
+        result = dti + (self.offset + timedelta(hours=2))
+
+        expected = DatetimeIndex([datetime(2008, 1, 2, 2)])
+        tm.assert_index_equal(result, expected)
 
     def test_eq(self):
         assert self.offset2 == self.offset2
@@ -2636,6 +2648,13 @@ class TestCustomBusinessDay(Base):
         offset = self.offset + timedelta(hours=2)
 
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
+
+    def test_with_offset_index(self):
+        dti = DatetimeIndex([self.d])
+        result = dti + (self.offset + timedelta(hours=2))
+
+        expected = DatetimeIndex([datetime(2008, 1, 2, 2)])
+        tm.assert_index_equal(result, expected)
 
     def test_eq(self):
         assert self.offset2 == self.offset2
