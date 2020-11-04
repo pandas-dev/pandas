@@ -480,16 +480,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
-        values = self._data._ndarray
+        other = self._data._validate_setitem_value(other)
 
-        try:
-            other = self._data._validate_where_value(other)
-        except (TypeError, ValueError) as err:
-            # Includes tzawareness mismatch and IncompatibleFrequencyError
-            oth = getattr(other, "dtype", other)
-            raise TypeError(f"Where requires matching dtype, not {oth}") from err
-
-        result = np.where(cond, values, other)
+        result = np.where(cond, self._data._ndarray, other)
         arr = self._data._from_backing_data(result)
         return type(self)._simple_new(arr, name=self.name)
 
