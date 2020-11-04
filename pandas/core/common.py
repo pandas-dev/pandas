@@ -17,10 +17,7 @@ from pandas._libs import lib
 from pandas._typing import AnyArrayLike, Scalar, T
 from pandas.compat.numpy import np_version_under1p18
 
-from pandas.core.dtypes.cast import (
-    construct_1d_object_array_from_listlike,
-    maybe_box_datetimelike,
-)
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -332,23 +329,6 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
         return maybe_callable(obj, **kwargs)
 
     return maybe_callable
-
-
-def dict_compat(d):
-    """
-    Helper function to convert datetimelike-keyed dicts
-    to Timestamp-keyed dict.
-
-    Parameters
-    ----------
-    d: dict like object
-
-    Returns
-    -------
-    dict
-
-    """
-    return {maybe_box_datetimelike(key): value for key, value in d.items()}
 
 
 def standardize_mapping(into):

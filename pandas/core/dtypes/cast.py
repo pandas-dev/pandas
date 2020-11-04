@@ -806,6 +806,23 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
     return dtype, val
 
 
+def dict_compat(d):
+    """
+    Helper function to convert datetimelike-keyed dicts
+    to Timestamp-keyed dict.
+
+    Parameters
+    ----------
+    d: dict like object
+
+    Returns
+    -------
+    dict
+
+    """
+    return {maybe_box_datetimelike(key): value for key, value in d.items()}
+
+
 def infer_dtype_from_array(
     arr, pandas_dtype: bool = False
 ) -> Tuple[DtypeObj, ArrayLike]:
