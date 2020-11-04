@@ -6,9 +6,10 @@ Ideally, there should be one, and only one, obvious place for a test to reside.
 Until we reach that ideal, these are some rules of thumb for where a test should
 be located.
 
-1) Does your test depend only on code in pd._libs.tslibs?
+1) Does your test depend only on code in ``pd._libs.tslibs``?
     This test likely belongs in one of:
     - tests.tslibs
+        Policy: No file in ``tests.tslibs`` should import from any pandas modules outside of ``pd._libs.tslibs``
     - tests.scalar
     - tests.tseries.offsets
 
