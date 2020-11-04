@@ -343,7 +343,7 @@ def test_groupby_nan_included():
     df = pd.DataFrame(data)
     grouped = df.groupby("group", dropna=False)
     result = grouped.indices
-    dtype = "int64"
+    dtype = np.intp
     expected = {
         "g1": np.array([0, 2], dtype=dtype),
         "g2": np.array([3], dtype=dtype),
