@@ -335,7 +335,8 @@ class ExtensionArray:
         # This needs to be implemented so that pandas recognizes extension
         # arrays as list-like. The default implementation makes successive
         # calls to ``__getitem__``, which may be slower than necessary.
-        yield from self
+        for i in range(len(self)):
+            yield self[i]
 
     def __eq__(self, other: Any) -> ArrayLike:
         """
