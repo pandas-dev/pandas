@@ -126,6 +126,6 @@ def test_unique_bad_unicode(idx_or_series_w_bad_unicode):
 @pytest.mark.parametrize("dropna", [True, False])
 def test_nunique_dropna(dropna):
     # GH37566
-    s = pd.Series(['yes', 'yes', pd.NA, np.nan, None, pd.NaT])
+    s = pd.Series(["yes", "yes", pd.NA, np.nan, None, pd.NaT])
     res = s.nunique(dropna=True)
     assert res == 1 if dropna else 5
