@@ -183,7 +183,7 @@ class ArrowStringArray(ExtensionArray):
 
         if not pa.types.is_string(self.data.type):
             raise ValueError(
-                "ArrowStringArray requires an array of strings or pandas.NA"
+                "ArrowStringArray requires a PyArrow (chunked) array of string type"
             )
 
     @classmethod
