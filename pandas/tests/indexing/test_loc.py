@@ -119,6 +119,11 @@ class TestLoc(Base):
 class TestLoc2:
     # TODO: better name, just separating out things that rely on base class
 
+    def test_loc_getitem_missing_unicode_key(self):
+        df = DataFrame({"a": [1]})
+        with pytest.raises(KeyError, match="\u05d0"):
+            df.loc[:, "\u05d0"]  # should not raise UnicodeEncodeError
+
     def test_loc_getitem_dups(self):
         # GH 5678
         # repeated getitems on a dup index returning a ndarray
