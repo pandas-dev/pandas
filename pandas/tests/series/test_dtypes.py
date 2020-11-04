@@ -6,7 +6,7 @@ import pytest
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, date_range
+from pandas import Categorical, DataFrame, Series
 import pandas._testing as tm
 
 
@@ -120,18 +120,20 @@ class TestSeriesDtypes:
             s.astype("object").astype(CategoricalDtype()), roundtrip_expected
         )
 
+    def test_invalid_conversions(self):
         # invalid conversion (these are NOT a dtype)
+        cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
+        ser = Series(np.random.randint(0, 10000, 100)).sort_values()
+        ser = pd.cut(ser, range(0, 10500, 500), right=False, labels=cat)
+
         msg = (
             "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
             "not understood"
         )
-
-        for invalid in [
-            lambda x: x.astype(Categorical),
-            lambda x: x.astype("object").astype(Categorical),
-        ]:
-            with pytest.raises(TypeError, match=msg):
-                invalid(s)
+        with pytest.raises(TypeError, match=msg):
+            ser.astype(Categorical)
+        with pytest.raises(TypeError, match=msg):
+            ser.astype("object").astype(Categorical)
 
     @pytest.mark.parametrize("dtype", np.typecodes["All"])
     def test_astype_empty_constructor_equality(self, dtype):
@@ -148,27 +150,6 @@ class TestSeriesDtypes:
                 as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
-    def test_intercept_astype_object(self):
-        series = Series(date_range("1/1/2000", periods=10))
-
-        # This test no longer makes sense, as
-        # Series is by default already M8[ns].
-        expected = series.astype("object")
-
-        df = DataFrame({"a": series, "b": np.random.randn(len(series))})
-        exp_dtypes = Series(
-            [np.dtype("datetime64[ns]"), np.dtype("float64")], index=["a", "b"]
-        )
-        tm.assert_series_equal(df.dtypes, exp_dtypes)
-
-        result = df.values.squeeze()
-        assert (result[:, 0] == expected.values).all()
-
-        df = DataFrame({"a": series, "b": ["foo"] * len(series)})
-
-        result = df.values.squeeze()
-        assert (result[:, 0] == expected.values).all()
-
     def test_series_to_categorical(self):
         # see gh-16524: test conversion of Series to Categorical
         series = Series(["a", "b", "c"])
@@ -177,19 +158,6 @@ class TestSeriesDtypes:
         expected = Series(["a", "b", "c"], dtype="category")
 
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "data",
-        [
-            pd.period_range("2000", periods=4),
-            pd.IntervalIndex.from_breaks([1, 2, 3, 4]),
-        ],
-    )
-    def test_values_compatibility(self, data):
-        # https://github.com/pandas-dev/pandas/issues/23995
-        result = Series(data).values
-        expected = np.array(data.astype(object))
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_reindex_astype_order_consistency(self):
         # GH 17444
