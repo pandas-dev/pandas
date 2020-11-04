@@ -454,16 +454,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    @classmethod
-    def _rebox_native(cls, value: int) -> np.datetime64:
-        return np.int64(value).view("M8[ns]")
-
-    def _unbox_scalar(self, value, setitem: bool = False):
+    def _unbox_scalar(self, value, setitem: bool = False) -> np.datetime64:
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
         if not isna(value):
             self._check_compatible_with(value, setitem=setitem)
-        return value.value
+            return value.asm8
+        return np.datetime64(value.value, "ns")
 
     def _scalar_from_string(self, value):
         return Timestamp(value, tz=self.tz)
@@ -566,7 +563,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         tstamp : Timestamp
         """
         if self.ndim > 1:
-            return (self[n] for n in range(len(self)))
+            for i in range(len(self)):
+                yield self[i]
         else:
             # convert in chunks of 10k for efficiency
             data = self.asi8

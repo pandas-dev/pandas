@@ -78,7 +78,7 @@ def _cat_compare_op(op):
             # the same (maybe up to ordering, depending on ordered)
 
             msg = "Categoricals can only be compared if 'categories' are the same."
-            if not self.is_dtype_equal(other):
+            if not self._categories_match_up_to_permutation(other):
                 raise TypeError(msg)
 
             if not self.ordered and not self.categories.equals(other.categories):
@@ -322,7 +322,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # sanitize_array coerces np.nan to a string under certain versions
             # of numpy
             values = maybe_infer_to_datetimelike(values, convert_dates=True)
-            if not isinstance(values, np.ndarray):
+            if not isinstance(values, (np.ndarray, ExtensionArray)):
                 values = com.convert_to_list_like(values)
 
                 # By convention, empty lists result in object dtype:
@@ -1177,11 +1177,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # -------------------------------------------------------------
     # Validators; ideally these can be de-duplicated
 
-    def _validate_where_value(self, value):
-        if is_scalar(value):
-            return self._validate_fill_value(value)
-        return self._validate_listlike(value)
-
     def _validate_insert_value(self, value) -> int:
         return self._validate_fill_value(value)
 
@@ -1660,21 +1655,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = self._ndarray.copy()
             mask = self.isna()
 
+            new_codes = self._validate_setitem_value(value)
+
             if isinstance(value, (np.ndarray, Categorical)):
                 # We get ndarray or Categorical if called via Series.fillna,
                 #  where it will unwrap another aligned Series before getting here
-
-                not_categories = ~algorithms.isin(value, self.categories)
-                if not isna(value[not_categories]).all():
-                    # All entries in `value` must either be a category or NA
-                    raise ValueError("fill value must be in categories")
-
-                values_codes = _get_codes_for_values(value, self.categories)
-                codes[mask] = values_codes[mask]
+                codes[mask] = new_codes[mask]
 
             else:
-                new_code = self._validate_fill_value(value)
-                codes[mask] = new_code
+                codes[mask] = new_codes
 
         return self._from_backing_data(codes)
 
@@ -1874,11 +1863,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         # require identical categories set
         if isinstance(value, Categorical):
-            if not is_dtype_equal(self, value):
+            if not is_dtype_equal(self.dtype, value.dtype):
                 raise ValueError(
                     "Cannot set a Categorical with another, "
                     "without identical categories"
                 )
+            # is_dtype_equal implies categories_match_up_to_permutation
             new_codes = self._validate_listlike(value)
             value = Categorical.from_codes(new_codes, dtype=self.dtype)
 
@@ -2112,7 +2102,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         if not isinstance(other, Categorical):
             return False
-        elif self.is_dtype_equal(other):
+        elif self._categories_match_up_to_permutation(other):
             other_codes = self._validate_listlike(other)
             return np.array_equal(self._codes, other_codes)
         return False
@@ -2125,7 +2115,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def is_dtype_equal(self, other):
+    def _categories_match_up_to_permutation(self, other: "Categorical") -> bool:
         """
         Returns True if categoricals are the same dtype
           same categories, and same ordered
@@ -2138,8 +2128,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         bool
         """
+        return hash(self.dtype) == hash(other.dtype)
+
+    def is_dtype_equal(self, other) -> bool:
+        warn(
+            "Categorical.is_dtype_equal is deprecated and will be removed "
+            "in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         try:
-            return hash(self.dtype) == hash(other.dtype)
+            return self._categories_match_up_to_permutation(other)
         except (AttributeError, TypeError):
             return False
 
