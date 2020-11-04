@@ -970,18 +970,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
     def argsort(self, *args, **kwargs) -> np.ndarray:
         return np.lexsort((self.right, self.left))
 
-    def equals(self, other: object) -> bool:
-        """
-        Determines if two IntervalIndex objects contain the same elements.
-        """
-        if self.is_(other):
-            return True
-
-        if not isinstance(other, IntervalIndex):
-            return False
-
-        return self._data.equals(other._data)
-
     # --------------------------------------------------------------------
     # Set Operations
 
@@ -1085,19 +1073,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return False
 
     # TODO: arithmetic operations
-
-    # GH#30817 until IntervalArray implements inequalities, get them from Index
-    def __lt__(self, other):
-        return Index.__lt__(self, other)
-
-    def __le__(self, other):
-        return Index.__le__(self, other)
-
-    def __gt__(self, other):
-        return Index.__gt__(self, other)
-
-    def __ge__(self, other):
-        return Index.__ge__(self, other)
 
 
 def _is_valid_endpoint(endpoint) -> bool:
