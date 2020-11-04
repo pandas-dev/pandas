@@ -20,7 +20,7 @@ from pandas.io.formats.printing import pprint_thing
 
 
 @td.skip_if_no_mpl
-class TestDataFrameGroupby(TestPlotBase):
+class TestDataFrameSubplots(TestPlotBase):
     def setup_method(self, method):
         TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
