@@ -5457,9 +5457,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Wrapper used to dispatch comparison operations.
         """
-        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)) and len(
-            self
-        ) != len(other):
+        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)) and (
+            len(self) != len(other)
+        ):
             raise ValueError("Lengths must match to compare")
 
         if not isinstance(other, ABCMultiIndex):

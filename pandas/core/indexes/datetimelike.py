@@ -239,16 +239,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         i8 = self.asi8
 
         # quick check
-        if len(self) and self.is_monotonic and i8[0] != iNaT:
+        if self.is_monotonic and i8[0] != iNaT:
             return self._data._box_func(i8[0])
-        try:
-            if self.hasnans:
-                if skipna:
-                    min_stamp = self[~self._isnan].asi8.min()
-                else:
-                    return self._na_value
+        if self.hasnans:
+            if skipna:
+                min_stamp = self[~self._isnan].asi8.min()
             else:
-                min_stamp = i8.min()
+                return self._na_value
+        else:
+            min_stamp = i8.min()
+        try:
             return self._data._box_func(min_stamp)
         except ValueError:
             return self._na_value
