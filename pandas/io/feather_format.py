@@ -81,9 +81,7 @@ def to_feather(
 
     feather.write_feather(df, ioargs.filepath_or_buffer, **kwargs)
 
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        ioargs.filepath_or_buffer.close()
+    ioargs.close()
 
 
 def read_feather(
@@ -137,9 +135,6 @@ def read_feather(
         ioargs.filepath_or_buffer, columns=columns, use_threads=bool(use_threads)
     )
 
-    # s3fs only validates the credentials when the file is closed.
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        ioargs.filepath_or_buffer.close()
+    ioargs.close()
 
     return df
