@@ -9,10 +9,9 @@ import pandas._testing as tm
 
 
 class TestFirstValidIndex:
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_first_valid_index_single_nan(self, klass):
+    def test_first_valid_index_single_nan(self, frame_or_series):
         # GH#9752 Series/DataFrame should both return None, not raise
-        obj = klass([np.nan])
+        obj = frame_or_series([np.nan])
 
         assert obj.first_valid_index() is None
         assert obj.iloc[:0].first_valid_index() is None

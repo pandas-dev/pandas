@@ -1,20 +1,19 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, MultiIndex
 import pandas._testing as tm
 
 
 class TestReorderLevels:
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_reorder_levels(self, klass):
+    def test_reorder_levels(self, frame_or_series):
         index = MultiIndex(
             levels=[["bar"], ["one", "two", "three"], [0, 1]],
             codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
             names=["L0", "L1", "L2"],
         )
         df = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=index)
-        obj = df if klass is DataFrame else df["A"]
+        obj = df if frame_or_series is DataFrame else df["A"]
 
         # no change, position
         result = obj.reorder_levels([0, 1, 2])
@@ -32,7 +31,7 @@ class TestReorderLevels:
             names=["L1", "L2", "L0"],
         )
         expected = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=e_idx)
-        expected = expected if klass is DataFrame else expected["A"]
+        expected = expected if frame_or_series is DataFrame else expected["A"]
         tm.assert_equal(result, expected)
 
         result = obj.reorder_levels([0, 0, 0])
@@ -42,7 +41,7 @@ class TestReorderLevels:
             names=["L0", "L0", "L0"],
         )
         expected = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=e_idx)
-        expected = expected if klass is DataFrame else expected["A"]
+        expected = expected if frame_or_series is DataFrame else expected["A"]
         tm.assert_equal(result, expected)
 
         result = obj.reorder_levels(["L0", "L0", "L0"])
