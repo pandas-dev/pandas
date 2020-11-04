@@ -152,6 +152,8 @@ class TestDatetime64ArrayLikeComparisons:
 
 
 class TestDatetime64SeriesComparison:
+    # TODO: moved from tests.series.test_operators; needs cleanup
+
     @pytest.mark.parametrize(
         "pair",
         [
