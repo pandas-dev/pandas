@@ -151,7 +151,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         raise AbstractMethodError(cls)
 
-    def _unbox_scalar(self, value: DTScalarOrNaT, setitem: bool = False) -> int:
+    def _unbox_scalar(
+        self, value: DTScalarOrNaT, setitem: bool = False
+    ) -> Union[np.int64, np.datetime64, np.timedelta64]:
         """
         Unbox the integer value of a scalar `value`.
 
@@ -623,8 +625,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return self._unbox(value, setitem=True)
 
-    _validate_where_value = _validate_setitem_value
-
     def _validate_insert_value(self, value):
         value = self._validate_scalar(value)
 
@@ -638,7 +638,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         if lib.is_scalar(other):
             other = self._unbox_scalar(other, setitem=setitem)
-            other = self._rebox_native(other)
         else:
             # same type as self
             self._check_compatible_with(other, setitem=setitem)
