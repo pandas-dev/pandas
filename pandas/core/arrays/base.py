@@ -232,8 +232,8 @@ class ExtensionArray:
 
         See Also
         --------
-        factorize
-        ExtensionArray.factorize
+        factorize : Top-level factorize method that dispatches here.
+        ExtensionArray.factorize : Encode the extension array as an enumerated type.
         """
         raise AbstractMethodError(cls)
 
@@ -460,7 +460,7 @@ class ExtensionArray:
         if is_dtype_equal(dtype, self.dtype):
             if not copy:
                 return self
-            elif copy:
+            else:
                 return self.copy()
         if isinstance(dtype, StringDtype):  # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
@@ -501,13 +501,18 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray.argsort
+        ExtensionArray.argsort : Return the indices that would sort this array.
         """
         # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
 
     def argsort(
-        self, ascending: bool = True, kind: str = "quicksort", *args, **kwargs
+        self,
+        ascending: bool = True,
+        kind: str = "quicksort",
+        na_position: str = "last",
+        *args,
+        **kwargs,
     ) -> np.ndarray:
         """
         Return the indices that would sort this array.
@@ -538,8 +543,14 @@ class ExtensionArray:
         # 2. argsort : total control over sorting.
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
 
-        result = nargsort(self, kind=kind, ascending=ascending, na_position="last")
-        return result
+        values = self._values_for_argsort()
+        return nargsort(
+            values,
+            kind=kind,
+            ascending=ascending,
+            na_position=na_position,
+            mask=np.asarray(self.isna()),
+        )
 
     def argmin(self):
         """
@@ -768,12 +779,12 @@ class ExtensionArray:
         boolean
             Whether the arrays are equivalent.
         """
-        if not type(self) == type(other):
+        if type(self) != type(other):
             return False
         other = cast(ExtensionArray, other)
         if not is_dtype_equal(self.dtype, other.dtype):
             return False
-        elif not len(self) == len(other):
+        elif len(self) != len(other):
             return False
         else:
             equal_values = self == other
@@ -956,8 +967,8 @@ class ExtensionArray:
 
         See Also
         --------
-        numpy.take
-        api.extensions.take
+        numpy.take : Take elements from an array along an axis.
+        api.extensions.take : Take elements from an array.
 
         Notes
         -----

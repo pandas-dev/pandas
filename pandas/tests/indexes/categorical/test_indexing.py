@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalIndex, Index, IntervalIndex
+from pandas import CategoricalIndex, Index, IntervalIndex, Timestamp
 import pandas._testing as tm
 
 
@@ -251,6 +251,32 @@ class TestGetIndexer:
         with pytest.raises(NotImplementedError, match=msg):
             idx2.get_indexer(idx1, method="nearest")
 
+    def test_get_indexer_array(self):
+        arr = np.array(
+            [Timestamp("1999-12-31 00:00:00"), Timestamp("2000-12-31 00:00:00")],
+            dtype=object,
+        )
+        cats = [Timestamp("1999-12-31 00:00:00"), Timestamp("2000-12-31 00:00:00")]
+        ci = CategoricalIndex(cats, categories=cats, ordered=False, dtype="category")
+        result = ci.get_indexer(arr)
+        expected = np.array([0, 1], dtype="intp")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_same_categories_same_order(self):
+        ci = CategoricalIndex(["a", "b"], categories=["a", "b"])
+
+        result = ci.get_indexer(CategoricalIndex(["b", "b"], categories=["a", "b"]))
+        expected = np.array([1, 1], dtype="intp")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_same_categories_different_order(self):
+        # https://github.com/pandas-dev/pandas/issues/19551
+        ci = CategoricalIndex(["a", "b"], categories=["a", "b"])
+
+        result = ci.get_indexer(CategoricalIndex(["b", "b"], categories=["b", "a"]))
+        expected = np.array([1, 1], dtype="intp")
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestWhere:
     @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
@@ -329,7 +355,7 @@ class TestContains:
             (1.5, True),
             (pd.Interval(0.5, 1.5), False),
             ("a", False),
-            (pd.Timestamp(1), False),
+            (Timestamp(1), False),
             (pd.Timedelta(1), False),
         ],
         ids=str,

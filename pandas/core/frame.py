@@ -15,6 +15,7 @@ from collections import abc
 import datetime
 from io import StringIO
 import itertools
+import mmap
 from textwrap import dedent
 from typing import (
     IO,
@@ -34,6 +35,7 @@ from typing import (
     Type,
     Union,
     cast,
+    overload,
 )
 import warnings
 
@@ -130,7 +132,13 @@ from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
+from pandas.core.indexes.api import (
+    DatetimeIndex,
+    Index,
+    PeriodIndex,
+    ensure_index,
+    ensure_index_from_sequences,
+)
 from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
@@ -155,6 +163,8 @@ from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from pandas.core.groupby.generic import DataFrameGroupBy
 
     from pandas.io.formats.style import Styler
@@ -420,7 +430,7 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrame
 
     _constructor_sliced: Type[Series] = Series
-    _deprecations: FrozenSet[str] = NDFrame._deprecations | frozenset([])
+    _hidden_attrs: FrozenSet[str] = NDFrame._hidden_attrs | frozenset([])
     _accessors: Set[str] = {"sparse"}
 
     @property
@@ -586,7 +596,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        ndarray.shape
+        ndarray.shape : Tuple of array dimensions.
 
         Examples
         --------
@@ -788,10 +798,8 @@ class DataFrame(NDFrame, OpsMixin):
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
                 decimal=".",
-                table_id=None,
-                render_links=False,
             )
-            return formatter.to_html(notebook=True)
+            return fmt.DataFrameRenderer(formatter).to_html(notebook=True)
         else:
             return None
 
@@ -874,9 +882,12 @@ class DataFrame(NDFrame, OpsMixin):
                 max_cols=max_cols,
                 show_dimensions=show_dimensions,
                 decimal=decimal,
+            )
+            return fmt.DataFrameRenderer(formatter).to_string(
+                buf=buf,
+                encoding=encoding,
                 line_width=line_width,
             )
-            return formatter.to_string(buf=buf, encoding=encoding)
 
     # ----------------------------------------------------------------------
 
@@ -969,9 +980,6 @@ class DataFrame(NDFrame, OpsMixin):
             The index of the row. A tuple for a `MultiIndex`.
         data : Series
             The data of the row as a Series.
-
-        it : generator
-            A generator that iterates over the rows of the frame.
 
         See Also
         --------
@@ -2279,23 +2287,22 @@ class DataFrame(NDFrame, OpsMixin):
         if buf is None:
             return result
         ioargs = get_filepath_or_buffer(buf, mode=mode, storage_options=storage_options)
-        assert not isinstance(ioargs.filepath_or_buffer, str)
+        assert not isinstance(ioargs.filepath_or_buffer, (str, mmap.mmap))
         ioargs.filepath_or_buffer.writelines(result)
-        if ioargs.should_close:
-            ioargs.filepath_or_buffer.close()
+        ioargs.close()
         return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
-        path: FilePathOrBuffer[AnyStr],
+        path: Optional[FilePathOrBuffer] = None,
         engine: str = "auto",
         compression: Optional[str] = "snappy",
         index: Optional[bool] = None,
         partition_cols: Optional[List[str]] = None,
         storage_options: StorageOptions = None,
         **kwargs,
-    ) -> None:
+    ) -> Optional[bytes]:
         """
         Write a DataFrame to the binary parquet format.
 
@@ -2306,14 +2313,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        path : str or file-like object
+        path : str or file-like object, default None
             If a string, it will be used as Root Directory path
             when writing a partitioned dataset. By file-like object,
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function) or io.BytesIO. The engine
-            fastparquet does not accept file-like objects.
+            fastparquet does not accept file-like objects. If path is None,
+            a bytes object is returned.
 
-            .. versionchanged:: 1.0.0
+            .. versionchanged:: 1.2.0
 
             Previously this was "fname"
 
@@ -2356,6 +2364,10 @@ class DataFrame(NDFrame, OpsMixin):
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
 
+        Returns
+        -------
+        bytes if no path argument is provided else None
+
         See Also
         --------
         read_parquet : Read a parquet file.
@@ -2391,7 +2403,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.parquet import to_parquet
 
-        to_parquet(
+        return to_parquet(
             self,
             path,
             engine,
@@ -2476,29 +2488,29 @@ class DataFrame(NDFrame, OpsMixin):
             columns=columns,
             col_space=col_space,
             na_rep=na_rep,
+            header=header,
+            index=index,
             formatters=formatters,
             float_format=float_format,
+            bold_rows=bold_rows,
             sparsify=sparsify,
             justify=justify,
             index_names=index_names,
-            header=header,
-            index=index,
-            bold_rows=bold_rows,
             escape=escape,
+            decimal=decimal,
             max_rows=max_rows,
             max_cols=max_cols,
             show_dimensions=show_dimensions,
-            decimal=decimal,
-            table_id=table_id,
-            render_links=render_links,
         )
         # TODO: a generic formatter wld b in DataFrameFormatter
-        return formatter.to_html(
+        return fmt.DataFrameRenderer(formatter).to_html(
             buf=buf,
             classes=classes,
             notebook=notebook,
             border=border,
             encoding=encoding,
+            table_id=table_id,
+            render_links=render_links,
         )
 
     # ----------------------------------------------------------------------
@@ -2604,7 +2616,7 @@ class DataFrame(NDFrame, OpsMixin):
             DataFrame.memory_usage: Memory usage of DataFrame columns."""
         ),
     )
-    @doc(DataFrameInfo.info)
+    @doc(DataFrameInfo.to_buffer)
     def info(
         self,
         verbose: Optional[bool] = None,
@@ -2613,9 +2625,16 @@ class DataFrame(NDFrame, OpsMixin):
         memory_usage: Optional[Union[bool, str]] = None,
         null_counts: Optional[bool] = None,
     ) -> None:
-        return DataFrameInfo(
-            self, verbose, buf, max_cols, memory_usage, null_counts
-        ).info()
+        info = DataFrameInfo(
+            data=self,
+            memory_usage=memory_usage,
+        )
+        info.to_buffer(
+            buf=buf,
+            max_cols=max_cols,
+            verbose=verbose,
+            show_counts=null_counts,
+        )
 
     def memory_usage(self, index=True, deep=False) -> Series:
         """
@@ -2907,6 +2926,10 @@ class DataFrame(NDFrame, OpsMixin):
         # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
+            if isinstance(indexer, np.ndarray):
+                indexer = lib.maybe_indices_to_slice(
+                    indexer.astype(np.intp, copy=False), len(self)
+                )
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
@@ -4693,6 +4716,30 @@ class DataFrame(NDFrame, OpsMixin):
         if not inplace:
             return frame
 
+    @overload
+    # https://github.com/python/mypy/issues/6580
+    # Overloaded function signatures 1 and 2 overlap with incompatible return types
+    def reset_index(  # type: ignore[misc]
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        drop: bool = ...,
+        inplace: Literal[False] = ...,
+        col_level: Hashable = ...,
+        col_fill: Label = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def reset_index(
+        self,
+        level: Optional[Union[Hashable, Sequence[Hashable]]] = ...,
+        drop: bool = ...,
+        inplace: Literal[True] = ...,
+        col_level: Hashable = ...,
+        col_fill: Label = ...,
+    ) -> None:
+        ...
+
     def reset_index(
         self,
         level: Optional[Union[Hashable, Sequence[Hashable]]] = None,
@@ -5286,7 +5333,8 @@ class DataFrame(NDFrame, OpsMixin):
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
-        return self._constructor_sliced(duplicated_int64(ids, keep), index=self.index)
+        result = self._constructor_sliced(duplicated_int64(ids, keep), index=self.index)
+        return result.__finalize__(self, method="duplicated")
 
     # ----------------------------------------------------------------------
     # Sorting
@@ -5521,8 +5569,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts()
         num_legs  num_wings
         4         0            2
-        6         0            1
         2         2            1
+        6         0            1
         dtype: int64
 
         >>> df.value_counts(sort=False)
@@ -5542,8 +5590,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts(normalize=True)
         num_legs  num_wings
         4         0            0.50
-        6         0            0.25
         2         2            0.25
+        6         0            0.25
         dtype: float64
         """
         if subset is None:
@@ -7096,9 +7144,11 @@ NaN 12.3   33.0
         from pandas.core.reshape.reshape import stack, stack_multiple
 
         if isinstance(level, (tuple, list)):
-            return stack_multiple(self, level, dropna=dropna)
+            result = stack_multiple(self, level, dropna=dropna)
         else:
-            return stack(self, level, dropna=dropna)
+            result = stack(self, level, dropna=dropna)
+
+        return result.__finalize__(self, method="stack")
 
     def explode(
         self, column: Union[str, Tuple], ignore_index: bool = False
@@ -7169,8 +7219,6 @@ NaN 12.3   33.0
             raise ValueError("columns must be unique")
 
         df = self.reset_index(drop=True)
-        # TODO: use overload to refine return type of reset_index
-        assert df is not None  # needed for mypy
         result = df[column].explode()
         result = df.drop([column], axis=1).join(result)
         if ignore_index:
@@ -7240,7 +7288,9 @@ NaN 12.3   33.0
         """
         from pandas.core.reshape.reshape import unstack
 
-        return unstack(self, level, fill_value)
+        result = unstack(self, level, fill_value)
+
+        return result.__finalize__(self, method="unstack")
 
     @Appender(_shared_docs["melt"] % dict(caller="df.melt(", other="melt"))
     def melt(
@@ -7426,9 +7476,9 @@ NaN 12.3   33.0
 
     >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
             A    B
-    max   NaN  8.0
-    min   1.0  2.0
     sum  12.0  NaN
+    min   1.0  2.0
+    max   NaN  8.0
 
     Aggregate different functions over the columns and rename the index of the resulting
     DataFrame.
@@ -8531,6 +8581,7 @@ NaN 12.3   33.0
         See Also
         --------
         Series.count: Number of non-NA elements in a Series.
+        DataFrame.value_counts: Count unique combinations of columns.
         DataFrame.shape: Number of DataFrame rows and columns (including NA
             elements).
         DataFrame.isna: Boolean same-sized DataFrame showing places of NA
@@ -9208,6 +9259,9 @@ NaN 12.3   33.0
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
+        if not isinstance(old_ax, PeriodIndex):
+            raise TypeError(f"unsupported Type {type(old_ax).__name__}")
+
         new_ax = old_ax.to_timestamp(freq=freq, how=how)
 
         setattr(new_obj, axis_name, new_ax)
@@ -9237,6 +9291,9 @@ NaN 12.3   33.0
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
+        if not isinstance(old_ax, DatetimeIndex):
+            raise TypeError(f"unsupported Type {type(old_ax).__name__}")
+
         new_ax = old_ax.to_period(freq=freq)
 
         setattr(new_obj, axis_name, new_ax)
