@@ -317,9 +317,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             raise Exception("must only pass scalars with an index")
 
         if is_scalar(data):
-            if index is not None:
-                if data is None:
-                    data = np.nan
+            if index is not None and data is None:
+                data = np.nan
 
             if index is not None:
                 npoints = len(index)
@@ -576,8 +575,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> s.density
         0.6
         """
-        r = float(self.sp_index.npoints) / float(self.sp_index.length)
-        return r
+        return float(self.sp_index.npoints) / float(self.sp_index.length)
 
     @property
     def npoints(self) -> int:
@@ -737,25 +735,17 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         keys, counts = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps
-        if fcounts > 0:
-            if self._null_fill_value and dropna:
-                pass
+        if fcounts > 0 and (not self._null_fill_value or not dropna):
+            mask = isna(keys) if self._null_fill_value else keys == self.fill_value
+            if mask.any():
+                counts[mask] += fcounts
             else:
-                if self._null_fill_value:
-                    mask = isna(keys)
-                else:
-                    mask = keys == self.fill_value
-
-                if mask.any():
-                    counts[mask] += fcounts
-                else:
-                    keys = np.insert(keys, 0, self.fill_value)
-                    counts = np.insert(counts, 0, fcounts)
+                keys = np.insert(keys, 0, self.fill_value)
+                counts = np.insert(counts, 0, fcounts)
 
         if not isinstance(keys, ABCIndexClass):
             keys = Index(keys)
-        result = Series(counts, index=keys)
-        return result
+        return Series(counts, index=keys)
 
     # --------
     # Indexing
@@ -1063,7 +1053,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if is_dtype_equal(dtype, self._dtype):
             if not copy:
                 return self
-            elif copy:
+            else:
                 return self.copy()
         dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str

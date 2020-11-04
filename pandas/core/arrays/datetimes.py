@@ -454,16 +454,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    @classmethod
-    def _rebox_native(cls, value: int) -> np.datetime64:
-        return np.int64(value).view("M8[ns]")
-
-    def _unbox_scalar(self, value, setitem: bool = False):
+    def _unbox_scalar(self, value, setitem: bool = False) -> np.datetime64:
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
         if not isna(value):
             self._check_compatible_with(value, setitem=setitem)
-        return value.value
+            return value.asm8
+        return np.datetime64(value.value, "ns")
 
     def _scalar_from_string(self, value):
         return Timestamp(value, tz=self.tz)
@@ -1971,7 +1968,13 @@ def sequence_to_dt64ns(
             data, inferred_tz = objects_to_datetime64ns(
                 data, dayfirst=dayfirst, yearfirst=yearfirst
             )
-            tz = _maybe_infer_tz(tz, inferred_tz)
+            if tz and inferred_tz:
+                #  two timezones: convert to intended from base UTC repr
+                data = tzconversion.tz_convert_from_utc(data.view("i8"), tz)
+                data = data.view(DT64NS_DTYPE)
+            elif inferred_tz:
+                tz = inferred_tz
+
         data_dtype = data.dtype
 
     # `data` may have originally been a Categorical[datetime64[ns, tz]],

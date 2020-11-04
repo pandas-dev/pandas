@@ -1253,16 +1253,31 @@ class TestHDFStore:
             store.append("df2", df[10:], dropna=False)
             tm.assert_frame_equal(store["df2"], df)
 
-        # Test to make sure defaults are to not drop.
-        # Corresponding to Issue 9382
+    def test_store_dropna(self, setup_path):
         df_with_missing = DataFrame(
-            {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
+            {"col1": [0.0, np.nan, 2.0], "col2": [1.0, np.nan, np.nan]},
+            index=list("abc"),
+        )
+        df_without_missing = DataFrame(
+            {"col1": [0.0, 2.0], "col2": [1.0, np.nan]}, index=list("ac")
         )
 
+        # # Test to make sure defaults are to not drop.
+        # # Corresponding to Issue 9382
         with ensure_clean_path(setup_path) as path:
-            df_with_missing.to_hdf(path, "df_with_missing", format="table")
-            reloaded = read_hdf(path, "df_with_missing")
+            df_with_missing.to_hdf(path, "df", format="table")
+            reloaded = read_hdf(path, "df")
             tm.assert_frame_equal(df_with_missing, reloaded)
+
+        with ensure_clean_path(setup_path) as path:
+            df_with_missing.to_hdf(path, "df", format="table", dropna=False)
+            reloaded = read_hdf(path, "df")
+            tm.assert_frame_equal(df_with_missing, reloaded)
+
+        with ensure_clean_path(setup_path) as path:
+            df_with_missing.to_hdf(path, "df", format="table", dropna=True)
+            reloaded = read_hdf(path, "df")
+            tm.assert_frame_equal(df_without_missing, reloaded)
 
     def test_read_missing_key_close_store(self, setup_path):
         # GH 25766
