@@ -6448,7 +6448,7 @@ Keep all original rows and columns and also all original values
         See Also
         --------
         dict.update : Similar method for dictionaries.
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge : For column(s)-on-column(s) operations.
 
         Examples
         --------
@@ -7984,7 +7984,7 @@ NaN 12.3   33.0
 
         See Also
         --------
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge : For column(s)-on-column(s) operations.
 
         Notes
         -----
