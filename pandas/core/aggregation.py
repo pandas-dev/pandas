@@ -727,7 +727,10 @@ def agg_dict_like(
             elif (
                 isinstance(selected_obj, ABCDataFrame) and k not in selected_obj.columns
             ):
-                raise KeyError(f"Column '{k}' does not exist!")
+                if is_list_like(k):
+                    for c in k:
+                        if c not in selected_obj.columns:
+                            raise KeyError(f"Column '{c}' does not exist!")
 
         arg = new_arg
 
