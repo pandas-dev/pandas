@@ -1253,16 +1253,31 @@ class TestHDFStore:
             store.append("df2", df[10:], dropna=False)
             tm.assert_frame_equal(store["df2"], df)
 
-        # Test to make sure defaults are to not drop.
-        # Corresponding to Issue 9382
+    def test_store_dropna(self, setup_path):
         df_with_missing = DataFrame(
-            {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
+            {"col1": [0.0, np.nan, 2.0], "col2": [1.0, np.nan, np.nan]},
+            index=list("abc"),
+        )
+        df_without_missing = DataFrame(
+            {"col1": [0.0, 2.0], "col2": [1.0, np.nan]}, index=list("ac")
         )
 
+        # # Test to make sure defaults are to not drop.
+        # # Corresponding to Issue 9382
         with ensure_clean_path(setup_path) as path:
-            df_with_missing.to_hdf(path, "df_with_missing", format="table")
-            reloaded = read_hdf(path, "df_with_missing")
+            df_with_missing.to_hdf(path, "df", format="table")
+            reloaded = read_hdf(path, "df")
             tm.assert_frame_equal(df_with_missing, reloaded)
+
+        with ensure_clean_path(setup_path) as path:
+            df_with_missing.to_hdf(path, "df", format="table", dropna=False)
+            reloaded = read_hdf(path, "df")
+            tm.assert_frame_equal(df_with_missing, reloaded)
+
+        with ensure_clean_path(setup_path) as path:
+            df_with_missing.to_hdf(path, "df", format="table", dropna=True)
+            reloaded = read_hdf(path, "df")
+            tm.assert_frame_equal(df_without_missing, reloaded)
 
     def test_read_missing_key_close_store(self, setup_path):
         # GH 25766
@@ -1918,7 +1933,7 @@ class TestHDFStore:
 
     def test_mi_data_columns(self, setup_path):
         # GH 14435
-        idx = pd.MultiIndex.from_arrays(
+        idx = MultiIndex.from_arrays(
             [date_range("2000-01-01", periods=5), range(5)], names=["date", "id"]
         )
         df = DataFrame({"a": [1.1, 1.2, 1.3, 1.4, 1.5]}, index=idx)
@@ -2325,7 +2340,7 @@ class TestHDFStore:
                 np.random.randn(20, 2), index=pd.date_range("20130101", periods=20)
             )
             store.put("df", df, format="table")
-            expected = df[df.index > pd.Timestamp("20130105")]
+            expected = df[df.index > Timestamp("20130105")]
 
             import datetime
 
@@ -4152,7 +4167,7 @@ class TestHDFStore:
         ) as store:
             result = store.select("df")
             expected = DataFrame(
-                [[pd.Timestamp("2020-02-06T18:00")]],
+                [[Timestamp("2020-02-06T18:00")]],
                 columns=["A"],
                 index=Index(["date"]),
             )
@@ -4768,14 +4783,14 @@ class TestHDFStore:
         with ensure_clean_store(setup_path) as store:
             store.append("test", df, format="table", data_columns=True)
 
-            ts = pd.Timestamp("2014-01-01")  # noqa
+            ts = Timestamp("2014-01-01")  # noqa
             result = store.select("test", where="real_date > ts")
             expected = df.loc[[1], :]
             tm.assert_frame_equal(expected, result)
 
             for op in ["<", ">", "=="]:
                 # non strings to string column always fail
-                for v in [2.1, True, pd.Timestamp("2014-01-01"), pd.Timedelta(1, "s")]:
+                for v in [2.1, True, Timestamp("2014-01-01"), pd.Timedelta(1, "s")]:
                     query = f"date {op} v"
                     with pytest.raises(TypeError):
                         store.select("test", where=query)

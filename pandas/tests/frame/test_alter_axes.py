@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import numpy as np
-import pytest
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -10,13 +9,10 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas import (
-    Categorical,
-    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
     IntervalIndex,
-    MultiIndex,
     Series,
     Timestamp,
     cut,
@@ -27,15 +23,6 @@ import pandas._testing as tm
 
 
 class TestDataFrameAlterAxes:
-    def test_set_index_directly(self, float_string_frame):
-        df = float_string_frame
-        idx = Index(np.arange(len(df))[::-1])
-
-        df.index = idx
-        tm.assert_index_equal(df.index, idx)
-        with pytest.raises(ValueError, match="Length mismatch"):
-            df.index = idx[::2]
-
     def test_convert_dti_to_series(self):
         # don't cast a DatetimeIndex WITH a tz, leave as object
         # GH 6032
@@ -103,12 +90,6 @@ class TestDataFrameAlterAxes:
         df.index = df["ts"]
         df.pop("ts")
         tm.assert_frame_equal(df, expected)
-
-    def test_set_columns(self, float_string_frame):
-        cols = Index(np.arange(len(float_string_frame.columns)))
-        float_string_frame.columns = cols
-        with pytest.raises(ValueError, match="Length mismatch"):
-            float_string_frame.columns = cols[::2]
 
     def test_dti_set_index_reindex(self):
         # GH 6631
@@ -192,32 +173,3 @@ class TestIntervalIndex:
         df = df.set_index("B")
 
         df = df.reset_index()
-
-
-class TestCategoricalIndex:
-    @pytest.mark.parametrize(
-        "codes", ([[0, 0, 1, 1], [0, 1, 0, 1]], [[0, 0, -1, 1], [0, 1, 0, 1]])
-    )
-    def test_reindexing_with_missing_values(self, codes):
-        # GH 24206
-
-        index = MultiIndex(
-            [CategoricalIndex(["A", "B"]), CategoricalIndex(["a", "b"])], codes
-        )
-        data = {"col": range(len(index))}
-        df = DataFrame(data=data, index=index)
-
-        expected = DataFrame(
-            {
-                "level_0": Categorical.from_codes(codes[0], categories=["A", "B"]),
-                "level_1": Categorical.from_codes(codes[1], categories=["a", "b"]),
-                "col": range(4),
-            }
-        )
-
-        res = df.reset_index()
-        tm.assert_frame_equal(res, expected)
-
-        # roundtrip
-        res = expected.set_index(["level_0", "level_1"]).reset_index()
-        tm.assert_frame_equal(res, expected)

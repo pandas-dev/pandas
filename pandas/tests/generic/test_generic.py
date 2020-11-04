@@ -5,8 +5,7 @@ import pytest
 
 from pandas.core.dtypes.common import is_scalar
 
-import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import DataFrame, Series
 import pandas._testing as tm
 
 # ----------------------------------------------------------------------
@@ -248,31 +247,6 @@ class Generic:
             self.check_metadata(v1 & v2)
             self.check_metadata(v1 | v2)
 
-    def test_head_tail(self, index):
-        # GH5370
-
-        o = self._construct(shape=len(index))
-
-        axis = o._get_axis_name(0)
-        setattr(o, axis, index)
-
-        o.head()
-
-        self._compare(o.head(), o.iloc[:5])
-        self._compare(o.tail(), o.iloc[-5:])
-
-        # 0-len
-        self._compare(o.head(0), o.iloc[0:0])
-        self._compare(o.tail(0), o.iloc[0:0])
-
-        # bounded
-        self._compare(o.head(len(o) + 1), o)
-        self._compare(o.tail(len(o) + 1), o)
-
-        # neg index
-        self._compare(o.head(-3), o.head(len(index) - 3))
-        self._compare(o.tail(-3), o.tail(len(index) - 3))
-
     def test_size_compat(self):
         # GH8846
         # size property should be defined
@@ -355,29 +329,6 @@ class Generic:
         obj_copy = func(obj)
         assert obj_copy is not obj
         self._compare(obj_copy, obj)
-
-    @pytest.mark.parametrize(
-        "periods,fill_method,limit,exp",
-        [
-            (1, "ffill", None, [np.nan, np.nan, np.nan, 1, 1, 1.5, 0, 0]),
-            (1, "ffill", 1, [np.nan, np.nan, np.nan, 1, 1, 1.5, 0, np.nan]),
-            (1, "bfill", None, [np.nan, 0, 0, 1, 1, 1.5, np.nan, np.nan]),
-            (1, "bfill", 1, [np.nan, np.nan, 0, 1, 1, 1.5, np.nan, np.nan]),
-            (-1, "ffill", None, [np.nan, np.nan, -0.5, -0.5, -0.6, 0, 0, np.nan]),
-            (-1, "ffill", 1, [np.nan, np.nan, -0.5, -0.5, -0.6, 0, np.nan, np.nan]),
-            (-1, "bfill", None, [0, 0, -0.5, -0.5, -0.6, np.nan, np.nan, np.nan]),
-            (-1, "bfill", 1, [np.nan, 0, -0.5, -0.5, -0.6, np.nan, np.nan, np.nan]),
-        ],
-    )
-    def test_pct_change(self, periods, fill_method, limit, exp):
-        vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
-        obj = self._typ(vals)
-        func = getattr(obj, "pct_change")
-        res = func(periods=periods, fill_method=fill_method, limit=limit)
-        if type(obj) is DataFrame:
-            tm.assert_frame_equal(res, DataFrame(exp))
-        else:
-            tm.assert_series_equal(res, Series(exp))
 
 
 class TestNDFrame:
@@ -483,77 +434,23 @@ class TestNDFrame:
                 obj.take(indices, mode="clip")
 
     @pytest.mark.parametrize("is_copy", [True, False])
-    def test_depr_take_kwarg_is_copy(self, is_copy):
+    def test_depr_take_kwarg_is_copy(self, is_copy, frame_or_series):
         # GH 27357
-        df = DataFrame({"A": [1, 2, 3]})
+        obj = DataFrame({"A": [1, 2, 3]})
+        if frame_or_series is Series:
+            obj = obj["A"]
+
         msg = (
             "is_copy is deprecated and will be removed in a future version. "
             "'take' always returns a copy, so there is no need to specify this."
         )
         with tm.assert_produces_warning(FutureWarning) as w:
-            df.take([0, 1], is_copy=is_copy)
+            obj.take([0, 1], is_copy=is_copy)
 
         assert w[0].message.args[0] == msg
 
-        s = Series([1, 2, 3])
-        with tm.assert_produces_warning(FutureWarning):
-            s.take([0, 1], is_copy=is_copy)
-
-    def test_equals(self):
-        # Add object dtype column with nans
-        index = np.random.random(10)
-        df1 = DataFrame(np.random.random(10), index=index, columns=["floats"])
-        df1["text"] = "the sky is so blue. we could use more chocolate.".split()
-        df1["start"] = date_range("2000-1-1", periods=10, freq="T")
-        df1["end"] = date_range("2000-1-1", periods=10, freq="D")
-        df1["diff"] = df1["end"] - df1["start"]
-        df1["bool"] = np.arange(10) % 3 == 0
-        df1.loc[::2] = np.nan
-        df2 = df1.copy()
-        assert df1["text"].equals(df2["text"])
-        assert df1["start"].equals(df2["start"])
-        assert df1["end"].equals(df2["end"])
-        assert df1["diff"].equals(df2["diff"])
-        assert df1["bool"].equals(df2["bool"])
-        assert df1.equals(df2)
-        assert not df1.equals(object)
-
-        # different dtype
-        different = df1.copy()
-        different["floats"] = different["floats"].astype("float32")
-        assert not df1.equals(different)
-
-        # different index
-        different_index = -index
-        different = df2.set_index(different_index)
-        assert not df1.equals(different)
-
-        # different columns
-        different = df2.copy()
-        different.columns = df2.columns[::-1]
-        assert not df1.equals(different)
-
-        # DatetimeIndex
-        index = pd.date_range("2000-1-1", periods=10, freq="T")
-        df1 = df1.set_index(index)
-        df2 = df1.copy()
-        assert df1.equals(df2)
-
-        # MultiIndex
-        df3 = df1.set_index(["text"], append=True)
-        df2 = df1.set_index(["text"], append=True)
-        assert df3.equals(df2)
-
-        df2 = df1.set_index(["floats"], append=True)
-        assert not df3.equals(df2)
-
-        # NaN in index
-        df3 = df1.set_index(["floats"], append=True)
-        df2 = df1.set_index(["floats"], append=True)
-        assert df3.equals(df2)
-
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_axis_classmethods(self, box):
+    def test_axis_classmethods(self, frame_or_series):
+        box = frame_or_series
         obj = box(dtype=object)
         values = box._AXIS_TO_AXIS_NUMBER.keys()
         for v in values:
@@ -561,26 +458,36 @@ class TestNDFrame:
             assert obj._get_axis_name(v) == box._get_axis_name(v)
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_axis_names_deprecated(self, box):
+    def test_axis_names_deprecated(self, frame_or_series):
         # GH33637
+        box = frame_or_series
         obj = box(dtype=object)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             obj._AXIS_NAMES
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_axis_numbers_deprecated(self, box):
+    def test_axis_numbers_deprecated(self, frame_or_series):
         # GH33637
+        box = frame_or_series
         obj = box(dtype=object)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             obj._AXIS_NUMBERS
 
-    @pytest.mark.parametrize("as_frame", [True, False])
-    def test_flags_identity(self, as_frame):
+    def test_flags_identity(self, frame_or_series):
         s = Series([1, 2])
-        if as_frame:
+        if frame_or_series is DataFrame:
             s = s.to_frame()
 
         assert s.flags is s.flags
         s2 = s.copy()
         assert s2.flags is not s.flags
+
+    def test_slice_shift_deprecated(self):
+        # GH 37601
+        df = DataFrame({"A": [1, 2, 3, 4]})
+        s = Series([1, 2, 3, 4])
+
+        with tm.assert_produces_warning(FutureWarning):
+            df["A"].slice_shift()
+
+        with tm.assert_produces_warning(FutureWarning):
+            s.slice_shift()

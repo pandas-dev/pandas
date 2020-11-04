@@ -18,7 +18,7 @@ repos:
         types: [text]
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.6.3
+    rev: 5.6.4
     hooks:
     -   id: isort
         name: isort (python)
@@ -26,7 +26,7 @@ repos:
         name: isort (cython)
         types: [cython]
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.2
+    rev: v2.7.3
     hooks:
     -   id: pyupgrade
         args: [--py37-plus]
@@ -66,9 +66,17 @@ repos:
             from\ pandas\.core\ import\ common|
 
             # Check for imports from collections.abc instead of `from collections import abc`
-            from\ collections\.abc\ import|
+            from\ collections\.abc\ import
 
-            from\ numpy\ import\ nan
+    -   id: non-standard-numpy.random-related-imports
+        name: Check for non-standard numpy.random-related imports excluding pandas/_testing.py
+        language: pygrep
+        exclude: pandas/_testing.py
+        entry: |
+            (?x)
+            # Check for imports from np.random.<method> instead of `from numpy import random` or `from numpy.random import <method>`
+            from\ numpy\ import\ random|
+            from\ numpy.random\ import
         types: [python]
     -   id: non-standard-imports-in-tests
         name: Check for non-standard imports in test suite
@@ -104,19 +112,19 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
         types: [python]
-        exclude: ^(asv_bench|pandas/_vendored|pandas/tests|doc)/
+        exclude: ^(asv_bench|pandas/tests|doc)/
     -   id: unwanted-patterns-private-function-across-module
         name: Check for use of private functions across modules
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
         types: [python]
-        exclude: ^(asv_bench|pandas/_vendored|pandas/tests|doc)/
+        exclude: ^(asv_bench|pandas/tests|doc)/
 -   repo: https://github.com/asottile/yesqa
     rev: v1.2.2
     hooks:
     -   id: yesqa
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v3.3.0
     hooks:
     -   id: end-of-file-fixer
         exclude: ^LICENSES/|\.(html|csv|txt|svg|py)$

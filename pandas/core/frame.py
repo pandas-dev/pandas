@@ -15,6 +15,7 @@ from collections import abc
 import datetime
 from io import StringIO
 import itertools
+import mmap
 from textwrap import dedent
 from typing import (
     IO,
@@ -131,7 +132,13 @@ from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import extract_array
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.indexes import base as ibase
-from pandas.core.indexes.api import Index, ensure_index, ensure_index_from_sequences
+from pandas.core.indexes.api import (
+    DatetimeIndex,
+    Index,
+    PeriodIndex,
+    ensure_index,
+    ensure_index_from_sequences,
+)
 from pandas.core.indexes.multi import MultiIndex, maybe_droplevels
 from pandas.core.indexing import check_bool_indexer, convert_to_index_sliceable
 from pandas.core.internals import BlockManager
@@ -589,7 +596,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        ndarray.shape
+        ndarray.shape : Tuple of array dimensions.
 
         Examples
         --------
@@ -2280,10 +2287,9 @@ class DataFrame(NDFrame, OpsMixin):
         if buf is None:
             return result
         ioargs = get_filepath_or_buffer(buf, mode=mode, storage_options=storage_options)
-        assert not isinstance(ioargs.filepath_or_buffer, str)
+        assert not isinstance(ioargs.filepath_or_buffer, (str, mmap.mmap))
         ioargs.filepath_or_buffer.writelines(result)
-        if ioargs.should_close:
-            ioargs.filepath_or_buffer.close()
+        ioargs.close()
         return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
@@ -2921,7 +2927,9 @@ class DataFrame(NDFrame, OpsMixin):
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
             if isinstance(indexer, np.ndarray):
-                indexer = lib.maybe_indices_to_slice(indexer, len(self))
+                indexer = lib.maybe_indices_to_slice(
+                    indexer.astype(np.intp, copy=False), len(self)
+                )
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
@@ -5561,8 +5569,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts()
         num_legs  num_wings
         4         0            2
-        6         0            1
         2         2            1
+        6         0            1
         dtype: int64
 
         >>> df.value_counts(sort=False)
@@ -5582,8 +5590,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.value_counts(normalize=True)
         num_legs  num_wings
         4         0            0.50
-        6         0            0.25
         2         2            0.25
+        6         0            0.25
         dtype: float64
         """
         if subset is None:
@@ -9251,6 +9259,9 @@ NaN 12.3   33.0
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
+        if not isinstance(old_ax, PeriodIndex):
+            raise TypeError(f"unsupported Type {type(old_ax).__name__}")
+
         new_ax = old_ax.to_timestamp(freq=freq, how=how)
 
         setattr(new_obj, axis_name, new_ax)
@@ -9280,6 +9291,9 @@ NaN 12.3   33.0
 
         axis_name = self._get_axis_name(axis)
         old_ax = getattr(self, axis_name)
+        if not isinstance(old_ax, DatetimeIndex):
+            raise TypeError(f"unsupported Type {type(old_ax).__name__}")
+
         new_ax = old_ax.to_period(freq=freq)
 
         setattr(new_obj, axis_name, new_ax)

@@ -121,7 +121,7 @@ def test_nunique_with_timegrouper():
         }
     ).set_index("time")
     result = test.groupby(pd.Grouper(freq="h"))["data"].nunique()
-    expected = test.groupby(pd.Grouper(freq="h"))["data"].apply(pd.Series.nunique)
+    expected = test.groupby(pd.Grouper(freq="h"))["data"].apply(Series.nunique)
     tm.assert_series_equal(result, expected)
 
 

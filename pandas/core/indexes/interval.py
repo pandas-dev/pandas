@@ -831,7 +831,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         #  positional in this case
         return self.dtype.subtype.kind in ["m", "M"]
 
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
     @Appender(Index._convert_list_indexer.__doc__)
@@ -872,7 +872,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
             other = self._na_value
         values = np.where(cond, self._values, other)
         result = IntervalArray(values)
-        return self._shallow_copy(result)
+        return type(self)._simple_new(result, name=self.name)
 
     def delete(self, loc):
         """
@@ -907,13 +907,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
         result = IntervalArray.from_arrays(new_left, new_right, closed=self.closed)
-        return self._shallow_copy(result)
-
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        result = self._data.take(
-            indices, axis=axis, allow_fill=allow_fill, fill_value=fill_value, **kwargs
-        )
         return self._shallow_copy(result)
 
     # --------------------------------------------------------------------
@@ -976,18 +969,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     def argsort(self, *args, **kwargs) -> np.ndarray:
         return np.lexsort((self.right, self.left))
-
-    def equals(self, other: object) -> bool:
-        """
-        Determines if two IntervalIndex objects contain the same elements.
-        """
-        if self.is_(other):
-            return True
-
-        if not isinstance(other, IntervalIndex):
-            return False
-
-        return self._data.equals(other._data)
 
     # --------------------------------------------------------------------
     # Set Operations
@@ -1092,19 +1073,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         return False
 
     # TODO: arithmetic operations
-
-    # GH#30817 until IntervalArray implements inequalities, get them from Index
-    def __lt__(self, other):
-        return Index.__lt__(self, other)
-
-    def __le__(self, other):
-        return Index.__le__(self, other)
-
-    def __gt__(self, other):
-        return Index.__gt__(self, other)
-
-    def __ge__(self, other):
-        return Index.__ge__(self, other)
 
 
 def _is_valid_endpoint(endpoint) -> bool:
@@ -1290,10 +1258,8 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            range_func = date_range
+            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
         else:
-            range_func = timedelta_range
-
-        breaks = range_func(start=start, end=end, periods=periods, freq=freq)
+            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

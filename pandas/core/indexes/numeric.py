@@ -1,3 +1,4 @@
+import operator
 from typing import Any
 
 import numpy as np
@@ -96,7 +97,7 @@ class NumericIndex(Index):
     # Indexing Methods
 
     @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         assert kind in ["loc", "getitem", None]
 
         # we will try to coerce to integers
@@ -119,6 +120,8 @@ class NumericIndex(Index):
         if is_bool(value) or is_bool_dtype(value):
             # force conversion to object
             # so we don't lose the bools
+            raise TypeError
+        if isinstance(value, str):
             raise TypeError
 
         return value
@@ -184,6 +187,18 @@ class NumericIndex(Index):
             return first._union(second, sort)
         else:
             return super()._union(other, sort)
+
+    def _cmp_method(self, other, op):
+        if self.is_(other):  # fastpath
+            if op in {operator.eq, operator.le, operator.ge}:
+                arr = np.ones(len(self), dtype=bool)
+                if self._can_hold_na:
+                    arr[self.isna()] = False
+                return arr
+            elif op in {operator.ne, operator.lt, operator.gt}:
+                return np.zeros(len(self), dtype=bool)
+
+        return super()._cmp_method(other, op)
 
 
 _num_index_shared_docs[
