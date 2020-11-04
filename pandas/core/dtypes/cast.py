@@ -134,7 +134,7 @@ def is_nested_object(obj) -> bool:
     return False
 
 
-def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None):
+def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scalar:
     """
     Cast scalar to Timestamp or Timedelta if scalar is datetime-like
     and dtype is not object.
