@@ -135,6 +135,20 @@ def is_nested_object(obj) -> bool:
 
 
 def maybe_box_datetimelike(value, dtype=None):
+    """
+    Cast scalar to Timestamp or Timedelta if scalar is datetime-like
+    and dtype is not object.
+
+    Parameters
+    ----------
+    value : scalar
+    dtype : Dtype, optional
+
+    Returns
+    -------
+    scalar
+    """
+
     # turn a datetime like into a Timestamp/timedelta as needed
     if dtype == object:
         # If we dont have datetime64/timedelta64 dtype, we dont want to
