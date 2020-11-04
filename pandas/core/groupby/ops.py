@@ -131,9 +131,16 @@ class BaseGrouper:
         splitter = self._get_splitter(data, axis=axis)
         keys = self._get_group_keys()
         for key, (i, group) in zip(keys, splitter):
-            yield key, group
+            yield key, group.__finalize__(data, method="groupby")
 
     def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> "DataSplitter":
+        """
+        Returns
+        -------
+        Generator yielding subsetted objects
+
+        __finalize__ has not been called for the the subsetted objects returned.
+        """
         comp_ids, _, ngroups = self.group_info
         return get_splitter(data, comp_ids, ngroups, axis=axis)
 
@@ -955,7 +962,8 @@ class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
-        return type(sdata)(mgr, name=sdata.name, fastpath=True)
+        # __finalize__ not called here, must be applied by caller if applicable
+        return sdata._constructor(mgr, name=sdata.name, fastpath=True)
 
 
 class FrameSplitter(DataSplitter):
@@ -971,7 +979,8 @@ class FrameSplitter(DataSplitter):
         # else:
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
-        return type(sdata)(mgr)
+        # __finalize__ not called here, must be applied by caller if applicable
+        return sdata._constructor(mgr)
 
 
 def get_splitter(
