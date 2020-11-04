@@ -645,7 +645,7 @@ def get_handle(
             if f.mode == "r":
                 handles.append(f)
                 zip_names = f.namelist()
-          
+
                 # Ignore hidden folders added by OS X/macOS on .zip creation
                 zip_names = [
                     _
