@@ -301,15 +301,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # DatetimeLike Interface
 
-    @classmethod
-    def _rebox_native(cls, value: int) -> np.timedelta64:
-        return np.int64(value).view("m8[ns]")
-
-    def _unbox_scalar(self, value, setitem: bool = False):
+    def _unbox_scalar(self, value, setitem: bool = False) -> np.timedelta64:
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value, setitem=setitem)
-        return value.value
+        return np.timedelta64(value.value, "ns")
 
     def _scalar_from_string(self, value):
         return Timedelta(value)
@@ -352,7 +348,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def __iter__(self):
         if self.ndim > 1:
-            return (self[n] for n in range(len(self)))
+            for i in range(len(self)):
+                yield self[i]
         else:
             # convert in chunks of 10k for efficiency
             data = self.asi8
@@ -370,6 +367,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def sum(
         self,
+        *,
         axis=None,
         dtype=None,
         out=None,
