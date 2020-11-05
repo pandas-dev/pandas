@@ -76,6 +76,20 @@ class TestAstypeAPI:
 
 
 class TestAstype:
+    @pytest.mark.parametrize("dtype", [str, np.str_])
+    @pytest.mark.parametrize(
+        "series",
+        [
+            Series([string.digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
+            Series([string.digits * 10, tm.rands(63), tm.rands(64), np.nan, 1.0]),
+        ],
+    )
+    def test_astype_str_map(self, dtype, series):
+        # see GH#4405
+        result = series.astype(dtype)
+        expected = series.map(str)
+        tm.assert_series_equal(result, expected)
+
     def test_astype_float_to_period(self):
         result = Series([np.nan]).astype("period[D]")
         expected = Series([NaT], dtype="period[D]")
