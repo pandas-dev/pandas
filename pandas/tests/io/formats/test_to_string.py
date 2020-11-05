@@ -172,7 +172,7 @@ def test_to_string_with_formatters():
         [lambda x: f"[1] {x}", lambda x: f"[2] {x}", lambda x: f"[3] {x}"],
     ],
 )
-def test_to_string_with_truncated_formatters(self, formatters):
+def test_to_string_with_truncated_formatters(formatters):
     df = DataFrame(
         {
             "int": [1, 2, 3],
