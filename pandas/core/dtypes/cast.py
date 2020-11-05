@@ -1000,7 +1000,10 @@ def astype_nansafe(
     """
     # dispatch on extension dtype if needed
     if is_extension_array_dtype(dtype):
-        return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
+        cls = dtype.construct_array_type()
+        if lib.infer_dtype(arr) == "string":
+            return cls._from_sequence_of_strings(arr, dtype=dtype, copy=copy)
+        return cls._from_sequence(arr, dtype=dtype, copy=copy)
 
     if not isinstance(dtype, np.dtype):
         dtype = pandas_dtype(dtype)

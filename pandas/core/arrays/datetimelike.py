@@ -1525,6 +1525,14 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
 
+    @classmethod
+    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+        # Note: for now at least, caller is responsible for checking that
+        #  strings are being passed.
+        return cls._from_sequence_not_strict(strings, dtype=dtype, copy=copy)
+
+    # --------------------------------------------------------------
+
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
         if is_datetime64tz_dtype(self.dtype):
