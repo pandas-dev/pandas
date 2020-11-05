@@ -40,6 +40,11 @@ matrix:
       env:
         - JOB="3.9-dev" PATTERN="(not slow and not network and not clipboard)"
 
+    - dist: focal
+      python: pypy3
+      env:
+        - JOB="pypy3" ENV_FILE="ci/deps/travis-pypy.yaml" PATTERN="(not slow and not network and not clipboard)" NOCACHE="true"
+
     - env:
       - JOB="3.8, slow" ENV_FILE="ci/deps/travis-38-slow.yaml" PATTERN="slow" SQL="1"
       services:
@@ -71,6 +76,10 @@ matrix:
       env:
         - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
 
+    - dist: focal
+      python: pypy3
+      env:
+        - JOB="pypy3" ENV_FILE="ci/deps/travis-pypy.yaml" PATTERN="(not slow and not network and not clipboard)" NOCACHE="true"
 
 before_install:
   - echo "before_install"

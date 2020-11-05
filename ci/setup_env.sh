@@ -42,7 +42,9 @@ else
 fi
 
 if [ "${TRAVIS_CPU_ARCH}" == "arm64" ]; then
-  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.5-1/Miniforge3-4.8.5-1-Linux-aarch64.sh"
+  CONDA_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-aarch64.sh"
+elif [ "${JOB}" == "pypy3" ]; then
+  CONDA_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge-pypy3-Linux-x86_64.sh"
 else
   CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh"
 fi
@@ -61,9 +63,15 @@ which conda
 echo
 echo "update conda"
 conda config --set ssl_verify false
-conda config --set quiet true --set always_yes true --set changeps1 false
-conda install pip conda  # create conda to create a historical artifact for pip & setuptools
-conda update -n base conda
+conda config --set quiet true --set always_yes true --set changeps1 false --set channel_priority strict
+if [ "$JOB" == "pypy3" ]; then
+    conda create -n pypy3 pypy
+    CONDA_ENV='pypy3'
+else
+    CONDA_ENV='base'
+fi
+conda install -n $CONDA_ENV pip conda  # create conda to create a historical artifact for pip & setuptools
+conda update -n $CONDA_ENV conda
 
 echo "conda info -a"
 conda info -a
