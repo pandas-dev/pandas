@@ -8,9 +8,21 @@ import numpy as np
 import pytest
 
 from pandas.compat.numpy import is_numpy_dev
+import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, to_datetime
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    SparseDtype,
+    Timedelta,
+    Timestamp,
+    date_range,
+    timedelta_range,
+    to_datetime,
+)
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
@@ -1015,6 +1027,63 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected.index = expected.index._with_freq(None)
         tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
+    @td.skip_if_no_scipy
+    def test_loc_getitem_range_from_spmatrix(self, spmatrix_t, dtype):
+        import scipy.sparse
+
+        spmatrix_t = getattr(scipy.sparse, spmatrix_t)
+
+        # The bug is triggered by a sparse matrix with purely sparse columns.  So the
+        # recipe below generates a rectangular matrix of dimension (5, 7) where all the
+        # diagonal cells are ones, meaning the last two columns are purely sparse.
+        rows, cols = 5, 7
+        spmatrix = spmatrix_t(np.eye(rows, cols, dtype=dtype), dtype=dtype)
+        df = pd.DataFrame.sparse.from_spmatrix(spmatrix)
+
+        # regression test for GH#34526
+        itr_idx = range(2, rows)
+        result = df.loc[itr_idx].values
+        expected = spmatrix.toarray()[itr_idx]
+        tm.assert_numpy_array_equal(result, expected)
+
+        # regression test for GH#34540
+        result = df.loc[itr_idx].dtypes.values
+        expected = np.full(cols, SparseDtype(dtype, fill_value=0))
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_loc_getitem_listlike_all_retains_sparse(self):
+        df = DataFrame({"A": pd.array([0, 0], dtype=SparseDtype("int64"))})
+        result = df.loc[[0, 1]]
+        tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("key_type", [iter, np.array, Series, Index])
+    def test_loc_getitem_iterable(self, float_frame, key_type):
+        idx = key_type(["A", "B", "C"])
+        result = float_frame.loc[:, idx]
+        expected = float_frame.loc[:, ["A", "B", "C"]]
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_getitem_timedelta_0seconds(self):
+        # GH#10583
+        df = DataFrame(np.random.normal(size=(10, 4)))
+        df.index = timedelta_range(start="0s", periods=10, freq="s")
+        expected = df.loc[Timedelta("0s") :, :]
+        result = df.loc["0s":, :]
+        tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize(
+        "val,expected", [(2 ** 63 - 1, Series([1])), (2 ** 63, Series([2]))]
+    )
+    def test_loc_getitem_uint64_scalar(self, val, expected):
+        # see GH#19399
+        df = DataFrame([1, 2], index=[2 ** 63 - 1, 2 ** 63])
+        result = df.loc[val]
+
+        expected.name = val
+        tm.assert_series_equal(result, expected)
+
 
 class TestLocWithMultiIndex:
     @pytest.mark.parametrize(
@@ -1387,6 +1456,19 @@ class TestLabelSlicing:
         expected = ser.iloc[:-1]
 
         tm.assert_series_equal(result, expected)
+
+    def test_loc_getitem_slice_floats_inexact(self):
+        index = [52195.504153, 52196.303147, 52198.369883]
+        df = DataFrame(np.random.rand(3, 2), index=index)
+
+        s1 = df.loc[52195.1:52196.5]
+        assert len(s1) == 2
+
+        s1 = df.loc[52195.1:52196.6]
+        assert len(s1) == 2
+
+        s1 = df.loc[52195.1:52198.9]
+        assert len(s1) == 3
 
 
 def test_series_loc_getitem_label_list_missing_values():
