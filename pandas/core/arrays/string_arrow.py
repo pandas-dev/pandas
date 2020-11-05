@@ -558,7 +558,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
         if len(self.data) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")
-        if indices_array.max() >= len(self.data):
+        if indices_array.size > 0 and indices_array.max() >= len(self.data):
             raise IndexError("out of bounds value in 'indices'.")
 
         if allow_fill:
