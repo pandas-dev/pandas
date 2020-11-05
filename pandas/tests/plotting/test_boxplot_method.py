@@ -217,6 +217,9 @@ class TestDataFramePlots(TestPlotBase):
 
         assert result[expected][0].get_color() == "C1"
 
+    def test_plot_points(self):
+        _check_plot_works(self.hist_df.boxplot, plot_points=True)
+
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
