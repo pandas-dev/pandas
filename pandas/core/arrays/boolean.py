@@ -170,12 +170,13 @@ def coerce_to_array(
         values[~mask_values] = values_object[~mask_values].astype(bool)
 
         # if the values were integer-like, validate it were actually 0/1's
-        if inferred_dtype in integer_like:
-            if not np.all(
+        if (inferred_dtype in integer_like) and not (
+            np.all(
                 values[~mask_values].astype(float)
                 == values_object[~mask_values].astype(float)
-            ):
-                raise TypeError("Need to pass bool-like values")
+            )
+        ):
+            raise TypeError("Need to pass bool-like values")
 
     if mask is None and mask_values is None:
         mask = np.zeros(len(values), dtype=bool)
@@ -193,9 +194,9 @@ def coerce_to_array(
             if mask_values is not None:
                 mask = mask | mask_values
 
-    if not values.ndim == 1:
+    if values.ndim != 1:
         raise ValueError("values must be a 1D list-like")
-    if not mask.ndim == 1:
+    if mask.ndim != 1:
         raise ValueError("mask must be a 1D list-like")
 
     return values, mask
@@ -395,9 +396,8 @@ class BooleanArray(BaseMaskedArray):
                 self._data.astype(dtype.numpy_dtype), self._mask.copy(), copy=False
             )
         # for integer, error if there are missing values
-        if is_integer_dtype(dtype):
-            if self._hasna:
-                raise ValueError("cannot convert NA to integer")
+        if is_integer_dtype(dtype) and self._hasna:
+            raise ValueError("cannot convert NA to integer")
         # for float dtype, ensure we use np.nan before casting (numpy cannot
         # deal with pd.NA)
         na_value = self._na_value
@@ -576,7 +576,7 @@ class BooleanArray(BaseMaskedArray):
         elif isinstance(other, np.bool_):
             other = other.item()
 
-        if other_is_scalar and not (other is libmissing.NA or lib.is_bool(other)):
+        if other_is_scalar and other is not libmissing.NA and not lib.is_bool(other):
             raise TypeError(
                 "'other' should be pandas.NA or a bool. "
                 f"Got {type(other).__name__} instead."
@@ -664,6 +664,11 @@ class BooleanArray(BaseMaskedArray):
                 dtype = "bool"
             result = np.zeros(len(self._data), dtype=dtype)
         else:
+            if op_name in {"pow", "rpow"} and isinstance(other, np.bool_):
+                # Avoid DeprecationWarning: In future, it will be an error
+                #  for 'np.bool_' scalars to be interpreted as an index
+                other = bool(other)
+
             with np.errstate(all="ignore"):
                 result = op(self._data, other)
 
