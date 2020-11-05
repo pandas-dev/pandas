@@ -159,6 +159,16 @@ def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scal
     return value
 
 
+def maybe_box_native(value):
+    if is_datetime_or_timedelta_dtype(value):
+        value = maybe_box_datetimelike(value)
+    elif is_float_dtype(value):
+        value = float(value)
+    elif is_integer_dtype(value):
+        value = int(value)
+    return value
+
+
 def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
