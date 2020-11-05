@@ -1194,7 +1194,7 @@ def test_stack_unstack_empty_frame(dropna, fill_value):
 
 def test_unstack_single_index_series():
     # GH 36113
-    msg = "index must be a MultiIndex to unstack"
+    msg = r"index must be a MultiIndex to unstack.*"
     with pytest.raises(ValueError, match=msg):
         Series().unstack()
 
