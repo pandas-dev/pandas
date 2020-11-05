@@ -301,7 +301,7 @@ def union_categoricals(
         categories = first.categories
         ordered = first.ordered
 
-        all_codes = [first._validate_listlike(x) for x in to_union]
+        all_codes = [first.encode_with_my_categories(x)._codes for x in to_union]
         new_codes = np.concatenate(all_codes)
 
         if sort_categories and not ignore_order and ordered:
