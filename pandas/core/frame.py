@@ -84,6 +84,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
+    maybe_box_datetimelike,
     maybe_cast_to_datetime,
     maybe_casted_values,
     maybe_convert_platform,
@@ -1538,7 +1539,7 @@ class DataFrame(NDFrame, OpsMixin):
                     (
                         "data",
                         [
-                            list(map(com.maybe_box_datetimelike, t))
+                            list(map(maybe_box_datetimelike, t))
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
@@ -1546,7 +1547,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "series":
-            return into_c((k, com.maybe_box_datetimelike(v)) for k, v in self.items())
+            return into_c((k, maybe_box_datetimelike(v)) for k, v in self.items())
 
         elif orient == "records":
             columns = self.columns.tolist()
@@ -1555,7 +1556,7 @@ class DataFrame(NDFrame, OpsMixin):
                 for row in self.itertuples(index=False, name=None)
             )
             return [
-                into_c((k, com.maybe_box_datetimelike(v)) for k, v in row.items())
+                into_c((k, maybe_box_datetimelike(v)) for k, v in row.items())
                 for row in rows
             ]
 
@@ -6448,7 +6449,7 @@ Keep all original rows and columns and also all original values
         See Also
         --------
         dict.update : Similar method for dictionaries.
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge : For column(s)-on-column(s) operations.
 
         Examples
         --------
@@ -7984,7 +7985,7 @@ NaN 12.3   33.0
 
         See Also
         --------
-        DataFrame.merge : For column(s)-on-columns(s) operations.
+        DataFrame.merge : For column(s)-on-column(s) operations.
 
         Notes
         -----
