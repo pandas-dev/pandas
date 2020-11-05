@@ -23,6 +23,7 @@ from pandas.api.types import (
 )
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import check_array_indexer
+from pandas.core.missing import get_fill_func
 
 try:
     import pyarrow as pa
@@ -341,14 +342,14 @@ class ArrowStringArray(ExtensionArray):
         if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError(
-                    "Length of 'value' does not match. Got ({}) "
-                    " expected {}".format(len(value), len(self))
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f"expected {len(self)}"
                 )
             value = value[mask]
 
         if mask.any():
             if method is not None:
-                func = libmissing.pad_1d if method == "pad" else libmissing.backfill_1d
+                func = get_fill_func(method)
                 new_values = func(self.astype(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values)
             else:
