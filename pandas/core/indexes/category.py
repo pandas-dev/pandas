@@ -29,7 +29,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
 from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_names
 import pandas.core.missing as missing
-from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
@@ -256,7 +255,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         """
         if is_categorical_dtype(other):
             other = extract_array(other)
-            if not other.is_dtype_equal(self):
+            if not other._categories_match_up_to_permutation(self):
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )
@@ -669,10 +668,3 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
-
-    def _wrap_joined_index(
-        self, joined: np.ndarray, other: "CategoricalIndex"
-    ) -> "CategoricalIndex":
-        name = get_op_result_name(self, other)
-        cat = self._data._from_backing_data(joined)
-        return type(self)._simple_new(cat, name=name)

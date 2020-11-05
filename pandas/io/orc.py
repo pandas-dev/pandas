@@ -53,4 +53,5 @@ def read_orc(
     ioargs = get_filepath_or_buffer(path)
     orc_file = pyarrow.orc.ORCFile(ioargs.filepath_or_buffer)
     result = orc_file.read(columns=columns, **kwargs).to_pandas()
+    ioargs.close()
     return result

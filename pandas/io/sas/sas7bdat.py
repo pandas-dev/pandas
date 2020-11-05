@@ -16,7 +16,7 @@ Reference for binary data compression:
 from collections import abc
 from datetime import datetime, timedelta
 import struct
-from typing import IO, Any, Union
+from typing import IO, Any, Union, cast
 
 import numpy as np
 
@@ -131,8 +131,6 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         bytes.
     """
 
-    _path_or_buf: IO[Any]
-
     def __init__(
         self,
         path_or_buf,
@@ -170,14 +168,12 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        path_or_buf = get_filepath_or_buffer(path_or_buf).filepath_or_buffer
-        if isinstance(path_or_buf, str):
-            buf = open(path_or_buf, "rb")
-            self.handle = buf
-        else:
-            buf = path_or_buf
+        self.ioargs = get_filepath_or_buffer(path_or_buf)
+        if isinstance(self.ioargs.filepath_or_buffer, str):
+            self.ioargs.filepath_or_buffer = open(path_or_buf, "rb")
+            self.ioargs.should_close = True
 
-        self._path_or_buf: IO[Any] = buf
+        self._path_or_buf = cast(IO[Any], self.ioargs.filepath_or_buffer)
 
         try:
             self._get_properties()
@@ -202,10 +198,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         return np.asarray(self._column_types, dtype=np.dtype("S1"))
 
     def close(self):
-        try:
-            self.handle.close()
-        except AttributeError:
-            pass
+        self.ioargs.close()
 
     def _get_properties(self):
 
