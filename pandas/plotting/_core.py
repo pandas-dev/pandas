@@ -265,6 +265,7 @@ figsize : A tuple (width, height) in inches
 layout : tuple (rows, columns), optional
     For example, (3, 5) will display the subplots
     using 3 columns and 5 rows, starting from the top-left.
+plot_points : Plot data points as scatter plot on top of box plot.
 return_type : {'axes', 'dict', 'both'} or None, default 'axes'
     The kind of object to return. The default is ``axes``.
 
@@ -456,6 +457,7 @@ def boxplot(
     figsize=None,
     layout=None,
     return_type=None,
+    plot_points=False,
     **kwargs,
 ):
     plot_backend = _get_plot_backend("matplotlib")
@@ -470,6 +472,7 @@ def boxplot(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
+        plot_points=plot_points,
         **kwargs,
     )
 
@@ -488,6 +491,7 @@ def boxplot_frame(
     layout=None,
     return_type=None,
     backend=None,
+    plot_points=False,
     **kwargs,
 ):
     plot_backend = _get_plot_backend(backend)
@@ -502,6 +506,7 @@ def boxplot_frame(
         figsize=figsize,
         layout=layout,
         return_type=return_type,
+        plot_points=plot_points,
         **kwargs,
     )
 

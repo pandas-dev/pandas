@@ -242,6 +242,7 @@ def boxplot(
     figsize=None,
     layout=None,
     return_type=None,
+    plot_points=False,
     **kwds,
 ):
 
@@ -296,10 +297,16 @@ def boxplot(
         if not kwds.get("capprops"):
             setp(bp["caps"], color=colors[3], alpha=1)
 
-    def plot_group(keys, values, ax: "Axes"):
+    def plot_group(keys, values, ax: "Axes", plot_points: bool=False):
         keys = [pprint_thing(x) for x in keys]
         values = [np.asarray(remove_na_arraylike(v), dtype=object) for v in values]
         bp = ax.boxplot(values, **kwds)
+
+        if plot_points:
+            # if plot_points
+            for x, ys in enumerate(values):
+                ax.plot(x + np.random.normal(size=len(ys))*.04 + 1, ys, 'ro', alpha=.5)
+
         if fontsize is not None:
             ax.tick_params(axis="both", labelsize=fontsize)
         if kwds.get("vert", 1):
@@ -360,7 +367,7 @@ def boxplot(
         else:
             data = data[columns]
 
-        result = plot_group(columns, data.values.T, ax)
+        result = plot_group(columns, data.values.T, ax, plot_points)
         ax.grid(grid)
 
     return result
