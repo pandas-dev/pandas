@@ -426,13 +426,12 @@ class TestTimestampUnaryOps:
             assert dt.timestamp() == ts.timestamp()
 
 
-def test_replace_preserves_fold():
+@pytest.mark.parametrize("fold", [0, 1])
+def test_replace_preserves_fold(fold):
     # GH 37610. Check that replace preserves Timestamp fold property
     tz = gettz("Europe/Moscow")
 
-    dt = datetime(year=2009, month=10, day=25, hour=2, minute=30, fold=1, tzinfo=tz)
-    ts = Timestamp(year=2009, month=10, day=25, hour=2, minute=30, fold=1, tz=tz)
-    result = ts.replace(tzinfo=tz).fold
-    expected = dt.replace(tzinfo=tz).fold
+    ts = Timestamp(year=2009, month=10, day=25, hour=2, minute=30, fold=fold, tz=tz)
+    ts_replaced = ts.replace(tzinfo=tz)
 
-    assert result == expected
+    assert ts_replaced.fold == fold
