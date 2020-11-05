@@ -1040,7 +1040,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # diagonal cells are ones, meaning the last two columns are purely sparse.
         rows, cols = 5, 7
         spmatrix = spmatrix_t(np.eye(rows, cols, dtype=dtype), dtype=dtype)
-        df = pd.DataFrame.sparse.from_spmatrix(spmatrix)
+        df = DataFrame.sparse.from_spmatrix(spmatrix)
 
         # regression test for GH#34526
         itr_idx = range(2, rows)
