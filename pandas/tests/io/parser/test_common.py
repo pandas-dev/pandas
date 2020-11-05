@@ -2275,40 +2275,38 @@ def test_read_csv_file_handle(all_parsers, io_class, encoding):
     assert not handle.closed
 
 
-def test_memory_map_compression_error(c_parser_only):
+def test_memory_map_file_handle_silent_fallback(all_parsers, compression):
     """
-    c-parsers do not support memory_map=True with compression.
+    Do not fail for buffers with memory_map=True (cannot memory map BytesIO).
 
-    GH 36997
-    """
-    parser = c_parser_only
-    df = DataFrame({"a": [1], "b": [2]})
-    msg = (
-        "read_csv does not support compression with memory_map=True. "
-        + "Please use memory_map=False instead."
-    )
-
-    with tm.ensure_clean() as path:
-        df.to_csv(path, compression="gzip", index=False)
-
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(path, memory_map=True, compression="gzip")
-
-
-def test_memory_map_file_handle(all_parsers):
-    """
-    Support some buffers with memory_map=True.
-
-    GH 36997
+    GH 37621
     """
     parser = all_parsers
     expected = DataFrame({"a": [1], "b": [2]})
 
-    handle = StringIO()
-    expected.to_csv(handle, index=False)
+    handle = BytesIO()
+    expected.to_csv(handle, index=False, compression=compression, mode="wb")
     handle.seek(0)
 
     tm.assert_frame_equal(
-        parser.read_csv(handle, memory_map=True),
+        parser.read_csv(handle, memory_map=True, compression=compression),
         expected,
     )
+
+
+def test_memory_map_compression(all_parsers, compression):
+    """
+    Support memory map for compressed files.
+
+    GH 37621
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    with tm.ensure_clean() as path:
+        expected.to_csv(path, index=False, compression=compression)
+
+        tm.assert_frame_equal(
+            parser.read_csv(path, memory_map=True, compression=compression),
+            expected,
+        )

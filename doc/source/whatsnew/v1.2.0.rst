@@ -230,6 +230,7 @@ Other enhancements
 - :class:`DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`37436`)
 - :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
 - :meth:`testing.assert_index_equal` now has a ``check_order`` parameter that allows indexes to be checked in an order-insensitive manner (:issue:`37478`)
+- :func:`read_csv` supports memory-mapping for compressed files (:issue:`37621`)
 - :func:`pandas.load_pickle` can now load from ``.zip`` files created by OS X/macOS that contain ``__MACOSX/`` or ``.DS_STORE`` hidden folders/files (:issue:`37098`).
 
 .. _whatsnew_120.api_breaking.python:
@@ -436,7 +437,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 
--
+- Bug in :meth:`DataFrame.to_dict` with ``orient='records'`` now returns python native datetime objects for datetimelike columns (:issue:`21256`)
 -
 
 Strings
@@ -548,6 +549,7 @@ Reshaping
 - Bug in :func:`join` returned a non deterministic level-order for the resulting :class:`MultiIndex` (:issue:`36910`)
 - Bug in :meth:`DataFrame.combine_first()` caused wrong alignment with dtype ``string`` and one level of ``MultiIndex`` containing only ``NA`` (:issue:`37591`)
 - Fixed regression in :func:`merge` on merging DatetimeIndex with empty DataFrame (:issue:`36895`)
+- Bug in :meth:`DataFrame.apply` not setting index of return value when ``func`` return type is ``dict`` (:issue:`37544`)
 
 Sparse
 ^^^^^^
