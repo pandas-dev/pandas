@@ -12,8 +12,9 @@ from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
+from pandas.core.dtypes.missing import isna
 
-import pandas as pd
 from pandas.api.types import (
     is_array_like,
     is_bool_dtype,
@@ -402,6 +403,8 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         return type(self)(self.data)
 
     def _cmp_method(self, other, op):
+        from pandas.arrays import BooleanArray
+
         ops = {
             "eq": pc.equal,
             "ne": pc.not_equal,
@@ -411,7 +414,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             "ge": pc.greater_equal,
         }
         pc_func = ops[op.__name__]
-        if isinstance(other, (pd.Series, pd.DataFrame, pd.Index)):
+        if isinstance(other, (ABCSeries, ABCDataFrame, ABCIndex)):
             return NotImplemented
         if isinstance(other, ArrowStringArray):
             result = pc_func(self.data, other.data)
@@ -428,10 +431,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             }
             rop = rops[op.__name__]
             result = rop(other, self)
-            return pd.array(result, dtype="boolean")
+            return BooleanArray._from_sequence(result)
 
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
-        return pd.array(result.to_pandas().values)
+        return BooleanArray._from_sequence(result.to_pandas().values)
 
     def __setitem__(self, key: Union[int, np.ndarray], value: Any) -> None:
         """Set one or more values inplace.
@@ -457,9 +460,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         key = check_array_indexer(self, key)
 
         if is_integer(key):
-            if not pd.api.types.is_scalar(value):
+            if not is_scalar(value):
                 raise ValueError("Must pass scalars with scalar indexer")
-            elif pd.isna(value):
+            elif isna(value):
                 value = None
             elif not isinstance(value, str):
                 raise ValueError("Scalar must be NA or str")
@@ -486,7 +489,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                 # TODO(ARROW-9431): Directly support setitem(integers)
                 key_array = np.asanyarray(key)
 
-            if pd.api.types.is_scalar(value):
+            if is_scalar(value):
                 value = np.broadcast_to(value, len(key_array))
             else:
                 value = np.asarray(value)
@@ -569,7 +572,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                 # TODO(ARROW-9433): Treat negative indices as NULL
                 indices_array = pa.array(indices_array, mask=indices_array < 0)
                 result = self.data.take(indices_array)
-                if pd.isna(fill_value):
+                if isna(fill_value):
                     return type(self)(result)
                 return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
             else:
@@ -600,14 +603,16 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         --------
         Series.value_counts
         """
+        from pandas import Index, Series
+
         vc = self.data.value_counts()
 
         # Index cannot hold ExtensionArrays yet
-        index = pd.Index(type(self)(vc.field(0)).astype(object))
+        index = Index(type(self)(vc.field(0)).astype(object))
         # No missings, so we can adhere to the interface and return a numpy array.
         counts = np.array(vc.field(1))
 
         if dropna and self.data.null_count > 0:
             raise NotImplementedError("yo")
 
-        return pd.Series(counts, index=index)
+        return Series(counts, index=index)
