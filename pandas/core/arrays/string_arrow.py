@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import abc
 from distutils.version import LooseVersion
+import operator
 from typing import Any, Sequence, Type, Union
 
 import numpy as np
@@ -406,15 +407,25 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
             "le": pc.less_equal,
             "ge": pc.greater_equal,
         }
-        op = ops[op.__name__]
+        pc_func = ops[op.__name__]
         if isinstance(other, (pd.Series, pd.DataFrame, pd.Index)):
             return NotImplemented
         if isinstance(other, ArrowStringArray):
-            result = op(self.data, other.data)
+            result = pc_func(self.data, other.data)
         elif is_scalar(other):
-            result = op(self.data, pa.scalar(other))
+            result = pc_func(self.data, pa.scalar(other))
         else:
-            raise NotImplementedError("Neither scalar nor ArrowStringArray")
+            rops = {
+                "eq": operator.eq,
+                "ne": operator.ne,
+                "lt": operator.gt,
+                "gt": operator.lt,
+                "le": operator.ge,
+                "ge": operator.le,
+            }
+            rop = rops[op.__name__]
+            result = rop(other, self)
+            return pd.array(result, dtype="boolean")
 
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
         return pd.array(result.to_pandas().values)
