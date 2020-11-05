@@ -1190,3 +1190,13 @@ def test_tz_localize_invalidates_freq():
     dti2 = dti[:1]
     result = dti2.tz_localize("US/Eastern")
     assert result.freq == "H"
+
+
+def test_replace_preserves_fold():
+    # GH 37610. Check that replace preserves Timestamp fold property
+    tz = gettz("Europe/Moscow")
+
+    result = Timestamp(1256427000000000000, tz=tz, unit="ns").replace(tzinfo=tz).fold
+    expected = 1
+
+    assert result == expected
