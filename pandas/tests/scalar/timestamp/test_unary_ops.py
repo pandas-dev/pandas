@@ -430,7 +430,9 @@ def test_replace_preserves_fold():
     # GH 37610. Check that replace preserves Timestamp fold property
     tz = gettz("Europe/Moscow")
 
-    result = Timestamp(1256427000000000000, tz=tz, unit="ns").replace(tzinfo=tz).fold
-    expected = 1
+    dt = datetime(year=2009, month=10, day=25, hour=2, minute=30, fold=1, tzinfo=tz)
+    ts = Timestamp(year=2009, month=10, day=25, hour=2, minute=30, fold=1, tz=tz)
+    result = ts.replace(tzinfo=tz).fold
+    expected = dt.replace(tzinfo=tz).fold
 
     assert result == expected
