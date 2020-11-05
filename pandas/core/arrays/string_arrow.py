@@ -8,6 +8,7 @@ import numpy as np
 
 from pandas._libs import lib, missing as libmissing
 from pandas._typing import ArrayLike
+from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import register_extension_dtype
@@ -307,7 +308,8 @@ class ArrowStringArray(ExtensionArray):
             return scalar
 
     def fillna(self, value=None, method=None, limit=None):
-        """Fill NA/NaN values using the specified method.
+        """
+        Fill NA/NaN values using the specified method.
 
         Parameters
         ----------
@@ -331,9 +333,6 @@ class ArrowStringArray(ExtensionArray):
         -------
         filled : ExtensionArray with NA/NaN filled
         """
-        from pandas.api.types import is_array_like
-        from pandas.util._validators import validate_fillna_kwargs
-        import pandas.core.missing as pd_missing
 
         value, method = validate_fillna_kwargs(value, method)
 
@@ -349,15 +348,9 @@ class ArrowStringArray(ExtensionArray):
 
         if mask.any():
             if method is not None:
-                # pandas 1.2+ doesn't expose pad_1d anymore
-                if not hasattr(pd_missing, "pad_1d"):
-                    func = pd_missing.get_fill_func(method)
-                else:
-                    func = (
-                        pd_missing.pad_1d if method == "pad" else pd_missing.backfill_1d
-                    )
+                func = libmissing.pad_1d if method == "pad" else libmissing.backfill_1d
                 new_values = func(self.astype(object), limit=limit, mask=mask)
-                new_values = self._from_sequence(new_values, self._dtype.arrow_dtype)
+                new_values = self._from_sequence(new_values)
             else:
                 # fill with value
                 new_values = self.copy()
