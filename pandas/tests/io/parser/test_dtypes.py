@@ -577,7 +577,7 @@ def test_boolean_dtype(all_parsers):
     )
 
     result = parser.read_csv(StringIO(data), dtype="boolean")
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             "a": pd.array(
                 [

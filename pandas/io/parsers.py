@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import StringIO, TextIOWrapper
+from io import StringIO
 import itertools
 import re
 import sys
@@ -63,7 +63,13 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import get_filepath_or_buffer, get_handle, validate_header_arg
+from pandas.io.common import (
+    get_compression_method,
+    get_filepath_or_buffer,
+    get_handle,
+    stringify_path,
+    validate_header_arg,
+)
 from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
@@ -420,23 +426,24 @@ def _validate_names(names):
     if names is not None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
-        if not is_list_like(names, allow_sets=False):
+        if not (
+            is_list_like(names, allow_sets=False) or isinstance(names, abc.KeysView)
+        ):
             raise ValueError("Names should be an ordered collection.")
 
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
-    encoding = kwds.get("encoding", None)
     storage_options = kwds.get("storage_options", None)
-    if encoding is not None:
-        encoding = re.sub("_", "-", encoding).lower()
-        kwds["encoding"] = encoding
-    compression = kwds.get("compression", "infer")
 
     ioargs = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression, storage_options=storage_options
+        filepath_or_buffer,
+        kwds.get("encoding", None),
+        kwds.get("compression", "infer"),
+        storage_options=storage_options,
     )
     kwds["compression"] = ioargs.compression
+    kwds["encoding"] = ioargs.encoding
 
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
@@ -459,14 +466,10 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     try:
         data = parser.read(nrows)
     finally:
+        # close compression and byte/text wrapper
         parser.close()
-
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        try:
-            ioargs.filepath_or_buffer.close()
-        except ValueError:
-            pass
+        # close any fsspec-like objects
+        ioargs.close()
 
     return data
 
@@ -542,7 +545,7 @@ _deprecated_args: Set[str] = set()
 )
 def read_csv(
     filepath_or_buffer: FilePathOrBuffer,
-    sep=",",
+    sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
@@ -600,93 +603,14 @@ def read_csv(
     float_precision=None,
     storage_options: StorageOptions = None,
 ):
-    # gh-23761
-    #
-    # When a dialect is passed, it overrides any of the overlapping
-    # parameters passed in directly. We don't want to warn if the
-    # default parameters were passed in (since it probably means
-    # that the user didn't pass them in explicitly in the first place).
-    #
-    # "delimiter" is the annoying corner case because we alias it to
-    # "sep" before doing comparison to the dialect values later on.
-    # Thus, we need a flag to indicate that we need to "override"
-    # the comparison to dialect values by checking if default values
-    # for BOTH "delimiter" and "sep" were provided.
-    default_sep = ","
+    kwds = locals()
+    del kwds["filepath_or_buffer"]
+    del kwds["sep"]
 
-    if dialect is not None:
-        sep_override = delimiter is None and sep == default_sep
-        kwds = dict(sep_override=sep_override)
-    else:
-        kwds = dict()
-
-    # Alias sep -> delimiter.
-    if delimiter is None:
-        delimiter = sep
-
-    if delim_whitespace and delimiter != default_sep:
-        raise ValueError(
-            "Specified a delimiter with both sep and "
-            "delim_whitespace=True; you can only specify one."
-        )
-
-    if engine is not None:
-        engine_specified = True
-    else:
-        engine = "c"
-        engine_specified = False
-
-    kwds.update(
-        delimiter=delimiter,
-        engine=engine,
-        dialect=dialect,
-        compression=compression,
-        engine_specified=engine_specified,
-        doublequote=doublequote,
-        escapechar=escapechar,
-        quotechar=quotechar,
-        quoting=quoting,
-        skipinitialspace=skipinitialspace,
-        lineterminator=lineterminator,
-        header=header,
-        index_col=index_col,
-        names=names,
-        prefix=prefix,
-        skiprows=skiprows,
-        skipfooter=skipfooter,
-        na_values=na_values,
-        true_values=true_values,
-        false_values=false_values,
-        keep_default_na=keep_default_na,
-        thousands=thousands,
-        comment=comment,
-        decimal=decimal,
-        parse_dates=parse_dates,
-        keep_date_col=keep_date_col,
-        dayfirst=dayfirst,
-        date_parser=date_parser,
-        cache_dates=cache_dates,
-        nrows=nrows,
-        iterator=iterator,
-        chunksize=chunksize,
-        converters=converters,
-        dtype=dtype,
-        usecols=usecols,
-        verbose=verbose,
-        encoding=encoding,
-        squeeze=squeeze,
-        memory_map=memory_map,
-        float_precision=float_precision,
-        na_filter=na_filter,
-        delim_whitespace=delim_whitespace,
-        warn_bad_lines=warn_bad_lines,
-        error_bad_lines=error_bad_lines,
-        low_memory=low_memory,
-        mangle_dupe_cols=mangle_dupe_cols,
-        infer_datetime_format=infer_datetime_format,
-        skip_blank_lines=skip_blank_lines,
-        storage_options=storage_options,
+    kwds_defaults = _refine_defaults_read(
+        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": ","}
     )
+    kwds.update(kwds_defaults)
 
     return _read(filepath_or_buffer, kwds)
 
@@ -700,7 +624,7 @@ def read_csv(
 )
 def read_table(
     filepath_or_buffer: FilePathOrBuffer,
-    sep="\t",
+    sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
@@ -757,17 +681,16 @@ def read_table(
     memory_map=False,
     float_precision=None,
 ):
-    # TODO: validation duplicated in read_csv
-    if delim_whitespace and (delimiter is not None or sep != "\t"):
-        raise ValueError(
-            "Specified a delimiter with both sep and "
-            "delim_whitespace=True; you can only specify one."
-        )
-    if delim_whitespace:
-        # In this case sep is not used so we set it to the read_csv
-        # default to avoid a ValueError
-        sep = ","
-    return read_csv(**locals())
+    kwds = locals()
+    del kwds["filepath_or_buffer"]
+    del kwds["sep"]
+
+    kwds_defaults = _refine_defaults_read(
+        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": "\t"}
+    )
+    kwds.update(kwds_defaults)
+
+    return _read(filepath_or_buffer, kwds)
 
 
 def read_fwf(
@@ -867,63 +790,14 @@ class TextFileReader(abc.Iterator):
         else:
             engine = "python"
             engine_specified = False
-
+        self.engine = engine
         self._engine_specified = kwds.get("engine_specified", engine_specified)
 
-        if kwds.get("dialect") is not None:
-            dialect = kwds["dialect"]
-            if dialect in csv.list_dialects():
-                dialect = csv.get_dialect(dialect)
+        _validate_skipfooter(kwds)
 
-            # Any valid dialect should have these attributes.
-            # If any are missing, we will raise automatically.
-            for param in (
-                "delimiter",
-                "doublequote",
-                "escapechar",
-                "skipinitialspace",
-                "quotechar",
-                "quoting",
-            ):
-                try:
-                    dialect_val = getattr(dialect, param)
-                except AttributeError as err:
-                    raise ValueError(
-                        f"Invalid dialect {kwds['dialect']} provided"
-                    ) from err
-                parser_default = _parser_defaults[param]
-                provided = kwds.get(param, parser_default)
-
-                # Messages for conflicting values between the dialect
-                # instance and the actual parameters provided.
-                conflict_msgs = []
-
-                # Don't warn if the default parameter was passed in,
-                # even if it conflicts with the dialect (gh-23761).
-                if provided != parser_default and provided != dialect_val:
-                    msg = (
-                        f"Conflicting values for '{param}': '{provided}' was "
-                        f"provided, but the dialect specifies '{dialect_val}'. "
-                        "Using the dialect-specified value."
-                    )
-
-                    # Annoying corner case for not warning about
-                    # conflicts between dialect and delimiter parameter.
-                    # Refer to the outer "_read_" function for more info.
-                    if not (param == "delimiter" and kwds.pop("sep_override", False)):
-                        conflict_msgs.append(msg)
-
-                if conflict_msgs:
-                    warnings.warn(
-                        "\n\n".join(conflict_msgs), ParserWarning, stacklevel=2
-                    )
-                kwds[param] = dialect_val
-
-        if kwds.get("skipfooter"):
-            if kwds.get("iterator") or kwds.get("chunksize"):
-                raise ValueError("'skipfooter' not supported for 'iteration'")
-            if kwds.get("nrows"):
-                raise ValueError("'skipfooter' not supported with 'nrows'")
+        dialect = _extract_dialect(kwds)
+        if dialect is not None:
+            kwds = _merge_with_dialect_properties(dialect, kwds)
 
         if kwds.get("header", "infer") == "infer":
             kwds["header"] = 0 if kwds.get("names") is None else None
@@ -931,7 +805,6 @@ class TextFileReader(abc.Iterator):
         self.orig_options = kwds
 
         # miscellanea
-        self.engine = engine
         self._currow = 0
 
         options = self._get_options_with_defaults(engine)
@@ -1006,7 +879,6 @@ class TextFileReader(abc.Iterator):
     def _clean_options(self, options, engine):
         result = options.copy()
 
-        engine_specified = self._engine_specified
         fallback_reason = None
 
         # C engine not supported yet
@@ -1070,7 +942,7 @@ class TextFileReader(abc.Iterator):
                 )
                 engine = "python"
 
-        if fallback_reason and engine_specified:
+        if fallback_reason and self._engine_specified:
             raise ValueError(fallback_reason)
 
         if engine == "c":
@@ -1106,24 +978,17 @@ class TextFileReader(abc.Iterator):
 
         validate_header_arg(options["header"])
 
-        depr_warning = ""
-
         for arg in _deprecated_args:
             parser_default = _c_parser_defaults[arg]
             depr_default = _deprecated_defaults[arg]
-
-            msg = (
-                f"The {repr(arg)} argument has been deprecated and will be "
-                "removed in a future version."
-            )
-
             if result.get(arg, depr_default) != depr_default:
-                depr_warning += msg + "\n\n"
+                msg = (
+                    f"The {arg} argument has been deprecated and will be "
+                    "removed in a future version.\n\n"
+                )
+                warnings.warn(msg, FutureWarning, stacklevel=2)
             else:
                 result[arg] = parser_default
-
-        if depr_warning != "":
-            warnings.warn(depr_warning, FutureWarning, stacklevel=2)
 
         if index_col is True:
             raise ValueError("The value of index_col couldn't be 'True'")
@@ -1486,10 +1351,6 @@ class ParserBase:
 
         self._first_chunk = True
 
-        # GH 13932
-        # keep references to file handles opened by the parser itself
-        self.handles = []
-
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
         """
         Check if parse_dates are in columns.
@@ -1539,8 +1400,7 @@ class ParserBase:
             )
 
     def close(self):
-        for f in self.handles:
-            f.close()
+        self.handles.close()
 
     @property
     def _has_complex_date_col(self):
@@ -1739,7 +1599,7 @@ class ParserBase:
 
         return index
 
-    def _agg_index(self, index, try_parse_dates=True):
+    def _agg_index(self, index, try_parse_dates=True) -> Index:
         arrays = []
 
         for i, arr in enumerate(index):
@@ -1974,23 +1834,29 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        encoding = kwds.get("encoding")
+        if kwds.get("memory_map", False):
+            # memory-mapped files are directly handled by the TextReader.
+            src = stringify_path(src)
 
-        # parsers.TextReader doesn't support compression dicts
-        if isinstance(kwds.get("compression"), dict):
-            kwds["compression"] = kwds["compression"]["method"]
+            if get_compression_method(kwds.get("compression", None))[0] is not None:
+                raise ValueError(
+                    "read_csv does not support compression with memory_map=True. "
+                    + "Please use memory_map=False instead."
+                )
 
-        if kwds.get("compression") is None and encoding:
-            if isinstance(src, str):
-                src = open(src, "rb")
-                self.handles.append(src)
-
-            # Handle the file object with universal line mode enabled.
-            # We will handle the newline character ourselves later on.
-            if hasattr(src, "read") and not hasattr(src, "encoding"):
-                src = TextIOWrapper(src, encoding=encoding, newline="")
-
-            kwds["encoding"] = "utf-8"
+        self.handles = get_handle(
+            src,
+            mode="r",
+            encoding=kwds.get("encoding", None),
+            compression=kwds.get("compression", None),
+            memory_map=kwds.get("memory_map", False),
+            is_text=True,
+        )
+        kwds.pop("encoding", None)
+        kwds.pop("memory_map", None)
+        kwds.pop("compression", None)
+        if kwds.get("memory_map", False) and hasattr(self.handles.handle, "mmap"):
+            self.handles.handle = self.handles.handle.mmap
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -1999,7 +1865,7 @@ class CParserWrapper(ParserBase):
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
-        self._reader = parsers.TextReader(src, **kwds)
+        self._reader = parsers.TextReader(self.handles.handle, **kwds)
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -2078,11 +1944,10 @@ class CParserWrapper(ParserBase):
 
         self._implicit_index = self._reader.leading_cols > 0
 
-    def close(self):
-        for f in self.handles:
-            f.close()
+    def close(self) -> None:
+        super().close()
 
-        # close additional handles opened by C parser (for compression)
+        # close additional handles opened by C parser
         try:
             self._reader.close()
         except ValueError:
@@ -2313,7 +2178,7 @@ def TextParser(*args, **kwds):
     return TextFileReader(*args, **kwds)
 
 
-def count_empty_vals(vals):
+def count_empty_vals(vals) -> int:
     return sum(1 for v in vals if v == "" or v is None)
 
 
@@ -2373,20 +2238,19 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        f, handles = get_handle(
+        self.handles = get_handle(
             f,
             "r",
             encoding=self.encoding,
             compression=self.compression,
             memory_map=self.memory_map,
         )
-        self.handles.extend(handles)
 
         # Set self.data to something that can read lines.
-        if hasattr(f, "readline"):
-            self._make_reader(f)
+        if hasattr(self.handles.handle, "readline"):
+            self._make_reader(self.handles.handle)
         else:
-            self.data = f
+            self.data = self.handles.handle
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
@@ -3782,3 +3646,209 @@ class FixedWidthFieldParser(PythonParser):
             self.skiprows,
             self.infer_nrows,
         )
+
+
+def _refine_defaults_read(
+    dialect: Union[str, csv.Dialect],
+    delimiter: Union[str, object],
+    delim_whitespace: bool,
+    engine: str,
+    sep: Union[str, object],
+    defaults: Dict[str, Any],
+):
+    """Validate/refine default values of input parameters of read_csv, read_table.
+
+    Parameters
+    ----------
+    dialect : str or csv.Dialect
+        If provided, this parameter will override values (default or not) for the
+        following parameters: `delimiter`, `doublequote`, `escapechar`,
+        `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
+        override values, a ParserWarning will be issued. See csv.Dialect
+        documentation for more details.
+    delimiter : str or object
+        Alias for sep.
+    delim_whitespace : bool
+        Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
+        used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
+        is set to True, nothing should be passed in for the ``delimiter``
+        parameter.
+    engine : {{'c', 'python'}}
+        Parser engine to use. The C engine is faster while the python engine is
+        currently more feature-complete.
+    sep : str or object
+        A delimiter provided by the user (str) or a sentinel value, i.e.
+        pandas._libs.lib.no_default.
+    defaults: dict
+        Default values of input parameters.
+
+    Returns
+    -------
+    kwds : dict
+        Input parameters with correct values.
+
+    Raises
+    ------
+    ValueError : If a delimiter was specified with ``sep`` (or ``delimiter``) and
+        ``delim_whitespace=True``.
+    """
+    # fix types for sep, delimiter to Union(str, Any)
+    delim_default = defaults["delimiter"]
+    kwds: Dict[str, Any] = {}
+    # gh-23761
+    #
+    # When a dialect is passed, it overrides any of the overlapping
+    # parameters passed in directly. We don't want to warn if the
+    # default parameters were passed in (since it probably means
+    # that the user didn't pass them in explicitly in the first place).
+    #
+    # "delimiter" is the annoying corner case because we alias it to
+    # "sep" before doing comparison to the dialect values later on.
+    # Thus, we need a flag to indicate that we need to "override"
+    # the comparison to dialect values by checking if default values
+    # for BOTH "delimiter" and "sep" were provided.
+    if dialect is not None:
+        kwds["sep_override"] = delimiter is None and (
+            sep is lib.no_default or sep == delim_default
+        )
+
+    # Alias sep -> delimiter.
+    if delimiter is None:
+        delimiter = sep
+
+    if delim_whitespace and (delimiter is not lib.no_default):
+        raise ValueError(
+            "Specified a delimiter with both sep and "
+            "delim_whitespace=True; you can only specify one."
+        )
+
+    if delimiter is lib.no_default:
+        # assign default separator value
+        kwds["delimiter"] = delim_default
+    else:
+        kwds["delimiter"] = delimiter
+
+    if engine is not None:
+        kwds["engine_specified"] = True
+    else:
+        kwds["engine"] = "c"
+        kwds["engine_specified"] = False
+
+    return kwds
+
+
+def _extract_dialect(kwds: Dict[str, Any]) -> Optional[csv.Dialect]:
+    """
+    Extract concrete csv dialect instance.
+
+    Returns
+    -------
+    csv.Dialect or None
+    """
+    if kwds.get("dialect") is None:
+        return None
+
+    dialect = kwds["dialect"]
+    if dialect in csv.list_dialects():
+        dialect = csv.get_dialect(dialect)
+
+    _validate_dialect(dialect)
+
+    return dialect
+
+
+MANDATORY_DIALECT_ATTRS = (
+    "delimiter",
+    "doublequote",
+    "escapechar",
+    "skipinitialspace",
+    "quotechar",
+    "quoting",
+)
+
+
+def _validate_dialect(dialect: csv.Dialect) -> None:
+    """
+    Validate csv dialect instance.
+
+    Raises
+    ------
+    ValueError
+        If incorrect dialect is provided.
+    """
+    for param in MANDATORY_DIALECT_ATTRS:
+        if not hasattr(dialect, param):
+            raise ValueError(f"Invalid dialect {dialect} provided")
+
+
+def _merge_with_dialect_properties(
+    dialect: csv.Dialect,
+    defaults: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Merge default kwargs in TextFileReader with dialect parameters.
+
+    Parameters
+    ----------
+    dialect : csv.Dialect
+        Concrete csv dialect. See csv.Dialect documentation for more details.
+    defaults : dict
+        Keyword arguments passed to TextFileReader.
+
+    Returns
+    -------
+    kwds : dict
+        Updated keyword arguments, merged with dialect parameters.
+    """
+    kwds = defaults.copy()
+
+    for param in MANDATORY_DIALECT_ATTRS:
+        dialect_val = getattr(dialect, param)
+
+        parser_default = _parser_defaults[param]
+        provided = kwds.get(param, parser_default)
+
+        # Messages for conflicting values between the dialect
+        # instance and the actual parameters provided.
+        conflict_msgs = []
+
+        # Don't warn if the default parameter was passed in,
+        # even if it conflicts with the dialect (gh-23761).
+        if provided != parser_default and provided != dialect_val:
+            msg = (
+                f"Conflicting values for '{param}': '{provided}' was "
+                f"provided, but the dialect specifies '{dialect_val}'. "
+                "Using the dialect-specified value."
+            )
+
+            # Annoying corner case for not warning about
+            # conflicts between dialect and delimiter parameter.
+            # Refer to the outer "_read_" function for more info.
+            if not (param == "delimiter" and kwds.pop("sep_override", False)):
+                conflict_msgs.append(msg)
+
+        if conflict_msgs:
+            warnings.warn("\n\n".join(conflict_msgs), ParserWarning, stacklevel=2)
+        kwds[param] = dialect_val
+    return kwds
+
+
+def _validate_skipfooter(kwds: Dict[str, Any]) -> None:
+    """
+    Check whether skipfooter is compatible with other kwargs in TextFileReader.
+
+    Parameters
+    ----------
+    kwds : dict
+        Keyword arguments passed to TextFileReader.
+
+    Raises
+    ------
+    ValueError
+        If skipfooter is not compatible with other parameters.
+    """
+    if kwds.get("skipfooter"):
+        if kwds.get("iterator") or kwds.get("chunksize"):
+            raise ValueError("'skipfooter' not supported for iteration")
+        if kwds.get("nrows"):
+            raise ValueError("'skipfooter' not supported with 'nrows'")

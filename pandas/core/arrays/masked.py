@@ -19,7 +19,8 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core import nanops
 from pandas.core.algorithms import factorize_array, take
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
@@ -66,7 +67,7 @@ class BaseMaskedDtype(ExtensionDtype):
         raise NotImplementedError
 
 
-class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
+class BaseMaskedArray(OpsMixin, ExtensionArray):
     """
     Base class for masked arrays (which use _data and _mask to store the data).
 
@@ -83,9 +84,9 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
                 "mask should be boolean numpy array. Use "
                 "the 'pd.array' function instead"
             )
-        if not values.ndim == 1:
+        if values.ndim != 1:
             raise ValueError("values must be a 1D array")
-        if not mask.ndim == 1:
+        if mask.ndim != 1:
             raise ValueError("mask must be a 1D array")
 
         if copy:
@@ -208,7 +209,8 @@ class BaseMaskedArray(ExtensionArray, ExtensionOpsMixin):
             dtype = object
         if self._hasna:
             if (
-                not (is_object_dtype(dtype) or is_string_dtype(dtype))
+                not is_object_dtype(dtype)
+                and not is_string_dtype(dtype)
                 and na_value is libmissing.NA
             ):
                 raise ValueError(

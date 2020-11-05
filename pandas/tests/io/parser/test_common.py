@@ -6,7 +6,7 @@ import codecs
 import csv
 from datetime import datetime
 from inspect import signature
-from io import StringIO
+from io import BytesIO, StringIO
 import os
 import platform
 from urllib.error import URLError
@@ -719,7 +719,7 @@ baz,7,8,9
     "kwargs", [dict(iterator=True, chunksize=1), dict(iterator=True), dict(chunksize=1)]
 )
 def test_iterator_skipfooter_errors(all_parsers, kwargs):
-    msg = "'skipfooter' not supported for 'iteration'"
+    msg = "'skipfooter' not supported for iteration"
     parser = all_parsers
     data = "a\n1\n2"
 
@@ -2211,7 +2211,8 @@ def test_read_table_delim_whitespace_default_sep(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_table_delim_whitespace_non_default_sep(all_parsers):
+@pytest.mark.parametrize("delimiter", [",", "\t"])
+def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
     # GH: 35958
     f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
     parser = all_parsers
@@ -2220,4 +2221,94 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers):
         "delim_whitespace=True; you can only specify one."
     )
     with pytest.raises(ValueError, match=msg):
-        parser.read_table(f, delim_whitespace=True, sep=",")
+        parser.read_csv(f, delim_whitespace=True, sep=delimiter)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
+
+
+@pytest.mark.parametrize("delimiter", [",", "\t"])
+def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    msg = (
+        "Specified a delimiter with both sep and "
+        "delim_whitespace=True; you can only specify one."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, sep=delimiter)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
+
+
+def test_dict_keys_as_names(all_parsers):
+    # GH: 36928
+    data = "1,2"
+
+    keys = {"a": int, "b": int}.keys()
+    parser = all_parsers
+
+    result = parser.read_csv(StringIO(data), names=keys)
+    expected = DataFrame({"a": [1], "b": [2]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("io_class", [StringIO, BytesIO])
+@pytest.mark.parametrize("encoding", [None, "utf-8"])
+def test_read_csv_file_handle(all_parsers, io_class, encoding):
+    """
+    Test whether read_csv does not close user-provided file handles.
+
+    GH 36980
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    content = "a,b\n1,2"
+    if io_class == BytesIO:
+        content = content.encode("utf-8")
+    handle = io_class(content)
+
+    tm.assert_frame_equal(parser.read_csv(handle, encoding=encoding), expected)
+    assert not handle.closed
+
+
+def test_memory_map_compression_error(c_parser_only):
+    """
+    c-parsers do not support memory_map=True with compression.
+
+    GH 36997
+    """
+    parser = c_parser_only
+    df = DataFrame({"a": [1], "b": [2]})
+    msg = (
+        "read_csv does not support compression with memory_map=True. "
+        + "Please use memory_map=False instead."
+    )
+
+    with tm.ensure_clean() as path:
+        df.to_csv(path, compression="gzip", index=False)
+
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(path, memory_map=True, compression="gzip")
+
+
+def test_memory_map_file_handle(all_parsers):
+    """
+    Support some buffers with memory_map=True.
+
+    GH 36997
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    handle = StringIO()
+    expected.to_csv(handle, index=False)
+    handle.seek(0)
+
+    tm.assert_frame_equal(
+        parser.read_csv(handle, memory_map=True),
+        expected,
+    )

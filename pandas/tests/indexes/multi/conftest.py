@@ -63,7 +63,7 @@ def narrow_multi_index():
     n = 1000
     ci = pd.CategoricalIndex(list("a" * n) + (["abc"] * n))
     dti = pd.date_range("2000-01-01", freq="s", periods=n * 2)
-    return pd.MultiIndex.from_arrays([ci, ci.codes + 9, dti], names=["a", "b", "dti"])
+    return MultiIndex.from_arrays([ci, ci.codes + 9, dti], names=["a", "b", "dti"])
 
 
 @pytest.fixture
@@ -76,4 +76,4 @@ def wide_multi_index():
     dti = pd.date_range("2000-01-01", freq="s", periods=n * 2)
     levels = [ci, ci.codes + 9, dti, dti, dti]
     names = ["a", "b", "dti_1", "dti_2", "dti_3"]
-    return pd.MultiIndex.from_arrays(levels, names=names)
+    return MultiIndex.from_arrays(levels, names=names)
