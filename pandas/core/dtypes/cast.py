@@ -160,7 +160,9 @@ def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scal
 
 
 def maybe_box_native(value):
-    if is_datetime_or_timedelta_dtype(value):
+    if not is_scalar(value):
+        pass
+    elif is_datetime_or_timedelta_dtype(value):
         value = maybe_box_datetimelike(value)
     elif is_float_dtype(value):
         value = float(value)
