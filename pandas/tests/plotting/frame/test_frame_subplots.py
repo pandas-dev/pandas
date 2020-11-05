@@ -23,7 +23,7 @@ import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl
-class TestDataFrameSubplots(TestPlotBase):
+class TestDataFramePlotsSubplots(TestPlotBase):
     def setup_method(self, method):
         TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
