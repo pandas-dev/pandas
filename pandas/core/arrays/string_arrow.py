@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import abc
 from distutils.version import LooseVersion
 import operator
-from typing import Any, Sequence, Type, Union
+from typing import TYPE_CHECKING, Any, Sequence, Type, Union
 
 import numpy as np
 
@@ -35,6 +35,9 @@ else:
         import pyarrow.compute as pc
     except ImportError:
         pass
+
+if TYPE_CHECKING:
+    from pandas import Series
 
 
 @register_extension_dtype
@@ -579,3 +582,32 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                 indices_array = np.copy(indices_array)
                 indices_array[indices_array < 0] += len(self.data)
             return type(self)(self.data.take(indices_array))
+
+    def value_counts(self, dropna: bool = True) -> Series:
+        """
+        Return a Series containing counts of each unique value.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of missing values.
+
+        Returns
+        -------
+        counts : Series
+
+        See Also
+        --------
+        Series.value_counts
+        """
+        vc = self.data.value_counts()
+
+        # Index cannot hold ExtensionArrays yet
+        index = pd.Index(type(self)(vc.field(0)).astype(object))
+        # No missings, so we can adhere to the interface and return a numpy array.
+        counts = np.array(vc.field(1))
+
+        if dropna and self.data.null_count > 0:
+            raise NotImplementedError("yo")
+
+        return pd.Series(counts, index=index)
