@@ -1187,7 +1187,9 @@ def test_stack_empty_frame(dropna):
 @pytest.mark.parametrize("fill_value", [None, 0])
 def test_stack_unstack_empty_frame(dropna, fill_value):
     # GH 36113
-    result = DataFrame(dtype=np.intp).stack(dropna=dropna).unstack(fill_value=fill_value)
+    result = (
+        DataFrame(dtype=np.intp).stack(dropna=dropna).unstack(fill_value=fill_value)
+    )
     expected = DataFrame(dtype=np.intp)
     tm.assert_frame_equal(result, expected)
 
