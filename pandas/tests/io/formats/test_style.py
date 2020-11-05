@@ -1714,7 +1714,7 @@ class TestStyler:
 
     def test_chaining_table_styles(self):
         # GH 35607
-        df = pd.DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
+        df = DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
         styler = df.style.set_table_styles(
             [{"selector": "", "props": [("background-color", "yellow")]}]
         ).set_table_styles(
@@ -1725,7 +1725,7 @@ class TestStyler:
 
     def test_column_and_row_styling(self):
         # GH 35607
-        df = pd.DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
+        df = DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
         s = Styler(df, uuid_len=0)
         s = s.set_table_styles({"A": [{"selector": "", "props": [("color", "blue")]}]})
         assert "#T__ .col0 {\n          color: blue;\n    }" in s.render()
