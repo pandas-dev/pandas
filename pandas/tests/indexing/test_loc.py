@@ -1,15 +1,16 @@
 """ test label based indexing with loc """
-from datetime import time
+from datetime import datetime, time, timedelta
 from io import StringIO
 import re
 
+from dateutil.tz import gettz
 import numpy as np
 import pytest
 
 from pandas.compat.numpy import is_numpy_dev
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range
+from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range, to_datetime
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.tests.indexing.common import Base
@@ -1103,6 +1104,11 @@ class TestLocWithMultiIndex:
 
         tm.assert_series_equal(result, expected)
 
+    def test_loc_getitem_slice_datetime_objs_with_datetimeindex(self):
+        times = date_range("2000-01-01", freq="10min", periods=100000)
+        ser = Series(range(100000), times)
+        ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
+
 
 class TestLocSetitemWithExpansion:
     @pytest.mark.slow
@@ -1112,6 +1118,59 @@ class TestLocSetitemWithExpansion:
         result.loc[len(result)] = len(result) + 1
         expected = DataFrame({"x": range(10 ** 6 + 1)}, dtype="int64")
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_setitem_empty_series(self):
+        # GH#5226
+
+        # partially set with an empty object series
+        ser = Series(dtype=object)
+        ser.loc[1] = 1
+        tm.assert_series_equal(ser, Series([1], index=[1]))
+        ser.loc[3] = 3
+        tm.assert_series_equal(ser, Series([1, 3], index=[1, 3]))
+
+        ser = Series(dtype=object)
+        ser.loc[1] = 1.0
+        tm.assert_series_equal(ser, Series([1.0], index=[1]))
+        ser.loc[3] = 3.0
+        tm.assert_series_equal(ser, Series([1.0, 3.0], index=[1, 3]))
+
+        ser = Series(dtype=object)
+        ser.loc["foo"] = 1
+        tm.assert_series_equal(ser, Series([1], index=["foo"]))
+        ser.loc["bar"] = 3
+        tm.assert_series_equal(ser, Series([1, 3], index=["foo", "bar"]))
+        ser.loc[3] = 4
+        tm.assert_series_equal(ser, Series([1, 3, 4], index=["foo", "bar", 3]))
+
+    def test_loc_setitem_incremental_with_dst(self):
+        # GH#20724
+        base = datetime(2015, 11, 1, tzinfo=gettz("US/Pacific"))
+        idxs = [base + timedelta(seconds=i * 900) for i in range(16)]
+        result = Series([0], index=[idxs[0]])
+        for ts in idxs:
+            result.loc[ts] = 1
+        expected = Series(1, index=idxs)
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_datetime_keys_cast(self):
+        # GH#9516
+        dt1 = Timestamp("20130101 09:00:00")
+        dt2 = Timestamp("20130101 10:00:00")
+
+        for conv in [
+            lambda x: x,
+            lambda x: x.to_datetime64(),
+            lambda x: x.to_pydatetime(),
+            lambda x: np.datetime64(x),
+        ]:
+
+            df = DataFrame()
+            df.loc[conv(dt1), "one"] = 100
+            df.loc[conv(dt2), "one"] = 200
+
+            expected = DataFrame({"one": [100.0, 200.0]}, index=[dt1, dt2])
+            tm.assert_frame_equal(df, expected)
 
 
 class TestLocCallable:
@@ -1278,6 +1337,56 @@ class TestLocCallable:
         exp = df.copy()
         exp.loc[["A", "C"], ["X"]] = -4
         tm.assert_frame_equal(res, exp)
+
+
+class TestPartialStringSlicing:
+    def test_loc_getitem_partial_string_slicing_datetimeindex(self):
+        # GH#35509
+        df = DataFrame(
+            {"col1": ["a", "b", "c"], "col2": [1, 2, 3]},
+            index=to_datetime(["2020-08-01", "2020-07-02", "2020-08-05"]),
+        )
+        expected = DataFrame(
+            {"col1": ["a", "c"], "col2": [1, 3]},
+            index=to_datetime(["2020-08-01", "2020-08-05"]),
+        )
+        result = df.loc["2020-08"]
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_getitem_partial_string_slicing_with_periodindex(self):
+        pi = pd.period_range(start="2017-01-01", end="2018-01-01", freq="M")
+        ser = pi.to_series()
+        result = ser.loc[:"2017-12"]
+        expected = ser.iloc[:-1]
+
+        tm.assert_series_equal(result, expected)
+
+
+class TestLabelSlicing:
+    def test_loc_getitem_label_slice_across_dst(self):
+        # GH#21846
+        idx = date_range(
+            "2017-10-29 01:30:00", tz="Europe/Berlin", periods=5, freq="30 min"
+        )
+        series2 = Series([0, 1, 2, 3, 4], index=idx)
+
+        t_1 = Timestamp("2017-10-29 02:30:00+02:00", tz="Europe/Berlin", freq="30min")
+        t_2 = Timestamp("2017-10-29 02:00:00+01:00", tz="Europe/Berlin", freq="30min")
+        result = series2.loc[t_1:t_2]
+        expected = Series([2, 3], index=idx[2:4])
+        tm.assert_series_equal(result, expected)
+
+        result = series2[t_1]
+        expected = 2
+        assert result == expected
+
+    def test_loc_getitem_label_slice_period(self):
+        ix = pd.period_range(start="2017-01-01", end="2018-01-01", freq="M")
+        ser = ix.to_series()
+        result = ser.loc[: ix[-2]]
+        expected = ser.iloc[:-1]
+
+        tm.assert_series_equal(result, expected)
 
 
 def test_series_loc_getitem_label_list_missing_values():

@@ -4,14 +4,23 @@ Also test support for datetime64[ns] in Series / DataFrame
 from datetime import datetime, timedelta
 import re
 
+from dateutil.tz import gettz, tzutc
 import numpy as np
 import pytest
+import pytz
 
-from pandas._libs import iNaT
-import pandas._libs.index as _index
+from pandas._libs import iNaT, index as libindex
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, NaT, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -65,13 +74,6 @@ def test_dti_reset_index_round_trip():
     assert df.reset_index()["Date"][0] == stamp
 
 
-@pytest.mark.slow
-def test_slice_locs_indexerror():
-    times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10) for i in range(100000)]
-    s = Series(range(100000), times)
-    s.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
-
-
 def test_slicing_datetimes():
     # GH 7523
 
@@ -114,8 +116,6 @@ def test_slicing_datetimes():
 
 
 def test_getitem_setitem_datetime_tz_pytz():
-    from pytz import timezone as tz
-
     N = 50
     # testing with timezone, GH #2785
     rng = date_range("1/1/1990", periods=N, freq="H", tz="US/Eastern")
@@ -134,23 +134,20 @@ def test_getitem_setitem_datetime_tz_pytz():
 
     # repeat with datetimes
     result = ts.copy()
-    result[datetime(1990, 1, 1, 9, tzinfo=tz("UTC"))] = 0
-    result[datetime(1990, 1, 1, 9, tzinfo=tz("UTC"))] = ts[4]
+    result[datetime(1990, 1, 1, 9, tzinfo=pytz.timezone("UTC"))] = 0
+    result[datetime(1990, 1, 1, 9, tzinfo=pytz.timezone("UTC"))] = ts[4]
     tm.assert_series_equal(result, ts)
 
     result = ts.copy()
 
     # comparison dates with datetime MUST be localized!
-    date = tz("US/Central").localize(datetime(1990, 1, 1, 3))
+    date = pytz.timezone("US/Central").localize(datetime(1990, 1, 1, 3))
     result[date] = 0
     result[date] = ts[4]
     tm.assert_series_equal(result, ts)
 
 
 def test_getitem_setitem_datetime_tz_dateutil():
-    from dateutil.tz import tzutc
-
-    from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 
     tz = (
         lambda x: tzutc() if x == "UTC" else gettz(x)
@@ -295,7 +292,6 @@ def test_getitem_setitem_datetimeindex():
 
 
 def test_getitem_setitem_periodindex():
-    from pandas import period_range
 
     N = 50
     rng = period_range("1/1/1990", periods=N, freq="H")
@@ -466,72 +462,50 @@ def test_duplicate_dates_indexing(dups):
     assert ts[datetime(2000, 1, 6)] == 0
 
 
-def test_range_slice():
-    idx = DatetimeIndex(["1/1/2000", "1/2/2000", "1/2/2000", "1/3/2000", "1/4/2000"])
-
-    ts = Series(np.random.randn(len(idx)), index=idx)
-
-    result = ts["1/2/2000":]
-    expected = ts[1:]
-    tm.assert_series_equal(result, expected)
-
-    result = ts["1/2/2000":"1/3/2000"]
-    expected = ts[1:4]
-    tm.assert_series_equal(result, expected)
-
-
 def test_groupby_average_dup_values(dups):
     result = dups.groupby(level=0).mean()
     expected = dups.groupby(dups.index).mean()
     tm.assert_series_equal(result, expected)
 
 
-def test_indexing_over_size_cutoff():
-    import datetime
-
+def test_indexing_over_size_cutoff(monkeypatch):
     # #1821
 
-    old_cutoff = _index._SIZE_CUTOFF
-    try:
-        _index._SIZE_CUTOFF = 1000
+    monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 1000)
 
-        # create large list of non periodic datetime
-        dates = []
-        sec = datetime.timedelta(seconds=1)
-        half_sec = datetime.timedelta(microseconds=500000)
-        d = datetime.datetime(2011, 12, 5, 20, 30)
-        n = 1100
-        for i in range(n):
-            dates.append(d)
-            dates.append(d + sec)
-            dates.append(d + sec + half_sec)
-            dates.append(d + sec + sec + half_sec)
-            d += 3 * sec
+    # create large list of non periodic datetime
+    dates = []
+    sec = timedelta(seconds=1)
+    half_sec = timedelta(microseconds=500000)
+    d = datetime(2011, 12, 5, 20, 30)
+    n = 1100
+    for i in range(n):
+        dates.append(d)
+        dates.append(d + sec)
+        dates.append(d + sec + half_sec)
+        dates.append(d + sec + sec + half_sec)
+        d += 3 * sec
 
-        # duplicate some values in the list
-        duplicate_positions = np.random.randint(0, len(dates) - 1, 20)
-        for p in duplicate_positions:
-            dates[p + 1] = dates[p]
+    # duplicate some values in the list
+    duplicate_positions = np.random.randint(0, len(dates) - 1, 20)
+    for p in duplicate_positions:
+        dates[p + 1] = dates[p]
 
-        df = DataFrame(
-            np.random.randn(len(dates), 4), index=dates, columns=list("ABCD")
-        )
+    df = DataFrame(np.random.randn(len(dates), 4), index=dates, columns=list("ABCD"))
 
-        pos = n * 3
-        timestamp = df.index[pos]
-        assert timestamp in df.index
+    pos = n * 3
+    timestamp = df.index[pos]
+    assert timestamp in df.index
 
-        # it works!
-        df.loc[timestamp]
-        assert len(df.loc[[timestamp]]) > 0
-    finally:
-        _index._SIZE_CUTOFF = old_cutoff
+    # it works!
+    df.loc[timestamp]
+    assert len(df.loc[[timestamp]]) > 0
 
 
 def test_indexing_over_size_cutoff_period_index(monkeypatch):
     # GH 27136
 
-    monkeypatch.setattr(_index, "_SIZE_CUTOFF", 1000)
+    monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 1000)
 
     n = 1100
     idx = pd.period_range("1/1/2000", freq="T", periods=n)
