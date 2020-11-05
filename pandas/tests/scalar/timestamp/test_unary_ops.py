@@ -424,3 +424,13 @@ class TestTimestampUnaryOps:
             # should agree with datetime.timestamp method
             dt = ts.to_pydatetime()
             assert dt.timestamp() == ts.timestamp()
+
+
+def test_replace_preserves_fold():
+    # GH 37610. Check that replace preserves Timestamp fold property
+    tz = gettz("Europe/Moscow")
+
+    result = Timestamp(1256427000000000000, tz=tz, unit="ns").replace(tzinfo=tz).fold
+    expected = 1
+
+    assert result == expected
