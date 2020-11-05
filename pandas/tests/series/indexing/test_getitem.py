@@ -116,6 +116,17 @@ class TestSeriesGetitemScalars:
 
 
 class TestSeriesGetitemSlices:
+    def test_getitem_partial_str_slice_with_datetimeindex(self):
+        # GH#34860
+        arr = date_range("1/1/2008", "1/1/2009")
+        ser = arr.to_series()
+        result = ser["2008"]
+
+        rng = date_range(start="2008-01-01", end="2008-12-31")
+        expected = Series(rng, index=rng)
+
+        tm.assert_series_equal(result, expected)
+
     def test_getitem_slice_strings_with_datetimeindex(self):
         idx = DatetimeIndex(
             ["1/1/2000", "1/2/2000", "1/2/2000", "1/3/2000", "1/4/2000"]

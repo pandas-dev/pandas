@@ -7,21 +7,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Series, Timestamp, date_range, offsets
+from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets
 import pandas._testing as tm
 
 
 class TestTimeSeries:
-    def test_to_series_regression(self):
-        # GH#34860
-        arr = date_range("1/1/2008", "1/1/2009")
-        result = arr.to_series()["2008"]
-
-        rng = date_range(start="2008-01-01", end="2008-12-31")
-        expected = Series(rng, index=rng)
-
-        tm.assert_series_equal(result, expected)
-
     def test_range_edges(self):
         # GH#13672
         idx = pd.date_range(
