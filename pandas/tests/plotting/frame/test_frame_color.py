@@ -23,7 +23,7 @@ import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl
-class TestDataFrameColor(TestPlotBase):
+class TestDataFramePlotsColor(TestPlotBase):
     def setup_method(self, method):
         TestPlotBase.setup_method(self, method)
         import matplotlib as mpl
