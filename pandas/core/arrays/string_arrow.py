@@ -398,15 +398,21 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
         return type(self)(self.data)
 
     def _cmp_method(self, other, op):
-        if op.__name__ != "eq":
-            return NotImplemented
-
+        ops = {
+            "eq": pc.equal,
+            "ne": pc.not_equal,
+            "lt": pc.less,
+            "gt": pc.greater,
+            "le": pc.less_equal,
+            "ge": pc.greater_equal,
+        }
+        op = ops[op.__name__]
         if isinstance(other, (pd.Series, pd.DataFrame, pd.Index)):
             return NotImplemented
         if isinstance(other, ArrowStringArray):
-            result = pc.equal(self.data, other.data)
+            result = op(self.data, other.data)
         elif is_scalar(other):
-            result = pc.equal(self.data, pa.scalar(other))
+            result = op(self.data, pa.scalar(other))
         else:
             raise NotImplementedError("Neither scalar nor ArrowStringArray")
 
