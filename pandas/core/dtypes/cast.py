@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
     List,
     Optional,
     Sequence,
@@ -19,7 +20,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib, tslib
+from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
@@ -32,7 +33,7 @@ from pandas._libs.tslibs import (
     ints_to_pytimedelta,
 )
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar
+from pandas._typing import AnyArrayLike, ArrayLike, Dtype, DtypeObj, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -132,6 +133,30 @@ def is_nested_object(obj) -> bool:
             return True
 
     return False
+
+
+def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scalar:
+    """
+    Cast scalar to Timestamp or Timedelta if scalar is datetime-like
+    and dtype is not object.
+
+    Parameters
+    ----------
+    value : scalar
+    dtype : Dtype, optional
+
+    Returns
+    -------
+    scalar
+    """
+    if dtype == object:
+        pass
+    elif isinstance(value, (np.datetime64, datetime)):
+        value = tslibs.Timestamp(value)
+    elif isinstance(value, (np.timedelta64, timedelta)):
+        value = tslibs.Timedelta(value)
+
+    return value
 
 
 def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
@@ -789,6 +814,22 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> Tuple[DtypeObj, 
             dtype = IntervalDtype(subtype=subtype)
 
     return dtype, val
+
+
+def dict_compat(d: Dict[Scalar, Scalar]) -> Dict[Scalar, Scalar]:
+    """
+    Convert datetimelike-keyed dicts to a Timestamp-keyed dict.
+
+    Parameters
+    ----------
+    d: dict-like object
+
+    Returns
+    -------
+    dict
+
+    """
+    return {maybe_box_datetimelike(key): value for key, value in d.items()}
 
 
 def infer_dtype_from_array(
@@ -1591,7 +1632,7 @@ def find_common_type(types: List[DtypeObj]) -> DtypeObj:
 
 
 def cast_scalar_to_array(
-    shape: Tuple, value: Scalar, dtype: Optional[DtypeObj] = None
+    shape: Shape, value: Scalar, dtype: Optional[DtypeObj] = None
 ) -> np.ndarray:
     """
     Create np.ndarray of specified shape and dtype, filled with values.
