@@ -6,6 +6,7 @@ from functools import wraps
 import gzip
 import operator
 import os
+import re
 from shutil import rmtree
 import string
 import tempfile
@@ -84,6 +85,7 @@ ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
 
 FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
+FLOAT_EA_DTYPES: List[Dtype] = ["Float32", "Float64"]
 COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: List[Dtype] = [str, "str", "U"]
 
@@ -665,6 +667,7 @@ def assert_index_equal(
     check_less_precise: Union[bool, int] = no_default,
     check_exact: bool = True,
     check_categorical: bool = True,
+    check_order: bool = True,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     obj: str = "Index",
@@ -694,6 +697,12 @@ def assert_index_equal(
         Whether to compare number exactly.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
+    check_order : bool, default True
+        Whether to compare the order of index entries as well as their values.
+        If True, both indexes must contain the same elements, in the same order.
+        If False, both indexes must contain the same elements, but in any order.
+
+        .. versionadded:: 1.2.0
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -727,8 +736,7 @@ def assert_index_equal(
         unique = index.levels[level]
         level_codes = index.codes[level]
         filled = take_1d(unique._values, level_codes, fill_value=unique._na_value)
-        values = unique._shallow_copy(filled, name=index.names[level])
-        return values
+        return unique._shallow_copy(filled, name=index.names[level])
 
     if check_less_precise is not no_default:
         warnings.warn(
@@ -759,6 +767,11 @@ def assert_index_equal(
         msg2 = f"{len(left)}, {left}"
         msg3 = f"{len(right)}, {right}"
         raise_assert_detail(obj, msg1, msg2, msg3)
+
+    # If order doesn't matter then sort the index entries
+    if not check_order:
+        left = left.sort_values()
+        right = right.sort_values()
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
@@ -976,8 +989,14 @@ def assert_interval_array_equal(left, right, exact="equiv", obj="IntervalArray")
     """
     _check_isinstance(left, right, IntervalArray)
 
-    assert_index_equal(left.left, right.left, exact=exact, obj=f"{obj}.left")
-    assert_index_equal(left.right, right.right, exact=exact, obj=f"{obj}.left")
+    kwargs = {}
+    if left._left.dtype.kind in ["m", "M"]:
+        # We have a DatetimeArray or TimedeltaArray
+        kwargs["check_freq"] = False
+
+    assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
+    assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
+
     assert_attr_equal("closed", left, right, obj=obj)
 
 
@@ -988,20 +1007,22 @@ def assert_period_array_equal(left, right, obj="PeriodArray"):
     assert_attr_equal("freq", left, right, obj=obj)
 
 
-def assert_datetime_array_equal(left, right, obj="DatetimeArray"):
+def assert_datetime_array_equal(left, right, obj="DatetimeArray", check_freq=True):
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
-    assert_attr_equal("freq", left, right, obj=obj)
+    if check_freq:
+        assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
 
 
-def assert_timedelta_array_equal(left, right, obj="TimedeltaArray"):
+def assert_timedelta_array_equal(left, right, obj="TimedeltaArray", check_freq=True):
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._data, right._data, obj=f"{obj}._data")
-    assert_attr_equal("freq", left, right, obj=obj)
+    if check_freq:
+        assert_attr_equal("freq", left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None, index_values=None):
@@ -1572,9 +1593,6 @@ def assert_frame_equal(
             obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
         )
 
-    if check_like:
-        left, right = left.reindex_like(right), right
-
     if check_flags:
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
@@ -1586,6 +1604,7 @@ def assert_frame_equal(
         check_names=check_names,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_order=not check_like,
         rtol=rtol,
         atol=atol,
         obj=f"{obj}.index",
@@ -1599,10 +1618,14 @@ def assert_frame_equal(
         check_names=check_names,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_order=not check_like,
         rtol=rtol,
         atol=atol,
         obj=f"{obj}.columns",
     )
+
+    if check_like:
+        left, right = left.reindex_like(right), right
 
     # compare by blocks
     if by_blocks:
@@ -1861,8 +1884,7 @@ def makeTimedeltaIndex(k=10, freq="D", name=None, **kwargs):
 
 def makePeriodIndex(k=10, name=None, **kwargs):
     dt = datetime(2000, 1, 1)
-    dr = pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
-    return dr
+    return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
 
 
 def makeMultiIndex(k=10, names=None, **kwargs):
@@ -2501,9 +2523,12 @@ def network(
 
     @wraps(t)
     def wrapper(*args, **kwargs):
-        if check_before_test and not raise_on_error:
-            if not can_connect(url, error_classes):
-                skip()
+        if (
+            check_before_test
+            and not raise_on_error
+            and not can_connect(url, error_classes)
+        ):
+            skip()
         try:
             return t(*args, **kwargs)
         except Exception as err:
@@ -2537,10 +2562,11 @@ with_connectivity_check = network
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning=Warning,
+    expected_warning: Optional[Union[Type[Warning], bool]] = Warning,
     filter_level="always",
-    check_stacklevel=True,
-    raise_on_extra_warnings=True,
+    check_stacklevel: bool = True,
+    raise_on_extra_warnings: bool = True,
+    match: Optional[str] = None,
 ):
     """
     Context manager for running code expected to either raise a specific
@@ -2575,6 +2601,8 @@ def assert_produces_warning(
     raise_on_extra_warnings : bool, default True
         Whether extra warnings not of the type `expected_warning` should
         cause the test to fail.
+    match : str, optional
+        Match warning message.
 
     Examples
     --------
@@ -2601,28 +2629,28 @@ def assert_produces_warning(
     with warnings.catch_warnings(record=True) as w:
 
         saw_warning = False
+        matched_message = False
+
         warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
 
         for actual_warning in w:
-            if expected_warning and issubclass(
-                actual_warning.category, expected_warning
-            ):
+            if not expected_warning:
+                continue
+
+            expected_warning = cast(Type[Warning], expected_warning)
+            if issubclass(actual_warning.category, expected_warning):
                 saw_warning = True
 
                 if check_stacklevel and issubclass(
                     actual_warning.category, (FutureWarning, DeprecationWarning)
                 ):
-                    from inspect import getframeinfo, stack
+                    _assert_raised_with_correct_stacklevel(actual_warning)
 
-                    caller = getframeinfo(stack()[2][0])
-                    msg = (
-                        "Warning not set with correct stacklevel. "
-                        f"File where warning is raised: {actual_warning.filename} != "
-                        f"{caller.filename}. Warning message: {actual_warning.message}"
-                    )
-                    assert actual_warning.filename == caller.filename, msg
+                if match is not None and re.search(match, str(actual_warning.message)):
+                    matched_message = True
+
             else:
                 extra_warnings.append(
                     (
@@ -2632,16 +2660,39 @@ def assert_produces_warning(
                         actual_warning.lineno,
                     )
                 )
+
         if expected_warning:
-            msg = (
-                f"Did not see expected warning of class "
-                f"{repr(expected_warning.__name__)}"
-            )
-            assert saw_warning, msg
+            expected_warning = cast(Type[Warning], expected_warning)
+            if not saw_warning:
+                raise AssertionError(
+                    f"Did not see expected warning of class "
+                    f"{repr(expected_warning.__name__)}"
+                )
+
+            if match and not matched_message:
+                raise AssertionError(
+                    f"Did not see warning {repr(expected_warning.__name__)} "
+                    f"matching {match}"
+                )
+
         if raise_on_extra_warnings and extra_warnings:
             raise AssertionError(
                 f"Caused unexpected warning(s): {repr(extra_warnings)}"
             )
+
+
+def _assert_raised_with_correct_stacklevel(
+    actual_warning: warnings.WarningMessage,
+) -> None:
+    from inspect import getframeinfo, stack
+
+    caller = getframeinfo(stack()[3][0])
+    msg = (
+        "Warning not set with correct stacklevel. "
+        f"File where warning is raised: {actual_warning.filename} != "
+        f"{caller.filename}. Warning message: {actual_warning.message}"
+    )
+    assert actual_warning.filename == caller.filename, msg
 
 
 class RNGContext:
@@ -2892,8 +2943,7 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
         Expected output of to_csv() in current OS.
     """
     sep = os.linesep
-    expected = sep.join(rows_list) + sep
-    return expected
+    return sep.join(rows_list) + sep
 
 
 def external_error_raised(expected_exception: Type[Exception]) -> ContextManager:

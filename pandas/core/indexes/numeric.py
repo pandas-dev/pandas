@@ -1,3 +1,4 @@
+import operator
 from typing import Any
 
 import numpy as np
@@ -42,6 +43,7 @@ class NumericIndex(Index):
     _default_dtype: np.dtype
 
     _is_numeric_dtype = True
+    _can_hold_strings = False
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None):
         cls._validate_dtype(dtype)
@@ -95,7 +97,7 @@ class NumericIndex(Index):
     # Indexing Methods
 
     @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         assert kind in ["loc", "getitem", None]
 
         # we will try to coerce to integers
@@ -118,6 +120,8 @@ class NumericIndex(Index):
         if is_bool(value) or is_bool_dtype(value):
             # force conversion to object
             # so we don't lose the bools
+            raise TypeError
+        if isinstance(value, str):
             raise TypeError
 
         return value
@@ -149,7 +153,7 @@ class NumericIndex(Index):
         pass
 
     @property
-    def is_all_dates(self) -> bool:
+    def _is_all_dates(self) -> bool:
         """
         Checks that all the labels are datetime objects.
         """
@@ -183,6 +187,18 @@ class NumericIndex(Index):
             return first._union(second, sort)
         else:
             return super()._union(other, sort)
+
+    def _cmp_method(self, other, op):
+        if self.is_(other):  # fastpath
+            if op in {operator.eq, operator.le, operator.ge}:
+                arr = np.ones(len(self), dtype=bool)
+                if self._can_hold_na:
+                    arr[self.isna()] = False
+                return arr
+            elif op in {operator.ne, operator.lt, operator.gt}:
+                return np.zeros(len(self), dtype=bool)
+
+        return super()._cmp_method(other, op)
 
 
 _num_index_shared_docs[
@@ -275,9 +291,6 @@ class Int64Index(IntegerIndex):
         return other.dtype == "f8" or other.dtype == self.dtype
 
 
-Int64Index._add_numeric_methods()
-Int64Index._add_logical_methods()
-
 _uint64_descr_args = dict(
     klass="UInt64Index", ltype="unsigned integer", dtype="uint64", extra=""
 )
@@ -321,9 +334,6 @@ class UInt64Index(IntegerIndex):
         # See GH#26778, further casting may occur in NumericIndex._union
         return other.dtype == "f8" or other.dtype == self.dtype
 
-
-UInt64Index._add_numeric_methods()
-UInt64Index._add_logical_methods()
 
 _float64_descr_args = dict(
     klass="Float64Index", dtype="float64", ltype="float", extra=""
@@ -427,7 +437,3 @@ class Float64Index(NumericIndex):
     def _can_union_without_object_cast(self, other) -> bool:
         # See GH#26778, further casting may occur in NumericIndex._union
         return is_numeric_dtype(other.dtype)
-
-
-Float64Index._add_numeric_methods()
-Float64Index._add_logical_methods_disabled()

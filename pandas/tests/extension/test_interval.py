@@ -147,9 +147,7 @@ class TestReshaping(BaseInterval, base.BaseReshapingTests):
 
 
 class TestSetitem(BaseInterval, base.BaseSetitemTests):
-    @pytest.mark.xfail(reason="GH#27147 setitem changes underlying index")
-    def test_setitem_preserves_views(self, data):
-        super().test_setitem_preserves_views(data)
+    pass
 
 
 class TestPrinting(BaseInterval, base.BasePrintingTests):

@@ -1,12 +1,18 @@
 from datetime import date, datetime, time, timedelta, tzinfo
 import operator
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, Tuple
 import warnings
 
 import numpy as np
 
 from pandas._libs import NaT, Period, Timestamp, index as libindex, lib
-from pandas._libs.tslibs import Resolution, ints_to_pydatetime, parsing, to_offset
+from pandas._libs.tslibs import (
+    Resolution,
+    ints_to_pydatetime,
+    parsing,
+    timezones,
+    to_offset,
+)
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import DtypeObj, Label
 from pandas.errors import InvalidIndexError
@@ -25,10 +31,13 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype
 
 from pandas.core.arrays.datetimes import DatetimeArray, tz_to_dtype
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, maybe_extract_name
+from pandas.core.indexes.base import Index, get_unanimous_names, maybe_extract_name
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Float64Index, PeriodIndex, TimedeltaIndex
 
 
 def _new_DatetimeIndex(cls, d):
@@ -64,8 +73,7 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    ["to_perioddelta", "to_julian_date", "strftime", "isocalendar"]
-    + DatetimeArray._field_ops
+    DatetimeArray._field_ops
     + [
         method
         for method in DatetimeArray._datetimelike_methods
@@ -91,6 +99,7 @@ def _new_DatetimeIndex(cls, d):
         "date",
         "time",
         "timetz",
+        "std",
     ]
     + DatetimeArray._bool_ops,
     DatetimeArray,
@@ -156,9 +165,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     time
     timetz
     dayofyear
+    day_of_year
     weekofyear
     week
     dayofweek
+    day_of_week
     weekday
     quarter
     tz
@@ -191,6 +202,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     month_name
     day_name
     mean
+    std
 
     See Also
     --------
@@ -220,7 +232,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     tz: Optional[tzinfo]
 
     # --------------------------------------------------------------------
-    # methods that dispatch to array and wrap result in DatetimeIndex
+    # methods that dispatch to DatetimeArray and wrap result
+
+    @doc(DatetimeArray.strftime)
+    def strftime(self, date_format) -> Index:
+        arr = self._data.strftime(date_format)
+        return Index(arr, name=self.name)
 
     @doc(DatetimeArray.tz_convert)
     def tz_convert(self, tz) -> "DatetimeIndex":
@@ -235,9 +252,30 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return type(self)._simple_new(arr, name=self.name)
 
     @doc(DatetimeArray.to_period)
-    def to_period(self, freq=None) -> "DatetimeIndex":
+    def to_period(self, freq=None) -> "PeriodIndex":
+        from pandas.core.indexes.api import PeriodIndex
+
         arr = self._data.to_period(freq)
-        return type(self)._simple_new(arr, name=self.name)
+        return PeriodIndex._simple_new(arr, name=self.name)
+
+    @doc(DatetimeArray.to_perioddelta)
+    def to_perioddelta(self, freq) -> "TimedeltaIndex":
+        from pandas.core.indexes.api import TimedeltaIndex
+
+        arr = self._data.to_perioddelta(freq)
+        return TimedeltaIndex._simple_new(arr, name=self.name)
+
+    @doc(DatetimeArray.to_julian_date)
+    def to_julian_date(self) -> "Float64Index":
+        from pandas.core.indexes.api import Float64Index
+
+        arr = self._data.to_julian_date()
+        return Float64Index._simple_new(arr, name=self.name)
+
+    @doc(DatetimeArray.isocalendar)
+    def isocalendar(self) -> "DataFrame":
+        df = self._data.isocalendar()
+        return df.set_index(self)
 
     # --------------------------------------------------------------------
     # Constructors
@@ -267,7 +305,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         name = maybe_extract_name(name, data, cls)
 
-        dtarr = DatetimeArray._from_sequence(
+        dtarr = DatetimeArray._from_sequence_not_strict(
             data,
             dtype=dtype,
             copy=copy,
@@ -377,7 +415,26 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 this = this._fast_union(other)
             else:
                 this = Index.union(this, other)
+
+        res_name = get_unanimous_names(self, *others)[0]
+        if this.name != res_name:
+            return this.rename(res_name)
         return this
+
+    def _maybe_utc_convert(self, other: Index) -> Tuple["DatetimeIndex", Index]:
+        this = self
+
+        if isinstance(other, DatetimeIndex):
+            if self.tz is not None:
+                if other.tz is None:
+                    raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
+            elif other.tz is not None:
+                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
+
+            if not timezones.tz_compare(self.tz, other.tz):
+                this = self.tz_convert("UTC")
+                other = other.tz_convert("UTC")
+        return this, other
 
     # --------------------------------------------------------------------
 
@@ -572,6 +629,28 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # _parsed_string_to_bounds allows it.
             raise KeyError
 
+    def _deprecate_mismatched_indexing(self, key):
+        # GH#36148
+        # we get here with isinstance(key, self._data._recognized_scalars)
+        try:
+            self._data._assert_tzawareness_compat(key)
+        except TypeError:
+            if self.tz is None:
+                msg = (
+                    "Indexing a timezone-naive DatetimeIndex with a "
+                    "timezone-aware datetime is deprecated and will "
+                    "raise KeyError in a future version.  "
+                    "Use a timezone-naive object instead."
+                )
+            else:
+                msg = (
+                    "Indexing a timezone-aware DatetimeIndex with a "
+                    "timezone-naive datetime is deprecated and will "
+                    "raise KeyError in a future version.  "
+                    "Use a timezone-aware object instead."
+                )
+            warnings.warn(msg, FutureWarning, stacklevel=5)
+
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -589,6 +668,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if isinstance(key, self._data._recognized_scalars):
             # needed to localize naive datetimes
+            self._deprecate_mismatched_indexing(key)
             key = self._maybe_cast_for_get_loc(key)
 
         elif isinstance(key, str):
@@ -670,13 +750,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
+        elif isinstance(label, (self._data._recognized_scalars, date)):
+            self._deprecate_mismatched_indexing(label)
         return self._maybe_cast_for_get_loc(label)
 
-    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
+    def _get_string_slice(self, key: str):
         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
         parsed, reso = parsing.parse_time_string(key, freq)
         reso = Resolution.from_attrname(reso)
-        loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
+        loc = self._partial_date_slice(reso, parsed)
         return loc
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
@@ -837,9 +919,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = join_op(lop(start_micros, time_micros), rop(time_micros, end_micros))
 
         return mask.nonzero()[0]
-
-
-DatetimeIndex._add_logical_methods_disabled()
 
 
 def date_range(

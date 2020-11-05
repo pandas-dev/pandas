@@ -563,8 +563,13 @@ class Grouping:
         if isinstance(self.grouper, ops.BaseGrouper):
             return self.grouper.indices
 
-        values = Categorical(self.grouper)
-        return values._reverse_indexer()
+        # Return a dictionary of {group label: [indices belonging to the group label]}
+        # respecting whether sort was specified
+        codes, uniques = algorithms.factorize(self.grouper, sort=self.sort)
+        return {
+            category: np.flatnonzero(codes == i)
+            for i, category in enumerate(Index(uniques))
+        }
 
     @property
     def codes(self) -> np.ndarray:
@@ -588,23 +593,25 @@ class Grouping:
         return self._group_index
 
     def _make_codes(self) -> None:
-        if self._codes is None or self._group_index is None:
-            # we have a list of groupers
-            if isinstance(self.grouper, ops.BaseGrouper):
-                codes = self.grouper.codes_info
-                uniques = self.grouper.result_index
+        if self._codes is not None and self._group_index is not None:
+            return
+
+        # we have a list of groupers
+        if isinstance(self.grouper, ops.BaseGrouper):
+            codes = self.grouper.codes_info
+            uniques = self.grouper.result_index
+        else:
+            # GH35667, replace dropna=False with na_sentinel=None
+            if not self.dropna:
+                na_sentinel = None
             else:
-                # GH35667, replace dropna=False with na_sentinel=None
-                if not self.dropna:
-                    na_sentinel = None
-                else:
-                    na_sentinel = -1
-                codes, uniques = algorithms.factorize(
-                    self.grouper, sort=self.sort, na_sentinel=na_sentinel
-                )
-                uniques = Index(uniques, name=self.name)
-            self._codes = codes
-            self._group_index = uniques
+                na_sentinel = -1
+            codes, uniques = algorithms.factorize(
+                self.grouper, sort=self.sort, na_sentinel=na_sentinel
+            )
+            uniques = Index(uniques, name=self.name)
+        self._codes = codes
+        self._group_index = uniques
 
     @cache_readonly
     def groups(self) -> Dict[Hashable, np.ndarray]:

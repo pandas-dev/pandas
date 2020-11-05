@@ -34,7 +34,7 @@ from pytz import FixedOffset, utc
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.indexes.api import Index, MultiIndex
@@ -174,14 +174,6 @@ def axis(request):
 axis_frame = axis
 
 
-@pytest.fixture(params=[0, "index"], ids=lambda x: f"axis {repr(x)}")
-def axis_series(request):
-    """
-    Fixture for returning the axis numbers of a Series.
-    """
-    return request.param
-
-
 @pytest.fixture(params=[True, False, None])
 def observed(request):
     """
@@ -298,7 +290,19 @@ unique_nulls_fixture2 = unique_nulls_fixture
 # ----------------------------------------------------------------
 # Classes
 # ----------------------------------------------------------------
-@pytest.fixture(params=[pd.Index, pd.Series], ids=["index", "series"])
+
+
+@pytest.fixture(params=[pd.DataFrame, pd.Series])
+def frame_or_series(request):
+    """
+    Fixture to parametrize over DataFrame and Series.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[pd.Index, pd.Series], ids=["index", "series"]  # type: ignore[list-item]
+)
 def index_or_series(request):
     """
     Fixture to parametrize over Index and Series, made necessary by a mypy
@@ -367,6 +371,19 @@ def multiindex_year_month_day_dataframe_random_data():
     return ymd
 
 
+@pytest.fixture
+def multiindex_dataframe_random_data():
+    """DataFrame with 2 level MultiIndex with random data"""
+    index = MultiIndex(
+        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+        names=["first", "second"],
+    )
+    return DataFrame(
+        np.random.randn(10, 3), index=index, columns=Index(["A", "B", "C"], name="exp")
+    )
+
+
 def _create_multiindex():
     """
     MultiIndex used to test the general functionality of this object
@@ -379,13 +396,12 @@ def _create_multiindex():
     major_codes = np.array([0, 0, 1, 2, 3, 3])
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ["first", "second"]
-    mi = MultiIndex(
+    return MultiIndex(
         levels=[major_axis, minor_axis],
         codes=[major_codes, minor_codes],
         names=index_names,
         verify_integrity=False,
     )
-    return mi
 
 
 def _create_mi_with_dt64tz_level():
@@ -520,6 +536,23 @@ def series_with_simple_index(index):
     Fixture for tests on series with changing types of indices.
     """
     return _create_series(index)
+
+
+@pytest.fixture
+def series_with_multilevel_index():
+    """
+    Fixture with a Series with a 2-level MultiIndex.
+    """
+    arrays = [
+        ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
+        ["one", "two", "one", "two", "one", "two", "one", "two"],
+    ]
+    tuples = zip(*arrays)
+    index = MultiIndex.from_tuples(tuples)
+    data = np.random.randn(8)
+    ser = Series(data, index=index)
+    ser[3] = np.NaN
+    return ser
 
 
 _narrow_dtypes = [
@@ -679,6 +712,43 @@ _all_arithmetic_operators = [
 def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        operator.add,
+        ops.radd,
+        operator.sub,
+        ops.rsub,
+        operator.mul,
+        ops.rmul,
+        operator.truediv,
+        ops.rtruediv,
+        operator.floordiv,
+        ops.rfloordiv,
+        operator.mod,
+        ops.rmod,
+        operator.pow,
+        ops.rpow,
+        operator.eq,
+        operator.ne,
+        operator.lt,
+        operator.le,
+        operator.gt,
+        operator.ge,
+        operator.and_,
+        ops.rand_,
+        operator.xor,
+        ops.rxor,
+        operator.or_,
+        ops.ror_,
+    ]
+)
+def all_binary_operators(request):
+    """
+    Fixture for operator and roperator arithmetic, comparison, and logical ops.
     """
     return request.param
 
@@ -863,6 +933,10 @@ TIMEZONES = [
     "Asia/Tokyo",
     "dateutil/US/Pacific",
     "dateutil/Asia/Singapore",
+    "+01:15",
+    "-02:15",
+    "UTC+01:15",
+    "UTC-02:15",
     tzutc(),
     tzlocal(),
     FixedOffset(300),
@@ -980,6 +1054,17 @@ def float_dtype(request):
     * float
     * 'float32'
     * 'float64'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.FLOAT_EA_DTYPES)
+def float_ea_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * 'Float32'
+    * 'Float64'
     """
     return request.param
 
@@ -1221,7 +1306,7 @@ def ip():
     from IPython.core.interactiveshell import InteractiveShell
 
     # GH#35711 make sure sqlite history file handle is not leaked
-    from traitlets.config import Config  # noqa: F401 isort:skip
+    from traitlets.config import Config  # isort:skip
 
     c = Config()
     c.HistoryManager.hist_file = ":memory:"
@@ -1237,15 +1322,6 @@ def spmatrix(request):
     from scipy import sparse
 
     return getattr(sparse, request.param + "_matrix")
-
-
-@pytest.fixture(params=list(tm.cython_table))
-def cython_table_items(request):
-    """
-    Yields a tuple of a function and its corresponding name. Correspond to
-    the list of aggregator "Cython functions" used on selected table items.
-    """
-    return request.param
 
 
 @pytest.fixture(

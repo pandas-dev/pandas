@@ -46,13 +46,13 @@ def test_join_level_corner_case(idx):
 
 def test_join_self(idx, join_type):
     joined = idx.join(idx, how=join_type)
-    assert idx is joined
+    tm.assert_index_equal(joined, idx)
 
 
 def test_join_multi():
     # GH 10665
     midx = pd.MultiIndex.from_product([np.arange(4), np.arange(4)], names=["a", "b"])
-    idx = pd.Index([1, 2, 5], name="b")
+    idx = Index([1, 2, 5], name="b")
 
     # inner
     jidx, lidx, ridx = midx.join(idx, how="inner", return_indexers=True)

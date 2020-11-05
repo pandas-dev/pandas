@@ -184,7 +184,9 @@ class TestSeriesRepr:
         index = Index(
             [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)], dtype=object
         )
-        ts = Series(np.random.randn(len(index)), index)
+        with tm.assert_produces_warning(FutureWarning):
+            # Index.is_all_dates deprecated
+            ts = Series(np.random.randn(len(index)), index)
         repr(ts)
 
         ts = tm.makeTimeSeries(1000)
@@ -250,7 +252,7 @@ class TestCategoricalRepr:
                 return self.name + ", " + self.state
 
         cat = pd.Categorical([County() for _ in range(61)])
-        idx = pd.Index(cat)
+        idx = Index(cat)
         ser = idx.to_series()
 
         repr(ser)
@@ -484,7 +486,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:0
 3   4 days
 4   5 days
 dtype: category
-Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa
+Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 
         assert repr(s) == exp
 

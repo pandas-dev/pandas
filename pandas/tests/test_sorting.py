@@ -298,7 +298,7 @@ class TestMerge:
             "outer": np.ones(len(out), dtype="bool"),
         }
 
-        for how in "left", "right", "outer", "inner":
+        for how in ["left", "right", "outer", "inner"]:
             mask = jmask[how]
             frame = align(out[mask].copy())
             assert mask.all() ^ mask.any() or how == "outer"
@@ -453,3 +453,10 @@ class TestSafeSort:
         expected_codes = np.array([0, 2, na_sentinel, 1], dtype=np.intp)
         tm.assert_extension_array_equal(result, expected_values)
         tm.assert_numpy_array_equal(codes, expected_codes)
+
+
+def test_mixed_str_nan():
+    values = np.array(["b", np.nan, "a", "b"], dtype=object)
+    result = safe_sort(values)
+    expected = np.array([np.nan, "a", "b", "b"], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)

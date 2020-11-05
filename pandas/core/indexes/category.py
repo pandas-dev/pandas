@@ -24,13 +24,11 @@ from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
 
 from pandas.core import accessor
 from pandas.core.arrays.categorical import Categorical, contains
-import pandas.core.common as com
 from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import Index, _index_shared_docs, maybe_extract_name
-from pandas.core.indexes.extension import ExtensionIndex, inherit_names
+from pandas.core.indexes.extension import NDArrayBackedExtensionIndex, inherit_names
 import pandas.core.missing as missing
-from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
@@ -67,7 +65,7 @@ _index_doc_kwargs.update(dict(target_klass="CategoricalIndex"))
     typ="method",
     overwrite=True,
 )
-class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
+class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     """
     Index based on an underlying :class:`Categorical`.
 
@@ -162,9 +160,14 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
     _typ = "categoricalindex"
 
+    @property
+    def _can_hold_strings(self):
+        return self.categories._can_hold_strings
+
     codes: np.ndarray
     categories: Index
     _data: Categorical
+    _values: Categorical
 
     @property
     def _engine_type(self):
@@ -235,21 +238,24 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return super()._shallow_copy(values=values, name=name)
 
-    def _is_dtype_compat(self, other) -> bool:
+    def _is_dtype_compat(self, other) -> Categorical:
         """
         *this is an internal non-public method*
 
         provide a comparison between the dtype of self and other (coercing if
         needed)
 
+        Returns
+        -------
+        Categorical
+
         Raises
         ------
         TypeError if the dtypes are not compatible
         """
         if is_categorical_dtype(other):
-            if isinstance(other, CategoricalIndex):
-                other = other._values
-            if not other.is_dtype_equal(self):
+            other = extract_array(other)
+            if not other._categories_match_up_to_permutation(self):
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )
@@ -263,6 +269,7 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
                 raise TypeError(
                     "cannot append a non-category item to a CategoricalIndex"
                 )
+            other = other._values
 
         return other
 
@@ -373,11 +380,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return Index.astype(self, dtype=dtype, copy=copy)
 
-    @cache_readonly
-    def _isnan(self):
-        """ return if each value is nan"""
-        return self._data.codes == -1
-
     @doc(Index.fillna)
     def fillna(self, value, downcast=None):
         value = self._validate_scalar(value)
@@ -420,17 +422,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self._values, other)
         cat = Categorical(values, dtype=self.dtype)
-        return type(self)._simple_new(cat, name=self.name)
-
-    def putmask(self, mask, value):
-        try:
-            code_value = self._data._validate_where_value(value)
-        except (TypeError, ValueError):
-            return self.astype(object).putmask(mask, value)
-
-        codes = self._data._ndarray.copy()
-        np.putmask(codes, mask, code_value)
-        cat = self._data._from_backing_data(codes)
         return type(self)._simple_new(cat, name=self.name)
 
     def reindex(self, target, method=None, level=None, limit=None, tolerance=None):
@@ -574,17 +565,8 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
 
         return self.get_indexer(keyarr)
 
-    @doc(Index._convert_arr_indexer)
-    def _convert_arr_indexer(self, keyarr):
-        keyarr = com.asarray_tuplesafe(keyarr)
-
-        if self.categories._defer_to_indexing:
-            return keyarr
-
-        return self._shallow_copy(keyarr)
-
     @doc(Index._maybe_cast_slice_bound)
-    def _maybe_cast_slice_bound(self, label, side, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind):
         if kind == "loc":
             return label
 
@@ -671,44 +653,6 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
-    def delete(self, loc):
-        """
-        Make new Index with passed location(-s) deleted
-
-        Returns
-        -------
-        new_index : Index
-        """
-        codes = np.delete(self.codes, loc)
-        cat = self._data._from_backing_data(codes)
-        return type(self)._simple_new(cat, name=self.name)
-
-    def insert(self, loc: int, item):
-        """
-        Make new Index inserting new item at location. Follows
-        Python list.append semantics for negative values
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        new_index : Index
-
-        Raises
-        ------
-        ValueError if the item is not in the categories
-
-        """
-        code = self._data._validate_insert_value(item)
-
-        codes = self.codes
-        codes = np.concatenate((codes[:loc], [code], codes[loc:]))
-        cat = self._data._from_backing_data(codes)
-        return type(self)._simple_new(cat, name=self.name)
-
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others
         codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
@@ -724,13 +668,3 @@ class CategoricalIndex(ExtensionIndex, accessor.PandasDelegate):
         if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
-
-    def _wrap_joined_index(
-        self, joined: np.ndarray, other: "CategoricalIndex"
-    ) -> "CategoricalIndex":
-        name = get_op_result_name(self, other)
-        cat = self._data._from_backing_data(joined)
-        return type(self)._simple_new(cat, name=name)
-
-
-CategoricalIndex._add_logical_methods_disabled()
