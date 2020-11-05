@@ -63,13 +63,7 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 from pandas.core.tools import datetimes as tools
 
-from pandas.io.common import (
-    get_compression_method,
-    get_filepath_or_buffer,
-    get_handle,
-    stringify_path,
-    validate_header_arg,
-)
+from pandas.io.common import get_filepath_or_buffer, get_handle, validate_header_arg
 from pandas.io.date_converters import generic_parser
 
 # BOM character (byte order mark)
@@ -1834,16 +1828,6 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        if kwds.get("memory_map", False):
-            # memory-mapped files are directly handled by the TextReader.
-            src = stringify_path(src)
-
-            if get_compression_method(kwds.get("compression", None))[0] is not None:
-                raise ValueError(
-                    "read_csv does not support compression with memory_map=True. "
-                    + "Please use memory_map=False instead."
-                )
-
         self.handles = get_handle(
             src,
             mode="r",
@@ -1855,7 +1839,7 @@ class CParserWrapper(ParserBase):
         kwds.pop("encoding", None)
         kwds.pop("memory_map", None)
         kwds.pop("compression", None)
-        if kwds.get("memory_map", False) and hasattr(self.handles.handle, "mmap"):
+        if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
             self.handles.handle = self.handles.handle.mmap
 
         # #2442
