@@ -3038,6 +3038,10 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
+
+            .. versionchanged:: 1.2
+               optionally allow fstrings in place of functions
+
         float_format : one-parameter function or str, optional, default None
             Formatter for floating point numbers. For example
             ``float_format="%.2f"`` and ``float_format="{{:0.2f}}".format`` will
@@ -3088,7 +3092,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             .. versionadded:: 1.0.0
 
             .. versionchanged:: 1.2.0
-               Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
+               optionally allow caption to be a tuple ``(full_caption, short_caption)``.
 
         label : str, optional
             The LaTeX label to be placed inside ``\label{{}}`` in the output.
@@ -3121,6 +3125,17 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
           Donatello &  purple &  bo staff \\
         \bottomrule
         \end{{tabular}}
+        >>> df = pd.DataFrame([[1,2], [3,4]], columns=['a','b'])
+        >>> print(df.to_latex(formatters=["d", ".3f"],
+        ...                   index=False)) # doctest: +NORMALIZE_WHITESPACE
+        \begin{{tabular}}{{rr}}
+          \toprule
+            a &     b \\
+          \midrule
+            1 & 2.000 \\
+            3 & 4.000 \\
+          \bottomrule
+        \end{{tabular}}
         """
         # Get defaults from the pandas config
         if self.ndim == 1:
@@ -3135,22 +3150,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             multicolumn_format = config.get_option("display.latex.multicolumn_format")
         if multirow is None:
             multirow = config.get_option("display.latex.multirow")
-
-        if is_list_like(formatters) and not isinstance(formatters, dict):
-            formatter_elems_type = all(
-                isinstance(elem, str) or callable(elem) for elem in formatters
-            )
-            if formatter_elems_type:
-                formatters = [
-                    (lambda style: lambda x: "{0:{1}}".format(x, style))(style)
-                    if isinstance(style, str)
-                    else style
-                    for style in formatters
-                ]
-            else:
-                raise ValueError(
-                    "Formatters elements should be f-strings or callable functions"
-                )
 
         self = cast("DataFrame", self)
         formatter = DataFrameFormatter(

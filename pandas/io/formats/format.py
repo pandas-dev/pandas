@@ -84,7 +84,11 @@ if TYPE_CHECKING:
 
 
 FormattersType = Union[
-    List[Callable], Tuple[Callable, ...], Mapping[Union[str, int], Callable]
+    List[Callable],
+    Tuple[Callable, ...],
+    List[str],
+    List[Union[Callable, str]],
+    Mapping[Union[str, int], Callable],
 ]
 ColspaceType = Mapping[Label, Union[str, int]]
 ColspaceArgType = Union[
@@ -106,7 +110,7 @@ common_docstring = """
             Whether to print index (row) labels.
         na_rep : str, optional, default 'NaN'
             String representation of ``NaN`` to use.
-        formatters : list, tuple or dict of one-param. functions, optional
+        formatters : list, tuple or dict of one-param. functions, str, optional
             Formatter functions to apply to columns' elements by position or
             name.
             The result of each function must be a unicode string.
@@ -576,6 +580,24 @@ class DataFrameFormatter:
     def _initialize_formatters(
         self, formatters: Optional[FormattersType]
     ) -> FormattersType:
+        if is_list_like(formatters) and not isinstance(formatters, dict):
+            formatter_elems_type = all(
+                isinstance(elem, str) or callable(elem) for elem in formatters
+            )
+            if formatter_elems_type:
+                # two fold lambda is required to bypass lambda replication
+                # issues in list comprehensions
+                formatters = [
+                    (lambda style: lambda x: "{0:{1}}".format(x, style))(style)
+                    if isinstance(style, str)
+                    else style
+                    for style in formatters
+                ]
+            else:
+                raise ValueError(
+                    "Formatters elements should be f-strings or callable functions"
+                )
+
         if formatters is None:
             return {}
         elif len(self.frame.columns) == len(formatters) or isinstance(formatters, dict):
