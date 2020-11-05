@@ -6,17 +6,20 @@ import string
 import warnings
 
 import numpy as np
-from numpy.random import rand, randn
 import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.api import is_list_like
+
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase
+from pandas.core.arrays import integer_array
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 from pandas.io.formats.printing import pprint_thing
+import pandas.plotting as plotting
 
 
 @td.skip_if_no_mpl
@@ -197,7 +200,7 @@ class TestDataFrameSubplots(TestPlotBase):
                 pd.to_datetime("2017-08-02 00:00:00"),
             ],
         }
-        testdata = pd.DataFrame(data)
+        testdata = DataFrame(data)
         ax_period = testdata.plot(x="numeric", y="period")
         assert (
             ax_period.get_lines()[0].get_data()[1] == testdata["period"].values
@@ -491,7 +494,7 @@ class TestDataFrameSubplots(TestPlotBase):
     def test_subplots_sharex_false(self):
         # test when sharex is set to False, two plots should have different
         # labels, GH 25160
-        df = pd.DataFrame(np.random.rand(10, 2))
+        df = DataFrame(np.random.rand(10, 2))
         df.iloc[5:, 1] = np.nan
         df.iloc[:5, 0] = np.nan
 
@@ -516,10 +519,10 @@ class TestDataFrameSubplots(TestPlotBase):
     )
     @pytest.mark.parametrize("kind", ["line", "area", "bar"])
     def test_xlabel_ylabel_dataframe_subplots(
-            self, kind, index_name, old_label, new_label
+        self, kind, index_name, old_label, new_label
     ):
         # GH 9093
-        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df = DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
         df.index.name = index_name
 
         # default is the ylabel is not shown and xlabel is index name
@@ -534,7 +537,7 @@ class TestDataFrameSubplots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_barwidth_position(self):
-        df = DataFrame(randn(5, 5))
+        df = DataFrame(np.random.randn(5, 5))
         self._check_bar_alignment(
             df, kind="bar", stacked=False, width=0.9, position=0.2
         )
@@ -555,7 +558,7 @@ class TestDataFrameSubplots(TestPlotBase):
     @pytest.mark.slow
     def test_bar_barwidth_position_int(self):
         # GH 12979
-        df = DataFrame(randn(5, 5))
+        df = DataFrame(np.random.randn(5, 5))
 
         for w in [1, 1.0]:
             ax = df.plot.bar(stacked=True, width=w)
@@ -581,7 +584,6 @@ class TestDataFrameSubplots(TestPlotBase):
         self._check_bar_alignment(df, kind="barh", stacked=True)
         self._check_bar_alignment(df, kind="barh", stacked=True, width=0.9)
 
-
     @pytest.mark.slow
     def test_bar_center(self):
         df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
@@ -592,7 +594,7 @@ class TestDataFrameSubplots(TestPlotBase):
 
     @pytest.mark.slow
     def test_bar_align_single_column(self):
-        df = DataFrame(randn(5))
+        df = DataFrame(np.random.randn(5))
         self._check_bar_alignment(df, kind="bar", stacked=False)
         self._check_bar_alignment(df, kind="bar", stacked=True)
         self._check_bar_alignment(df, kind="barh", stacked=False)
@@ -628,7 +630,6 @@ class TestDataFrameSubplots(TestPlotBase):
         self._check_bar_alignment(
             df, kind="barh", subplots=True, width=0.9, align="edge"
         )
-
 
     def _check_bar_alignment(
         self,
@@ -701,6 +702,3 @@ class TestDataFrameSubplots(TestPlotBase):
                 raise ValueError
 
         return axes
-
-
-
