@@ -178,20 +178,14 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("diff")),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x)),
-        marks=not_implemented_mark,
+        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
     ),
     pytest.param(
         (
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"A": [1]})),
-        ),
-        marks=not_implemented_mark,
+        )
     ),
     pytest.param(
         (
@@ -199,7 +193,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"B": [1]})),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (

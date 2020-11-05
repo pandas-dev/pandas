@@ -15,6 +15,7 @@ from collections import abc
 import datetime
 from io import StringIO
 import itertools
+import mmap
 from textwrap import dedent
 from typing import (
     IO,
@@ -83,6 +84,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
+    maybe_box_datetimelike,
     maybe_cast_to_datetime,
     maybe_casted_values,
     maybe_convert_platform,
@@ -359,7 +361,7 @@ class DataFrame(NDFrame, OpsMixin):
     Parameters
     ----------
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
-        Dict can contain Series, arrays, constants, or list-like objects. If
+        Dict can contain Series, arrays, constants, dataclass or list-like objects. If
         data is a dict, column order follows insertion-order.
 
         .. versionchanged:: 0.25.0
@@ -419,6 +421,16 @@ class DataFrame(NDFrame, OpsMixin):
     0  1  2  3
     1  4  5  6
     2  7  8  9
+
+    Constructing DataFrame from dataclass:
+
+    >>> from dataclasses import make_dataclass
+    >>> Point = make_dataclass("Point", [("x", int), ("y", int)])
+    >>> pd.DataFrame([Point(0, 0), Point(0, 3), Point(2, 3)])
+        x  y
+    0  0  0
+    1  0  3
+    2  2  3
     """
 
     _internal_names_set = {"columns", "index"} | NDFrame._internal_names_set
@@ -1527,7 +1539,7 @@ class DataFrame(NDFrame, OpsMixin):
                     (
                         "data",
                         [
-                            list(map(com.maybe_box_datetimelike, t))
+                            list(map(maybe_box_datetimelike, t))
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
@@ -1535,7 +1547,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         elif orient == "series":
-            return into_c((k, com.maybe_box_datetimelike(v)) for k, v in self.items())
+            return into_c((k, maybe_box_datetimelike(v)) for k, v in self.items())
 
         elif orient == "records":
             columns = self.columns.tolist()
@@ -1544,7 +1556,7 @@ class DataFrame(NDFrame, OpsMixin):
                 for row in self.itertuples(index=False, name=None)
             )
             return [
-                into_c((k, com.maybe_box_datetimelike(v)) for k, v in row.items())
+                into_c((k, maybe_box_datetimelike(v)) for k, v in row.items())
                 for row in rows
             ]
 
@@ -2286,10 +2298,9 @@ class DataFrame(NDFrame, OpsMixin):
         if buf is None:
             return result
         ioargs = get_filepath_or_buffer(buf, mode=mode, storage_options=storage_options)
-        assert not isinstance(ioargs.filepath_or_buffer, str)
+        assert not isinstance(ioargs.filepath_or_buffer, (str, mmap.mmap))
         ioargs.filepath_or_buffer.writelines(result)
-        if ioargs.should_close:
-            ioargs.filepath_or_buffer.close()
+        ioargs.close()
         return None
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
@@ -7401,7 +7412,7 @@ NaN 12.3   33.0
             return self - self.shift(periods, axis=axis)
 
         new_data = self._mgr.diff(n=periods, axis=bm_axis)
-        return self._constructor(new_data)
+        return self._constructor(new_data).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
     # Function application
@@ -7780,7 +7791,7 @@ NaN 12.3   33.0
                 return lib.map_infer(x, func, ignore_na=ignore_na)
             return lib.map_infer(x.astype(object)._values, func, ignore_na=ignore_na)
 
-        return self.apply(infer)
+        return self.apply(infer).__finalize__(self, "applymap")
 
     # ----------------------------------------------------------------------
     # Merging / joining methods
@@ -7917,12 +7928,14 @@ NaN 12.3   33.0
             to_concat = [self, *other]
         else:
             to_concat = [self, other]
-        return concat(
-            to_concat,
-            ignore_index=ignore_index,
-            verify_integrity=verify_integrity,
-            sort=sort,
-        )
+        return (
+            concat(
+                to_concat,
+                ignore_index=ignore_index,
+                verify_integrity=verify_integrity,
+                sort=sort,
+            )
+        ).__finalize__(self, method="append")
 
     def join(
         self, other, on=None, how="left", lsuffix="", rsuffix="", sort=False
