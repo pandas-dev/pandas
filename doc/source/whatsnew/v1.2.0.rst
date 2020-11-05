@@ -230,6 +230,7 @@ Other enhancements
 - :class:`DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`37436`)
 - :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
 - :meth:`testing.assert_index_equal` now has a ``check_order`` parameter that allows indexes to be checked in an order-insensitive manner (:issue:`37478`)
+- :func:`read_csv` supports memory-mapping for compressed files (:issue:`37621`)
 
 .. _whatsnew_120.api_breaking.python:
 
