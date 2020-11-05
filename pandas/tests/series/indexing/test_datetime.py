@@ -628,19 +628,3 @@ def test_indexing():
     msg = r"Timestamp\('2012-01-02 18:01:02-0600', tz='US/Central', freq='S'\)"
     with pytest.raises(KeyError, match=msg):
         df[df.index[2]]
-
-
-"""
-test NaT support
-"""
-
-
-def test_setitem_tuple_with_datetimetz():
-    # GH 20441
-    arr = date_range("2017", periods=4, tz="US/Eastern")
-    index = [(0, 1), (0, 2), (0, 3), (0, 4)]
-    result = Series(arr, index=index)
-    expected = result.copy()
-    result[(0, 1)] = np.nan
-    expected.iloc[0] = np.nan
-    tm.assert_series_equal(result, expected)

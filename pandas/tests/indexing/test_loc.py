@@ -1084,6 +1084,16 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected.name = val
         tm.assert_series_equal(result, expected)
 
+    def test_loc_setitem_int_label_with_float64index(self):
+        # note labels are floats
+        ser = Series(["a", "b", "c"], index=[0, 0.5, 1])
+        tmp = ser.copy()
+
+        ser.loc[1] = "zoo"
+        tmp.iloc[2] = "zoo"
+
+        tm.assert_series_equal(ser, tmp)
+
 
 class TestLocWithMultiIndex:
     @pytest.mark.parametrize(
