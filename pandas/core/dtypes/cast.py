@@ -167,7 +167,8 @@ def maybe_box_native(value):
     elif is_float_dtype(value):
         value = float(value)
     elif is_integer_dtype(value):
-        value = int(value)
+        with suppress(ValueError):
+            value = int(value)
     return value
 
 
