@@ -151,7 +151,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         raise AbstractMethodError(cls)
 
-    def _unbox_scalar(self, value: DTScalarOrNaT, setitem: bool = False) -> int:
+    def _unbox_scalar(
+        self, value: DTScalarOrNaT, setitem: bool = False
+    ) -> Union[np.int64, np.datetime64, np.timedelta64]:
         """
         Unbox the integer value of a scalar `value`.
 
@@ -636,7 +638,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         if lib.is_scalar(other):
             other = self._unbox_scalar(other, setitem=setitem)
-            other = self._rebox_native(other)
         else:
             # same type as self
             self._check_compatible_with(other, setitem=setitem)
@@ -1024,9 +1025,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result : same class as self
         """
         assert op in [operator.add, operator.sub]
-        if len(other) == 1:
+        if len(other) == 1 and self.ndim == 1:
             # If both 1D then broadcasting is unambiguous
-            # TODO(EA2D): require self.ndim == other.ndim here
             return op(self, other[0])
 
         warnings.warn(
@@ -1062,8 +1062,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             if isinstance(freq, str):
                 freq = to_offset(freq)
             offset = periods * freq
-            result = self + offset
-            return result
+            return self + offset
 
         if periods == 0 or len(self) == 0:
             # GH#14811 empty case
@@ -1533,10 +1532,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             self = cast("DatetimeArray", self)
             naive = self.tz_localize(None)
             result = naive._round(freq, mode, ambiguous, nonexistent)
-            aware = result.tz_localize(
+            return result.tz_localize(
                 self.tz, ambiguous=ambiguous, nonexistent=nonexistent
             )
-            return aware
 
         values = self.view("i8")
         result = round_nsint64(values, mode, freq)

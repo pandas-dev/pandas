@@ -74,3 +74,14 @@ class TestAsFreq:
         expected_series = ts.asfreq(freq="1S").fillna(9.0)
         actual_series = ts.asfreq(freq="1S", fill_value=9.0)
         tm.assert_series_equal(expected_series, actual_series)
+
+    def test_asfreq_with_date_object_index(self, frame_or_series):
+        rng = date_range("1/1/2000", periods=20)
+        ts = frame_or_series(np.random.randn(20), index=rng)
+
+        ts2 = ts.copy()
+        ts2.index = [x.date() for x in ts2.index]
+
+        result = ts2.asfreq("4H", method="ffill")
+        expected = ts.asfreq("4H", method="ffill")
+        tm.assert_equal(result, expected)

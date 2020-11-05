@@ -1,6 +1,6 @@
-from dataclasses import dataclass
 from datetime import datetime, timedelta, tzinfo
-from io import IOBase
+from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
+from mmap import mmap
 from pathlib import Path
 from typing import (
     IO,
@@ -10,12 +10,12 @@ from typing import (
     Callable,
     Collection,
     Dict,
-    Generic,
     Hashable,
     List,
     Mapping,
     Optional,
     Sequence,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -77,8 +77,6 @@ Dtype = Union[
     "ExtensionDtype", str, np.dtype, Type[Union[str, float, int, complex, bool, object]]
 ]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
-FilePathOrBuffer = Union[str, Path, IO[AnyStr], IOBase]
-FileOrBuffer = Union[str, IO[AnyStr], IOBase]
 
 # FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
 # `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
@@ -96,6 +94,7 @@ Axis = Union[str, int]
 Label = Optional[Hashable]
 IndexLabel = Union[Label, Sequence[Label]]
 Level = Union[Label, int]
+Shape = Tuple[int, ...]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Axes = Collection
@@ -133,6 +132,10 @@ AggObjType = Union[
     "Resampler",
 ]
 
+# filenames and file-like-objects
+Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
+FileOrBuffer = Union[str, Buffer[T]]
+FilePathOrBuffer = Union[Path, FileOrBuffer[T]]
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]
@@ -150,21 +153,3 @@ EncodingVar = TypeVar("EncodingVar", str, None, Optional[str])
 
 # type of float formatter in DataFrameFormatter
 FloatFormatType = Union[str, Callable, "EngFormatter"]
-
-
-@dataclass
-class IOargs(Generic[ModeVar, EncodingVar]):
-    """
-    Return value of io/common.py:get_filepath_or_buffer.
-
-    Note (copy&past from io/parsers):
-    filepath_or_buffer can be Union[FilePathOrBuffer, s3fs.S3File, gcsfs.GCSFile]
-    though mypy handling of conditional imports is difficult.
-    See https://github.com/python/mypy/issues/1297
-    """
-
-    filepath_or_buffer: FileOrBuffer
-    encoding: EncodingVar
-    compression: CompressionDict
-    should_close: bool
-    mode: Union[ModeVar, str]
