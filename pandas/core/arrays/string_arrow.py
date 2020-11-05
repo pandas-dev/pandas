@@ -7,7 +7,6 @@ from typing import Any, Sequence, Type, Union
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -21,6 +20,7 @@ from pandas.api.types import (
     is_integer_dtype,
     is_scalar,
 )
+from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import get_fill_func
@@ -120,7 +120,7 @@ class ArrowStringDtype(ExtensionDtype):
             return False
 
 
-class ArrowStringArray(ExtensionArray):
+class ArrowStringArray(OpsMixin, ExtensionArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -397,10 +397,10 @@ class ArrowStringArray(ExtensionArray):
         """
         return type(self)(self.data)
 
-    def __eq__(self, other: Any) -> ArrayLike:
-        """
-        Return for `self == other` (element-wise equality).
-        """
+    def _cmp_method(self, other, op):
+        if op.__name__ != "eq":
+            return NotImplemented
+
         if isinstance(other, (pd.Series, pd.DataFrame, pd.Index)):
             return NotImplemented
         if isinstance(other, ArrowStringArray):
