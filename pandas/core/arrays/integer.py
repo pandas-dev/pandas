@@ -604,35 +604,18 @@ class IntegerArray(BaseMaskedArray):
         return self._maybe_mask_result(result, mask, other, op_name)
 
     def _accumulate(self, name: str, skipna: bool = True, **kwargs) -> "IntegerArray":
-        data = self._data
-        mask = self._mask
+        cum_function = {
+            "cumprod": np.cumprod,
+            "cummax": np.maximum.accumulate,
+            "cumsum": np.cumsum,
+            "cummin": np.minimum.accumulate,
+        }.get(name)
+        if not cum_function:
+            raise ValueError(f"{name} is not defined for IntegerArrays")
 
-        cum_function, fill_value = {
-            "cumprod": (np.cumprod, 1),
-            "cummax": (np.maximum.accumulate, data.min()),
-            "cumsum": (np.cumsum, 0),
-            "cummin": (np.minimum.accumulate, data.max()),
-        }[name]
-        from ..nanops import _get_values
+        from pandas.core.nanops import na_accum_func
 
-        values, mask, dtype, dtype_max, fill_value = _get_values(
-            data, skipna=skipna, fill_value=fill_value, mask=mask
-        )
-
-        if not skipna:
-            mask = np.maximum.accumulate(mask)
-
-        # makes target dtypes explicit since CI showed optimal UInt32
-        # dtype on test data occasionally. This was different across systems
-        dtype_out = dtype
-        if name in ["cumsum", "cumprod"]:
-            if dtype.name.lower().startswith("u"):
-                dtype_out = "uint64"
-            else:
-                dtype_out = "int64"
-
-        vals = cum_function(values, dtype=dtype_out)
-        result = IntegerArray(vals, mask)
+        result = na_accum_func(self, cum_function, skipna=skipna)
         return result
 
     def sum(self, skipna=True, min_count=0, **kwargs):
