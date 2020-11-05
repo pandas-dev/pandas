@@ -1179,7 +1179,7 @@ def test_stack_timezone_aware_values():
 def test_stack_empty_frame(dropna):
     # GH 36113
     expected = Series(index=MultiIndex([[], []], [[], []]), dtype=np.float64)
-    result = DataFrame().stack(dropna=dropna)
+    result = DataFrame(dtype=np.float64).stack(dropna=dropna)
     tm.assert_series_equal(result, expected)
 
 
@@ -1187,8 +1187,8 @@ def test_stack_empty_frame(dropna):
 @pytest.mark.parametrize("fill_value", [None, 0])
 def test_stack_unstack_empty_frame(dropna, fill_value):
     # GH 36113
-    result = DataFrame().stack(dropna=dropna).unstack(fill_value=fill_value)
-    expected = DataFrame()
+    result = DataFrame(dtype=np.intp).stack(dropna=dropna).unstack(fill_value=fill_value)
+    expected = DataFrame(dtype=np.intp)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1196,7 +1196,7 @@ def test_unstack_single_index_series():
     # GH 36113
     msg = r"index must be a MultiIndex to unstack.*"
     with pytest.raises(ValueError, match=msg):
-        Series().unstack()
+        Series(dtype=np.intp).unstack()
 
 
 def test_unstacking_multi_index_df():
