@@ -42,6 +42,7 @@ from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.cast import (
     convert_dtypes,
+    maybe_box_native,
     maybe_cast_to_extension_array,
     validate_numeric_casting,
 )
@@ -1600,7 +1601,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # GH16122
         into_c = com.standardize_mapping(into)
-        return into_c(self.items())
+        return into_c((k, maybe_box_native(v)) for k, v in self.items())
 
     def to_frame(self, name=None) -> "DataFrame":
         """
