@@ -1440,6 +1440,14 @@ class TestPartialStringSlicing:
 
         tm.assert_series_equal(result, expected)
 
+    def test_loc_getitem_partial_string_slicing_with_timedeltaindex(self):
+        ix = timedelta_range(start="1 day", end="2 days", freq="1H")
+        ser = ix.to_series()
+        result = ser.loc[:"1 days"]
+        expected = ser.iloc[:-1]
+
+        tm.assert_series_equal(result, expected)
+
 
 class TestLabelSlicing:
     def test_loc_getitem_label_slice_across_dst(self):
@@ -1461,6 +1469,14 @@ class TestLabelSlicing:
 
     def test_loc_getitem_label_slice_period(self):
         ix = pd.period_range(start="2017-01-01", end="2018-01-01", freq="M")
+        ser = ix.to_series()
+        result = ser.loc[: ix[-2]]
+        expected = ser.iloc[:-1]
+
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_getitem_label_slice_timedelta64(self):
+        ix = timedelta_range(start="1 day", end="2 days", freq="1H")
         ser = ix.to_series()
         result = ser.loc[: ix[-2]]
         expected = ser.iloc[:-1]
