@@ -689,11 +689,11 @@ class TestBlockManager:
 
     def test_get_bool_data_consistency(self):
         # GH#34918
-        ser = pd.Series([True, False, True], dtype=object)
-        ser2 = pd.Series(["A", "B", "C"])
+        ser = Series([True, False, True], dtype=object)
+        ser2 = Series(["A", "B", "C"])
         df = ser.to_frame("A")
 
-        expected = pd.DataFrame(index=ser.index)
+        expected = DataFrame(index=ser.index)
         bd1 = df._get_bool_data()
         tm.assert_frame_equal(bd1, expected)
 
