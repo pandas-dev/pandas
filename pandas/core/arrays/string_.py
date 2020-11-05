@@ -1,4 +1,3 @@
-import operator
 from typing import TYPE_CHECKING, Type, Union
 
 import numpy as np
@@ -15,7 +14,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas import compat
 from pandas.core import ops
 from pandas.core.arrays import IntegerArray, PandasArray
 from pandas.core.arrays.integer import _IntegerDtype
@@ -344,26 +342,7 @@ class StringArray(PandasArray):
             result[valid] = op(self._ndarray[valid], other)
             return BooleanArray(result, mask)
 
-    # Override parent because we have different return types.
-    @classmethod
-    def _create_arithmetic_method(cls, op):
-        # Note: this handles both arithmetic and comparison methods.
-
-        assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS
-
-        @ops.unpack_zerodim_and_defer(op.__name__)
-        def method(self, other):
-            return self._cmp_method(other, op)
-
-        return compat.set_function_name(method, f"__{op.__name__}__", cls)
-
-    @classmethod
-    def _add_arithmetic_ops(cls):
-        cls.__add__ = cls._create_arithmetic_method(operator.add)
-        cls.__radd__ = cls._create_arithmetic_method(ops.radd)
-
-        cls.__mul__ = cls._create_arithmetic_method(operator.mul)
-        cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
+    _arith_method = _cmp_method
 
     # ------------------------------------------------------------------------
     # String methods interface
@@ -417,6 +396,3 @@ class StringArray(PandasArray):
             #    or .findall returns a list).
             # -> We don't know the result type. E.g. `.get` can return anything.
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
-
-
-StringArray._add_arithmetic_ops()

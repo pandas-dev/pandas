@@ -9,11 +9,12 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._typing import Axis, DtypeObj, Scalar
+from pandas._typing import Axis, DtypeObj, Label, Scalar
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
+    dict_compat,
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
@@ -346,7 +347,7 @@ def _homogenize(data, index, dtype: Optional[DtypeObj]):
                     oindex = index.astype("O")
 
                 if isinstance(index, (ABCDatetimeIndex, ABCTimedeltaIndex)):
-                    val = com.dict_compat(val)
+                    val = dict_compat(val)
                 else:
                     val = dict(val)
                 val = lib.fast_multiget(val, oindex._values, default=np.nan)
@@ -436,7 +437,7 @@ def get_names_from_index(data):
     if not has_some_name:
         return ibase.default_index(len(data))
 
-    index = list(range(len(data)))
+    index: List[Label] = list(range(len(data)))
     count = 0
     for i, s in enumerate(data):
         n = getattr(s, "name", None)

@@ -1,13 +1,11 @@
 """Common utility functions for rolling operations"""
 from collections import defaultdict
-from typing import Callable, Optional
 import warnings
 
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
-from pandas.core.groupby.base import GotItemMixin
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.shared_docs import _shared_docs
 
@@ -25,69 +23,6 @@ _doc_template = """
         pandas.Series.%(func_name)s : Similar method for Series.
         pandas.DataFrame.%(func_name)s : Similar method for DataFrame.
 """
-
-
-def _dispatch(name: str, *args, **kwargs):
-    """
-    Dispatch to apply.
-    """
-
-    def outer(self, *args, **kwargs):
-        def f(x):
-            x = self._shallow_copy(x, groupby=self._groupby)
-            return getattr(x, name)(*args, **kwargs)
-
-        return self._groupby.apply(f)
-
-    outer.__name__ = name
-    return outer
-
-
-class WindowGroupByMixin(GotItemMixin):
-    """
-    Provide the groupby facilities.
-    """
-
-    def __init__(self, obj, *args, **kwargs):
-        kwargs.pop("parent", None)
-        groupby = kwargs.pop("groupby", None)
-        if groupby is None:
-            groupby, obj = obj, obj._selected_obj
-        self._groupby = groupby
-        self._groupby.mutated = True
-        self._groupby.grouper.mutated = True
-        super().__init__(obj, *args, **kwargs)
-
-    corr = _dispatch("corr", other=None, pairwise=None)
-    cov = _dispatch("cov", other=None, pairwise=None)
-
-    def _apply(
-        self,
-        func: Callable,
-        require_min_periods: int = 0,
-        floor: int = 1,
-        is_weighted: bool = False,
-        name: Optional[str] = None,
-        use_numba_cache: bool = False,
-        **kwargs,
-    ):
-        """
-        Dispatch to apply; we are stripping all of the _apply kwargs and
-        performing the original function call on the grouped object.
-        """
-        kwargs.pop("floor", None)
-        kwargs.pop("original_func", None)
-
-        # TODO: can we de-duplicate with _dispatch?
-        def f(x, name=name, *args):
-            x = self._shallow_copy(x)
-
-            if isinstance(name, str):
-                return getattr(x, name)(*args, **kwargs)
-
-            return x.apply(name, *args, **kwargs)
-
-        return self._groupby.apply(f)
 
 
 def flex_binary_moment(arg1, arg2, f, pairwise=False):

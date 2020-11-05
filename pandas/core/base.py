@@ -4,12 +4,22 @@ Base and utility classes for pandas objects.
 
 import builtins
 import textwrap
-from typing import Any, Callable, Dict, FrozenSet, Optional, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    FrozenSet,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import IndexLabel
+from pandas._typing import DtypeObj, IndexLabel
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -32,6 +42,9 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
+
+if TYPE_CHECKING:
+    from pandas import Categorical
 
 _shared_docs: Dict[str, str] = dict()
 _indexops_doc_kwargs = dict(
@@ -238,7 +251,7 @@ class SelectionMixin:
         Parameters
         ----------
         key : str / list of selections
-        ndim : 1,2
+        ndim : {1, 2}
             requested ndim of result
         subset : object, default None
             subset to act on
@@ -301,9 +314,14 @@ class IndexOpsMixin(OpsMixin):
 
     # ndarray compatibility
     __array_priority__ = 1000
-    _deprecations: FrozenSet[str] = frozenset(
+    _hidden_attrs: FrozenSet[str] = frozenset(
         ["tolist"]  # tolist is not deprecated, just suppressed in the __dir__
     )
+
+    @property
+    def dtype(self) -> DtypeObj:
+        # must be defined here as a property for mypy
+        raise AbstractMethodError(self)
 
     @property
     def _values(self) -> Union[ExtensionArray, np.ndarray]:
@@ -348,7 +366,7 @@ class IndexOpsMixin(OpsMixin):
 
     def item(self):
         """
-        Return the first element of the underlying data as a python scalar.
+        Return the first element of the underlying data as a Python scalar.
 
         Returns
         -------
@@ -832,6 +850,7 @@ class IndexOpsMixin(OpsMixin):
             if is_categorical_dtype(self.dtype):
                 # use the built in categorical series mapper which saves
                 # time by mapping the categories instead of all values
+                self = cast("Categorical", self)
                 return self._values.map(mapper)
 
             values = self._values
@@ -914,9 +933,9 @@ class IndexOpsMixin(OpsMixin):
         >>> index = pd.Index([3, 1, 2, 3, 4, np.nan])
         >>> index.value_counts()
         3.0    2
-        4.0    1
-        2.0    1
         1.0    1
+        2.0    1
+        4.0    1
         dtype: int64
 
         With `normalize` set to `True`, returns the relative frequency by
@@ -925,9 +944,9 @@ class IndexOpsMixin(OpsMixin):
         >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
         >>> s.value_counts(normalize=True)
         3.0    0.4
-        4.0    0.2
-        2.0    0.2
         1.0    0.2
+        2.0    0.2
+        4.0    0.2
         dtype: float64
 
         **bins**
@@ -938,8 +957,8 @@ class IndexOpsMixin(OpsMixin):
         number of half-open bins.
 
         >>> s.value_counts(bins=3)
-        (2.0, 3.0]      2
         (0.996, 2.0]    2
+        (2.0, 3.0]      2
         (3.0, 4.0]      1
         dtype: int64
 
@@ -949,10 +968,10 @@ class IndexOpsMixin(OpsMixin):
 
         >>> s.value_counts(dropna=False)
         3.0    2
-        NaN    1
-        4.0    1
-        2.0    1
         1.0    1
+        2.0    1
+        4.0    1
+        NaN    1
         dtype: int64
         """
         result = value_counts(
@@ -1181,6 +1200,16 @@ class IndexOpsMixin(OpsMixin):
 
         >>> ser.searchsorted([1, 3], side='right')
         array([1, 3])
+
+        >>> ser = pd.Series(pd.to_datetime(['3/11/2000', '3/12/2000', '3/13/2000']))
+        >>> ser
+        0   2000-03-11
+        1   2000-03-12
+        2   2000-03-13
+        dtype: datetime64[ns]
+
+        >>> ser.searchsorted('3/14/2000')
+        3
 
         >>> ser = pd.Categorical(
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True

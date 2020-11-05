@@ -238,7 +238,7 @@ class TestDataFrameNonuniqueIndexes:
         )
         for index in [df.index, pd.Index(list("edcba"))]:
             this_df = df.copy()
-            expected_ser = pd.Series(index.values, index=this_df.index)
+            expected_ser = Series(index.values, index=this_df.index)
             expected_df = DataFrame(
                 {"A": expected_ser, "B": this_df["B"], "A": expected_ser},
                 columns=["A", "B", "A"],
@@ -400,29 +400,6 @@ class TestDataFrameNonuniqueIndexes:
         result = z.loc[["a", "c", "a"]]
         check(result, expected)
 
-    def test_column_dups_indexing2(self):
-
-        # GH 8363
-        # datetime ops with a non-unique index
-        df = DataFrame(
-            {"A": np.arange(5, dtype="int64"), "B": np.arange(1, 6, dtype="int64")},
-            index=[2, 2, 3, 3, 4],
-        )
-        result = df.B - df.A
-        expected = Series(1, index=[2, 2, 3, 3, 4])
-        tm.assert_series_equal(result, expected)
-
-        df = DataFrame(
-            {
-                "A": date_range("20130101", periods=5),
-                "B": date_range("20130101 09:00:00", periods=5),
-            },
-            index=[2, 2, 3, 3, 4],
-        )
-        result = df.B - df.A
-        expected = Series(pd.Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
-        tm.assert_series_equal(result, expected)
-
     def test_columns_with_dups(self):
         # GH 3468 related
 
@@ -487,16 +464,6 @@ class TestDataFrameNonuniqueIndexes:
         xp = DataFrame(vals)
         xp.columns = ["A", "A", "B"]
         tm.assert_frame_equal(rs, xp)
-
-    def test_values_duplicates(self):
-        df = DataFrame(
-            [[1, 2, "a", "b"], [1, 2, "a", "b"]], columns=["one", "one", "two", "two"]
-        )
-
-        result = df.values
-        expected = np.array([[1, 2, "a", "b"], [1, 2, "a", "b"]], dtype=object)
-
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_set_value_by_index(self):
         # See gh-12344
