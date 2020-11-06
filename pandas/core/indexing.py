@@ -1592,7 +1592,11 @@ class _iLocIndexer(_LocationIndexer):
                             return
 
                         # add a new item with the dtype setup
-                        self.obj[key] = infer_fill_value(value)
+                        if com.is_null_slice(indexer[0]):
+                            # We are setting an entire column
+                            self.obj[key] = value
+                        else:
+                            self.obj[key] = infer_fill_value(value)
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
@@ -1641,14 +1645,11 @@ class _iLocIndexer(_LocationIndexer):
 
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)
+        if len(indexer) > self.ndim:
+            raise IndexError("too many indices for array")
 
         if isinstance(value, ABCSeries):
             value = self._align_series(indexer, value)
-
-        info_idx = indexer[1]
-        if is_integer(info_idx):
-            info_idx = [info_idx]
-        labels = self.obj.columns[info_idx]
 
         # Ensure we have something we can iterate over
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
@@ -1657,7 +1658,7 @@ class _iLocIndexer(_LocationIndexer):
         lplane_indexer = length_of_indexer(plane_indexer[0], self.obj.index)
         # lplane_indexer gives the expected length of obj[indexer[0]]
 
-        if len(labels) == 1:
+        if len(ilocs) == 1:
             # We can operate on a single column
 
             # require that we are setting the right number of values that
@@ -1678,7 +1679,7 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value)
 
-            # we have an equal len ndarray/convertible to our labels
+            # we have an equal len ndarray/convertible to our ilocs
             # hasattr first, to avoid coercing to ndarray without reason.
             # But we may be relying on the ndarray coercion to check ndim.
             # Why not just convert to an ndarray earlier on if needed?
@@ -1686,12 +1687,12 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif (
-                len(labels) == 1
+                len(ilocs) == 1
                 and lplane_indexer == len(value)
                 and not is_scalar(plane_indexer[0])
             ):
                 # we have an equal len list/ndarray
-                # We only get here with len(labels) == len(ilocs) == 1
+                # We only get here with len(ilocs) == 1
                 self._setitem_single_column(ilocs[0], value, plane_indexer)
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
@@ -1709,6 +1710,9 @@ class _iLocIndexer(_LocationIndexer):
                 for loc, v in zip(ilocs, value):
                     self._setitem_single_column(loc, v, plane_indexer)
         else:
+
+            if isinstance(indexer[0], np.ndarray) and indexer[0].ndim > 2:
+                raise ValueError(r"Cannot set values with ndim > 2")
 
             # scalar value
             for loc in ilocs:
