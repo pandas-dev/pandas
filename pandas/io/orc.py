@@ -31,7 +31,7 @@ def read_orc(
         ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
+        such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
     columns : list, default None
         If not None, only these columns will be read from the file.
@@ -53,4 +53,5 @@ def read_orc(
     ioargs = get_filepath_or_buffer(path)
     orc_file = pyarrow.orc.ORCFile(ioargs.filepath_or_buffer)
     result = orc_file.read(columns=columns, **kwargs).to_pandas()
+    ioargs.close()
     return result

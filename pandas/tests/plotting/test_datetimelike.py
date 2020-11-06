@@ -9,7 +9,7 @@ import pytest
 from pandas._libs.tslibs import BaseOffset, to_offset
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, NaT, Series, isna
+from pandas import DataFrame, Index, NaT, Series, isna, to_datetime
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import DatetimeIndex, bdate_range, date_range
 from pandas.core.indexes.period import Period, PeriodIndex, period_range
@@ -291,9 +291,16 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         df2 = df.copy()
         df2.index = df.index.astype(object)
-        df2.plot(ax=ax)
-        diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
-        assert (np.fabs(diffs[1:] - sec) < 1e-8).all()
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # This warning will be emitted
+            # pandas/core/frame.py:3216:
+            # FutureWarning: Automatically casting object-dtype Index of datetimes
+            # to DatetimeIndex is deprecated and will be removed in a future version.
+            # Explicitly cast to DatetimeIndex instead.
+            # return klass(values, index=self.index, name=name, fastpath=True)
+            df2.plot(ax=ax)
+            diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
+            assert (np.fabs(diffs[1:] - sec) < 1e-8).all()
 
     def test_irregular_datetime64_repr_bug(self):
         ser = tm.makeTimeSeries()
@@ -1028,9 +1035,16 @@ class TestTSPlot(TestPlotBase):
         # np.datetime64
         idx = date_range("1/1/2000", periods=10)
         idx = idx[[0, 2, 5, 9]].astype(object)
-        df = DataFrame(np.random.randn(len(idx), 3), idx)
-        _, ax = self.plt.subplots()
-        _check_plot_works(df.plot, ax=ax)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # This warning will be emitted
+            # pandas/core/frame.py:3216:
+            # FutureWarning: Automatically casting object-dtype Index of datetimes
+            # to DatetimeIndex is deprecated and will be removed in a future version.
+            # Explicitly cast to DatetimeIndex instead.
+            # return klass(values, index=self.index, name=name, fastpath=True)
+            df = DataFrame(np.random.randn(len(idx), 3), idx)
+            _, ax = self.plt.subplots()
+            _check_plot_works(df.plot, ax=ax)
 
     @pytest.mark.slow
     def test_time(self):
@@ -1493,6 +1507,32 @@ class TestTSPlot(TestPlotBase):
         else:
             expected = "2017-12-12"
         assert label.get_text() == expected
+
+    def test_check_xticks_rot(self):
+        # https://github.com/pandas-dev/pandas/issues/29460
+        # regular time series
+        x = to_datetime(["2020-05-01", "2020-05-02", "2020-05-03"])
+        df = DataFrame({"x": x, "y": [1, 2, 3]})
+        axes = df.plot(x="x", y="y")
+        self._check_ticks_props(axes, xrot=0)
+
+        # irregular time series
+        x = to_datetime(["2020-05-01", "2020-05-02", "2020-05-04"])
+        df = DataFrame({"x": x, "y": [1, 2, 3]})
+        axes = df.plot(x="x", y="y")
+        self._check_ticks_props(axes, xrot=30)
+
+        # use timeseries index or not
+        axes = df.set_index("x").plot(y="y", use_index=True)
+        self._check_ticks_props(axes, xrot=30)
+        axes = df.set_index("x").plot(y="y", use_index=False)
+        self._check_ticks_props(axes, xrot=0)
+
+        # separate subplots
+        axes = df.plot(x="x", y="y", subplots=True, sharex=True)
+        self._check_ticks_props(axes, xrot=30)
+        axes = df.plot(x="x", y="y", subplots=True, sharex=False)
+        self._check_ticks_props(axes, xrot=0)
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

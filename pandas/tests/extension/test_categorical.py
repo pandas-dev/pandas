@@ -137,7 +137,7 @@ class TestMethods(base.BaseMethodsTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 + x2)
         expected = pd.Series(
-            ([a + b for (a, b) in zip(list(orig_data1), list(orig_data2))])
+            [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
         )
         self.assert_series_equal(result, expected)
 
@@ -199,7 +199,7 @@ class TestCasting(base.BaseCastingTests):
     )
     def test_consistent_casting(self, dtype, expected):
         # GH 28448
-        result = pd.Categorical("2015-01-01").astype(dtype)
+        result = Categorical("2015-01-01").astype(dtype)
         assert result == expected
 
 

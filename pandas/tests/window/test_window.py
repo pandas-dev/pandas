@@ -6,7 +6,6 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Series
-from pandas.core.window import Window
 
 
 @td.skip_if_no_scipy
@@ -19,16 +18,25 @@ def test_constructor(which):
     c(win_type="boxcar", window=2, min_periods=1, center=True)
     c(win_type="boxcar", window=2, min_periods=1, center=False)
 
-    # not valid
-    for w in [2.0, "foo", np.array([2])]:
-        with pytest.raises(ValueError, match="min_periods must be an integer"):
-            c(win_type="boxcar", window=2, min_periods=w)
-        with pytest.raises(ValueError, match="center must be a boolean"):
-            c(win_type="boxcar", window=2, min_periods=1, center=w)
 
-    for wt in ["foobar", 1]:
-        with pytest.raises(ValueError, match="Invalid win_type"):
-            c(win_type=wt, window=2)
+@pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
+@td.skip_if_no_scipy
+def test_invalid_constructor(which, w):
+    # not valid
+
+    c = which.rolling
+    with pytest.raises(ValueError, match="min_periods must be an integer"):
+        c(win_type="boxcar", window=2, min_periods=w)
+    with pytest.raises(ValueError, match="center must be a boolean"):
+        c(win_type="boxcar", window=2, min_periods=1, center=w)
+
+
+@pytest.mark.parametrize("wt", ["foobar", 1])
+@td.skip_if_no_scipy
+def test_invalid_constructor_wintype(which, wt):
+    c = which.rolling
+    with pytest.raises(ValueError, match="Invalid win_type"):
+        c(win_type=wt, window=2)
 
 
 @td.skip_if_no_scipy
@@ -41,7 +49,7 @@ def test_constructor_with_win_type(which, win_types):
 @pytest.mark.parametrize("method", ["sum", "mean"])
 def test_numpy_compat(method):
     # see gh-12811
-    w = Window(Series([2, 4, 6]), window=[0, 2])
+    w = Series([2, 4, 6]).rolling(window=2)
 
     msg = "numpy operations are not valid with window objects"
 
@@ -66,3 +74,11 @@ def test_agg_function_support(arg):
 
     with pytest.raises(AttributeError, match=msg):
         roll.agg({"A": arg})
+
+
+@td.skip_if_no_scipy
+def test_invalid_scipy_arg():
+    # This error is raised by scipy
+    msg = r"boxcar\(\) got an unexpected"
+    with pytest.raises(TypeError, match=msg):
+        Series(range(3)).rolling(1, win_type="boxcar").mean(foo="bar")

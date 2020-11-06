@@ -27,15 +27,15 @@ from contextlib import contextmanager
 from distutils.version import LooseVersion
 import locale
 from typing import Callable, Optional
+import warnings
 
 import numpy as np
 import pytest
 
 from pandas.compat import IS64, is_platform_windows
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import _np_version
 
-from pandas.core.computation.expressions import _NUMEXPR_INSTALLED, _USE_NUMEXPR
+from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
 
 
 def safe_import(mod_name: str, min_version: Optional[str] = None):
@@ -52,10 +52,20 @@ def safe_import(mod_name: str, min_version: Optional[str] = None):
     object
         The imported module if successful, or False
     """
-    try:
-        mod = __import__(mod_name)
-    except ImportError:
-        return False
+    with warnings.catch_warnings():
+        # Suppress warnings that we can't do anything about,
+        #  e.g. from aiohttp
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module="aiohttp",
+            message=".*decorator is deprecated since Python 3.8.*",
+        )
+
+        try:
+            mod = __import__(mod_name)
+        except ImportError:
+            return False
 
     if not min_version:
         return mod
@@ -74,21 +84,6 @@ def safe_import(mod_name: str, min_version: Optional[str] = None):
                 return mod
 
     return False
-
-
-# TODO:
-# remove when gh-24839 is fixed.
-# this affects numpy 1.16 and pytables 3.4.4
-tables = safe_import("tables")
-xfail_non_writeable = pytest.mark.xfail(
-    tables
-    and LooseVersion(np.__version__) >= LooseVersion("1.16")
-    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
-    reason=(
-        "gh-25511, gh-24839. pytables needs a "
-        "release beyond 3.4.4 to support numpy 1.16.x"
-    ),
-)
 
 
 def _skip_if_no_mpl():
@@ -195,8 +190,8 @@ skip_if_no_scipy = pytest.mark.skipif(
     _skip_if_no_scipy(), reason="Missing SciPy requirement"
 )
 skip_if_no_ne = pytest.mark.skipif(
-    not _USE_NUMEXPR,
-    reason=f"numexpr enabled->{_USE_NUMEXPR}, installed->{_NUMEXPR_INSTALLED}",
+    not USE_NUMEXPR,
+    reason=f"numexpr enabled->{USE_NUMEXPR}, installed->{NUMEXPR_INSTALLED}",
 )
 
 
@@ -205,7 +200,9 @@ skip_if_no_ne = pytest.mark.skipif(
 def skip_if_np_lt(ver_str: str, *args, reason: Optional[str] = None):
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
-    return pytest.mark.skipif(_np_version < LooseVersion(ver_str), *args, reason=reason)
+    return pytest.mark.skipif(
+        np.__version__ < LooseVersion(ver_str), *args, reason=reason
+    )
 
 
 def parametrize_fixture_doc(*args):

@@ -8,8 +8,6 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
-    is_float,
-    is_integer,
     is_scalar,
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
@@ -153,7 +151,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         # - Cases checked above all return/raise before reaching here - #
 
-        tdarr = TimedeltaArray._from_sequence(
+        tdarr = TimedeltaArray._from_sequence_not_strict(
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
         return cls._simple_new(tdarr, name=name)
@@ -184,7 +182,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # -------------------------------------------------------------------
 
     @doc(Index.astype)
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
         if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
             # Have to repeat the check for 'timedelta64' (not ns) dtype
@@ -202,6 +200,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         """
         return is_timedelta64_dtype(dtype)
 
+    # -------------------------------------------------------------------
+    # Indexing Methods
+
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -214,7 +215,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             raise InvalidIndexError(key)
 
         try:
-            key = self._data._validate_scalar(key, cast_str=True)
+            key = self._data._validate_scalar(key, unbox=False)
         except TypeError as err:
             raise KeyError(key) from err
 
@@ -243,10 +244,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 return lbound
             else:
                 return lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
-        elif is_integer(label) or is_float(label):
+        elif not isinstance(label, self._data._recognized_scalars):
             self._invalid_indexer("slice", label)
 
         return label
+
+    # -------------------------------------------------------------------
 
     def is_type_compatible(self, typ) -> bool:
         return typ == self.inferred_type or typ == "timedelta"
@@ -254,9 +257,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     @property
     def inferred_type(self) -> str:
         return "timedelta64"
-
-
-TimedeltaIndex._add_logical_methods_disabled()
 
 
 def timedelta_range(
@@ -323,8 +323,8 @@ def timedelta_range(
 
     >>> pd.timedelta_range(start='1 day', end='5 days', periods=4)
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
-                '5 days 00:00:00'],
-               dtype='timedelta64[ns]', freq='32H')
+                    '5 days 00:00:00'],
+                   dtype='timedelta64[ns]', freq=None)
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"

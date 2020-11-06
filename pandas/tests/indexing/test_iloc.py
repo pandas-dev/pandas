@@ -51,12 +51,12 @@ class TestiLoc2:
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesnt matter for _is_scalar_access
         index = pd.Index([1, 2, 1])
-        ser = pd.Series(range(3), index=index)
+        ser = Series(range(3), index=index)
 
         assert ser.iloc._is_scalar_access((1,))
 
         df = ser.to_frame()
-        assert df.iloc._is_scalar_access((1, 0,))
+        assert df.iloc._is_scalar_access((1, 0))
 
     def test_iloc_exceeds_bounds(self):
 
@@ -195,7 +195,7 @@ class TestiLoc2:
         # GH 21867
         array_with_neg_numbers = np.array([1, 2, -1])
         array_copy = array_with_neg_numbers.copy()
-        df = pd.DataFrame(
+        df = DataFrame(
             {"A": [100, 101, 102], "B": [103, 104, 105], "C": [106, 107, 108]},
             index=[1, 2, 3],
         )
@@ -367,6 +367,20 @@ class TestiLoc2:
         # reversed x 2
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
+        tm.assert_frame_equal(df, expected)
+
+    def test_iloc_setitem_frame_duplicate_columns_multiple_blocks(self):
+        # Same as the "assign back to self" check in test_iloc_setitem_dups
+        #  but on a DataFrame with multiple blocks
+        df = DataFrame([[0, 1], [2, 3]], columns=["B", "B"])
+
+        df.iloc[:, 0] = df.iloc[:, 0].astype("f8")
+        assert len(df._mgr.blocks) == 2
+        expected = df.copy()
+
+        # assign back to self
+        df.iloc[[0, 1], [0, 1]] = df.iloc[[0, 1], [0, 1]]
+
         tm.assert_frame_equal(df, expected)
 
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
@@ -548,7 +562,7 @@ class TestiLoc2:
         # assigning like "df.iloc[0, [0]] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
-        df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         df.iloc[0, indexer] = value
         result = df.iloc[0, 0]
 
@@ -685,7 +699,7 @@ class TestiLoc2:
         # GH24919
         df = DataFrame([[1, 2], [3, 4]])
         result = df.iloc[np.array(0)]
-        s = pd.Series([1, 2], name=0)
+        s = Series([1, 2], name=0)
         tm.assert_series_equal(result, s)
 
     def test_series_indexing_zerodim_np_array(self):
@@ -698,7 +712,7 @@ class TestiLoc2:
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
         cat = pd.Categorical(["A", "B", "C"])
-        df = pd.DataFrame({1: cat, 2: [1, 2, 3]})
+        df = DataFrame({1: cat, 2: [1, 2, 3]})
 
         # This should modify our original values in-place
         df.iloc[:, 0] = cat[::-1]
@@ -725,12 +739,21 @@ class TestiLoc2:
         expected = DataFrame([[0.0, 4.0], [8.0, 12.0], [4.0, 5.0], [6.0, np.nan]])
         tm.assert_frame_equal(result, expected)
 
+    def test_iloc_getitem_singlerow_slice_categoricaldtype_gives_series(self):
+        # GH#29521
+        df = DataFrame({"x": pd.Categorical("a b c d e".split())})
+        result = df.iloc[0]
+        raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
+        expected = Series(raw_cat, index=["x"], name=0, dtype="category")
+
+        tm.assert_series_equal(result, expected)
+
 
 class TestILocSetItemDuplicateColumns:
     def test_iloc_setitem_scalar_duplicate_columns(self):
         # GH#15686, duplicate columns and mixed dtype
-        df1 = pd.DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
-        df2 = pd.DataFrame([{"A": 3, "B": 3}, {"A": 4, "B": 4}])
+        df1 = DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
+        df2 = DataFrame([{"A": 3, "B": 3}, {"A": 4, "B": 4}])
         df = pd.concat([df1, df2], axis=1)
         df.iloc[0, 0] = -1
 
@@ -740,16 +763,130 @@ class TestILocSetItemDuplicateColumns:
 
     def test_iloc_setitem_list_duplicate_columns(self):
         # GH#22036 setting with same-sized list
-        df = pd.DataFrame([[0, "str", "str2"]], columns=["a", "b", "b"])
+        df = DataFrame([[0, "str", "str2"]], columns=["a", "b", "b"])
 
         df.iloc[:, 2] = ["str3"]
 
-        expected = pd.DataFrame([[0, "str", "str3"]], columns=["a", "b", "b"])
+        expected = DataFrame([[0, "str", "str3"]], columns=["a", "b", "b"])
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_setitem_series_duplicate_columns(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             np.arange(8, dtype=np.int64).reshape(2, 4), columns=["A", "B", "A", "B"]
         )
         df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
         assert df.dtypes.iloc[2] == np.int64
+
+
+class TestILocCallable:
+    def test_frame_iloc_getitem_callable(self):
+        # GH#11485
+        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+
+        # return location
+        res = df.iloc[lambda x: [1, 3]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3]])
+
+        res = df.iloc[lambda x: [1, 3], :]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], :])
+
+        res = df.iloc[lambda x: [1, 3], lambda x: 0]
+        tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+
+        res = df.iloc[lambda x: [1, 3], lambda x: [0]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+
+        # mixture
+        res = df.iloc[[1, 3], lambda x: 0]
+        tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+
+        res = df.iloc[[1, 3], lambda x: [0]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+
+        res = df.iloc[lambda x: [1, 3], 0]
+        tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+
+        res = df.iloc[lambda x: [1, 3], [0]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+
+    def test_frame_iloc_setitem_callable(self):
+        # GH#11485
+        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+
+        # return location
+        res = df.copy()
+        res.iloc[lambda x: [1, 3]] = 0
+        exp = df.copy()
+        exp.iloc[[1, 3]] = 0
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], :] = -1
+        exp = df.copy()
+        exp.iloc[[1, 3], :] = -1
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], lambda x: 0] = 5
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = 5
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], lambda x: [0]] = 25
+        exp = df.copy()
+        exp.iloc[[1, 3], [0]] = 25
+        tm.assert_frame_equal(res, exp)
+
+        # mixture
+        res = df.copy()
+        res.iloc[[1, 3], lambda x: 0] = -3
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = -3
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[[1, 3], lambda x: [0]] = -5
+        exp = df.copy()
+        exp.iloc[[1, 3], [0]] = -5
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], 0] = 10
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = 10
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], [0]] = [-5, -5]
+        exp = df.copy()
+        exp.iloc[[1, 3], [0]] = [-5, -5]
+        tm.assert_frame_equal(res, exp)
+
+
+class TestILocSeries:
+    def test_iloc(self):
+        ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+
+        for i in range(len(ser)):
+            result = ser.iloc[i]
+            exp = ser[ser.index[i]]
+            tm.assert_almost_equal(result, exp)
+
+        # pass a slice
+        result = ser.iloc[slice(1, 3)]
+        expected = ser.loc[2:4]
+        tm.assert_series_equal(result, expected)
+
+        # test slice is a view
+        result[:] = 0
+        assert (ser[1:3] == 0).all()
+
+        # list of integers
+        result = ser.iloc[[0, 2, 3, 4, 5]]
+        expected = ser.reindex(ser.index[[0, 2, 3, 4, 5]])
+        tm.assert_series_equal(result, expected)
+
+    def test_iloc_getitem_nonunique(self):
+        ser = Series([0, 1, 2], index=[0, 1, 0])
+        assert ser.iloc[2] == 2

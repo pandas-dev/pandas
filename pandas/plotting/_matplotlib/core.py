@@ -83,6 +83,8 @@ class MPLPlot:
     _default_rot = 0
     orientation: Optional[str] = None
 
+    axes: np.ndarray  # of Axes objects
+
     def __init__(
         self,
         data,
@@ -177,7 +179,7 @@ class MPLPlot:
 
         self.ax = ax
         self.fig = fig
-        self.axes = None
+        self.axes = np.array([], dtype=object)  # "real" version get set in `generate`
 
         # parse errorbar input if given
         xerr = kwds.pop("xerr", None)
@@ -418,7 +420,7 @@ class MPLPlot:
         valid_log = {False, True, "sym", None}
         input_log = {self.logx, self.logy, self.loglog}
         if input_log - valid_log:
-            invalid_log = next(iter((input_log - valid_log)))
+            invalid_log = next(iter(input_log - valid_log))
             raise ValueError(
                 f"Boolean, None and 'sym' are valid options, '{invalid_log}' is given."
             )
@@ -784,7 +786,7 @@ class MPLPlot:
             # subplots is True: one ax per column
             return col_idx
 
-    def _get_ax(self, i):
+    def _get_ax(self, i: int):
         # get the twinx ax if appropriate
         if self.subplots:
             i = self._col_idx_to_axis_idx(i)
@@ -1010,8 +1012,10 @@ class PlanePlot(MPLPlot):
 
     def _post_plot_logic(self, ax: "Axes", data):
         x, y = self.x, self.y
-        ax.set_ylabel(pprint_thing(y))
-        ax.set_xlabel(pprint_thing(x))
+        xlabel = self.xlabel if self.xlabel is not None else pprint_thing(x)
+        ylabel = self.ylabel if self.ylabel is not None else pprint_thing(y)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
 
     def _plot_colorbar(self, ax: "Axes", **kwds):
         # Addresses issues #10611 and #10678:
@@ -1319,11 +1323,15 @@ class LinePlot(MPLPlot):
             ax.xaxis.set_major_locator(FixedLocator(xticks))
             ax.set_xticklabels(xticklabels)
 
+        # If the index is an irregular time series, then by default
+        # we rotate the tick labels. The exception is if there are
+        # subplots which don't share their x-axes, in which we case
+        # we don't rotate the ticklabels as by default the subplots
+        # would be too close together.
         condition = (
             not self._use_dynamic_x()
-            and data.index.is_all_dates
-            and not self.subplots
-            or (self.subplots and self.sharex)
+            and (data.index._is_all_dates and self.use_index)
+            and (not self.subplots or (self.subplots and self.sharex))
         )
 
         index_name = self._get_index_name()

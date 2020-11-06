@@ -1,6 +1,15 @@
 language: python
 python: 3.7
 
+addons:
+  apt:
+    update: true
+    packages:
+      - xvfb
+
+services:
+  - xvfb
+
 # To turn off cached cython files and compiler cache
 # set NOCACHE-true
 # To delete caches go to https://travis-ci.org/OWNER/REPOSITORY/caches or run
@@ -10,11 +19,9 @@ cache:
   ccache: true
   directories:
     - $HOME/.cache # cython cache
-    - $HOME/.ccache # compiler cache
 
 env:
   global:
-    # Variable for test workers
     - PYTEST_WORKERS="auto"
     # create a github personal access token
     # cd pandas-dev/pandas
@@ -22,33 +29,32 @@ env:
     - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
 
 git:
-  # for cloning
   depth: false
 
 matrix:
   fast_finish: true
 
   include:
-    # In allowed failures
     - dist: bionic
       python: 3.9-dev
       env:
         - JOB="3.9-dev" PATTERN="(not slow and not network and not clipboard)"
-    - env:
-        - JOB="3.8" ENV_FILE="ci/deps/travis-38.yaml" PATTERN="(not slow and not network and not clipboard)"
 
     - env:
-        - JOB="3.7" ENV_FILE="ci/deps/travis-37.yaml" PATTERN="(not slow and not network and not clipboard)"
-
-    - arch: arm64
-      env:
-        - JOB="3.7, arm64" PYTEST_WORKERS=8 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard)"
+      - JOB="3.8, slow" ENV_FILE="ci/deps/travis-38-slow.yaml" PATTERN="slow" SQL="1"
+      services:
+        - mysql
+        - postgresql
 
     - env:
         - JOB="3.7, locale" ENV_FILE="ci/deps/travis-37-locale.yaml" PATTERN="((not slow and not network and not clipboard) or (single and db))" LOCALE_OVERRIDE="zh_CN.UTF-8" SQL="1"
       services:
         - mysql
         - postgresql
+
+    - arch: arm64
+      env:
+        - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
 
     - env:
         # Enabling Deprecations when running tests
@@ -58,13 +64,12 @@ matrix:
       services:
         - mysql
         - postgresql
+
   allow_failures:
+    # Moved to allowed_failures 2020-09-29 due to timeouts https://github.com/pandas-dev/pandas/issues/36719
     - arch: arm64
       env:
-        - JOB="3.7, arm64" PYTEST_WORKERS=8 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard)"
-    - dist: bionic
-      env:
-        - JOB="3.9-dev" PATTERN="(not slow and not network and not clipboard)"
+        - JOB="3.7, arm64" PYTEST_WORKERS=1 ENV_FILE="ci/deps/travis-37-arm64.yaml" PATTERN="(not slow and not network and not clipboard and not arm_slow)"
 
 
 before_install:
@@ -78,12 +83,6 @@ before_install:
   - uname -a
   - git --version
   - ./ci/check_git_tags.sh
-  # Because travis runs on Google Cloud and has a /etc/boto.cfg,
-  # it breaks moto import, see:
-  # https://github.com/spulec/moto/issues/1771
-  # https://github.com/boto/boto/issues/3741
-  # This overrides travis and tells it to look nowhere.
-  - export BOTO_CONFIG=/dev/null
 
 install:
   - echo "install start"
