@@ -3400,7 +3400,7 @@ class TestDataFramePlots(TestPlotBase):
             "d": np.arange(10),
             "e": np.arange(10),
         }
-        df = pd.DataFrame(d)
+        df = DataFrame(d)
 
         axes = df.plot(subplots=[("b", "e"), ("c", "d")], kind=kind)
         assert len(axes) == 3  # 2 groups + single column a
@@ -3426,21 +3426,21 @@ class TestDataFramePlots(TestPlotBase):
         # formatted iterable. Only iterables of iterables are permitted, and
         # entries should not be strings.
         d = {"a": np.arange(10), "b": np.arange(10)}
-        df = pd.DataFrame(d)
+        df = DataFrame(d)
 
         with pytest.raises(ValueError, match=expected_msg):
             df.plot(subplots=subplots)
 
     def test_group_subplot_invalid_column_name(self):
         d = {"a": np.arange(10), "b": np.arange(10)}
-        df = pd.DataFrame(d)
+        df = DataFrame(d)
 
         with pytest.raises(ValueError, match="invalid names: {'bad_name'}"):
             df.plot(subplots=[("a", "bad_name")])
 
     def test_group_subplot_duplicated_column(self):
         d = {"a": np.arange(10), "b": np.arange(10), "c": np.arange(10)}
-        df = pd.DataFrame(d)
+        df = DataFrame(d)
 
         with pytest.raises(ValueError, match="should be in only one subplot"):
             df.plot(subplots=[("a", "b"), ("a", "c")])
@@ -3448,7 +3448,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.parametrize("kind", ("box", "scatter", "hexbin"))
     def test_group_subplot_invalid_kind(self, kind):
         d = {"a": np.arange(10), "b": np.arange(10)}
-        df = pd.DataFrame(d)
+        df = DataFrame(d)
         with pytest.raises(
             ValueError, match="When subplots is an iterable, kind must be one of"
         ):
