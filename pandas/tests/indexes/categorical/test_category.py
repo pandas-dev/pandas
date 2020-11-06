@@ -445,8 +445,8 @@ class TestCategoricalIndex(Base):
         assert not b.equals(c)
 
     def test_equals_non_category(self):
-        # Case where other contains a value not among ci's categories ("D") and
-        #  also contains np.nan
+        # GH#37667 Case where other contains a value not among ci's
+        #  categories ("D") and also contains np.nan
         ci = CategoricalIndex(["A", "B", np.nan, np.nan])
         other = Index(["A", "B", "D", np.nan])
 

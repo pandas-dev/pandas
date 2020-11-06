@@ -273,7 +273,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             other = other._values
 
             if not ((other == values) | (isna(other) & isna(values))).all():
-                # GH#???? see test_equals_non_category
+                # GH#37667 see test_equals_non_category
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )
