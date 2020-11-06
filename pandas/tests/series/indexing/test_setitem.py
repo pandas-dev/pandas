@@ -4,15 +4,15 @@ import numpy as np
 import pytest
 
 from pandas import (
+    DataFrame,
     DatetimeIndex,
     MultiIndex,
     NaT,
     Series,
     Timestamp,
+    array,
     date_range,
     period_range,
-    array,
-    DataFrame,
 )
 from pandas.core.indexing import IndexingError
 import pandas.testing as tm
