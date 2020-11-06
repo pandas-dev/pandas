@@ -1580,7 +1580,7 @@ def maybe_cast_to_datetime(value, dtype: DtypeObj, errors: str = "raise"):
     return value
 
 
-def find_common_type(types: Union[List[DtypeObj], Series]) -> DtypeObj:
+def find_common_type(types: List[DtypeObj]) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
 
@@ -1597,7 +1597,7 @@ def find_common_type(types: Union[List[DtypeObj], Series]) -> DtypeObj:
     numpy.find_common_type
 
     """
-    if len(types) == 0:
+    if not types:
         raise ValueError("no types given")
 
     first = types[0]
