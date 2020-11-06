@@ -1146,12 +1146,6 @@ def test_make_block_no_pandas_array():
     assert result.is_extension is False
 
 
-def test_missing_unicode_key():
-    df = DataFrame({"a": [1]})
-    with pytest.raises(KeyError, match="\u05d0"):
-        df.loc[:, "\u05d0"]  # should not raise UnicodeEncodeError
-
-
 def test_single_block_manager_fastpath_deprecated():
     # GH#33092
     ser = Series(range(3))
