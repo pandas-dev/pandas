@@ -6062,11 +6062,11 @@ Can only compare identically-labeled
 Examples
 --------
 >>> df = pd.DataFrame(
-...     {
+...     {{
 ...         "col1": ["a", "a", "b", "b", "a"],
 ...         "col2": [1.0, 2.0, 3.0, np.nan, 5.0],
 ...         "col3": [1.0, 2.0, 3.0, 4.0, 5.0]
-...     },
+...     }},
 ...     columns=["col1", "col2", "col3"],
 ... )
 >>> df
