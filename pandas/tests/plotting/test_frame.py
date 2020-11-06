@@ -2654,7 +2654,7 @@ class TestDataFramePlots(TestPlotBase):
         for i in range(4):
             df.iloc[i, i] = np.nan
         fig, axes = self.plt.subplots(ncols=4)
-        df.plot.pie(subplots=True, ax=axes, legend=True)
+        df.plot.pie(subplots=True, ax=axes, legend=True, normalize=True)
 
         base_expected = ["0", "1", "2", "3"]
         for i, ax in enumerate(axes):
