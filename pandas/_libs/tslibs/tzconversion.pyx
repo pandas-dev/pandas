@@ -549,8 +549,10 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
     return int(td.total_seconds() * 1_000_000_000)
 
 
+# OSError may be thrown by tzlocal on windows at or close to 1970-01-01
+#  see https://github.com/pandas-dev/pandas/pull/37591#issuecomment-720628241
 cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
-                                     bint* fold=NULL):
+                                     bint* fold=NULL) except? -1:
     """
     Convert the i8 representation of a datetime from a tzlocal timezone to
     UTC, or vice-versa.
