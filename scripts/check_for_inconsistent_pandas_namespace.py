@@ -1,3 +1,11 @@
+"""
+Check that test suite file doesn't contain both of e.g. ``Series`` and ``pd.Series``.
+
+This is meant to be run as a pre-commit hook - run it manually, you can do:
+
+    pre-commit run inconsistent-namespace-usage --all-files
+"""
+
 import argparse
 import re
 
