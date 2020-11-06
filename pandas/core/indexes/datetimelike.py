@@ -582,7 +582,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         Find the `freq` for self.insert(loc, item).
         """
-        value = self._data._validate_insert_value(item)
+        value = self._data._validate_scalar(item)
         item = self._data._box_func(value)
 
         freq = None
