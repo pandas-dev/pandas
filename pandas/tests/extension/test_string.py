@@ -3,39 +3,49 @@ import string
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas.core.arrays.string_ import StringArray, StringDtype
+from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_arrow import ArrowStringDtype
 from pandas.tests.extension import base
 
 
-@pytest.fixture
-def dtype():
-    return StringDtype()
+@pytest.fixture(
+    params=[
+        StringDtype,
+        pytest.param(
+            ArrowStringDtype, marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+        ),
+    ]
+)
+def dtype(request):
+    return request.param()
 
 
 @pytest.fixture
-def data():
+def data(dtype):
     strings = np.random.choice(list(string.ascii_letters), size=100)
     while strings[0] == strings[1]:
         strings = np.random.choice(list(string.ascii_letters), size=100)
 
-    return StringArray._from_sequence(strings)
+    return dtype.construct_array_type()._from_sequence(strings)
 
 
 @pytest.fixture
-def data_missing():
+def data_missing(dtype):
     """Length 2 array with [NA, Valid]"""
-    return StringArray._from_sequence([pd.NA, "A"])
+    return dtype.construct_array_type()._from_sequence([pd.NA, "A"])
 
 
 @pytest.fixture
-def data_for_sorting():
-    return StringArray._from_sequence(["B", "C", "A"])
+def data_for_sorting(dtype):
+    return dtype.construct_array_type()._from_sequence(["B", "C", "A"])
 
 
 @pytest.fixture
-def data_missing_for_sorting():
-    return StringArray._from_sequence(["B", pd.NA, "A"])
+def data_missing_for_sorting(dtype):
+    return dtype.construct_array_type()._from_sequence(["B", pd.NA, "A"])
 
 
 @pytest.fixture
@@ -44,8 +54,10 @@ def na_value():
 
 
 @pytest.fixture
-def data_for_grouping():
-    return StringArray._from_sequence(["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"])
+def data_for_grouping(dtype):
+    return dtype.construct_array_type()._from_sequence(
+        ["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"]
+    )
 
 
 class TestDtype(base.BaseDtypeTests):
@@ -53,7 +65,12 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    pass
+    def test_view(self, data, dtype, request):
+        if isinstance(dtype, ArrowStringDtype):
+            reason = "Fails until implement, remove before merge"
+            mark = pytest.mark.xfail(reason=reason)
+            request.node.add_marker(mark)
+        base.BaseInterfaceTests.test_view(self, data)
 
 
 class TestConstructors(base.BaseConstructorsTests):
