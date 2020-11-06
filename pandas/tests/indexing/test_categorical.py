@@ -73,16 +73,6 @@ class TestCategoricalIndex:
         with pytest.raises(KeyError, match="^1$"):
             df.loc[1]
 
-    def test_getitem_scalar(self):
-
-        cats = Categorical([Timestamp("12-31-1999"), Timestamp("12-31-2000")])
-
-        s = Series([1, 2], index=cats)
-
-        expected = s.iloc[0]
-        result = s[cats[0]]
-        assert result == expected
-
     def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))
         reversed = cat[::-1]
