@@ -689,7 +689,7 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
-        return result
+        return result.__finalize__(self, method="merge")
 
     def _indicator_pre_merge(
         self, left: "DataFrame", right: "DataFrame"
@@ -830,12 +830,15 @@ class _MergeOperation:
                     rvals = algos.take_1d(take_right, right_indexer, fill_value=rfill)
 
                 # if we have an all missing left_indexer
-                # make sure to just use the right values
-                mask = left_indexer == -1
-                if mask.all():
+                # make sure to just use the right values or vice-versa
+                mask_left = left_indexer == -1
+                mask_right = right_indexer == -1
+                if mask_left.all():
                     key_col = rvals
+                elif mask_right.all():
+                    key_col = lvals
                 else:
-                    key_col = Index(lvals).where(~mask, rvals)
+                    key_col = Index(lvals).where(~mask_left, rvals)
 
                 if result._is_label_reference(name):
                     result[name] = key_col
@@ -1083,7 +1086,7 @@ class _MergeOperation:
             # if either left or right is a categorical
             # then the must match exactly in categories & ordered
             if lk_is_cat and rk_is_cat:
-                if lk.is_dtype_equal(rk):
+                if lk._categories_match_up_to_permutation(rk):
                     continue
 
             elif lk_is_cat or rk_is_cat:
@@ -1517,7 +1520,7 @@ class _OrderedMerge(_MergeOperation):
         )
 
         typ = self.left._constructor
-        result = typ(result_data).__finalize__(self, method=self._merge_type)
+        result = typ(result_data)
 
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 

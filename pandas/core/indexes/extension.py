@@ -1,7 +1,7 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
-from typing import List
+from typing import List, TypeVar
 
 import numpy as np
 
@@ -17,6 +17,8 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
+
+_T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 
 
 def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
@@ -283,6 +285,17 @@ class ExtensionIndex(Index):
     def _isnan(self) -> np.ndarray:
         return self._data.isna()
 
+    @doc(Index.equals)
+    def equals(self, other) -> bool:
+        # Dispatch to the ExtensionArray's .equals method.
+        if self.is_(other):
+            return True
+
+        if not isinstance(other, type(self)):
+            return False
+
+        return self._data.equals(other._data)
+
 
 class NDArrayBackedExtensionIndex(ExtensionIndex):
     """
@@ -322,7 +335,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         ValueError if the item is not valid for this dtype.
         """
         arr = self._data
-        code = arr._validate_insert_value(item)
+        code = arr._validate_scalar(item)
 
         new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
         new_arr = arr._from_backing_data(new_vals)
@@ -330,7 +343,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     def putmask(self, mask, value):
         try:
-            value = self._data._validate_where_value(value)
+            value = self._data._validate_setitem_value(value)
         except (TypeError, ValueError):
             return self.astype(object).putmask(mask, value)
 
@@ -338,3 +351,8 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         np.putmask(new_values, mask, value)
         new_arr = self._data._from_backing_data(new_values)
         return type(self)._simple_new(new_arr, name=self.name)
+
+    def _wrap_joined_index(self: _T, joined: np.ndarray, other: _T) -> _T:
+        name = get_op_result_name(self, other)
+        arr = self._data._from_backing_data(joined)
+        return type(self)._simple_new(arr, name=name)
