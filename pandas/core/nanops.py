@@ -878,7 +878,7 @@ def nanvar(values, *, axis=None, skipna=True, ddof=1, mask=None):
     # precision as the original values array.
     if is_float_dtype(dtype):
         result = result.astype(dtype)
-    return _wrap_results(result, values.dtype)
+    return result
 
 
 @disallow("M8", "m8")
