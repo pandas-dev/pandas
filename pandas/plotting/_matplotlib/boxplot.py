@@ -303,7 +303,6 @@ def boxplot(
         bp = ax.boxplot(values, **kwds)
 
         if plot_points:
-            # if plot_points
             for x, ys in enumerate(values):
                 ax.plot(
                     x + np.random.normal(size=len(ys)) * 0.04 + 1, ys, "ro", alpha=0.5
