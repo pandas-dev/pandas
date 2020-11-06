@@ -13,10 +13,18 @@ import argparse
 import re
 
 PATTERN = r"""
-    (?<!pd\.)(?<!\w)    # check class name doesn't have pd. or a character preceding it
-    {class_name}\(      # match e.g. DataFrame but not pd.DataFrame or tm.makeDataFrame
-    .*                  # match anything
-    pd\.{class_name}\(  # only match e.g. pd.DataFrame
+    (
+        (?<!pd\.)(?<!\w)    # check class_name start with pd. or character
+        {class_name}\(      # match DataFrame but not pd.DataFrame or tm.makeDataFrame
+        .*                  # match anything
+        pd\.{class_name}\(  # only match e.g. pd.DataFrame
+    )|
+    (
+        pd\.{class_name}\(  # only match e.g. pd.DataFrame
+        .*                  # match anything
+        (?<!pd\.)(?<!\w)    # check class_name start with pd. or character
+        {class_name}\(      # match DataFrame but not pd.DataFrame or tm.makeDataFrame
+    )
     """
 CLASS_NAMES = (
     "Series",
@@ -38,7 +46,7 @@ if __name__ == "__main__":
     for class_name in CLASS_NAMES:
         pattern = re.compile(
             PATTERN.format(class_name=class_name).encode(),
-            re.MULTILINE | re.DOTALL | re.VERBOSE,
+            flags=re.MULTILINE | re.DOTALL | re.VERBOSE,
         )
         for path in args.paths:
             with open(path, "rb") as f:
