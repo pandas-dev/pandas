@@ -681,7 +681,8 @@ cdef inline check_overflows(_TSObject obj):
 # ----------------------------------------------------------------------
 # Localization
 
-cdef inline void _localize_tso(_TSObject obj, tzinfo tz):
+# Catch OSError issued via tzlocal
+cdef inline void _localize_tso(_TSObject obj, tzinfo tz) except? -1:
     """
     Given the UTC nanosecond timestamp in obj.value, find the wall-clock
     representation of that timestamp in the given timezone.
