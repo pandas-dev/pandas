@@ -159,7 +159,8 @@ def maybe_box_datetimelike(value: Scalar, dtype: Optional[Dtype] = None) -> Scal
     return value
 
 
-def maybe_box_native(value):
+# TODO: this should be a TypeVar
+def maybe_box_native(value: Union[Series, Scalar]) -> Union[ABCSeries, Scalar]:
     if not is_scalar(value):
         pass
     elif is_datetime_or_timedelta_dtype(value):
