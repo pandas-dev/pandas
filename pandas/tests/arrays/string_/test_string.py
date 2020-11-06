@@ -495,16 +495,8 @@ def test_memory_usage(dtype, request):
 
 
 @pytest.mark.parametrize("float_dtype", [np.float16, np.float32, np.float64])
-def test_astype_from_float_dtype(float_dtype, dtype, request):
+def test_astype_from_float_dtype(float_dtype, dtype):
     # https://github.com/pandas-dev/pandas/issues/36451
-
-    if dtype == "arrow_string":
-        reason = (
-            "pyarrow.lib.ArrowTypeError: Expected bytes, got a 'numpy.float64' object"
-        )
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
-
     s = pd.Series([0.1], dtype=float_dtype)
     result = s.astype(dtype)
     expected = pd.Series(["0.1"], dtype=dtype)

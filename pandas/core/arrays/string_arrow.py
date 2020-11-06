@@ -196,6 +196,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         cls._chk_pyarrow_available()
+        # convert non-na-likes to str, and nan-likes to ArrowStringDtype.na_value
+        scalars = lib.ensure_string_array(
+            scalars, na_value=cls._dtype.na_value, copy=copy
+        )
         return cls(pa.array(scalars, type=pa.string(), from_pandas=True))
 
     @property
