@@ -11,6 +11,8 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
+    array,
+    DataFrame,
 )
 from pandas.core.indexing import IndexingError
 import pandas.testing as tm
@@ -125,6 +127,16 @@ class TestSetitemBooleanMask:
         expected[expected > 0] = 0
 
         tm.assert_series_equal(copy, expected)
+
+    def test_setitem_boolean_ea_type(self):
+        # GH: 26468
+        df = DataFrame(
+            {"a": [0, 0, np.nan, np.nan], "b": array(range(4), dtype="Int64")}
+        )
+        s = Series(array([1] * 4, dtype="Int64"))
+        s[df["a"].isna()] = df.loc[df["a"].isna(), "b"]
+        expected = Series([1, 1, 2, 3], dtype="Int64")
+        tm.assert_series_equal(s, expected)
 
 
 class TestSetitemViewCopySemantics:
