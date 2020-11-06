@@ -10,7 +10,7 @@ from pandas._libs import NaT, algos as libalgos, internals as libinternals, lib,
 from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import ArrayLike, Scalar
+from pandas._typing import ArrayLike, Scalar, Shape
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -19,6 +19,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     infer_dtype_from_scalar,
+    maybe_box_datetimelike,
     maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_infer_dtype_type,
@@ -843,7 +844,7 @@ class Block(PandasObject):
             if isna(s):
                 return ~mask
 
-            s = com.maybe_box_datetimelike(s)
+            s = maybe_box_datetimelike(s)
             return compare_or_regex_search(self.values, s, regex, mask)
 
         # Calculate the mask once, prior to the call of comp
@@ -2762,7 +2763,7 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     return values
 
 
-def safe_reshape(arr, new_shape):
+def safe_reshape(arr, new_shape: Shape):
     """
     If possible, reshape `arr` to have shape `new_shape`,
     with a couple of exceptions (see gh-13012):
