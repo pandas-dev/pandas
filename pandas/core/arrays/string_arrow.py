@@ -24,7 +24,7 @@ from pandas.api.types import (
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import check_array_indexer, validate_indices
 from pandas.core.missing import get_fill_func
 
 try:
@@ -569,6 +569,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
 
         if allow_fill:
             if (indices_array < 0).any():
+                validate_indices(indices_array, len(self.data))
                 # TODO(ARROW-9433): Treat negative indices as NULL
                 indices_array = pa.array(indices_array, mask=indices_array < 0)
                 result = self.data.take(indices_array)
