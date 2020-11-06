@@ -574,7 +574,12 @@ class ArrowStringArray(OpsMixin, ExtensionArray):
                 result = self.data.take(indices_array)
                 if isna(fill_value):
                     return type(self)(result)
-                return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
+                # TODO: ArrowNotImplementedError: Function fill_null has no
+                # kernel matching input types (array[string], scalar[string])
+                result = type(self)(result)
+                result[result.isna()] = fill_value
+                return result
+                # return type(self)(pc.fill_null(result, pa.scalar(fill_value)))
             else:
                 # Nothing to fill
                 return type(self)(self.data.take(indices))
