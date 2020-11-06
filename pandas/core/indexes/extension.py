@@ -335,7 +335,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
         ValueError if the item is not valid for this dtype.
         """
         arr = self._data
-        code = arr._validate_insert_value(item)
+        code = arr._validate_scalar(item)
 
         new_vals = np.concatenate((arr._ndarray[:loc], [code], arr._ndarray[loc:]))
         new_arr = arr._from_backing_data(new_vals)
@@ -343,7 +343,7 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     def putmask(self, mask, value):
         try:
-            value = self._data._validate_where_value(value)
+            value = self._data._validate_setitem_value(value)
         except (TypeError, ValueError):
             return self.astype(object).putmask(mask, value)
 
