@@ -6136,7 +6136,7 @@ Keep all original rows and columns and also all original values
 3    b     b  NaN   NaN  4.0   4.0
 4    a     a  5.0   5.0  5.0   5.0
 """,
-        klass=_shared_doc_kwargs["klass"]
+        klass=_shared_doc_kwargs["klass"],
     )
     def compare(
         self,

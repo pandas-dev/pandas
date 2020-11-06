@@ -2875,7 +2875,7 @@ Keep all original rows and also all original values
 3    d     b
 4    e     e
 """,
-        klass=_shared_doc_kwargs["klass"]
+        klass=_shared_doc_kwargs["klass"],
     )
     def compare(
         self,
