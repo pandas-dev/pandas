@@ -889,9 +889,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise TypeError(msg) from err
 
-    def _validate_insert_value(self, value):
-        return self._validate_scalar(value)
-
     def _validate_setitem_value(self, value):
         needs_float_conversion = False
 

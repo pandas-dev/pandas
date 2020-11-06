@@ -215,7 +215,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             raise InvalidIndexError(key)
 
         try:
-            key = self._data._validate_scalar(key)
+            key = self._data._validate_scalar(key, unbox=False)
         except TypeError as err:
             raise KeyError(key) from err
 

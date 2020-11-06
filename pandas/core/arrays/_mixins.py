@@ -45,7 +45,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         """
         return x
 
-    def _validate_insert_value(self, value):
+    def _validate_scalar(self, value):
         # used by NDArrayBackedExtensionIndex.insert
         raise AbstractMethodError(self)
 
