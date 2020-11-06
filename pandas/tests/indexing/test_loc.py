@@ -1501,6 +1501,18 @@ class TestLabelSlicing:
         s1 = df.loc[52195.1:52198.9]
         assert len(s1) == 3
 
+    def test_loc_getitem_float_slice_float64index(self):
+        ser = Series(np.random.rand(10), index=np.arange(10, 20, dtype=float))
+
+        assert len(ser.loc[12.0:]) == 8
+        assert len(ser.loc[12.5:]) == 7
+
+        idx = np.arange(10, 20, dtype=float)
+        idx[2] = 12.2
+        ser.index = idx
+        assert len(ser.loc[12.0:]) == 8
+        assert len(ser.loc[12.5:]) == 7
+
 
 class TestLocBooleanMask:
     def test_loc_setitem_mask_with_datetimeindex_tz(self):
