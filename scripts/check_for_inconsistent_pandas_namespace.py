@@ -12,8 +12,7 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 import argparse
 import re
 
-PATTERN = r"""
-    (?x)                # enable verbose regex
+PATTERN = r"""(?x)
     (?<!pd\.)(?<!\w)    # check class name doesn't have pd. or a character preceding it
     {class_name}\(      # match e.g. DataFrame but not pd.DataFrame or tm.makeDataFrame
     .*                  # match anything
