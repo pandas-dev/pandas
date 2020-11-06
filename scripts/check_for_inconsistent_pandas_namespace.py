@@ -1,7 +1,10 @@
 """
-Check that test suite file doesn't contain both of e.g. ``Series`` and ``pd.Series``.
+Check that test suite file doesn't use the pandas namespace inconsistently.
 
-This is meant to be run as a pre-commit hook - run it manually, you can do:
+We check for cases of ``Series`` and ``pd.Series`` appearing in the same file
+(likewise for some other common classes).
+
+This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
     pre-commit run inconsistent-namespace-usage --all-files
 """
