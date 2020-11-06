@@ -1,3 +1,4 @@
+import itertools
 from typing import (
     TYPE_CHECKING,
     Collection,
@@ -74,7 +75,7 @@ def get_standard_colors(
         num_colors=num_colors,
     )
 
-    return _cycle_colors(colors, num_colors=num_colors)
+    return list(_cycle_colors(colors, num_colors=num_colors))
 
 
 def _derive_colors(
@@ -128,19 +129,15 @@ def _derive_colors(
         return _get_colors_from_color_type(color_type, num_colors=num_colors)
 
 
-def _cycle_colors(colors: List[Color], num_colors: int) -> List[Color]:
-    """Append more colors by cycling if there is not enough color.
+def _cycle_colors(colors: List[Color], num_colors: int) -> Iterator[Color]:
+    """Cycle colors until achieving max of `num_colors` or length of `colors`.
 
     Extra colors will be ignored by matplotlib if there are more colors
     than needed and nothing needs to be done here.
     """
-    if len(colors) < num_colors:
-        multiple = num_colors // len(colors) - 1
-        mod = num_colors % len(colors)
-        colors += multiple * colors
-        colors += colors[:mod]
-
-    return colors
+    max_colors = max(num_colors, len(colors))
+    for _, col in zip(range(max_colors), itertools.cycle(colors)):
+        yield col
 
 
 def _get_colors_from_colormap(
