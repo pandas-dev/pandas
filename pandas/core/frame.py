@@ -3202,13 +3202,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return
 
             series = self._get_item_cache(col)
-            engine = self.index._engine
-            loc = engine.get_loc(index)
-            validate_numeric_casting(series.dtype, value)
-
-            series._values[loc] = value
-            # Note: trying to use series._set_value breaks tests in
-            #  tests.frame.indexing.test_indexing and tests.indexing.test_partial
+            series._set_value(index, value, takeable)
         except (KeyError, TypeError):
             # set using a non-recursive method & reset the cache
             if takeable:

@@ -43,7 +43,7 @@ from pandas.util._validators import validate_bool_kwarg, validate_percentile
 from pandas.core.dtypes.cast import (
     convert_dtypes,
     maybe_cast_to_extension_array,
-    validate_numeric_casting,
+    validate_numeric_casting, infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -1110,6 +1110,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 loc = self.index.get_loc(label)
                 validate_numeric_casting(self.dtype, value)
+                dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
                 self._values[loc] = value
         except KeyError:
 
