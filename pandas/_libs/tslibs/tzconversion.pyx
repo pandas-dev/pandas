@@ -355,7 +355,9 @@ cdef inline str _render_tstamp(int64_t val):
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
-cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz, bint* fold=NULL):
+cdef int64_t tz_convert_utc_to_tzlocal(
+    int64_t utc_val, tzinfo tz, bint* fold=NULL
+) except? -1:
     """
     Parameters
     ----------
