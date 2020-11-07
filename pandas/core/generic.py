@@ -39,6 +39,7 @@ from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
+    FrameOrSeriesUnion,
     IndexKeyFunc,
     IndexLabel,
     JSONSerializable,
@@ -49,6 +50,7 @@ from pandas._typing import (
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
+    final,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -9344,6 +9346,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self.set_axis(new_ax, axis)
         return result.__finalize__(self, method="shift")
 
+    @final
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
         Equivalent to `shift` without copying data.
@@ -9392,6 +9395,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return new_obj.__finalize__(self, method="slice_shift")
 
+    @final
     def tshift(
         self: FrameOrSeries, periods: int = 1, freq=None, axis: Axis = 0
     ) -> FrameOrSeries:
@@ -9598,6 +9602,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
+    @final
     def tz_convert(
         self: FrameOrSeries, tz, axis=0, level=None, copy: bool_t = True
     ) -> FrameOrSeries:
@@ -9655,6 +9660,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = result.set_axis(ax, axis=axis, inplace=False)
         return result.__finalize__(self, method="tz_convert")
 
+    @final
     def tz_localize(
         self: FrameOrSeries,
         tz,
@@ -9828,6 +9834,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Numeric Methods
 
+    @final
     def abs(self: FrameOrSeries) -> FrameOrSeries:
         """
         Return a Series/DataFrame with absolute numeric value of each element.
@@ -9903,7 +9910,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         include=None,
         exclude=None,
         datetime_is_numeric=False,
-    ) -> FrameOrSeries:
+    ) -> FrameOrSeriesUnion:
         """
         Generate descriptive statistics.
 
@@ -10170,7 +10177,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         formatted_percentiles = format_percentiles(percentiles)
 
-        def describe_numeric_1d(series):
+        def describe_numeric_1d(series) -> "Series":
             stat_index = (
                 ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
             )
@@ -10181,7 +10188,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
             return pd.Series(d, index=stat_index, name=series.name)
 
-        def describe_categorical_1d(data):
+        def describe_categorical_1d(data) -> "Series":
             names = ["count", "unique"]
             objcounts = data.value_counts()
             count_unique = len(objcounts[objcounts != 0])
@@ -10230,7 +10237,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             return pd.Series(result, index=names, name=data.name, dtype=dtype)
 
-        def describe_timestamp_1d(data):
+        def describe_timestamp_1d(data) -> "Series":
             # GH-30164
             stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
             d = (
@@ -10240,7 +10247,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
             return pd.Series(d, index=stat_index, name=data.name)
 
-        def describe_1d(data):
+        def describe_1d(data) -> "Series":
             if is_bool_dtype(data.dtype):
                 return describe_categorical_1d(data)
             elif is_numeric_dtype(data):
@@ -10283,6 +10290,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d.columns = data.columns.copy()
         return d
 
+    @final
     def pct_change(
         self: FrameOrSeries,
         periods=1,
@@ -10421,6 +10429,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             rs = rs.reindex_like(data)
         return rs
 
+    @final
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
         if axis is None:
             raise ValueError("Must specify 'axis' when aggregating by level.")
@@ -10432,6 +10441,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwargs)
         return grouped.aggregate(applyf)
 
+    @final
     def _logical_func(
         self, name: str, func, axis=0, bool_only=None, skipna=True, level=None, **kwargs
     ):
@@ -10469,6 +10479,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             "all", nanops.nanall, axis, bool_only, skipna, level, **kwargs
         )
 
+    @final
     def _accum_func(self, name: str, func, axis=None, skipna=True, *args, **kwargs):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
         if axis is None:
@@ -10509,6 +10520,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def cumprod(self, axis=None, skipna=True, *args, **kwargs):
         return self._accum_func("cumprod", np.cumprod, axis, skipna, *args, **kwargs)
 
+    @final
     def _stat_function_ddof(
         self,
         name: str,
@@ -10554,6 +10566,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             "std", nanops.nanstd, axis, skipna, level, ddof, numeric_only, **kwargs
         )
 
+    @final
     def _stat_function(
         self,
         name: str,
@@ -10610,6 +10623,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     kurtosis = kurt
 
+    @final
     def _min_count_stat_function(
         self,
         name: str,
@@ -11038,6 +11052,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         cls.min = min
 
+    @final
     @doc(Rolling)
     def rolling(
         self,
@@ -11074,6 +11089,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             closed=closed,
         )
 
+    @final
     @doc(Expanding)
     def expanding(
         self, min_periods: int = 1, center: Optional[bool_t] = None, axis: Axis = 0
@@ -11090,6 +11106,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return Expanding(self, min_periods=min_periods, center=center, axis=axis)
 
+    @final
     @doc(ExponentialMovingWindow)
     def ewm(
         self,
@@ -11120,6 +11137,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Arithmetic Methods
 
+    @final
     def _inplace_method(self, other, op):
         """
         Wrap arithmetic method to operate inplace.
@@ -11174,6 +11192,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Misc methods
 
+    @final
     def _find_valid_index(self, how: str):
         """
         Retrieves the index of the first valid value.
@@ -11192,6 +11211,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return None
         return self.index[idxpos]
 
+    @final
     @doc(position="first", klass=_shared_doc_kwargs["klass"])
     def first_valid_index(self):
         """
@@ -11208,6 +11228,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         return self._find_valid_index("first")
 
+    @final
     @doc(first_valid_index, position="last", klass=_shared_doc_kwargs["klass"])
     def last_valid_index(self):
         return self._find_valid_index("last")
