@@ -173,6 +173,7 @@ class BaseInfo(ABC):
 
         This method prints information about a %(klass)s including
         the index dtype%(type_sub)s, non-null values and memory usage.
+        %(version_added_sub)s\
 
         Parameters
         ----------
@@ -205,8 +206,6 @@ class BaseInfo(ABC):
         -------
         None
             This method prints a summary of a %(klass)s and returns None.
-
-        %(version_added_sub)s
 
         See Also
         --------
