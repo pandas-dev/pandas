@@ -819,7 +819,13 @@ class Block(PandasObject):
         return blocks
 
     def _replace_single(
-        self, to_replace, value, inplace=False, regex=False, convert=True, mask=None
+        self,
+        to_replace,
+        value,
+        inplace: bool = False,
+        regex: bool = False,
+        convert=True,
+        mask=None,
     ) -> List["Block"]:
         """ no-op on a non-ObjectBlock """
         return [self] if inplace else [self.copy()]
@@ -860,9 +866,9 @@ class Block(PandasObject):
                 m = masks[i]
                 convert = i == src_len  # only convert once at the end
                 result = blk._replace_coerce(
-                    mask=m,
                     to_replace=src,
                     value=dest,
+                    mask=m,
                     inplace=inplace,
                     regex=regex,
                 )
@@ -1567,9 +1573,9 @@ class Block(PandasObject):
         self,
         to_replace,
         value,
+        mask: np.ndarray,
         inplace: bool = True,
         regex: bool = False,
-        mask=None,
     ) -> List["Block"]:
         """
         Replace value corresponding to the given boolean array with another
@@ -1581,12 +1587,12 @@ class Block(PandasObject):
             Scalar to replace or regular expression to match.
         value : object
             Replacement object.
+        mask : np.ndarray[bool]
+            True indicate corresponding element is ignored.
         inplace : bool, default True
             Perform inplace modification.
         regex : bool, default False
             If true, perform regular expression substitution.
-        mask : array-like of bool, optional
-            True indicate corresponding element is ignored.
 
         Returns
         -------
@@ -2495,7 +2501,12 @@ class ObjectBlock(Block):
         return True
 
     def replace(
-        self, to_replace, value, inplace=False, regex=False, convert=True
+        self,
+        to_replace,
+        value,
+        inplace: bool = False,
+        regex: bool = False,
+        convert=True,
     ) -> List["Block"]:
         to_rep_is_list = is_list_like(to_replace)
         value_is_list = is_list_like(value)
@@ -2540,7 +2551,13 @@ class ObjectBlock(Block):
         )
 
     def _replace_single(
-        self, to_replace, value, inplace=False, regex=False, convert=True, mask=None
+        self,
+        to_replace,
+        value,
+        inplace: bool = False,
+        regex: bool = False,
+        convert=True,
+        mask=None,
     ) -> List["Block"]:
         """
         Replace elements by the given value.
@@ -2567,23 +2584,7 @@ class ObjectBlock(Block):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         # to_replace is regex compilable
-        to_rep_re = regex and is_re_compilable(to_replace)
-
-        # regex is regex compilable
-        regex_re = is_re_compilable(regex)
-
-        # only one will survive
-        if to_rep_re and regex_re:
-            raise AssertionError(
-                "only one of to_replace and regex can be regex compilable"
-            )
-
-        # if regex was passed as something that can be a regex (rather than a
-        # boolean)
-        if regex_re:
-            to_replace = regex
-
-        regex = regex_re or to_rep_re
+        regex = regex and is_re_compilable(to_replace)
 
         # try to get the pattern attribute (compiled re) or it's a string
         if is_re(to_replace):
