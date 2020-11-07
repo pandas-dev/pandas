@@ -51,6 +51,7 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_categorical_dtype,
     is_dict_like,
+    is_dtype_equal,
     is_extension_array_dtype,
     is_integer,
     is_iterator,
@@ -58,7 +59,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     validate_all_hashable,
-    is_dtype_equal,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable

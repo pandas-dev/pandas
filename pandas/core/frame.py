@@ -91,7 +91,6 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
     maybe_infer_to_datetimelike,
     maybe_upcast,
-    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
