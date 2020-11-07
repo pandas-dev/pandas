@@ -726,7 +726,6 @@ class Block(PandasObject):
         value,
         inplace: bool = False,
         regex: bool = False,
-        convert: bool = True,
     ) -> List["Block"]:
         """
         replace the to_replace value with value, possible to create new
@@ -755,9 +754,7 @@ class Block(PandasObject):
             if len(to_replace) == 1:
                 # _can_hold_element checks have reduced this back to the
                 #  scalar case and we can avoid a costly object cast
-                return self.replace(
-                    to_replace[0], value, inplace=inplace, regex=regex, convert=convert
-                )
+                return self.replace(to_replace[0], value, inplace=inplace, regex=regex)
 
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
@@ -771,7 +768,6 @@ class Block(PandasObject):
                 value=value,
                 inplace=inplace,
                 regex=regex,
-                convert=convert,
             )
 
         values = self.values
@@ -810,12 +806,11 @@ class Block(PandasObject):
                 value=value,
                 inplace=inplace,
                 regex=regex,
-                convert=convert,
             )
-        if convert:
-            blocks = extend_blocks(
-                [b.convert(numeric=False, copy=not inplace) for b in blocks]
-            )
+
+        blocks = extend_blocks(
+            [b.convert(numeric=False, copy=not inplace) for b in blocks]
+        )
         return blocks
 
     def _replace_single(
@@ -2506,7 +2501,6 @@ class ObjectBlock(Block):
         value,
         inplace: bool = False,
         regex: bool = False,
-        convert: bool = True,
     ) -> List["Block"]:
         to_rep_is_list = is_list_like(to_replace)
         value_is_list = is_list_like(value)
@@ -2517,20 +2511,14 @@ class ObjectBlock(Block):
         blocks: List["Block"] = [self]
 
         if not either_list and is_re(to_replace):
-            return self._replace_single(
-                to_replace, value, inplace=inplace, regex=True, convert=convert
-            )
+            return self._replace_single(to_replace, value, inplace=inplace, regex=True)
         elif not (either_list or regex):
-            return super().replace(
-                to_replace, value, inplace=inplace, regex=regex, convert=convert
-            )
+            return super().replace(to_replace, value, inplace=inplace, regex=regex)
         elif both_lists:
             for to_rep, v in zip(to_replace, value):
                 result_blocks = []
                 for b in blocks:
-                    result = b._replace_single(
-                        to_rep, v, inplace=inplace, regex=regex, convert=convert
-                    )
+                    result = b._replace_single(to_rep, v, inplace=inplace, regex=regex)
                     result_blocks.extend(result)
                 blocks = result_blocks
             return result_blocks
@@ -2540,15 +2528,13 @@ class ObjectBlock(Block):
                 result_blocks = []
                 for b in blocks:
                     result = b._replace_single(
-                        to_rep, value, inplace=inplace, regex=regex, convert=convert
+                        to_rep, value, inplace=inplace, regex=regex
                     )
                     result_blocks.extend(result)
                 blocks = result_blocks
             return result_blocks
 
-        return self._replace_single(
-            to_replace, value, inplace=inplace, convert=convert, regex=regex
-        )
+        return self._replace_single(to_replace, value, inplace=inplace, regex=regex)
 
     def _replace_single(
         self,
@@ -2647,7 +2633,6 @@ class CategoricalBlock(ExtensionBlock):
         value,
         inplace: bool = False,
         regex: bool = False,
-        convert: bool = True,
     ) -> List["Block"]:
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = self if inplace else self.copy()
