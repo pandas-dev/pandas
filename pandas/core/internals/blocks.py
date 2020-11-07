@@ -824,7 +824,7 @@ class Block(PandasObject):
         value,
         inplace: bool = False,
         regex: bool = False,
-        convert=True,
+        convert: bool = True,
         mask=None,
     ) -> List["Block"]:
         """ no-op on a non-ObjectBlock """
@@ -2506,7 +2506,7 @@ class ObjectBlock(Block):
         value,
         inplace: bool = False,
         regex: bool = False,
-        convert=True,
+        convert: bool = True,
     ) -> List["Block"]:
         to_rep_is_list = is_list_like(to_replace)
         value_is_list = is_list_like(value)
@@ -2556,7 +2556,7 @@ class ObjectBlock(Block):
         value,
         inplace: bool = False,
         regex: bool = False,
-        convert=True,
+        convert: bool = True,
         mask=None,
     ) -> List["Block"]:
         """
