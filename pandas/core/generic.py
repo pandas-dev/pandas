@@ -7436,6 +7436,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def notnull(self: FrameOrSeries) -> FrameOrSeries:
         return notna(self).__finalize__(self, method="notnull")
 
+    @final
     def _clip_with_scalar(self, lower, upper, inplace: bool_t = False):
         if (lower is not None and np.any(isna(lower))) or (
             upper is not None and np.any(isna(upper))
@@ -7461,6 +7462,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return result
 
+    @final
     def _clip_with_one_bound(self, threshold, method, axis, inplace):
 
         if axis is not None:
@@ -7484,6 +7486,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 threshold = align_method_FRAME(self, threshold, axis, flex=None)[1]
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
+    @final
     def clip(
         self: FrameOrSeries,
         lower=None,
@@ -7610,6 +7613,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
+    @final
     def asfreq(
         self: FrameOrSeries,
         freq,
@@ -7721,6 +7725,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             fill_value=fill_value,
         )
 
+    @final
     def at_time(
         self: FrameOrSeries, time, asof: bool_t = False, axis=None
     ) -> FrameOrSeries:
@@ -7779,6 +7784,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         indexer = index.indexer_at_time(time, asof=asof)
         return self._take_with_is_copy(indexer, axis=axis)
 
+    @final
     def between_time(
         self: FrameOrSeries,
         start_time,
@@ -8264,6 +8270,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             offset=offset,
         )
 
+    @final
     def first(self: FrameOrSeries, offset) -> FrameOrSeries:
         """
         Select initial periods of time series data based on a date offset.
@@ -8332,6 +8339,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return self.loc[:end]
 
+    @final
     def last(self: FrameOrSeries, offset) -> FrameOrSeries:
         """
         Select final periods of time series data based on a date offset.
@@ -8395,6 +8403,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         start = self.index.searchsorted(start_date, side="right")
         return self.iloc[start:]
 
+    @final
     def rank(
         self: FrameOrSeries,
         axis=0,
@@ -8715,6 +8724,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
 
+    @final
     def _align_frame(
         self,
         other,
@@ -8784,6 +8794,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             right.__finalize__(other),
         )
 
+    @final
     def _align_series(
         self,
         other,
@@ -8875,6 +8886,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             right.__finalize__(other),
         )
 
+    @final
     def _where(
         self,
         cond,
@@ -9022,6 +9034,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             result = self._constructor(new_data)
             return result.__finalize__(self)
 
+    @final
     @doc(
         klass=_shared_doc_kwargs["klass"],
         cond="True",
@@ -9164,6 +9177,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             cond, other, inplace, axis, level, errors=errors, try_cast=try_cast
         )
 
+    @final
     @doc(
         where,
         klass=_shared_doc_kwargs["klass"],
@@ -9904,6 +9918,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         return np.abs(self)
 
+    @final
     def describe(
         self: FrameOrSeries,
         percentiles=None,
