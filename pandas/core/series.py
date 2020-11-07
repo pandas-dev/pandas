@@ -42,9 +42,9 @@ from pandas.util._validators import validate_bool_kwarg, validate_percentile
 
 from pandas.core.dtypes.cast import (
     convert_dtypes,
+    infer_dtype_from_scalar,
     maybe_cast_to_extension_array,
     validate_numeric_casting,
-    infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
