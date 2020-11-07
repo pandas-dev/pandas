@@ -1514,7 +1514,7 @@ def test_series_loc_getitem_label_list_missing_values():
 
 def test_series_getitem_label_list_missing_integer_values():
     # GH: 25927
-    s = pd.Series(
+    s = Series(
         index=np.array([9730701000001104, 10049011000001109]),
         data=np.array([999000011000001104, 999000011000001104]),
     )
