@@ -11,6 +11,7 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
 import argparse
 import re
+from typing import Optional, Sequence
 
 PATTERN = r"""
     (
@@ -37,11 +38,13 @@ CLASS_NAMES = (
     "DatetimeIndex",
     "Categorical",
 )
+ERROR_MESSAGE = "Found both `pd.{class_name}` and `{class_name}` in {path}"
 
-if __name__ == "__main__":
+
+def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     for class_name in CLASS_NAMES:
         pattern = re.compile(
@@ -52,6 +55,8 @@ if __name__ == "__main__":
             with open(path, "rb") as f:
                 contents = f.read()
             match = pattern.search(contents)
-            assert (
-                match is None
-            ), f"Found both `pd.{class_name}` and `{class_name}` in {path}"
+            assert match is None, ERROR_MESSAGE.format(class_name=class_name, path=path)
+
+
+if __name__ == "__main__":
+    main()
