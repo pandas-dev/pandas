@@ -11,7 +11,7 @@ GOOD_FILE_1 = "cat_0 = pd.Categorical()\ncat_1 = pd.Categorical()"
 
 
 @pytest.mark.parametrize("content", [BAD_FILE_0, BAD_FILE_1])
-def test_inconsistent_usage(tmpdir, content: str) -> None:
+def test_inconsistent_usage(tmpdir, content):
     tmpfile = Path(tmpdir / "tmpfile.py")
     tmpfile.touch()
     tmpfile.write_text(content)
@@ -21,7 +21,7 @@ def test_inconsistent_usage(tmpdir, content: str) -> None:
 
 
 @pytest.mark.parametrize("content", [GOOD_FILE_0, GOOD_FILE_1])
-def test_consistent_usage(tmpdir, content: str) -> None:
+def test_consistent_usage(tmpdir, content):
     tmpfile = Path(tmpdir / "tmpfile.py")
     tmpfile.touch()
     tmpfile.write_text(content)
