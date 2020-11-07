@@ -130,12 +130,9 @@ class TestSetitemBooleanMask:
 
     def test_setitem_boolean_ea_type(self):
         # GH: 26468
-        df = DataFrame(
-            {"a": [0, 0, np.nan, np.nan], "b": array(range(4), dtype="Int64")}
-        )
-        s = Series(array([1] * 4, dtype="Int64"))
-        s[df["a"].isna()] = df.loc[df["a"].isna(), "b"]
-        expected = Series([1, 1, 2, 3], dtype="Int64")
+        s = Series(array([5, 6, 7, 8], dtype="Int64"))
+        s[s > 6] = Series(range(4), dtype="Int64")
+        expected = Series([5, 6, 2, 3], dtype="Int64")
         tm.assert_series_equal(s, expected)
 
 
