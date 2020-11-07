@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas import (
-    DataFrame,
     DatetimeIndex,
     MultiIndex,
     NaT,
