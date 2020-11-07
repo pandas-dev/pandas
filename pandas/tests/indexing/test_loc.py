@@ -1512,6 +1512,16 @@ def test_series_loc_getitem_label_list_missing_values():
         s.loc[key]
 
 
+def test_series_getitem_label_list_missing_integer_values():
+    # GH: 25927
+    s = Series(
+        index=np.array([9730701000001104, 10049011000001109]),
+        data=np.array([999000011000001104, 999000011000001104]),
+    )
+    with pytest.raises(KeyError, match="with any missing labels"):
+        s.loc[np.array([9730701000001104, 10047311000001102])]
+
+
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns, check_column_type",
     [
