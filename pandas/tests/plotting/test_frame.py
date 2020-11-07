@@ -2658,11 +2658,12 @@ class TestDataFramePlots(TestPlotBase):
         fig, axes = self.plt.subplots(ncols=4)
 
         # GH 37668
+        kwargs = {}
         if mpl.__version__ >= "3.3":
-            with tm.assert_produces_warning(None):
-                df.plot.pie(subplots=True, ax=axes, legend=True, normalize=True)
-        else:
-            df.plot.pie(subplots=True, ax=axes, legend=True)
+            kwargs = {"normalize": True}
+
+        with tm.assert_produces_warning(None):
+            df.plot.pie(subplots=True, ax=axes, legend=True, **kwargs)
 
         base_expected = ["0", "1", "2", "3"]
         for i, ax in enumerate(axes):
