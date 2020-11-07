@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import pandas._testing as tm
 
 
@@ -39,3 +39,19 @@ class TestAtWithDuplicates:
             df.at[1, ["A"]] = 1
         with pytest.raises(ValueError, match=msg):
             df.at[:, "A"] = 1
+
+
+def test_at_assign_float_to_int_frame():
+    # GH: 26395
+    obj = DataFrame([0, 0, 0], index=["A", "B", "C"], columns=["D"])
+    obj.at["C", "D"] = 44.5
+    expected = DataFrame([0, 0, 44.5], index=["A", "B", "C"], columns=["D"])
+    tm.assert_frame_equal(obj, expected)
+
+
+def test_at_assign_float_to_int_series():
+    # GH: 26395
+    obj = Series([0, 0, 0], index=["A", "B", "C"])
+    obj.at["C"] = 44.5
+    expected = Series([0, 0, 44.5], index=["A", "B", "C"])
+    tm.assert_series_equal(obj, expected)

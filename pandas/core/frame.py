@@ -3202,6 +3202,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return
 
             series = self._get_item_cache(col)
+            self.index._engine.get_loc(index)
             series._set_value(index, value, takeable)
         except (KeyError, TypeError):
             # set using a non-recursive method & reset the cache

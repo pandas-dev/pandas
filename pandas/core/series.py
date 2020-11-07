@@ -43,7 +43,8 @@ from pandas.util._validators import validate_bool_kwarg, validate_percentile
 from pandas.core.dtypes.cast import (
     convert_dtypes,
     maybe_cast_to_extension_array,
-    validate_numeric_casting, infer_dtype_from_scalar,
+    validate_numeric_casting,
+    infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -57,6 +58,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     validate_all_hashable,
+    is_dtype_equal,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
@@ -1111,6 +1113,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 loc = self.index.get_loc(label)
                 validate_numeric_casting(self.dtype, value)
                 dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
+                if not is_dtype_equal(self.dtype, dtype):
+                    self.loc[label] = value
+                    return
                 self._values[loc] = value
         except KeyError:
 
