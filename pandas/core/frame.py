@@ -3741,6 +3741,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Insert column into DataFrame at specified location.
 
+        Performs column insertion in-place.
+
         Raises a ValueError if `column` is already contained in the DataFrame,
         unless `allow_duplicates` is set to True.
 
@@ -3751,7 +3753,31 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : int, Series, or array-like
+            Input data to be inserted.
         allow_duplicates : bool, optional
+            Whether to allow duplicate column label names.
+
+        See Also
+        --------
+        Index.insert : Insert new item by index.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df
+           col1  col2
+        0     1     3
+        1     2     4
+        >>> df.insert(1, "newcol", [99, 99])
+        >>> df
+           col1  newcol  col2
+        0     1      99     3
+        1     2      99     4
+        >>> df.insert(0, "col1", [100, 100], allow_duplicates=True)
+        >>> df
+           col1  col1  newcol  col2
+        0   100     1      99     3
+        1   100     2      99     4
         """
         if allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(
