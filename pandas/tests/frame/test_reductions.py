@@ -1,9 +1,11 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1172,6 +1174,12 @@ class TestDataFrameReductions:
     def test_min_max_dt64_with_NaT_skipna_false(self, tz_naive_fixture):
         # GH#36907
         tz = tz_naive_fixture
+        if isinstance(tz, tzlocal) and is_platform_windows():
+            pytest.xfail(
+                reason="GH#37659 OSError raised within tzlocal bc Windows "
+                "chokes in times before 1970-01-01"
+            )
+
         df = DataFrame(
             {
                 "a": [
