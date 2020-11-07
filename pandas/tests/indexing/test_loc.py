@@ -1192,8 +1192,7 @@ class TestLocWithMultiIndex:
         times = date_range("2000-01-01", freq="10min", periods=100000)
         ser = Series(range(100000), times)
         result = ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
-        expected = Series(range(100000), times)
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, ser)
 
 
 class TestLocSetitemWithExpansion:
