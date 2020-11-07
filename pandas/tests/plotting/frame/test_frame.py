@@ -1541,11 +1541,11 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot, xerr=0.2, yerr=0.2, kind=kind)
         self._check_has_errorbars(ax, xerr=2, yerr=2)
 
-        with tm.assert_produces_warning(UserWarning):
-            # _check_plot_works creates subplots inside,
-            # which leads to warnings like this:
-            # UserWarning: To output multiple subplots,
-            # the figure containing the passed axes is being cleared
+        msg = (
+            "To output multiple subplots, "
+            "the figure containing the passed axes is being cleared"
+        )
+        with tm.assert_produces_warning(UserWarning, match=msg):
             # Similar warnings were observed in GH #13188
             axes = _check_plot_works(
                 df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind
@@ -1622,11 +1622,11 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
         self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-        with tm.assert_produces_warning(UserWarning):
-            # _check_plot_works creates subplots inside,
-            # which leads to warnings like this:
-            # UserWarning: To output multiple subplots,
-            # the figure containing the passed axes is being cleared
+        msg = (
+            "To output multiple subplots, "
+            "the figure containing the passed axes is being cleared"
+        )
+        with tm.assert_produces_warning(UserWarning, match=msg):
             # Similar warnings were observed in GH #13188
             axes = _check_plot_works(tdf.plot, kind=kind, yerr=tdf_err, subplots=True)
             self._check_has_errorbars(axes, xerr=0, yerr=1)
