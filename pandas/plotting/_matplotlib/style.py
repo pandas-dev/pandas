@@ -136,8 +136,7 @@ def _cycle_colors(colors: List[Color], num_colors: int) -> Iterator[Color]:
     than needed and nothing needs to be done here.
     """
     max_colors = max(num_colors, len(colors))
-    for _, col in zip(range(max_colors), itertools.cycle(colors)):
-        yield col
+    yield from itertools.islice(itertools.cycle(colors), 0, max_colors)
 
 
 def _get_colors_from_colormap(
