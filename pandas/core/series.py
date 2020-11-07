@@ -56,6 +56,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     validate_all_hashable,
@@ -1113,7 +1114,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 loc = self.index.get_loc(label)
                 validate_numeric_casting(self.dtype, value)
                 dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
-                if not is_dtype_equal(self.dtype, dtype):
+                if not is_dtype_equal(self.dtype, dtype) and is_numeric_dtype(dtype):
                     self.loc[label] = value
                     return
                 self._values[loc] = value
