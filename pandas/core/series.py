@@ -4557,7 +4557,7 @@ Keep all original rows and also all original values
         max_cols_sub="",
         null_counts_sub=dedent(
             """\
-            null_counts : bool, default True.
+            null_counts : bool, default True
                 Whether to show the non-null counts."""
         ),
         examples_sub=dedent(
