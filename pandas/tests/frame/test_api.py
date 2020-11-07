@@ -263,12 +263,16 @@ class TestDataFrameMisc:
 
     @async_mark()
     @td.check_file_leaks
-    async def test_tab_complete_warning(self, ip):
+    async def test_tab_complete_warning(self, ip, frame_or_series):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        code = "from pandas import DataFrame; df = DataFrame()"
+        if frame_or_series is DataFrame:
+            code = "from pandas import DataFrame; obj = DataFrame()"
+        else:
+            code = "from pandas import Series; obj = Series(dtype=object)"
+
         await ip.run_code(code)
 
         # TODO: remove it when Ipython updates
@@ -283,7 +287,7 @@ class TestDataFrameMisc:
             )
         with warning:
             with provisionalcompleter("ignore"):
-                list(ip.Completer.completions("df.", 1))
+                list(ip.Completer.completions("obj.", 1))
 
     def test_attrs(self):
         df = DataFrame({"A": [2, 3]})
@@ -294,9 +298,15 @@ class TestDataFrameMisc:
         assert result.attrs == {"version": 1}
 
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
-    def test_set_flags(self, allows_duplicate_labels):
-        df = DataFrame({"A": [1, 2]})
-        result = df.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+    def test_set_flags(self, allows_duplicate_labels, frame_or_series):
+        obj = DataFrame({"A": [1, 2]})
+        key = (0, 0)
+        if frame_or_series is Series:
+            obj = obj["A"]
+            key = 0
+
+        result = obj.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+
         if allows_duplicate_labels is None:
             # We don't update when it's not provided
             assert result.flags.allows_duplicate_labels is True
@@ -304,21 +314,21 @@ class TestDataFrameMisc:
             assert result.flags.allows_duplicate_labels is allows_duplicate_labels
 
         # We made a copy
-        assert df is not result
+        assert obj is not result
 
-        # We didn't mutate df
-        assert df.flags.allows_duplicate_labels is True
+        # We didn't mutate obj
+        assert obj.flags.allows_duplicate_labels is True
 
         # But we didn't copy data
-        result.iloc[0, 0] = 0
-        assert df.iloc[0, 0] == 0
+        result.iloc[key] = 0
+        assert obj.iloc[key] == 0
 
         # Now we do copy.
-        result = df.set_flags(
+        result = obj.set_flags(
             copy=True, allows_duplicate_labels=allows_duplicate_labels
         )
-        result.iloc[0, 0] = 10
-        assert df.iloc[0, 0] == 0
+        result.iloc[key] = 10
+        assert obj.iloc[key] == 0
 
     @skip_if_no("jinja2")
     def test_constructor_expanddim_lookup(self):

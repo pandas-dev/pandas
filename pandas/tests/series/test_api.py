@@ -3,9 +3,6 @@ import pydoc
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-from pandas.util._test_decorators import async_mark
-
 import pandas as pd
 from pandas import DataFrame, Index, Series, Timedelta, Timestamp, date_range
 import pandas._testing as tm
@@ -216,30 +213,6 @@ class TestSeriesMisc:
         for full_series in [Series([1]), s2]:
             assert not full_series.empty
 
-    @async_mark()
-    @td.check_file_leaks
-    async def test_tab_complete_warning(self, ip):
-        # https://github.com/pandas-dev/pandas/issues/16409
-        pytest.importorskip("IPython", minversion="6.0.0")
-        from IPython.core.completer import provisionalcompleter
-
-        code = "import pandas as pd; s = Series(dtype=object)"
-        await ip.run_code(code)
-
-        # TODO: remove it when Ipython updates
-        # GH 33567, jedi version raises Deprecation warning in Ipython
-        import jedi
-
-        if jedi.__version__ < "0.17.0":
-            warning = tm.assert_produces_warning(None)
-        else:
-            warning = tm.assert_produces_warning(
-                DeprecationWarning, check_stacklevel=False
-            )
-        with warning:
-            with provisionalcompleter("ignore"):
-                list(ip.Completer.completions("s.", 1))
-
     def test_integer_series_size(self):
         # GH 25580
         s = Series(range(9))
@@ -253,29 +226,3 @@ class TestSeriesMisc:
         s.attrs["version"] = 1
         result = s + 1
         assert result.attrs == {"version": 1}
-
-    @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
-    def test_set_flags(self, allows_duplicate_labels):
-        df = Series([1, 2])
-        result = df.set_flags(allows_duplicate_labels=allows_duplicate_labels)
-        if allows_duplicate_labels is None:
-            # We don't update when it's not provided
-            assert result.flags.allows_duplicate_labels is True
-        else:
-            assert result.flags.allows_duplicate_labels is allows_duplicate_labels
-
-        # We made a copy
-        assert df is not result
-        # We didn't mutate df
-        assert df.flags.allows_duplicate_labels is True
-
-        # But we didn't copy data
-        result.iloc[0] = 0
-        assert df.iloc[0] == 0
-
-        # Now we do copy.
-        result = df.set_flags(
-            copy=True, allows_duplicate_labels=allows_duplicate_labels
-        )
-        result.iloc[0] = 10
-        assert df.iloc[0] == 0
