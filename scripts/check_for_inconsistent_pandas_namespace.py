@@ -10,6 +10,7 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 """
 
 import argparse
+from pathlib import Path
 import re
 from typing import Optional, Sequence
 
@@ -43,7 +44,7 @@ ERROR_MESSAGE = "Found both `pd.{class_name}` and `{class_name}` in {path}"
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("paths", nargs="*")
+    parser.add_argument("paths", nargs="*", type=Path)
     args = parser.parse_args(argv)
 
     for class_name in CLASS_NAMES:
@@ -52,10 +53,11 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
             flags=re.MULTILINE | re.DOTALL | re.VERBOSE,
         )
         for path in args.paths:
-            with open(path, "rb") as f:
-                contents = f.read()
+            contents = path.read_bytes()
             match = pattern.search(contents)
-            assert match is None, ERROR_MESSAGE.format(class_name=class_name, path=path)
+            assert match is None, ERROR_MESSAGE.format(
+                class_name=class_name, path=str(path)
+            )
 
 
 if __name__ == "__main__":
