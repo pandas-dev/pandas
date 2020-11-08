@@ -912,9 +912,24 @@ class Timestamp(_Timestamp):
         """
         Timestamp.fromtimestamp(ts)
 
-        Timestamp[, tz] -> tz's local time from POSIX timestamp.
+        Transform timestamp[, tz] to tz's local time from POSIX timestamp.
         """
         return cls(datetime.fromtimestamp(ts))
+
+    @classmethod
+    def strftime(cls, format):
+        """
+        Timestamp.strftime(format)
+
+        Return a string representing the given POSIX timestamp
+        controlled by an explicit format string.
+
+        Parameters
+        ----------
+        format : str
+            Format string to convert Timestamp to string.
+        """
+        return cls(datetime.strftime(format))
 
     # Issue 25016.
     @classmethod
@@ -934,7 +949,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.combine(date, time)
 
-        Date, time -> datetime with same date and time fields.
+        Combine date, time into datetime with same date and time fields.
         """
         return cls(datetime.combine(date, time))
 
