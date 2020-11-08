@@ -1191,7 +1191,8 @@ class TestLocWithMultiIndex:
     def test_loc_getitem_slice_datetime_objs_with_datetimeindex(self):
         times = date_range("2000-01-01", freq="10min", periods=100000)
         ser = Series(range(100000), times)
-        ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
+        result = ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
+        tm.assert_series_equal(result, ser)
 
 
 class TestLocSetitemWithExpansion:

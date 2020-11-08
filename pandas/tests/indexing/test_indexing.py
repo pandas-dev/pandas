@@ -843,6 +843,7 @@ class TestMisc:
 
         result = maybe_numeric_slice(df, None, include_bool=True)
         expected = pd.IndexSlice[:, ["A", "C"]]
+        assert all(result[1] == expected[1])
         result = maybe_numeric_slice(df, [1])
         expected = [1]
         assert result == expected

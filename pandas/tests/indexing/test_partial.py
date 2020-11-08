@@ -185,14 +185,14 @@ class TestPartialSetting:
         # loc equiv to .reindex
         expected = Series([np.nan, 0.2, np.nan], index=[3, 2, 3])
         with pytest.raises(KeyError, match="with any missing labels"):
-            result = ser.loc[[3, 2, 3]]
+            ser.loc[[3, 2, 3]]
 
         result = ser.reindex([3, 2, 3])
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         expected = Series([np.nan, 0.2, np.nan, np.nan], index=[3, 2, 3, "x"])
         with pytest.raises(KeyError, match="with any missing labels"):
-            result = ser.loc[[3, 2, 3, "x"]]
+            ser.loc[[3, 2, 3, "x"]]
 
         result = ser.reindex([3, 2, 3, "x"])
         tm.assert_series_equal(result, expected, check_index_type=True)
@@ -203,7 +203,7 @@ class TestPartialSetting:
 
         expected = Series([0.2, 0.2, np.nan, 0.1], index=[2, 2, "x", 1])
         with pytest.raises(KeyError, match="with any missing labels"):
-            result = ser.loc[[2, 2, "x", 1]]
+            ser.loc[[2, 2, "x", 1]]
 
         result = ser.reindex([2, 2, "x", 1])
         tm.assert_series_equal(result, expected, check_index_type=True)
