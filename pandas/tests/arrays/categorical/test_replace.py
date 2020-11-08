@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import Categorical
 import pandas._testing as tm
 
 
@@ -45,3 +46,28 @@ def test_replace(to_replace, value, expected, flip_categories):
 
     tm.assert_series_equal(expected, result, check_category_order=False)
     tm.assert_series_equal(expected, s, check_category_order=False)
+
+
+@pytest.mark.parametrize(
+    "to_replace, value, result, expected_error_msg",
+    [
+        ("b", "c", ["a", "c"], "Categorical.categories are different"),
+        ("c", "d", ["a", "b"], None),
+        # https://github.com/pandas-dev/pandas/issues/33288
+        ("a", "a", ["a", "b"], None),
+        ("b", None, ["a", None], "Categorical.categories length are different"),
+    ],
+)
+def test_replace2(to_replace, value, result, expected_error_msg):
+    # TODO: better name
+    # GH#26988
+    cat = Categorical(["a", "b"])
+    expected = Categorical(result)
+    result = cat.replace(to_replace, value)
+    tm.assert_categorical_equal(result, expected)
+    if to_replace == "b":  # the "c" test is supposed to be unchanged
+        with pytest.raises(AssertionError, match=expected_error_msg):
+            # ensure non-inplace call does not affect original
+            tm.assert_categorical_equal(cat, expected)
+    cat.replace(to_replace, value, inplace=True)
+    tm.assert_categorical_equal(cat, expected)

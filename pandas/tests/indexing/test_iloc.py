@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, concat, date_range, isna
+from pandas import CategoricalDtype, DataFrame, Series, concat, date_range, isna
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
@@ -746,6 +746,27 @@ class TestiLoc2:
         raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
         expected = Series(raw_cat, index=["x"], name=0, dtype="category")
 
+        tm.assert_series_equal(result, expected)
+
+    def test_iloc_getitem_categorical_values(self):
+        # GH#14580
+        # test iloc() on Series with Categorical data
+
+        ser = Series([1, 2, 3]).astype("category")
+
+        # get slice
+        result = ser.iloc[0:2]
+        expected = Series([1, 2]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
+        # get list of indexes
+        result = ser.iloc[[0, 1]]
+        expected = Series([1, 2]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
+        # get boolean array
+        result = ser.iloc[[True, False, False]]
+        expected = Series([1]).astype(CategoricalDtype([1, 2, 3]))
         tm.assert_series_equal(result, expected)
 
 
