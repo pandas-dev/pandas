@@ -520,9 +520,9 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
         float64_t compensation_xx_add = 0, compensation_xx_remove = 0
         float64_t compensation_x_add = 0, compensation_x_remove = 0
         float64_t x = 0, xx = 0, xxx = 0
-        int64_t nobs = 0, i, j, N = len(values), nobs_mean = 0
+        int64_t nobs = 0, i, j, N = len(values), nobs_mean = 0, mean_int = 0
         int64_t s, e
-        ndarray[float64_t] output
+        ndarray[float64_t] output, mean_array
         bint is_monotonic_increasing_bounds
 
     minp = max(minp, 3)
@@ -538,12 +538,13 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
             if notnan(val):
                 nobs_mean += 1
                 sum_val += val
-    mean_val = sum_val / nobs_mean
-    # Other cases would lead to imprecision for smallest values
-    if min_val - mean_val > -1e5:
-        values = values - round(mean_val)
+        mean_val = sum_val / nobs_mean
+        # Other cases would lead to imprecision for smallest values
+        if min_val - mean_val > -1e5:
+            mean_int = <int64_t>mean_val
+            for i in range(0, N):
+                values[i] = values[i] - mean_int
 
-    with nogil:
         for i in range(0, N):
 
             s = start[i]
@@ -700,7 +701,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
         float64_t compensation_xx_remove = 0, compensation_xx_add = 0
         float64_t compensation_x_remove = 0, compensation_x_add = 0
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
-        int64_t nobs = 0, i, j, s, e, N = len(values), nobs_mean = 0
+        int64_t nobs = 0, i, j, s, e, N = len(values), nobs_mean = 0, mean_int = 0
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
 
@@ -717,12 +718,12 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
             if notnan(val):
                 nobs_mean += 1
                 sum_val += val
-    mean_val = sum_val / nobs_mean
-    # Other cases would lead to imprecision for smallest values
-    if min_val - mean_val > -1e4:
-        values = values - round(mean_val)
-
-    with nogil:
+        mean_val = sum_val / nobs_mean
+        # Other cases would lead to imprecision for smallest values
+        if min_val - mean_val > -1e4:
+            mean_int = <int64_t>mean_val
+            for i in range(0, N):
+                values[i] = values[i] - mean_int
 
         for i in range(0, N):
 
