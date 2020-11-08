@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING, Type, Union
 import numpy as np
 
 from pandas._libs import lib, missing as libmissing
+from pandas._typing import Scalar
+from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import ExtensionDtype, register_extension_dtype
 from pandas.core.dtypes.common import (
@@ -15,6 +17,7 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core import ops
+from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays import IntegerArray, PandasArray
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
@@ -198,7 +201,7 @@ class StringArray(PandasArray):
             )
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         if dtype:
             assert dtype == "string"
 
@@ -226,7 +229,7 @@ class StringArray(PandasArray):
         return new_string_array
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+    def _from_sequence_of_strings(cls, strings, *, dtype=None, copy=False):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     def __arrow_array__(self, type=None):
@@ -295,11 +298,25 @@ class StringArray(PandasArray):
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+
+    def min(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+        nv.validate_min((), kwargs)
+        result = masked_reductions.min(
+            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return self._wrap_reduction_result(axis, result)
+
+    def max(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+        nv.validate_max((), kwargs)
+        result = masked_reductions.max(
+            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+        )
+        return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna=False):
         from pandas import value_counts
