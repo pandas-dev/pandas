@@ -1,7 +1,7 @@
 """
 Series.__getitem__ test classes are organized by the type of key passed.
 """
-from datetime import datetime, time
+from datetime import date, datetime, time
 
 import numpy as np
 import pytest
@@ -9,7 +9,16 @@ import pytest
 from pandas._libs.tslibs import conversion, timezones
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, date_range, period_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    Series,
+    Timestamp,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
 
@@ -93,8 +102,46 @@ class TestSeriesGetitemScalars:
         result.index = result.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
+    # ------------------------------------------------------------------
+    # Series with CategoricalIndex
+
+    def test_getitem_scalar_categorical_index(self):
+        cats = Categorical([Timestamp("12-31-1999"), Timestamp("12-31-2000")])
+
+        ser = Series([1, 2], index=cats)
+
+        expected = ser.iloc[0]
+        result = ser[cats[0]]
+        assert result == expected
+
 
 class TestSeriesGetitemSlices:
+    def test_getitem_partial_str_slice_with_datetimeindex(self):
+        # GH#34860
+        arr = date_range("1/1/2008", "1/1/2009")
+        ser = arr.to_series()
+        result = ser["2008"]
+
+        rng = date_range(start="2008-01-01", end="2008-12-31")
+        expected = Series(rng, index=rng)
+
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_slice_strings_with_datetimeindex(self):
+        idx = DatetimeIndex(
+            ["1/1/2000", "1/2/2000", "1/2/2000", "1/3/2000", "1/4/2000"]
+        )
+
+        ts = Series(np.random.randn(len(idx)), index=idx)
+
+        result = ts["1/2/2000":]
+        expected = ts[1:]
+        tm.assert_series_equal(result, expected)
+
+        result = ts["1/2/2000":"1/3/2000"]
+        expected = ts[1:4]
+        tm.assert_series_equal(result, expected)
+
     def test_getitem_slice_2d(self, datetime_series):
         # GH#30588 multi-dimensional indexing deprecated
 
@@ -117,6 +164,26 @@ class TestSeriesGetitemSlices:
             # GH#31299
             result = s[indexer]
         expected = s[indexer[0]]
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "slc, positions",
+        [
+            [slice(date(2018, 1, 1), None), [0, 1, 2]],
+            [slice(date(2019, 1, 2), None), [2]],
+            [slice(date(2020, 1, 1), None), []],
+            [slice(None, date(2020, 1, 1)), [0, 1, 2]],
+            [slice(None, date(2019, 1, 1)), [0]],
+        ],
+    )
+    def test_getitem_slice_date(self, slc, positions):
+        # https://github.com/pandas-dev/pandas/issues/31501
+        ser = Series(
+            [0, 1, 2],
+            DatetimeIndex(["2019-01-01", "2019-01-01T06:00:00", "2019-01-02"]),
+        )
+        result = ser[slc]
+        expected = ser.take(positions)
         tm.assert_series_equal(result, expected)
 
 

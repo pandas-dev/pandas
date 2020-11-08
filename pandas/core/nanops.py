@@ -678,26 +678,26 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
             if not skipna:
-                return _wrap_results(
-                    np.apply_along_axis(get_median, axis, values), dtype
-                )
+                res = np.apply_along_axis(get_median, axis, values)
 
-            # fastpath for the skipna case
-            with warnings.catch_warnings():
-                # Suppress RuntimeWarning about All-NaN slice
-                warnings.filterwarnings("ignore", "All-NaN slice encountered")
-                res = np.nanmedian(values, axis)
-            return _wrap_results(res, dtype)
+            else:
+                # fastpath for the skipna case
+                with warnings.catch_warnings():
+                    # Suppress RuntimeWarning about All-NaN slice
+                    warnings.filterwarnings("ignore", "All-NaN slice encountered")
+                    res = np.nanmedian(values, axis)
 
-        # must return the correct shape, but median is not defined for the
-        # empty set so return nans of shape "everything but the passed axis"
-        # since "axis" is where the reduction would occur if we had a nonempty
-        # array
-        ret = get_empty_reduction_result(values.shape, axis, np.float_, np.nan)
-        return _wrap_results(ret, dtype)
+        else:
+            # must return the correct shape, but median is not defined for the
+            # empty set so return nans of shape "everything but the passed axis"
+            # since "axis" is where the reduction would occur if we had a nonempty
+            # array
+            res = get_empty_reduction_result(values.shape, axis, np.float_, np.nan)
 
-    # otherwise return a scalar value
-    return _wrap_results(get_median(values) if notempty else np.nan, dtype)
+    else:
+        # otherwise return a scalar value
+        res = get_median(values) if notempty else np.nan
+    return _wrap_results(res, dtype)
 
 
 def get_empty_reduction_result(
