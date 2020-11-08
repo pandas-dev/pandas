@@ -416,7 +416,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         # xref GH8628
         # PERF: astype category codes instead of astyping each entry
-        new_categories = self.categories.astype(dtype)
+        if len(self.codes) == 0 or len(self.categories) == 0:
+            return array(self, dtype=dtype, copy=copy)
+
+        new_categories = np.append(self.categories.astype(dtype), [np.nan])
         return np.array(new_categories[self.codes], copy=copy)
 
     @cache_readonly
