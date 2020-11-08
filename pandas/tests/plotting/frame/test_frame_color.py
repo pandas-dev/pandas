@@ -48,7 +48,6 @@ class TestDataFrameColor(TestPlotBase):
         for ax, exp in zip(axes, expected):
             self._check_visible(ax.get_xticklabels(), visible=exp)
 
-
     def test_mpl2_color_cycle_str(self):
         # GH 15516
         df = DataFrame(randn(10, 3), columns=["a", "b", "c"])
