@@ -2503,17 +2503,17 @@ class ObjectBlock(Block):
         regex: bool = False,
     ) -> List["Block"]:
         to_rep_is_list = is_list_like(to_replace)
-        value_is_list = is_list_like(value)
-        # Note: we will never have both to_rep_is_list and value_is_list,
-        #  as that case will go through _replace_list.
-        either_list = to_rep_is_list or value_is_list
+
+        # The checks done in NDFrame.replace before calling _mgr.replace
+        #  ensure that we never get here with listlike value
+        assert not is_list_like(value)
 
         result_blocks: List["Block"] = []
         blocks: List["Block"] = [self]
 
-        if not either_list and is_re(to_replace):
+        if not to_rep_is_list and is_re(to_replace):
             return self._replace_single(to_replace, value, inplace=inplace, regex=True)
-        elif not (either_list or regex):
+        elif not (to_rep_is_list or regex):
             return super().replace(to_replace, value, inplace=inplace, regex=regex)
 
         elif to_rep_is_list and regex:
