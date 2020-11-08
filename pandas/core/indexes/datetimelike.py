@@ -241,17 +241,13 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         # quick check
         if self.is_monotonic and i8[0] != iNaT:
             return self._data._box_func(i8[0])
-        try:
-            if self.hasnans and skipna:
-                min_stamp = self[~self._isnan].asi8.min()
-            elif not self.hasnans:
-                min_stamp = i8.min()
-            else:
-                return self._na_value
-        except ValueError:
-            return self._na_value
+        if self.hasnans and skipna and not self[~self._isnan].empty:
+            min_stamp = self[~self._isnan].asi8.min()
+        elif not self.hasnans:
+            min_stamp = i8.min()
         else:
-            return self._data._box_func(min_stamp)
+            return self._na_value
+        return self._data._box_func(min_stamp)
 
     def argmin(self, axis=None, skipna=True, *args, **kwargs):
         """
