@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalDtype, DataFrame, Series, concat, date_range, isna
+from pandas import CategoricalDtype, DataFrame, NaT, Series, concat, date_range, isna
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
@@ -768,6 +768,14 @@ class TestiLoc2:
         result = ser.iloc[[True, False, False]]
         expected = Series([1]).astype(CategoricalDtype([1, 2, 3]))
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("value", [None, NaT, np.nan])
+    def test_iloc_setitem_td64_values_cast_na(self, value):
+        # GH#18586
+        series = Series([0, 1, 2], dtype="timedelta64[ns]")
+        series.iloc[0] = value
+        expected = pd.Series([NaT, 1, 2], dtype="timedelta64[ns]")
+        tm.assert_series_equal(series, expected)
 
 
 class TestILocSetItemDuplicateColumns:
