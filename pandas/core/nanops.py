@@ -344,6 +344,7 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
             assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
+
             if tz is not None:
                 # we get here e.g. via nanmean when we call it on a DTA[tz]
                 result = Timestamp(result, tz=tz)

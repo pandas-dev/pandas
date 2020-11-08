@@ -381,9 +381,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
-        if axis is None or self.ndim == 1:
-            return self._box_func(result)
-        return self._from_backing_data(result)
+        return self._wrap_reduction_result(axis, result)
 
     def std(
         self,
