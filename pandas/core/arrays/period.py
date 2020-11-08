@@ -261,14 +261,24 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    def _unbox_scalar(
+    # pandas\core\arrays\period.py:264: error: Return type "int" of
+    # "_unbox_scalar" incompatible with return type
+    # "Union[signedinteger[_64Bit], datetime64, timedelta64]" in supertype
+    # "DatetimeLikeArrayMixin"  [override]
+    def _unbox_scalar(  # type: ignore[override]
         self, value: Union[Period, NaTType], setitem: bool = False
     ) -> int:
         if value is NaT:
-            return np.int64(value.value)
+            # pandas\core\arrays\period.py:268: error: Incompatible return
+            # value type (got "signedinteger[_64Bit]", expected "int")
+            # [return-value]
+            return np.int64(value.value)  # type: ignore[return-value]
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value, setitem=setitem)
-            return np.int64(value.ordinal)
+            # pandas\core\arrays\period.py:271: error: Incompatible return
+            # value type (got "signedinteger[_64Bit]", expected "int")
+            # [return-value]
+            return np.int64(value.ordinal)  # type: ignore[return-value]
         else:
             raise ValueError(f"'value' should be a Period. Got '{value}' instead.")
 
@@ -1095,9 +1105,14 @@ def _make_field_arrays(*fields):
             elif length is None:
                 length = len(x)
 
+    # pandas\core\arrays\period.py:1101: error: Argument 2 to "repeat" has
+    # incompatible type "Optional[int]"; expected "Union[Union[int,
+    # integer[Any]], Union[bool, bool_], ndarray, Sequence[Union[int,
+    # integer[Any]]], Sequence[Union[bool, bool_]], Sequence[Sequence[Any]]]"
+    # [arg-type]
     return [
         np.asarray(x)
         if isinstance(x, (np.ndarray, list, ABCSeries))
-        else np.repeat(x, length)
+        else np.repeat(x, length)  # type: ignore[arg-type]
         for x in fields
     ]

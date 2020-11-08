@@ -356,7 +356,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values.dtype):
-            old_codes = extract_array(values).codes
+            # pandas\core\arrays\categorical.py:359: error: "ExtensionArray"
+            # has no attribute "codes"  [attr-defined]
+            old_codes = extract_array(values).codes  # type: ignore[attr-defined]
             codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories
             )
