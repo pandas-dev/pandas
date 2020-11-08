@@ -54,7 +54,7 @@ class TestPandasDtype:
             (float, float),
             (np.dtype("float64"), np.float64),
             ("int", np.int64),
-            (int, np.int64)
+            (int, np.int64),
         ],
     )
     def test_pandas_dtype_valid(self, dtype_input, dtype_output):
