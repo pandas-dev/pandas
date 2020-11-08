@@ -18,3 +18,8 @@ class TestValues:
         result = Series(data).values
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_values(self, datetime_series):
+        tm.assert_almost_equal(
+            datetime_series.values, datetime_series, check_dtype=False
+        )
