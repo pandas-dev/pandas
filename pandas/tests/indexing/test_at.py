@@ -110,17 +110,19 @@ class TestAtErrors:
             df.loc["a", 0]
 
 
-def test_at_assign_float_to_int_frame():
+@pytest.mark.parametrize("func", ["at", "loc"])
+def test_at_assign_float_to_int_frame(func):
     # GH: 26395
     obj = DataFrame([0, 0, 0], index=["A", "B", "C"], columns=["D"])
-    obj.at["C", "D"] = 44.5
+    getattr(obj, func)["C", "D"] = 44.5
     expected = DataFrame([0, 0, 44.5], index=["A", "B", "C"], columns=["D"])
     tm.assert_frame_equal(obj, expected)
 
 
-def test_at_assign_float_to_int_series():
+@pytest.mark.parametrize("func", ["at", "loc"])
+def test_at_assign_float_to_int_series(func):
     # GH: 26395
     obj = Series([0, 0, 0], index=["A", "B", "C"])
-    obj.at["C"] = 44.5
+    getattr(obj, func)["C"] = 44.5
     expected = Series([0, 0, 44.5], index=["A", "B", "C"])
     tm.assert_series_equal(obj, expected)
