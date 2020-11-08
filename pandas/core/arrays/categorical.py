@@ -38,7 +38,12 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
+from pandas.core.dtypes.missing import (
+    is_valid_nat_for_dtype,
+    isna,
+    na_value_for_dtype,
+    notna,
+)
 
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
@@ -400,7 +405,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             If copy is set to False and dtype is categorical, the original
             object is returned.
         """
-        if is_categorical_dtype(dtype):
+        if self.dtype is dtype:
+            result = self.copy() if copy else self
+
+        elif is_categorical_dtype(dtype):
             dtype = cast(Union[str, CategoricalDtype], dtype)
 
             # GH 10696/18593
@@ -419,7 +427,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         else:
             # PERF (GH8628): astype category codes instead of astyping array
-            new_categories = np.append(self.categories.astype(dtype), [np.nan])
+            new_categories = np.append(
+                self.categories.astype(dtype), [na_value_for_dtype(dtype)]
+            )
             result = np.array(new_categories[self.codes], dtype=dtype, copy=copy)
 
         return result
