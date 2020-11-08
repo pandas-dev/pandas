@@ -8,7 +8,7 @@ Version 0.6.0 (November 25, 2011)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 New features
@@ -52,7 +52,7 @@ New features
 Performance enhancements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - VBENCH Cythonized ``cache_readonly``, resulting in substantial micro-performance enhancements throughout the code base (:issue:`361`)
-- VBENCH Special Cython matrix iterator for applying arbitrary reduction operations with 3-5x better performance than `np.apply_along_axis` (:issue:`309`)
+- VBENCH Special Cython matrix iterator for applying arbitrary reduction operations with 3-5x better performance than ``np.apply_along_axis`` (:issue:`309`)
 - VBENCH Improved performance of ``MultiIndex.from_tuples``
 - VBENCH Special Cython matrix iterator for applying arbitrary reduction operations
 - VBENCH + DOCUMENT Add ``raw`` option to ``DataFrame.apply`` for getting better performance when

@@ -49,7 +49,7 @@ def to_pickle(
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -86,30 +86,24 @@ def to_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
+    ioargs = get_filepath_or_buffer(
         filepath_or_buffer,
         compression=compression,
         mode="wb",
         storage_options=storage_options,
     )
-    if not isinstance(fp_or_buf, str) and compression == "infer":
-        compression = None
-    f, fh = get_handle(fp_or_buf, "wb", compression=compression, is_text=False)
+    handles = get_handle(
+        ioargs.filepath_or_buffer, "wb", compression=ioargs.compression, is_text=False
+    )
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
     try:
-        f.write(pickle.dumps(obj, protocol=protocol))
+        pickle.dump(obj, handles.handle, protocol=protocol)  # type: ignore[arg-type]
     finally:
-        if f != filepath_or_buffer:
-            # do not close user-provided file objects GH 35679
-            f.close()
-        for _f in fh:
-            _f.close()
-        if should_close:
-            try:
-                fp_or_buf.close()
-            except ValueError:
-                pass
+        # close compression and byte/text wrapper
+        handles.close()
+        # close any fsspec-like objects
+        ioargs.close()
 
 
 def read_pickle(
@@ -145,7 +139,7 @@ def read_pickle(
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
         will be raised if providing this argument with a local path or
         a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values
+        docs for the set of allowed keys and values.
 
         .. versionadded:: 1.2.0
 
@@ -189,12 +183,12 @@ def read_pickle(
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
-    fp_or_buf, _, compression, should_close = get_filepath_or_buffer(
+    ioargs = get_filepath_or_buffer(
         filepath_or_buffer, compression=compression, storage_options=storage_options
     )
-    if not isinstance(fp_or_buf, str) and compression == "infer":
-        compression = None
-    f, fh = get_handle(fp_or_buf, "rb", compression=compression, is_text=False)
+    handles = get_handle(
+        ioargs.filepath_or_buffer, "rb", compression=ioargs.compression, is_text=False
+    )
 
     # 1) try standard library Pickle
     # 2) try pickle_compat (older pandas version) to handle subclass changes
@@ -207,23 +201,17 @@ def read_pickle(
             with warnings.catch_warnings(record=True):
                 # We want to silence any warnings about, e.g. moved modules.
                 warnings.simplefilter("ignore", Warning)
-                return pickle.load(f)
+                return pickle.load(handles.handle)  # type: ignore[arg-type]
         except excs_to_catch:
             # e.g.
             #  "No module named 'pandas.core.sparse.series'"
             #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
-            return pc.load(f, encoding=None)
+            return pc.load(handles.handle, encoding=None)
     except UnicodeDecodeError:
         # e.g. can occur for files written in py27; see GH#28645 and GH#31988
-        return pc.load(f, encoding="latin-1")
+        return pc.load(handles.handle, encoding="latin-1")
     finally:
-        if f != filepath_or_buffer:
-            # do not close user-provided file objects GH 35679
-            f.close()
-        for _f in fh:
-            _f.close()
-        if should_close:
-            try:
-                fp_or_buf.close()
-            except ValueError:
-                pass
+        # close compression and byte/text wrapper
+        handles.close()
+        # close any fsspec-like objects
+        ioargs.close()

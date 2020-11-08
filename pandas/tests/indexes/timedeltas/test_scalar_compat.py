@@ -104,18 +104,18 @@ class TestVectorizedTimedelta:
                 "L",
                 t1a,
                 TimedeltaIndex(
-                    ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"],
+                    ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"]
                 ),
             ),
             (
                 "S",
                 t1a,
                 TimedeltaIndex(
-                    ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"],
+                    ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"]
                 ),
             ),
-            ("12T", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"],),),
-            ("H", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"],),),
+            ("12T", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
+            ("H", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
             ("d", t1c, TimedeltaIndex([-1, -1, -1], unit="D")),
         ]:
 

@@ -8,6 +8,7 @@ from pandas import (
     CategoricalDtype,
     DataFrame,
     DatetimeTZDtype,
+    Interval,
     IntervalDtype,
     NaT,
     Series,
@@ -565,3 +566,48 @@ class TestAstype:
         result = df.astype(dict())
         tm.assert_frame_equal(result, df)
         assert result is not df
+
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame(Series(["x", "y", "z"], dtype="string")),
+            DataFrame(Series(["x", "y", "z"], dtype="category")),
+            DataFrame(Series(3 * [Timestamp("2020-01-01", tz="UTC")])),
+            DataFrame(Series(3 * [Interval(0, 1)])),
+        ],
+    )
+    @pytest.mark.parametrize("errors", ["raise", "ignore"])
+    def test_astype_ignores_errors_for_extension_dtypes(self, df, errors):
+        # https://github.com/pandas-dev/pandas/issues/35471
+        if errors == "ignore":
+            expected = df
+            result = df.astype(float, errors=errors)
+            tm.assert_frame_equal(result, expected)
+        else:
+            msg = "(Cannot cast)|(could not convert)"
+            with pytest.raises((ValueError, TypeError), match=msg):
+                df.astype(float, errors=errors)
+
+    def test_astype_tz_conversion(self):
+        # GH 35973
+        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        df = DataFrame(val)
+        result = df.astype({"tz": "datetime64[ns, Europe/Berlin]"})
+
+        expected = df
+        expected["tz"] = expected["tz"].dt.tz_convert("Europe/Berlin")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("tz", ["UTC", "Europe/Berlin"])
+    def test_astype_tz_object_conversion(self, tz):
+        # GH 35973
+        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        expected = DataFrame(val)
+
+        # convert expected to object dtype from other tz str (independently tested)
+        result = expected.astype({"tz": f"datetime64[ns, {tz}]"})
+        result = result.astype({"tz": "object"})
+
+        # do real test: object dtype to a specified tz, different from construction tz.
+        result = result.astype({"tz": "datetime64[ns, Europe/London]"})
+        tm.assert_frame_equal(result, expected)

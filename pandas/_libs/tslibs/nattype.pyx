@@ -357,10 +357,12 @@ class NaTType(_NaT):
 
     week = property(fget=lambda self: np.nan)
     dayofyear = property(fget=lambda self: np.nan)
+    day_of_year = property(fget=lambda self: np.nan)
     weekofyear = property(fget=lambda self: np.nan)
     days_in_month = property(fget=lambda self: np.nan)
     daysinmonth = property(fget=lambda self: np.nan)
     dayofweek = property(fget=lambda self: np.nan)
+    day_of_week = property(fget=lambda self: np.nan)
 
     # inject Timedelta properties
     days = property(fget=lambda self: np.nan)
@@ -392,9 +394,7 @@ class NaTType(_NaT):
 
         Returns
         -------
-        month_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """,
     )
     day_name = _make_nan_func(
@@ -409,9 +409,7 @@ class NaTType(_NaT):
 
         Returns
         -------
-        day_name : string
-
-        .. versionadded:: 0.23.0
+        str
         """,
     )
     # _nat_methods
@@ -776,7 +774,7 @@ default 'raise'
         microsecond : int, optional
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
-        fold : int, optional, default is 0
+        fold : int, optional
 
         Returns
         -------

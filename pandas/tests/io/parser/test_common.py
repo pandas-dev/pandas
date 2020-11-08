@@ -6,7 +6,7 @@ import codecs
 import csv
 from datetime import datetime
 from inspect import signature
-from io import StringIO
+from io import BytesIO, StringIO
 import os
 import platform
 from urllib.error import URLError
@@ -719,7 +719,7 @@ baz,7,8,9
     "kwargs", [dict(iterator=True, chunksize=1), dict(iterator=True), dict(chunksize=1)]
 )
 def test_iterator_skipfooter_errors(all_parsers, kwargs):
-    msg = "'skipfooter' not supported for 'iteration'"
+    msg = "'skipfooter' not supported for iteration"
     parser = all_parsers
     data = "a\n1\n2"
 
@@ -1138,7 +1138,6 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="ResourceWarning #35660", strict=False)
 def test_chunks_have_consistent_numerical_type(all_parsers):
     parser = all_parsers
     integers = [str(i) for i in range(499999)]
@@ -1152,7 +1151,6 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
     assert result.a.dtype == float
 
 
-@pytest.mark.xfail(reason="ResourceWarning #35660", strict=False)
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
     warning_type = None
     parser = all_parsers
@@ -1726,7 +1724,7 @@ def test_iteration_open_handle(all_parsers):
         with open(path, "w") as f:
             f.write("AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG")
 
-        with open(path, "r") as f:
+        with open(path) as f:
             for line in f:
                 if "CCC" in line:
                     break
@@ -2128,6 +2126,16 @@ def test_first_row_bom(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_first_row_bom_unquoted(all_parsers):
+    # see gh-36343
+    parser = all_parsers
+    data = """\ufeffHead1	Head2	Head3"""
+
+    result = parser.read_csv(StringIO(data), delimiter="\t")
+    expected = DataFrame(columns=["Head1", "Head2", "Head3"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_integer_precision(all_parsers):
     # Gh 7072
     s = """1,1;0;0;0;1;1;3844;3844;3844;1;1;1;1;1;1;0;0;1;1;0;0,,,4321583677327450765
@@ -2192,3 +2200,113 @@ def test_read_csv_with_use_inf_as_na(all_parsers):
         result = parser.read_csv(StringIO(data), header=None)
     expected = DataFrame([1.0, np.nan, 3.0])
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_table_delim_whitespace_default_sep(all_parsers):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    result = parser.read_table(f, delim_whitespace=True)
+    expected = DataFrame({"a": [1, 4], "b": [-2, 5], "c": [-3, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("delimiter", [",", "\t"])
+def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    msg = (
+        "Specified a delimiter with both sep and "
+        "delim_whitespace=True; you can only specify one."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(f, delim_whitespace=True, sep=delimiter)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
+
+
+@pytest.mark.parametrize("delimiter", [",", "\t"])
+def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
+    # GH: 35958
+    f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
+    parser = all_parsers
+    msg = (
+        "Specified a delimiter with both sep and "
+        "delim_whitespace=True; you can only specify one."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, sep=delimiter)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
+
+
+def test_dict_keys_as_names(all_parsers):
+    # GH: 36928
+    data = "1,2"
+
+    keys = {"a": int, "b": int}.keys()
+    parser = all_parsers
+
+    result = parser.read_csv(StringIO(data), names=keys)
+    expected = DataFrame({"a": [1], "b": [2]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("io_class", [StringIO, BytesIO])
+@pytest.mark.parametrize("encoding", [None, "utf-8"])
+def test_read_csv_file_handle(all_parsers, io_class, encoding):
+    """
+    Test whether read_csv does not close user-provided file handles.
+
+    GH 36980
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    content = "a,b\n1,2"
+    if io_class == BytesIO:
+        content = content.encode("utf-8")
+    handle = io_class(content)
+
+    tm.assert_frame_equal(parser.read_csv(handle, encoding=encoding), expected)
+    assert not handle.closed
+
+
+def test_memory_map_file_handle_silent_fallback(all_parsers, compression):
+    """
+    Do not fail for buffers with memory_map=True (cannot memory map BytesIO).
+
+    GH 37621
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    handle = BytesIO()
+    expected.to_csv(handle, index=False, compression=compression, mode="wb")
+    handle.seek(0)
+
+    tm.assert_frame_equal(
+        parser.read_csv(handle, memory_map=True, compression=compression),
+        expected,
+    )
+
+
+def test_memory_map_compression(all_parsers, compression):
+    """
+    Support memory map for compressed files.
+
+    GH 37621
+    """
+    parser = all_parsers
+    expected = DataFrame({"a": [1], "b": [2]})
+
+    with tm.ensure_clean() as path:
+        expected.to_csv(path, index=False, compression=compression)
+
+        tm.assert_frame_equal(
+            parser.read_csv(path, memory_map=True, compression=compression),
+            expected,
+        )

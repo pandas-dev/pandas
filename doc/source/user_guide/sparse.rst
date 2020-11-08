@@ -6,7 +6,7 @@
 Sparse data structures
 **********************
 
-Pandas provides data structures for efficiently storing sparse data.
+pandas provides data structures for efficiently storing sparse data.
 These are not necessarily sparse in the typical "mostly 0". Rather, you can view these
 objects as being "compressed" where any data matching a specific value (``NaN`` / missing value, though any value
 can be chosen, including 0) is omitted. The compressed values are not actually stored in the array.
@@ -87,14 +87,15 @@ The :attr:`SparseArray.dtype` property stores two pieces of information
    sparr.dtype
 
 
-A :class:`SparseDtype` may be constructed by passing each of these
+A :class:`SparseDtype` may be constructed by passing only a dtype
 
 .. ipython:: python
 
    pd.SparseDtype(np.dtype('datetime64[ns]'))
 
-The default fill value for a given NumPy dtype is the "missing" value for that dtype,
-though it may be overridden.
+in which case a default fill value will be used (for NumPy dtypes this is often the
+"missing" value for that dtype). To override this default an explicit fill value may be
+passed instead
 
 .. ipython:: python
 
@@ -115,7 +116,7 @@ Sparse accessor
 
 .. versionadded:: 0.24.0
 
-Pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
+pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
 for categorical data, and ``.dt`` for datetime-like data. This namespace provides
 attributes and methods that are specific to sparse data.
 
@@ -302,14 +303,17 @@ The method requires a ``MultiIndex`` with two or more levels.
 .. ipython:: python
 
    s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
-   s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                        (1, 2, 'a', 1),
-                                        (1, 1, 'b', 0),
-                                        (1, 1, 'b', 1),
-                                        (2, 1, 'b', 0),
-                                        (2, 1, 'b', 1)],
-                                       names=['A', 'B', 'C', 'D'])
-   s
+   s.index = pd.MultiIndex.from_tuples(
+       [
+           (1, 2, "a", 0),
+           (1, 2, "a", 1),
+           (1, 1, "b", 0),
+           (1, 1, "b", 1),
+           (2, 1, "b", 0),
+           (2, 1, "b", 1),
+       ],
+       names=["A", "B", "C", "D"],
+   )
    ss = s.astype('Sparse')
    ss
 
@@ -317,9 +321,10 @@ In the example below, we transform the ``Series`` to a sparse representation of 
 
 .. ipython:: python
 
-   A, rows, columns = ss.sparse.to_coo(row_levels=['A', 'B'],
-                                       column_levels=['C', 'D'],
-                                       sort_labels=True)
+   A, rows, columns = ss.sparse.to_coo(
+       row_levels=["A", "B"], column_levels=["C", "D"], sort_labels=True
+   )
+
 
    A
    A.todense()
@@ -330,9 +335,9 @@ Specifying different row and column labels (and not sorting them) yields a diffe
 
 .. ipython:: python
 
-   A, rows, columns = ss.sparse.to_coo(row_levels=['A', 'B', 'C'],
-                                       column_levels=['D'],
-                                       sort_labels=False)
+   A, rows, columns = ss.sparse.to_coo(
+       row_levels=["A", "B", "C"], column_levels=["D"], sort_labels=False
+   )
 
    A
    A.todense()
@@ -344,8 +349,7 @@ A convenience method :meth:`Series.sparse.from_coo` is implemented for creating 
 .. ipython:: python
 
    from scipy import sparse
-   A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])),
-                         shape=(3, 4))
+   A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4))
    A
    A.todense()
 

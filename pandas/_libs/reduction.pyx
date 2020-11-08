@@ -1,7 +1,5 @@
 from copy import copy
 
-from cython import Py_ssize_t
-
 from libc.stdlib cimport free, malloc
 
 import numpy as np
@@ -11,17 +9,17 @@ from numpy cimport int64_t, ndarray
 
 cnp.import_array()
 
-from pandas._libs cimport util
+from pandas._libs.util cimport is_array, set_array_not_contiguous
 
 from pandas._libs.lib import is_scalar, maybe_convert_objects
 
 
-cdef _check_result_array(object obj, Py_ssize_t cnt):
+cpdef check_result_array(object obj, Py_ssize_t cnt):
 
-    if (util.is_array(obj) or
+    if (is_array(obj) or
             (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
-        raise ValueError('Function does not reduce')
+        raise ValueError('Must produce aggregated value')
 
 
 cdef class _BaseGrouper:
@@ -33,7 +31,7 @@ cdef class _BaseGrouper:
         if (dummy.dtype != self.arr.dtype
                 and values.dtype != self.arr.dtype):
             raise ValueError('Dummy array must be same dtype')
-        if util.is_array(values) and not values.flags.contiguous:
+        if is_array(values) and not values.flags.contiguous:
             # e.g. Categorical has no `flags` attribute
             values = values.copy()
         index = dummy.index.values
@@ -53,6 +51,7 @@ cdef class _BaseGrouper:
             # to a 1-d ndarray like datetime / timedelta / period.
             object.__setattr__(cached_ityp, '_index_data', islider.buf)
             cached_ityp._engine.clear_mapping()
+            cached_ityp._cache.clear()  # e.g. inferred_freq must go
             object.__setattr__(cached_typ._mgr._block, 'values', vslider.buf)
             object.__setattr__(cached_typ._mgr._block, 'mgr_locs',
                                slice(len(vslider.buf)))
@@ -71,13 +70,16 @@ cdef class _BaseGrouper:
             object res
 
         cached_ityp._engine.clear_mapping()
+        cached_ityp._cache.clear()  # e.g. inferred_freq must go
         res = self.f(cached_typ)
-        res = _extract_result(res)
+        res = extract_result(res)
         if not initialized:
             # On the first pass, we check the output shape to see
             #  if this looks like a reduction.
             initialized = True
-            _check_result_array(res, len(self.dummy_arr))
+            # In all tests other than test_series_grouper and
+            #  test_series_bin_grouper, we have len(self.dummy_arr) == 0
+            check_result_array(res, len(self.dummy_arr))
 
         return res, initialized
 
@@ -102,7 +104,7 @@ cdef class SeriesBinGrouper(_BaseGrouper):
         self.f = f
 
         values = series.values
-        if util.is_array(values) and not values.flags.c_contiguous:
+        if is_array(values) and not values.flags.c_contiguous:
             # e.g. Categorical has no `flags` attribute
             values = values.copy('C')
         self.arr = values
@@ -200,7 +202,7 @@ cdef class SeriesGrouper(_BaseGrouper):
         self.f = f
 
         values = series.values
-        if util.is_array(values) and not values.flags.c_contiguous:
+        if is_array(values) and not values.flags.c_contiguous:
             # e.g. Categorical has no `flags` attribute
             values = values.copy('C')
         self.arr = values
@@ -276,12 +278,17 @@ cdef class SeriesGrouper(_BaseGrouper):
         return result, counts
 
 
-cdef inline _extract_result(object res, bint squeeze=True):
+cpdef inline extract_result(object res, bint squeeze=True):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
-    if hasattr(res, 'values') and util.is_array(res.values):
+    if hasattr(res, "_values"):
+        # Preserve EA
+        res = res._values
+        if squeeze and res.ndim == 1 and len(res) == 1:
+            res = res[0]
+    if hasattr(res, 'values') and is_array(res.values):
         res = res.values
-    if util.is_array(res):
+    if is_array(res):
         if res.ndim == 0:
             res = res.item()
         elif squeeze and res.ndim == 1 and len(res) == 1:
@@ -295,7 +302,7 @@ cdef class Slider:
     """
     cdef:
         ndarray values, buf
-        Py_ssize_t stride, orig_len, orig_stride
+        Py_ssize_t stride
         char *orig_data
 
     def __init__(self, ndarray values, ndarray buf):
@@ -307,11 +314,9 @@ cdef class Slider:
 
         self.values = values
         self.buf = buf
-        self.stride = values.strides[0]
 
+        self.stride = values.strides[0]
         self.orig_data = self.buf.data
-        self.orig_len = self.buf.shape[0]
-        self.orig_stride = self.buf.strides[0]
 
         self.buf.data = self.values.data
         self.buf.strides[0] = self.stride
@@ -324,10 +329,8 @@ cdef class Slider:
         self.buf.shape[0] = end - start
 
     cdef reset(self):
-
-        self.buf.shape[0] = self.orig_len
         self.buf.data = self.orig_data
-        self.buf.strides[0] = self.orig_stride
+        self.buf.shape[0] = 0
 
 
 class InvalidApply(Exception):
@@ -399,39 +402,34 @@ cdef class BlockSlider:
     """
     Only capable of sliding on axis=0
     """
-
-    cdef public:
-        object frame, dummy, index
-        int nblocks
-        Slider idx_slider
-        list blocks
-
     cdef:
+        object frame, dummy, index, block
+        list blk_values
+        ndarray values
+        Slider idx_slider
         char **base_ptrs
+        int nblocks
+        Py_ssize_t i
 
     def __init__(self, object frame):
-        cdef:
-            Py_ssize_t i
-            object b
-
         self.frame = frame
         self.dummy = frame[:0]
         self.index = self.dummy.index
 
-        self.blocks = [b.values for b in self.dummy._mgr.blocks]
+        self.blk_values = [block.values for block in self.dummy._mgr.blocks]
 
-        for x in self.blocks:
-            util.set_array_not_contiguous(x)
+        for values in self.blk_values:
+            set_array_not_contiguous(values)
 
-        self.nblocks = len(self.blocks)
+        self.nblocks = len(self.blk_values)
         # See the comment in indexes/base.py about _index_data.
         # We need this for EA-backed indexes that have a reference to a 1-d
         # ndarray like datetime / timedelta / period.
         self.idx_slider = Slider(
             self.frame.index._index_data, self.dummy.index._index_data)
 
-        self.base_ptrs = <char**>malloc(sizeof(char*) * len(self.blocks))
-        for i, block in enumerate(self.blocks):
+        self.base_ptrs = <char**>malloc(sizeof(char*) * self.nblocks)
+        for i, block in enumerate(self.blk_values):
             self.base_ptrs[i] = (<ndarray>block).data
 
     def __dealloc__(self):
@@ -441,10 +439,9 @@ cdef class BlockSlider:
         cdef:
             ndarray arr
             Py_ssize_t i
-
         # move blocks
         for i in range(self.nblocks):
-            arr = self.blocks[i]
+            arr = self.blk_values[i]
 
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i] + arr.strides[1] * start
@@ -455,15 +452,14 @@ cdef class BlockSlider:
 
         object.__setattr__(self.index, '_index_data', self.idx_slider.buf)
         self.index._engine.clear_mapping()
+        self.index._cache.clear()  # e.g. inferred_freq must go
 
     cdef reset(self):
         cdef:
             ndarray arr
             Py_ssize_t i
-
-        # reset blocks
         for i in range(self.nblocks):
-            arr = self.blocks[i]
+            arr = self.blk_values[i]
 
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i]

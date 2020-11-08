@@ -6,12 +6,12 @@ import numpy as np
 from pandas._typing import ArrayLike
 
 if TYPE_CHECKING:
-    from pandas.core.internals.blocks import Block  # noqa:F401
-    from pandas.core.internals.managers import BlockManager  # noqa:F401
+    from pandas.core.internals.blocks import Block
+    from pandas.core.internals.managers import BlockManager
 
 
 BlockPairInfo = namedtuple(
-    "BlockPairInfo", ["lvals", "rvals", "locs", "left_ea", "right_ea", "rblk"],
+    "BlockPairInfo", ["lvals", "rvals", "locs", "left_ea", "right_ea", "rblk"]
 )
 
 

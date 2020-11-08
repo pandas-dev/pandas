@@ -29,15 +29,22 @@ def test_constructor(which):
     c(min_periods=1, center=True)
     c(min_periods=1, center=False)
 
-    # not valid
-    for w in [2.0, "foo", np.array([2])]:
-        msg = "min_periods must be an integer"
-        with pytest.raises(ValueError, match=msg):
-            c(min_periods=w)
 
-        msg = "center must be a boolean"
-        with pytest.raises(ValueError, match=msg):
-            c(min_periods=1, center=w)
+@pytest.mark.parametrize("w", [2.0, "foo", np.array([2])])
+@pytest.mark.filterwarnings(
+    "ignore:The `center` argument on `expanding` will be removed in the future"
+)
+def test_constructor_invalid(which, w):
+    # not valid
+
+    c = which.expanding
+    msg = "min_periods must be an integer"
+    with pytest.raises(ValueError, match=msg):
+        c(min_periods=w)
+
+    msg = "center must be a boolean"
+    with pytest.raises(ValueError, match=msg):
+        c(min_periods=1, center=w)
 
 
 @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
@@ -127,6 +134,14 @@ def test_expanding_count_default_min_periods_with_null_values(constructor):
 
     result = constructor(values).expanding().count()
     expected = constructor(expected_counts)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("constructor", [Series, DataFrame])
+def test_expanding_count_with_min_periods_exceeding_series_length(constructor):
+    # GH 25857
+    result = constructor(range(5)).expanding(min_periods=6).count()
+    expected = constructor([np.nan, np.nan, np.nan, np.nan, np.nan])
     tm.assert_equal(result, expected)
 
 
@@ -220,7 +235,7 @@ def test_iter_expanding_series(ser, expected, min_periods):
 
 def test_center_deprecate_warning():
     # GH 20647
-    df = pd.DataFrame()
+    df = DataFrame()
     with tm.assert_produces_warning(FutureWarning):
         df.expanding(center=True)
 
@@ -229,3 +244,14 @@ def test_center_deprecate_warning():
 
     with tm.assert_produces_warning(None):
         df.expanding()
+
+
+@pytest.mark.parametrize("constructor", ["DataFrame", "Series"])
+def test_expanding_sem(constructor):
+    # GH: 26476
+    obj = getattr(pd, constructor)([0, 1, 2])
+    result = obj.expanding().sem()
+    if isinstance(result, DataFrame):
+        result = pd.Series(result[0].values)
+    expected = pd.Series([np.nan] + [0.707107] * 2)
+    tm.assert_series_equal(result, expected)

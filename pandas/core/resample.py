@@ -21,12 +21,18 @@ from pandas.util._decorators import Appender, Substitution, doc
 
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
+from pandas.core.aggregation import aggregate
 import pandas.core.algorithms as algos
-from pandas.core.base import DataError, ShallowMixin
+from pandas.core.base import DataError
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.base import GotItemMixin, ShallowMixin
 from pandas.core.groupby.generic import SeriesGroupBy
-from pandas.core.groupby.groupby import GroupBy, _GroupBy, _pipe_template, get_groupby
+from pandas.core.groupby.groupby import (
+    BaseGroupBy,
+    GroupBy,
+    _pipe_template,
+    get_groupby,
+)
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.api import Index
@@ -40,7 +46,7 @@ from pandas.tseries.offsets import DateOffset, Day, Nano, Tick
 _shared_docs_kwargs: Dict[str, str] = dict()
 
 
-class Resampler(_GroupBy, ShallowMixin):
+class Resampler(BaseGroupBy, ShallowMixin):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -125,7 +131,7 @@ class Resampler(_GroupBy, ShallowMixin):
 
         See Also
         --------
-        GroupBy.__iter__
+        GroupBy.__iter__ : Generator yielding sequence for each group.
         """
         self._set_binner()
         return super().__iter__()
@@ -203,7 +209,6 @@ class Resampler(_GroupBy, ShallowMixin):
 
     @Substitution(
         klass="Resampler",
-        versionadded=".. versionadded:: 0.23.0",
         examples="""
     >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
     ...                   index=pd.date_range('2012-08-02', periods=4))
@@ -230,9 +235,12 @@ class Resampler(_GroupBy, ShallowMixin):
         """
     See Also
     --------
-    DataFrame.groupby.aggregate
-    DataFrame.resample.transform
-    DataFrame.aggregate
+    DataFrame.groupby.aggregate : Aggregate using callable, string, dict,
+        or list of string/callables.
+    DataFrame.resample.transform : Transforms the Series on each group
+        based on the given function.
+    DataFrame.aggregate: Aggregate using one or more
+        operations over the specified axis.
     """
     )
 
@@ -278,14 +286,13 @@ class Resampler(_GroupBy, ShallowMixin):
         _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
         examples=_agg_examples_doc,
-        versionadded="",
         klass="DataFrame",
         axis="",
     )
     def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = self._aggregate(func, *args, **kwargs)
+        result, how = aggregate(self, func, *args, **kwargs)
         if result is None:
             how = func
             grouper = None
@@ -365,8 +372,9 @@ class Resampler(_GroupBy, ShallowMixin):
                 result = grouped._aggregate_item_by_item(how, *args, **kwargs)
             else:
                 result = grouped.aggregate(how, *args, **kwargs)
-        except DataError:
+        except (DataError, AttributeError, KeyError):
             # we have a non-reducing function; try to evaluate
+            # alternatively we want to evaluate only a column of the input
             result = grouped.apply(how, *args, **kwargs)
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -449,8 +457,8 @@ class Resampler(_GroupBy, ShallowMixin):
 
         See Also
         --------
-        Series.fillna
-        DataFrame.fillna
+        Series.fillna: Fill NA/NaN values using the specified method.
+        DataFrame.fillna: Fill NA/NaN values using the specified method.
         """
         return self._upsample("pad", limit=limit)
 
@@ -824,8 +832,8 @@ class Resampler(_GroupBy, ShallowMixin):
 
         See Also
         --------
-        Series.asfreq
-        DataFrame.asfreq
+        Series.asfreq: Convert TimeSeries to specified frequency.
+        DataFrame.asfreq: Convert TimeSeries to specified frequency.
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
@@ -911,8 +919,13 @@ class Resampler(_GroupBy, ShallowMixin):
         See Also
         --------
         Series.quantile
+            Return a series, where the index is q and the values are the quantiles.
         DataFrame.quantile
+            Return a DataFrame, where the columns are the columns of self,
+            and the values are the quantiles.
         DataFrameGroupBy.quantile
+            Return a DataFrame, where the coulmns are groupby columns,
+            and the values are its quantiles.
         """
         return self._downsample("quantile", q=q, **kwargs)
 
@@ -949,7 +962,7 @@ for method in ["nunique"]:
     setattr(Resampler, method, h)
 
 
-class _GroupByMixin(GroupByMixin):
+class _GroupByMixin(GotItemMixin):
     """
     Provide the groupby facilities.
     """
@@ -966,8 +979,7 @@ class _GroupByMixin(GroupByMixin):
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
 
-        # error: Too many arguments for "__init__" of "object"
-        super().__init__(None)  # type: ignore[call-arg]
+        super().__init__(None)
         self._groupby = groupby
         self._groupby.mutated = True
         self._groupby.grouper.mutated = True
@@ -1069,7 +1081,7 @@ class DatetimeIndexResampler(Resampler):
 
         See Also
         --------
-        .fillna
+        .fillna: Fill NA/NaN values using the specified method.
 
         """
         self._set_binner()
@@ -1088,7 +1100,11 @@ class DatetimeIndexResampler(Resampler):
         res_index = self._adjust_binner_for_upsample(binner)
 
         # if we have the same frequency as our axis, then we are equal sampling
-        if limit is None and to_offset(ax.inferred_freq) == self.freq:
+        if (
+            limit is None
+            and to_offset(ax.inferred_freq) == self.freq
+            and len(obj) == len(res_index)
+        ):
             result = obj.copy()
             result.index = res_index
         else:
@@ -1201,7 +1217,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         See Also
         --------
-        .fillna
+        .fillna: Fill NA/NaN values using the specified method.
 
         """
         # we may need to actually resample as if we are timestamps
