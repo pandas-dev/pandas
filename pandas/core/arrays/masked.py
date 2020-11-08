@@ -84,9 +84,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 "mask should be boolean numpy array. Use "
                 "the 'pd.array' function instead"
             )
-        if not values.ndim == 1:
+        if values.ndim != 1:
             raise ValueError("values must be a 1D array")
-        if not mask.ndim == 1:
+        if mask.ndim != 1:
             raise ValueError("mask must be a 1D array")
 
         if copy:
@@ -209,7 +209,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             dtype = object
         if self._hasna:
             if (
-                not (is_object_dtype(dtype) or is_string_dtype(dtype))
+                not is_object_dtype(dtype)
+                and not is_string_dtype(dtype)
                 and na_value is libmissing.NA
             ):
                 raise ValueError(
@@ -268,6 +269,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def take(
         self: BaseMaskedArrayT,
         indexer,
+        *,
         allow_fill: bool = False,
         fill_value: Optional[Scalar] = None,
     ) -> BaseMaskedArrayT:
@@ -356,7 +358,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return Series(counts, index=index)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         data = self._data
         mask = self._mask
 
