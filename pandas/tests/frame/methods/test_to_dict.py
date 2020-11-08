@@ -283,7 +283,8 @@ class TestDataFrameToDict:
     @pytest.mark.parametrize(
         "data,dtype",
         (
-            [np.int64(9), int],
+            [np.uint64(2), int],
+            [np.int64(-9), int],
             [np.float64(1.1), float],
             [np.bool_(True), bool],
             [np.datetime64("2005-02-25"), Timestamp],
