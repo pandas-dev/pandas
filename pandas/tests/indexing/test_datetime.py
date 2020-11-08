@@ -7,33 +7,6 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
-    def test_setitem_with_datetime_tz(self):
-        # 16889
-        # support .loc with alignment and tz-aware DatetimeIndex
-        mask = np.array([True, False, True, False])
-
-        idx = date_range("20010101", periods=4, tz="UTC")
-        df = DataFrame({"a": np.arange(4)}, index=idx).astype("float64")
-
-        result = df.copy()
-        result.loc[mask, :] = df.loc[mask, :]
-        tm.assert_frame_equal(result, df)
-
-        result = df.copy()
-        result.loc[mask] = df.loc[mask]
-        tm.assert_frame_equal(result, df)
-
-        idx = date_range("20010101", periods=4)
-        df = DataFrame({"a": np.arange(4)}, index=idx).astype("float64")
-
-        result = df.copy()
-        result.loc[mask, :] = df.loc[mask, :]
-        tm.assert_frame_equal(result, df)
-
-        result = df.copy()
-        result.loc[mask] = df.loc[mask]
-        tm.assert_frame_equal(result, df)
-
     def test_indexing_with_datetime_tz(self):
 
         # GH#8260
@@ -186,22 +159,6 @@ class TestDatetimeIndex:
         result.loc[index[1]] = 5
         expected = Series([0, 5], index=index)
         tm.assert_series_equal(result, expected)
-
-    def test_partial_setting_with_datetimelike_dtype(self):
-
-        # GH9478
-        # a datetimeindex alignment issue with partial setting
-        df = DataFrame(
-            np.arange(6.0).reshape(3, 2),
-            columns=list("AB"),
-            index=date_range("1/1/2000", periods=3, freq="1H"),
-        )
-        expected = df.copy()
-        expected["C"] = [expected.index[0]] + [pd.NaT, pd.NaT]
-
-        mask = df.A < 1
-        df.loc[mask, "C"] = df.loc[mask].index
-        tm.assert_frame_equal(df, expected)
 
     def test_series_partial_set_datetime(self):
         # GH 11497
