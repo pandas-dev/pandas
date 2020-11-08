@@ -7,7 +7,16 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalDtype, DataFrame, NaT, Series, concat, date_range, isna
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+    Index,
+    NaT,
+    Series,
+    concat,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
@@ -775,6 +784,15 @@ class TestiLoc2:
         series.iloc[0] = value
         expected = pd.Series([NaT, 1, 2], dtype="timedelta64[ns]")
         tm.assert_series_equal(series, expected)
+
+    def test_iloc_setitem_empty_frame_raises_with_3d_ndarray(self):
+        idx = Index([])
+        obj = DataFrame(np.random.randn(len(idx), len(idx)), index=idx, columns=idx)
+        nd3 = np.random.randint(5, size=(2, 2, 2))
+
+        msg = f"Cannot set values with ndim > {obj.ndim}"
+        with pytest.raises(ValueError, match=msg):
+            obj.iloc[nd3] = 0
 
 
 class TestILocSetItemDuplicateColumns:
