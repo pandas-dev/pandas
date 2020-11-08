@@ -10724,6 +10724,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cls.all = all
 
         @doc(
+            NDFrame.mad,
             desc="Return the mean absolute deviation of the values "
             "over the requested axis.",
             name1=name1,
@@ -10732,7 +10733,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        @Appender(NDFrame.mad.__doc__)
         def mad(self, axis=None, skipna=None, level=None):
             return NDFrame.mad(self, axis, skipna, level)
 
