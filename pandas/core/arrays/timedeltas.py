@@ -219,7 +219,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _from_sequence(
-        cls, data, dtype=TD64NS_DTYPE, copy: bool = False
+        cls, data, *, dtype=TD64NS_DTYPE, copy: bool = False
     ) -> "TimedeltaArray":
         if dtype:
             _validate_td64_dtype(dtype)
@@ -227,8 +227,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
         freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
 
-        result = cls._simple_new(data, freq=freq)
-        return result
+        return cls._simple_new(data, freq=freq)
 
     @classmethod
     def _from_sequence_not_strict(
@@ -301,15 +300,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # DatetimeLike Interface
 
-    @classmethod
-    def _rebox_native(cls, value: int) -> np.timedelta64:
-        return np.int64(value).view("m8[ns]")
-
-    def _unbox_scalar(self, value, setitem: bool = False):
+    def _unbox_scalar(self, value, setitem: bool = False) -> np.timedelta64:
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value, setitem=setitem)
-        return value.value
+        return np.timedelta64(value.value, "ns")
 
     def _scalar_from_string(self, value):
         return Timedelta(value)
@@ -338,10 +333,9 @@ class TimedeltaArray(dtl.TimelikeOps):
             if self._hasnans:
                 # avoid double-copying
                 result = self._data.astype(dtype, copy=False)
-                values = self._maybe_mask_results(
+                return self._maybe_mask_results(
                     result, fill_value=None, convert="float64"
                 )
-                return values
             result = self._data.astype(dtype, copy=copy)
             return result.astype("i8")
         elif is_timedelta64_ns_dtype(dtype):
@@ -352,7 +346,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def __iter__(self):
         if self.ndim > 1:
-            return (self[n] for n in range(len(self)))
+            for i in range(len(self)):
+                yield self[i]
         else:
             # convert in chunks of 10k for efficiency
             data = self.asi8
@@ -386,9 +381,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
-        if axis is None or self.ndim == 1:
-            return self._box_func(result)
-        return self._from_backing_data(result)
+        return self._wrap_reduction_result(axis, result)
 
     def std(
         self,

@@ -1,12 +1,10 @@
-import string
-
 import numpy as np
 import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, date_range
+from pandas import Categorical, DataFrame, Series
 import pandas._testing as tm
 
 
@@ -15,20 +13,6 @@ class TestSeriesDtypes:
 
         assert datetime_series.dtype == np.dtype("float64")
         assert datetime_series.dtypes == np.dtype("float64")
-
-    @pytest.mark.parametrize("dtype", [str, np.str_])
-    @pytest.mark.parametrize(
-        "series",
-        [
-            Series([string.digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
-            Series([string.digits * 10, tm.rands(63), tm.rands(64), np.nan, 1.0]),
-        ],
-    )
-    def test_astype_str_map(self, dtype, series):
-        # see gh-4405
-        result = series.astype(dtype)
-        expected = series.map(str)
-        tm.assert_series_equal(result, expected)
 
     def test_astype_from_categorical(self):
         items = ["a", "b", "c", "a"]
@@ -120,55 +104,6 @@ class TestSeriesDtypes:
             s.astype("object").astype(CategoricalDtype()), roundtrip_expected
         )
 
-        # invalid conversion (these are NOT a dtype)
-        msg = (
-            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
-            "not understood"
-        )
-
-        for invalid in [
-            lambda x: x.astype(Categorical),
-            lambda x: x.astype("object").astype(Categorical),
-        ]:
-            with pytest.raises(TypeError, match=msg):
-                invalid(s)
-
-    @pytest.mark.parametrize("dtype", np.typecodes["All"])
-    def test_astype_empty_constructor_equality(self, dtype):
-        # see gh-15524
-
-        if dtype not in (
-            "S",
-            "V",  # poor support (if any) currently
-            "M",
-            "m",  # Generic timestamps raise a ValueError. Already tested.
-        ):
-            init_empty = Series([], dtype=dtype)
-            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-                as_type_empty = Series([]).astype(dtype)
-            tm.assert_series_equal(init_empty, as_type_empty)
-
-    def test_intercept_astype_object(self):
-        series = Series(date_range("1/1/2000", periods=10))
-
-        # This test no longer makes sense, as
-        # Series is by default already M8[ns].
-        expected = series.astype("object")
-
-        df = DataFrame({"a": series, "b": np.random.randn(len(series))})
-        exp_dtypes = Series(
-            [np.dtype("datetime64[ns]"), np.dtype("float64")], index=["a", "b"]
-        )
-        tm.assert_series_equal(df.dtypes, exp_dtypes)
-
-        result = df.values.squeeze()
-        assert (result[:, 0] == expected.values).all()
-
-        df = DataFrame({"a": series, "b": ["foo"] * len(series)})
-
-        result = df.values.squeeze()
-        assert (result[:, 0] == expected.values).all()
-
     def test_series_to_categorical(self):
         # see gh-16524: test conversion of Series to Categorical
         series = Series(["a", "b", "c"])
@@ -177,19 +112,6 @@ class TestSeriesDtypes:
         expected = Series(["a", "b", "c"], dtype="category")
 
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "data",
-        [
-            pd.period_range("2000", periods=4),
-            pd.IntervalIndex.from_breaks([1, 2, 3, 4]),
-        ],
-    )
-    def test_values_compatibility(self, data):
-        # https://github.com/pandas-dev/pandas/issues/23995
-        result = Series(data).values
-        expected = np.array(data.astype(object))
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_reindex_astype_order_consistency(self):
         # GH 17444

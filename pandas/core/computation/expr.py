@@ -496,15 +496,14 @@ class BaseExprVisitor(ast.NodeVisitor):
                 f"'{lhs.type}' and '{rhs.type}'"
             )
 
-        if self.engine != "pytables":
-            if (
-                res.op in CMP_OPS_SYMS
-                and getattr(lhs, "is_datetime", False)
-                or getattr(rhs, "is_datetime", False)
-            ):
-                # all date ops must be done in python bc numexpr doesn't work
-                # well with NaT
-                return self._maybe_eval(res, self.binary_ops)
+        if self.engine != "pytables" and (
+            res.op in CMP_OPS_SYMS
+            and getattr(lhs, "is_datetime", False)
+            or getattr(rhs, "is_datetime", False)
+        ):
+            # all date ops must be done in python bc numexpr doesn't work
+            # well with NaT
+            return self._maybe_eval(res, self.binary_ops)
 
         if res.op in eval_in_python:
             # "in"/"not in" ops are always evaluated in python

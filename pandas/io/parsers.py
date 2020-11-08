@@ -5,7 +5,7 @@ Module contains tools for processing files into DataFrames or other objects
 from collections import abc, defaultdict
 import csv
 import datetime
-from io import StringIO, TextIOWrapper
+from io import StringIO
 import itertools
 import re
 import sys
@@ -428,17 +428,16 @@ def _validate_names(names):
 
 def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     """Generic reader of line files."""
-    encoding = kwds.get("encoding", None)
     storage_options = kwds.get("storage_options", None)
-    if encoding is not None:
-        encoding = re.sub("_", "-", encoding).lower()
-        kwds["encoding"] = encoding
-    compression = kwds.get("compression", "infer")
 
     ioargs = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression, storage_options=storage_options
+        filepath_or_buffer,
+        kwds.get("encoding", None),
+        kwds.get("compression", "infer"),
+        storage_options=storage_options,
     )
     kwds["compression"] = ioargs.compression
+    kwds["encoding"] = ioargs.encoding
 
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
@@ -461,14 +460,10 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     try:
         data = parser.read(nrows)
     finally:
+        # close compression and byte/text wrapper
         parser.close()
-
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        try:
-            ioargs.filepath_or_buffer.close()
-        except ValueError:
-            pass
+        # close any fsspec-like objects
+        ioargs.close()
 
     return data
 
@@ -1362,10 +1357,6 @@ class ParserBase:
 
         self._first_chunk = True
 
-        # GH 13932
-        # keep references to file handles opened by the parser itself
-        self.handles = []
-
     def _validate_parse_dates_presence(self, columns: List[str]) -> None:
         """
         Check if parse_dates are in columns.
@@ -1415,8 +1406,7 @@ class ParserBase:
             )
 
     def close(self):
-        for f in self.handles:
-            f.close()
+        self.handles.close()
 
     @property
     def _has_complex_date_col(self):
@@ -1856,23 +1846,19 @@ class CParserWrapper(ParserBase):
 
         ParserBase.__init__(self, kwds)
 
-        encoding = kwds.get("encoding")
-
-        # parsers.TextReader doesn't support compression dicts
-        if isinstance(kwds.get("compression"), dict):
-            kwds["compression"] = kwds["compression"]["method"]
-
-        if kwds.get("compression") is None and encoding:
-            if isinstance(src, str):
-                src = open(src, "rb")
-                self.handles.append(src)
-
-            # Handle the file object with universal line mode enabled.
-            # We will handle the newline character ourselves later on.
-            if hasattr(src, "read") and not hasattr(src, "encoding"):
-                src = TextIOWrapper(src, encoding=encoding, newline="")
-
-            kwds["encoding"] = "utf-8"
+        self.handles = get_handle(
+            src,
+            mode="r",
+            encoding=kwds.get("encoding", None),
+            compression=kwds.get("compression", None),
+            memory_map=kwds.get("memory_map", False),
+            is_text=True,
+        )
+        kwds.pop("encoding", None)
+        kwds.pop("memory_map", None)
+        kwds.pop("compression", None)
+        if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
+            self.handles.handle = self.handles.handle.mmap
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -1881,7 +1867,7 @@ class CParserWrapper(ParserBase):
         self.usecols, self.usecols_dtype = _validate_usecols_arg(kwds["usecols"])
         kwds["usecols"] = self.usecols
 
-        self._reader = parsers.TextReader(src, **kwds)
+        self._reader = parsers.TextReader(self.handles.handle, **kwds)
         self.unnamed_cols = self._reader.unnamed_cols
 
         passed_names = self.names is None
@@ -1965,11 +1951,10 @@ class CParserWrapper(ParserBase):
 
         self._implicit_index = self._reader.leading_cols > 0
 
-    def close(self):
-        for f in self.handles:
-            f.close()
+    def close(self) -> None:
+        super().close()
 
-        # close additional handles opened by C parser (for compression)
+        # close additional handles opened by C parser
         try:
             self._reader.close()
         except ValueError:
@@ -2270,20 +2255,19 @@ class PythonParser(ParserBase):
         self.comment = kwds["comment"]
         self._comment_lines = []
 
-        f, handles = get_handle(
+        self.handles = get_handle(
             f,
             "r",
             encoding=self.encoding,
             compression=self.compression,
             memory_map=self.memory_map,
         )
-        self.handles.extend(handles)
 
         # Set self.data to something that can read lines.
-        if hasattr(f, "readline"):
-            self._make_reader(f)
+        if hasattr(self.handles.handle, "readline"):
+            self._make_reader(self.handles.handle)
         else:
-            self.data = f
+            self.data = self.handles.handle
 
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.

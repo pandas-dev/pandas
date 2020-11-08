@@ -79,9 +79,8 @@ class GotItemMixin(PandasObject):
             subset, groupby=groupby, parent=self, **kwargs  # type: ignore[call-arg]
         )
         self._reset_cache()
-        if subset.ndim == 2:
-            if is_scalar(key) and key in subset or is_list_like(key):
-                self._selection = key
+        if subset.ndim == 2 and (is_scalar(key) and key in subset or is_list_like(key)):
+            self._selection = key
         return self
 
 

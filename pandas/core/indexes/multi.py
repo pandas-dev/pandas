@@ -20,7 +20,7 @@ from pandas._config import get_option
 
 from pandas._libs import algos as libalgos, index as libindex, lib
 from pandas._libs.hashtable import duplicated_int64
-from pandas._typing import AnyArrayLike, Label, Scalar
+from pandas._typing import AnyArrayLike, Label, Scalar, Shape
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError, PerformanceWarning, UnsortedIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -702,7 +702,7 @@ class MultiIndex(Index):
         )
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
         """
@@ -2020,29 +2020,13 @@ class MultiIndex(Index):
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
         indices = ensure_platform_int(indices)
-        taken = self._assert_take_fillable(
-            self.codes,
-            indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            na_value=-1,
-        )
-        return MultiIndex(
-            levels=self.levels, codes=taken, names=self.names, verify_integrity=False
-        )
 
-    def _assert_take_fillable(
-        self, values, indices, allow_fill=True, fill_value=None, na_value=None
-    ):
-        """ Internal method to handle NA filling of take """
         # only fill if we are passing a non-None fill_value
-        if allow_fill and fill_value is not None:
-            if (indices < -1).any():
-                msg = (
-                    "When allow_fill=True and fill_value is not None, "
-                    "all indices must be >= -1"
-                )
-                raise ValueError(msg)
+        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+
+        na_value = -1
+
+        if allow_fill:
             taken = [lab.take(indices) for lab in self.codes]
             mask = indices == -1
             if mask.any():
@@ -2054,7 +2038,10 @@ class MultiIndex(Index):
                 taken = masked
         else:
             taken = [lab.take(indices) for lab in self.codes]
-        return taken
+
+        return MultiIndex(
+            levels=self.levels, codes=taken, names=self.names, verify_integrity=False
+        )
 
     def append(self, other):
         """
@@ -3141,12 +3128,12 @@ class MultiIndex(Index):
                 r = r.nonzero()[0]
             return Int64Index(r)
 
-        def _update_indexer(idxr, indexer=indexer):
+        def _update_indexer(idxr: Optional[Index], indexer: Optional[Index]) -> Index:
             if indexer is None:
                 indexer = Index(np.arange(n))
             if idxr is None:
                 return indexer
-            return indexer & idxr
+            return indexer.intersection(idxr)
 
         for i, k in enumerate(seq):
 
@@ -3164,7 +3151,9 @@ class MultiIndex(Index):
                         idxrs = _convert_to_indexer(
                             self._get_level_indexer(x, level=i, indexer=indexer)
                         )
-                        indexers = idxrs if indexers is None else indexers | idxrs
+                        indexers = (idxrs if indexers is None else indexers).union(
+                            idxrs
+                        )
                     except KeyError:
 
                         # ignore not founds

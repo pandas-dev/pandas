@@ -366,8 +366,10 @@ class FrameRowApply(FrameApply):
             isinstance(x, dict) for x in results.values()
         ):
             # Our operation was a to_dict op e.g.
-            #  test_apply_dict GH#8735, test_apply_reduce_rows_to_dict GH#25196
-            return self.obj._constructor_sliced(results)
+            #  test_apply_dict GH#8735, test_apply_reduce_to_dict GH#25196 #37544
+            res = self.obj._constructor_sliced(results)
+            res.index = res_index
+            return res
 
         try:
             result = self.obj._constructor(data=results)

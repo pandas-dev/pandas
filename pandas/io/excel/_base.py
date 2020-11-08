@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import is_bool, is_float, is_integer, is_list_lik
 from pandas.core.frame import DataFrame
 
 from pandas.io.common import (
+    IOArgs,
     get_filepath_or_buffer,
     is_url,
     stringify_path,
@@ -349,24 +350,37 @@ def read_excel(
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
+        self.ioargs = IOArgs(
+            filepath_or_buffer=filepath_or_buffer,
+            encoding=None,
+            mode=None,
+            compression={"method": None},
+        )
         # If filepath_or_buffer is a url, load the data into a BytesIO
         if is_url(filepath_or_buffer):
-            filepath_or_buffer = BytesIO(urlopen(filepath_or_buffer).read())
+            self.ioargs = IOArgs(
+                filepath_or_buffer=BytesIO(urlopen(filepath_or_buffer).read()),
+                should_close=True,
+                encoding=None,
+                mode=None,
+                compression={"method": None},
+            )
         elif not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
-            filepath_or_buffer = get_filepath_or_buffer(
+            self.ioargs = get_filepath_or_buffer(
                 filepath_or_buffer, storage_options=storage_options
-            ).filepath_or_buffer
+            )
 
-        if isinstance(filepath_or_buffer, self._workbook_class):
-            self.book = filepath_or_buffer
-        elif hasattr(filepath_or_buffer, "read"):
+        if isinstance(self.ioargs.filepath_or_buffer, self._workbook_class):
+            self.book = self.ioargs.filepath_or_buffer
+        elif hasattr(self.ioargs.filepath_or_buffer, "read"):
             # N.B. xlrd.Book has a read attribute too
-            filepath_or_buffer.seek(0)
-            self.book = self.load_workbook(filepath_or_buffer)
-        elif isinstance(filepath_or_buffer, str):
-            self.book = self.load_workbook(filepath_or_buffer)
-        elif isinstance(filepath_or_buffer, bytes):
-            self.book = self.load_workbook(BytesIO(filepath_or_buffer))
+            assert not isinstance(self.ioargs.filepath_or_buffer, str)
+            self.ioargs.filepath_or_buffer.seek(0)
+            self.book = self.load_workbook(self.ioargs.filepath_or_buffer)
+        elif isinstance(self.ioargs.filepath_or_buffer, str):
+            self.book = self.load_workbook(self.ioargs.filepath_or_buffer)
+        elif isinstance(self.ioargs.filepath_or_buffer, bytes):
+            self.book = self.load_workbook(BytesIO(self.ioargs.filepath_or_buffer))
         else:
             raise ValueError(
                 "Must explicitly set engine if not passing in buffer or path for io."
@@ -382,7 +396,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self):
-        pass
+        self.ioargs.close()
 
     @property
     @abc.abstractmethod
