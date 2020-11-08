@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timedelta, Timestamp, date_range
+from pandas import DataFrame, Index, Series, date_range
 import pandas._testing as tm
 
 
@@ -112,11 +112,6 @@ class TestSeriesMisc:
     def test_contains(self, datetime_series):
         tm.assert_contains_all(datetime_series.index, datetime_series)
 
-    def test_values(self, datetime_series):
-        tm.assert_almost_equal(
-            datetime_series.values, datetime_series, check_dtype=False
-        )
-
     def test_raise_on_info(self):
         s = Series(np.random.randn(10))
         msg = "'Series' object has no attribute 'info'"
@@ -134,50 +129,6 @@ class TestSeriesMisc:
         # https://github.com/pandas-dev/pandas/issues/18147
         # no exception and no empty docstring
         assert pydoc.getdoc(Series.index)
-
-    def test_item(self):
-        s = Series([1])
-        result = s.item()
-        assert result == 1
-        assert result == s.iloc[0]
-        assert isinstance(result, int)  # i.e. not np.int64
-
-        ser = Series([0.5], index=[3])
-        result = ser.item()
-        assert isinstance(result, float)
-        assert result == 0.5
-
-        ser = Series([1, 2])
-        msg = "can only convert an array of size 1"
-        with pytest.raises(ValueError, match=msg):
-            ser.item()
-
-        dti = pd.date_range("2016-01-01", periods=2)
-        with pytest.raises(ValueError, match=msg):
-            dti.item()
-        with pytest.raises(ValueError, match=msg):
-            Series(dti).item()
-
-        val = dti[:1].item()
-        assert isinstance(val, Timestamp)
-        val = Series(dti)[:1].item()
-        assert isinstance(val, Timestamp)
-
-        tdi = dti - dti
-        with pytest.raises(ValueError, match=msg):
-            tdi.item()
-        with pytest.raises(ValueError, match=msg):
-            Series(tdi).item()
-
-        val = tdi[:1].item()
-        assert isinstance(val, Timedelta)
-        val = Series(tdi)[:1].item()
-        assert isinstance(val, Timedelta)
-
-        # Case where ser[0] would not work
-        ser = Series(dti, index=[5, 6])
-        val = ser[:1].item()
-        assert val == dti[0]
 
     def test_ndarray_compat(self):
 
