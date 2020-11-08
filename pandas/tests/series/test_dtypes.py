@@ -109,21 +109,6 @@ class TestSeriesDtypes:
         with pytest.raises(TypeError, match=msg):
             ser.astype("object").astype(Categorical)
 
-    @pytest.mark.parametrize("dtype", np.typecodes["All"])
-    def test_astype_empty_constructor_equality(self, dtype):
-        # see gh-15524
-
-        if dtype not in (
-            "S",
-            "V",  # poor support (if any) currently
-            "M",
-            "m",  # Generic timestamps raise a ValueError. Already tested.
-        ):
-            init_empty = Series([], dtype=dtype)
-            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-                as_type_empty = Series([]).astype(dtype)
-            tm.assert_series_equal(init_empty, as_type_empty)
-
     def test_series_to_categorical(self):
         # see gh-16524: test conversion of Series to Categorical
         series = Series(["a", "b", "c"])

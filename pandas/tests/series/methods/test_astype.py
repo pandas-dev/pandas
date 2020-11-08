@@ -18,6 +18,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    cut,
     date_range,
 )
 import pandas._testing as tm
@@ -76,6 +77,21 @@ class TestAstypeAPI:
 
 
 class TestAstype:
+    @pytest.mark.parametrize("dtype", np.typecodes["All"])
+    def test_astype_empty_constructor_equality(self, dtype):
+        # see GH#15524
+
+        if dtype not in (
+            "S",
+            "V",  # poor support (if any) currently
+            "M",
+            "m",  # Generic timestamps raise a ValueError. Already tested.
+        ):
+            init_empty = Series([], dtype=dtype)
+            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+                as_type_empty = Series([]).astype(dtype)
+            tm.assert_series_equal(init_empty, as_type_empty)
+
     @pytest.mark.parametrize("dtype", [str, np.str_])
     @pytest.mark.parametrize(
         "series",
@@ -323,6 +339,21 @@ class TestAstype:
 
 
 class TestAstypeCategorical:
+    def test_astype_categorical_invalid_conversions(self):
+        # invalid conversion (these are NOT a dtype)
+        cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
+        ser = Series(np.random.randint(0, 10000, 100)).sort_values()
+        ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
+
+        msg = (
+            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
+            "not understood"
+        )
+        with pytest.raises(TypeError, match=msg):
+            ser.astype(Categorical)
+        with pytest.raises(TypeError, match=msg):
+            ser.astype("object").astype(Categorical)
+
     def test_astype_categoricaldtype(self):
         s = Series(["a", "b", "a"])
         result = s.astype(CategoricalDtype(["a", "b"], ordered=True))
