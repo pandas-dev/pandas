@@ -414,7 +414,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # GH 10696/18593
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
-            result = self if dtype is self.dtype else self._set_dtype(dtype)
+            result = self._set_dtype(dtype)
 
         elif is_extension_array_dtype(dtype):
             result = array(self, dtype=dtype, copy=copy)
@@ -426,7 +426,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             result = np.array(self, dtype=dtype, copy=copy)
 
         else:
-            # PERF (GH8628): astype category codes instead of astyping array
+            # GH8628 (PERF): astype category codes instead of astyping array
             new_categories = np.append(
                 self.categories.astype(dtype), [na_value_for_dtype(dtype)]
             )
