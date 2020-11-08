@@ -3741,8 +3741,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Insert column into DataFrame at specified location.
 
-        Performs column insertion in-place.
-
         Raises a ValueError if `column` is already contained in the DataFrame,
         unless `allow_duplicates` is set to True.
 
@@ -3753,9 +3751,7 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : int, Series, or array-like
-            Input data to be inserted.
         allow_duplicates : bool, optional
-            Whether to allow duplicate column label names.
 
         See Also
         --------
