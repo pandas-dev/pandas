@@ -1,4 +1,4 @@
-from typing import Any, Sequence, TypeVar
+from typing import Any, Optional, Sequence, TypeVar
 
 import numpy as np
 
@@ -254,6 +254,11 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         else:
             msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
             raise TypeError(msg)
+
+    def _wrap_reduction_result(self, axis: Optional[int], result):
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result)
 
     # ------------------------------------------------------------------------
 
