@@ -799,6 +799,7 @@ class IndexOpsMixin(OpsMixin):
         self,
         op,
         name: str,
+        *,
         axis=0,
         skipna=True,
         numeric_only=None,

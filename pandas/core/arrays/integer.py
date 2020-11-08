@@ -373,15 +373,17 @@ class IntegerArray(BaseMaskedArray):
         return type(self)(np.abs(self._data), self._mask)  # type: ignore[arg-type]
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "IntegerArray":
         return integer_array(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype=None, copy: bool = False
+        cls, strings, *, dtype=None, copy: bool = False
     ) -> "IntegerArray":
         scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype, copy)
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 

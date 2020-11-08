@@ -137,36 +137,6 @@ _shared_doc_kwargs = dict(
 )
 
 
-def _single_replace(self: "Series", to_replace, method, inplace, limit):
-    """
-    Replaces values in a Series using the fill method specified when no
-    replacement value is given in the replace method
-    """
-    if self.ndim != 1:
-        raise TypeError(
-            f"cannot replace {to_replace} with method {method} on a "
-            f"{type(self).__name__}"
-        )
-
-    orig_dtype = self.dtype
-    result = self if inplace else self.copy()
-    fill_f = missing.get_fill_func(method)
-
-    mask = missing.mask_missing(result.values, to_replace)
-    values = fill_f(result.values, limit=limit, mask=mask)
-
-    if values.dtype == orig_dtype and inplace:
-        return
-
-    result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(self)
-
-    if inplace:
-        self._update_inplace(result)
-        return
-
-    return result
-
-
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
@@ -2199,7 +2169,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * Series:
 
                 - default is 'index'
-                - allowed values are: {'split','records','index','table'}.
+                - allowed values are: {'split', 'records', 'index', 'table'}.
 
             * DataFrame:
 
@@ -6693,11 +6663,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             if isinstance(to_replace, (tuple, list)):
                 if isinstance(self, ABCDataFrame):
+                    from pandas import Series
+
                     return self.apply(
-                        _single_replace, args=(to_replace, method, inplace, limit)
+                        Series._replace_single,
+                        args=(to_replace, method, inplace, limit),
                     )
                 self = cast("Series", self)
-                return _single_replace(self, to_replace, method, inplace, limit)
+                return self._replace_single(to_replace, method, inplace, limit)
 
             if not is_dict_like(to_replace):
                 if not is_dict_like(regex):
@@ -9354,9 +9327,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
         Equivalent to `shift` without copying data.
-
         The shifted data will not include the dropped periods and the
         shifted axis will be smaller than the original.
+
+        .. deprecated:: 1.2.0
+            slice_shift is deprecated,
+            use DataFrame/Series.shift instead.
 
         Parameters
         ----------
@@ -9372,6 +9348,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         While the `slice_shift` is faster than `shift`, you may pay for it
         later during alignment.
         """
+
+        msg = (
+            "The 'slice_shift' method is deprecated "
+            "and will be removed in a future version. "
+            "You can use DataFrame/Series.shift instead"
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         if periods == 0:
             return self
 

@@ -1001,7 +1001,7 @@ b  2""",
             key = base.OutputKey(label=name, position=idx)
             output[key] = result
 
-        if len(output) == 0:
+        if not output:
             raise DataError("No numeric types to aggregate")
 
         return self._wrap_transformed_output(output)
@@ -1084,7 +1084,7 @@ b  2""",
                 output[key] = maybe_cast_result(result, obj, how=how)
                 idx += 1
 
-        if len(output) == 0:
+        if not output:
             raise DataError("No numeric types to aggregate")
 
         # error: Argument 1 to "_wrap_aggregated_output" of "BaseGroupBy" has
@@ -1187,7 +1187,7 @@ b  2""",
             key = base.OutputKey(label=name, position=idx)
             output[key] = maybe_cast_result(result, obj, numeric_only=True)
 
-        if len(output) == 0:
+        if not output:
             return self._python_apply_general(f, self._selected_obj)
 
         if self.grouper._filter_empty_groups:
@@ -2571,9 +2571,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         if result_is_index and aggregate:
             raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
-        if post_processing:
-            if not callable(post_processing):
-                raise ValueError("'post_processing' must be a callable!")
+        if post_processing and not callable(post_processing):
+            raise ValueError("'post_processing' must be a callable!")
         if pre_processing:
             if not callable(pre_processing):
                 raise ValueError("'pre_processing' must be a callable!")
@@ -2652,7 +2651,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             output[key] = result
 
         # error_msg is "" on an frame/series with no rows or columns
-        if len(output) == 0 and error_msg != "":
+        if not output and error_msg != "":
             raise TypeError(error_msg)
 
         if aggregate:
