@@ -9,7 +9,7 @@ from pandas import (
     NaT,
     Series,
     Timestamp,
-    array,
+    array as pd_array,
     date_range,
     period_range,
 )
@@ -127,12 +127,13 @@ class TestSetitemBooleanMask:
 
         tm.assert_series_equal(copy, expected)
 
-    def test_setitem_boolean_ea_type(self):
+    def test_setitem_boolean_nullable_int_types(self, any_nullable_int_dtype):
         # GH: 26468
-        s = Series(array([5, 6, 7, 8], dtype="Int64"))
-        s[s > 6] = Series(range(4), dtype="Int64")
+        ser = Series(pd_array([5, 6, 7, 8], dtype="Int64"))
+        loc_ser = Series(range(4), dtype="Int64")
+        ser[ser > 6] = loc_ser.loc[loc_ser > 1]
         expected = Series([5, 6, 2, 3], dtype="Int64")
-        tm.assert_series_equal(s, expected)
+        tm.assert_series_equal(ser, expected)
 
 
 class TestSetitemViewCopySemantics:
