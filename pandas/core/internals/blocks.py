@@ -813,12 +813,11 @@ class Block(PandasObject):
         )
         return blocks
 
-    def _replace_single(
+    def _replace_regex(
         self,
         to_replace,
         value,
         inplace: bool = False,
-        regex: bool = False,
         convert: bool = True,
         mask=None,
     ) -> List["Block"]:
@@ -1598,14 +1597,16 @@ class Block(PandasObject):
                 self = self.coerce_to_target_dtype(value)
                 return self.putmask(mask, value, inplace=inplace)
             else:
-                return self._replace_single(
-                    to_replace,
-                    value,
-                    inplace=inplace,
-                    regex=regex,
-                    convert=False,
-                    mask=mask,
-                )
+                regex = _should_use_regex(regex, to_replace)
+                if regex:
+                    return self._replace_regex(
+                        to_replace,
+                        value,
+                        inplace=inplace,
+                        convert=False,
+                        mask=mask,
+                    )
+                return self.replace(to_replace, value, inplace=inplace, regex=False)
         return [self]
 
 
@@ -2506,17 +2507,18 @@ class ObjectBlock(Block):
         #  here with listlike to_replace or value, as those cases
         #  go through _replace_list
 
-        if is_re(to_replace) or regex:
-            return self._replace_single(to_replace, value, inplace=inplace, regex=True)
-        else:
-            return super().replace(to_replace, value, inplace=inplace, regex=regex)
+        regex = _should_use_regex(regex, to_replace)
 
-    def _replace_single(
+        if regex:
+            return self._replace_regex(to_replace, value, inplace=inplace)
+        else:
+            return super().replace(to_replace, value, inplace=inplace, regex=False)
+
+    def _replace_regex(
         self,
         to_replace,
         value,
         inplace: bool = False,
-        regex: bool = False,
         convert: bool = True,
         mask=None,
     ) -> List["Block"]:
@@ -2544,23 +2546,10 @@ class ObjectBlock(Block):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        # to_replace is regex compilable
-        regex = regex and is_re_compilable(to_replace)
+        regex = _should_use_regex(True, to_replace)
+        assert regex
 
-        # try to get the pattern attribute (compiled re) or it's a string
-        if is_re(to_replace):
-            pattern = to_replace.pattern
-        else:
-            pattern = to_replace
-
-        # if the pattern is not empty and to_replace is either a string or a
-        # regex
-        if regex and pattern:
-            rx = re.compile(to_replace)
-        else:
-            # if the thing to replace is not a string or compiled regex call
-            # the superclass method -> to_replace is some kind of object
-            return super().replace(to_replace, value, inplace=inplace, regex=regex)
+        rx = re.compile(to_replace)
 
         new_values = self.values if inplace else self.values.copy()
         replace_regex(new_values, rx, value, mask)
@@ -2572,6 +2561,18 @@ class ObjectBlock(Block):
         else:
             nbs = [block]
         return nbs
+
+
+def _should_use_regex(regex: bool, to_replace: Any) -> bool:
+    # to_replace is regex compilable
+    if is_re(to_replace):
+        regex = True
+
+    regex = regex and is_re_compilable(to_replace)
+
+    # Don't use regex if the pattern is empty.
+    regex = regex and re.compile(to_replace).pattern != ""
+    return regex
 
 
 class CategoricalBlock(ExtensionBlock):
