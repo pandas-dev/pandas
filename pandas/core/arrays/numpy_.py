@@ -172,7 +172,9 @@ class PandasArray(
         self._dtype = PandasDtype(values.dtype)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "PandasArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "PandasArray":
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 

@@ -54,6 +54,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def take(
         self: _T,
         indices: Sequence[int],
+        *,
         allow_fill: bool = False,
         fill_value: Any = None,
         axis: int = 0,
@@ -246,7 +247,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         meth = getattr(self, name, None)
         if meth:
             return meth(skipna=skipna, **kwargs)

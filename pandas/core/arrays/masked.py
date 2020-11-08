@@ -269,6 +269,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def take(
         self: BaseMaskedArrayT,
         indexer,
+        *,
         allow_fill: bool = False,
         fill_value: Optional[Scalar] = None,
     ) -> BaseMaskedArrayT:
@@ -357,7 +358,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return Series(counts, index=index)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         data = self._data
         mask = self._mask
 

@@ -273,7 +273,9 @@ class BooleanArray(BaseMaskedArray):
         return self._dtype
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "BooleanArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "BooleanArray":
         if dtype:
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
@@ -281,7 +283,7 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings: List[str], dtype=None, copy: bool = False
+        cls, strings: List[str], *, dtype=None, copy: bool = False
     ) -> "BooleanArray":
         def map_string(s):
             if isna(s):
@@ -294,7 +296,7 @@ class BooleanArray(BaseMaskedArray):
                 raise ValueError(f"{s} cannot be cast to bool")
 
         scalars = [map_string(x) for x in strings]
-        return cls._from_sequence(scalars, dtype, copy)
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
@@ -682,12 +684,12 @@ class BooleanArray(BaseMaskedArray):
 
         return self._maybe_mask_result(result, mask, other, op_name)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
 
         if name in {"any", "all"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
-        return super()._reduce(name, skipna, **kwargs)
+        return super()._reduce(name, skipna=skipna, **kwargs)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """

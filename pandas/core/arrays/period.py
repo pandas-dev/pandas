@@ -192,6 +192,7 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
     def _from_sequence(
         cls: Type["PeriodArray"],
         scalars: Union[Sequence[Optional[Period]], AnyArrayLike],
+        *,
         dtype: Optional[PeriodDtype] = None,
         copy: bool = False,
     ) -> "PeriodArray":
@@ -214,9 +215,9 @@ class PeriodArray(PeriodMixin, dtl.DatelikeOps):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype=None, copy=False
+        cls, strings, *, dtype=None, copy=False
     ) -> "PeriodArray":
-        return cls._from_sequence(strings, dtype, copy)
+        return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_datetime64(cls, data, freq, tz=None) -> "PeriodArray":

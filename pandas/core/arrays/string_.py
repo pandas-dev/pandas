@@ -198,7 +198,7 @@ class StringArray(PandasArray):
             )
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         if dtype:
             assert dtype == "string"
 
@@ -226,7 +226,7 @@ class StringArray(PandasArray):
         return new_string_array
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
+    def _from_sequence_of_strings(cls, strings, *, dtype=None, copy=False):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     def __arrow_array__(self, type=None):
@@ -295,7 +295,7 @@ class StringArray(PandasArray):
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:
             return getattr(self, name)(skipna=skipna)
 

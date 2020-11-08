@@ -219,7 +219,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _from_sequence(
-        cls, data, dtype=TD64NS_DTYPE, copy: bool = False
+        cls, data, *, dtype=TD64NS_DTYPE, copy: bool = False
     ) -> "TimedeltaArray":
         if dtype:
             _validate_td64_dtype(dtype)

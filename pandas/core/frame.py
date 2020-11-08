@@ -8719,6 +8719,7 @@ NaN 12.3   33.0
         self,
         op,
         name: str,
+        *,
         axis=0,
         skipna=True,
         numeric_only=None,
