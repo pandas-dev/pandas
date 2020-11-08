@@ -1928,7 +1928,11 @@ def _merge_blocks(
         # TODO: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
-        new_values = np.vstack([b.values for b in blocks])
+        # pandas\core\internals\managers.py:1931: error: List comprehension has
+        # incompatible type List[Union[ndarray, ExtensionArray]]; expected
+        # List[Union[complex, generic, Sequence[Union[int, float, complex, str,
+        # bytes, generic]], Sequence[Sequence[Any]], _SupportsArray]]  [misc]
+        new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
 
         argsort = np.argsort(new_mgr_locs)
         new_values = new_values[argsort]

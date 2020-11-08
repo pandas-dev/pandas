@@ -753,4 +753,8 @@ def _rolling_window(a: np.ndarray, window: int):
     # https://stackoverflow.com/a/6811241
     shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
     strides = a.strides + (a.strides[-1],)
-    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+    # pandas\core\missing.py:756: error: Module has no attribute
+    # "stride_tricks"  [attr-defined]
+    return np.lib.stride_tricks.as_strided(  # type: ignore[attr-defined]
+        a, shape=shape, strides=strides
+    )

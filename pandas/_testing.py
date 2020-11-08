@@ -16,9 +16,7 @@ import zipfile
 
 import numpy as np
 
-# pandas\_testing.py:17: error: Module 'numpy.random' has no attribute 'rand'
-# pandas\_testing.py:17: error: Module 'numpy.random' has no attribute 'randn'
-from numpy.random import rand, randn  # type: ignore[attr-defined]
+from numpy.random import rand, randn
 
 from pandas._config.localization import (  # noqa:F401
     can_set_locale,

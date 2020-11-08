@@ -610,7 +610,10 @@ def _list_of_series_to_arrays(
         values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_1d(values, indexer))
 
-    values = np.vstack(aligned_values)
+    # pandas\core\internals\construction.py:613: error: Incompatible types in
+    # assignment (expression has type "ndarray", variable has type
+    # "ExtensionArray")  [assignment]
+    values = np.vstack(aligned_values)  # type: ignore[assignment]
 
     if values.dtype == np.object_:
         content = list(values.T)
