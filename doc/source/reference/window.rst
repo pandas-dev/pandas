@@ -32,6 +32,7 @@ Standard moving window functions
    Rolling.apply
    Rolling.aggregate
    Rolling.quantile
+   Rolling.sem
    Window.mean
    Window.sum
    Window.var
@@ -61,6 +62,7 @@ Standard expanding window functions
    Expanding.apply
    Expanding.aggregate
    Expanding.quantile
+   Expanding.sem
 
 Exponentially-weighted moving window functions
 ----------------------------------------------

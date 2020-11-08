@@ -953,9 +953,9 @@ def test_registry_find(dtype, expected):
         (bool, True),
         (np.bool_, True),
         (np.array(["a", "b"]), False),
-        (pd.Series([1, 2]), False),
+        (Series([1, 2]), False),
         (np.array([True, False]), True),
-        (pd.Series([True, False]), True),
+        (Series([True, False]), True),
         (SparseArray([True, False]), True),
         (SparseDtype(bool), True),
     ],
@@ -966,7 +966,7 @@ def test_is_bool_dtype(dtype, expected):
 
 
 def test_is_bool_dtype_sparse():
-    result = is_bool_dtype(pd.Series(SparseArray([True, False])))
+    result = is_bool_dtype(Series(SparseArray([True, False])))
     assert result is True
 
 
@@ -991,3 +991,10 @@ def test_is_dtype_no_warning(check):
 
     with tm.assert_produces_warning(None):
         check(data["A"])
+
+
+def test_period_dtype_compare_to_string():
+    # https://github.com/pandas-dev/pandas/issues/37265
+    dtype = PeriodDtype(freq="M")
+    assert (dtype == "period[M]") is True
+    assert (dtype != "period[M]") is False

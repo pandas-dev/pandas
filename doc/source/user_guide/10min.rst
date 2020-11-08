@@ -34,9 +34,9 @@ and labeled columns:
 
 .. ipython:: python
 
-   dates = pd.date_range('20130101', periods=6)
+   dates = pd.date_range("20130101", periods=6)
    dates
-   df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+   df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list("ABCD"))
    df
 
 Creating a :class:`DataFrame` by passing a dict of objects that can be converted to series-like.
@@ -156,7 +156,7 @@ Sorting by values:
 
 .. ipython:: python
 
-   df.sort_values(by='B')
+   df.sort_values(by="B")
 
 Selection
 ---------
@@ -178,14 +178,14 @@ equivalent to ``df.A``:
 
 .. ipython:: python
 
-   df['A']
+   df["A"]
 
 Selecting via ``[]``, which slices the rows.
 
 .. ipython:: python
 
    df[0:3]
-   df['20130102':'20130104']
+   df["20130102":"20130104"]
 
 Selection by label
 ~~~~~~~~~~~~~~~~~~
@@ -202,31 +202,31 @@ Selecting on a multi-axis by label:
 
 .. ipython:: python
 
-   df.loc[:, ['A', 'B']]
+   df.loc[:, ["A", "B"]]
 
 Showing label slicing, both endpoints are *included*:
 
 .. ipython:: python
 
-   df.loc['20130102':'20130104', ['A', 'B']]
+   df.loc["20130102":"20130104", ["A", "B"]]
 
 Reduction in the dimensions of the returned object:
 
 .. ipython:: python
 
-   df.loc['20130102', ['A', 'B']]
+   df.loc["20130102", ["A", "B"]]
 
 For getting a scalar value:
 
 .. ipython:: python
 
-   df.loc[dates[0], 'A']
+   df.loc[dates[0], "A"]
 
 For getting fast access to a scalar (equivalent to the prior method):
 
 .. ipython:: python
 
-   df.at[dates[0], 'A']
+   df.at[dates[0], "A"]
 
 Selection by position
 ~~~~~~~~~~~~~~~~~~~~~
@@ -282,7 +282,7 @@ Using a single column's values to select data.
 
 .. ipython:: python
 
-   df[df['A'] > 0]
+   df[df["A"] > 0]
 
 Selecting values from a DataFrame where a boolean condition is met.
 
@@ -295,9 +295,9 @@ Using the :func:`~Series.isin` method for filtering:
 .. ipython:: python
 
    df2 = df.copy()
-   df2['E'] = ['one', 'one', 'two', 'three', 'four', 'three']
+   df2["E"] = ["one", "one", "two", "three", "four", "three"]
    df2
-   df2[df2['E'].isin(['two', 'four'])]
+   df2[df2["E"].isin(["two", "four"])]
 
 Setting
 ~~~~~~~
@@ -307,15 +307,15 @@ by the indexes.
 
 .. ipython:: python
 
-   s1 = pd.Series([1, 2, 3, 4, 5, 6], index=pd.date_range('20130102', periods=6))
+   s1 = pd.Series([1, 2, 3, 4, 5, 6], index=pd.date_range("20130102", periods=6))
    s1
-   df['F'] = s1
+   df["F"] = s1
 
 Setting values by label:
 
 .. ipython:: python
 
-   df.at[dates[0], 'A'] = 0
+   df.at[dates[0], "A"] = 0
 
 Setting values by position:
 
@@ -327,7 +327,7 @@ Setting by assigning with a NumPy array:
 
 .. ipython:: python
 
-   df.loc[:, 'D'] = np.array([5] * len(df))
+   df.loc[:, "D"] = np.array([5] * len(df))
 
 The result of the prior setting operations.
 
@@ -356,15 +356,15 @@ returns a copy of the data.
 
 .. ipython:: python
 
-   df1 = df.reindex(index=dates[0:4], columns=list(df.columns) + ['E'])
-   df1.loc[dates[0]:dates[1], 'E'] = 1
+   df1 = df.reindex(index=dates[0:4], columns=list(df.columns) + ["E"])
+   df1.loc[dates[0] : dates[1], "E"] = 1
    df1
 
 To drop any rows that have missing data.
 
 .. ipython:: python
 
-   df1.dropna(how='any')
+   df1.dropna(how="any")
 
 Filling missing data.
 
@@ -408,7 +408,7 @@ In addition, pandas automatically broadcasts along the specified dimension.
 
    s = pd.Series([1, 3, 5, np.nan, 6, 8], index=dates).shift(2)
    s
-   df.sub(s, axis='index')
+   df.sub(s, axis="index")
 
 
 Apply
@@ -444,7 +444,7 @@ some cases always uses them). See more at :ref:`Vectorized String Methods
 
 .. ipython:: python
 
-   s = pd.Series(['A', 'B', 'C', 'Aaba', 'Baca', np.nan, 'CABA', 'dog', 'cat'])
+   s = pd.Series(["A", "B", "C", "Aaba", "Baca", np.nan, "CABA", "dog", "cat"])
    s.str.lower()
 
 Merge
@@ -486,21 +486,21 @@ SQL style merges. See the :ref:`Database style joining <merging.join>` section.
 
 .. ipython:: python
 
-   left = pd.DataFrame({'key': ['foo', 'foo'], 'lval': [1, 2]})
-   right = pd.DataFrame({'key': ['foo', 'foo'], 'rval': [4, 5]})
+   left = pd.DataFrame({"key": ["foo", "foo"], "lval": [1, 2]})
+   right = pd.DataFrame({"key": ["foo", "foo"], "rval": [4, 5]})
    left
    right
-   pd.merge(left, right, on='key')
+   pd.merge(left, right, on="key")
 
 Another example that can be given is:
 
 .. ipython:: python
 
-   left = pd.DataFrame({'key': ['foo', 'bar'], 'lval': [1, 2]})
-   right = pd.DataFrame({'key': ['foo', 'bar'], 'rval': [4, 5]})
+   left = pd.DataFrame({"key": ["foo", "bar"], "lval": [1, 2]})
+   right = pd.DataFrame({"key": ["foo", "bar"], "rval": [4, 5]})
    left
    right
-   pd.merge(left, right, on='key')
+   pd.merge(left, right, on="key")
 
 Grouping
 --------
@@ -531,14 +531,14 @@ groups.
 
 .. ipython:: python
 
-   df.groupby('A').sum()
+   df.groupby("A").sum()
 
 Grouping by multiple columns forms a hierarchical index, and again we can
 apply the :meth:`~pandas.core.groupby.GroupBy.sum` function.
 
 .. ipython:: python
 
-   df.groupby(['A', 'B']).sum()
+   df.groupby(["A", "B"]).sum()
 
 Reshaping
 ---------
@@ -559,8 +559,8 @@ Stack
            ]
        )
    )
-   index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
-   df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=['A', 'B'])
+   index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
+   df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=["A", "B"])
    df2 = df[:4]
    df2
 
@@ -603,7 +603,7 @@ We can produce pivot tables from this data very easily:
 
 .. ipython:: python
 
-   pd.pivot_table(df, values='D', index=['A', 'B'], columns=['C'])
+   pd.pivot_table(df, values="D", index=["A", "B"], columns=["C"])
 
 
 Time series
@@ -616,31 +616,31 @@ financial applications. See the :ref:`Time Series section <timeseries>`.
 
 .. ipython:: python
 
-   rng = pd.date_range('1/1/2012', periods=100, freq='S')
+   rng = pd.date_range("1/1/2012", periods=100, freq="S")
    ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
-   ts.resample('5Min').sum()
+   ts.resample("5Min").sum()
 
 Time zone representation:
 
 .. ipython:: python
 
-   rng = pd.date_range('3/6/2012 00:00', periods=5, freq='D')
+   rng = pd.date_range("3/6/2012 00:00", periods=5, freq="D")
    ts = pd.Series(np.random.randn(len(rng)), rng)
    ts
-   ts_utc = ts.tz_localize('UTC')
+   ts_utc = ts.tz_localize("UTC")
    ts_utc
 
 Converting to another time zone:
 
 .. ipython:: python
 
-   ts_utc.tz_convert('US/Eastern')
+   ts_utc.tz_convert("US/Eastern")
 
 Converting between time span representations:
 
 .. ipython:: python
 
-   rng = pd.date_range('1/1/2012', periods=5, freq='M')
+   rng = pd.date_range("1/1/2012", periods=5, freq="M")
    ts = pd.Series(np.random.randn(len(rng)), index=rng)
    ts
    ps = ts.to_period()
@@ -654,9 +654,9 @@ the quarter end:
 
 .. ipython:: python
 
-   prng = pd.period_range('1990Q1', '2000Q4', freq='Q-NOV')
+   prng = pd.period_range("1990Q1", "2000Q4", freq="Q-NOV")
    ts = pd.Series(np.random.randn(len(prng)), prng)
-   ts.index = (prng.asfreq('M', 'e') + 1).asfreq('H', 's') + 9
+   ts.index = (prng.asfreq("M", "e") + 1).asfreq("H", "s") + 9
    ts.head()
 
 Categoricals
@@ -667,9 +667,10 @@ pandas can include categorical data in a :class:`DataFrame`. For full docs, see 
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-       {"id": [1, 2, 3, 4, 5, 6], "raw_grade": ["a", "b", "b", "a", "a", "e"]}
-   )
+    df = pd.DataFrame(
+        {"id": [1, 2, 3, 4, 5, 6], "raw_grade": ["a", "b", "b", "a", "a", "e"]}
+    )
+
 
 
 Convert the raw grades to a categorical data type.
@@ -718,7 +719,8 @@ We use the standard convention for referencing the matplotlib API:
 .. ipython:: python
 
    import matplotlib.pyplot as plt
-   plt.close('all')
+
+   plt.close("all")
 
 .. ipython:: python
 
@@ -754,19 +756,20 @@ CSV
 
 .. ipython:: python
 
-   df.to_csv('foo.csv')
+   df.to_csv("foo.csv")
 
 :ref:`Reading from a csv file. <io.read_csv_table>`
 
 .. ipython:: python
 
-   pd.read_csv('foo.csv')
+   pd.read_csv("foo.csv")
 
 .. ipython:: python
    :suppress:
 
    import os
-   os.remove('foo.csv')
+
+   os.remove("foo.csv")
 
 HDF5
 ~~~~
@@ -777,18 +780,18 @@ Writing to a HDF5 Store.
 
 .. ipython:: python
 
-   df.to_hdf('foo.h5', 'df')
+   df.to_hdf("foo.h5", "df")
 
 Reading from a HDF5 Store.
 
 .. ipython:: python
 
-   pd.read_hdf('foo.h5', 'df')
+   pd.read_hdf("foo.h5", "df")
 
 .. ipython:: python
    :suppress:
 
-   os.remove('foo.h5')
+   os.remove("foo.h5")
 
 Excel
 ~~~~~
@@ -799,18 +802,18 @@ Writing to an excel file.
 
 .. ipython:: python
 
-   df.to_excel('foo.xlsx', sheet_name='Sheet1')
+   df.to_excel("foo.xlsx", sheet_name="Sheet1")
 
 Reading from an excel file.
 
 .. ipython:: python
 
-   pd.read_excel('foo.xlsx', 'Sheet1', index_col=None, na_values=['NA'])
+   pd.read_excel("foo.xlsx", "Sheet1", index_col=None, na_values=["NA"])
 
 .. ipython:: python
    :suppress:
 
-   os.remove('foo.xlsx')
+   os.remove("foo.xlsx")
 
 Gotchas
 -------

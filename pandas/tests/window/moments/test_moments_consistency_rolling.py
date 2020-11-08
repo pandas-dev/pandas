@@ -2,7 +2,6 @@ from datetime import datetime
 import warnings
 
 import numpy as np
-from numpy.random import randn
 import pytest
 
 import pandas.util._test_decorators as td
@@ -34,7 +33,7 @@ def _rolling_consistency_cases():
 # binary moments
 def test_rolling_cov(series):
     A = series
-    B = A + randn(len(A))
+    B = A + np.random.randn(len(A))
 
     result = A.rolling(window=50, min_periods=25).cov(B)
     tm.assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
@@ -42,7 +41,7 @@ def test_rolling_cov(series):
 
 def test_rolling_corr(series):
     A = series
-    B = A + randn(len(A))
+    B = A + np.random.randn(len(A))
 
     result = A.rolling(window=50, min_periods=25).corr(B)
     tm.assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
@@ -143,8 +142,8 @@ def test_rolling_apply_consistency(
 @pytest.mark.parametrize("window", range(7))
 def test_rolling_corr_with_zero_variance(window):
     # GH 18430
-    s = pd.Series(np.zeros(20))
-    other = pd.Series(np.arange(20))
+    s = Series(np.zeros(20))
+    other = Series(np.arange(20))
 
     assert s.rolling(window=window).corr(other=other).isna().all()
 
