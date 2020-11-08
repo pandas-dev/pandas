@@ -4929,6 +4929,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             raise TypeError("Must pass either `items`, `like`, or `regex`")
 
+    @final
     def head(self: FrameOrSeries, n: int = 5) -> FrameOrSeries:
         """
         Return the first `n` rows.
@@ -5001,6 +5002,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         return self.iloc[:n]
 
+    @final
     def tail(self: FrameOrSeries, n: int = 5) -> FrameOrSeries:
         """
         Return the last `n` rows.
@@ -5075,6 +5077,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return self.iloc[0:0]
         return self.iloc[-n:]
 
+    @final
     def sample(
         self: FrameOrSeries,
         n=None,
@@ -5283,6 +5286,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
         return self.take(locs, axis=axis)
 
+    @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def pipe(self, func, *args, **kwargs):
         r"""
@@ -5340,6 +5344,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Attribute access
 
+    @final
     def __finalize__(
         self: FrameOrSeries, other, method: Optional[str] = None, **kwargs
     ) -> FrameOrSeries:
@@ -5436,6 +5441,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                     )
                 object.__setattr__(self, name, value)
 
+    @final
     def _dir_additions(self) -> Set[str]:
         """
         add the string-like attributes from the info_axis.
@@ -5449,6 +5455,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Consolidation of internals
 
+    @final
     def _protect_consolidate(self, f):
         """
         Consolidate _mgr -- if the blocks have changed, then clear the
@@ -5460,6 +5467,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._clear_item_cache()
         return result
 
+    @final
     def _consolidate_inplace(self) -> None:
         """Consolidate data in place and return None"""
 
@@ -5468,6 +5476,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         self._protect_consolidate(f)
 
+    @final
     def _consolidate(self):
         """
         Compute NDFrame with "consolidated" internals (data of each dtype
@@ -5481,6 +5490,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         cons_data = self._protect_consolidate(f)
         return self._constructor(cons_data).__finalize__(self)
 
+    @final
     @property
     def _is_mixed_type(self) -> bool_t:
         if self._mgr.is_single_block:
@@ -5493,6 +5503,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return self.dtypes.nunique() > 1
 
+    @final
     def _check_inplace_setting(self, value) -> bool_t:
         """ check whether we allow in-place setting with this type of value """
         if self._is_mixed_type:
@@ -5509,9 +5520,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return True
 
+    @final
     def _get_numeric_data(self):
         return self._constructor(self._mgr.get_numeric_data()).__finalize__(self)
 
+    @final
     def _get_bool_data(self):
         return self._constructor(self._mgr.get_bool_data()).__finalize__(self)
 
@@ -5631,6 +5644,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         data = self._mgr.get_dtypes()
         return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
+    @final
     def _to_dict_of_blocks(self, copy: bool_t = True):
         """
         Return a dict of dtype -> Constructor Types that
@@ -5808,6 +5822,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result.columns = self.columns
         return result
 
+    @final
     def copy(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
         """
         Make a copy of this object's indices and data.
@@ -5917,9 +5932,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._clear_item_cache()
         return self._constructor(data).__finalize__(self, method="copy")
 
+    @final
     def __copy__(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
         return self.copy(deep=deep)
 
+    @final
     def __deepcopy__(self: FrameOrSeries, memo=None) -> FrameOrSeries:
         """
         Parameters
@@ -5929,6 +5946,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         return self.copy(deep=True)
 
+    @final
     def _convert(
         self: FrameOrSeries,
         datetime: bool_t = False,
@@ -5970,6 +5988,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
         ).__finalize__(self)
 
+    @final
     def infer_objects(self: FrameOrSeries) -> FrameOrSeries:
         """
         Attempt to infer better dtypes for object columns.
@@ -6017,6 +6036,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
         ).__finalize__(self, method="infer_objects")
 
+    @final
     def convert_dtypes(
         self: FrameOrSeries,
         infer_objects: bool_t = True,
@@ -6341,6 +6361,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="fillna")
 
+    @final
     def ffill(
         self: FrameOrSeries,
         axis=None,
@@ -6362,6 +6383,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     pad = ffill
 
+    @final
     def bfill(
         self: FrameOrSeries,
         axis=None,
@@ -6834,6 +6856,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="replace")
 
+    @final
     def interpolate(
         self: FrameOrSeries,
         method: str = "linear",
@@ -7132,6 +7155,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Timeseries methods Methods
 
+    @final
     def asof(self, where, subset=None):
         """
         Return the last row(s) without any NaNs before `where`.
