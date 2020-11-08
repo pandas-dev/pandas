@@ -1693,7 +1693,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # Indexing on codes is more efficient if categories are the same,
             #  so we can apply some optimizations based on the degree of
             #  dtype-matching.
-            cat = self.encode_with_my_categories(target)
+            cat = self._encode_with_my_categories(target)
             codes = cat._codes
         else:
             codes = self.categories.get_indexer(target)
@@ -1866,7 +1866,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     "without identical categories"
                 )
             # is_dtype_equal implies categories_match_up_to_permutation
-            value = self.encode_with_my_categories(value)
+            value = self._encode_with_my_categories(value)
             return value._codes
 
         # wrap scalars and hashable-listlikes in list
@@ -2099,7 +2099,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if not isinstance(other, Categorical):
             return False
         elif self._categories_match_up_to_permutation(other):
-            other = self.encode_with_my_categories(other)
+            other = self._encode_with_my_categories(other)
             return np.array_equal(self._codes, other._codes)
         return False
 
@@ -2111,7 +2111,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def encode_with_my_categories(self, other: "Categorical") -> "Categorical":
+    def _encode_with_my_categories(self, other: "Categorical") -> "Categorical":
         """
         Re-encode another categorical using this Categorical's categories.
 
