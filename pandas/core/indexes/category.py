@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import accessor
 from pandas.core.arrays.categorical import Categorical, contains
@@ -263,6 +263,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             values = other
             if not is_list_like(values):
                 values = [values]
+
             cat = Categorical(other, dtype=self.dtype)
             other = CategoricalIndex(cat)
             if not other.isin(values).all():
@@ -270,6 +271,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                     "cannot append a non-category item to a CategoricalIndex"
                 )
             other = other._values
+
+            if not ((other == values) | (isna(other) & isna(values))).all():
+                # GH#37667 see test_equals_non_category
+                raise TypeError(
+                    "categories must match existing categories when appending"
+                )
 
         return other
 
@@ -291,13 +298,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         try:
             other = self._is_dtype_compat(other)
-            if isinstance(other, type(self)):
-                other = other._data
-            return self._data.equals(other)
         except (TypeError, ValueError):
-            pass
+            return False
 
-        return False
+        return self._data.equals(other)
 
     # --------------------------------------------------------------------
     # Rendering Methods
