@@ -641,9 +641,11 @@ class BlockManager(PandasObject):
             coerce=coerce,
         )
 
-    def replace(self, value, **kwargs) -> "BlockManager":
+    def replace(self, to_replace, value, inplace: bool, regex: bool) -> "BlockManager":
         assert np.ndim(value) == 0, value
-        return self.apply("replace", value=value, **kwargs)
+        return self.apply(
+            "replace", to_replace=to_replace, value=value, inplace=inplace, regex=regex
+        )
 
     def replace_list(
         self: T,

@@ -4297,13 +4297,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._concat(to_concat, name)
 
-    def _concat(self, to_concat, name):
+    def _concat(self, to_concat: List["Index"], name: Label) -> "Index":
         """
         Concatenate multiple Index objects.
         """
-        to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
+        to_concat_vals = [x._values for x in to_concat]
 
-        result = concat_compat(to_concat)
+        result = concat_compat(to_concat_vals)
         return Index(result, name=name)
 
     def putmask(self, mask, value):
