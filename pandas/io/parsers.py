@@ -1406,7 +1406,9 @@ class ParserBase:
             )
 
     def close(self):
-        self.handles.close()
+        # pandas\io\parsers.py:1409: error: "ParserBase" has no attribute
+        # "handles"  [attr-defined]
+        self.handles.close()  # type: ignore[attr-defined]
 
     @property
     def _has_complex_date_col(self):
@@ -1858,7 +1860,30 @@ class CParserWrapper(ParserBase):
         kwds.pop("memory_map", None)
         kwds.pop("compression", None)
         if self.handles.is_mmap and hasattr(self.handles.handle, "mmap"):
-            self.handles.handle = self.handles.handle.mmap
+            # pandas\io\parsers.py:1861: error: Item "IO[Any]" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "RawIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "BufferedIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "TextIOBase" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "TextIOWrapper" of
+            # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase,
+            # TextIOWrapper, mmap]" has no attribute "mmap"  [union-attr]
+
+            # pandas\io\parsers.py:1861: error: Item "mmap" of "Union[IO[Any],
+            # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]" has
+            # no attribute "mmap"  [union-attr]
+            self.handles.handle = self.handles.handle.mmap  # type: ignore[union-attr]
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -2424,7 +2449,11 @@ class PythonParser(ParserBase):
 
             reader = _read()
 
-        self.data = reader
+        # pandas\io\parsers.py:2427: error: Incompatible types in assignment
+        # (expression has type "_reader", variable has type "Union[IO[Any],
+        # RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap, None]")
+        # [assignment]
+        self.data = reader  # type: ignore[assignment]
 
     def read(self, rows=None):
         try:
@@ -3727,7 +3756,11 @@ class FixedWidthFieldParser(PythonParser):
         PythonParser.__init__(self, f, **kwds)
 
     def _make_reader(self, f):
-        self.data = FixedWidthReader(
+        # pandas\io\parsers.py:3730: error: Incompatible types in assignment
+        # (expression has type "FixedWidthReader", variable has type
+        # "Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper,
+        # mmap, None]")  [assignment]
+        self.data = FixedWidthReader(  # type: ignore[assignment]
             f,
             self.colspecs,
             self.delimiter,
