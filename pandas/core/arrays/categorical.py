@@ -406,21 +406,23 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # GH 10696/18593
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
-            if dtype == self.dtype:
-                return self
-            return self._set_dtype(dtype)
-        if is_extension_array_dtype(dtype):
-            return array(self, dtype=dtype, copy=copy)
-        if is_integer_dtype(dtype) and self.isna().any():
+            result = self if dtype is self.dtype else self._set_dtype(dtype)
+
+        elif is_extension_array_dtype(dtype):
+            result = array(self, dtype=dtype, copy=copy)
+
+        elif is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
 
-        # xref GH8628
-        # PERF: astype category codes instead of astyping each entry
-        if len(self.codes) == 0 or len(self.categories) == 0:
-            return array(self, dtype=dtype, copy=copy)
+        elif len(self.codes) == 0 or len(self.categories) == 0:
+            result = np.array(self, dtype=dtype, copy=copy)
 
-        new_categories = np.append(self.categories.astype(dtype), [np.nan])
-        return np.array(new_categories[self.codes], copy=copy)
+        else:
+            # PERF (GH8628): astype category codes instead of astyping array
+            new_categories = np.append(self.categories.astype(dtype), [np.nan])
+            result = np.array(new_categories[self.codes], dtype=dtype, copy=copy)
+
+        return result
 
     @cache_readonly
     def itemsize(self) -> int:
