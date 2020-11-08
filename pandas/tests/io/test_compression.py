@@ -205,8 +205,8 @@ def test_with_missing_lzma_runtime():
         import sys
         import pytest
         sys.modules['lzma'] = None
-        import pandas
-        df = pandas.DataFrame()
+        import pandas as pd
+        df = pd.DataFrame()
         with pytest.raises(RuntimeError, match='lzma module'):
             df.to_csv('foo.csv', compression='xz')
         """

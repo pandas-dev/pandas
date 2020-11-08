@@ -273,7 +273,7 @@ class TestFloat64Index(Numeric):
     def test_lookups_datetimelike_values(self, vals):
         # If we have datetime64 or timedelta64 values, make sure they are
         #  wrappped correctly  GH#31163
-        ser = pd.Series(vals, index=range(3, 6))
+        ser = Series(vals, index=range(3, 6))
         ser.index = ser.index.astype("float64")
 
         expected = vals[1]
@@ -642,7 +642,7 @@ def test_range_float_union_dtype():
 def test_uint_index_does_not_convert_to_float64(box):
     # https://github.com/pandas-dev/pandas/issues/28279
     # https://github.com/pandas-dev/pandas/issues/28023
-    series = pd.Series(
+    series = Series(
         [0, 1, 2, 3, 4, 5],
         index=[
             7606741985629028552,

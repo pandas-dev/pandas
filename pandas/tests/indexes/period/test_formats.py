@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import PeriodIndex
+from pandas import PeriodIndex, Series
 import pandas._testing as tm
 
 
@@ -154,7 +154,7 @@ dtype: period[Q-DEC]"""
             [idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9],
             [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9],
         ):
-            result = repr(pd.Series(idx))
+            result = repr(Series(idx))
             assert result == expected
 
     def test_summary(self):
