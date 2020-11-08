@@ -916,8 +916,7 @@ class Timestamp(_Timestamp):
         """
         return cls(datetime.fromtimestamp(ts))
 
-    @classmethod
-    def strftime(cls, format):
+    def strftime(self, format):
         """
         Timestamp.strftime(format)
 
@@ -929,7 +928,7 @@ class Timestamp(_Timestamp):
         format : str
             Format string to convert Timestamp to string.
         """
-        return cls(datetime.strftime(format))
+        return datetime.strftime(self, format)
 
     # Issue 25016.
     @classmethod
