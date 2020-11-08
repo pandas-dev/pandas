@@ -11,6 +11,13 @@ import pandas._testing as tm
 
 
 class TestCategoricalMissing:
+    def test_isna(self):
+        exp = np.array([False, False, True])
+        cat = Categorical(["a", "b", np.nan])
+        res = cat.isna()
+
+        tm.assert_numpy_array_equal(res, exp)
+
     def test_na_flags_int_categories(self):
         # #1457
 
