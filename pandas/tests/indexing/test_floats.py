@@ -69,15 +69,14 @@ class TestFloatIndexers:
             tm.makePeriodIndex,
         ],
     )
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_scalar_non_numeric(self, index_func, klass):
+    def test_scalar_non_numeric(self, index_func, frame_or_series):
 
         # GH 4892
         # float_indexers should raise exceptions
         # on appropriate Index types & accessors
 
         i = index_func(5)
-        s = gen_obj(klass, i)
+        s = gen_obj(frame_or_series, i)
 
         # getting
         with pytest.raises(KeyError, match="^3.0$"):
@@ -103,6 +102,7 @@ class TestFloatIndexers:
             pass
         elif s.index.inferred_type in ["datetime64", "timedelta64", "period"]:
 
+            # FIXME: dont leave commented-out
             # these should prob work
             # and are inconsistent between series/dataframe ATM
             # for idxr in [lambda x: x]:
@@ -182,14 +182,13 @@ class TestFloatIndexers:
         assert result == expected
 
     @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_scalar_integer(self, index_func, klass):
+    def test_scalar_integer(self, index_func, frame_or_series):
 
         # test how scalar float indexers work on int indexes
 
         # integer index
         i = index_func(5)
-        obj = gen_obj(klass, i)
+        obj = gen_obj(frame_or_series, i)
 
         # coerce to equal int
         for idxr, getitem in [(lambda x: x.loc, False), (lambda x: x, True)]:
@@ -226,12 +225,11 @@ class TestFloatIndexers:
         # coerce to equal int
         assert 3.0 in obj
 
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_scalar_float(self, klass):
+    def test_scalar_float(self, frame_or_series):
 
         # scalar float indexers work on a float index
         index = Index(np.arange(5.0))
-        s = gen_obj(klass, index)
+        s = gen_obj(frame_or_series, index)
 
         # assert all operations except for iloc are ok
         indexer = index[3]
@@ -281,15 +279,14 @@ class TestFloatIndexers:
         ],
     )
     @pytest.mark.parametrize("l", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_slice_non_numeric(self, index_func, l, klass):
+    def test_slice_non_numeric(self, index_func, l, frame_or_series):
 
         # GH 4892
         # float_indexers should raise exceptions
         # on appropriate Index types & accessors
 
         index = index_func(5)
-        s = gen_obj(klass, index)
+        s = gen_obj(frame_or_series, index)
 
         # getitem
         msg = (
@@ -509,12 +506,11 @@ class TestFloatIndexers:
             s[l]
 
     @pytest.mark.parametrize("l", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_slice_float(self, l, klass):
+    def test_slice_float(self, l, frame_or_series):
 
         # same as above, but for floats
         index = Index(np.arange(5.0)) + 0.1
-        s = gen_obj(klass, index)
+        s = gen_obj(frame_or_series, index)
 
         expected = s.iloc[3:4]
         for idxr in [lambda x: x.loc, lambda x: x]:
