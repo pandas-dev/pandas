@@ -4190,7 +4190,15 @@ Keep all original rows and also all original values
             )
 
     def _reduce(
-        self, op, name, axis=0, skipna=True, numeric_only=None, filter_type=None, **kwds
+        self,
+        op,
+        name: str,
+        *,
+        axis=0,
+        skipna=True,
+        numeric_only=None,
+        filter_type=None,
+        **kwds,
     ):
         """
         Perform a reduction operation.
