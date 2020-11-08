@@ -598,3 +598,15 @@ def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_da
     result = ser[2000, 5]
     expected = df.loc[2000, 5]["A"]
     tm.assert_series_equal(result, expected)
+
+
+def test_loc_with_nan():
+    # GH: 27104
+    df = DataFrame(
+        {"col": [1, 2, 5], "ind1": ["a", "d", np.nan], "ind2": [1, 4, 5]}
+    ).set_index(["ind1", "ind2"])
+    result = df.loc[["a"]]
+    expected = DataFrame(
+        {"col": [1]}, index=MultiIndex.from_tuples([("a", 1)], names=["ind1", "ind2"])
+    )
+    tm.assert_frame_equal(result, expected)
