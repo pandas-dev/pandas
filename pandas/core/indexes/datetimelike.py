@@ -289,21 +289,17 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return self._na_value
 
         i8 = self.asi8
-        try:
-            # quick check
-            if len(i8) and self.is_monotonic and i8[-1] != iNaT:
-                return self._data._box_func(i8[-1])
 
-            if self.hasnans:
-                if skipna:
-                    max_stamp = self[~self._isnan].asi8.max()
-                else:
-                    return self._na_value
-            else:
-                max_stamp = i8.max()
-            return self._data._box_func(max_stamp)
-        except ValueError:
+        # quick check
+        if self.is_monotonic and i8[-1] != iNaT:
+            return self._data._box_func(i8[-1])
+        if self.hasnans and skipna and not self[~self._isnan].empty:
+            max_stamp = self[~self._isnan].asi8.max()
+        elif not self.hasnans:
+            max_stamp = i8.max()
+        else:
             return self._na_value
+        return self._data._box_func(max_stamp)
 
     def argmax(self, axis=None, skipna=True, *args, **kwargs):
         """
