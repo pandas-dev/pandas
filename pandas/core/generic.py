@@ -272,6 +272,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def attrs(self, value: Mapping[Optional[Hashable], Any]) -> None:
         self._attrs = dict(value)
 
+    @final
     @property
     def flags(self) -> Flags:
         """
@@ -312,6 +313,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         return self._flags
 
+    @final
     def set_flags(
         self: FrameOrSeries,
         *,
@@ -362,6 +364,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             df.flags["allows_duplicate_labels"] = allows_duplicate_labels
         return df
 
+    @final
     @classmethod
     def _validate_dtype(cls, dtype):
         """ validate the passed dtype """
@@ -407,6 +410,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Internals
 
+    @final
     @property
     def _data(self):
         # GH#33054 retained because some downstream packages uses this,
@@ -437,12 +441,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         warnings.warn("_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3)
         return {0: "index"}
 
+    @final
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
         d = {a: self._get_axis(a) for a in (axes or self._AXIS_ORDERS)}
         d.update(kwargs)
         return d
 
+    @final
     @classmethod
     def _construct_axes_from_arguments(
         cls, args, kwargs, require_all: bool = False, sentinel=None
@@ -474,6 +480,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         axes = {a: kwargs.pop(a, sentinel) for a in cls._AXIS_ORDERS}
         return axes, kwargs
 
+    @final
     @classmethod
     def _get_axis_number(cls, axis: Axis) -> int:
         try:
@@ -481,16 +488,19 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         except KeyError:
             raise ValueError(f"No axis named {axis} for object type {cls.__name__}")
 
+    @final
     @classmethod
     def _get_axis_name(cls, axis: Axis) -> str:
         axis_number = cls._get_axis_number(axis)
         return cls._AXIS_ORDERS[axis_number]
 
+    @final
     def _get_axis(self, axis: Axis) -> Index:
         axis_number = self._get_axis_number(axis)
         assert axis_number in {0, 1}
         return self.index if axis_number == 0 else self.columns
 
+    @final
     @classmethod
     def _get_block_manager_axis(cls, axis: Axis) -> int:
         """Map the axis to the block_manager axis."""
@@ -500,6 +510,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return m - axis
         return axis
 
+    @final
     def _get_axis_resolvers(self, axis: str) -> Dict[str, Union[Series, MultiIndex]]:
         # index or columns
         axis_index = getattr(self, axis)
@@ -530,6 +541,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         d[axis] = dindex
         return d
 
+    @final
     def _get_index_resolvers(self) -> Dict[str, Union[Series, MultiIndex]]:
         from pandas.core.computation.parsing import clean_column_name
 
@@ -539,6 +551,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
+    @final
     def _get_cleaned_column_resolvers(self) -> Dict[str, ABCSeries]:
         """
         Return the special character free column resolvers of a dataframe.
@@ -628,11 +641,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         return np.prod(self.shape)
 
+    @final
     @property
     def _selected_obj(self: FrameOrSeries) -> FrameOrSeries:
         """ internal compat with SelectionMixin """
         return self
 
+    @final
     @property
     def _obj_with_exclusions(self: FrameOrSeries) -> FrameOrSeries:
         """ internal compat with SelectionMixin """
@@ -668,6 +683,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._check_inplace_and_allows_duplicate_labels(inplace)
         return self._set_axis_nocheck(labels, axis, inplace)
 
+    @final
     def _set_axis_nocheck(self, labels, axis: Axis, inplace: bool):
         # NDFrame.rename with inplace=False calls set_axis(inplace=True) on a copy.
         if inplace:
@@ -682,6 +698,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._mgr.set_axis(axis, labels)
         self._clear_item_cache()
 
+    @final
     def swapaxes(self: FrameOrSeries, axis1, axis2, copy=True) -> FrameOrSeries:
         """
         Interchange axes and swap values axes appropriately.
@@ -711,6 +728,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             new_values, *new_axes  # type: ignore[arg-type]
         ).__finalize__(self, method="swapaxes")
 
+    @final
     def droplevel(self: FrameOrSeries, level, axis=0) -> FrameOrSeries:
         """
         Return DataFrame with requested index / column level(s) removed.
@@ -783,6 +801,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
+    @final
     def squeeze(self, axis=None):
         """
         Squeeze 1 dimensional axis objects into scalars.
@@ -1247,6 +1266,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             if not inplace:
                 return result
 
+    @final
     def _set_axis_name(self, name, axis=0, inplace=False):
         """
         Set the name(s) of the axis.
@@ -1309,11 +1329,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Comparison Methods
 
+    @final
     def _indexed_same(self, other) -> bool:
         return all(
             self._get_axis(a).equals(other._get_axis(a)) for a in self._AXIS_ORDERS
         )
 
+    @final
     def equals(self, other: object) -> bool:
         """
         Test whether two objects contain the same elements.
@@ -1400,6 +1422,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # -------------------------------------------------------------------------
     # Unary Methods
 
+    @final
     def __neg__(self):
         values = self._values
         if is_bool_dtype(values):
@@ -1414,6 +1437,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             raise TypeError(f"Unary negative expects numeric dtype, not {values.dtype}")
         return self.__array_wrap__(arr)
 
+    @final
     def __pos__(self):
         values = self._values
         if is_bool_dtype(values):
@@ -1431,6 +1455,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
         return self.__array_wrap__(arr)
 
+    @final
     def __invert__(self):
         if not self.size:
             # inv fails with 0 len
@@ -1440,6 +1465,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         result = self._constructor(new_data).__finalize__(self, method="__invert__")
         return result
 
+    @final
     def __nonzero__(self):
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
@@ -1448,6 +1474,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
     __bool__ = __nonzero__
 
+    @final
     def bool(self):
         """
         Return the bool of a single element Series or DataFrame.
@@ -1492,9 +1519,11 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         self.__nonzero__()
 
+    @final
     def __abs__(self: FrameOrSeries) -> FrameOrSeries:
         return self.abs()
 
+    @final
     def __round__(self: FrameOrSeries, decimals: int = 0) -> FrameOrSeries:
         return self.round(decimals)
 
@@ -1506,6 +1535,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # operations should utilize/extend these methods when possible so that we
     # have consistent precedence and validation logic throughout the library.
 
+    @final
     def _is_level_reference(self, key, axis=0):
         """
         Test whether a key is a level reference for a given axis.
@@ -1536,6 +1566,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             and not self._is_label_reference(key, axis=axis)
         )
 
+    @final
     def _is_label_reference(self, key, axis=0) -> bool_t:
         """
         Test whether a key is a label reference for a given axis.
@@ -1565,6 +1596,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             and any(key in self.axes[ax] for ax in other_axes)
         )
 
+    @final
     def _is_label_or_level_reference(self, key: str, axis: int = 0) -> bool_t:
         """
         Test whether a key is a label or level reference for a given axis.
@@ -1589,6 +1621,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             key, axis=axis
         )
 
+    @final
     def _check_label_or_level_ambiguity(self, key, axis: int = 0) -> None:
         """
         Check whether `key` is ambiguous.
@@ -1632,6 +1665,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             )
             raise ValueError(msg)
 
+    @final
     def _get_label_or_level_values(self, key: str, axis: int = 0) -> np.ndarray:
         """
         Return a 1-D array of values associated with `key`, a label or level
@@ -1696,6 +1730,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return values
 
+    @final
     def _drop_labels_or_levels(self, keys, axis: int = 0):
         """
         Drop labels and/or levels for the given `axis`.
@@ -1933,6 +1968,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Picklability
 
+    @final
     def __getstate__(self) -> Dict[str, Any]:
         meta = {k: getattr(self, k, None) for k in self._metadata}
         return dict(
@@ -1944,6 +1980,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             **meta,
         )
 
+    @final
     def __setstate__(self, state):
         if isinstance(state, BlockManager):
             self._mgr = state
@@ -1988,6 +2025,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         prepr = f"[{','.join(map(pprint_thing, self))}]"
         return f"{type(self).__name__}({prepr})"
 
+    @final
     def _repr_latex_(self):
         """
         Returns a LaTeX representation for a particular object.
@@ -1998,6 +2036,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return None
 
+    @final
     def _repr_data_resource_(self):
         """
         Not a real Jupyter special repr method, but we use the same
@@ -2014,6 +2053,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # I/O Methods
 
+    @final
     @doc(klass="object")
     def to_excel(
         self,
@@ -2166,6 +2206,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             engine=engine,
         )
 
+    @final
     def to_json(
         self,
         path_or_buf: Optional[FilePathOrBuffer] = None,
@@ -2453,6 +2494,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             storage_options=storage_options,
         )
 
+    @final
     def to_hdf(
         self,
         path_or_buf,
@@ -2594,6 +2636,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             encoding=encoding,
         )
 
+    @final
     def to_sql(
         self,
         name: str,
@@ -2761,6 +2804,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             method=method,
         )
 
+    @final
     def to_pickle(
         self,
         path,
@@ -2838,6 +2882,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             storage_options=storage_options,
         )
 
+    @final
     def to_clipboard(
         self, excel: bool_t = True, sep: Optional[str] = None, **kwargs
     ) -> None:
@@ -2899,6 +2944,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         clipboards.to_clipboard(self, excel=excel, sep=sep, **kwargs)
 
+    @final
     def to_xarray(self):
         """
         Return an xarray object from the pandas object.
@@ -2982,6 +3028,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return xarray.Dataset.from_dataframe(self)
 
+    @final
     @doc(returns=fmt.return_docstring)
     def to_latex(
         self,
@@ -3167,6 +3214,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             position=position,
         )
 
+    @final
     def to_csv(
         self,
         path_or_buf: Optional[FilePathOrBuffer] = None,
@@ -3376,6 +3424,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Lookup Caching
 
+    @final
     def _set_as_cached(self, item, cacher) -> None:
         """
         Set the _cacher attribute on the calling object with a weakref to
@@ -3383,6 +3432,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         """
         self._cacher = (item, weakref.ref(cacher))
 
+    @final
     def _reset_cacher(self) -> None:
         """
         Reset the cacher.
@@ -3390,6 +3440,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if hasattr(self, "_cacher"):
             del self._cacher
 
+    @final
     def _maybe_cache_changed(self, item, value) -> None:
         """
         The object has called back to us saying maybe it has changed.
@@ -3397,11 +3448,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         loc = self._info_axis.get_loc(item)
         self._mgr.iset(loc, value)
 
+    @final
     @property
     def _is_cached(self) -> bool_t:
         """Return boolean indicating if self is cached or not."""
         return getattr(self, "_cacher", None) is not None
 
+    @final
     def _get_cacher(self):
         """return my cacher or None"""
         cacher = getattr(self, "_cacher", None)
@@ -3409,6 +3462,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             cacher = cacher[1]()
         return cacher
 
+    @final
     def _maybe_update_cacher(
         self, clear: bool_t = False, verify_is_copy: bool_t = True
     ) -> None:
@@ -3446,6 +3500,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         if clear:
             self._clear_item_cache()
 
+    @final
     def _clear_item_cache(self) -> None:
         self._item_cache.clear()
 
@@ -3551,6 +3606,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
         return self._constructor(new_data).__finalize__(self, method="take")
 
+    @final
     def _take_with_is_copy(self: FrameOrSeries, indices, axis=0) -> FrameOrSeries:
         """
         Internal version of the `take` method that sets the `_is_copy`
@@ -3565,6 +3621,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             result._set_is_copy(self)
         return result
 
+    @final
     def xs(self, key, axis=0, level=None, drop_level: bool_t = True):
         """
         Return cross-section from the Series/DataFrame.
@@ -3733,6 +3790,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def __getitem__(self, item):
         raise AbstractMethodError(self)
 
+    @final
     def _get_item_cache(self, item):
         """Return the cached item, item represents a label indexer."""
         cache = self._item_cache
@@ -3783,6 +3841,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         NDFrame._iset_item(self, loc, value)
 
+    @final
     def _set_is_copy(self, ref, copy: bool_t = True) -> None:
         if not copy:
             self._is_copy = None
@@ -3790,6 +3849,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             assert ref is not None
             self._is_copy = weakref.ref(ref)
 
+    @final
     def _check_is_chained_assignment_possible(self) -> bool_t:
         """
         Check if we are a view, have a cacher, and are of mixed type.
@@ -3810,6 +3870,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             self._check_setitem_copy(stacklevel=4, t="referent")
         return False
 
+    @final
     def _check_setitem_copy(self, stacklevel=4, t="setting", force=False):
         """
 
@@ -3924,6 +3985,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Unsorted
 
+    @final
     def _check_inplace_and_allows_duplicate_labels(self, inplace):
         if inplace and not self.flags.allows_duplicate_labels:
             raise ValueError(
@@ -3931,6 +3993,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 "'self.flags.allows_duplicate_labels' is False."
             )
 
+    @final
     def get(self, key, default=None):
         """
         Get item from object for given key (ex: DataFrame column).
@@ -3950,11 +4013,13 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         except (KeyError, ValueError, IndexError):
             return default
 
+    @final
     @property
     def _is_view(self) -> bool_t:
         """Return boolean indicating if self is view of another array """
         return self._mgr.is_view
 
+    @final
     def reindex_like(
         self: FrameOrSeries,
         other,
@@ -4102,6 +4167,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         else:
             return obj
 
+    @final
     def _drop_axis(
         self: FrameOrSeries, labels, axis, level=None, errors: str = "raise"
     ) -> FrameOrSeries:
@@ -4157,6 +4223,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return result
 
+    @final
     def _update_inplace(self, result, verify_is_copy: bool_t = True) -> None:
         """
         Replace self internals with result.
@@ -4174,6 +4241,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         self._mgr = result._mgr
         self._maybe_update_cacher(verify_is_copy=verify_is_copy)
 
+    @final
     def add_prefix(self: FrameOrSeries, prefix: str) -> FrameOrSeries:
         """
         Prefix labels with string `prefix`.
@@ -4237,6 +4305,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
         return self.rename(**mapper)  # type: ignore[return-value, arg-type]
 
+    @final
     def add_suffix(self: FrameOrSeries, suffix: str) -> FrameOrSeries:
         """
         Suffix labels with string `suffix`.
@@ -4751,6 +4820,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             axes, level, limit, tolerance, method, fill_value, copy
         ).__finalize__(self, method="reindex")
 
+    @final
     def _reindex_axes(
         self: FrameOrSeries, axes, level, limit, tolerance, method, fill_value, copy
     ) -> FrameOrSeries:
@@ -4776,6 +4846,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return obj
 
+    @final
     def _needs_reindex_multi(self, axes, method, level) -> bool_t:
         """Check if we do need a multi reindex."""
         return (
@@ -4788,6 +4859,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def _reindex_multi(self, axes, copy, fill_value):
         raise AbstractMethodError(self)
 
+    @final
     def _reindex_with_indexers(
         self: FrameOrSeries,
         reindexers,
@@ -7893,6 +7965,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
+    @final
     def resample(
         self,
         rule,
