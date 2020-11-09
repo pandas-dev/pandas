@@ -38,12 +38,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import (
-    is_valid_nat_for_dtype,
-    isna,
-    na_value_for_dtype,
-    notna,
-)
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import ops
 from pandas.core.accessor import PandasDelegate, delegate_names
@@ -427,10 +422,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
-            new_categories = np.append(
-                self.categories.astype(dtype), [na_value_for_dtype(dtype)]
-            )
-            result = np.array(new_categories[self.codes], dtype=dtype, copy=copy)
+            try:
+                astyped_categories = np.array(
+                    self.categories.to_numpy(), dtype=dtype, copy=copy
+                )
+            except (TypeError, ValueError):
+                raise ValueError(
+                    f"Cannot cast {self.categories.dtype} dtype to {dtype}"
+                )
+            result = np.array(take_1d(astyped_categories, self._codes), copy=copy)
 
         return result
 
