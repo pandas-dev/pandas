@@ -232,6 +232,7 @@ Other enhancements
 - :meth:`testing.assert_index_equal` now has a ``check_order`` parameter that allows indexes to be checked in an order-insensitive manner (:issue:`37478`)
 - :func:`read_csv` supports memory-mapping for compressed files (:issue:`37621`)
 - Improve error reporting for :meth:`DataFrame.merge()` when invalid merge column definitions were given (:issue:`16228`)
+- Improved error reporting for subsetting columns of a :class:`DataFrameGroupBy` with ``axis=1`` (:issue:`37725`)
 
 .. _whatsnew_120.api_breaking.python:
 
