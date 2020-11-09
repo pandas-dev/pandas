@@ -155,7 +155,7 @@ class TestDataFrameColor(TestPlotBase):
         tm.close()
 
     def test_bar_user_colors(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             {"A": range(4), "B": range(1, 5), "color": ["red", "blue", "blue", "red"]}
         )
         # This should *only* work when `y` is specified, else
