@@ -7,11 +7,7 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame, Index, Series, to_datetime
 import pandas._testing as tm
-from pandas.tests.plotting.common import (
-    TestPlotBase,
-    _check_plot_default_axes_works,
-    _check_plot_works,
-)
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 
 @td.skip_if_no_mpl
@@ -156,7 +152,8 @@ class TestSeriesPlots(TestPlotBase):
         s = Series(np.random.randn(30), index=index, name="a")
         s.index.name = "b"
 
-        axes = _check_plot_default_axes_works(s.hist, legend=True, by=by)
+        # Use default_axes=True when plotting method generate subplots itself
+        axes = _check_plot_works(s.hist, default_axes=True, legend=True, by=by)
         self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
         self._check_legend_labels(axes, "a")
 
@@ -336,7 +333,8 @@ class TestDataFramePlots(TestPlotBase):
                 dtype=np.int64,
             )
         )
-        _check_plot_default_axes_works(df.hist)
+        # Use default_axes=True when plotting method generate subplots itself
+        _check_plot_works(df.hist, default_axes=True)
         self.plt.tight_layout()
 
         tm.close()
@@ -349,8 +347,10 @@ class TestDataFramePlots(TestPlotBase):
                 "animal": ["pig", "rabbit", "pig", "pig", "rabbit"],
             }
         )
-        axes = _check_plot_default_axes_works(
+        # Use default_axes=True when plotting method generate subplots itself
+        axes = _check_plot_works(
             df.hist,
+            default_axes=True,
             filterwarnings="always",
             column="length",
             by="animal",
@@ -378,9 +378,13 @@ class TestDataFramePlots(TestPlotBase):
             index=["pig", "rabbit", "duck", "chicken", "horse"],
         )
 
-        # Use _check_single_plot_works when plotting method generate subplots itself
-        # if not, use _check_plot_works
-        axes = _check_plot_default_axes_works(df.hist, column=column, layout=(1, 3))
+        # Use default_axes=True when plotting method generate subplots itself
+        axes = _check_plot_works(
+            df.hist,
+            default_axes=True,
+            column=column,
+            layout=(1, 3),
+        )
         result = [axes[0, i].get_title() for i in range(3)]
         assert result == expected
 
@@ -412,8 +416,10 @@ class TestDataFramePlots(TestPlotBase):
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
 
-        axes = _check_plot_default_axes_works(
+        # Use default_axes=True when plotting method generate subplots itself
+        axes = _check_plot_works(
             df.hist,
+            default_axes=True,
             legend=True,
             by=by,
             column=column,
