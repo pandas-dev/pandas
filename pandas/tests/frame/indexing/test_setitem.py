@@ -346,3 +346,6 @@ class TestDataFrameSetItemBooleanMask:
         df.loc[[False], ["b"]] = 10 - df["c"]
         expected = DataFrame({"a": ["a"], "b": [1], "c": [1]})
         tm.assert_frame_equal(df, expected)
+
+        df.loc[[False], ["b"]] = 10 - 1
+        tm.assert_frame_equal(df, expected)
