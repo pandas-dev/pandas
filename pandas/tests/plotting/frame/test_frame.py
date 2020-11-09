@@ -1104,7 +1104,6 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x="a", y="b")
         _check_plot_works(df.plot.scatter, x=0, y=1)
 
-
     @pytest.mark.slow
     def test_if_hexbin_xaxis_label_is_visible(self):
         # addressing issue #10678, to ensure colobar does not
