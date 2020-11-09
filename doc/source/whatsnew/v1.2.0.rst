@@ -231,6 +231,7 @@ Other enhancements
 - :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
 - :meth:`testing.assert_index_equal` now has a ``check_order`` parameter that allows indexes to be checked in an order-insensitive manner (:issue:`37478`)
 - :func:`read_csv` supports memory-mapping for compressed files (:issue:`37621`)
+- Improve error reporting for :meth:`DataFrame.merge()` when invalid merge column definitions were given (:issue:`16228`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -465,6 +466,7 @@ Indexing
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`MultiIndex` with a level named "0" (:issue:`37194`)
 - Bug in :meth:`Series.__getitem__` when using an unsigned integer array as an indexer giving incorrect results or segfaulting instead of raising ``KeyError`` (:issue:`37218`)
 - Bug in :meth:`Index.where` incorrectly casting numeric values to strings (:issue:`37591`)
+- Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` raises when numeric label was given for object :class:`Index` although label was in :class:`Index` (:issue:`26491`)
 
 Missing
 ^^^^^^^
@@ -510,6 +512,8 @@ Plotting
 - Bug in :meth:`DataFrame.plot` was rotating xticklabels when ``subplots=True``, even if the x-axis wasn't an irregular time series (:issue:`29460`)
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
 - Twinned axes were losing their tick labels which should only happen to all but the last row or column of 'externally' shared axes (:issue:`33819`)
+- Bug in :meth:`DataFrameGroupBy.boxplot` when ``subplots=False``, a KeyError would raise (:issue:`16748`)
+
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -436,7 +436,7 @@ class TestPandasContainer:
     def test_v12_compat(self, datapath):
         dti = pd.date_range("2000-01-03", "2000-01-07")
         # freq doesnt roundtrip
-        dti = pd.DatetimeIndex(np.asarray(dti), freq=None)
+        dti = DatetimeIndex(np.asarray(dti), freq=None)
         df = DataFrame(
             [
                 [1.56808523, 0.65727391, 1.81021139, -0.17251653],
@@ -466,7 +466,7 @@ class TestPandasContainer:
     def test_blocks_compat_GH9037(self):
         index = pd.date_range("20000101", periods=10, freq="H")
         # freq doesnt round-trip
-        index = pd.DatetimeIndex(list(index), freq=None)
+        index = DatetimeIndex(list(index), freq=None)
 
         df_mixed = DataFrame(
             dict(
@@ -1189,7 +1189,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         )
 
         assert dumps(tz_range, iso_dates=True) == exp
-        dti = pd.DatetimeIndex(tz_range)
+        dti = DatetimeIndex(tz_range)
         assert dumps(dti, iso_dates=True) == exp
         df = DataFrame({"DT": dti})
         result = dumps(df, iso_dates=True)
