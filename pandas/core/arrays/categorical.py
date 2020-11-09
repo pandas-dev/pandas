@@ -1712,9 +1712,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             # Indexing on codes is more efficient if categories are the same,
             #  so we can apply some optimizations based on the degree of
             #  dtype-matching.
-            codes = recode_for_categories(
-                target.codes, target.categories, self.categories, copy=False
-            )
+            cat = self._encode_with_my_categories(target)
+            codes = cat._codes
         else:
             codes = self.categories.get_indexer(target)
 
@@ -1886,8 +1885,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     "without identical categories"
                 )
             # is_dtype_equal implies categories_match_up_to_permutation
-            new_codes = self._validate_listlike(value)
-            value = Categorical.from_codes(new_codes, dtype=self.dtype)
+            value = self._encode_with_my_categories(value)
+            return value._codes
 
         # wrap scalars and hashable-listlikes in list
         rvalue = value if not is_hashable(value) else [value]
@@ -2119,8 +2118,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if not isinstance(other, Categorical):
             return False
         elif self._categories_match_up_to_permutation(other):
-            other_codes = self._validate_listlike(other)
-            return np.array_equal(self._codes, other_codes)
+            other = self._encode_with_my_categories(other)
+            return np.array_equal(self._codes, other._codes)
         return False
 
     @classmethod
@@ -2130,6 +2129,23 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return union_categoricals(to_concat)
 
     # ------------------------------------------------------------------
+
+    def _encode_with_my_categories(self, other: "Categorical") -> "Categorical":
+        """
+        Re-encode another categorical using this Categorical's categories.
+
+        Notes
+        -----
+        This assumes we have already checked
+        self._categories_match_up_to_permutation(other).
+        """
+        # Indexing on codes is more efficient if categories are the same,
+        #  so we can apply some optimizations based on the degree of
+        #  dtype-matching.
+        codes = recode_for_categories(
+            other.codes, other.categories, self.categories, copy=False
+        )
+        return self._from_backing_data(codes)
 
     def _categories_match_up_to_permutation(self, other: "Categorical") -> bool:
         """
