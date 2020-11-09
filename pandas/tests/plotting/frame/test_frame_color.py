@@ -7,7 +7,6 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
