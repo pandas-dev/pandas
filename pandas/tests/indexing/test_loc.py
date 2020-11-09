@@ -1954,3 +1954,12 @@ class TestLocSeries:
         s2["a"] = expected
         result = s2["a"]
         assert result == expected
+
+
+@pytest.mark.parametrize("value", [1, 1.5])
+def test_loc_int_in_object_index(frame_or_series, value):
+    # GH: 26491
+    obj = frame_or_series(range(4), index=[value, "first", 2, "third"])
+    result = obj.loc[value:"third"]
+    expected = frame_or_series(range(4), index=[value, "first", 2, "third"])
+    tm.assert_equal(result, expected)
