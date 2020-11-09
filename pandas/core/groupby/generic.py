@@ -322,7 +322,8 @@ class SeriesGroupBy(GroupBy[Series]):
             return results
 
         # Argument 1 to "_wrap_aggregated_output" of "SeriesGroupBy" has
-        # incompatible type "Dict[OutputKey, Union[DataFrame, Series]]";
+        # incompatible type "Dict[OutputKey, Union[DataFrame,
+        #  Series]]";
         # expected "Mapping[OutputKey, Union[Series, ndarray]]"
         output = self._wrap_aggregated_output(
             results, index=None  # type: ignore[arg-type]

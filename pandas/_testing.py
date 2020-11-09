@@ -15,7 +15,6 @@ import warnings
 import zipfile
 
 import numpy as np
-
 from numpy.random import rand, randn
 
 from pandas._config.localization import (  # noqa:F401

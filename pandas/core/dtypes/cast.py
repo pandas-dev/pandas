@@ -216,18 +216,9 @@ def maybe_downcast_to_dtype(result, dtype: Union[str, np.dtype]):
         if hasattr(dtype, "tz"):
             # not a numpy dtype
 
-            # pandas\core\dtypes\cast.py:181: error: Item "ExtensionDtype" of
-            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
-            # "tz"  [union-attr]
-
-            # pandas\core\dtypes\cast.py:181: error: Item "dtype" of
-            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
-            # "tz"  [union-attr]
-
-            # pandas\core\dtypes\cast.py:181: error: Item "type" of
-            # "Union[ExtensionDtype, dtype, Type[object]]" has no attribute
-            # "tz"  [union-attr]
-            if dtype.tz:  # type: ignore
+            # pandas\core\dtypes\cast.py:230: error: "dtype[Any]" has no
+            # attribute "tz"  [attr-defined]
+            if dtype.tz:  # type: ignore[attr-defined]
                 # convert to datetime and change timezone
                 from pandas import to_datetime
 
