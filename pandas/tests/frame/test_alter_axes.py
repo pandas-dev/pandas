@@ -128,6 +128,7 @@ class TestDataFrameAlterAxes:
         df = df.reindex(idx2)
         tm.assert_index_equal(df.index, idx2)
 
+    def test_dti_set_index_reindex_with_tz(self):
         # GH 11314
         # with tz
         index = date_range(
