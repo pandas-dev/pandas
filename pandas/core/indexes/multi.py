@@ -2707,7 +2707,7 @@ class MultiIndex(Index):
         Index.get_loc : The get_loc method for (single-level) index.
         """
         if is_scalar(key) and isna(key):
-            return -1, None
+            return -1
         else:
             return level_index.get_loc(key)
 
