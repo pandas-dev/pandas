@@ -594,13 +594,13 @@ class ExcelFormatter:
                 # has incompatible type "Union[Sequence[Optional[Hashable]],
                 # bool]"; expected "Sized"  [arg-type]
                 if len(self.header) != len(self.columns):  # type: ignore[arg-type]
-                    # pandas\io\formats\excel.py:603: error: Argument 1 to
+                    # pandas\io\formats\excel.py:602: error: Argument 1 to
                     # "len" has incompatible type
                     # "Union[Sequence[Optional[Hashable]], bool]"; expected
                     # "Sized"  [arg-type]
                     raise ValueError(
-                        f"Writing {len(self.columns)} cols but "
-                        f"got {len(self.header)} aliases"  # type: ignore[arg-type]
+                        f"Writing {len(self.columns)} cols "  # type: ignore[arg-type]
+                        f"but got {len(self.header)} aliases"
                     )
                 else:
                     colnames = self.header
