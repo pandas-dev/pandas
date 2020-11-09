@@ -604,3 +604,43 @@ class TestDataFrameColor(TestPlotBase):
         result = df_concat.plot()
         for legend, line in zip(result.get_legend().legendHandles, result.lines):
             assert legend.get_color() == line.get_color()
+
+    @pytest.mark.slow
+    def test_no_color_bar(self):
+        df = self.hexbin_df
+
+        ax = df.plot.hexbin(x="A", y="B", colorbar=None)
+        assert ax.collections[0].colorbar is None
+
+    def test_scatter_colors(self):
+        df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
+        with pytest.raises(TypeError):
+            df.plot.scatter(x="a", y="b", c="c", color="green")
+
+        default_colors = self._unpack_cycler(self.plt.rcParams)
+
+        ax = df.plot.scatter(x="a", y="b", c="c")
+        tm.assert_numpy_array_equal(
+            ax.collections[0].get_facecolor()[0],
+            np.array(self.colorconverter.to_rgba(default_colors[0])),
+        )
+
+        ax = df.plot.scatter(x="a", y="b", color="white")
+        tm.assert_numpy_array_equal(
+            ax.collections[0].get_facecolor()[0],
+            np.array([1, 1, 1, 1], dtype=np.float64),
+        )
+
+    def test_scatter_colorbar_different_cmap(self):
+        # GH 33389
+        import matplotlib.pyplot as plt
+
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [1, 3, 2], "c": [1, 2, 3]})
+        df["x2"] = df["x"] + 1
+
+        fig, ax = plt.subplots()
+        df.plot("x", "y", c="c", kind="scatter", cmap="cividis", ax=ax)
+        df.plot("x2", "y", c="c", kind="scatter", cmap="magma", ax=ax)
+
+        assert ax.collections[0].cmap.name == "cividis"
+        assert ax.collections[1].cmap.name == "magma"
