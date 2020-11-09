@@ -745,7 +745,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            result = type(self)(data=[], dtype=self.dtype, freq=self.freq)
+            # pandas\core\indexes\datetimelike.py:758: error: Unexpected
+            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
+            result = type(self)(
+                data=[], dtype=self.dtype, freq=self.freq  # type: ignore[call-arg]
+            )
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left._values[lslice]
@@ -874,7 +878,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             i8self = Int64Index._simple_new(self.asi8)
             i8other = Int64Index._simple_new(other.asi8)
             i8result = i8self._union(i8other, sort=sort)
-            result = type(self)(i8result, dtype=self.dtype, freq="infer")
+            # pandas\core\indexes\datetimelike.py:887: error: Unexpected
+            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
+            result = type(self)(
+                i8result, dtype=self.dtype, freq="infer"  # type: ignore[call-arg]
+            )
             return result
 
     # --------------------------------------------------------------------

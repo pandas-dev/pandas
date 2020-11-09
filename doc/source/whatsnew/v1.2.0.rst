@@ -231,6 +231,8 @@ Other enhancements
 - :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
 - :meth:`testing.assert_index_equal` now has a ``check_order`` parameter that allows indexes to be checked in an order-insensitive manner (:issue:`37478`)
 - :func:`read_csv` supports memory-mapping for compressed files (:issue:`37621`)
+- Improve error reporting for :meth:`DataFrame.merge()` when invalid merge column definitions were given (:issue:`16228`)
+- Improve numerical stability for :meth:`Rolling.skew()`, :meth:`Rolling.kurt()`, :meth:`Expanding.skew()` and :meth:`Expanding.kurt()` through implementation of Kahan summation (:issue:`6929`)
 
 .. _whatsnew_120.api_breaking.python:
 
@@ -380,7 +382,7 @@ Categorical
 ^^^^^^^^^^^
 - :meth:`Categorical.fillna` will always return a copy, will validate a passed fill value regardless of whether there are any NAs to fill, and will disallow a ``NaT`` as a fill value for numeric categories (:issue:`36530`)
 - Bug in :meth:`Categorical.__setitem__` that incorrectly raised when trying to set a tuple value (:issue:`20439`)
--
+- Bug in :meth:`CategoricalIndex.equals` incorrectly casting non-category entries to ``np.nan`` (:issue:`37667`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -412,7 +414,7 @@ Timezones
 ^^^^^^^^^
 
 - Bug in :func:`date_range` was raising AmbiguousTimeError for valid input with ``ambiguous=False`` (:issue:`35297`)
--
+- Bug in :meth:`Timestamp.replace` was losing fold information (:issue:`37610`)
 
 
 Numeric
@@ -465,6 +467,8 @@ Indexing
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`MultiIndex` with a level named "0" (:issue:`37194`)
 - Bug in :meth:`Series.__getitem__` when using an unsigned integer array as an indexer giving incorrect results or segfaulting instead of raising ``KeyError`` (:issue:`37218`)
 - Bug in :meth:`Index.where` incorrectly casting numeric values to strings (:issue:`37591`)
+- Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` raises when numeric label was given for object :class:`Index` although label was in :class:`Index` (:issue:`26491`)
+- Bug in :meth:`DataFrame.loc` returned requested key plus missing values when ``loc`` was applied to single level from :class:`MultiIndex` (:issue:`27104`)
 - Bug in :meth:`DataFrame.at` and :meth:`Series.at` did not adjust dtype when float was assigned to integer column (:issue:`26395`)
 
 Missing
@@ -511,6 +515,8 @@ Plotting
 - Bug in :meth:`DataFrame.plot` was rotating xticklabels when ``subplots=True``, even if the x-axis wasn't an irregular time series (:issue:`29460`)
 - Bug in :meth:`DataFrame.plot` where a marker letter in the ``style`` keyword sometimes causes a ``ValueError`` (:issue:`21003`)
 - Twinned axes were losing their tick labels which should only happen to all but the last row or column of 'externally' shared axes (:issue:`33819`)
+- Bug in :meth:`DataFrameGroupBy.boxplot` when ``subplots=False``, a KeyError would raise (:issue:`16748`)
+
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
