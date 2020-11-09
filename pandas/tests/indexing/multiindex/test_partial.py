@@ -215,7 +215,7 @@ class TestMultiIndexPartial:
         expected.loc["bar"] = 0
         tm.assert_series_equal(result, expected)
 
-    def test_getitem_loc_datetime(self):
+    def test_partial_getitem_loc_datetime(self):
         # GH: 25165
         date_idx = date_range("2019", periods=2, freq="MS")
         df = DataFrame(
