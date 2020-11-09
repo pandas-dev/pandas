@@ -2,6 +2,7 @@
 
 import cython
 
+from libc.math cimport round
 from libcpp.deque cimport deque
 
 import numpy as np
@@ -458,42 +459,71 @@ cdef inline float64_t calc_skew(int64_t minp, int64_t nobs,
 
 cdef inline void add_skew(float64_t val, int64_t *nobs,
                           float64_t *x, float64_t *xx,
-                          float64_t *xxx) nogil:
+                          float64_t *xxx,
+                          float64_t *compensation_x,
+                          float64_t *compensation_xx,
+                          float64_t *compensation_xxx) nogil:
     """ add a value from the skew calc """
+    cdef:
+        float64_t y, t
 
     # Not NaN
     if notnan(val):
         nobs[0] = nobs[0] + 1
 
-        # seriously don't ask me why this is faster
-        x[0] = x[0] + val
-        xx[0] = xx[0] + val * val
-        xxx[0] = xxx[0] + val * val * val
+        y = val - compensation_x[0]
+        t = x[0] + y
+        compensation_x[0] = t - x[0] - y
+        x[0] = t
+        y = val * val - compensation_xx[0]
+        t = xx[0] + y
+        compensation_xx[0] = t - xx[0] - y
+        xx[0] = t
+        y = val * val * val - compensation_xxx[0]
+        t = xxx[0] + y
+        compensation_xxx[0] = t - xxx[0] - y
+        xxx[0] = t
 
 
 cdef inline void remove_skew(float64_t val, int64_t *nobs,
                              float64_t *x, float64_t *xx,
-                             float64_t *xxx) nogil:
+                             float64_t *xxx,
+                             float64_t *compensation_x,
+                             float64_t *compensation_xx,
+                             float64_t *compensation_xxx) nogil:
     """ remove a value from the skew calc """
+    cdef:
+        float64_t y, t
 
     # Not NaN
     if notnan(val):
         nobs[0] = nobs[0] - 1
 
-        # seriously don't ask me why this is faster
-        x[0] = x[0] - val
-        xx[0] = xx[0] - val * val
-        xxx[0] = xxx[0] - val * val * val
+        y = - val - compensation_x[0]
+        t = x[0] + y
+        compensation_x[0] = t - x[0] - y
+        x[0] = t
+        y = - val * val - compensation_xx[0]
+        t = xx[0] + y
+        compensation_xx[0] = t - xx[0] - y
+        xx[0] = t
+        y = - val * val * val - compensation_xxx[0]
+        t = xxx[0] + y
+        compensation_xxx[0] = t - xxx[0] - y
+        xxx[0] = t
 
 
 def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp):
     cdef:
-        float64_t val, prev
+        float64_t val, prev, min_val, mean_val, sum_val = 0
+        float64_t compensation_xxx_add = 0, compensation_xxx_remove = 0
+        float64_t compensation_xx_add = 0, compensation_xx_remove = 0
+        float64_t compensation_x_add = 0, compensation_x_remove = 0
         float64_t x = 0, xx = 0, xxx = 0
-        int64_t nobs = 0, i, j, N = len(values)
+        int64_t nobs = 0, i, j, N = len(values), nobs_mean = 0
         int64_t s, e
-        ndarray[float64_t] output
+        ndarray[float64_t] output, mean_array
         bint is_monotonic_increasing_bounds
 
     minp = max(minp, 3)
@@ -501,8 +531,20 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
         start, end
     )
     output = np.empty(N, dtype=float)
+    min_val = np.nanmin(values)
 
     with nogil:
+        for i in range(0, N):
+            val = values[i]
+            if notnan(val):
+                nobs_mean += 1
+                sum_val += val
+        mean_val = sum_val / nobs_mean
+        # Other cases would lead to imprecision for smallest values
+        if min_val - mean_val > -1e5:
+            mean_val = round(mean_val)
+            for i in range(0, N):
+                values[i] = values[i] - mean_val
 
         for i in range(0, N):
 
@@ -515,22 +557,24 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
 
                 for j in range(s, e):
                     val = values[j]
-                    add_skew(val, &nobs, &x, &xx, &xxx)
+                    add_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_add,
+                             &compensation_xx_add, &compensation_xxx_add)
 
             else:
 
                 # After the first window, observations can both be added
                 # and removed
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    remove_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_remove,
+                                &compensation_xx_remove, &compensation_xxx_remove)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = values[j]
-                    add_skew(val, &nobs, &x, &xx, &xxx)
-
-                # calculate deletes
-                for j in range(start[i - 1], s):
-                    val = values[j]
-                    remove_skew(val, &nobs, &x, &xx, &xxx)
+                    add_skew(val, &nobs, &x, &xx, &xxx, &compensation_x_add,
+                             &compensation_xx_add, &compensation_xxx_add)
 
             output[i] = calc_skew(minp, nobs, x, xx, xxx)
 
@@ -585,42 +629,80 @@ cdef inline float64_t calc_kurt(int64_t minp, int64_t nobs,
 
 cdef inline void add_kurt(float64_t val, int64_t *nobs,
                           float64_t *x, float64_t *xx,
-                          float64_t *xxx, float64_t *xxxx) nogil:
+                          float64_t *xxx, float64_t *xxxx,
+                          float64_t *compensation_x,
+                          float64_t *compensation_xx,
+                          float64_t *compensation_xxx,
+                          float64_t *compensation_xxxx) nogil:
     """ add a value from the kurotic calc """
+    cdef:
+        float64_t y, t
 
     # Not NaN
     if notnan(val):
         nobs[0] = nobs[0] + 1
 
-        # seriously don't ask me why this is faster
-        x[0] = x[0] + val
-        xx[0] = xx[0] + val * val
-        xxx[0] = xxx[0] + val * val * val
-        xxxx[0] = xxxx[0] + val * val * val * val
+        y = val - compensation_x[0]
+        t = x[0] + y
+        compensation_x[0] = t - x[0] - y
+        x[0] = t
+        y = val * val - compensation_xx[0]
+        t = xx[0] + y
+        compensation_xx[0] = t - xx[0] - y
+        xx[0] = t
+        y = val * val * val - compensation_xxx[0]
+        t = xxx[0] + y
+        compensation_xxx[0] = t - xxx[0] - y
+        xxx[0] = t
+        y = val * val * val * val - compensation_xxxx[0]
+        t = xxxx[0] + y
+        compensation_xxxx[0] = t - xxxx[0] - y
+        xxxx[0] = t
 
 
 cdef inline void remove_kurt(float64_t val, int64_t *nobs,
                              float64_t *x, float64_t *xx,
-                             float64_t *xxx, float64_t *xxxx) nogil:
+                             float64_t *xxx, float64_t *xxxx,
+                             float64_t *compensation_x,
+                             float64_t *compensation_xx,
+                             float64_t *compensation_xxx,
+                             float64_t *compensation_xxxx) nogil:
     """ remove a value from the kurotic calc """
+    cdef:
+        float64_t y, t
 
     # Not NaN
     if notnan(val):
         nobs[0] = nobs[0] - 1
 
-        # seriously don't ask me why this is faster
-        x[0] = x[0] - val
-        xx[0] = xx[0] - val * val
-        xxx[0] = xxx[0] - val * val * val
-        xxxx[0] = xxxx[0] - val * val * val * val
+        y = - val - compensation_x[0]
+        t = x[0] + y
+        compensation_x[0] = t - x[0] - y
+        x[0] = t
+        y = - val * val - compensation_xx[0]
+        t = xx[0] + y
+        compensation_xx[0] = t - xx[0] - y
+        xx[0] = t
+        y = - val * val * val - compensation_xxx[0]
+        t = xxx[0] + y
+        compensation_xxx[0] = t - xxx[0] - y
+        xxx[0] = t
+        y = - val * val * val * val - compensation_xxxx[0]
+        t = xxxx[0] + y
+        compensation_xxxx[0] = t - xxxx[0] - y
+        xxxx[0] = t
 
 
 def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp):
     cdef:
-        float64_t val, prev
+        float64_t val, prev, mean_val, min_val, sum_val = 0
+        float64_t compensation_xxxx_add = 0, compensation_xxxx_remove = 0
+        float64_t compensation_xxx_remove = 0, compensation_xxx_add = 0
+        float64_t compensation_xx_remove = 0, compensation_xx_add = 0
+        float64_t compensation_x_remove = 0, compensation_x_add = 0
         float64_t x = 0, xx = 0, xxx = 0, xxxx = 0
-        int64_t nobs = 0, i, j, s, e, N = len(values)
+        int64_t nobs = 0, i, j, s, e, N = len(values), nobs_mean = 0
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
 
@@ -629,8 +711,20 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
         start, end
     )
     output = np.empty(N, dtype=float)
+    min_val = np.nanmin(values)
 
     with nogil:
+        for i in range(0, N):
+            val = values[i]
+            if notnan(val):
+                nobs_mean += 1
+                sum_val += val
+        mean_val = sum_val / nobs_mean
+        # Other cases would lead to imprecision for smallest values
+        if min_val - mean_val > -1e4:
+            mean_val = round(mean_val)
+            for i in range(0, N):
+                values[i] = values[i] - mean_val
 
         for i in range(0, N):
 
@@ -642,20 +736,25 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds:
 
                 for j in range(s, e):
-                    add_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx)
+                    add_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx,
+                             &compensation_x_add, &compensation_xx_add,
+                             &compensation_xxx_add, &compensation_xxxx_add)
 
             else:
 
                 # After the first window, observations can both be added
                 # and removed
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    remove_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx,
+                                &compensation_x_remove, &compensation_xx_remove,
+                                &compensation_xxx_remove, &compensation_xxxx_remove)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx)
-
-                # calculate deletes
-                for j in range(start[i - 1], s):
-                    remove_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx)
+                    add_kurt(values[j], &nobs, &x, &xx, &xxx, &xxxx,
+                             &compensation_x_add, &compensation_xx_add,
+                             &compensation_xxx_add, &compensation_xxxx_add)
 
             output[i] = calc_kurt(minp, nobs, x, xx, xxx, xxxx)
 
