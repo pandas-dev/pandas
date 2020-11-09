@@ -1295,7 +1295,7 @@ class IndexOpsMixin(OpsMixin):
         duplicated = self.duplicated(keep=keep)
         # pandas\core\base.py:1507: error: Value of type "IndexOpsMixin" is not
         # indexable  [index]
-        return self[np.logical_not(duplicated)]  # type: ignore[index]
+        return self[~duplicated]  # type: ignore[index]
 
     def duplicated(self, keep="first"):
         return duplicated(self._values, keep=keep)
