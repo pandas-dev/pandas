@@ -1680,26 +1680,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             return np.NaN
         return self.categories[i]
 
-    def _validate_listlike(self, target: ArrayLike) -> np.ndarray:
-        """
-        Extract integer codes we can use for comparison.
-
-        Notes
-        -----
-        If a value in target is not present, it gets coded as -1.
-        """
-
-        if isinstance(target, Categorical):
-            # Indexing on codes is more efficient if categories are the same,
-            #  so we can apply some optimizations based on the degree of
-            #  dtype-matching.
-            cat = self._encode_with_my_categories(target)
-            codes = cat._codes
-        else:
-            codes = self.categories.get_indexer(target)
-
-        return codes
-
     def _unbox_scalar(self, key) -> int:
         # searchsorted is very performance sensitive. By converting codes
         # to same dtype as self.codes, we get much faster performance.
