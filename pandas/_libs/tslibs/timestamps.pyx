@@ -230,6 +230,8 @@ cdef class _Timestamp(ABCTimestamp):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
+    dayofweek = _Timestamp.day_of_week
+    dayofyear = _Timestamp.day_of_year
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
@@ -538,14 +540,14 @@ cdef class _Timestamp(ABCTimestamp):
         return bool(ccalendar.is_leapyear(self.year))
 
     @property
-    def dayofweek(self) -> int:
+    def day_of_week(self) -> int:
         """
         Return day of the week.
         """
         return self.weekday()
 
     @property
-    def dayofyear(self) -> int:
+    def day_of_year(self) -> int:
         """
         Return the day of the year.
         """
@@ -1372,7 +1374,7 @@ default 'raise'
         microsecond=None,
         nanosecond=None,
         tzinfo=object,
-        fold=0,
+        fold=None,
     ):
         """
         implements datetime.replace, handles nanoseconds.
@@ -1388,7 +1390,7 @@ default 'raise'
         microsecond : int, optional
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
-        fold : int, optional, default is 0
+        fold : int, optional
 
         Returns
         -------
@@ -1405,6 +1407,11 @@ default 'raise'
         # set to naive if needed
         tzobj = self.tzinfo
         value = self.value
+
+        # GH 37610. Preserve fold when replacing.
+        if fold is None:
+            fold = self.fold
+
         if tzobj is not None:
             value = tz_convert_from_utc_single(value, tzobj)
 
