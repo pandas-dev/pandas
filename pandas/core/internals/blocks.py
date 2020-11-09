@@ -60,7 +60,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.replace import compare_or_regex_search
+from pandas.core.array_algos.replace import compare_or_regex_search, replace_regex
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -2502,39 +2502,14 @@ class ObjectBlock(Block):
         inplace: bool = False,
         regex: bool = False,
     ) -> List["Block"]:
-        to_rep_is_list = is_list_like(to_replace)
-        value_is_list = is_list_like(value)
-        both_lists = to_rep_is_list and value_is_list
-        either_list = to_rep_is_list or value_is_list
+        # Note: the checks we do in NDFrame.replace ensure we never get
+        #  here with listlike to_replace or value, as those cases
+        #  go through _replace_list
 
-        result_blocks: List["Block"] = []
-        blocks: List["Block"] = [self]
-
-        if not either_list and is_re(to_replace):
+        if is_re(to_replace) or regex:
             return self._replace_single(to_replace, value, inplace=inplace, regex=True)
-        elif not (either_list or regex):
+        else:
             return super().replace(to_replace, value, inplace=inplace, regex=regex)
-        elif both_lists:
-            for to_rep, v in zip(to_replace, value):
-                result_blocks = []
-                for b in blocks:
-                    result = b._replace_single(to_rep, v, inplace=inplace, regex=regex)
-                    result_blocks.extend(result)
-                blocks = result_blocks
-            return result_blocks
-
-        elif to_rep_is_list and regex:
-            for to_rep in to_replace:
-                result_blocks = []
-                for b in blocks:
-                    result = b._replace_single(
-                        to_rep, value, inplace=inplace, regex=regex
-                    )
-                    result_blocks.extend(result)
-                blocks = result_blocks
-            return result_blocks
-
-        return self._replace_single(to_replace, value, inplace=inplace, regex=regex)
 
     def _replace_single(
         self,
@@ -2588,32 +2563,7 @@ class ObjectBlock(Block):
             return super().replace(to_replace, value, inplace=inplace, regex=regex)
 
         new_values = self.values if inplace else self.values.copy()
-
-        # deal with replacing values with objects (strings) that match but
-        # whose replacement is not a string (numeric, nan, object)
-        if isna(value) or not isinstance(value, str):
-
-            def re_replacer(s):
-                if is_re(rx) and isinstance(s, str):
-                    return value if rx.search(s) is not None else s
-                else:
-                    return s
-
-        else:
-            # value is guaranteed to be a string here, s can be either a string
-            # or null if it's null it gets returned
-            def re_replacer(s):
-                if is_re(rx) and isinstance(s, str):
-                    return rx.sub(value, s)
-                else:
-                    return s
-
-        f = np.vectorize(re_replacer, otypes=[self.dtype])
-
-        if mask is None:
-            new_values[:] = f(new_values)
-        else:
-            new_values[mask] = f(new_values[mask])
+        replace_regex(new_values, rx, value, mask)
 
         # convert
         block = self.make_block(new_values)
@@ -2626,6 +2576,19 @@ class ObjectBlock(Block):
 
 class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
+
+    def _replace_list(
+        self,
+        src_list: List[Any],
+        dest_list: List[Any],
+        inplace: bool = False,
+        regex: bool = False,
+    ) -> List["Block"]:
+        if len(algos.unique(dest_list)) == 1:
+            # We got likely here by tiling value inside NDFrame.replace,
+            #  so un-tile here
+            return self.replace(src_list, dest_list[0], inplace, regex)
+        return super()._replace_list(src_list, dest_list, inplace, regex)
 
     def replace(
         self,
