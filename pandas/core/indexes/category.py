@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.missing import is_valid_nat_for_dtype, notna
+from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, notna
 
 from pandas.core import accessor
 from pandas.core.arrays.categorical import Categorical, contains
@@ -263,6 +263,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             values = other
             if not is_list_like(values):
                 values = [values]
+
             cat = Categorical(other, dtype=self.dtype)
             other = CategoricalIndex(cat)
             if not other.isin(values).all():
@@ -270,6 +271,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                     "cannot append a non-category item to a CategoricalIndex"
                 )
             other = other._values
+
+            if not ((other == values) | (isna(other) & isna(values))).all():
+                # GH#37667 see test_equals_non_category
+                raise TypeError(
+                    "categories must match existing categories when appending"
+                )
 
         return other
 
@@ -291,13 +298,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         try:
             other = self._is_dtype_compat(other)
-            if isinstance(other, type(self)):
-                other = other._data
-            return self._data.equals(other)
         except (TypeError, ValueError):
-            pass
+            return False
 
-        return False
+        return self._data.equals(other)
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -320,7 +324,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 "categories",
                 ibase.default_pprint(self.categories, max_seq_items=max_categories),
             ),
-            ("ordered", self.ordered),
+            # pandas\core\indexes\category.py:315: error: "CategoricalIndex"
+            # has no attribute "ordered"  [attr-defined]
+            ("ordered", self.ordered),  # type: ignore[attr-defined]
         ]
         if self.name is not None:
             attrs.append(("name", ibase.default_pprint(self.name)))
@@ -653,7 +659,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
 
-    def _concat(self, to_concat, name):
+    def _concat(self, to_concat: List["Index"], name: Label) -> "CategoricalIndex":
         # if calling index is category, don't check dtype of others
         codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
         cat = self._data._from_backing_data(codes)
