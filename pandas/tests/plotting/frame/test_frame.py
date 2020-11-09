@@ -1122,9 +1122,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_plot_scatter_with_categorical_data(self, x, y):
         # after fixing GH 18755, should be able to plot categorical data
-        df = DataFrame(
-            {"x": [1, 2, 3, 4], "y": pd.Categorical(["a", "b", "a", "c"])}
-        )
+        df = DataFrame({"x": [1, 2, 3, 4], "y": pd.Categorical(["a", "b", "a", "c"])})
 
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
@@ -1193,7 +1191,6 @@ class TestDataFramePlots(TestPlotBase):
             df.plot.scatter(x="a", y="b", c="c", color="green")
 
         default_colors = self._unpack_cycler(self.plt.rcParams)
-
         ax = df.plot.scatter(x="a", y="b", c="c")
         tm.assert_numpy_array_equal(
             ax.collections[0].get_facecolor()[0],
@@ -1818,9 +1815,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_missing_marker_multi_plots_on_same_ax(self):
         # GH 18222
-        df = DataFrame(
-            data=[[1, 1, 1, 1], [2, 2, 4, 8]], columns=["x", "r", "g", "b"]
-        )
+        df = DataFrame(data=[[1, 1, 1, 1], [2, 2, 4, 8]], columns=["x", "r", "g", "b"])
         fig, ax = self.plt.subplots(nrows=1, ncols=3)
         # Left plot
         df.plot(x="x", y="r", linewidth=0, marker="o", color="r", ax=ax[0])
