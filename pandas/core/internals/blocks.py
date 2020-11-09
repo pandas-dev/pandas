@@ -60,7 +60,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import is_valid_nat_for_dtype, isna, isna_compat
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.replace import compare_or_regex_search
+from pandas.core.array_algos.replace import compare_or_regex_search, replace_regex
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -2563,32 +2563,7 @@ class ObjectBlock(Block):
             return super().replace(to_replace, value, inplace=inplace, regex=regex)
 
         new_values = self.values if inplace else self.values.copy()
-
-        # deal with replacing values with objects (strings) that match but
-        # whose replacement is not a string (numeric, nan, object)
-        if isna(value) or not isinstance(value, str):
-
-            def re_replacer(s):
-                if is_re(rx) and isinstance(s, str):
-                    return value if rx.search(s) is not None else s
-                else:
-                    return s
-
-        else:
-            # value is guaranteed to be a string here, s can be either a string
-            # or null if it's null it gets returned
-            def re_replacer(s):
-                if is_re(rx) and isinstance(s, str):
-                    return rx.sub(value, s)
-                else:
-                    return s
-
-        f = np.vectorize(re_replacer, otypes=[self.dtype])
-
-        if mask is None:
-            new_values[:] = f(new_values)
-        else:
-            new_values[mask] = f(new_values[mask])
+        replace_regex(new_values, rx, value, mask)
 
         # convert
         block = self.make_block(new_values)
