@@ -549,7 +549,7 @@ class TestDataFramePlots(TestPlotBase):
                 pd.to_datetime("2017-08-02 00:00:00"),
             ],
         }
-        testdata = pd.DataFrame(data)
+        testdata = DataFrame(data)
         ax_period = testdata.plot(x="numeric", y="period")
         assert (
             ax_period.get_lines()[0].get_data()[1] == testdata["period"].values
@@ -1027,13 +1027,13 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_bar_categorical(self):
         # GH 13019
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             np.random.randn(6, 5),
             index=pd.Index(list("ABCDEF")),
             columns=pd.Index(list("abcde")),
         )
         # categorical index must behave the same
-        df2 = pd.DataFrame(
+        df2 = DataFrame(
             np.random.randn(6, 5),
             index=pd.CategoricalIndex(list("ABCDEF")),
             columns=pd.CategoricalIndex(list("abcde")),
@@ -1076,7 +1076,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_raise_error_on_datetime_time_data(self):
         # GH 8113, datetime.time type is not supported by matplotlib in scatter
-        df = pd.DataFrame(np.random.randn(10), columns=["a"])
+        df = DataFrame(np.random.randn(10), columns=["a"])
         df["dtime"] = pd.date_range(start="2014-01-01", freq="h", periods=10).time
         msg = "must be a string or a number, not 'datetime.time'"
 
@@ -1087,19 +1087,19 @@ class TestDataFramePlots(TestPlotBase):
         # GH 30391
         dates = pd.date_range(start=date(2019, 1, 1), periods=12, freq="W")
         vals = np.random.normal(0, 1, len(dates))
-        df = pd.DataFrame({"dates": dates, "vals": vals})
+        df = DataFrame({"dates": dates, "vals": vals})
 
         _check_plot_works(df.plot.scatter, x="dates", y="vals")
         _check_plot_works(df.plot.scatter, x=0, y=1)
 
     def test_scatterplot_object_data(self):
         # GH 18755
-        df = pd.DataFrame(dict(a=["A", "B", "C"], b=[2, 3, 4]))
+        df = DataFrame(dict(a=["A", "B", "C"], b=[2, 3, 4]))
 
         _check_plot_works(df.plot.scatter, x="a", y="b")
         _check_plot_works(df.plot.scatter, x=0, y=1)
 
-        df = pd.DataFrame(dict(a=["A", "B", "C"], b=["a", "b", "c"]))
+        df = DataFrame(dict(a=["A", "B", "C"], b=["a", "b", "c"]))
 
         _check_plot_works(df.plot.scatter, x="a", y="b")
         _check_plot_works(df.plot.scatter, x=0, y=1)
@@ -1111,7 +1111,7 @@ class TestDataFramePlots(TestPlotBase):
         # interfere with x-axis label and ticklabels with
         # ipython inline backend.
         random_array = np.random.random((1000, 3))
-        df = pd.DataFrame(random_array, columns=["A label", "B label", "C label"])
+        df = DataFrame(random_array, columns=["A label", "B label", "C label"])
 
         ax = df.plot.hexbin("A label", "B label", gridsize=12)
         assert all(vis.get_visible() for vis in ax.xaxis.get_minorticklabels())
@@ -1122,7 +1122,7 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_plot_scatter_with_categorical_data(self, x, y):
         # after fixing GH 18755, should be able to plot categorical data
-        df = pd.DataFrame(
+        df = DataFrame(
             {"x": [1, 2, 3, 4], "y": pd.Categorical(["a", "b", "a", "c"])}
         )
 
@@ -1210,7 +1210,7 @@ class TestDataFramePlots(TestPlotBase):
         # GH 33389
         import matplotlib.pyplot as plt
 
-        df = pd.DataFrame({"x": [1, 2, 3], "y": [1, 3, 2], "c": [1, 2, 3]})
+        df = DataFrame({"x": [1, 2, 3], "y": [1, 3, 2], "c": [1, 2, 3]})
         df["x2"] = df["x"] + 1
 
         fig, ax = plt.subplots()
@@ -1577,7 +1577,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_hist_weights(self, weights):
         # GH 33173
         np.random.seed(0)
-        df = pd.DataFrame(dict(zip(["A", "B"], np.random.randn(2, 100))))
+        df = DataFrame(dict(zip(["A", "B"], np.random.randn(2, 100))))
 
         ax1 = _check_plot_works(df.plot, kind="hist", weights=weights)
         ax2 = _check_plot_works(df.plot, kind="hist")
@@ -1818,7 +1818,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_missing_marker_multi_plots_on_same_ax(self):
         # GH 18222
-        df = pd.DataFrame(
+        df = DataFrame(
             data=[[1, 1, 1, 1], [2, 2, 4, 8]], columns=["x", "r", "g", "b"]
         )
         fig, ax = self.plt.subplots(nrows=1, ncols=3)
@@ -2696,7 +2696,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_secondary_axis_font_size(self, method):
         # GH: 12565
         df = (
-            pd.DataFrame(np.random.randn(15, 2), columns=list("AB"))
+            DataFrame(np.random.randn(15, 2), columns=list("AB"))
             .assign(C=lambda df: df.B.cumsum())
             .assign(D=lambda df: df.C * 1.1)
         )
@@ -2712,7 +2712,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_x_string_values_ticks(self):
         # Test if string plot index have a fixed xtick position
         # GH: 7612, GH: 22334
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "sales": [3, 2, 3],
                 "visits": [20, 42, 28],
@@ -2733,7 +2733,7 @@ class TestDataFramePlots(TestPlotBase):
         # Test if multiindex plot index have a fixed xtick position
         # GH: 15912
         index = pd.MultiIndex.from_product([[2012, 2013], [1, 2]])
-        df = pd.DataFrame(np.random.randn(4, 2), columns=["A", "B"], index=index)
+        df = DataFrame(np.random.randn(4, 2), columns=["A", "B"], index=index)
         ax = df.plot()
         ax.set_xlim(-1, 4)
         xticklabels = [t.get_text() for t in ax.get_xticklabels()]
@@ -2748,7 +2748,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_xlim_plot_line(self, kind):
         # test if xlim is set correctly in plot.line and plot.area
         # GH 27686
-        df = pd.DataFrame([2, 4], index=[1, 2])
+        df = DataFrame([2, 4], index=[1, 2])
         ax = df.plot(kind=kind)
         xlims = ax.get_xlim()
         assert xlims[0] < 1
@@ -2760,7 +2760,7 @@ class TestDataFramePlots(TestPlotBase):
         fig, ax = self.plt.subplots()
 
         indexes = ["k1", "k2", "k3", "k4"]
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "s1": [1000, 2000, 1500, 2000],
                 "s2": [900, 1400, 2000, 3000],
@@ -2783,7 +2783,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_subplots_sharex_false(self):
         # test when sharex is set to False, two plots should have different
         # labels, GH 25160
-        df = pd.DataFrame(np.random.rand(10, 2))
+        df = DataFrame(np.random.rand(10, 2))
         df.iloc[5:, 1] = np.nan
         df.iloc[:5, 0] = np.nan
 
@@ -2798,7 +2798,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_plot_no_rows(self):
         # GH 27758
-        df = pd.DataFrame(columns=["foo"], dtype=int)
+        df = DataFrame(columns=["foo"], dtype=int)
         assert df.empty
         ax = df.plot()
         assert len(ax.get_lines()) == 1
@@ -2807,13 +2807,13 @@ class TestDataFramePlots(TestPlotBase):
         assert len(line.get_ydata()) == 0
 
     def test_plot_no_numeric_data(self):
-        df = pd.DataFrame(["a", "b", "c"])
+        df = DataFrame(["a", "b", "c"])
         with pytest.raises(TypeError):
             df.plot()
 
     def test_missing_markers_legend(self):
         # 14958
-        df = pd.DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"])
+        df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"])
         ax = df.plot(y=["A"], marker="x", linestyle="solid")
         df.plot(y=["B"], marker="o", linestyle="dotted", ax=ax)
         df.plot(y=["C"], marker="<", linestyle="dotted", ax=ax)
@@ -2823,7 +2823,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_missing_markers_legend_using_style(self):
         # 14563
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "A": [1, 2, 3, 4, 5, 6],
                 "B": [2, 4, 1, 3, 2, 4],
@@ -2854,7 +2854,7 @@ class TestDataFramePlots(TestPlotBase):
         self, kind, index_name, old_label, new_label
     ):
         # GH 9093
-        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df = DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
         df.index.name = index_name
 
         # default is the ylabel is not shown and xlabel is index name
@@ -2882,7 +2882,7 @@ class TestDataFramePlots(TestPlotBase):
         self, kind, index_name, old_label, new_label
     ):
         # GH 9093
-        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df = DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
         df.index.name = index_name
 
         # default is the ylabel is not shown and xlabel is index name
