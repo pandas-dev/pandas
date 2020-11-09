@@ -1687,10 +1687,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         code = self._codes.dtype.type(code)
         return code
 
-    def _unbox_listlike(self, value):
-        unboxed = self.categories.get_indexer(value)
-        return unboxed.astype(self._ndarray.dtype, copy=False)
-
     # ------------------------------------------------------------------
 
     def take_nd(self, indexer, allow_fill: bool = False, fill_value=None):
@@ -1864,7 +1860,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "category, set the categories first"
             )
 
-        return self._unbox_listlike(rvalue)
+        codes = self.categories.get_indexer(rvalue)
+        return codes.astype(self._ndarray.dtype, copy=False)
 
     def _reverse_indexer(self) -> Dict[Hashable, np.ndarray]:
         """
