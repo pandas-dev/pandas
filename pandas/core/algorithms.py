@@ -102,9 +102,9 @@ def _ensure_data(
     # we check some simple dtypes first
     if (
         is_object_dtype(dtype)
-        or not is_object_dtype(dtype)
+        or (not is_object_dtype(dtype))
         and is_object_dtype(values)
-        and dtype is None
+        and (dtype is None)
     ):
         return ensure_object(np.asarray(values)), np.dtype("object")
     try:
