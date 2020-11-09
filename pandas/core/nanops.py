@@ -182,7 +182,7 @@ def _get_fill_value(
             else:
                 return -np.inf
     else:
-        if fill_value_typ is not None and fill_value_typ == "+inf":
+        if fill_value_typ == "+inf":
             # need the max int here
             return np.iinfo(np.int64).max
         else:
@@ -386,7 +386,9 @@ def _na_for_min_count(
     if fill_value is NaT:
         fill_value = values.dtype.type("NaT", "ns")
 
-    if values.ndim == 1 or axis is None:
+    if values.ndim == 1:
+        return fill_value
+    elif axis is None:
         return fill_value
     else:
         result_shape = values.shape[:axis] + values.shape[axis + 1 :]

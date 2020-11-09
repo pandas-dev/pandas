@@ -218,7 +218,7 @@ def decons_group_index(comp_labels, shape):
     x = comp_labels
     for i in reversed(range(len(shape))):
         labels = (x - y) % (factor * shape[i]) // factor
-        np.putmask(labels, x < 0, -1)
+        labels[x < 0] = -1
         label_list.append(labels)
         y = labels * factor
         factor *= shape[i]
