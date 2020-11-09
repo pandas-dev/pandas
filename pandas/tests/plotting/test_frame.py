@@ -2671,12 +2671,13 @@ class TestDataFramePlots(TestPlotBase):
             expected[i] = ""
             result = [x.get_text() for x in ax.texts]
             assert result == expected
+
             # legend labels
             # NaN's not included in legend with subplots
             # see https://github.com/pandas-dev/pandas/issues/8390
-            assert [x.get_text() for x in ax.get_legend().get_texts()] == base_expected[
-                :i
-            ] + base_expected[i + 1 :]
+            result_labels = [x.get_text() for x in ax.get_legend().get_texts()]
+            expected_labels = base_expected[:i] + base_expected[i + 1 :]
+            assert result_labels == expected_labels
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
