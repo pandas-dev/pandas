@@ -2703,8 +2703,8 @@ class MultiIndex(Index):
             return -1
         else:
             loc = level_index.get_loc(key)
-            # if isinstance(loc, slice):
-            #     return loc.start
+            if isinstance(loc, slice):
+                return loc.start
             return loc
 
     def get_loc(self, key, method=None):

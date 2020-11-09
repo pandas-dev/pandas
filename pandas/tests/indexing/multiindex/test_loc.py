@@ -598,28 +598,3 @@ def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_da
     result = ser[2000, 5]
     expected = df.loc[2000, 5]["A"]
     tm.assert_series_equal(result, expected)
-
-
-def test_getitem_loc_datetime():
-    # GH: 25165
-    date_idx = pd.date_range("2019", periods=2, freq="MS")
-    df = DataFrame(
-        list(range(4)),
-        index=MultiIndex.from_product([date_idx, [0, 1]], names=["x", "y"]),
-    )
-    expected = DataFrame(
-        [2, 3],
-        index=MultiIndex.from_product(
-            [[pd.to_datetime("2019-02-01")], [0, 1]], names=["x", "y"]
-        ),
-    )
-    result = df["2019-2":]
-    tm.assert_frame_equal(result, expected)
-    result = df.loc["2019-2":]
-    tm.assert_frame_equal(result, expected)
-
-    result = df.loc(axis=0)["2019-2":]
-    tm.assert_frame_equal(result, expected)
-
-    result = df.loc["2019-2":, :]
-    tm.assert_frame_equal(result, expected)
