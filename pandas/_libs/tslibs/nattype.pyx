@@ -446,6 +446,8 @@ class NaTType(_NaT):
         ----------
         format : str
             Format string to convert Timestamp to string.
+            See strftime documentation for more information on the format string:
+            https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
         """,
     )
 
