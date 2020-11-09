@@ -2673,13 +2673,19 @@ class MultiIndex(Index):
                     loc -= 1
                 return start + section.searchsorted(loc, side=side)
 
-            start, end = self._get_loc_single_level_index(lev, lab)
-            if end is None:
-                end = section.searchsorted(start, side="right")
-            if k >= n - 1:
-                return start + section.searchsorted(start, side=side)
+            idx = self._get_loc_single_level_index(lev, lab)
+            if isinstance(idx, slice) and k < n - 1:
+                start = idx.start
+                end = idx.stop
+            elif k < n - 1:
+                end = start + section.searchsorted(idx, side="right")
+                start = start + section.searchsorted(idx, side="left")
+            else:
+                if isinstance(idx, slice):
+                    idx = idx.start
+                return start + section.searchsorted(idx, side=side)
 
-    def _get_loc_single_level_index(self, level_index: Index, key: Hashable) -> Tuple[int, Optional[int]]:
+    def _get_loc_single_level_index(self, level_index: Index, key: Hashable) -> int:
         """
         If key is NA value, location of index unify as -1.
 
@@ -2701,10 +2707,7 @@ class MultiIndex(Index):
         if is_scalar(key) and isna(key):
             return -1, None
         else:
-            loc = level_index.get_loc(key)
-            if isinstance(loc, slice):
-                return loc.start, loc.stop
-            return loc, None
+            return level_index.get_loc(key)
 
     def get_loc(self, key, method=None):
         """
@@ -2810,7 +2813,7 @@ class MultiIndex(Index):
         for i, k in enumerate(follow_key, len(lead_key)):
             mask = self.codes[i][loc] == self._get_loc_single_level_index(
                 self.levels[i], k
-            )[0]
+            )
             if not mask.all():
                 loc = loc[mask]
             if not len(loc):
@@ -3048,17 +3051,21 @@ class MultiIndex(Index):
 
         else:
 
-            start, end = self._get_loc_single_level_index(level_index, key)
+            idx = self._get_loc_single_level_index(level_index, key)
 
             if level > 0 or self.lexsort_depth == 0:
                 # Desired level is not sorted
-                locs = np.array(level_codes == start, dtype=bool, copy=False)
+                locs = np.array(level_codes == idx, dtype=bool, copy=False)
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
                     raise KeyError(key)
                 return locs
-            if end is None:
-                end = level_codes.searchsorted(start, side="right")
+            if isinstance(idx, slice):
+                start = idx.start
+                end = idx.stop
+            else:
+                start = level_codes.searchsorted(idx, side="left")
+                end = level_codes.searchsorted(idx, side="right")
             if start == end:
                 # The label is present in self.levels[level] but unused:
                 raise KeyError(key)
