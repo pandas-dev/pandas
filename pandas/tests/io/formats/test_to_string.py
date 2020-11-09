@@ -1,5 +1,6 @@
 from datetime import datetime
 from io import StringIO
+from textwrap import dedent
 
 import numpy as np
 import pytest
@@ -169,12 +170,16 @@ def test_to_string_with_datetime64_monthformatter():
         return x.strftime("%Y-%m")
 
     result = x.to_string(formatters={"months": format_func})
-    expected = "months\n0 2016-01\n1 2016-02"
+    expected = dedent(
+        """\
+        months
+        0 2016-01
+        1 2016-02"""
+    )
     assert result.strip() == expected
 
 
 def test_to_string_with_datetime64_hourformatter():
-
     x = DataFrame(
         {"hod": to_datetime(["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f")}
     )
@@ -183,20 +188,37 @@ def test_to_string_with_datetime64_hourformatter():
         return x.strftime("%H:%M")
 
     result = x.to_string(formatters={"hod": format_func})
-    expected = "hod\n0 10:10\n1 12:12"
+    expected = dedent(
+        """\
+        hod
+        0 10:10
+        1 12:12"""
+    )
     assert result.strip() == expected
 
 
 def test_to_string_with_formatters_unicode():
     df = DataFrame({"c/\u03c3": [1, 2, 3]})
     result = df.to_string(formatters={"c/\u03c3": str})
-    assert result == "  c/\u03c3\n" + "0   1\n1   2\n2   3"
+    expected = dedent(
+        """\
+          c/\u03c3
+        0   1
+        1   2
+        2   3"""
+    )
+    assert result == expected
 
 
 def test_to_string_complex_number_trims_zeros():
     s = Series([1.000000 + 1.000000j, 1.0 + 1.0j, 1.05 + 1.0j])
     result = s.to_string()
-    expected = "0    1.00+1.00j\n1    1.00+1.00j\n2    1.05+1.00j"
+    expected = dedent(
+        """\
+        0    1.00+1.00j
+        1    1.00+1.00j
+        2    1.05+1.00j"""
+    )
     assert result == expected
 
 
@@ -205,9 +227,12 @@ def test_nullable_float_to_string(float_ea_dtype):
     dtype = float_ea_dtype
     s = Series([0.0, 1.0, None], dtype=dtype)
     result = s.to_string()
-    expected = """0     0.0
-1     1.0
-2    <NA>"""
+    expected = dedent(
+        """\
+        0     0.0
+        1     1.0
+        2    <NA>"""
+    )
     assert result == expected
 
 
@@ -216,9 +241,12 @@ def test_nullable_int_to_string(any_nullable_int_dtype):
     dtype = any_nullable_int_dtype
     s = Series([0, 1, None], dtype=dtype)
     result = s.to_string()
-    expected = """0       0
-1       1
-2    <NA>"""
+    expected = dedent(
+        """\
+        0       0
+        1       1
+        2    <NA>"""
+    )
     assert result == expected
 
 
@@ -227,7 +255,10 @@ def test_to_string_na_rep_and_float_format(na_rep):
     # GH 13828
     df = DataFrame([["A", 1.2225], ["A", None]], columns=["Group", "Data"])
     result = df.to_string(na_rep=na_rep, float_format="{:.2f}".format)
-    expected = f"""  Group  Data
-0     A  1.22
-1     A   {na_rep}"""
+    expected = dedent(
+        f"""\
+           Group  Data
+         0     A  1.22
+         1     A   {na_rep}"""
+    )
     assert result == expected
