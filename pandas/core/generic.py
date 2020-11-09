@@ -137,36 +137,6 @@ _shared_doc_kwargs = dict(
 )
 
 
-def _single_replace(self: "Series", to_replace, method, inplace, limit):
-    """
-    Replaces values in a Series using the fill method specified when no
-    replacement value is given in the replace method
-    """
-    if self.ndim != 1:
-        raise TypeError(
-            f"cannot replace {to_replace} with method {method} on a "
-            f"{type(self).__name__}"
-        )
-
-    orig_dtype = self.dtype
-    result = self if inplace else self.copy()
-    fill_f = missing.get_fill_func(method)
-
-    mask = missing.mask_missing(result.values, to_replace)
-    values = fill_f(result.values, limit=limit, mask=mask)
-
-    if values.dtype == orig_dtype and inplace:
-        return
-
-    result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(self)
-
-    if inplace:
-        self._update_inplace(result)
-        return
-
-    return result
-
-
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
@@ -6690,11 +6660,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             if isinstance(to_replace, (tuple, list)):
                 if isinstance(self, ABCDataFrame):
+                    from pandas import Series
+
                     return self.apply(
-                        _single_replace, args=(to_replace, method, inplace, limit)
+                        Series._replace_single,
+                        args=(to_replace, method, inplace, limit),
                     )
                 self = cast("Series", self)
-                return _single_replace(self, to_replace, method, inplace, limit)
+                return self._replace_single(to_replace, method, inplace, limit)
 
             if not is_dict_like(to_replace):
                 if not is_dict_like(regex):
@@ -6771,25 +6744,25 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 else:
                     raise TypeError("value argument must be scalar, dict, or Series")
 
-            elif is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
-                if is_list_like(value):
-                    if len(to_replace) != len(value):
-                        raise ValueError(
-                            f"Replacement lists must match in length. "
-                            f"Expecting {len(to_replace)} got {len(value)} "
-                        )
-                    self._consolidate_inplace()
-                    new_data = self._mgr.replace_list(
-                        src_list=to_replace,
-                        dest_list=value,
-                        inplace=inplace,
-                        regex=regex,
-                    )
+            elif is_list_like(to_replace):
+                if not is_list_like(value):
+                    # e.g. to_replace = [NA, ''] and value is 0,
+                    #  so we replace NA with 0 and then replace '' with 0
+                    value = [value] * len(to_replace)
 
-                else:  # [NA, ''] -> 0
-                    new_data = self._mgr.replace(
-                        to_replace=to_replace, value=value, inplace=inplace, regex=regex
+                # e.g. we have to_replace = [NA, ''] and value = [0, 'missing']
+                if len(to_replace) != len(value):
+                    raise ValueError(
+                        f"Replacement lists must match in length. "
+                        f"Expecting {len(to_replace)} got {len(value)} "
                     )
+                new_data = self._mgr.replace_list(
+                    src_list=to_replace,
+                    dest_list=value,
+                    inplace=inplace,
+                    regex=regex,
+                )
+
             elif to_replace is None:
                 if not (
                     is_re_compilable(regex)
