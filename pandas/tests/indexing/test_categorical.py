@@ -306,12 +306,8 @@ class TestCategoricalIndex:
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
         # not all labels in the categories
-        with pytest.raises(
-            KeyError,
-            match=(
-                "'a list-indexer must only include values that are in the categories'"
-            ),
-        ):
+        msg = "a list-indexer must only include values that are in the categories"
+        with pytest.raises(KeyError, match=msg):
             self.df2.loc[["a", "d"]]
 
     def test_loc_listlike_dtypes(self):
