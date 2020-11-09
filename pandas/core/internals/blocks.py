@@ -852,7 +852,10 @@ class Block(PandasObject):
         rx = re.compile(to_replace)
 
         new_values = self.values if inplace else self.values.copy()
-        replace_regex(new_values, rx, value, mask)
+        # pandas\core\internals\blocks.py:855: error: Value of type variable
+        # "ArrayLike" of "replace_regex" cannot be "Union[ndarray,
+        # ExtensionArray]"  [type-var]
+        replace_regex(new_values, rx, value, mask)  # type: ignore[type-var]
 
         block = self.make_block(new_values)
         if convert:

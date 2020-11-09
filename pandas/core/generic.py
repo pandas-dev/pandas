@@ -8960,7 +8960,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             # we are the same shape, so create an actual object for alignment
             else:
-                other = self._constructor(other, **self._construct_axes_dict())
+                # pandas\core\generic.py:8963: error: Argument 1 to "NDFrame"
+                # has incompatible type "ndarray"; expected "BlockManager"
+                # [arg-type]
+                other = self._constructor(
+                    other, **self._construct_axes_dict()  # type: ignore[arg-type]
+                )
 
         if axis is None:
             axis = 0
@@ -10695,7 +10700,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             demeaned = data - data.mean(axis=0)
         else:
             demeaned = data.sub(data.mean(axis=1), axis=0)
-        return np.abs(demeaned).mean(axis=axis, skipna=skipna)
+        # pandas\core\generic.py:10698: error: No overload variant of "mean" of
+        # "_ArrayOrScalarCommon" matches argument types "Any", "Any"
+        # [call-overload]
+        return np.abs(demeaned).mean(
+            axis=axis, skipna=skipna  # type: ignore[call-overload]
+        )
 
     @classmethod
     def _add_numeric_operations(cls):

@@ -130,6 +130,9 @@ def replace_regex(values: ArrayLike, rx: re.Pattern, value, mask: Optional[np.nd
     f = np.vectorize(re_replacer, otypes=[values.dtype])
 
     if mask is None:
-        values[:] = f(values)
+        # pandas\core\array_algos\replace.py:133: error: Invalid index type
+        # "slice" for "ExtensionArray"; expected type "Union[int, ndarray]"
+        # [index]
+        values[:] = f(values)  # type: ignore[index]
     else:
         values[mask] = f(values[mask])

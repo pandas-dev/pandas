@@ -2995,10 +2995,16 @@ class MultiIndex(Index):
                 indexer = codes.take(ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)
-                m = np.asarray(m)
+                # pandas\core\indexes\multi.py:2998: error: Incompatible types
+                # in assignment (expression has type "ndarray", variable has
+                # type "Series")  [assignment]
+                m = np.asarray(m)  # type: ignore[assignment]
 
             else:
-                m = np.zeros(len(codes), dtype=bool)
+                # pandas\core\indexes\multi.py:3001: error: Incompatible types
+                # in assignment (expression has type "ndarray", variable has
+                # type "Series")  [assignment]
+                m = np.zeros(len(codes), dtype=bool)  # type: ignore[assignment]
                 m[np.in1d(codes, r, assume_unique=Index(codes).is_unique)] = True
 
             return m

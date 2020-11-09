@@ -528,7 +528,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # preserve the tz & copy
             values = self.copy(deep=True)
         else:
-            values = self._values.view("M8[ns]").copy()
+            # pandas\core\indexes\datetimes.py:531: error: Incompatible types
+            # in assignment (expression has type "Union[ExtensionArray,
+            # ndarray]", variable has type "DatetimeIndex")  [assignment]
+            values = self._values.view("M8[ns]").copy()  # type: ignore[assignment]
 
         return Series(values, index=index, name=name)
 

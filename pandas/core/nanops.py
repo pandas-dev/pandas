@@ -354,13 +354,7 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.int64(result).view("datetime64[ns]")
         else:
             # If we have float dtype, taking a view will give the wrong result
-
-            # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
-            # incompatible type "Union[dtype, ExtensionDtype]"; expected
-            # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
-            # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
-            # Tuple[Any, Any]]"
-            result = result.astype(dtype)  # type: ignore[arg-type]
+            result = result.astype(dtype)
     elif is_timedelta64_dtype(dtype):
         if not isinstance(result, np.ndarray):
             if result == fill_value:
@@ -372,12 +366,7 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
 
             result = Timedelta(result, unit="ns")
         else:
-            # error: Argument 1 to "view" of "_ArrayOrScalarCommon" has
-            # incompatible type "Union[dtype, ExtensionDtype]"; expected
-            # "Union[dtype, None, type, _SupportsDtype, str, Tuple[Any, int],
-            # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
-            # Tuple[Any, Any]]"
-            result = result.astype("m8[ns]").view(dtype)  # type: ignore[arg-type]
+            result = result.astype("m8[ns]").view(dtype)
 
     return result
 
