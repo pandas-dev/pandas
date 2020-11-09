@@ -965,7 +965,10 @@ class _MergeOperation:
         """
         left_keys = []
         right_keys = []
-        join_names = []
+        # pandas\core\reshape\merge.py:966: error: Need type annotation for
+        # 'join_names' (hint: "join_names: List[<type>] = ...")
+        # [var-annotated]
+        join_names = []  # type: ignore[var-annotated]
         right_drop = []
         left_drop = []
 
@@ -1203,11 +1206,9 @@ class _MergeOperation:
             if self.left_index and self.right_index:
                 self.left_on, self.right_on = (), ()
             elif self.left_index:
-                if self.right_on is None:
-                    raise MergeError("Must pass right_on or right_index=True")
+                raise MergeError("Must pass right_on or right_index=True")
             elif self.right_index:
-                if self.left_on is None:
-                    raise MergeError("Must pass left_on or left_index=True")
+                raise MergeError("Must pass left_on or left_index=True")
             else:
                 # use the common columns
                 common_cols = self.left.columns.intersection(self.right.columns)
@@ -1228,8 +1229,19 @@ class _MergeOperation:
                     'Can only pass argument "on" OR "left_on" '
                     'and "right_on", not a combination of both.'
                 )
+            if self.left_index or self.right_index:
+                raise MergeError(
+                    'Can only pass argument "on" OR "left_index" '
+                    'and "right_index", not a combination of both.'
+                )
             self.left_on = self.right_on = self.on
         elif self.left_on is not None:
+            if self.left_index:
+                raise MergeError(
+                    'Can only pass argument "left_on" OR "left_index" not both.'
+                )
+            if not self.right_index and self.right_on is None:
+                raise MergeError('Must pass "right_on" OR "right_index".')
             n = len(self.left_on)
             if self.right_index:
                 if len(self.left_on) != self.right.index.nlevels:
@@ -1239,6 +1251,12 @@ class _MergeOperation:
                     )
                 self.right_on = [None] * n
         elif self.right_on is not None:
+            if self.right_index:
+                raise MergeError(
+                    'Can only pass argument "right_on" OR "right_index" not both.'
+                )
+            if not self.left_index and self.left_on is None:
+                raise MergeError('Must pass "left_on" OR "left_index".')
             n = len(self.right_on)
             if self.left_index:
                 if len(self.right_on) != self.left.index.nlevels:

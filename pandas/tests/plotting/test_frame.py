@@ -2047,7 +2047,6 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.rand(3, 3), columns=["a", "b", "c"])
 
         for kind in kinds:
-
             ax = df.plot(kind=kind, legend=False)
             self._check_legend_labels(ax, visible=False)
 
@@ -2067,8 +2066,8 @@ class TestDataFramePlots(TestPlotBase):
             fig.clf()
             fig.add_subplot(111)
             ax = df.plot(style=markers)
-            for i, l in enumerate(ax.get_lines()[: len(markers)]):
-                assert l.get_marker() == markers[i]
+            for idx, line in enumerate(ax.get_lines()[: len(markers)]):
+                assert line.get_marker() == markers[idx]
 
     @pytest.mark.slow
     def test_line_label_none(self):
@@ -2141,8 +2140,7 @@ class TestDataFramePlots(TestPlotBase):
 
         axes = df.plot(subplots=True)
         for ax, c in zip(axes, list(default_colors)):
-            c = [c]
-            self._check_colors(ax.get_lines(), linecolors=c)
+            self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
         # single color char
@@ -2584,32 +2582,30 @@ class TestDataFramePlots(TestPlotBase):
         assert len(ax.collections) == 1
 
     @pytest.mark.slow
-    def test_hexbin_cmap(self):
+    @pytest.mark.parametrize(
+        "kwargs, expected",
+        [
+            ({}, "BuGn"),  # default cmap
+            ({"colormap": "cubehelix"}, "cubehelix"),
+            ({"cmap": "YlGn"}, "YlGn"),
+        ],
+    )
+    def test_hexbin_cmap(self, kwargs, expected):
         df = self.hexbin_df
-
-        # Default to BuGn
-        ax = df.plot.hexbin(x="A", y="B")
-        assert ax.collections[0].cmap.name == "BuGn"
-
-        cm = "cubehelix"
-        ax = df.plot.hexbin(x="A", y="B", colormap=cm)
-        assert ax.collections[0].cmap.name == cm
+        ax = df.plot.hexbin(x="A", y="B", **kwargs)
+        assert ax.collections[0].cmap.name == expected
 
     @pytest.mark.slow
     def test_no_color_bar(self):
         df = self.hexbin_df
-
         ax = df.plot.hexbin(x="A", y="B", colorbar=None)
         assert ax.collections[0].colorbar is None
 
     @pytest.mark.slow
-    def test_allow_cmap(self):
+    def test_mixing_cmap_and_colormap_raises(self):
         df = self.hexbin_df
-
-        ax = df.plot.hexbin(x="A", y="B", cmap="YlGn")
-        assert ax.collections[0].cmap.name == "YlGn"
-
-        with pytest.raises(TypeError):
+        msg = "Only specify one of `cmap` and `colormap`"
+        with pytest.raises(TypeError, match=msg):
             df.plot.hexbin(x="A", y="B", cmap="YlGn", colormap="BuGn")
 
     @pytest.mark.slow
@@ -2650,11 +2646,20 @@ class TestDataFramePlots(TestPlotBase):
             self._check_colors(ax.patches, facecolors=color_args)
 
     def test_pie_df_nan(self):
+        import matplotlib as mpl
+
         df = DataFrame(np.random.rand(4, 4))
         for i in range(4):
             df.iloc[i, i] = np.nan
         fig, axes = self.plt.subplots(ncols=4)
-        df.plot.pie(subplots=True, ax=axes, legend=True)
+
+        # GH 37668
+        kwargs = {}
+        if mpl.__version__ >= "3.3":
+            kwargs = {"normalize": True}
+
+        with tm.assert_produces_warning(None):
+            df.plot.pie(subplots=True, ax=axes, legend=True, **kwargs)
 
         base_expected = ["0", "1", "2", "3"]
         for i, ax in enumerate(axes):
@@ -2662,12 +2667,13 @@ class TestDataFramePlots(TestPlotBase):
             expected[i] = ""
             result = [x.get_text() for x in ax.texts]
             assert result == expected
+
             # legend labels
             # NaN's not included in legend with subplots
             # see https://github.com/pandas-dev/pandas/issues/8390
-            assert [x.get_text() for x in ax.get_legend().get_texts()] == base_expected[
-                :i
-            ] + base_expected[i + 1 :]
+            result_labels = [x.get_text() for x in ax.get_legend().get_texts()]
+            expected_labels = base_expected[:i] + base_expected[i + 1 :]
+            assert result_labels == expected_labels
 
     @pytest.mark.slow
     def test_errorbar_plot(self):
@@ -2830,7 +2836,6 @@ class TestDataFramePlots(TestPlotBase):
             self._check_has_errorbars(axes, xerr=0, yerr=1)
 
     def test_errorbar_asymmetrical(self):
-
         np.random.seed(0)
         err = np.random.rand(3, 2, 5)
 

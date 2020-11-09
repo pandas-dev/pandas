@@ -3842,9 +3842,9 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             left_lev_indexer = ensure_int64(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
-
+            old_codes = left.codes[level]
             new_lev_codes = algos.take_nd(
-                rev_indexer, left.codes[level], allow_fill=False
+                rev_indexer, old_codes[old_codes != -1], allow_fill=False
             )
 
             new_codes = list(left.codes)
@@ -4297,13 +4297,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._concat(to_concat, name)
 
-    def _concat(self, to_concat, name):
+    def _concat(self, to_concat: List["Index"], name: Label) -> "Index":
         """
         Concatenate multiple Index objects.
         """
-        to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
+        to_concat_vals = [x._values for x in to_concat]
 
-        result = concat_compat(to_concat)
+        result = concat_compat(to_concat_vals)
         return Index(result, name=name)
 
     def putmask(self, mask, value):
@@ -5205,13 +5205,8 @@ class Index(IndexOpsMixin, PandasObject):
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
         # datetimelike Indexes
-        # reject them
-        if is_float(label):
-            self._invalid_indexer("slice", label)
-
-        # we are trying to find integer bounds on a non-integer based index
-        # this is rejected (generally .loc gets you here)
-        elif is_integer(label):
+        # reject them, if index does not contain label
+        if (is_float(label) or is_integer(label)) and label not in self.values:
             self._invalid_indexer("slice", label)
 
         return label
