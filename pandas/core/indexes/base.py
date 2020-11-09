@@ -5212,13 +5212,8 @@ class Index(IndexOpsMixin, PandasObject):
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
         # datetimelike Indexes
-        # reject them
-        if is_float(label):
-            self._invalid_indexer("slice", label)
-
-        # we are trying to find integer bounds on a non-integer based index
-        # this is rejected (generally .loc gets you here)
-        elif is_integer(label):
+        # reject them, if index does not contain label
+        if (is_float(label) or is_integer(label)) and label not in self.values:
             self._invalid_indexer("slice", label)
 
         return label
