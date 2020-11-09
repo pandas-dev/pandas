@@ -2316,7 +2316,7 @@ class Period(_Period):
     freq : str, default None
         One of pandas period strings or corresponding objects.
     ordinal : int, default None
-        The period offset from the gregorian proleptic epoch.
+        The period offset from the proleptic Gregorian epoch.
     year : int, default None
         Year value of the period.
     month : int, default 1
