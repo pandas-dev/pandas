@@ -428,7 +428,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 )
             except (TypeError, ValueError):
                 raise ValueError(
-                    f"Cannot cast {self.categories.dtype} dtype to {dtype}"
+                    f"Cannot cast {self.categories.dtype} dtype to {dtype.__name__}"
                 )
             result = np.array(take_1d(astyped_categories, self._codes), copy=copy)
 
