@@ -2047,7 +2047,6 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.rand(3, 3), columns=["a", "b", "c"])
 
         for kind in kinds:
-
             ax = df.plot(kind=kind, legend=False)
             self._check_legend_labels(ax, visible=False)
 
@@ -2067,8 +2066,8 @@ class TestDataFramePlots(TestPlotBase):
             fig.clf()
             fig.add_subplot(111)
             ax = df.plot(style=markers)
-            for i, l in enumerate(ax.get_lines()[: len(markers)]):
-                assert l.get_marker() == markers[i]
+            for idx, line in enumerate(ax.get_lines()[: len(markers)]):
+                assert line.get_marker() == markers[idx]
 
     @pytest.mark.slow
     def test_line_label_none(self):
@@ -2141,8 +2140,7 @@ class TestDataFramePlots(TestPlotBase):
 
         axes = df.plot(subplots=True)
         for ax, c in zip(axes, list(default_colors)):
-            c = [c]
-            self._check_colors(ax.get_lines(), linecolors=c)
+            self._check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
         # single color char
