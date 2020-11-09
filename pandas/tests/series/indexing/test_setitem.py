@@ -129,12 +129,13 @@ class TestSetitemBooleanMask:
 
     def test_setitem_boolean_nullable_int_types(self, any_nullable_int_dtype):
         # GH: 26468
-        ser = Series(pd_array([5, 6, 7, 8], dtype="Int64"))
-        ser[ser > 6] = Series(range(4), dtype="Int64")
-        expected = Series([5, 6, 2, 3], dtype="Int64")
+        ser = Series(pd_array([5, 6, 7, 8], dtype=any_nullable_int_dtype))
+        ser[ser > 6] = Series(range(4), dtype=any_nullable_int_dtype)
+        expected = Series([5, 6, 2, 3], dtype=any_nullable_int_dtype)
         tm.assert_series_equal(ser, expected)
-        ser = Series(pd_array([5, 6, 7, 8], dtype="Int64"))
-        ser.loc[ser > 6] = Series(range(4), dtype="Int64")
+
+        ser = Series(pd_array([5, 6, 7, 8], dtype=any_nullable_int_dtype))
+        ser.loc[ser > 6] = Series(range(4), dtype=any_nullable_int_dtype)
         tm.assert_series_equal(ser, expected)
 
 
