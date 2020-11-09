@@ -603,13 +603,13 @@ def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_da
 def test_getitem_loc_datetime():
     # GH: 25165
     date_idx = pd.date_range("2019", periods=2, freq="MS")
-    df = pd.DataFrame(
+    df = DataFrame(
         list(range(4)),
-        index=pd.MultiIndex.from_product([date_idx, [0, 1]], names=["x", "y"]),
+        index=MultiIndex.from_product([date_idx, [0, 1]], names=["x", "y"]),
     )
-    expected = pd.DataFrame(
+    expected = DataFrame(
         [2, 3],
-        index=pd.MultiIndex.from_product(
+        index=MultiIndex.from_product(
             [[pd.to_datetime("2019-02-01")], [0, 1]], names=["x", "y"]
         ),
     )
