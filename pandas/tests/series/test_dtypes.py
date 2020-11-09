@@ -68,8 +68,8 @@ class TestSeriesDtypes:
         expected = s
         tm.assert_series_equal(s.astype("category"), expected)
         tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
-        msg = r"Cannot cast Index to dtype float64"
-        with pytest.raises(TypeError, match=msg):
+        msg = r"Cannot cast object dtype to float64"
+        with pytest.raises(ValueError, match=msg):
             s.astype("float64")
 
         cat = Series(Categorical(["a", "b", "b", "a", "a", "c", "c", "c"]))
