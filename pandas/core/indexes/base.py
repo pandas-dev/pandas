@@ -27,7 +27,7 @@ import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label, final
+from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label, Shape, final
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_platform_int,
-    is_bool,
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_any_dtype,
@@ -2293,7 +2292,7 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame.fillna : Fill NaN values of a DataFrame.
         Series.fillna : Fill NaN Values of a Series.
         """
-        value = self._validate_scalar(value)
+        value = self._require_scalar(value)
         if self.hasnans:
             result = self.putmask(self._isnan, value)
             if downcast is None:
@@ -4079,23 +4078,16 @@ class Index(IndexOpsMixin, PandasObject):
         if other is None:
             other = self._na_value
 
-        dtype = self.dtype
         values = self.values
 
-        if is_bool(other) or is_bool_dtype(other):
-
-            # bools force casting
-            values = values.astype(object)
-            dtype = None
+        try:
+            self._validate_fill_value(other)
+        except (ValueError, TypeError):
+            return self.astype(object).where(cond, other)
 
         values = np.where(cond, values, other)
 
-        if self._is_numeric_dtype and np.any(isna(values)):
-            # We can't coerce to the numeric dtype of "self" (unless
-            # it's float) if there are NaN values in our output.
-            dtype = None
-
-        return Index(values, dtype=dtype, name=self.name)
+        return Index(values, name=self.name)
 
     # construction helpers
     @final
@@ -4148,7 +4140,7 @@ class Index(IndexOpsMixin, PandasObject):
         return value
 
     @final
-    def _validate_scalar(self, value):
+    def _require_scalar(self, value):
         """
         Check that this is a scalar value that we can use for setitem-like
         operations without changing dtype.
@@ -4305,13 +4297,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._concat(to_concat, name)
 
-    def _concat(self, to_concat, name):
+    def _concat(self, to_concat: List["Index"], name: Label) -> "Index":
         """
         Concatenate multiple Index objects.
         """
-        to_concat = [x._values if isinstance(x, Index) else x for x in to_concat]
+        to_concat_vals = [x._values for x in to_concat]
 
-        result = concat_compat(to_concat)
+        result = concat_compat(to_concat_vals)
         return Index(result, name=name)
 
     def putmask(self, mask, value):
@@ -4503,7 +4495,7 @@ class Index(IndexOpsMixin, PandasObject):
                 loc = loc.indices(len(self))[-1]
             return self[loc]
 
-    def asof_locs(self, where, mask):
+    def asof_locs(self, where: "Index", mask) -> np.ndarray:
         """
         Return the locations (indices) of labels in the index.
 
@@ -4531,13 +4523,13 @@ class Index(IndexOpsMixin, PandasObject):
             which correspond to the return values of the `asof` function
             for every element in `where`.
         """
-        locs = self.values[mask].searchsorted(where.values, side="right")
+        locs = self._values[mask].searchsorted(where._values, side="right")
         locs = np.where(locs > 0, locs - 1, 0)
 
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
-        result[(locs == 0) & (where.values < self.values[first])] = -1
+        result[(locs == 0) & (where._values < self._values[first])] = -1
 
         return result
 
@@ -5208,13 +5200,8 @@ class Index(IndexOpsMixin, PandasObject):
         # We are a plain index here (sub-class override this method if they
         # wish to have special treatment for floats/ints, e.g. Float64Index and
         # datetimelike Indexes
-        # reject them
-        if is_float(label):
-            self._invalid_indexer("slice", label)
-
-        # we are trying to find integer bounds on a non-integer based index
-        # this is rejected (generally .loc gets you here)
-        elif is_integer(label):
+        # reject them, if index does not contain label
+        if (is_float(label) or is_integer(label)) and label not in self.values:
             self._invalid_indexer("slice", label)
 
         return label
@@ -5652,7 +5639,7 @@ class Index(IndexOpsMixin, PandasObject):
             make_invalid_op(opname)(self)
 
     @property
-    def shape(self):
+    def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
         """

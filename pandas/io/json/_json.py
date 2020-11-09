@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from collections import abc
 import functools
-from io import BytesIO, StringIO
+from io import StringIO
 from itertools import islice
 import os
-from typing import IO, Any, Callable, List, Mapping, Optional, Tuple, Type, Union
+from typing import Any, Callable, Mapping, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -26,7 +26,12 @@ from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.generic import NDFrame
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import get_compression_method, get_filepath_or_buffer, get_handle
+from pandas.io.common import (
+    IOHandles,
+    get_compression_method,
+    get_filepath_or_buffer,
+    get_handle,
+)
 from pandas.io.json._normalize import convert_to_line_delimits
 from pandas.io.json._table_schema import build_table_schema, parse_table_schema
 from pandas.io.parsers import validate_integer
@@ -59,17 +64,6 @@ def to_json(
             "'index=False' is only valid when 'orient' is 'split' or 'table'"
         )
 
-    if path_or_buf is not None:
-        ioargs = get_filepath_or_buffer(
-            path_or_buf,
-            compression=compression,
-            mode="wt",
-            storage_options=storage_options,
-        )
-        path_or_buf = ioargs.filepath_or_buffer
-        should_close = ioargs.should_close
-        compression = ioargs.compression
-
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
 
@@ -101,20 +95,27 @@ def to_json(
     if lines:
         s = convert_to_line_delimits(s)
 
-    if isinstance(path_or_buf, str):
-        fh, handles = get_handle(path_or_buf, "w", compression=compression)
+    if path_or_buf is not None:
+        # open fsspec URLs
+        ioargs = get_filepath_or_buffer(
+            path_or_buf,
+            compression=compression,
+            mode="wt",
+            storage_options=storage_options,
+        )
+        # apply compression and byte/text conversion
+        handles = get_handle(
+            ioargs.filepath_or_buffer, "w", compression=ioargs.compression
+        )
         try:
-            fh.write(s)
+            handles.handle.write(s)
         finally:
-            fh.close()
-        for handle in handles:
-            handle.close()
-    elif path_or_buf is None:
-        return s
+            # close compression and byte/text wrapper
+            handles.close()
+            # close any fsspec-like objects
+            ioargs.close()
     else:
-        path_or_buf.write(s)
-        if should_close:
-            path_or_buf.close()
+        return s
 
 
 class Writer(ABC):
@@ -262,7 +263,9 @@ class JSONTableWriter(FrameWriter):
 
         # NotImplemented on a column MultiIndex
         if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
-            raise NotImplementedError("orient='table' is not supported for MultiIndex")
+            raise NotImplementedError(
+                "orient='table' is not supported for MultiIndex columns"
+            )
 
         # TODO: Do this timedelta properly in objToJSON.c See GH #15137
         if (
@@ -545,12 +548,10 @@ def read_json(
         dtype = True
     if convert_axes is None and orient != "table":
         convert_axes = True
-    if encoding is None:
-        encoding = "utf-8"
 
     ioargs = get_filepath_or_buffer(
         path_or_buf,
-        encoding=encoding,
+        encoding=encoding or "utf-8",
         compression=compression,
         storage_options=storage_options,
     )
@@ -577,9 +578,7 @@ def read_json(
         return json_reader
 
     result = json_reader.read()
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        ioargs.filepath_or_buffer.close()
+    ioargs.close()
 
     return result
 
@@ -629,9 +628,8 @@ class JsonReader(abc.Iterator):
         self.lines = lines
         self.chunksize = chunksize
         self.nrows_seen = 0
-        self.should_close = False
         self.nrows = nrows
-        self.file_handles: List[IO] = []
+        self.handles: Optional[IOHandles] = None
 
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
@@ -670,30 +668,25 @@ class JsonReader(abc.Iterator):
         This method turns (1) into (2) to simplify the rest of the processing.
         It returns input types (2) and (3) unchanged.
         """
-        data = filepath_or_buffer
-
+        # if it is a string but the file does not exist, it might be a JSON string
         exists = False
-        if isinstance(data, str):
+        if isinstance(filepath_or_buffer, str):
             try:
                 exists = os.path.exists(filepath_or_buffer)
             # gh-5874: if the filepath is too long will raise here
             except (TypeError, ValueError):
                 pass
 
-        if exists or self.compression["method"] is not None:
-            data, self.file_handles = get_handle(
+        if exists or not isinstance(filepath_or_buffer, str):
+            self.handles = get_handle(
                 filepath_or_buffer,
                 "r",
                 encoding=self.encoding,
                 compression=self.compression,
             )
-            self.should_close = True
-            self.open_stream = data
+            filepath_or_buffer = self.handles.handle
 
-        if isinstance(data, BytesIO):
-            data = data.getvalue().decode()
-
-        return data
+        return filepath_or_buffer
 
     def _combine_lines(self, lines) -> str:
         """
@@ -757,13 +750,8 @@ class JsonReader(abc.Iterator):
 
         If an open stream or file was passed, we leave it open.
         """
-        if self.should_close:
-            try:
-                self.open_stream.close()
-            except (OSError, AttributeError):
-                pass
-        for file_handle in self.file_handles:
-            file_handle.close()
+        if self.handles is not None:
+            self.handles.close()
 
     def __next__(self):
         if self.nrows:

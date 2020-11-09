@@ -2067,27 +2067,25 @@ def safe_sort(
         dtype, _ = infer_dtype_from_array(values)
         values = np.asarray(values, dtype=dtype)
 
-    def sort_mixed(values):
-        # order ints before strings, safe in py3
-        str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
-        nums = np.sort(values[~str_pos])
-        strs = np.sort(values[str_pos])
-        return np.concatenate([nums, np.asarray(strs, dtype=object)])
-
     sorter = None
+
     if (
         not is_extension_array_dtype(values)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
-        # unorderable in py3 if mixed str/int
-        ordered = sort_mixed(values)
+        ordered = _sort_mixed(values)
     else:
         try:
             sorter = values.argsort()
             ordered = values.take(sorter)
         except TypeError:
-            # try this anyway
-            ordered = sort_mixed(values)
+            # Previous sorters failed or were not applicable, try `_sort_mixed`
+            # which would work, but which fails for special case of 1d arrays
+            # with tuples.
+            if values.size and isinstance(values[0], tuple):
+                ordered = _sort_tuples(values)
+            else:
+                ordered = _sort_mixed(values)
 
     # codes:
 
@@ -2134,3 +2132,26 @@ def safe_sort(
         np.putmask(new_codes, mask, na_sentinel)
 
     return ordered, ensure_platform_int(new_codes)
+
+
+def _sort_mixed(values):
+    """ order ints before strings in 1d arrays, safe in py3 """
+    str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
+    nums = np.sort(values[~str_pos])
+    strs = np.sort(values[str_pos])
+    return np.concatenate([nums, np.asarray(strs, dtype=object)])
+
+
+def _sort_tuples(values: np.ndarray[tuple]):
+    """
+    Convert array of tuples (1d) to array or array (2d).
+    We need to keep the columns separately as they contain different types and
+    nans (can't use `np.sort` as it may fail when str and nan are mixed in a
+    column as types cannot be compared).
+    """
+    from pandas.core.internals.construction import to_arrays
+    from pandas.core.sorting import lexsort_indexer
+
+    arrays, _ = to_arrays(values, None)
+    indexer = lexsort_indexer(arrays, orders=True)
+    return values[indexer]

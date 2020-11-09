@@ -19,6 +19,7 @@ from pandas.util._exceptions import rewrite_exception
 from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
+    maybe_box_datetimelike,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -902,7 +903,7 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         -------
         IntervalIndex
         """
-        left_insert, right_insert = self._data._validate_insert_value(item)
+        left_insert, right_insert = self._data._validate_scalar(item)
 
         new_left = self.left.insert(loc, left_insert)
         new_right = self.right.insert(loc, right_insert)
@@ -1074,19 +1075,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
 
     # TODO: arithmetic operations
 
-    # GH#30817 until IntervalArray implements inequalities, get them from Index
-    def __lt__(self, other):
-        return Index.__lt__(self, other)
-
-    def __le__(self, other):
-        return Index.__le__(self, other)
-
-    def __gt__(self, other):
-        return Index.__gt__(self, other)
-
-    def __ge__(self, other):
-        return Index.__ge__(self, other)
-
 
 def _is_valid_endpoint(endpoint) -> bool:
     """
@@ -1206,8 +1194,8 @@ def interval_range(
     IntervalIndex([[1, 2], [2, 3], [3, 4], [4, 5]],
                   closed='both', dtype='interval[int64]')
     """
-    start = com.maybe_box_datetimelike(start)
-    end = com.maybe_box_datetimelike(end)
+    start = maybe_box_datetimelike(start)
+    end = maybe_box_datetimelike(end)
     endpoint = start if start is not None else end
 
     if freq is None and com.any_none(periods, start, end):

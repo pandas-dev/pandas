@@ -667,6 +667,7 @@ def assert_index_equal(
     check_less_precise: Union[bool, int] = no_default,
     check_exact: bool = True,
     check_categorical: bool = True,
+    check_order: bool = True,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     obj: str = "Index",
@@ -696,6 +697,12 @@ def assert_index_equal(
         Whether to compare number exactly.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
+    check_order : bool, default True
+        Whether to compare the order of index entries as well as their values.
+        If True, both indexes must contain the same elements, in the same order.
+        If False, both indexes must contain the same elements, but in any order.
+
+        .. versionadded:: 1.2.0
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
 
@@ -729,8 +736,7 @@ def assert_index_equal(
         unique = index.levels[level]
         level_codes = index.codes[level]
         filled = take_1d(unique._values, level_codes, fill_value=unique._na_value)
-        values = unique._shallow_copy(filled, name=index.names[level])
-        return values
+        return unique._shallow_copy(filled, name=index.names[level])
 
     if check_less_precise is not no_default:
         warnings.warn(
@@ -761,6 +767,11 @@ def assert_index_equal(
         msg2 = f"{len(left)}, {left}"
         msg3 = f"{len(right)}, {right}"
         raise_assert_detail(obj, msg1, msg2, msg3)
+
+    # If order doesn't matter then sort the index entries
+    if not check_order:
+        left = left.sort_values()
+        right = right.sort_values()
 
     # MultiIndex special comparison for little-friendly error messages
     if left.nlevels > 1:
@@ -1582,9 +1593,6 @@ def assert_frame_equal(
             obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
         )
 
-    if check_like:
-        left, right = left.reindex_like(right), right
-
     if check_flags:
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
@@ -1596,6 +1604,7 @@ def assert_frame_equal(
         check_names=check_names,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_order=not check_like,
         rtol=rtol,
         atol=atol,
         obj=f"{obj}.index",
@@ -1609,10 +1618,14 @@ def assert_frame_equal(
         check_names=check_names,
         check_exact=check_exact,
         check_categorical=check_categorical,
+        check_order=not check_like,
         rtol=rtol,
         atol=atol,
         obj=f"{obj}.columns",
     )
+
+    if check_like:
+        left, right = left.reindex_like(right), right
 
     # compare by blocks
     if by_blocks:
@@ -1871,8 +1884,7 @@ def makeTimedeltaIndex(k=10, freq="D", name=None, **kwargs):
 
 def makePeriodIndex(k=10, name=None, **kwargs):
     dt = datetime(2000, 1, 1)
-    dr = pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
-    return dr
+    return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
 
 
 def makeMultiIndex(k=10, names=None, **kwargs):
@@ -2511,9 +2523,12 @@ def network(
 
     @wraps(t)
     def wrapper(*args, **kwargs):
-        if check_before_test and not raise_on_error:
-            if not can_connect(url, error_classes):
-                skip()
+        if (
+            check_before_test
+            and not raise_on_error
+            and not can_connect(url, error_classes)
+        ):
+            skip()
         try:
             return t(*args, **kwargs)
         except Exception as err:
@@ -2928,8 +2943,7 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
         Expected output of to_csv() in current OS.
     """
     sep = os.linesep
-    expected = sep.join(rows_list) + sep
-    return expected
+    return sep.join(rows_list) + sep
 
 
 def external_error_raised(expected_exception: Type[Exception]) -> ContextManager:
