@@ -598,3 +598,10 @@ def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_da
     result = ser[2000, 5]
     expected = df.loc[2000, 5]["A"]
     tm.assert_series_equal(result, expected)
+
+
+def test_get_loc_datetime_index():
+    # GH: 18185
+    index = pd.date_range("2001-01-01", periods=100)
+    mi = MultiIndex.from_arrays([index])
+    assert mi.get_loc("2001-01") == slice(0, 31, None)
