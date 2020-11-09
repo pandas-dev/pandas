@@ -431,7 +431,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other)
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
+            # pandas\core\arrays\datetimelike.py:432: error: Too many arguments
+            # for "object"  [call-arg]
+            other = self._scalar_type(other)  # type: ignore[call-arg]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:
@@ -491,14 +493,18 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if is_valid_nat_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
-            fill_value = self._scalar_type(fill_value)
+            # pandas\core\arrays\datetimelike.py:746: error: Too many arguments
+            # for "object"  [call-arg]
+            fill_value = self._scalar_type(fill_value)  # type: ignore[call-arg]
         else:
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
                 new_fill = Period._from_ordinal(fill_value, freq=self.freq)
             else:
-                new_fill = self._scalar_type(fill_value)
+                # pandas\core\arrays\datetimelike.py:753: error: Too many
+                # arguments for "object"  [call-arg]
+                new_fill = self._scalar_type(fill_value)  # type: ignore[call-arg]
 
             # stacklevel here is chosen to be correct when called from
             #  DataFrame.shift or Series.shift
