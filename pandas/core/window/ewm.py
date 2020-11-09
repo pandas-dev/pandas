@@ -14,8 +14,9 @@ from pandas.util._decorators import Appender, Substitution, doc
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 
 import pandas.core.common as common
+from pandas.core.util.numba_ import NUMBA_FUNC_CACHE, maybe_use_numba
 from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
-from pandas.core.window.rolling import BaseWindow, flex_binary_moment
+from pandas.core.window.rolling import _dispatch, BaseWindow, BaseWindowGroupby, flex_binary_moment
 
 if TYPE_CHECKING:
     from pandas import Series
@@ -485,3 +486,39 @@ class ExponentialMovingWindow(BaseWindow):
         return flex_binary_moment(
             self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
         )
+
+def _dispatch(name: str, *args, **kwargs):
+    """
+    Dispatch to groupby apply.
+    """
+
+    def outer(self, *args, **kwargs):
+        def f(x):
+            x = self._shallow_copy(x, groupby=self._groupby)
+            return getattr(x, name)(*args, **kwargs)
+
+        return self._groupby.apply(f)
+
+    outer.__name__ = name
+    return outer
+
+class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
+    """
+    Provide an ewm groupby implementation.
+    """
+
+    var = _dispatch("var", bias=False)
+    std = _dispatch("std", bias=False)
+    cov = _dispatch("cov", other=None, pairwise=None, bias=False)
+
+    def mean(self, engine=None, engine_kwargs=None):
+        if maybe_use_numba(engine):
+            pass
+        else:
+            def f(x):
+                x = self._shallow_copy(x, groupby=self._groupby)
+                return x.mean()
+
+            return self._groupby.apply(f)
+
+
