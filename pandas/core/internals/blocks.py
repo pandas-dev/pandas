@@ -2502,39 +2502,14 @@ class ObjectBlock(Block):
         inplace: bool = False,
         regex: bool = False,
     ) -> List["Block"]:
-        to_rep_is_list = is_list_like(to_replace)
-        value_is_list = is_list_like(value)
-        both_lists = to_rep_is_list and value_is_list
-        either_list = to_rep_is_list or value_is_list
+        # Note: the checks we do in NDFrame.replace ensure we never get
+        #  here with listlike to_replace or value, as those cases
+        #  go through _replace_list
 
-        result_blocks: List["Block"] = []
-        blocks: List["Block"] = [self]
-
-        if not either_list and is_re(to_replace):
+        if is_re(to_replace) or regex:
             return self._replace_single(to_replace, value, inplace=inplace, regex=True)
-        elif not (either_list or regex):
+        else:
             return super().replace(to_replace, value, inplace=inplace, regex=regex)
-        elif both_lists:
-            for to_rep, v in zip(to_replace, value):
-                result_blocks = []
-                for b in blocks:
-                    result = b._replace_single(to_rep, v, inplace=inplace, regex=regex)
-                    result_blocks.extend(result)
-                blocks = result_blocks
-            return result_blocks
-
-        elif to_rep_is_list and regex:
-            for to_rep in to_replace:
-                result_blocks = []
-                for b in blocks:
-                    result = b._replace_single(
-                        to_rep, value, inplace=inplace, regex=regex
-                    )
-                    result_blocks.extend(result)
-                blocks = result_blocks
-            return result_blocks
-
-        return self._replace_single(to_replace, value, inplace=inplace, regex=regex)
 
     def _replace_single(
         self,
@@ -2626,6 +2601,19 @@ class ObjectBlock(Block):
 
 class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
+
+    def _replace_list(
+        self,
+        src_list: List[Any],
+        dest_list: List[Any],
+        inplace: bool = False,
+        regex: bool = False,
+    ) -> List["Block"]:
+        if len(algos.unique(dest_list)) == 1:
+            # We got likely here by tiling value inside NDFrame.replace,
+            #  so un-tile here
+            return self.replace(src_list, dest_list[0], inplace, regex)
+        return super()._replace_list(src_list, dest_list, inplace, regex)
 
     def replace(
         self,

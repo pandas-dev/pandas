@@ -8,7 +8,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, Timedelta, Timestamp, iNaT, lib
+from pandas._libs import NaT, Timedelta, iNaT, lib
 from pandas._typing import ArrayLike, Dtype, DtypeObj, F, Scalar
 from pandas.compat._optional import import_optional_dependency
 
@@ -330,7 +330,7 @@ def _na_ok_dtype(dtype: DtypeObj) -> bool:
     return not issubclass(dtype.type, np.integer)
 
 
-def _wrap_results(result, dtype: DtypeObj, fill_value=None):
+def _wrap_results(result, dtype: np.dtype, fill_value=None):
     """ wrap our results if needed """
     if result is NaT:
         pass
@@ -340,15 +340,11 @@ def _wrap_results(result, dtype: DtypeObj, fill_value=None):
             # GH#24293
             fill_value = iNaT
         if not isinstance(result, np.ndarray):
-            tz = getattr(dtype, "tz", None)
             assert not isna(fill_value), "Expected non-null fill_value"
             if result == fill_value:
                 result = np.nan
 
-            if tz is not None:
-                # we get here e.g. via nanmean when we call it on a DTA[tz]
-                result = Timestamp(result, tz=tz)
-            elif isna(result):
+            if isna(result):
                 result = np.datetime64("NaT", "ns")
             else:
                 result = np.int64(result).view("datetime64[ns]")
