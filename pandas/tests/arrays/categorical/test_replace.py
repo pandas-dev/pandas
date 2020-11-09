@@ -21,6 +21,7 @@ import pandas._testing as tm
         ((1, 2, 4), 5, [5, 5, 3], False),
         ((5, 6), 2, [1, 2, 3], False),
         # many-to-many, handled outside of Categorical and results in separate dtype
+        #  except for cases with only 1 unique entry in `value`
         ([1], [2], [2, 2, 3], True),
         ([1, 4], [5, 2], [5, 2, 3], True),
         # check_categorical sorts categories, which crashes on mixed dtypes
@@ -30,7 +31,7 @@ import pandas._testing as tm
 )
 def test_replace(to_replace, value, expected, flip_categories):
     # GH 31720
-    stays_categorical = not isinstance(value, list)
+    stays_categorical = not isinstance(value, list) or len(pd.unique(value)) == 1
 
     s = pd.Series([1, 2, 3], dtype="category")
     result = s.replace(to_replace, value)

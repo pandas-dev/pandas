@@ -6744,25 +6744,25 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 else:
                     raise TypeError("value argument must be scalar, dict, or Series")
 
-            elif is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
-                if is_list_like(value):
-                    if len(to_replace) != len(value):
-                        raise ValueError(
-                            f"Replacement lists must match in length. "
-                            f"Expecting {len(to_replace)} got {len(value)} "
-                        )
-                    self._consolidate_inplace()
-                    new_data = self._mgr.replace_list(
-                        src_list=to_replace,
-                        dest_list=value,
-                        inplace=inplace,
-                        regex=regex,
-                    )
+            elif is_list_like(to_replace):
+                if not is_list_like(value):
+                    # e.g. to_replace = [NA, ''] and value is 0,
+                    #  so we replace NA with 0 and then replace '' with 0
+                    value = [value] * len(to_replace)
 
-                else:  # [NA, ''] -> 0
-                    new_data = self._mgr.replace(
-                        to_replace=to_replace, value=value, inplace=inplace, regex=regex
+                # e.g. we have to_replace = [NA, ''] and value = [0, 'missing']
+                if len(to_replace) != len(value):
+                    raise ValueError(
+                        f"Replacement lists must match in length. "
+                        f"Expecting {len(to_replace)} got {len(value)} "
                     )
+                new_data = self._mgr.replace_list(
+                    src_list=to_replace,
+                    dest_list=value,
+                    inplace=inplace,
+                    regex=regex,
+                )
+
             elif to_replace is None:
                 if not (
                     is_re_compilable(regex)
