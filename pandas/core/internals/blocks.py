@@ -2550,7 +2550,9 @@ class ObjectBlock(Block):
 
 
 def _should_use_regex(regex: bool, to_replace: Any) -> bool:
-    # to_replace is regex compilable
+    """
+    Decide whether to treat `to_replace` as a regular expression.
+    """
     if is_re(to_replace):
         regex = True
 
