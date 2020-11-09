@@ -59,10 +59,6 @@ class TestCategoricalIndex:
         with pytest.raises(TypeError, match=msg):
             df.loc["d"] = 10
 
-        msg = (
-            "cannot insert an item into a CategoricalIndex that is not "
-            "already an existing category"
-        )
         msg = "'fill_value=d' is not present in this Categorical's categories"
         with pytest.raises(ValueError, match=msg):
             df.loc["d", "A"] = 10
@@ -74,9 +70,9 @@ class TestCategoricalIndex:
 
     def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))
-        reversed = cat[::-1]
+        reverse = cat[::-1]
         exp = np.array([4, 3, 2, 1], dtype=np.int64)
-        tm.assert_numpy_array_equal(reversed.__array__(), exp)
+        tm.assert_numpy_array_equal(reverse.__array__(), exp)
 
         df = DataFrame({"value": (np.arange(100) + 1).astype("int64")})
         df["D"] = pd.cut(df.value, bins=[0, 25, 50, 75, 100])
@@ -169,23 +165,6 @@ class TestCategoricalIndex:
         # single value
         res_val = df.loc["j", "cats"]
         assert res_val == exp_val
-
-        # ix
-        # frame
-        # res_df = df.loc["j":"k",[0,1]] # doesn't work?
-        res_df = df.loc["j":"k", :]
-        tm.assert_frame_equal(res_df, exp_df)
-        assert is_categorical_dtype(res_df["cats"].dtype)
-
-        # row
-        res_row = df.loc["j", :]
-        tm.assert_series_equal(res_row, exp_row)
-        assert isinstance(res_row["cats"], str)
-
-        # col
-        res_col = df.loc[:, "cats"]
-        tm.assert_series_equal(res_col, exp_col)
-        assert is_categorical_dtype(res_col.dtype)
 
         # single value
         res_val = df.loc["j", df.columns[0]]
