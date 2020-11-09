@@ -2650,11 +2650,20 @@ class TestDataFramePlots(TestPlotBase):
             self._check_colors(ax.patches, facecolors=color_args)
 
     def test_pie_df_nan(self):
+        import matplotlib as mpl
+
         df = DataFrame(np.random.rand(4, 4))
         for i in range(4):
             df.iloc[i, i] = np.nan
         fig, axes = self.plt.subplots(ncols=4)
-        df.plot.pie(subplots=True, ax=axes, legend=True)
+
+        # GH 37668
+        kwargs = {}
+        if mpl.__version__ >= "3.3":
+            kwargs = {"normalize": True}
+
+        with tm.assert_produces_warning(None):
+            df.plot.pie(subplots=True, ax=axes, legend=True, **kwargs)
 
         base_expected = ["0", "1", "2", "3"]
         for i, ax in enumerate(axes):
@@ -2739,11 +2748,11 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot, xerr=0.2, yerr=0.2, kind=kind)
         self._check_has_errorbars(ax, xerr=2, yerr=2)
 
-        with tm.assert_produces_warning(UserWarning):
-            # _check_plot_works creates subplots inside,
-            # which leads to warnings like this:
-            # UserWarning: To output multiple subplots,
-            # the figure containing the passed axes is being cleared
+        msg = (
+            "To output multiple subplots, "
+            "the figure containing the passed axes is being cleared"
+        )
+        with tm.assert_produces_warning(UserWarning, match=msg):
             # Similar warnings were observed in GH #13188
             axes = _check_plot_works(
                 df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind
@@ -2820,11 +2829,11 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
         self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-        with tm.assert_produces_warning(UserWarning):
-            # _check_plot_works creates subplots inside,
-            # which leads to warnings like this:
-            # UserWarning: To output multiple subplots,
-            # the figure containing the passed axes is being cleared
+        msg = (
+            "To output multiple subplots, "
+            "the figure containing the passed axes is being cleared"
+        )
+        with tm.assert_produces_warning(UserWarning, match=msg):
             # Similar warnings were observed in GH #13188
             axes = _check_plot_works(tdf.plot, kind=kind, yerr=tdf_err, subplots=True)
             self._check_has_errorbars(axes, xerr=0, yerr=1)

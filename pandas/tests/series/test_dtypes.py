@@ -1,5 +1,3 @@
-import string
-
 import numpy as np
 import pytest
 
@@ -15,20 +13,6 @@ class TestSeriesDtypes:
 
         assert datetime_series.dtype == np.dtype("float64")
         assert datetime_series.dtypes == np.dtype("float64")
-
-    @pytest.mark.parametrize("dtype", [str, np.str_])
-    @pytest.mark.parametrize(
-        "series",
-        [
-            Series([string.digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
-            Series([string.digits * 10, tm.rands(63), tm.rands(64), np.nan, 1.0]),
-        ],
-    )
-    def test_astype_str_map(self, dtype, series):
-        # see gh-4405
-        result = series.astype(dtype)
-        expected = series.map(str)
-        tm.assert_series_equal(result, expected)
 
     def test_astype_from_categorical(self):
         items = ["a", "b", "c", "a"]
@@ -119,36 +103,6 @@ class TestSeriesDtypes:
         tm.assert_series_equal(
             s.astype("object").astype(CategoricalDtype()), roundtrip_expected
         )
-
-    def test_invalid_conversions(self):
-        # invalid conversion (these are NOT a dtype)
-        cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
-        ser = Series(np.random.randint(0, 10000, 100)).sort_values()
-        ser = pd.cut(ser, range(0, 10500, 500), right=False, labels=cat)
-
-        msg = (
-            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
-            "not understood"
-        )
-        with pytest.raises(TypeError, match=msg):
-            ser.astype(Categorical)
-        with pytest.raises(TypeError, match=msg):
-            ser.astype("object").astype(Categorical)
-
-    @pytest.mark.parametrize("dtype", np.typecodes["All"])
-    def test_astype_empty_constructor_equality(self, dtype):
-        # see gh-15524
-
-        if dtype not in (
-            "S",
-            "V",  # poor support (if any) currently
-            "M",
-            "m",  # Generic timestamps raise a ValueError. Already tested.
-        ):
-            init_empty = Series([], dtype=dtype)
-            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
-                as_type_empty = Series([]).astype(dtype)
-            tm.assert_series_equal(init_empty, as_type_empty)
 
     def test_series_to_categorical(self):
         # see gh-16524: test conversion of Series to Categorical
