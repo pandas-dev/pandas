@@ -2584,32 +2584,30 @@ class TestDataFramePlots(TestPlotBase):
         assert len(ax.collections) == 1
 
     @pytest.mark.slow
-    def test_hexbin_cmap(self):
+    @pytest.mark.parametrize(
+        "kwargs, expected",
+        [
+            ({}, "BuGn"),  # default cmap
+            ({"colormap": "cubehelix"}, "cubehelix"),
+            ({"cmap": "YlGn"}, "YlGn"),
+        ],
+    )
+    def test_hexbin_cmap(self, kwargs, expected):
         df = self.hexbin_df
-
-        # Default to BuGn
-        ax = df.plot.hexbin(x="A", y="B")
-        assert ax.collections[0].cmap.name == "BuGn"
-
-        cm = "cubehelix"
-        ax = df.plot.hexbin(x="A", y="B", colormap=cm)
-        assert ax.collections[0].cmap.name == cm
+        ax = df.plot.hexbin(x="A", y="B", **kwargs)
+        assert ax.collections[0].cmap.name == expected
 
     @pytest.mark.slow
     def test_no_color_bar(self):
         df = self.hexbin_df
-
         ax = df.plot.hexbin(x="A", y="B", colorbar=None)
         assert ax.collections[0].colorbar is None
 
     @pytest.mark.slow
-    def test_allow_cmap(self):
+    def test_mixing_cmap_and_colormap_raises(self):
         df = self.hexbin_df
-
-        ax = df.plot.hexbin(x="A", y="B", cmap="YlGn")
-        assert ax.collections[0].cmap.name == "YlGn"
-
-        with pytest.raises(TypeError):
+        msg = "Only specify one of `cmap` and `colormap`"
+        with pytest.raises(TypeError, match=msg):
             df.plot.hexbin(x="A", y="B", cmap="YlGn", colormap="BuGn")
 
     @pytest.mark.slow
@@ -2840,7 +2838,6 @@ class TestDataFramePlots(TestPlotBase):
             self._check_has_errorbars(axes, xerr=0, yerr=1)
 
     def test_errorbar_asymmetrical(self):
-
         np.random.seed(0)
         err = np.random.rand(3, 2, 5)
 
