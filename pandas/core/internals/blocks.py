@@ -851,7 +851,6 @@ class Block(PandasObject):
         new_values = self.values if inplace else self.values.copy()
         replace_regex(new_values, rx, value, mask)
 
-        # convert
         block = self.make_block(new_values)
         if convert:
             nbs = block.convert(numeric=False)
