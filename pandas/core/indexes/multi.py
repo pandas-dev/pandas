@@ -2702,7 +2702,10 @@ class MultiIndex(Index):
         if is_scalar(key) and isna(key):
             return -1
         else:
-            return level_index.get_loc(key)
+            loc = level_index.get_loc(key)
+            # if isinstance(loc, slice):
+            #     return loc.start
+            return loc
 
     def get_loc(self, key, method=None):
         """
