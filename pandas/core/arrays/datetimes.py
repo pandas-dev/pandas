@@ -306,7 +306,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
 
         scalars, copy = dtl.ensure_arraylike(scalars, copy)
 
