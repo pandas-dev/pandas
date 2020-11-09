@@ -862,7 +862,7 @@ class TestTypeInference:
     @pytest.mark.parametrize(
         "arr",
         [
-            np.array([pd.Timedelta("1 days"), pd.Timedelta("2 days")]),
+            np.array([Timedelta("1 days"), Timedelta("2 days")]),
             np.array([np.timedelta64(1, "D"), np.timedelta64(2, "D")], dtype=object),
             np.array([timedelta(1), timedelta(2)]),
         ],

@@ -2283,3 +2283,57 @@ def test_merge_join_categorical_multiindex():
     expected = expected.drop(["Cat", "Int"], axis=1)
     result = a.join(b, on=["Cat1", "Int1"])
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize("func", ["merge", "merge_asof"])
+@pytest.mark.parametrize(
+    ("kwargs", "err_msg"),
+    [
+        ({"left_on": "a", "left_index": True}, ["left_on", "left_index"]),
+        ({"right_on": "a", "right_index": True}, ["right_on", "right_index"]),
+    ],
+)
+def test_merge_join_cols_error_reporting_duplicates(func, kwargs, err_msg):
+    # GH: 16228
+    left = DataFrame({"a": [1, 2], "b": [3, 4]})
+    right = DataFrame({"a": [1, 1], "c": [5, 6]})
+    msg = rf'Can only pass argument "{err_msg[0]}" OR "{err_msg[1]}" not both\.'
+    with pytest.raises(MergeError, match=msg):
+        getattr(pd, func)(left, right, **kwargs)
+
+
+@pytest.mark.parametrize("func", ["merge", "merge_asof"])
+@pytest.mark.parametrize(
+    ("kwargs", "err_msg"),
+    [
+        ({"left_on": "a"}, ["right_on", "right_index"]),
+        ({"right_on": "a"}, ["left_on", "left_index"]),
+    ],
+)
+def test_merge_join_cols_error_reporting_missing(func, kwargs, err_msg):
+    # GH: 16228
+    left = DataFrame({"a": [1, 2], "b": [3, 4]})
+    right = DataFrame({"a": [1, 1], "c": [5, 6]})
+    msg = rf'Must pass "{err_msg[0]}" OR "{err_msg[1]}"\.'
+    with pytest.raises(MergeError, match=msg):
+        getattr(pd, func)(left, right, **kwargs)
+
+
+@pytest.mark.parametrize("func", ["merge", "merge_asof"])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"right_index": True},
+        {"left_index": True},
+    ],
+)
+def test_merge_join_cols_error_reporting_on_and_index(func, kwargs):
+    # GH: 16228
+    left = DataFrame({"a": [1, 2], "b": [3, 4]})
+    right = DataFrame({"a": [1, 1], "c": [5, 6]})
+    msg = (
+        r'Can only pass argument "on" OR "left_index" '
+        r'and "right_index", not a combination of both\.'
+    )
+    with pytest.raises(MergeError, match=msg):
+        getattr(pd, func)(left, right, on="a", **kwargs)
