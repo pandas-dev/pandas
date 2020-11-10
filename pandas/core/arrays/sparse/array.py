@@ -22,6 +22,7 @@ from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
+    maybe_box_datetimelike,
 )
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -270,7 +271,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
 
     _subtyp = "sparse_array"  # register ABCSparseArray
-    _deprecations = PandasObject._deprecations | frozenset(["get_values"])
+    _hidden_attrs = PandasObject._hidden_attrs | frozenset(["get_values"])
     _sparse_index: SparseIndex
 
     def __init__(
@@ -316,9 +317,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             raise Exception("must only pass scalars with an index")
 
         if is_scalar(data):
-            if index is not None:
-                if data is None:
-                    data = np.nan
+            if index is not None and data is None:
+                data = np.nan
 
             if index is not None:
                 npoints = len(index)
@@ -484,7 +484,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         raise TypeError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return cls(scalars, dtype=dtype)
 
     @classmethod
@@ -575,8 +575,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> s.density
         0.6
         """
-        r = float(self.sp_index.npoints) / float(self.sp_index.length)
-        return r
+        return float(self.sp_index.npoints) / float(self.sp_index.length)
 
     @property
     def npoints(self) -> int:
@@ -736,25 +735,17 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         keys, counts = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps
-        if fcounts > 0:
-            if self._null_fill_value and dropna:
-                pass
+        if fcounts > 0 and (not self._null_fill_value or not dropna):
+            mask = isna(keys) if self._null_fill_value else keys == self.fill_value
+            if mask.any():
+                counts[mask] += fcounts
             else:
-                if self._null_fill_value:
-                    mask = isna(keys)
-                else:
-                    mask = keys == self.fill_value
-
-                if mask.any():
-                    counts[mask] += fcounts
-                else:
-                    keys = np.insert(keys, 0, self.fill_value)
-                    counts = np.insert(counts, 0, fcounts)
+                keys = np.insert(keys, 0, self.fill_value)
+                counts = np.insert(counts, 0, fcounts)
 
         if not isinstance(keys, ABCIndexClass):
             keys = Index(keys)
-        result = Series(counts, index=keys)
-        return result
+        return Series(counts, index=keys)
 
     # --------
     # Indexing
@@ -815,10 +806,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return self.fill_value
         else:
             val = self.sp_values[sp_loc]
-            val = com.maybe_box_datetimelike(val, self.sp_values.dtype)
+            val = maybe_box_datetimelike(val, self.sp_values.dtype)
             return val
 
-    def take(self, indices, allow_fill=False, fill_value=None) -> "SparseArray":
+    def take(self, indices, *, allow_fill=False, fill_value=None) -> "SparseArray":
         if is_scalar(indices):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
@@ -1062,7 +1053,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if is_dtype_equal(dtype, self._dtype):
             if not copy:
                 return self
-            elif copy:
+            else:
                 return self.copy()
         dtype = self.dtype.update_dtype(dtype)
         subtype = dtype._subtype_with_str
@@ -1165,7 +1156,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Reductions
     # ------------------------------------------------------------------------
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         method = getattr(self, name, None)
 
         if method is None:
@@ -1309,19 +1300,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
-
-    def transpose(self, *axes) -> "SparseArray":
-        """
-        Returns the SparseArray.
-        """
-        return self
-
-    @property
-    def T(self) -> "SparseArray":
-        """
-        Returns the SparseArray.
-        """
-        return self
 
     # ------------------------------------------------------------------------
     # Ufuncs

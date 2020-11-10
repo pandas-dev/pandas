@@ -115,10 +115,7 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("notnull")),
     (pd.DataFrame, frame_data, operator.methodcaller("dropna")),
     (pd.DataFrame, frame_data, operator.methodcaller("drop_duplicates")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("duplicated")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("duplicated")),
     (pd.DataFrame, frame_data, operator.methodcaller("sort_values", by="A")),
     (pd.DataFrame, frame_data, operator.methodcaller("sort_index")),
     (pd.DataFrame, frame_data, operator.methodcaller("nlargest", 1, "A")),
@@ -157,10 +154,7 @@ _all_methods = [
         ),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("pivot", columns="A")),
     pytest.param(
         (
             pd.DataFrame,
@@ -169,18 +163,12 @@ _all_methods = [
         ),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("stack")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("stack")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
     pytest.param(
         (
             pd.DataFrame,
@@ -190,20 +178,14 @@ _all_methods = [
         marks=not_implemented_mark,
     ),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("diff")),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x)),
-        marks=not_implemented_mark,
+        (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
     ),
     pytest.param(
         (
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"A": [1]})),
-        ),
-        marks=not_implemented_mark,
+        )
     ),
     pytest.param(
         (
@@ -211,7 +193,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"B": [1]})),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (
@@ -436,8 +417,6 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("where", np.array([[True]]))),
     (pd.Series, ([1, 2],), operator.methodcaller("mask", np.array([True, False]))),
     (pd.DataFrame, frame_data, operator.methodcaller("mask", np.array([[True]]))),
-    (pd.Series, ([1, 2],), operator.methodcaller("slice_shift")),
-    (pd.DataFrame, frame_data, operator.methodcaller("slice_shift")),
     pytest.param(
         (
             pd.Series,
@@ -690,7 +669,9 @@ def test_datetime_method(method):
         "microsecond",
         "nanosecond",
         "dayofweek",
+        "day_of_week",
         "dayofyear",
+        "day_of_year",
         "quarter",
         "is_month_start",
         "is_month_end",
@@ -762,13 +743,35 @@ def test_categorical_accessor(method):
     [
         operator.methodcaller("sum"),
         lambda x: x.agg("sum"),
+    ],
+)
+def test_groupby_finalize(obj, method):
+    obj.attrs = {"a": 1}
+    result = method(obj.groupby([0, 0]))
+    assert result.attrs == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
+)
+@pytest.mark.parametrize(
+    "method",
+    [
         lambda x: x.agg(["sum", "count"]),
         lambda x: x.transform(lambda y: y),
         lambda x: x.apply(lambda y: y),
     ],
 )
 @not_implemented_mark
-def test_groupby(obj, method):
+def test_groupby_finalize_not_implemented(obj, method):
     obj.attrs = {"a": 1}
     result = method(obj.groupby([0, 0]))
     assert result.attrs == {"a": 1}
+
+
+def test_finalize_frame_series_name():
+    # https://github.com/pandas-dev/pandas/pull/37186/files#r506978889
+    # ensure we don't copy the column `name` to the Series.
+    df = pd.DataFrame({"name": [1, 2]})
+    result = pd.Series([1, 2]).__finalize__(df)
+    assert result.name is None

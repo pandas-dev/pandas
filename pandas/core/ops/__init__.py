@@ -13,8 +13,8 @@ from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:
 from pandas._typing import Level
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.common import is_array_like, is_list_like
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import algorithms
@@ -25,18 +25,18 @@ from pandas.core.ops.array_ops import (  # noqa:F401
     get_array_op,
     logical_op,
 )
-from pandas.core.ops.common import unpack_zerodim_and_defer  # noqa:F401
+from pandas.core.ops.common import (  # noqa:F401
+    get_op_result_name,
+    unpack_zerodim_and_defer,
+)
 from pandas.core.ops.docstrings import (
     _flex_comp_doc_FRAME,
-    _make_flex_doc,
     _op_descriptions,
+    make_flex_doc,
 )
 from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
 from pandas.core.ops.mask_ops import kleene_and, kleene_or, kleene_xor  # noqa: F401
-from pandas.core.ops.methods import (  # noqa:F401
-    add_flex_arithmetic_methods,
-    add_special_arithmetic_methods,
-)
+from pandas.core.ops.methods import add_flex_arithmetic_methods  # noqa:F401
 from pandas.core.ops.roperator import (  # noqa:F401
     radd,
     rand_,
@@ -78,67 +78,6 @@ ARITHMETIC_BINOPS: Set[str] = {
 
 
 COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
-
-# -----------------------------------------------------------------------------
-# Ops Wrapping Utilities
-
-
-def get_op_result_name(left, right):
-    """
-    Find the appropriate name to pin to an operation result.  This result
-    should always be either an Index or a Series.
-
-    Parameters
-    ----------
-    left : {Series, Index}
-    right : object
-
-    Returns
-    -------
-    name : object
-        Usually a string
-    """
-    # `left` is always a Series when called from within ops
-    if isinstance(right, (ABCSeries, ABCIndexClass)):
-        name = _maybe_match_name(left, right)
-    else:
-        name = left.name
-    return name
-
-
-def _maybe_match_name(a, b):
-    """
-    Try to find a name to attach to the result of an operation between
-    a and b.  If only one of these has a `name` attribute, return that
-    name.  Otherwise return a consensus name if they match of None if
-    they have different names.
-
-    Parameters
-    ----------
-    a : object
-    b : object
-
-    Returns
-    -------
-    name : str or None
-
-    See Also
-    --------
-    pandas.core.common.consensus_name_attr
-    """
-    a_has = hasattr(a, "name")
-    b_has = hasattr(b, "name")
-    if a_has and b_has:
-        if a.name == b.name:
-            return a.name
-        else:
-            # TODO: what if they both have np.nan for their names?
-            return None
-    elif a_has:
-        return a.name
-    elif b_has:
-        return b.name
-    return None
 
 
 # -----------------------------------------------------------------------------
@@ -212,7 +151,7 @@ def align_method_SERIES(left: "Series", right, align_asobject: bool = False):
 
 def flex_method_SERIES(op):
     name = op.__name__.strip("_")
-    doc = _make_flex_doc(name, "series")
+    doc = make_flex_doc(name, "series")
 
     @Appender(doc)
     def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
@@ -314,6 +253,11 @@ def align_method_FRAME(
             )
 
     elif is_list_like(right) and not isinstance(right, (ABCSeries, ABCDataFrame)):
+        # GH 36702. Raise when attempting arithmetic with list of array-like.
+        if any(is_array_like(el) for el in right):
+            raise ValueError(
+                f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
+            )
         # GH17901
         right = to_series(right)
 
@@ -448,7 +392,7 @@ def flex_arith_method_FRAME(op):
     default_axis = "columns"
 
     na_op = get_array_op(op)
-    doc = _make_flex_doc(op_name, "dataframe")
+    doc = make_flex_doc(op_name, "dataframe")
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None, fill_value=None):
