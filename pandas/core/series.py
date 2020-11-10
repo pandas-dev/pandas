@@ -1047,7 +1047,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         loc = self.index._engine.get_loc(key)
         validate_numeric_casting(self.dtype, value)
         dtype, _ = infer_dtype_from_scalar(value)
-        if is_dtype_equal(self.dtype, dtype):
+        if is_dtype_equal(self.dtype, dtype) or isna(value):
             self._values[loc] = value
         else:
             self.loc[key] = value
