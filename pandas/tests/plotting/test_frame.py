@@ -190,11 +190,11 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame({"A": [1, 2, 3]})
         _check_plot_works(df.plot, color=["red"])
 
-    def test_rgb_tuple_color(self):
+    @pytest.mark.parametrize("color", [(1, 0, 0), (1, 0, 0, 0.5)])
+    def test_rgb_tuple_color(self, color):
         # GH 16695
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
-        _check_plot_works(df.plot, x="x", y="y", color=(1, 0, 0))
-        _check_plot_works(df.plot, x="x", y="y", color=(1, 0, 0, 0.5))
+        _check_plot_works(df.plot, x="x", y="y", color=color)
 
     def test_color_empty_string(self):
         df = DataFrame(np.random.randn(10, 2))
@@ -443,11 +443,21 @@ class TestDataFramePlots(TestPlotBase):
             for ax in axes:
                 assert ax.get_legend() is None
 
-    def test_groupby_boxplot_sharey(self):
+    @pytest.mark.parametrize(
+        "kwargs, expected",
+        [
+            # behavior without keyword
+            ({}, [True, False, True, False]),
+            # set sharey=True should be identical
+            ({"sharey": True}, [True, False, True, False]),
+            # sharey=False, all yticklabels should be visible
+            ({"sharey": False}, [True, True, True, True]),
+        ],
+    )
+    def test_groupby_boxplot_sharey(self, kwargs, expected):
         # https://github.com/pandas-dev/pandas/issues/20968
         # sharey can now be switched check whether the right
         # pair of axes is turned on or off
-
         df = DataFrame(
             {
                 "a": [-1.43, -0.15, -3.70, -1.43, -0.14],
@@ -456,27 +466,25 @@ class TestDataFramePlots(TestPlotBase):
             },
             index=[0, 1, 2, 3, 4],
         )
-
-        # behavior without keyword
-        axes = df.groupby("c").boxplot()
-        expected = [True, False, True, False]
+        axes = df.groupby("c").boxplot(**kwargs)
         self._assert_ytickslabels_visibility(axes, expected)
 
-        # set sharey=True should be identical
-        axes = df.groupby("c").boxplot(sharey=True)
-        expected = [True, False, True, False]
-        self._assert_ytickslabels_visibility(axes, expected)
-
-        # sharey=False, all yticklabels should be visible
-        axes = df.groupby("c").boxplot(sharey=False)
-        expected = [True, True, True, True]
-        self._assert_ytickslabels_visibility(axes, expected)
-
-    def test_groupby_boxplot_sharex(self):
+    @pytest.mark.parametrize(
+        "kwargs, expected",
+        [
+            # behavior without keyword
+            ({}, [True, True, True, True]),
+            # set sharex=False should be identical
+            ({"sharex": False}, [True, True, True, True]),
+            # sharex=True, xticklabels should be visible
+            # only for bottom plots
+            ({"sharex": True}, [False, False, True, True]),
+        ],
+    )
+    def test_groupby_boxplot_sharex(self, kwargs, expected):
         # https://github.com/pandas-dev/pandas/issues/20968
         # sharex can now be switched check whether the right
         # pair of axes is turned on or off
-
         df = DataFrame(
             {
                 "a": [-1.43, -0.15, -3.70, -1.43, -0.14],
@@ -485,21 +493,7 @@ class TestDataFramePlots(TestPlotBase):
             },
             index=[0, 1, 2, 3, 4],
         )
-
-        # behavior without keyword
-        axes = df.groupby("c").boxplot()
-        expected = [True, True, True, True]
-        self._assert_xtickslabels_visibility(axes, expected)
-
-        # set sharex=False should be identical
-        axes = df.groupby("c").boxplot(sharex=False)
-        expected = [True, True, True, True]
-        self._assert_xtickslabels_visibility(axes, expected)
-
-        # sharex=True, yticklabels should be visible
-        # only for bottom plots
-        axes = df.groupby("c").boxplot(sharex=True)
-        expected = [False, False, True, True]
+        axes = df.groupby("c").boxplot(**kwargs)
         self._assert_xtickslabels_visibility(axes, expected)
 
     @pytest.mark.slow
