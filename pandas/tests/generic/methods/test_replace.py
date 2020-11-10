@@ -1,9 +1,12 @@
+import re
+
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
 
-class SharedReplaceTests:
+
+class TestReplace:
     @pytest.mark.parametrize("value", [pd.Period("2020-01"), pd.Interval(0, 5)])
     def test_replace_ea_ignore_float(self, frame_or_series, value):
         # GH#34871
