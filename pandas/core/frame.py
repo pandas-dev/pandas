@@ -114,7 +114,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna, notna
@@ -6364,29 +6363,11 @@ Keep all original rows and columns and also all original values
         """
         import pandas.core.computation.expressions as expressions
 
-        def extract_values(arr):
-            # Does two things:
-            # 1. maybe gets the values from the Series / Index
-            # 2. convert datelike to i8
-            # TODO: extract_array?
-            if isinstance(arr, (Index, Series)):
-                arr = arr._values
-
-            if needs_i8_conversion(arr.dtype):
-                if is_extension_array_dtype(arr.dtype):
-                    arr = arr.asi8
-                else:
-                    arr = arr.view("i8")
-            return arr
-
         def combiner(x, y):
-            mask = isna(x)
-            # TODO: extract_array?
-            if isinstance(mask, (Index, Series)):
-                mask = mask._values
+            mask = extract_array(isna(x))
 
-            x_values = extract_values(x)
-            y_values = extract_values(y)
+            x_values = extract_array(x)
+            y_values = extract_array(y)
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.
