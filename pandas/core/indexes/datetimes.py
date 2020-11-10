@@ -802,7 +802,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if (start is None or isinstance(start, str)) and (
                 end is None or isinstance(end, str)
             ):
-                mask = True
+                mask = np.array(True)
                 if start is not None:
                     start_casted = self._maybe_cast_slice_bound(start, "left", kind)
                     mask = start_casted <= self
@@ -811,9 +811,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     end_casted = self._maybe_cast_slice_bound(end, "right", kind)
                     mask = (self <= end_casted) & mask
 
-                # pandas\core\indexes\datetimes.py:764: error: "bool" has no
-                # attribute "nonzero"  [attr-defined]
-                indexer = mask.nonzero()[0][::step]  # type: ignore[attr-defined]
+                indexer = mask.nonzero()[0][::step]
                 if len(indexer) == len(self):
                     return slice(None)
                 else:
