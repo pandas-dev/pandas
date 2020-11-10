@@ -1236,8 +1236,8 @@ class TestReadHtml:
         assert None is helper_thread1.err is helper_thread2.err
 
     def test_parse_Path_object(self):
-        file_path_string = r'pandas/tests/io/data/html/spam.html'
+        file_path_string = r"pandas/tests/io/data/html/spam.html"
         file_path = Path(file_path_string)
-        df1 = pd.read_html(file_path_string)[0]
-        df2 = pd.read_html(file_path)[0]
+        df1 = self.read_html(file_path_string)[0]
+        df2 = self.read_html(file_path)[0]
         tm.assert_frame_equal(df1, df2)
