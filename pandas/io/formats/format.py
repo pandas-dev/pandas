@@ -1049,9 +1049,10 @@ class DataFrameRenderer:
         created_buffer = path_or_buf is None
         if created_buffer:
             path_or_buf = StringIO()
+        assert path_or_buf is not None
 
         csv_formatter = CSVFormatter(
-            path_or_buf=path_or_buf,  # type: ignore[arg-type]
+            path_or_buf=path_or_buf,
             line_terminator=line_terminator,
             sep=sep,
             encoding=encoding,
