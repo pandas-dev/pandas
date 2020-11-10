@@ -615,7 +615,7 @@ class TestDataFramePlots(TestPlotBase):
         ).all()
 
     @pytest.mark.slow
-    def test_subplots_layout(self):
+    def test_subplots_layout_multi_column(self):
         # GH 6667
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 
@@ -648,7 +648,9 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(subplots=True, layout=(-1, -1))
 
-        # single column
+    @pytest.mark.slow
+    def test_subplots_layout_single_column(self):
+        # GH 6667
         df = DataFrame(np.random.rand(10, 1), index=list(string.ascii_letters[:10]))
         axes = df.plot(subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
