@@ -101,13 +101,3 @@ def test_reindex_non_unique():
     msg = "cannot handle a non-unique multi-index!"
     with pytest.raises(ValueError, match=msg):
         a.reindex(new_idx)
-
-
-def test_reindex_fill_added_rows():
-    # GH: 23693
-    i = pd.MultiIndex.from_tuples([("a", "b"), ("d", "e")])
-    df = pd.DataFrame([[0, 7], [3, 4]], index=i, columns=["x", "y"])
-    i2 = pd.MultiIndex.from_tuples([("a", "b"), ("d", "e"), ("h", "i")])
-    result = df.reindex(i2, axis=0, method="ffill")
-    expected = pd.DataFrame([[0, 7], [3, 4], [3, 4]], index=i2, columns=["x", "y"])
-    tm.assert_frame_equal(result, expected)

@@ -864,3 +864,12 @@ class TestDataFrameSelectReindex:
             "fill_value",
             "tolerance",
         }
+
+    def test_reindex_fill_added_rows(self):
+        # GH: 23693
+        mi = MultiIndex.from_tuples([("a", "b"), ("d", "e")])
+        df = DataFrame([[0, 7], [3, 4]], index=mi, columns=["x", "y"])
+        mi2 = MultiIndex.from_tuples([("a", "b"), ("d", "e"), ("h", "i")])
+        result = df.reindex(mi2, axis=0, method="ffill")
+        expected = DataFrame([[0, 7], [3, 4], [3, 4]], index=mi2, columns=["x", "y"])
+        tm.assert_frame_equal(result, expected)
