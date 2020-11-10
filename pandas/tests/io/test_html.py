@@ -1236,6 +1236,11 @@ class TestReadHtml:
         assert None is helper_thread1.err is helper_thread2.err
 
     def test_parse_Path_object(self):
+        """
+        read_html should be able to cope with Path
+
+        GH 37705
+        """
         file_path_string = r"pandas/tests/io/data/html/spam.html"
         file_path = Path(file_path_string)
         df1 = self.read_html(file_path_string)[0]
