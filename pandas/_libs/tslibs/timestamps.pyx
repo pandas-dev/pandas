@@ -912,9 +912,25 @@ class Timestamp(_Timestamp):
         """
         Timestamp.fromtimestamp(ts)
 
-        timestamp[, tz] -> tz's local time from POSIX timestamp.
+        Transform timestamp[, tz] to tz's local time from POSIX timestamp.
         """
         return cls(datetime.fromtimestamp(ts))
+
+    def strftime(self, format):
+        """
+        Timestamp.strftime(format)
+
+        Return a string representing the given POSIX timestamp
+        controlled by an explicit format string.
+
+        Parameters
+        ----------
+        format : str
+            Format string to convert Timestamp to string.
+            See strftime documentation for more information on the format string:
+            https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+        """
+        return datetime.strftime(self, format)
 
     # Issue 25016.
     @classmethod
@@ -934,7 +950,7 @@ class Timestamp(_Timestamp):
         """
         Timestamp.combine(date, time)
 
-        date, time -> datetime with same date and time fields.
+        Combine date, time into datetime with same date and time fields.
         """
         return cls(datetime.combine(date, time))
 
@@ -1153,7 +1169,7 @@ timedelta}, default 'raise'
 
     def floor(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp floored to this resolution.
+        Return a new Timestamp floored to this resolution.
 
         Parameters
         ----------
@@ -1192,7 +1208,7 @@ timedelta}, default 'raise'
 
     def ceil(self, freq, ambiguous='raise', nonexistent='raise'):
         """
-        return a new Timestamp ceiled to this resolution.
+        Return a new Timestamp ceiled to this resolution.
 
         Parameters
         ----------
@@ -1377,7 +1393,7 @@ default 'raise'
         fold=None,
     ):
         """
-        implements datetime.replace, handles nanoseconds.
+        Implements datetime.replace, handles nanoseconds.
 
         Parameters
         ----------
