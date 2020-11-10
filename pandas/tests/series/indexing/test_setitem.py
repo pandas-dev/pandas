@@ -201,6 +201,13 @@ class TestSetitemCasting:
         ser[:5] = np.nan
         tm.assert_series_equal(ser, expected)
 
+    def test_setitem_assigning_different_dtype(self):
+        # GH: 20635
+        ser = Series(["3", "4"], name="A")
+        ser.loc[:] = ser.loc[:].astype("int")
+        expected = Series([3, 4], name="A")
+        tm.assert_series_equal(ser, expected)
+
 
 class TestSetitemWithExpansion:
     def test_setitem_empty_series(self):

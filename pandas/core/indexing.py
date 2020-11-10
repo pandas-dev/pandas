@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    is_dtype_equal,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
@@ -1550,6 +1551,11 @@ class _iLocIndexer(_LocationIndexer):
                 val = list(value.values()) if isinstance(value, dict) else value
                 blk = self.obj._mgr.blocks[0]
                 take_split_path = not blk._can_hold_element(val)
+                if isinstance(value, ABCDataFrame):
+                    dtypes = [dtype for dtype in value.dtypes.unique()]
+                    take_split_path = not (
+                        len(dtypes) == 1 and is_dtype_equal(dtypes[0], blk.dtype)
+                    )
 
         # if we have any multi-indexes that have non-trivial slices
         # (not null slices) then we must take the split path, xref
