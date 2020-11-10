@@ -6371,8 +6371,8 @@ Keep all original rows and columns and also all original values
         def combiner(x, y):
             mask = extract_array(isna(x))
 
-            x_values = extract_array(x)
-            y_values = extract_array(y)
+            x_values = extract_array(x, extract_numpy=True)
+            y_values = extract_array(y, extract_numpy=True)
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.
