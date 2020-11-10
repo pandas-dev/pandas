@@ -30,14 +30,6 @@ class TestDataFrameColor(TestPlotBase):
             }
         )
 
-    def _assert_ytickslabels_visibility(self, axes, expected):
-        for ax, exp in zip(axes, expected):
-            self._check_visible(ax.get_yticklabels(), visible=exp)
-
-    def _assert_xtickslabels_visibility(self, axes, expected):
-        for ax, exp in zip(axes, expected):
-            self._check_visible(ax.get_xticklabels(), visible=exp)
-
     def test_mpl2_color_cycle_str(self):
         # GH 15516
         df = DataFrame(np.random.randn(10, 3), columns=["a", "b", "c"])

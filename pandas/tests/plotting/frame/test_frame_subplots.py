@@ -33,14 +33,6 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             }
         )
 
-    def _assert_ytickslabels_visibility(self, axes, expected):
-        for ax, exp in zip(axes, expected):
-            self._check_visible(ax.get_yticklabels(), visible=exp)
-
-    def _assert_xtickslabels_visibility(self, axes, expected):
-        for ax, exp in zip(axes, expected):
-            self._check_visible(ax.get_xticklabels(), visible=exp)
-
     @pytest.mark.slow
     def test_subplots(self):
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))

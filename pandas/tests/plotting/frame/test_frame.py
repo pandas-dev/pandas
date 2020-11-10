@@ -39,14 +39,6 @@ class TestDataFramePlots(TestPlotBase):
             }
         )
 
-    def _assert_ytickslabels_visibility(self, axes, expected):
-        for ax, exp in zip(axes, expected):
-            self._check_visible(ax.get_yticklabels(), visible=exp)
-
-    def _assert_xtickslabels_visibility(self, axes, expected):
-        for ax, exp in zip(axes, expected):
-            self._check_visible(ax.get_xticklabels(), visible=exp)
-
     @pytest.mark.slow
     def test_plot(self):
         from pandas.plotting._matplotlib.compat import mpl_ge_3_1_0
