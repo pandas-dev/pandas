@@ -49,15 +49,10 @@ except ImportError:
     cythonize = lambda x, *args, **kwargs: x  # dummy func
 
 if _CYTHON_INSTALLED:
-    # from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
     from Cython.Distutils.build_ext import build_ext as _build_ext
-
-    cython = True
     from Cython import Tempita as tempita
 else:
     from distutils.command.build_ext import build_ext as _build_ext
-
-    cython = False
 
 
 _pxi_dep_template = {
@@ -104,7 +99,7 @@ class build_ext(_build_ext):
     def build_extensions(self):
         # if building from c files, don't need to
         # generate template output
-        if cython:
+        if _CYTHON_INSTALLED:
             self.render_templates(_pxifiles)
 
         super().build_extensions()
@@ -399,7 +394,7 @@ class DummyBuildSrc(Command):
 cmdclass.update({"clean": CleanCommand, "build": build})
 cmdclass["build_ext"] = CheckingBuildExt
 
-if cython:
+if _CYTHON_INSTALLED:
     suffix = ".pyx"
     cmdclass["cython"] = CythonCommand
 else:
@@ -494,7 +489,7 @@ def maybe_cythonize(extensions, *args, **kwargs):
         # See https://github.com/cython/cython/issues/1495
         return extensions
 
-    elif not cython:
+    elif not _CYTHON_INSTALLED:
         # GH#28836 raise a helfpul error message
         if _CYTHON_VERSION:
             raise RuntimeError(
