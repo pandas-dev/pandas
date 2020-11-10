@@ -178,7 +178,7 @@ class TestScalar2:
         result = df.at[0, "date"]
         assert result == expected
 
-    def test_series_set_tz_timestamp(self, tz_naive_fixture):
+    def test_at_setitem_expansion_series_dt64tz_value(self, tz_naive_fixture):
         # GH 25506
         ts = Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
         result = Series(ts)

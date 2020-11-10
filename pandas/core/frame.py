@@ -2240,6 +2240,11 @@ class DataFrame(NDFrame, OpsMixin):
             support Unicode characters, and version 119 supports more than
             32,767 variables.
 
+            Version 119 should usually only be used when the number of
+            variables exceeds the capacity of dta format 118. Exporting
+            smaller datasets in format 119 may have unintended consequences,
+            and, as of November 2020, Stata SE cannot read version 119 files.
+
             .. versionchanged:: 1.0.0
 
                 Added support for formats 118 and 119.
