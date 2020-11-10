@@ -2193,20 +2193,39 @@ class RollingGroupby(WindowGroupByMixin, Rolling):
             use_numba_cache,
             **kwargs,
         )
-        # Cannot use _wrap_outputs because we calculate the result all at once
-        # Compose MultiIndex result from grouping levels then rolling level
-        # Aggregate the MultiIndex data as tuples then the level names
-        grouped_object_index = self.obj.index
-        grouped_index_name = [*grouped_object_index.names]
-        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
-        result_index_names = groupby_keys + grouped_index_name
+        # Reconstruct the resulting MultiIndex from tuples
+        # 1st set of levels = group by labels
+        # 2nd set of levels = original index
+        # Ignore 2nd set of levels if a group by label include an index level
+        result_index_names = [
+            grouping.name for grouping in self._groupby.grouper._groupings
+        ]
+        grouped_object_index = None
+
+        column_keys = [
+            key
+            for key in result_index_names
+            if key not in self.obj.index.names or key is None
+        ]
+
+        if len(column_keys) == len(result_index_names):
+            grouped_object_index = self.obj.index
+            grouped_index_name = [*grouped_object_index.names]
+            result_index_names += grouped_index_name
+        else:
+            # Our result will have still kept the column in the result
+            result = result.drop(columns=column_keys, errors="ignore")
 
         result_index_data = []
         for key, values in self._groupby.grouper.indices.items():
             for value in values:
                 data = [
                     *com.maybe_make_list(key),
-                    *com.maybe_make_list(grouped_object_index[value]),
+                    *com.maybe_make_list(
+                        grouped_object_index[value]
+                        if grouped_object_index is not None
+                        else []
+                    ),
                 ]
                 result_index_data.append(tuple(data))
 
