@@ -127,6 +127,15 @@ class TestSetitemBooleanMask:
 
         tm.assert_series_equal(copy, expected)
 
+    @pytest.mark.parametrize("value", [None, NaT, np.nan])
+    def test_setitem_boolean_td64_values_cast_na(self, value):
+        # GH#18586
+        series = Series([0, 1, 2], dtype="timedelta64[ns]")
+        mask = series == series[0]
+        series[mask] = value
+        expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
+        tm.assert_series_equal(series, expected)
+
     def test_setitem_boolean_nullable_int_types(self, any_nullable_int_dtype):
         # GH: 26468
         ser = Series(pd_array([5, 6, 7, 8], dtype=any_nullable_int_dtype))
