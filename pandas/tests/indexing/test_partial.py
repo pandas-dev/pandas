@@ -47,7 +47,6 @@ class TestPartialSetting:
         with pytest.raises(IndexError, match=msg):
             s.iloc[3] = 5.0
 
-        msg = "index 3 is out of bounds for axis 0 with size 3"
         with pytest.raises(IndexError, match=msg):
             s.iat[3] = 5.0
 
