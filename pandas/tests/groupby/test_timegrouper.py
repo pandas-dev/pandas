@@ -452,7 +452,7 @@ class TestGroupBy:
         result = df.groupby(level="date").groups
         dates = ["2015-01-05", "2015-01-04", "2015-01-03", "2015-01-02", "2015-01-01"]
         expected = {
-            Timestamp(date): pd.DatetimeIndex([date], name="date") for date in dates
+            Timestamp(date): DatetimeIndex([date], name="date") for date in dates
         }
         tm.assert_dict_equal(result, expected)
 
@@ -460,7 +460,7 @@ class TestGroupBy:
         for date in dates:
             result = grouped.get_group(date)
             data = [[df.loc[date, "A"], df.loc[date, "B"]]]
-            expected_index = pd.DatetimeIndex([date], name="date", freq="D")
+            expected_index = DatetimeIndex([date], name="date", freq="D")
             expected = DataFrame(data, columns=list("AB"), index=expected_index)
             tm.assert_frame_equal(result, expected)
 
@@ -484,7 +484,7 @@ class TestGroupBy:
         )
         df["datetime"] = df["datetime"].apply(lambda d: Timestamp(d, tz="US/Pacific"))
 
-        exp_idx1 = pd.DatetimeIndex(
+        exp_idx1 = DatetimeIndex(
             [
                 "2011-07-19 07:00:00",
                 "2011-07-19 07:00:00",
@@ -508,13 +508,13 @@ class TestGroupBy:
         tm.assert_frame_equal(result, expected)
 
         # by level
-        didx = pd.DatetimeIndex(dates, tz="Asia/Tokyo")
+        didx = DatetimeIndex(dates, tz="Asia/Tokyo")
         df = DataFrame(
             {"value1": np.arange(6, dtype="int64"), "value2": [1, 2, 3, 1, 2, 3]},
             index=didx,
         )
 
-        exp_idx = pd.DatetimeIndex(
+        exp_idx = DatetimeIndex(
             ["2011-07-19 07:00:00", "2011-07-19 08:00:00", "2011-07-19 09:00:00"],
             tz="Asia/Tokyo",
         )

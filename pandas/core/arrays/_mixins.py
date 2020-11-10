@@ -1,4 +1,4 @@
-from typing import Any, Sequence, TypeVar
+from typing import Any, Optional, Sequence, TypeVar
 
 import numpy as np
 
@@ -45,7 +45,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         """
         return x
 
-    def _validate_insert_value(self, value):
+    def _validate_scalar(self, value):
         # used by NDArrayBackedExtensionIndex.insert
         raise AbstractMethodError(self)
 
@@ -54,6 +54,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def take(
         self: _T,
         indices: Sequence[int],
+        *,
         allow_fill: bool = False,
         fill_value: Any = None,
         axis: int = 0,
@@ -246,13 +247,18 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         meth = getattr(self, name, None)
         if meth:
             return meth(skipna=skipna, **kwargs)
         else:
             msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
             raise TypeError(msg)
+
+    def _wrap_reduction_result(self, axis: Optional[int], result):
+        if axis is None or self.ndim == 1:
+            return self._box_func(result)
+        return self._from_backing_data(result)
 
     # ------------------------------------------------------------------------
 
