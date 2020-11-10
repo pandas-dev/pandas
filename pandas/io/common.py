@@ -645,14 +645,14 @@ def get_handle(
             handle = _BytesZipFile(handle, mode, **compression_args)
             if handle.mode == "r":
                 handles.append(handle)
-                    
+
                 # Ignore hidden folders added by OS X/macOS on .zip creation
                 zip_names = [
                     _
                     for _ in handle.namelist()
                     if not (_.startswith("__MACOSX/") or _.startswith(".DS_STORE"))
                 ]
-                
+
                 if len(zip_names) == 1:
                     handle = handle.open(zip_names.pop())
                 elif len(zip_names) == 0:
