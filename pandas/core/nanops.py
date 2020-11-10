@@ -374,7 +374,14 @@ def _datetimelike_compat(func):
     """
 
     @functools.wraps(func)
-    def new_func(values, *, axis=None, skipna=True, mask=None, **kwargs):
+    def new_func(
+        values: np.ndarray,
+        *,
+        axis: Optional[int] = None,
+        skipna: bool = True,
+        mask: Optional[np.ndarray] = None,
+        **kwargs,
+    ):
         orig_values = values
 
         datetimelike = values.dtype.kind in ["m", "M"]
