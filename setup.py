@@ -49,8 +49,8 @@ except ImportError:
     cythonize = lambda x, *args, **kwargs: x  # dummy func
 
 if _CYTHON_INSTALLED:
+    from Cython import Tempita
     from Cython.Distutils.build_ext import build_ext as _build_ext
-    from Cython import Tempita as tempita
 else:
     from distutils.command.build_ext import build_ext as _build_ext
 
@@ -91,7 +91,7 @@ class build_ext(_build_ext):
 
             with open(pxifile) as f:
                 tmpl = f.read()
-            pyxcontent = tempita.sub(tmpl)
+            pyxcontent = Tempita.sub(tmpl)
 
             with open(outfile, "w") as f:
                 f.write(pyxcontent)
