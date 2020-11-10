@@ -114,31 +114,17 @@ class TestSetitemCoercion(CoercionBase):
         obj = pd.Series([1, 2, 3, 4])
         assert obj.dtype == np.int64
 
-        if exp_dtype is np.float64:
-            exp = pd.Series([1, 1, 3, 4])
-            self._assert_setitem_series_conversion(obj, 1.1, exp, np.int64)
-            mark = pytest.mark.xfail(reason="GH12747 The result must be float")
-            request.node.add_marker(mark)
-
         exp = pd.Series([1, val, 3, 4])
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
-        "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2 ** 9), np.int16)]
+        "val,exp_dtype", [(np.int32(1), np.int32), (np.int16(2 ** 9), np.int16)]
     )
     def test_setitem_series_int8(self, val, exp_dtype, request):
         obj = pd.Series([1, 2, 3, 4], dtype=np.int8)
         assert obj.dtype == np.int8
 
-        if exp_dtype is np.int16:
-            exp = pd.Series([1, 0, 3, 4], dtype=np.int8)
-            self._assert_setitem_series_conversion(obj, val, exp, np.int8)
-            mark = pytest.mark.xfail(
-                reason="BUG: it must be pd.Series([1, 1, 3, 4], dtype=np.int16"
-            )
-            request.node.add_marker(mark)
-
-        exp = pd.Series([1, val, 3, 4], dtype=np.int8)
+        exp = pd.Series([1, val, 3, 4], dtype=exp_dtype)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -171,32 +157,16 @@ class TestSetitemCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "val,exp_dtype",
         [
-            (1, np.int64),
-            (3, np.int64),
-            (1.1, np.float64),
-            (1 + 1j, np.complex128),
+            (1, "object"),
+            (3, "object"),
+            (1.1, "object"),
+            (1 + 1j, "object"),
             (True, np.bool_),
         ],
     )
     def test_setitem_series_bool(self, val, exp_dtype, request):
         obj = pd.Series([True, False, True, False])
         assert obj.dtype == np.bool_
-
-        mark = None
-        if exp_dtype is np.int64:
-            exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be int")
-        elif exp_dtype is np.float64:
-            exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
-        elif exp_dtype is np.complex128:
-            exp = pd.Series([True, True, True, False])
-            self._assert_setitem_series_conversion(obj, val, exp, np.bool_)
-            mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be complex")
-        if mark is not None:
-            request.node.add_marker(mark)
 
         exp = pd.Series([True, val, True, False])
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
