@@ -73,8 +73,8 @@ class RowStringConverter(ABC):
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
         self.clinebuf: List[List[int]] = []
-        self.strcols: Sequence[Sequence[str]] = self._get_strcols()
-        self.strrows: Sequence[Sequence[str]] = list(zip(*self.strcols))
+        self.strcols = self._get_strcols()
+        self.strrows = list(zip(*self.strcols))
 
     def get_strrow(self, row_num: int) -> str:
         """Get string representation of the row."""
