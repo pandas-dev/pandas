@@ -106,10 +106,10 @@ def test_transform_fast():
     result = df.groupby("grouping").transform("first")
 
     dates = [
-        pd.Timestamp("2014-1-1"),
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-4"),
+        Timestamp("2014-1-1"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-4"),
     ]
     expected = DataFrame(
         {"f": [1.1, 2.1, 2.1, 4.5], "d": dates, "i": [1, 2, 2, 4]},
@@ -393,9 +393,9 @@ def test_series_fast_transform_date():
     result = df.groupby("grouping")["d"].transform("first")
     dates = [
         pd.NaT,
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-2"),
-        pd.Timestamp("2014-1-4"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-2"),
+        Timestamp("2014-1-4"),
     ]
     expected = Series(dates, name="d")
     tm.assert_series_equal(result, expected)
@@ -1134,7 +1134,7 @@ def test_categorical_and_not_categorical_key(observed):
     # GH 32494
     df_with_categorical = DataFrame(
         {
-            "A": pd.Categorical(["a", "b", "a"], categories=["a", "b", "c"]),
+            "A": Categorical(["a", "b", "a"], categories=["a", "b", "c"]),
             "B": [1, 2, 3],
             "C": ["a", "b", "a"],
         }

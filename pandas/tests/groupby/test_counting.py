@@ -4,7 +4,6 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -260,7 +259,7 @@ def test_groupby_timedelta_cython_count():
     df = DataFrame(
         {"g": list("ab" * 2), "delt": np.arange(4).astype("timedelta64[ns]")}
     )
-    expected = Series([2, 2], index=pd.Index(["a", "b"], name="g"), name="delt")
+    expected = Series([2, 2], index=Index(["a", "b"], name="g"), name="delt")
     result = df.groupby("g").delt.count()
     tm.assert_series_equal(expected, result)
 
@@ -317,12 +316,12 @@ def test_count_non_nulls():
 def test_count_object():
     df = DataFrame({"a": ["a"] * 3 + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
-    expected = Series([3, 3], index=pd.Index([2, 3], name="c"), name="a")
+    expected = Series([3, 3], index=Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
     df = DataFrame({"a": ["a", np.nan, np.nan] + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
-    expected = Series([1, 3], index=pd.Index([2, 3], name="c"), name="a")
+    expected = Series([1, 3], index=Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
 
@@ -354,7 +353,7 @@ def test_lower_int_prec_count():
     )
     result = df.groupby("grp").count()
     expected = DataFrame(
-        {"a": [2, 2], "b": [2, 2], "c": [2, 2]}, index=pd.Index(list("ab"), name="grp")
+        {"a": [2, 2], "b": [2, 2], "c": [2, 2]}, index=Index(list("ab"), name="grp")
     )
     tm.assert_frame_equal(result, expected)
 
@@ -374,5 +373,5 @@ def test_count_uses_size_on_exception():
 
     df = DataFrame({"a": [RaisingObject() for _ in range(4)], "grp": list("ab" * 2)})
     result = df.groupby("grp").count()
-    expected = DataFrame({"a": [2, 2]}, index=pd.Index(list("ab"), name="grp"))
+    expected = DataFrame({"a": [2, 2]}, index=Index(list("ab"), name="grp"))
     tm.assert_frame_equal(result, expected)

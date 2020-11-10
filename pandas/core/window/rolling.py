@@ -762,19 +762,39 @@ class BaseWindowGroupby(GotItemMixin, BaseWindow):
             use_numba_cache,
             **kwargs,
         )
-        # Compose MultiIndex result from grouping levels then rolling level
-        # Aggregate the MultiIndex data as tuples then the level names
-        grouped_object_index = self.obj.index
-        grouped_index_name = [*grouped_object_index.names]
-        groupby_keys = [grouping.name for grouping in self._groupby.grouper._groupings]
-        result_index_names = groupby_keys + grouped_index_name
+        # Reconstruct the resulting MultiIndex from tuples
+        # 1st set of levels = group by labels
+        # 2nd set of levels = original index
+        # Ignore 2nd set of levels if a group by label include an index level
+        result_index_names = [
+            grouping.name for grouping in self._groupby.grouper._groupings
+        ]
+        grouped_object_index = None
+
+        column_keys = [
+            key
+            for key in result_index_names
+            if key not in self.obj.index.names or key is None
+        ]
+
+        if len(column_keys) == len(result_index_names):
+            grouped_object_index = self.obj.index
+            grouped_index_name = [*grouped_object_index.names]
+            result_index_names += grouped_index_name
+        else:
+            # Our result will have still kept the column in the result
+            result = result.drop(columns=column_keys, errors="ignore")
 
         result_index_data = []
         for key, values in self._groupby.grouper.indices.items():
             for value in values:
                 data = [
                     *com.maybe_make_list(key),
-                    *com.maybe_make_list(grouped_object_index[value]),
+                    *com.maybe_make_list(
+                        grouped_object_index[value]
+                        if grouped_object_index is not None
+                        else []
+                    ),
                 ]
                 result_index_data.append(tuple(data))
 
@@ -873,30 +893,14 @@ class Window(BaseWindow):
     To learn more about the offsets & frequency strings, please see `this link
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
-    The recognized win_types are:
-
-    * ``boxcar``
-    * ``triang``
-    * ``blackman``
-    * ``hamming``
-    * ``bartlett``
-    * ``parzen``
-    * ``bohman``
-    * ``blackmanharris``
-    * ``nuttall``
-    * ``barthann``
-    * ``kaiser`` (needs parameter: beta)
-    * ``gaussian`` (needs parameter: std)
-    * ``general_gaussian`` (needs parameters: power, width)
-    * ``slepian`` (needs parameter: width)
-    * ``exponential`` (needs parameter: tau), center is set to None.
-
-    If ``win_type=None`` all points are evenly weighted. To learn more about
-    different window types see `scipy.signal window functions
+    If ``win_type=None``, all points are evenly weighted; otherwise, ``win_type``
+    can accept a string of any `scipy.signal window function
     <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
 
-    Certain window types require additional parameters to be passed. Please see
-    the third example below on how to add the additional parameters.
+    Certain Scipy window types require additional parameters to be passed
+    in the aggregation function. The additional parameters must match
+    the keywords specified in the Scipy window type method signature.
+    Please see the third example below on how to add the additional parameters.
 
     Examples
     --------
@@ -1000,71 +1004,22 @@ class Window(BaseWindow):
     def validate(self):
         super().validate()
 
-        window = self.window
-        if isinstance(window, BaseIndexer):
+        if isinstance(self.window, BaseIndexer):
             raise NotImplementedError(
                 "BaseIndexer subclasses not implemented with win_types."
             )
-        elif isinstance(window, (list, tuple, np.ndarray)):
-            pass
-        elif is_integer(window):
-            if window <= 0:
+        elif is_integer(self.window):
+            if self.window <= 0:
                 raise ValueError("window must be > 0 ")
-            import_optional_dependency(
-                "scipy", extra="Scipy is required to generate window weight."
+            sig = import_optional_dependency(
+                "scipy.signal", extra="Scipy is required to generate window weight."
             )
-            import scipy.signal as sig
-
             if not isinstance(self.win_type, str):
                 raise ValueError(f"Invalid win_type {self.win_type}")
             if getattr(sig, self.win_type, None) is None:
                 raise ValueError(f"Invalid win_type {self.win_type}")
         else:
-            raise ValueError(f"Invalid window {window}")
-
-    def _get_win_type(self, kwargs: Dict[str, Any]) -> Union[str, Tuple]:
-        """
-        Extract arguments for the window type, provide validation for it
-        and return the validated window type.
-
-        Parameters
-        ----------
-        kwargs : dict
-
-        Returns
-        -------
-        win_type : str, or tuple
-        """
-        # the below may pop from kwargs
-        def _validate_win_type(win_type, kwargs):
-            arg_map = {
-                "kaiser": ["beta"],
-                "gaussian": ["std"],
-                "general_gaussian": ["power", "width"],
-                "slepian": ["width"],
-                "exponential": ["tau"],
-            }
-
-            if win_type in arg_map:
-                win_args = _pop_args(win_type, arg_map[win_type], kwargs)
-                if win_type == "exponential":
-                    # exponential window requires the first arg (center)
-                    # to be set to None (necessary for symmetric window)
-                    win_args.insert(0, None)
-
-                return tuple([win_type] + win_args)
-
-            return win_type
-
-        def _pop_args(win_type, arg_names, kwargs):
-            all_args = []
-            for n in arg_names:
-                if n not in kwargs:
-                    raise ValueError(f"{win_type} window requires {n}")
-                all_args.append(kwargs.pop(n))
-            return all_args
-
-        return _validate_win_type(self.win_type, kwargs)
+            raise ValueError(f"Invalid window {self.window}")
 
     def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
         """
@@ -1078,31 +1033,6 @@ class Window(BaseWindow):
             lead_indexer[self.axis] = slice(offset, None)
             result = np.copy(result[tuple(lead_indexer)])
         return result
-
-    def _get_window_weights(
-        self, win_type: Optional[Union[str, Tuple]] = None
-    ) -> np.ndarray:
-        """
-        Get the window, weights.
-
-        Parameters
-        ----------
-        win_type : str, or tuple
-            type of window to create
-
-        Returns
-        -------
-        window : ndarray
-            the window, weights
-        """
-        window = self.window
-        if isinstance(window, (list, tuple, np.ndarray)):
-            return com.asarray_tuplesafe(window).astype(float)
-        elif is_integer(window):
-            import scipy.signal as sig
-
-            # GH #15662. `False` makes symmetric window, rather than periodic.
-            return sig.get_window(win_type, window, False).astype(float)
 
     def _apply(
         self,
@@ -1124,14 +1054,17 @@ class Window(BaseWindow):
             whether to cache a numba compiled function. Only available for numba
             enabled methods (so far only apply)
         **kwargs
-            additional arguments for rolling function and window function
+            additional arguments for scipy windows if necessary
 
         Returns
         -------
         y : type of input
         """
-        win_type = self._get_win_type(kwargs)
-        window = self._get_window_weights(win_type=win_type)
+        signal = import_optional_dependency(
+            "scipy.signal", extra="Scipy is required to generate window weight."
+        )
+        assert self.win_type is not None  # for mypy
+        window = getattr(signal, self.win_type)(self.window, **kwargs)
         offset = (len(window) - 1) // 2 if self.center else 0
 
         def homogeneous_func(values: np.ndarray):
