@@ -1046,7 +1046,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # fails with AttributeError for IntervalIndex
         loc = self.index._engine.get_loc(key)
         validate_numeric_casting(self.dtype, value)
-        self._values[loc] = value
+        dtype, _ = infer_dtype_from_scalar(value)
+        if is_dtype_equal(self.dtype, dtype):
+            self._values[loc] = value
+        else:
+            self.loc[key] = value
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
@@ -1108,12 +1112,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         takeable : interpret the index as indexers, default False
         """
         try:
-            if takeable:
+            dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
+            if takeable and is_dtype_equal(self.dtype, dtype):
                 self._values[label] = value
+            elif takeable:
+                self.iloc[label] = value
             else:
                 loc = self.index.get_loc(label)
                 validate_numeric_casting(self.dtype, value)
-                dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)
                 if not is_dtype_equal(self.dtype, dtype) and is_numeric_dtype(dtype):
                     self.loc[label] = value
                     return

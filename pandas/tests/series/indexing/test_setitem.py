@@ -248,3 +248,11 @@ def test_setitem_slice_into_readonly_backing_data():
         series[1:3] = 1
 
     assert not array.any()
+
+
+def test_setitem_float_to_int():
+    # GH 20643
+    ser = Series([0, 1, 2], index=list('abc'))
+    ser["b"] = 3.1
+    expected = Series([0, 3.1, 2], index=list('abc'))
+    tm.assert_series_equal(ser, expected)

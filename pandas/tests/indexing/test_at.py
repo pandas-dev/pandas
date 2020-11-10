@@ -126,3 +126,15 @@ def test_at_assign_float_to_int_series(func):
     getattr(obj, func)["C"] = 44.5
     expected = Series([0, 0, 44.5], index=["A", "B", "C"])
     tm.assert_series_equal(obj, expected)
+
+
+def test_assign_float_to_int_series_takeable():
+    # GH: 20643
+    ser = Series([0, 1, 2], index=list('abc'))
+    ser.iat[1] = 3.1
+    expected = Series([0, 3.1, 2], index=list('abc'))
+    tm.assert_series_equal(ser, expected)
+
+    ser = Series([0, 1, 2], index=list('abc'))
+    ser.at["b"] = 3.1
+    tm.assert_series_equal(ser, expected)
