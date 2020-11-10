@@ -17,6 +17,23 @@ from pandas.tests.indexing.common import _mklbl
 
 from .test_floats import gen_obj
 
+
+def getitem(x):
+    return x
+
+
+def setitem(x):
+    return x
+
+
+def loc(x):
+    return x.loc
+
+
+def iloc(x):
+    return x.iloc
+
+
 # ------------------------------------------------------------------------
 # Indexing test cases
 
@@ -58,15 +75,8 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
-    @pytest.mark.parametrize(
-        "idxr, idxr_id",
-        [
-            (lambda x: x, "getitem"),
-            (lambda x: x.loc, "loc"),
-            (lambda x: x.iloc, "iloc"),
-        ],
-    )
-    def test_getitem_ndarray_3d(self, index, frame_or_series, idxr, idxr_id):
+    @pytest.mark.parametrize("idxr", [getitem, loc, iloc])
+    def test_getitem_ndarray_3d(self, index, frame_or_series, idxr):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = idxr(obj)
@@ -88,26 +98,19 @@ class TestFancy:
             with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
                 idxr[nd3]
 
-    @pytest.mark.parametrize(
-        "idxr, idxr_id",
-        [
-            (lambda x: x, "setitem"),
-            (lambda x: x.loc, "loc"),
-            (lambda x: x.iloc, "iloc"),
-        ],
-    )
-    def test_setitem_ndarray_3d(self, index, frame_or_series, idxr, idxr_id):
+    @pytest.mark.parametrize("indexer", [setitem, loc, iloc])
+    def test_setitem_ndarray_3d(self, index, frame_or_series, indexer):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
-        idxr = idxr(obj)
+        idxr = indexer(obj)
         nd3 = np.random.randint(5, size=(2, 2, 2))
 
-        if idxr_id == "iloc":
+        if indexer.__name__ == "iloc":
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
         elif (
             isinstance(index, pd.IntervalIndex)
-            and idxr_id == "setitem"
+            and indexer.__name__ == "setitem"
             and obj.ndim == 1
         ):
             err = AttributeError
@@ -297,7 +300,7 @@ class TestFancy:
         result = df.loc[[1, 2], ["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("case", [lambda s: s, lambda s: s.loc])
+    @pytest.mark.parametrize("case", [getitem, loc])
     def test_duplicate_int_indexing(self, case):
         # GH 17347
         s = Series(range(3), index=[1, 1, 3])
@@ -594,7 +597,7 @@ class TestFancy:
         expected = DataFrame({"A": [1, 2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("indexer", [lambda x: x.loc, lambda x: x])
+    @pytest.mark.parametrize("indexer", [getitem, loc])
     def test_index_type_coercion(self, indexer):
 
         # GH 11836

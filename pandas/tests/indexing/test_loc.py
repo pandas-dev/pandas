@@ -1563,6 +1563,14 @@ class TestLabelSlicing:
         expected = ser.iloc[expected_slice]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("value", [1, 1.5])
+    def test_loc_getitem_slice_labels_int_in_object_index(self, frame_or_series, value):
+        # GH: 26491
+        obj = frame_or_series(range(4), index=[value, "first", 2, "third"])
+        result = obj.loc[value:"third"]
+        expected = frame_or_series(range(4), index=[value, "first", 2, "third"])
+        tm.assert_equal(result, expected)
+
 
 class TestLocBooleanMask:
     def test_loc_setitem_bool_mask_timedeltaindex(self):
@@ -1954,12 +1962,3 @@ class TestLocSeries:
         s2["a"] = expected
         result = s2["a"]
         assert result == expected
-
-
-@pytest.mark.parametrize("value", [1, 1.5])
-def test_loc_int_in_object_index(frame_or_series, value):
-    # GH: 26491
-    obj = frame_or_series(range(4), index=[value, "first", 2, "third"])
-    result = obj.loc[value:"third"]
-    expected = frame_or_series(range(4), index=[value, "first", 2, "third"])
-    tm.assert_equal(result, expected)
