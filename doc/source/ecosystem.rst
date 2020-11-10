@@ -178,6 +178,16 @@ D-Tale integrates seamlessly with jupyter notebooks, python terminals, kaggle
 & Google Colab. Here are some demos of the `grid <http://alphatechadmin.pythonanywhere.com/>`__
 and `chart-builder <http://alphatechadmin.pythonanywhere.com/charts/4?chart_type=surface&query=&x=date&z=Col0&agg=raw&cpg=false&y=%5B%22security_id%22%5D>`__.
 
+`hvplot <https://hvplot.holoviz.org/index.html>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+hvPlot is a high-level plotting API for the PyData ecosystem built on `HoloViews <https://holoviews.org/>`__.
+It can be loaded as a native pandas plotting backend via
+
+.. code:: python
+
+    pd.set_option("plotting.backend", "hvplot")
+
 .. _ecosystem.ide:
 
 IDE
