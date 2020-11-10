@@ -24,6 +24,8 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in metadata propagation for ``groupby`` iterator (:issue:`37343`)
+- Bug in indexing on a :class:`Series` with ``CategoricalDtype`` after unpickling (:issue:`37631`)
+- Bug in :class:`RollingGroupby` with the resulting :class:`MultiIndex` when grouping by a label that is in the index (:issue:`37641`)
 -
 
 .. ---------------------------------------------------------------------------
