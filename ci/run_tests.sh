@@ -22,38 +22,27 @@ fi
 
 PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
 
+echo $PYTEST_CMD
+
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
     # GH#37455 windows py38 build appears to be running out of memory
     #  run tests in multiple phases to limit memory footprint
-    PYTEST_CMD="$PYTEST_CMD/tests/window"
-    PYTEST_CMD="$PYTEST_CMD/tests/api"
-    PYTEST_CMD="$PYTEST_CMD/tests/arithmetic"
-    PYTEST_CMD="$PYTEST_CMD/tests/arrays"
-    PYTEST_CMD="$PYTEST_CMD/tests/base"
-    PYTEST_CMD="$PYTEST_CMD/tests/computation"
-    PYTEST_CMD="$PYTEST_CMD/tests/config"
-    PYTEST_CMD="$PYTEST_CMD/tests/dtypes"
-    PYTEST_CMD="$PYTEST_CMD/tests/extension"
-    PYTEST_CMD="$PYTEST_CMD/tests/frame"
-    PYTEST_CMD="$PYTEST_CMD/tests/generic"
-    PYTEST_CMD="$PYTEST_CMD/tests/groupby"
-    PYTEST_CMD="$PYTEST_CMD/tests/indexes"
-    PYTEST_CMD="$PYTEST_CMD/tests/indexing"
-    PYTEST_CMD="$PYTEST_CMD/tests/internals"
-    PYTEST_CMD="$PYTEST_CMD/tests/io"
-    PYTEST_CMD="$PYTEST_CMD/tests/libs"
-    PYTEST_CMD="$PYTEST_CMD/tests/plotting"
-    PYTEST_CMD="$PYTEST_CMD/tests/reductions"
-    PYTEST_CMD="$PYTEST_CMD/tests/resample"
-    PYTEST_CMD="$PYTEST_CMD/tests/reshape"
-    PYTEST_CMD="$PYTEST_CMD/tests/scalar"
-    PYTEST_CMD="$PYTEST_CMD/tests/series"
-    PYTEST_CMD="$PYTEST_CMD/tests/tools"
-    PYTEST_CMD="$PYTEST_CMD/tests/tseries"
-    PYTEST_CMD="$PYTEST_CMD/tests/tslibs"
-    PYTEST_CMD="$PYTEST_CMD/tests/util"
-    PYTEST_CMD="$PYTEST_CMD/tests/window"
-    PYTEST_CMD="$PYTEST_CMD/tests/test*.py"
+    sh -c "$PYTEST_CMD/tests/a*"
+    sh -c "$PYTEST_CMD/tests/b*"
+    sh -c "$PYTEST_CMD/tests/c*"
+    sh -c "$PYTEST_CMD/tests/d*"
+    sh -c "$PYTEST_CMD/tests/e*"
+    sh -c "$PYTEST_CMD/tests/g*"
+    sh -c "$PYTEST_CMD/tests/i*"
+    sh -c "$PYTEST_CMD/tests/l*"
+    sh -c "$PYTEST_CMD/tests/p*"
+    sh -c "$PYTEST_CMD/tests/r*"
+    sh -c "$PYTEST_CMD/tests/s*"
+    sh -c "$PYTEST_CMD/tests/t*"
+    sh -c "$PYTEST_CMD/tests/u*"
+    sh -c "$PYTEST_CMD/tests/w*"
+else
+    sh -c "$PYTEST_CMD"
 fi
 
 echo $PYTEST_CMD
