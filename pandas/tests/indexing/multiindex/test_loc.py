@@ -614,3 +614,12 @@ def test_loc_with_nan():
     result = df.loc["a"]
     expected = DataFrame({"col": [1]}, index=Index([1], name="ind2"))
     tm.assert_frame_equal(result, expected)
+
+
+def test_getitem_non_found_tuple():
+    # GH: 25236
+    df = DataFrame([[1, 2, 3, 4]], columns=["a", "b", "c", "d"]).set_index(
+        ["a", "b", "c"]
+    )
+    with pytest.raises(KeyError, match=r"\(2\.0, 2\.0, 3\.0\)"):
+        df.loc[(2.0, 2.0, 3.0)]
