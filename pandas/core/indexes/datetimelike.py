@@ -38,7 +38,6 @@ from pandas.core.indexes.extension import (
     make_wrapped_arith_op,
 )
 from pandas.core.indexes.numeric import Int64Index
-from pandas.core.ops import get_op_result_name
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
@@ -483,16 +482,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
-        values = self._data._ndarray
+        other = self._data._validate_setitem_value(other)
 
-        try:
-            other = self._data._validate_where_value(other)
-        except (TypeError, ValueError) as err:
-            # Includes tzawareness mismatch and IncompatibleFrequencyError
-            oth = getattr(other, "dtype", other)
-            raise TypeError(f"Where requires matching dtype, not {oth}") from err
-
-        result = np.where(cond, values, other)
+        result = np.where(cond, self._data._ndarray, other)
         arr = self._data._from_backing_data(result)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -589,7 +581,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         Find the `freq` for self.insert(loc, item).
         """
-        value = self._data._validate_insert_value(item)
+        value = self._data._validate_scalar(item)
         item = self._data._box_func(value)
 
         freq = None
@@ -629,20 +621,23 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _can_union_without_object_cast(self, other) -> bool:
         return is_dtype_equal(self.dtype, other.dtype)
 
-    def _wrap_joined_index(self, joined: np.ndarray, other):
-        assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        name = get_op_result_name(self, other)
-
+    def _get_join_freq(self, other):
+        """
+        Get the freq to attach to the result of a join operation.
+        """
         if is_period_dtype(self.dtype):
             freq = self.freq
         else:
             self = cast(DatetimeTimedeltaMixin, self)
             freq = self.freq if self._can_fast_union(other) else None
+        return freq
 
-        new_data = self._data._from_backing_data(joined)
-        new_data._freq = freq
+    def _wrap_joined_index(self, joined: np.ndarray, other):
+        assert other.dtype == self.dtype, (other.dtype, self.dtype)
 
-        return type(self)._simple_new(new_data, name=name)
+        result = super()._wrap_joined_index(joined, other)
+        result._data._freq = self._get_join_freq(other)
+        return result
 
     @doc(Index._convert_arr_indexer)
     def _convert_arr_indexer(self, keyarr):
@@ -750,7 +745,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
         start = right[0]
 
         if end < start:
-            result = type(self)(data=[], dtype=self.dtype, freq=self.freq)
+            # pandas\core\indexes\datetimelike.py:758: error: Unexpected
+            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
+            result = type(self)(
+                data=[], dtype=self.dtype, freq=self.freq  # type: ignore[call-arg]
+            )
         else:
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left._values[lslice]
@@ -879,7 +878,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, Int64Index):
             i8self = Int64Index._simple_new(self.asi8)
             i8other = Int64Index._simple_new(other.asi8)
             i8result = i8self._union(i8other, sort=sort)
-            result = type(self)(i8result, dtype=self.dtype, freq="infer")
+            # pandas\core\indexes\datetimelike.py:887: error: Unexpected
+            # keyword argument "freq" for "DatetimeTimedeltaMixin"  [call-arg]
+            result = type(self)(
+                i8result, dtype=self.dtype, freq="infer"  # type: ignore[call-arg]
+            )
             return result
 
     # --------------------------------------------------------------------

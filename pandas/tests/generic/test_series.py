@@ -35,30 +35,10 @@ class TestSeries(Generic):
         with pytest.raises(ValueError, match=msg):
             s._set_axis_name(name="a", axis=1)
 
-    def test_get_numeric_data_preserve_dtype(self):
-
-        # get the numeric data
-        o = Series([1, 2, 3])
-        result = o._get_numeric_data()
-        self._compare(result, o)
-
-        o = Series([1, "2", 3.0])
-        result = o._get_numeric_data()
-        expected = Series([], dtype=object, index=pd.Index([], dtype=object))
-        self._compare(result, expected)
-
-        o = Series([True, False, True])
-        result = o._get_numeric_data()
-        self._compare(result, o)
-
+    def test_get_bool_data_preserve_dtype(self):
         o = Series([True, False, True])
         result = o._get_bool_data()
         self._compare(result, o)
-
-        o = Series(date_range("20130101", periods=3))
-        result = o._get_numeric_data()
-        expected = Series([], dtype="M8[ns]", index=pd.Index([], dtype=object))
-        self._compare(result, expected)
 
     def test_nonzero_single_element(self):
 

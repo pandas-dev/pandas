@@ -358,15 +358,17 @@ class IntegerArray(BaseMaskedArray):
         return type(self)(np.abs(self._data), self._mask)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy: bool = False) -> "IntegerArray":
+    def _from_sequence(
+        cls, scalars, *, dtype=None, copy: bool = False
+    ) -> "IntegerArray":
         return integer_array(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, dtype=None, copy: bool = False
+        cls, strings, *, dtype=None, copy: bool = False
     ) -> "IntegerArray":
         scalars = to_numeric(strings, errors="raise")
-        return cls._from_sequence(scalars, dtype, copy)
+        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
@@ -603,19 +605,19 @@ class IntegerArray(BaseMaskedArray):
 
         return self._maybe_mask_result(result, mask, other, op_name)
 
-    def sum(self, skipna=True, min_count=0, **kwargs):
+    def sum(self, *, skipna=True, min_count=0, **kwargs):
         nv.validate_sum((), kwargs)
         return super()._reduce("sum", skipna=skipna, min_count=min_count)
 
-    def prod(self, skipna=True, min_count=0, **kwargs):
+    def prod(self, *, skipna=True, min_count=0, **kwargs):
         nv.validate_prod((), kwargs)
         return super()._reduce("prod", skipna=skipna, min_count=min_count)
 
-    def min(self, skipna=True, **kwargs):
+    def min(self, *, skipna=True, **kwargs):
         nv.validate_min((), kwargs)
         return super()._reduce("min", skipna=skipna)
 
-    def max(self, skipna=True, **kwargs):
+    def max(self, *, skipna=True, **kwargs):
         nv.validate_max((), kwargs)
         return super()._reduce("max", skipna=skipna)
 

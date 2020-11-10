@@ -137,36 +137,6 @@ _shared_doc_kwargs = dict(
 )
 
 
-def _single_replace(self: "Series", to_replace, method, inplace, limit):
-    """
-    Replaces values in a Series using the fill method specified when no
-    replacement value is given in the replace method
-    """
-    if self.ndim != 1:
-        raise TypeError(
-            f"cannot replace {to_replace} with method {method} on a "
-            f"{type(self).__name__}"
-        )
-
-    orig_dtype = self.dtype
-    result = self if inplace else self.copy()
-    fill_f = missing.get_fill_func(method)
-
-    mask = missing.mask_missing(result.values, to_replace)
-    values = fill_f(result.values, limit=limit, mask=mask)
-
-    if values.dtype == orig_dtype and inplace:
-        return
-
-    result = pd.Series(values, index=self.index, dtype=self.dtype).__finalize__(self)
-
-    if inplace:
-        self._update_inplace(result)
-        return
-
-    return result
-
-
 bool_t = bool  # Need alias because NDFrame has def bool:
 
 
@@ -2196,7 +2166,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             * Series:
 
                 - default is 'index'
-                - allowed values are: {'split','records','index','table'}.
+                - allowed values are: {'split', 'records', 'index', 'table'}.
 
             * DataFrame:
 
@@ -6690,11 +6660,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
             if isinstance(to_replace, (tuple, list)):
                 if isinstance(self, ABCDataFrame):
+                    from pandas import Series
+
                     return self.apply(
-                        _single_replace, args=(to_replace, method, inplace, limit)
+                        Series._replace_single,
+                        args=(to_replace, method, inplace, limit),
                     )
                 self = cast("Series", self)
-                return _single_replace(self, to_replace, method, inplace, limit)
+                return self._replace_single(to_replace, method, inplace, limit)
 
             if not is_dict_like(to_replace):
                 if not is_dict_like(regex):
@@ -6771,25 +6744,25 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 else:
                     raise TypeError("value argument must be scalar, dict, or Series")
 
-            elif is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
-                if is_list_like(value):
-                    if len(to_replace) != len(value):
-                        raise ValueError(
-                            f"Replacement lists must match in length. "
-                            f"Expecting {len(to_replace)} got {len(value)} "
-                        )
-                    self._consolidate_inplace()
-                    new_data = self._mgr.replace_list(
-                        src_list=to_replace,
-                        dest_list=value,
-                        inplace=inplace,
-                        regex=regex,
-                    )
+            elif is_list_like(to_replace):
+                if not is_list_like(value):
+                    # e.g. to_replace = [NA, ''] and value is 0,
+                    #  so we replace NA with 0 and then replace '' with 0
+                    value = [value] * len(to_replace)
 
-                else:  # [NA, ''] -> 0
-                    new_data = self._mgr.replace(
-                        to_replace=to_replace, value=value, inplace=inplace, regex=regex
+                # e.g. we have to_replace = [NA, ''] and value = [0, 'missing']
+                if len(to_replace) != len(value):
+                    raise ValueError(
+                        f"Replacement lists must match in length. "
+                        f"Expecting {len(to_replace)} got {len(value)} "
                     )
+                new_data = self._mgr.replace_list(
+                    src_list=to_replace,
+                    dest_list=value,
+                    inplace=inplace,
+                    regex=regex,
+                )
+
             elif to_replace is None:
                 if not (
                     is_re_compilable(regex)
@@ -9347,9 +9320,12 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     def slice_shift(self: FrameOrSeries, periods: int = 1, axis=0) -> FrameOrSeries:
         """
         Equivalent to `shift` without copying data.
-
         The shifted data will not include the dropped periods and the
         shifted axis will be smaller than the original.
+
+        .. deprecated:: 1.2.0
+            slice_shift is deprecated,
+            use DataFrame/Series.shift instead.
 
         Parameters
         ----------
@@ -9365,6 +9341,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         While the `slice_shift` is faster than `shift`, you may pay for it
         later during alignment.
         """
+
+        msg = (
+            "The 'slice_shift' method is deprecated "
+            "and will be removed in a future version. "
+            "You can use DataFrame/Series.shift instead"
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
         if periods == 0:
             return self
 
@@ -10722,7 +10706,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def any(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
             return NDFrame.any(self, axis, bool_only, skipna, level, **kwargs)
 
-        cls.any = any
+        # pandas\core\generic.py:10725: error: Cannot assign to a method
+        # [assignment]
+        cls.any = any  # type: ignore[assignment]
 
         @doc(
             _bool_doc,
@@ -10737,7 +10723,14 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def all(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
             return NDFrame.all(self, axis, bool_only, skipna, level, **kwargs)
 
-        cls.all = all
+        # pandas\core\generic.py:10719: error: Cannot assign to a method
+        # [assignment]
+
+        # pandas\core\generic.py:10719: error: Incompatible types in assignment
+        # (expression has type "Callable[[Iterable[object]], bool]", variable
+        # has type "Callable[[NDFrame, Any, Any, Any, Any, KwArg(Any)], Any]")
+        # [assignment]
+        cls.all = all  # type: ignore[assignment]
 
         @doc(
             desc="Return the mean absolute deviation of the values "
@@ -10752,7 +10745,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def mad(self, axis=None, skipna=None, level=None):
             return NDFrame.mad(self, axis, skipna, level)
 
-        cls.mad = mad
+        # pandas\core\generic.py:10736: error: Cannot assign to a method
+        # [assignment]
+        cls.mad = mad  # type: ignore[assignment]
 
         @doc(
             _num_ddof_doc,
@@ -10774,7 +10769,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.sem(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        cls.sem = sem
+        # pandas\core\generic.py:10758: error: Cannot assign to a method
+        # [assignment]
+        cls.sem = sem  # type: ignore[assignment]
 
         @doc(
             _num_ddof_doc,
@@ -10795,7 +10792,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.var(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        cls.var = var
+        # pandas\core\generic.py:10779: error: Cannot assign to a method
+        # [assignment]
+        cls.var = var  # type: ignore[assignment]
 
         @doc(
             _num_ddof_doc,
@@ -10817,7 +10816,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.std(self, axis, skipna, level, ddof, numeric_only, **kwargs)
 
-        cls.std = std
+        # pandas\core\generic.py:10801: error: Cannot assign to a method
+        # [assignment]
+        cls.std = std  # type: ignore[assignment]
 
         @doc(
             _cnum_doc,
@@ -10831,7 +10832,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cummin(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cummin(self, axis, skipna, *args, **kwargs)
 
-        cls.cummin = cummin
+        # pandas\core\generic.py:10815: error: Cannot assign to a method
+        # [assignment]
+        cls.cummin = cummin  # type: ignore[assignment]
 
         @doc(
             _cnum_doc,
@@ -10845,7 +10848,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cummax(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
-        cls.cummax = cummax
+        # pandas\core\generic.py:10829: error: Cannot assign to a method
+        # [assignment]
+        cls.cummax = cummax  # type: ignore[assignment]
 
         @doc(
             _cnum_doc,
@@ -10859,7 +10864,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cumsum(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
-        cls.cumsum = cumsum
+        # pandas\core\generic.py:10843: error: Cannot assign to a method
+        # [assignment]
+        cls.cumsum = cumsum  # type: ignore[assignment]
 
         @doc(
             _cnum_doc,
@@ -10873,7 +10880,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def cumprod(self, axis=None, skipna=True, *args, **kwargs):
             return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
 
-        cls.cumprod = cumprod
+        # pandas\core\generic.py:10857: error: Cannot assign to a method
+        # [assignment]
+        cls.cumprod = cumprod  # type: ignore[assignment]
 
         @doc(
             _num_doc,
@@ -10899,7 +10908,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self, axis, skipna, level, numeric_only, min_count, **kwargs
             )
 
-        cls.sum = sum
+        # pandas\core\generic.py:10883: error: Cannot assign to a method
+        # [assignment]
+        cls.sum = sum  # type: ignore[assignment]
 
         @doc(
             _num_doc,
@@ -10924,7 +10935,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 self, axis, skipna, level, numeric_only, min_count, **kwargs
             )
 
-        cls.prod = prod
+        # pandas\core\generic.py:10908: error: Cannot assign to a method
+        # [assignment]
+        cls.prod = prod  # type: ignore[assignment]
         cls.product = prod
 
         @doc(
@@ -10940,7 +10953,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def mean(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
 
-        cls.mean = mean
+        # pandas\core\generic.py:10924: error: Cannot assign to a method
+        # [assignment]
+        cls.mean = mean  # type: ignore[assignment]
 
         @doc(
             _num_doc,
@@ -10955,7 +10970,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def skew(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.skew(self, axis, skipna, level, numeric_only, **kwargs)
 
-        cls.skew = skew
+        # pandas\core\generic.py:10939: error: Cannot assign to a method
+        # [assignment]
+        cls.skew = skew  # type: ignore[assignment]
 
         @doc(
             _num_doc,
@@ -10973,7 +10990,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def kurt(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.kurt(self, axis, skipna, level, numeric_only, **kwargs)
 
-        cls.kurt = kurt
+        # pandas\core\generic.py:10957: error: Cannot assign to a method
+        # [assignment]
+        cls.kurt = kurt  # type: ignore[assignment]
         cls.kurtosis = kurt
 
         @doc(
@@ -10991,7 +11010,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         ):
             return NDFrame.median(self, axis, skipna, level, numeric_only, **kwargs)
 
-        cls.median = median
+        # pandas\core\generic.py:10975: error: Cannot assign to a method
+        # [assignment]
+        cls.median = median  # type: ignore[assignment]
 
         @doc(
             _num_doc,
@@ -11008,7 +11029,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def max(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
 
-        cls.max = max
+        # pandas\core\generic.py:10992: error: Cannot assign to a method
+        # [assignment]
+        cls.max = max  # type: ignore[assignment]
 
         @doc(
             _num_doc,
@@ -11025,7 +11048,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         def min(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
             return NDFrame.min(self, axis, skipna, level, numeric_only, **kwargs)
 
-        cls.min = min
+        # pandas\core\generic.py:11009: error: Cannot assign to a method
+        # [assignment]
+        cls.min = min  # type: ignore[assignment]
 
     @doc(Rolling)
     def rolling(
@@ -11131,34 +11156,38 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         return self
 
     def __iadd__(self, other):
-        return self._inplace_method(other, type(self).__add__)
+        return self._inplace_method(other, type(self).__add__)  # type: ignore[operator]
 
     def __isub__(self, other):
-        return self._inplace_method(other, type(self).__sub__)
+        return self._inplace_method(other, type(self).__sub__)  # type: ignore[operator]
 
     def __imul__(self, other):
-        return self._inplace_method(other, type(self).__mul__)
+        return self._inplace_method(other, type(self).__mul__)  # type: ignore[operator]
 
     def __itruediv__(self, other):
-        return self._inplace_method(other, type(self).__truediv__)
+        return self._inplace_method(
+            other, type(self).__truediv__  # type: ignore[operator]
+        )
 
     def __ifloordiv__(self, other):
-        return self._inplace_method(other, type(self).__floordiv__)
+        return self._inplace_method(
+            other, type(self).__floordiv__  # type: ignore[operator]
+        )
 
     def __imod__(self, other):
-        return self._inplace_method(other, type(self).__mod__)
+        return self._inplace_method(other, type(self).__mod__)  # type: ignore[operator]
 
     def __ipow__(self, other):
-        return self._inplace_method(other, type(self).__pow__)
+        return self._inplace_method(other, type(self).__pow__)  # type: ignore[operator]
 
     def __iand__(self, other):
-        return self._inplace_method(other, type(self).__and__)
+        return self._inplace_method(other, type(self).__and__)  # type: ignore[operator]
 
     def __ior__(self, other):
-        return self._inplace_method(other, type(self).__or__)
+        return self._inplace_method(other, type(self).__or__)  # type: ignore[operator]
 
     def __ixor__(self, other):
-        return self._inplace_method(other, type(self).__xor__)
+        return self._inplace_method(other, type(self).__xor__)  # type: ignore[operator]
 
     # ----------------------------------------------------------------------
     # Misc methods
