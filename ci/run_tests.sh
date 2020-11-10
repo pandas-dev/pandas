@@ -24,8 +24,36 @@ PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s 
 
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
     # GH#37455 windows py38 build appears to be running out of memory
-    #  skip collection of window tests
-    PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/window/"
+    #  run tests in multiple phases to limit memory footprint
+    PYTEST_CMD="$PYTEST_CMD/tests/window"
+    PYTEST_CMD="$PYTEST_CMD/tests/api"
+    PYTEST_CMD="$PYTEST_CMD/tests/arithmetic"
+    PYTEST_CMD="$PYTEST_CMD/tests/arrays"
+    PYTEST_CMD="$PYTEST_CMD/tests/base"
+    PYTEST_CMD="$PYTEST_CMD/tests/computation"
+    PYTEST_CMD="$PYTEST_CMD/tests/config"
+    PYTEST_CMD="$PYTEST_CMD/tests/dtypes"
+    PYTEST_CMD="$PYTEST_CMD/tests/extension"
+    PYTEST_CMD="$PYTEST_CMD/tests/frame"
+    PYTEST_CMD="$PYTEST_CMD/tests/generic"
+    PYTEST_CMD="$PYTEST_CMD/tests/groupby"
+    PYTEST_CMD="$PYTEST_CMD/tests/indexes"
+    PYTEST_CMD="$PYTEST_CMD/tests/indexing"
+    PYTEST_CMD="$PYTEST_CMD/tests/internals"
+    PYTEST_CMD="$PYTEST_CMD/tests/io"
+    PYTEST_CMD="$PYTEST_CMD/tests/libs"
+    PYTEST_CMD="$PYTEST_CMD/tests/plotting"
+    PYTEST_CMD="$PYTEST_CMD/tests/reductions"
+    PYTEST_CMD="$PYTEST_CMD/tests/resample"
+    PYTEST_CMD="$PYTEST_CMD/tests/reshape"
+    PYTEST_CMD="$PYTEST_CMD/tests/scalar"
+    PYTEST_CMD="$PYTEST_CMD/tests/series"
+    PYTEST_CMD="$PYTEST_CMD/tests/tools"
+    PYTEST_CMD="$PYTEST_CMD/tests/tseries"
+    PYTEST_CMD="$PYTEST_CMD/tests/tslibs"
+    PYTEST_CMD="$PYTEST_CMD/tests/util"
+    PYTEST_CMD="$PYTEST_CMD/tests/window"
+    PYTEST_CMD="$PYTEST_CMD/tests/test*.py"
 fi
 
 echo $PYTEST_CMD
