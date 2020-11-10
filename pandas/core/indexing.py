@@ -705,11 +705,31 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         raise AbstractMethodError(self)
 
+    def _expand_ellipsis(self, tup: Tuple) -> Tuple:
+        """
+        If a tuple key includes an Ellipsis, replace it with an appropriate
+        number of null slices.
+        """
+        if any(x is Ellipsis for x in tup):
+
+            if len(tup) == self.ndim:
+                # It is unambiguous what axis this Ellipsis is indexing,
+                #  treat as a single null slice.
+                i = tup.index(Ellipsis)
+                # FIXME: this assumes only one Ellipsis
+                new_key = tup[:i] + (_NS,) + tup[i + 1 :]
+                return new_key
+
+            # TODO: other cases?  only one test gets here, and that is covered
+            #  by _validate_key_length
+        return tup
+
     def _has_valid_tuple(self, key: Tuple):
         """
         Check the key for valid keys across my indexer.
         """
-        self._validate_key_length(key)
+        key = self._validate_key_length(key)
+        key = self._expand_ellipsis(key)
         for i, k in enumerate(key):
             try:
                 self._validate_key(k, i)
@@ -718,6 +738,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                     "Location based indexing can only have "
                     f"[{self._valid_types}] types"
                 ) from err
+        return key
 
     def _is_nested_tuple_indexer(self, tup: Tuple) -> bool:
         """
@@ -750,7 +771,12 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     def _validate_key_length(self, key: Sequence[Any]) -> None:
         if len(key) > self.ndim:
+            if key[0] is Ellipsis:
+                # e.g. Series.iloc[..., 3] reduces to just Series.iloc[3]
+                key = key[1:]
+                return self._validate_key_length(key)
             raise IndexingError("Too many indexers")
+        return key
 
     def _getitem_tuple_same_dim(self, tup: Tuple):
         """
@@ -790,7 +816,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             with suppress(IndexingError):
                 return self._handle_lowerdim_multi_index_axis0(tup)
 
-        self._validate_key_length(tup)
+        tup = self._validate_key_length(tup)
 
         for i, key in enumerate(tup):
             if is_label_like(key):
@@ -1049,10 +1075,11 @@ class _LocIndexer(_LocationIndexer):
 
     def _getitem_tuple(self, tup: Tuple):
         with suppress(IndexingError):
+            tup = self._expand_ellipsis(tup)
             return self._getitem_lowerdim(tup)
 
         # no multi-index, so validate all of the indexers
-        self._has_valid_tuple(tup)
+        tup = self._has_valid_tuple(tup)
 
         # ugly hack for GH #836
         if self._multi_take_opportunity(tup):
@@ -1447,7 +1474,7 @@ class _iLocIndexer(_LocationIndexer):
 
     def _getitem_tuple(self, tup: Tuple):
 
-        self._has_valid_tuple(tup)
+        tup = self._has_valid_tuple(tup)
         with suppress(IndexingError):
             return self._getitem_lowerdim(tup)
 
@@ -2329,7 +2356,11 @@ def is_label_like(key) -> bool:
     bool
     """
     # select a label or row
-    return not isinstance(key, slice) and not is_list_like_indexer(key)
+    return (
+        not isinstance(key, slice)
+        and not is_list_like_indexer(key)
+        and key is not Ellipsis
+    )
 
 
 def need_slice(obj) -> bool:

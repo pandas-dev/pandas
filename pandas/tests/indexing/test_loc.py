@@ -1126,6 +1126,27 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         tm.assert_frame_equal(expected, df)
 
+    def test_loc_getitem_ellipses_series(self):
+        ser = Series(range(5))
+
+        result = ser.loc[..., [3]]
+        expected = ser.loc[[3]]
+        tm.assert_series_equal(result, expected)
+
+        # also check iloc while we're here
+        result = ser.iloc[..., [3]]
+        expected = ser.iloc[[3]]
+        tm.assert_series_equal(result, expected)
+
+        df = ser.to_frame()
+        result = df.loc[..., [0]]
+        expected = df.loc[:, [0]]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.iloc[..., [0]]
+        expected = df.iloc[:, [0]]
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLocWithMultiIndex:
     @pytest.mark.parametrize(
