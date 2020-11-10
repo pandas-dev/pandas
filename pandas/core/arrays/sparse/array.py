@@ -1062,10 +1062,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
         # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
         sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
-        # pandas\core\arrays\sparse\array.py:1074: error: Non-overlapping
-        # identity check (left operand type: "ExtensionArray", right operand
-        # t...ype: "ndarray")  [comparison-overlap]
-        if sp_values is self.sp_values and copy:  # type: ignore[comparison-overlap]
+        if sp_values is self.sp_values and copy:
             sp_values = sp_values.copy()
 
         # pandas\core\arrays\sparse\array.py:1077: error: Argument 1 to

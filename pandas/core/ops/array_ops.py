@@ -357,9 +357,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         #   integer dtypes.  Otherwise these are boolean ops
         filler = fill_int if is_self_int_dtype and is_other_int_dtype else fill_bool
 
-        # error: Argument 1 to "na_logical_op" has incompatible type
-        # "ExtensionArray"; expected "ndarray"
-        res_values = na_logical_op(lvalues, rvalues, op)  # type: ignore[arg-type]
+        res_values = na_logical_op(lvalues, rvalues, op)
         # error: Cannot call function of unknown type
         res_values = filler(res_values)  # type: ignore[operator]
 
@@ -408,7 +406,7 @@ def get_array_op(op):
         raise NotImplementedError(op_name)
 
 
-def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
+def maybe_upcast_datetimelike_array(obj: Any) -> Any:
     """
     If we have an ndarray that is either datetime64 or timedelta64, wrap in EA.
 
@@ -424,9 +422,7 @@ def maybe_upcast_datetimelike_array(obj: ArrayLike) -> ArrayLike:
         if obj.dtype.kind == "m":
             from pandas.core.arrays import TimedeltaArray
 
-            # error: Incompatible return value type (got "TimedeltaArray",
-            # expected "ndarray")
-            return TimedeltaArray._from_sequence(obj)  # type: ignore[return-value]
+            return TimedeltaArray._from_sequence(obj)
         if obj.dtype.kind == "M":
             from pandas.core.arrays import DatetimeArray
 

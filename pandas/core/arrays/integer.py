@@ -467,10 +467,7 @@ class IntegerArray(BaseMaskedArray):
         # if the dtype is exactly the same, we can fastpath
         if self.dtype == dtype:
             # return the same object for copy=False
-
-            # error: Incompatible return value type (got "IntegerArray",
-            # expected "ndarray")
-            return self.copy() if copy else self  # type: ignore[return-value]
+            return self.copy() if copy else self
         # if we are astyping to another nullable masked dtype, we can fastpath
         if isinstance(dtype, BaseMaskedDtype):
             data = self._data.astype(dtype.numpy_dtype, copy=copy)
@@ -478,11 +475,7 @@ class IntegerArray(BaseMaskedArray):
             # not directly depending on the `copy` keyword
             mask = self._mask if data is self._data else self._mask.copy()
 
-            # error: Incompatible return value type (got "BaseMaskedArray",
-            # expected "ndarray")
-            return dtype.construct_array_type()(  # type: ignore[return-value]
-                data, mask, copy=False
-            )
+            return dtype.construct_array_type()(data, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -497,11 +490,7 @@ class IntegerArray(BaseMaskedArray):
         else:
             na_value = lib.no_default
 
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return self.to_numpy(  # type: ignore[return-value]
-            dtype=dtype, na_value=na_value, copy=False
-        )
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """

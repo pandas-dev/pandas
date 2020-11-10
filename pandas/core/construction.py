@@ -287,24 +287,7 @@ def array(
     ):
         dtype = data.dtype
 
-    # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
-    # "Union[Sequence[object], ExtensionArray]"
-
-    # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
-    # "Union[Sequence[object], Index]"
-
-    # pandas\core\construction.py:295: error: Incompatible types in assignment
-    # (expression has type "ExtensionArray", variable has type
-    # "Union[Sequence[object], Index]")  [assignment]
-
-    # pandas\core\construction.py:295: error: Incompatible types in assignment
-    # (expression has type "ExtensionArray", variable has type
-    # "Union[Sequence[object], Series]")  [assignment]
-
-    # pandas\core\construction.py:295: error: Incompatible types in assignment
-    # (expression has type "ExtensionArray", variable has type
-    # "Union[Sequence[object], ndarray]")  [assignment]
-    data = extract_array(data, extract_numpy=True)  # type: ignore[type-var,assignment]
+    data = extract_array(data, extract_numpy=True)
 
     # this returns None for not-found dtypes.
     if isinstance(dtype, str):
@@ -368,7 +351,7 @@ def array(
     return result
 
 
-def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
+def extract_array(obj: Any, extract_numpy: bool = False) -> Any:
     """
     Extract the ndarray or ExtensionArray from a Series or Index.
 
@@ -416,9 +399,7 @@ def extract_array(obj: AnyArrayLike, extract_numpy: bool = False) -> ArrayLike:
     if extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
-    # error: Incompatible return value type (got "Index", expected "ExtensionArray")
-    # error: Incompatible return value type (got "Series", expected "ExtensionArray")
-    return obj  # type: ignore[return-value]
+    return obj
 
 
 def sanitize_array(
@@ -653,7 +634,7 @@ def is_empty_data(data: Any) -> bool:
 
 def create_series_with_explicit_dtype(
     data: Any = None,
-    index: Optional[Union[ArrayLike, Index]] = None,
+    index=None,
     dtype: Optional[Dtype] = None,
     name: Optional[str] = None,
     copy: bool = False,

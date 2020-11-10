@@ -255,9 +255,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # type (got "bool_", expected "bool")  [return-value]
         return self._mask.any()  # type: ignore[return-value]
 
-    # error: Return type "ndarray" of "isna" incompatible with return type
-    # "ArrayLike" in supertype "ExtensionArray"
-    def isna(self) -> np.ndarray:  # type: ignore[override]
+    def isna(self) -> np.ndarray:
         return self._mask
 
     @property

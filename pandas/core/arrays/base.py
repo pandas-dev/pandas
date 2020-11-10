@@ -628,9 +628,9 @@ class ExtensionArray:
                 )
             value = value[mask]
 
-        # pandas\core\arrays\base.py:620: error: "ExtensionArray" has no
-        # attribute "any"  [attr-defined]
-        if mask.any():  # type: ignore[attr-defined]
+        # pandas\core\arrays\base.py:631: error: Item "ExtensionArray" of
+        # "Union[ExtensionArray, ndarray]" has no attribute "any"  [union-attr]
+        if mask.any():  # type: ignore[union-attr]
             if method is not None:
                 func = get_fill_func(method)
                 new_values = func(self.astype(object), limit=limit, mask=mask)
@@ -800,7 +800,18 @@ class ExtensionArray:
                 equal_values = equal_values.fillna(False)
             # error: Unsupported left operand type for & ("ExtensionArray")
             equal_na = self.isna() & other.isna()  # type: ignore[operator]
-            return bool((equal_values | equal_na).all())
+            # pandas\core\arrays\base.py:801: error: Unsupported operand types
+            # for | ("ExtensionArray" and "ndarray")  [operator]
+
+            # pandas\core\arrays\base.py:801: error: Unsupported operand types
+            # for | ("ExtensionArray" and "integer[Any]")  [operator]
+
+            # pandas\core\arrays\base.py:801: error: No overload variant of
+            # "__call__" of "_BoolBitOp" matches argument type "ExtensionArray"
+            # [call-overload]
+            return bool(
+                (equal_values | equal_na).all()  # type: ignore[operator,call-overload]
+            )
 
     def _values_for_factorize(self) -> Tuple[np.ndarray, Any]:
         """

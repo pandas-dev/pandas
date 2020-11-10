@@ -575,9 +575,11 @@ class DataFrame(NDFrame, OpsMixin):
                     arrays, columns = to_arrays(
                         data, columns, dtype=dtype  # type: ignore[arg-type]
                     )
-                    # error: Value of type variable "AnyArrayLike" of
-                    # "ensure_index" cannot be "Optional[Collection[Any]]"
-                    columns = ensure_index(columns)  # type: ignore[type-var]
+                    # pandas\core\frame.py:578: error: Argument 1 to
+                    # "ensure_index" has incompatible type
+                    # "Optional[Collection[Any]]"; expected "Iterable[Any]"
+                    # [arg-type]
+                    columns = ensure_index(columns)  # type: ignore[arg-type]
 
                     # set the index
                     if index is None:
@@ -3022,9 +3024,7 @@ class DataFrame(NDFrame, OpsMixin):
         Get the values of the i'th column (ndarray or ExtensionArray, as stored
         in the Block)
         """
-        # error: Incompatible return value type (got "ExtensionArray", expected
-        # "ndarray")
-        return self._mgr.iget_values(i)  # type: ignore[return-value]
+        return self._mgr.iget_values(i)
 
     def _iter_column_arrays(self) -> Iterator[ArrayLike]:
         """
@@ -3032,9 +3032,7 @@ class DataFrame(NDFrame, OpsMixin):
         This returns the values as stored in the Block (ndarray or ExtensionArray).
         """
         for i in range(len(self.columns)):
-            # error: Incompatible types in "yield" (actual type
-            # "ExtensionArray", expected type "ndarray")
-            yield self._get_column_array(i)  # type: ignore[misc]
+            yield self._get_column_array(i)
 
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
@@ -8884,7 +8882,11 @@ NaN 12.3   33.0
 
         def func(values):
             if is_extension_array_dtype(values.dtype):
-                return extract_array(values)._reduce(name, skipna=skipna, **kwds)
+                values = extract_array(values)
+                # TODO: cast is probably not required once extract_array can be
+                # overloaded after Numpy types no longer resolve to Any
+                values = cast(ExtensionArray, values)
+                return values._reduce(name, skipna=skipna, **kwds)
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 

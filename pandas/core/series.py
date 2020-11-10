@@ -12,6 +12,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
     Union,
@@ -374,11 +375,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Input is now list-like, so rely on "standard" construction:
 
         # TODO: passing np.float64 to not break anything yet. See GH-17261
-
-        # pandas\core\series.py:375: error: Value of type variable "ArrayLike"
-        # of "create_series_with_explicit_dtype" cannot be "Tuple[Any, ...]"
-        # [type-var]
-        s = create_series_with_explicit_dtype(  # type: ignore[type-var]
+        s = create_series_with_explicit_dtype(
             values, index=keys, dtype=dtype, dtype_if_empty=np.float64
         )
 
@@ -2977,6 +2974,7 @@ Keep all original rows and also all original values
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 
+        new_values: Union[Sequence, ArrayLike]
         if isinstance(other, Series):
             # If other is a Series, result is based on union of Series,
             # so do this element by element
@@ -3002,13 +3000,7 @@ Keep all original rows and also all original values
             # TODO: can we do this for only SparseDtype?
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA.
-
-            # pandas\core\series.py:2978: error: Value of type variable
-            # "ArrayLike" of "maybe_cast_to_extension_array" cannot be
-            # "List[Any]"  [type-var]
-            new_values = maybe_cast_to_extension_array(
-                type(self._values), new_values  # type: ignore[type-var]
-            )
+            new_values = maybe_cast_to_extension_array(type(self._values), new_values)
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other) -> "Series":

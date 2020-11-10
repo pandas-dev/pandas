@@ -376,8 +376,8 @@ def maybe_cast_result_dtype(dtype: DtypeObj, how: str) -> DtypeObj:
 
 
 def maybe_cast_to_extension_array(
-    cls: Type["ExtensionArray"], obj: ArrayLike, dtype: Optional[ExtensionDtype] = None
-) -> ArrayLike:
+    cls: Type["ExtensionArray"], obj: Any, dtype: Optional[ExtensionDtype] = None
+) -> Any:
     """
     Call to `_from_sequence` that returns the object unchanged on Exception.
 
@@ -542,14 +542,7 @@ def maybe_casted_values(
                 else:
                     values[mask] = np.nan
 
-    # pandas\core\dtypes\cast.py:525: error: Incompatible return value type
-    # (got "Union[ExtensionArray, ndarray]", expected "ExtensionArray")
-    # [return-value]
-
-    # pandas\core\dtypes\cast.py:525: error: Incompatible return value type
-    # (got "Union[ExtensionArray, ndarray]", expected "ndarray")
-    # [return-value]
-    return values  # type: ignore[return-value]
+    return values
 
 
 def maybe_promote(dtype, fill_value=np.nan):
@@ -886,10 +879,7 @@ def infer_dtype_from_array(
     (dtype('O'), [1, '1'])
     """
     if isinstance(arr, np.ndarray):
-        # pandas\core\dtypes\cast.py:846: error: Incompatible return value type
-        # (got "Tuple[dtype, ndarray]", expected "Tuple[Union[dtype,
-        # ExtensionDtype], ExtensionArray]")  [return-value]
-        return arr.dtype, arr  # type: ignore[return-value]
+        return arr.dtype, arr
 
     if not is_list_like(arr):
         arr = [arr]
@@ -898,10 +888,7 @@ def infer_dtype_from_array(
         return arr.dtype, arr
 
     elif isinstance(arr, ABCSeries):
-        # pandas\core\dtypes\cast.py:855: error: Incompatible return value type
-        # (got "Tuple[Any, ndarray]", expected "Tuple[Union[dtype,
-        # ExtensionDtype], ExtensionArray]")  [return-value]
-        return arr.dtype, np.asarray(arr)  # type: ignore[return-value]
+        return arr.dtype, np.asarray(arr)
 
     # don't force numpy coerce with nan's
     inferred = lib.infer_dtype(arr, skipna=False)
@@ -1143,19 +1130,11 @@ def astype_nansafe(
         elif is_datetime64_dtype(dtype):
             from pandas import to_datetime
 
-            # pandas\core\dtypes\cast.py:1082: error: Incompatible return value
-            # type (got "ExtensionArray", expected "ndarray")  [return-value]
-            return astype_nansafe(  # type: ignore[return-value]
-                to_datetime(arr).values, dtype, copy=copy
-            )
+            return astype_nansafe(to_datetime(arr).values, dtype, copy=copy)
         elif is_timedelta64_dtype(dtype):
             from pandas import to_timedelta
 
-            # pandas\core\dtypes\cast.py:1086: error: Incompatible return value
-            # type (got "ExtensionArray", expected "ndarray")  [return-value]
-            return astype_nansafe(  # type: ignore[return-value]
-                to_timedelta(arr)._values, dtype, copy=copy
-            )
+            return astype_nansafe(to_timedelta(arr)._values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = (

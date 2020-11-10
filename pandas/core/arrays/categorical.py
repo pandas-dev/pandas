@@ -356,9 +356,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif is_categorical_dtype(values.dtype):
-            # pandas\core\arrays\categorical.py:359: error: "ExtensionArray"
-            # has no attribute "codes"  [attr-defined]
-            old_codes = extract_array(values).codes  # type: ignore[attr-defined]
+            arr = extract_array(values)
+            arr = cast(Categorical, arr)
+            old_codes = arr.codes
             codes = recode_for_categories(
                 old_codes, values.dtype.categories, dtype.categories
             )
@@ -414,20 +414,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
             if dtype == self.dtype:
-                # error: Incompatible return value type (got "Categorical",
-                # expected "ndarray")
-                return self  # type: ignore[return-value]
-            # error: Incompatible return value type (got "Categorical",
-            # expected "ndarray")
-            return self._set_dtype(dtype)  # type: ignore[return-value]
+                return self
+            return self._set_dtype(dtype)
         if is_extension_array_dtype(dtype):
             return array(self, dtype=dtype, copy=copy)
         if is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
 
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return np.array(  # type: ignore[return-value]
+        return np.array(
             # error: Argument "dtype" to "array" has incompatible type
             # "Union[ExtensionDtype, str, dtype, Type[str], Type[float], Type[int],
             # Type[complex], Type[bool], Type[object]]"; expected "Union[dtype,

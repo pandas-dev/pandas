@@ -852,10 +852,7 @@ class Block(PandasObject):
         rx = re.compile(to_replace)
 
         new_values = self.values if inplace else self.values.copy()
-        # pandas\core\internals\blocks.py:855: error: Value of type variable
-        # "ArrayLike" of "replace_regex" cannot be "Union[ndarray,
-        # ExtensionArray]"  [type-var]
-        replace_regex(new_values, rx, value, mask)  # type: ignore[type-var]
+        replace_regex(new_values, rx, value, mask)
 
         block = self.make_block(new_values)
         if convert:
@@ -876,7 +873,9 @@ class Block(PandasObject):
         """
         src_len = len(src_list) - 1
 
-        def comp(s: Scalar, mask: np.ndarray, regex: bool = False) -> np.ndarray:
+        def comp(
+            s: Scalar, mask: np.ndarray, regex: bool = False
+        ) -> Union[ArrayLike, bool]:
             """
             Generate a bool array by perform an equality check, or perform
             an element-wise regular expression matching
@@ -888,16 +887,7 @@ class Block(PandasObject):
                 return ~mask  # type: ignore[return-value]
 
             s = maybe_box_datetimelike(s)
-            # error: Incompatible return value type (got "Union[ndarray,
-            # bool]", expected "ndarray")
-
-            # pandas\core\internals\blocks.py:849: error: Value of type
-            # variable "ArrayLike" of "compare_or_regex_search" cannot be
-            # "Union[ndarray, ExtensionArray]"  [type-var]
-            tmp = compare_or_regex_search(
-                self.values, s, regex, mask  # type: ignore[type-var]
-            )
-            return tmp  # type: ignore[return-value]
+            return compare_or_regex_search(self.values, s, regex, mask)
 
         # Calculate the mask once, prior to the call of comp
         # in order to avoid repeating the same computations
@@ -1433,13 +1423,7 @@ class Block(PandasObject):
         """ shift the block by periods, possibly upcast """
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-
-        # pandas\core\internals\blocks.py:1376: error: Value of type variable
-        # "ArrayLike" of "maybe_upcast" cannot be "Union[ndarray,
-        # ExtensionArray]"  [type-var]
-        new_values, fill_value = maybe_upcast(
-            self.values, fill_value  # type: ignore[type-var]
-        )
+        new_values, fill_value = maybe_upcast(self.values, fill_value)
 
         # pandas\core\internals\blocks.py:1378: error: Argument 1 to "shift"
         # has incompatible type "Union[ndarray, ExtensionArray]"; expected
@@ -2748,11 +2732,12 @@ def _block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     if values.ndim < ndim:
         shape = values.shape
         if not is_extension_array_dtype(values.dtype):
+            values = cast(np.ndarray, values)
+
             # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
-            # error: "ExtensionArray" has no attribute "reshape"
-            values = values.reshape(tuple((1,) + shape))  # type: ignore[attr-defined]
+            values = values.reshape(tuple((1,) + shape))
     return values
 
 
@@ -2868,10 +2853,7 @@ def _extract_bool_array(mask: ArrayLike) -> np.ndarray:
         # We could have BooleanArray, Sparse[bool], ...
         #  Except for BooleanArray, this is equivalent to just
         #  np.asarray(mask, dtype=bool)
-
-        #  error: Incompatible types in assignment (expression has type
-        #  "ndarray", variable has type "ExtensionArray")
-        mask = mask.to_numpy(dtype=bool, na_value=False)  # type: ignore[assignment]
+        mask = mask.to_numpy(dtype=bool, na_value=False)
 
     assert isinstance(mask, np.ndarray), type(mask)
     assert mask.dtype == bool, mask.dtype

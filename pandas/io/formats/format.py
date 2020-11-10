@@ -1527,14 +1527,12 @@ class Datetime64Formatter(GenericArrayFormatter):
 class ExtensionArrayFormatter(GenericArrayFormatter):
     def _format_strings(self) -> List[str]:
         values = extract_array(self.values, extract_numpy=True)
-
         formatter = values._formatter(boxed=True)
 
         if is_categorical_dtype(values.dtype):
+            values = cast(Categorical, values)
             # Categorical is special for now, so that we can preserve tzinfo
-
-            # error: "ExtensionArray" has no attribute "_internal_get_values"
-            array = values._internal_get_values()  # type: ignore[attr-defined]
+            array = values._internal_get_values()
         else:
             array = np.asarray(values)
 

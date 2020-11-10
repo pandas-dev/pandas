@@ -231,8 +231,9 @@ class NDArrayBackedExtensionArray(ExtensionArray):
                 )
             value = value[mask]
 
-        # error: "ExtensionArray" has no attribute "any"
-        if mask.any():  # type: ignore[attr-defined]
+        # pandas\core\arrays\_mixins.py:234: error: Item "ExtensionArray" of
+        # "Union[ExtensionArray, ndarray]" has no attribute "any"  [union-attr]
+        if mask.any():  # type: ignore[union-attr]
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values = func(self._ndarray.copy(), limit=limit, mask=mask)

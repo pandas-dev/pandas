@@ -379,15 +379,9 @@ class BooleanArray(BaseMaskedArray):
         if isinstance(dtype, BooleanDtype):
             values, mask = coerce_to_array(self, copy=copy)
             if not copy:
-                # error: Incompatible return value type (got "BooleanArray",
-                # expected "ndarray")
-                return self  # type: ignore[return-value]
+                return self
             else:
-                # error: Incompatible return value type (got "BooleanArray",
-                # expected "ndarray")
-                return BooleanArray(  # type: ignore[return-value]
-                    values, mask, copy=False
-                )
+                return BooleanArray(values, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
@@ -396,15 +390,11 @@ class BooleanArray(BaseMaskedArray):
             if self._hasna:
                 raise ValueError("cannot convert float NaN to bool")
             else:
-                # error: Incompatible return value type (got "ndarray",
-                # expected "ExtensionArray")
-                return self._data.astype(dtype, copy=copy)  # type: ignore[return-value]
+                return self._data.astype(dtype, copy=copy)
         if is_extension_array_dtype(dtype) and is_integer_dtype(dtype):
             from pandas.core.arrays import IntegerArray
 
-            # error: Incompatible return value type (got "IntegerArray",
-            # expected "ndarray")
-            return IntegerArray(  # type: ignore[return-value]
+            return IntegerArray(
                 self._data.astype(dtype.numpy_dtype), self._mask.copy(), copy=False
             )
         # for integer, error if there are missing values
@@ -416,12 +406,7 @@ class BooleanArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return self.to_numpy(  # type: ignore[return-value]
-            dtype=dtype, na_value=na_value, copy=False
-        )
+        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         """

@@ -426,9 +426,10 @@ def extract_index(data) -> Index:
             else:
                 index = ibase.default_index(lengths[0])
 
-    # error: Value of type variable "AnyArrayLike" of "ensure_index" cannot be
-    # "Optional[Index]"
-    return ensure_index(index)  # type: ignore[type-var]
+    # pandas\core\internals\construction.py:429: error: Argument 1 to
+    # "ensure_index" has incompatible type "Optional[Index]"; expected
+    # "Iterable[Any]"  [arg-type]
+    return ensure_index(index)  # type: ignore[arg-type]
 
 
 def reorder_arrays(arrays, arr_columns, columns):
@@ -611,10 +612,7 @@ def _list_of_series_to_arrays(
         values = extract_array(s, extract_numpy=True)
         aligned_values.append(algorithms.take_1d(values, indexer))
 
-    # pandas\core\internals\construction.py:613: error: Incompatible types in
-    # assignment (expression has type "ndarray", variable has type
-    # "ExtensionArray")  [assignment]
-    values = np.vstack(aligned_values)  # type: ignore[assignment]
+    values = np.vstack(aligned_values)
 
     if values.dtype == np.object_:
         content = list(values.T)
@@ -622,12 +620,7 @@ def _list_of_series_to_arrays(
         content = _convert_object_array(content, dtype=dtype, coerce_float=coerce_float)
         return content, columns
     else:
-        # pandas\core\internals\construction.py:619: error: Incompatible return
-        # value type (got "Tuple[ExtensionArray, Union[Index, List[Any]]]",
-        # expected "Tuple[List[Union[Union[str, int, float, bool], Union[Any,
-        # Any, Any, Any]]], Union[Index, List[Union[str, int]]]]")
-        # [return-value]
-        return values.T, columns  # type: ignore[return-value]
+        return values.T, columns
 
 
 def _list_of_dict_to_arrays(

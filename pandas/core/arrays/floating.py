@@ -371,10 +371,7 @@ class FloatingArray(BaseMaskedArray):
         # if the dtype is exactly the same, we can fastpath
         if self.dtype == dtype:
             # return the same object for copy=False
-
-            # error: Incompatible return value type (got "FloatingArray",
-            # expected "ndarray")
-            return self.copy() if copy else self  # type: ignore[return-value]
+            return self.copy() if copy else self
         # if we are astyping to another nullable masked dtype, we can fastpath
         if isinstance(dtype, BaseMaskedDtype):
             # TODO deal with NaNs
@@ -382,11 +379,7 @@ class FloatingArray(BaseMaskedArray):
             # mask is copied depending on whether the data was copied, and
             # not directly depending on the `copy` keyword
             mask = self._mask if data is self._data else self._mask.copy()
-            # error: Incompatible return value type (got "BaseMaskedArray",
-            # expected "ndarray")
-            return dtype.construct_array_type()(  # type: ignore[return-value]
-                data, mask, copy=False
-            )
+            return dtype.construct_array_type()(data, mask, copy=False)
         elif isinstance(dtype, StringDtype):
             return StringArray._from_sequence(self, copy=False)
 
@@ -404,9 +397,7 @@ class FloatingArray(BaseMaskedArray):
         # error: Argument 2 to "to_numpy" of "BaseMaskedArray" has incompatible
         # type "**Dict[str, float]"; expected "bool"
         data = self.to_numpy(dtype=dtype, **kwargs)  # type: ignore[arg-type]
-        # pandas\core\arrays\floating.py:405: error: Incompatible return value
-        # type (got "ExtensionArray", expected "ndarray")  [return-value]
-        return astype_nansafe(data, dtype, copy=False)  # type: ignore[return-value]
+        return astype_nansafe(data, dtype, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:
         return self._data

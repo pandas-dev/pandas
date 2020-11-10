@@ -903,18 +903,7 @@ def period_array(
     if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
         data = list(data)
 
-    # pandas\core\arrays\period.py:893: error: Incompatible types in assignment
-    # (expression has type "ndarray", variable has type
-    # "Union[Sequence[Optional[Any]], ExtensionArray]")  [assignment]
-
-    # pandas\core\arrays\period.py:893: error: Incompatible types in assignment
-    # (expression has type "ndarray", variable has type
-    # "Union[Sequence[Optional[Any]], Index]")  [assignment]
-
-    # pandas\core\arrays\period.py:893: error: Incompatible types in assignment
-    # (expression has type "ndarray", variable has type
-    # "Union[Sequence[Optional[Any]], Series]")  [assignment]
-    data = np.asarray(data)  # type: ignore[assignment]
+    data = np.asarray(data)
 
     dtype: Optional[PeriodDtype]
     if freq:

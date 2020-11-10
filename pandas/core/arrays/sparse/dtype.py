@@ -1,7 +1,7 @@
 """Sparse Dtype"""
 
 import re
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, cast
 import warnings
 
 import numpy as np
@@ -325,11 +325,9 @@ class SparseDtype(ExtensionDtype):
             if is_extension_array_dtype(dtype):
                 raise TypeError("sparse arrays of extension dtypes not supported")
 
-            # pandas\core\arrays\sparse\dtype.py:328: error: "ExtensionArray"
-            # has no attribute "item"  [attr-defined]
-            fill_value = astype_nansafe(
-                np.array(self.fill_value), dtype
-            ).item()  # type: ignore[attr-defined]
+            fill_value_as_arr = astype_nansafe(np.array(self.fill_value), dtype)
+            fill_value_as_arr = cast(np.ndarray, fill_value_as_arr)
+            fill_value = fill_value_as_arr.item()
             dtype = cls(dtype, fill_value=fill_value)
 
         return dtype

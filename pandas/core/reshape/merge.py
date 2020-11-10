@@ -6,7 +6,7 @@ import copy
 import datetime
 from functools import partial
 import string
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple, cast
 import warnings
 
 import numpy as np
@@ -50,6 +50,7 @@ from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas.core.arrays.base import ExtensionArray
 
 
 @Substitution("\nleft : DataFrame")
@@ -1953,62 +1954,33 @@ def _factorize_keys(
     (array([0, 1, 2]), array([0, 1]), 3)
     """
     # Some pre-processing for non-ndarray lk / rk
-
-    # error: Incompatible types in assignment (expression has type
-    # "ExtensionArray", variable has type "ndarray")
-    lk = extract_array(lk, extract_numpy=True)  # type: ignore[assignment]
-    # error: Incompatible types in assignment (expression has type
-    # "ExtensionArray", variable has type "ndarray")
-    rk = extract_array(rk, extract_numpy=True)  # type: ignore[assignment]
+    lk = extract_array(lk, extract_numpy=True)
+    rk = extract_array(rk, extract_numpy=True)
 
     if is_datetime64tz_dtype(lk.dtype) and is_datetime64tz_dtype(rk.dtype):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
-
-        # pandas\core\reshape\merge.py:1930: error: Incompatible types in
-        # assignment (expression has type "ndarray", variable has type
-        # "ExtensionArray")  [assignment]
-
-        # pandas\core\reshape\merge.py:1930: error: "ndarray" has no attribute
-        # "_values_for_factorize"  [attr-defined]
-        lk, _ = lk._values_for_factorize()  # type: ignore[assignment, attr-defined]
-
-        # pandas\core\reshape\merge.py:1931: error: Incompatible types in
-        # assignment (expression has type "ndarray", variable has type
-        # "ExtensionArray")  [assignment]
-
-        # pandas\core\reshape\merge.py:1931: error: "ndarray" has no attribute
-        # "_values_for_factorize"  [attr-defined]
-        rk, _ = rk._values_for_factorize()  # type: ignore[assignment, attr-defined]
+        lk = cast("ExtensionArray", lk)
+        rk = cast("ExtensionArray", rk)
+        lk, _ = lk._values_for_factorize()
+        rk, _ = rk._values_for_factorize()
 
     elif (
         is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
     ):
-        assert isinstance(lk, Categorical)
-        assert isinstance(rk, Categorical)
+        lk = cast(Categorical, lk)
+        rk = cast(Categorical, rk)
         # Cast rk to encoding so we can compare codes with lk
-
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "ExtensionArray")
-        rk = lk._validate_listlike(rk)  # type: ignore[assignment]
+        rk = lk._validate_listlike(rk)
 
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk)
 
     elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
-        # pandas\core\reshape\merge.py:1967: error: Incompatible types in
-        # assignment (expression has type "ndarray", variable has type
-        # "ExtensionArray")  [assignment]
-
-        # pandas\core\reshape\merge.py:1967: error: "ndarray" has no attribute
-        # "_values_for_factorize"  [attr-defined]
-        lk, _ = lk._values_for_factorize()  # type: ignore[attr-defined,assignment]
-
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "ExtensionArray")
-
-        # error: "ndarray" has no attribute "_values_for_factorize"
-        rk, _ = rk._values_for_factorize()  # type: ignore[attr-defined,assignment]
+        lk = cast("ExtensionArray", lk)
+        rk = cast("ExtensionArray", rk)
+        lk, _ = lk._values_for_factorize()
+        rk, _ = rk._values_for_factorize()
 
     if is_integer_dtype(lk) and is_integer_dtype(rk):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype

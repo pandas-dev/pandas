@@ -1063,9 +1063,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         res_values = op(self.astype("O"), np.asarray(other))
         result = array(res_values.ravel())
-        # error: "ExtensionArray" has no attribute "reshape"; maybe "shape"?
-        tmp = extract_array(result, extract_numpy=True)
-        result = tmp.reshape(self.shape)  # type: ignore[attr-defined]
+        result = extract_array(result, extract_numpy=True)
+        result = cast(np.ndarray, result)
+        result = result.reshape(self.shape)
         return result
 
     def _time_shift(self, periods, freq=None):

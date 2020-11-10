@@ -2,7 +2,7 @@
 Common type operations.
 """
 
-from typing import Any, Callable, Union
+from typing import TYPE_CHECKING, Any, Callable, Union, cast
 import warnings
 
 import numpy as np
@@ -42,6 +42,9 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_scalar,
     is_sequence,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.arrays.base import ExtensionArray
 
 POSSIBLY_CAST_DTYPES = {
     np.dtype(t).name
@@ -150,10 +153,8 @@ def ensure_int_or_float(arr: ArrayLike, copy: bool = False) -> np.ndarray:
         return arr.astype("uint64", copy=copy, casting="safe")  # type: ignore[call-arg]
     except TypeError:
         if is_extension_array_dtype(arr.dtype):
-            # error: "ndarray" has no attribute "to_numpy"
-            return arr.to_numpy(  # type: ignore[attr-defined]
-                dtype="float64", na_value=np.nan
-            )
+            arr = cast("ExtensionArray", arr)
+            return arr.to_numpy(dtype="float64", na_value=np.nan)
         return arr.astype("float64", copy=copy)
 
 

@@ -10,6 +10,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
     overload,
 )
 import warnings
@@ -32,7 +33,7 @@ from pandas._libs.tslibs.parsing import (  # noqa
     guess_datetime_format,
 )
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._typing import ArrayLike, Label, Timezone
+from pandas._typing import AnyArrayLike, ArrayLike, Label, Timezone
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -181,7 +182,7 @@ def _maybe_cache(
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: Optional[bool] = None, name: Label = None
+    dt_array: AnyArrayLike, utc: Optional[bool] = None, name: Label = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -232,9 +233,7 @@ def _convert_and_box_cache(
     from pandas import Series
 
     result = Series(arg).map(cache_array)
-    # error: Value of type variable "ArrayLike" of "_box_as_indexlike" cannot
-    # be "Series"
-    return _box_as_indexlike(result, utc=None, name=name)  # type: ignore[type-var]
+    return _box_as_indexlike(result, utc=None, name=name)
 
 
 def _return_parsed_timezone_results(result, timezones, tz, name):
@@ -340,42 +339,37 @@ def _convert_listlike_datetimes(
         # GH 30050 pass an ndarray to tslib.array_with_unit_to_datetime
         # because it expects an ndarray argument
         if isinstance(arg, IntegerArray):
-            result = arg.astype(f"datetime64[{unit}]")
+            result_data = arg.astype(f"datetime64[{unit}]")
             tz_parsed = None
         else:
-
-            result, tz_parsed = tslib.array_with_unit_to_datetime(
+            result_data, tz_parsed = tslib.array_with_unit_to_datetime(
                 arg, unit, errors=errors
             )
 
         if errors == "ignore":
-
-            # error: Incompatible types in assignment (expression has type
-            # "Index", variable has type "ExtensionArray")
-            result = Index(result, name=name)  # type: ignore[assignment]
+            result = Index(result_data, name=name)
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "DatetimeIndex", variable has type "ExtensionArray")
-            result = DatetimeIndex(result, name=name)  # type: ignore[assignment]
+            result = DatetimeIndex(result_data, name=name)
+
         # GH 23758: We may still need to localize the result with tz
         # GH 25546: Apply tz_parsed first (from arg), then tz (from caller)
         # result will be naive but in UTC
         try:
-            # error: "ExtensionArray" has no attribute "tz_localize"
+            # pandas\core\tools\datetimes.py:358: error: "Index" has no
+            # attribute "tz_localize"  [attr-defined]
             result = result.tz_localize("UTC").tz_convert(  # type: ignore[attr-defined]
                 tz_parsed
             )
         except AttributeError:
             # Regular Index from 'ignore' path
             return result
+        # assume that if we get here, result is DatetimeIndex
+        result = cast(DatetimeIndex, result)
         if tz is not None:
-            # error: "ExtensionArray" has no attribute "tz"
-            if result.tz is None:  # type: ignore[attr-defined]
-                # error: "ExtensionArray" has no attribute "tz_localize"
-                result = result.tz_localize(tz)  # type: ignore[attr-defined]
+            if result.tz is None:
+                result = result.tz_localize(tz)
             else:
-                # error: "ExtensionArray" has no attribute "tz_convert"
-                result = result.tz_convert(tz)  # type: ignore[attr-defined]
+                result = result.tz_convert(tz)
         return result
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
@@ -389,17 +383,10 @@ def _convert_listlike_datetimes(
         arg, _ = maybe_convert_dtype(arg, copy=False)
     except TypeError:
         if errors == "coerce":
-            # pandas\core\tools\datetimes.py:392: error: Incompatible types in
-            # assignment (expression has type "ndarray", variable has type
-            # "ExtensionArray")  [assignment]
-            result = np.array(  # type: ignore[assignment]
-                ["NaT"], dtype="datetime64[ns]"
-            ).repeat(len(arg))
-            return DatetimeIndex(result, name=name)
+            result_data = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
+            return DatetimeIndex(result_data, name=name)
         elif errors == "ignore":
-            # error: Incompatible types in assignment (expression has type
-            # "Index", variable has type "ExtensionArray")
-            result = Index(arg, name=name)  # type: ignore[assignment]
+            result = Index(arg, name=name)
             return result
         raise
 

@@ -756,9 +756,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         combined = self._combined.copy()
         return type(self)._simple_new(combined, closed=self.closed)
 
-    # error: Return type "ndarray" of "isna" incompatible with return type
-    # "ArrayLike" in supertype "ExtensionArray"
-    def isna(self) -> np.ndarray:  # type: ignore[override]
+    def isna(self) -> np.ndarray:
         return isna(self._left)
 
     def shift(self, periods: int = 1, fill_value: object = None) -> "IntervalArray":
@@ -1407,12 +1405,8 @@ def _maybe_cast_inputs(
     copy: bool,
     dtype: Optional[Dtype],
 ) -> Tuple["Index", "Index"]:
-    # pandas\core\arrays\interval.py:1366: error: Value of type variable
-    # "AnyArrayLike" of "ensure_index" cannot be "object"  [type-var]
-    left = ensure_index(left_orig, copy=copy)  # type: ignore[type-var]
-    # pandas\core\arrays\interval.py:1367: error: Value of type variable
-    # "AnyArrayLike" of "ensure_index" cannot be "object"  [type-var]
-    right = ensure_index(right_orig, copy=copy)  # type: ignore[type-var]
+    left = ensure_index(left_orig, copy=copy)
+    right = ensure_index(right_orig, copy=copy)
 
     if dtype is not None:
         # GH#19262: dtype must be an IntervalDtype to override inferred
@@ -1467,47 +1461,10 @@ def _get_combined_data(
     # For dt64/td64 we want DatetimeArray/TimedeltaArray instead of ndarray
     from pandas.core.ops.array_ops import maybe_upcast_datetimelike_array
 
-    # pandas\core\arrays\interval.py:1422: error: Value of type variable
-    # "ArrayLike" of "maybe_upcast_datetimelike_array" cannot be "Union[Index,
-    # ExtensionArray]"  [type-var]
-    # pandas\core\arrays\interval.py:1422: error: Value of type variable
-    # "ArrayLike" of "maybe_upcast_datetimelike_array" cannot be "Union[Index,
-    # ndarray]"  [type-var]
-    left = maybe_upcast_datetimelike_array(left)  # type: ignore[type-var]
-    # pandas\core\arrays\interval.py:1423: error: Value of type variable
-    # "AnyArrayLike" of "extract_array" cannot be "Union[Index,
-    # ExtensionArray]"  [type-var]
-
-    # pandas\core\arrays\interval.py:1423: error: Value of type variable
-    # "AnyArrayLike" of "extract_array" cannot be "Union[Index, ndarray]"
-    # [type-var]
-
-    # pandas\core\arrays\interval.py:1423: error: Incompatible types in
-    # assignment (expression has type "ExtensionArray", variable has type
-    # "Union[Index, ndarray]")  [assignment]
-    left = extract_array(left, extract_numpy=True)  # type: ignore[type-var,assignment]
-    # pandas\core\arrays\interval.py:1424: error: Value of type variable
-    # "ArrayLike" of "maybe_upcast_datetimelike_array" cannot be "Union[Index,
-    # ExtensionArray]"  [type-var]
-
-    # pandas\core\arrays\interval.py:1424: error: Value of type variable
-    # "ArrayLike" of "maybe_upcast_datetimelike_array" cannot be "Union[Index,
-    # ndarray]"  [type-var]
-    right = maybe_upcast_datetimelike_array(right)  # type: ignore[type-var]
-    # pandas\core\arrays\interval.py:1425: error: Value of type variable
-    # "AnyArrayLike" of "extract_array" cannot be "Union[Index,
-    # ExtensionArray]"  [type-var]
-
-    # pandas\core\arrays\interval.py:1425: error: Value of type variable
-    # "AnyArrayLike" of "extract_array" cannot be "Union[Index, ndarray]"
-    # [type-var]
-
-    # pandas\core\arrays\interval.py:1425: error: Incompatible types in
-    # assignment (expression has type "ExtensionArray", variable has type
-    # "Union[Index, ndarray]")  [assignment]
-    right = extract_array(  # type: ignore[type-var,assignment]
-        right, extract_numpy=True
-    )
+    left = maybe_upcast_datetimelike_array(left)
+    left = extract_array(left, extract_numpy=True)
+    right = maybe_upcast_datetimelike_array(right)
+    right = extract_array(right, extract_numpy=True)
 
     lbase = getattr(left, "_ndarray", left).base
     rbase = getattr(right, "_ndarray", right).base
@@ -1522,30 +1479,12 @@ def _get_combined_data(
             axis=1,
         )
     else:
-        # pandas\core\arrays\interval.py:1440: error: Incompatible types in
-        # assignment (expression has type "Union[DatetimeArray,
-        # TimedeltaArray]", variable has type "Union[Index, ndarray]")
-        # [assignment]
-        left = cast(  # type: ignore[assignment]
-            Union["DatetimeArray", "TimedeltaArray"], left
-        )
-        # pandas\core\arrays\interval.py:1441: error: Incompatible types in
-        # assignment (expression has type "Union[DatetimeArray,
-        # TimedeltaArray]", variable has type "Union[Index, ndarray]")
-        # [assignment]
-        right = cast(  # type: ignore[assignment]
-            Union["DatetimeArray", "TimedeltaArray"], right
-        )
-        # pandas\core\arrays\interval.py:1442: error: "Type[Index]" has no
-        # attribute "_concat_same_type"  [attr-defined]
-        combined = type(left)._concat_same_type(  # type: ignore[attr-defined]
-            # pandas\core\arrays\interval.py:1443: error: "Index" has no
-            # attribute "reshape"; maybe "shape"?  [attr-defined]
-            # pandas\core\arrays\interval.py:1443: error: Item "Index" of
-            # "Union[Index, ndarray]" has no attribute "reshape"  [union-attr]
+        left = cast(Union["DatetimeArray", "TimedeltaArray"], left)
+        right = cast(Union["DatetimeArray", "TimedeltaArray"], right)
+        combined = type(left)._concat_same_type(
             [
-                left.reshape(-1, 1),  # type: ignore[attr-defined]
-                right.reshape(-1, 1),  # type: ignore[union-attr]
+                left.reshape(-1, 1),
+                right.reshape(-1, 1),
             ],
             axis=1,
         )

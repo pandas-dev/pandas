@@ -19,6 +19,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 import warnings
 
@@ -28,7 +29,14 @@ from pandas._config import config, get_option
 
 from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas._typing import ArrayLike, FrameOrSeries, FrameOrSeriesUnion, Label, Shape
+from pandas._typing import (
+    AnyArrayLike,
+    ArrayLike,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    Label,
+    Shape,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
@@ -70,6 +78,8 @@ from pandas.io.formats.printing import adjoin, pprint_thing
 
 if TYPE_CHECKING:
     from tables import Col, File, Node
+
+    from pandas.core.arrays.base import ExtensionArray
 
 
 # versioning attribute
@@ -2322,8 +2332,10 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        # error: "ExtensionDtype" has no attribute "itemsize"
-        itemsize = dtype.itemsize  # type: ignore[attr-defined]
+        # pandas\io\pytables.py:2327: error: Item "ExtensionDtype" of
+        # "Union[ExtensionDtype, dtype[Any]]" has no attribute "itemsize"
+        # [union-attr]
+        itemsize = dtype.itemsize  # type: ignore[union-attr]
 
         shape = values.shape
         if values.ndim == 1:
@@ -2975,15 +2987,11 @@ class GenericFixed(Fixed):
         node._v_attrs.value_type = str(value.dtype)
         node._v_attrs.shape = value.shape
 
-    def write_array(self, key: str, obj: FrameOrSeries, items: Optional[Index] = None):
+    def write_array(self, key: str, obj: Series, items: Optional[Index] = None):
         # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
-
-        # pandas\io\pytables.py:2980: error: Value of type variable
-        # "AnyArrayLike" of "extract_array" cannot be "FrameOrSeries"
-        # [type-var]
-        value = extract_array(obj, extract_numpy=True)  # type: ignore[type-var]
+        value = extract_array(obj, extract_numpy=True)
 
         if key in self.group:
             self._handle.remove_node(self.group, key)
@@ -3042,21 +3050,13 @@ class GenericFixed(Fixed):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "datetime64"
         elif is_datetime64tz_dtype(value.dtype):
+            value = cast("ExtensionArray", value)
             # store as UTC
             # with a zone
-
-            # error: "ndarray" has no attribute "asi8"
-            self._handle.create_array(
-                self.group, key, value.asi8  # type: ignore[attr-defined]
-            )
+            self._handle.create_array(self.group, key, value.asi8)
 
             node = getattr(self.group, key)
-            # pandas\io\pytables.py:3061: error: "ExtensionArray" has no
-            # attribute "tz"  [attr-defined]
-
-            # pandas\io\pytables.py:3061: error: "ndarray" has no attribute
-            # "tz"  [attr-defined]
-            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[attr-defined]
+            node._v_attrs.tz = _get_tz(value.tz)
             node._v_attrs.value_type = "datetime64"
         elif is_timedelta64_dtype(value.dtype):
             self._handle.create_array(self.group, key, value.view("i8"))
@@ -4792,9 +4792,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     assert isinstance(name, str)
 
     index_name = index.name
-    # error: Value of type variable "ArrayLike" of "_get_data_and_dtype_name"
-    # cannot be "Index"
-    converted, dtype_name = _get_data_and_dtype_name(index)  # type: ignore[type-var]
+    converted, dtype_name = _get_data_and_dtype_name(index)
     kind = _dtype_to_kind(dtype_name)
     atom = DataIndexableCol._get_atom(converted)
 
@@ -5093,33 +5091,25 @@ def _dtype_to_kind(dtype_str: str) -> str:
     return kind
 
 
-def _get_data_and_dtype_name(data: ArrayLike):
+def _get_data_and_dtype_name(data: AnyArrayLike):
     """
     Convert the passed data into a storable form and a dtype string.
     """
     if isinstance(data, Categorical):
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "ExtensionArray")
-        data = data.codes  # type: ignore[assignment]
+        data = data.codes
 
     # For datetime64tz we need to drop the TZ in tests TODO: why?
     dtype_name = data.dtype.name.split("[")[0]
 
     if data.dtype.kind in ["m", "M"]:
-        # pandas\io\pytables.py:5117: error: Incompatible types in assignment
-        # (expression has type "ndarray", variable has type "ExtensionArray")
-        # [assignment]
-        data = np.asarray(data.view("i8"))  # type: ignore[assignment]
+        data = np.asarray(data.view("i8"))
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?
 
     elif isinstance(data, PeriodIndex):
         data = data.asi8
 
-    # pandas\io\pytables.py:5124: error: Incompatible types in assignment
-    # (expression has type "ndarray", variable has type "ExtensionArray")
-    # [assignment]
-    data = np.asarray(data)  # type: ignore[assignment]
+    data = np.asarray(data)
     return data, dtype_name
 
 

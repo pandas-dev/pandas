@@ -8,6 +8,7 @@ from typing import (
     Callable,
     FrozenSet,
     Hashable,
+    Iterable,
     List,
     NewType,
     Optional,
@@ -27,7 +28,7 @@ import pandas._libs.join as libjoin
 from pandas._libs.lib import is_datetime_array, no_default
 from pandas._libs.tslibs import IncompatibleFrequency, OutOfBoundsDatetime, Timestamp
 from pandas._libs.tslibs.timezones import tz_compare
-from pandas._typing import AnyArrayLike, Dtype, DtypeObj, Label, Shape, final
+from pandas._typing import Dtype, DtypeObj, Label, Shape, final
 from pandas.compat.numpy import function as nv
 from pandas.errors import DuplicateLabelError, InvalidIndexError
 from pandas.util._decorators import Appender, cache_readonly, doc
@@ -5503,12 +5504,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             with np.errstate(all="ignore"):
-                # pandas\core\indexes\base.py:5393: error: Value of type
-                # variable "ArrayLike" of "comparison_op" cannot be
-                # "Union[ExtensionArray, ndarray]"  [type-var]
-                result = ops.comparison_op(
-                    self._values, other, op  # type: ignore[type-var]
-                )
+                result = ops.comparison_op(self._values, other, op)
 
         return result
 
@@ -5706,16 +5702,14 @@ def ensure_index_from_sequences(sequences, names=None):
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(
-    index_like: Union[AnyArrayLike, Sequence], copy: bool = False
-) -> Index:
+def ensure_index(index_like: Iterable, copy: bool = False) -> Index:
     """
     Ensure that we have an index from some index-like object.
 
     Parameters
     ----------
-    index_like : sequence
-        An Index or other sequence
+    index_like : iterable
+        An Index or other iterable
     copy : bool, default False
 
     Returns
