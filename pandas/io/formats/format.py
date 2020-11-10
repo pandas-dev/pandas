@@ -1530,7 +1530,7 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
         formatter = values._formatter(boxed=True)
 
         if is_categorical_dtype(values.dtype):
-            values = cast(Categorical, values)
+            values = cast("Categorical", values)
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
         else:
