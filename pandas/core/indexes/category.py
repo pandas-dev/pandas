@@ -8,7 +8,7 @@ from pandas._config import get_option
 from pandas._libs import index as libindex
 from pandas._libs.hashtable import duplicated_int64
 from pandas._libs.lib import no_default
-from pandas._typing import Label
+from pandas._typing import ArrayLike, Label
 from pandas.util._decorators import Appender, cache_readonly, doc
 
 from pandas.core.dtypes.common import (
@@ -324,7 +324,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 "categories",
                 ibase.default_pprint(self.categories, max_seq_items=max_categories),
             ),
-            ("ordered", self.ordered),
+            # pandas\core\indexes\category.py:315: error: "CategoricalIndex"
+            # has no attribute "ordered"  [attr-defined]
+            ("ordered", self.ordered),  # type: ignore[attr-defined]
         ]
         if self.name is not None:
             attrs.append(("name", ibase.default_pprint(self.name)))
@@ -540,7 +542,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 "method='nearest' not implemented yet for CategoricalIndex"
             )
 
-        codes = self._values._validate_listlike(target._values)
+        # Note: we use engine.get_indexer_non_unique below because, even if
+        #  `target` is unique, any non-category entries in it will be encoded
+        #  as -1 by _get_codes_for_get_indexer, so `codes` may not be unique.
+        codes = self._get_codes_for_get_indexer(target._values)
         indexer, _ = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer)
 
@@ -548,9 +553,29 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def get_indexer_non_unique(self, target):
         target = ibase.ensure_index(target)
 
-        codes = self._values._validate_listlike(target._values)
+        codes = self._get_codes_for_get_indexer(target._values)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer), missing
+
+    def _get_codes_for_get_indexer(self, target: ArrayLike) -> np.ndarray:
+        """
+        Extract integer codes we can use for comparison.
+
+        Notes
+        -----
+        If a value in target is not present, it gets coded as -1.
+        """
+
+        if isinstance(target, Categorical):
+            # Indexing on codes is more efficient if categories are the same,
+            #  so we can apply some optimizations based on the degree of
+            #  dtype-matching.
+            cat = self._data._encode_with_my_categories(target)
+            codes = cat._codes
+        else:
+            codes = self.categories.get_indexer(target)
+
+        return codes
 
     @doc(Index._convert_list_indexer)
     def _convert_list_indexer(self, keyarr):
