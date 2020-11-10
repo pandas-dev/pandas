@@ -545,16 +545,17 @@ class TestWhere:
 
         i2 = PeriodIndex([NaT, NaT] + pi[2:].tolist(), freq="D")
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        msg = "value should be a 'Period', 'NaT', or array of those"
+        with pytest.raises(TypeError, match=msg):
             pi.where(notna(i2), i2.asi8)
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             pi.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             pi.where(notna(i2), i2.to_timestamp("S"))
 
-        with pytest.raises(TypeError, match="Where requires matching dtype"):
+        with pytest.raises(TypeError, match=msg):
             # non-matching scalar
             pi.where(notna(i2), Timedelta(days=4))
 
@@ -562,7 +563,7 @@ class TestWhere:
         pi = period_range("20130101", periods=5, freq="D")
         cond = np.array([True, False, True, True, False])
 
-        msg = "Where requires matching dtype"
+        msg = "value should be a 'Period', 'NaT', or array of those"
         with pytest.raises(TypeError, match=msg):
             # wrong-dtyped NaT
             pi.where(cond, np.timedelta64("NaT", "ns"))

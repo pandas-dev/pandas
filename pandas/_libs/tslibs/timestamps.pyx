@@ -1387,7 +1387,7 @@ default 'raise'
         microsecond=None,
         nanosecond=None,
         tzinfo=object,
-        fold=0,
+        fold=None,
     ):
         """
         implements datetime.replace, handles nanoseconds.
@@ -1403,7 +1403,7 @@ default 'raise'
         microsecond : int, optional
         nanosecond : int, optional
         tzinfo : tz-convertible, optional
-        fold : int, optional, default is 0
+        fold : int, optional
 
         Returns
         -------
@@ -1420,6 +1420,11 @@ default 'raise'
         # set to naive if needed
         tzobj = self.tzinfo
         value = self.value
+
+        # GH 37610. Preserve fold when replacing.
+        if fold is None:
+            fold = self.fold
+
         if tzobj is not None:
             value = tz_convert_from_utc_single(value, tzobj)
 

@@ -1,3 +1,4 @@
+import operator
 from operator import le, lt
 import textwrap
 from typing import TYPE_CHECKING, Optional, Tuple, Union, cast
@@ -12,6 +13,7 @@ from pandas._libs.interval import (
     IntervalMixin,
     intervals_to_interval_bounds,
 )
+from pandas._libs.missing import NA
 from pandas._typing import ArrayLike, Dtype
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
@@ -48,7 +50,7 @@ import pandas.core.common as com
 from pandas.core.construction import array, extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
-from pandas.core.ops import unpack_zerodim_and_defer
+from pandas.core.ops import invalid_comparison, unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -225,7 +227,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
@@ -520,8 +522,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         self._left[key] = value_left
         self._right[key] = value_right
 
-    @unpack_zerodim_and_defer("__eq__")
-    def __eq__(self, other):
+    def _cmp_method(self, other, op):
         # ensure pandas array for list-like and eliminate non-interval scalars
         if is_list_like(other):
             if len(self) != len(other):
@@ -529,7 +530,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other = array(other)
         elif not isinstance(other, Interval):
             # non-interval scalar -> no matches
-            return np.zeros(len(self), dtype=bool)
+            return invalid_comparison(self, other, op)
 
         # determine the dtype of the elements we want to compare
         if isinstance(other, Interval):
@@ -543,7 +544,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # extract intervals if we have interval categories with matching closed
             if is_interval_dtype(other_dtype):
                 if self.closed != other.categories.closed:
-                    return np.zeros(len(self), dtype=bool)
+                    return invalid_comparison(self, other, op)
+
                 other = other.categories.take(
                     other.codes, allow_fill=True, fill_value=other.categories._na_value
                 )
@@ -551,26 +553,69 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # interval-like -> need same closed and matching endpoints
         if is_interval_dtype(other_dtype):
             if self.closed != other.closed:
-                return np.zeros(len(self), dtype=bool)
-            return (self._left == other.left) & (self._right == other.right)
+                return invalid_comparison(self, other, op)
+            elif not isinstance(other, Interval):
+                other = type(self)(other)
+
+            if op is operator.eq:
+                return (self._left == other.left) & (self._right == other.right)
+            elif op is operator.ne:
+                return (self._left != other.left) | (self._right != other.right)
+            elif op is operator.gt:
+                return (self._left > other.left) | (
+                    (self._left == other.left) & (self._right > other.right)
+                )
+            elif op is operator.ge:
+                return (self == other) | (self > other)
+            elif op is operator.lt:
+                return (self._left < other.left) | (
+                    (self._left == other.left) & (self._right < other.right)
+                )
+            else:
+                # operator.lt
+                return (self == other) | (self < other)
 
         # non-interval/non-object dtype -> no matches
         if not is_object_dtype(other_dtype):
-            return np.zeros(len(self), dtype=bool)
+            return invalid_comparison(self, other, op)
 
         # object dtype -> iteratively check for intervals
         result = np.zeros(len(self), dtype=bool)
         for i, obj in enumerate(other):
-            # need object to be an Interval with same closed and endpoints
-            if (
-                isinstance(obj, Interval)
-                and self.closed == obj.closed
-                and self._left[i] == obj.left
-                and self._right[i] == obj.right
-            ):
-                result[i] = True
-
+            try:
+                result[i] = op(self[i], obj)
+            except TypeError:
+                if obj is NA:
+                    # comparison with np.nan returns NA
+                    # github.com/pandas-dev/pandas/pull/37124#discussion_r509095092
+                    result[i] = op is operator.ne
+                else:
+                    raise
         return result
+
+    @unpack_zerodim_and_defer("__eq__")
+    def __eq__(self, other):
+        return self._cmp_method(other, operator.eq)
+
+    @unpack_zerodim_and_defer("__ne__")
+    def __ne__(self, other):
+        return self._cmp_method(other, operator.ne)
+
+    @unpack_zerodim_and_defer("__gt__")
+    def __gt__(self, other):
+        return self._cmp_method(other, operator.gt)
+
+    @unpack_zerodim_and_defer("__ge__")
+    def __ge__(self, other):
+        return self._cmp_method(other, operator.ge)
+
+    @unpack_zerodim_and_defer("__lt__")
+    def __lt__(self, other):
+        return self._cmp_method(other, operator.lt)
+
+    @unpack_zerodim_and_defer("__le__")
+    def __le__(self, other):
+        return self._cmp_method(other, operator.le)
 
     def fillna(self, value=None, method=None, limit=None):
         """
@@ -743,7 +788,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             b = empty
         return self._concat_same_type([a, b])
 
-    def take(self, indices, allow_fill=False, fill_value=None, axis=None, **kwargs):
+    def take(self, indices, *, allow_fill=False, fill_value=None, axis=None, **kwargs):
         """
         Take elements from the IntervalArray.
 
@@ -843,9 +888,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
             )
             raise TypeError(msg) from err
-
-    def _validate_insert_value(self, value):
-        return self._validate_scalar(value)
 
     def _validate_setitem_value(self, value):
         needs_float_conversion = False

@@ -1087,3 +1087,43 @@ def test_rolling_corr_timedelta_index(index, window):
     result = x.rolling(window).corr(y)
     expected = Series([np.nan, np.nan, 1, 1, 1], index=index)
     tm.assert_almost_equal(result, expected)
+
+
+def test_groupby_rolling_nan_included():
+    # GH 35542
+    data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
+    df = DataFrame(data)
+    result = df.groupby("group", dropna=False).rolling(1, min_periods=1).mean()
+    expected = DataFrame(
+        {"B": [0.0, 2.0, 3.0, 1.0, 4.0]},
+        index=pd.MultiIndex.from_tuples(
+            [("g1", 0), ("g1", 2), ("g2", 3), (np.nan, 1), (np.nan, 4)],
+            names=["group", None],
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["skew", "kurt"])
+def test_rolling_skew_kurt_numerical_stability(method):
+    # GH: 6929
+    s = Series(np.random.rand(10))
+    expected = getattr(s.rolling(3), method)()
+    s = s + 50000
+    result = getattr(s.rolling(3), method)()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("method", "values"),
+    [
+        ("skew", [2.0, 0.854563, 0.0, 1.999984]),
+        ("kurt", [4.0, -1.289256, -1.2, 3.999946]),
+    ],
+)
+def test_rolling_skew_kurt_large_value_range(method, values):
+    # GH: 37557
+    s = Series([3000000, 1, 1, 2, 3, 4, 999])
+    result = getattr(s.rolling(4), method)()
+    expected = Series([np.nan] * 3 + values)
+    tm.assert_series_equal(result, expected)

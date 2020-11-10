@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, concat, date_range, isna
+from pandas import CategoricalDtype, DataFrame, Series, concat, date_range, isna
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
@@ -615,7 +615,6 @@ class TestiLoc2:
         # UserWarnings from reindex of a boolean mask
         with catch_warnings(record=True):
             simplefilter("ignore", UserWarning)
-            result = dict()
             for idx in [None, "index", "locs"]:
                 mask = (df.nums > 2).values
                 if idx:
@@ -748,6 +747,27 @@ class TestiLoc2:
 
         tm.assert_series_equal(result, expected)
 
+    def test_iloc_getitem_categorical_values(self):
+        # GH#14580
+        # test iloc() on Series with Categorical data
+
+        ser = Series([1, 2, 3]).astype("category")
+
+        # get slice
+        result = ser.iloc[0:2]
+        expected = Series([1, 2]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
+        # get list of indexes
+        result = ser.iloc[[0, 1]]
+        expected = Series([1, 2]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
+        # get boolean array
+        result = ser.iloc[[True, False, False]]
+        expected = Series([1]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
 
 class TestILocSetItemDuplicateColumns:
     def test_iloc_setitem_scalar_duplicate_columns(self):
@@ -776,6 +796,92 @@ class TestILocSetItemDuplicateColumns:
         )
         df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
         assert df.dtypes.iloc[2] == np.int64
+
+
+class TestILocCallable:
+    def test_frame_iloc_getitem_callable(self):
+        # GH#11485
+        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+
+        # return location
+        res = df.iloc[lambda x: [1, 3]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3]])
+
+        res = df.iloc[lambda x: [1, 3], :]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], :])
+
+        res = df.iloc[lambda x: [1, 3], lambda x: 0]
+        tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+
+        res = df.iloc[lambda x: [1, 3], lambda x: [0]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+
+        # mixture
+        res = df.iloc[[1, 3], lambda x: 0]
+        tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+
+        res = df.iloc[[1, 3], lambda x: [0]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+
+        res = df.iloc[lambda x: [1, 3], 0]
+        tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+
+        res = df.iloc[lambda x: [1, 3], [0]]
+        tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+
+    def test_frame_iloc_setitem_callable(self):
+        # GH#11485
+        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+
+        # return location
+        res = df.copy()
+        res.iloc[lambda x: [1, 3]] = 0
+        exp = df.copy()
+        exp.iloc[[1, 3]] = 0
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], :] = -1
+        exp = df.copy()
+        exp.iloc[[1, 3], :] = -1
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], lambda x: 0] = 5
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = 5
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], lambda x: [0]] = 25
+        exp = df.copy()
+        exp.iloc[[1, 3], [0]] = 25
+        tm.assert_frame_equal(res, exp)
+
+        # mixture
+        res = df.copy()
+        res.iloc[[1, 3], lambda x: 0] = -3
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = -3
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[[1, 3], lambda x: [0]] = -5
+        exp = df.copy()
+        exp.iloc[[1, 3], [0]] = -5
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], 0] = 10
+        exp = df.copy()
+        exp.iloc[[1, 3], 0] = 10
+        tm.assert_frame_equal(res, exp)
+
+        res = df.copy()
+        res.iloc[lambda x: [1, 3], [0]] = [-5, -5]
+        exp = df.copy()
+        exp.iloc[[1, 3], [0]] = [-5, -5]
+        tm.assert_frame_equal(res, exp)
 
 
 class TestILocSeries:

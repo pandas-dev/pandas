@@ -563,11 +563,28 @@ def test_pickle_timeseries_periodindex():
     "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
 )
 def test_pickle_preserve_name(name):
-    def _pickle_roundtrip_name(obj):
-        with tm.ensure_clean() as path:
-            obj.to_pickle(path)
-            unpickled = pd.read_pickle(path)
-        return unpickled
 
-    unpickled = _pickle_roundtrip_name(tm.makeTimeSeries(name=name))
+    unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=name))
     assert unpickled.name == name
+
+
+def test_pickle_datetimes(datetime_series):
+    unp_ts = tm.round_trip_pickle(datetime_series)
+    tm.assert_series_equal(unp_ts, datetime_series)
+
+
+def test_pickle_strings(string_series):
+    unp_series = tm.round_trip_pickle(string_series)
+    tm.assert_series_equal(unp_series, string_series)
+
+
+def test_pickle_preserves_block_ndim():
+    # GH#37631
+    ser = Series(list("abc")).astype("category").iloc[[0]]
+    res = tm.round_trip_pickle(ser)
+
+    assert res._mgr.blocks[0].ndim == 1
+    assert res._mgr.blocks[0].shape == (1,)
+
+    # GH#37631 OP issue was about indexing, underlying problem was pickle
+    tm.assert_series_equal(res[[True]], ser)
