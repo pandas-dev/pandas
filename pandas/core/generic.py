@@ -39,7 +39,6 @@ from pandas._typing import (
     CompressionOptions,
     FilePathOrBuffer,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexKeyFunc,
     IndexLabel,
     JSONSerializable,
@@ -9996,7 +9995,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
         include=None,
         exclude=None,
         datetime_is_numeric=False,
-    ) -> FrameOrSeriesUnion:
+    ) -> FrameOrSeries:
         """
         Generate descriptive statistics.
 
@@ -10346,7 +10345,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
                 return describe_categorical_1d(data)
 
         if self.ndim == 1:
-            return describe_1d(self)
+            # Incompatible return value type
+            #  (got "Series", expected "FrameOrSeries")  [return-value]
+            return describe_1d(self)  # type:ignore[return-value]
         elif (include is None) and (exclude is None):
             # when some numerics are found, keep only numerics
             default_include = [np.number]
