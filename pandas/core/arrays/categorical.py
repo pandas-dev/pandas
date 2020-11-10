@@ -429,7 +429,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 )
             astyped_categories = extract_array(astyped_categories, extract_numpy=True)
-            result = take_1d(astyped_categories, self._codes)
+            result = take_1d(
+                astyped_categories, libalgos.ensure_platform_int(self._codes)
+            )
 
         return result
 
