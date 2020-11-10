@@ -616,6 +616,15 @@ def test_loc_with_nan():
     tm.assert_frame_equal(result, expected)
 
 
+def test_getitem_non_found_tuple():
+    # GH: 25236
+    df = DataFrame([[1, 2, 3, 4]], columns=["a", "b", "c", "d"]).set_index(
+        ["a", "b", "c"]
+    )
+    with pytest.raises(KeyError, match=r"\(2\.0, 2\.0, 3\.0\)"):
+        df.loc[(2.0, 2.0, 3.0)]
+
+
 def test_get_loc_datetime_index():
     # GH: 18185
     index = pd.date_range("2001-01-01", periods=100)
