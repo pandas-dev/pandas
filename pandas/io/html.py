@@ -9,6 +9,7 @@ import numbers
 import os
 import re
 from typing import Dict, List, Optional, Pattern, Sequence, Tuple, Union
+from pathlib import Path
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
@@ -20,7 +21,7 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import is_url, urlopen, validate_header_arg
+from pandas.io.common import is_url, urlopen, validate_header_arg, stringify_path
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -1080,6 +1081,10 @@ def read_html(
             "data (you passed a negative value)"
         )
     validate_header_arg(header)
+
+    if isinstance(io, Path):
+        io = stringify_path(io)
+
     return _parse(
         flavor=flavor,
         io=io,
