@@ -1,16 +1,8 @@
-import re
-
 import numpy as np
 import pytest
 
 from pandas import DataFrame, Float64Index, Index, Int64Index, RangeIndex, Series
 import pandas._testing as tm
-
-# We pass through the error message from numpy
-_slice_iloc_msg = re.escape(
-    "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
-    "and integer or boolean arrays are valid indices"
-)
 
 
 def gen_obj(klass, index):
@@ -40,24 +32,6 @@ class TestFloatIndexers:
 
         tm.assert_almost_equal(result, expected)
 
-    def test_scalar_error(self, series_with_simple_index):
-
-        # GH 4892
-        # float_indexers should raise exceptions
-        # on appropriate Index types & accessors
-        # this duplicates the code below
-        # but is specifically testing for the error
-        # message
-
-        s = series_with_simple_index
-
-        msg = "Cannot index by location index with a non-integer key"
-        with pytest.raises(TypeError, match=msg):
-            s.iloc[3.0]
-
-        with pytest.raises(IndexError, match=_slice_iloc_msg):
-            s.iloc[3.0] = 0
-
     @pytest.mark.parametrize(
         "index_func",
         [
@@ -82,19 +56,11 @@ class TestFloatIndexers:
         with pytest.raises(KeyError, match="^3.0$"):
             s[3.0]
 
-        msg = "Cannot index by location index with a non-integer key"
-        with pytest.raises(TypeError, match=msg):
-            s.iloc[3.0]
-
         with pytest.raises(KeyError, match="^3.0$"):
             s.loc[3.0]
 
         # contains
         assert 3.0 not in s
-
-        # setting with a float fails with iloc
-        with pytest.raises(IndexError, match=_slice_iloc_msg):
-            s.iloc[3.0] = 0
 
         # setting with an indexer
         if s.index.inferred_type in ["categorical"]:
@@ -151,10 +117,6 @@ class TestFloatIndexers:
         with pytest.raises(KeyError, match="^1.0$"):
             s2[1.0]
 
-        msg = "Cannot index by location index with a non-integer key"
-        with pytest.raises(TypeError, match=msg):
-            s2.iloc[1.0]
-
         with pytest.raises(KeyError, match=r"^1\.0$"):
             s2.loc[1.0]
 
@@ -171,9 +133,6 @@ class TestFloatIndexers:
         expected = 2
         assert result == expected
 
-        msg = "Cannot index by location index with a non-integer key"
-        with pytest.raises(TypeError, match=msg):
-            s3.iloc[1.0]
         with pytest.raises(KeyError, match=r"^1\.0$"):
             s3.loc[1.0]
 
@@ -259,14 +218,6 @@ class TestFloatIndexers:
         s2.iloc[3] = expected
         result = s2.iloc[3]
         self.check(result, s, 3, False)
-
-        # iloc raises with a float
-        msg = "Cannot index by location index with a non-integer key"
-        with pytest.raises(TypeError, match=msg):
-            s.iloc[3.0]
-
-        with pytest.raises(IndexError, match=_slice_iloc_msg):
-            s2.iloc[3.0] = 0
 
     @pytest.mark.parametrize(
         "index_func",

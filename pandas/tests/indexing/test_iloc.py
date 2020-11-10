@@ -1,13 +1,14 @@
 """ test positional based indexing with iloc """
 
 from datetime import datetime
+import re
 from warnings import catch_warnings, simplefilter
 
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
+    Categorical,
     CategoricalDtype,
     DataFrame,
     Index,
@@ -21,6 +22,12 @@ import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import Base
+
+# We pass through the error message from numpy
+_slice_iloc_msg = re.escape(
+    "only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) "
+    "and integer or boolean arrays are valid indices"
+)
 
 
 class TestiLoc(Base):
@@ -59,7 +66,7 @@ class TestiLoc2:
 
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesnt matter for _is_scalar_access
-        index = pd.Index([1, 2, 1])
+        index = Index([1, 2, 1])
         ser = Series(range(3), index=index)
 
         assert ser.iloc._is_scalar_access((1,))
@@ -346,7 +353,7 @@ class TestiLoc2:
         tm.assert_series_equal(s, expected)
 
         s = s_orig.copy()
-        s.iloc[pd.Index([1, 2])] = [-1, -2]
+        s.iloc[Index([1, 2])] = [-1, -2]
         tm.assert_series_equal(s, expected)
 
     def test_iloc_setitem_dups(self):
@@ -719,13 +726,13 @@ class TestiLoc2:
     @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/33457")
     def test_iloc_setitem_categorical_updates_inplace(self):
         # Mixed dtype ensures we go through take_split_path in setitem_with_indexer
-        cat = pd.Categorical(["A", "B", "C"])
+        cat = Categorical(["A", "B", "C"])
         df = DataFrame({1: cat, 2: [1, 2, 3]})
 
         # This should modify our original values in-place
         df.iloc[:, 0] = cat[::-1]
 
-        expected = pd.Categorical(["C", "B", "A"])
+        expected = Categorical(["C", "B", "A"])
         tm.assert_categorical_equal(cat, expected)
 
     def test_iloc_with_boolean_operation(self):
@@ -749,9 +756,9 @@ class TestiLoc2:
 
     def test_iloc_getitem_singlerow_slice_categoricaldtype_gives_series(self):
         # GH#29521
-        df = DataFrame({"x": pd.Categorical("a b c d e".split())})
+        df = DataFrame({"x": Categorical("a b c d e".split())})
         result = df.iloc[0]
-        raw_cat = pd.Categorical(["a"], categories=["a", "b", "c", "d", "e"])
+        raw_cat = Categorical(["a"], categories=["a", "b", "c", "d", "e"])
         expected = Series(raw_cat, index=["x"], name=0, dtype="category")
 
         tm.assert_series_equal(result, expected)
@@ -782,7 +789,7 @@ class TestiLoc2:
         # GH#18586
         series = Series([0, 1, 2], dtype="timedelta64[ns]")
         series.iloc[0] = value
-        expected = pd.Series([NaT, 1, 2], dtype="timedelta64[ns]")
+        expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
         tm.assert_series_equal(series, expected)
 
     def test_iloc_setitem_empty_frame_raises_with_3d_ndarray(self):
@@ -795,12 +802,35 @@ class TestiLoc2:
             obj.iloc[nd3] = 0
 
 
+class TestILocErrors:
+    # NB: this test should work for _any_ Series we can pass as
+    #  series_with_simple_index
+    def test_iloc_float_raises(self, series_with_simple_index, frame_or_series):
+        # GH#4892
+        # float_indexers should raise exceptions
+        # on appropriate Index types & accessors
+        # this duplicates the code below
+        # but is specifically testing for the error
+        # message
+
+        obj = series_with_simple_index
+        if frame_or_series is DataFrame:
+            obj = obj.to_frame()
+
+        msg = "Cannot index by location index with a non-integer key"
+        with pytest.raises(TypeError, match=msg):
+            obj.iloc[3.0]
+
+        with pytest.raises(IndexError, match=_slice_iloc_msg):
+            obj.iloc[3.0] = 0
+
+
 class TestILocSetItemDuplicateColumns:
     def test_iloc_setitem_scalar_duplicate_columns(self):
         # GH#15686, duplicate columns and mixed dtype
         df1 = DataFrame([{"A": None, "B": 1}, {"A": 2, "B": 2}])
         df2 = DataFrame([{"A": 3, "B": 3}, {"A": 4, "B": 4}])
-        df = pd.concat([df1, df2], axis=1)
+        df = concat([df1, df2], axis=1)
         df.iloc[0, 0] = -1
 
         assert df.iloc[0, 0] == -1
