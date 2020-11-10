@@ -1510,7 +1510,19 @@ class TestDataFramePlots(TestPlotBase):
             dict(kind="bar", subplots=True, width=0.9),
             dict(kind="barh", subplots=True),
             dict(kind="barh", subplots=True, width=0.9),
-
+            # align edge
+            dict(kind="bar", stacked=True, align="edge"),
+            dict(kind="bar", stacked=True, width=0.9, align="edge"),
+            dict(kind="barh", stacked=True, align="edge"),
+            dict(kind="barh", stacked=True, width=0.9, align="edge"),
+            dict(kind="bar", stacked=False, align="edge"),
+            dict(kind="bar", stacked=False, width=0.9, align="edge"),
+            dict(kind="barh", stacked=False, align="edge"),
+            dict(kind="barh", stacked=False, width=0.9, align="edge"),
+            dict(kind="bar", subplots=True, align="edge"),
+            dict(kind="bar", subplots=True, width=0.9, align="edge"),
+            dict(kind="barh", subplots=True, align="edge"),
+            dict(kind="barh", subplots=True, width=0.9, align="edge"),
         ],
     )
     def test_bar_align_multiple_columns(self, kwargs):
@@ -1533,35 +1545,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_bar_align_single_column(self, kwargs):
         df = DataFrame(np.random.randn(5))
         self._check_bar_alignment(df, **kwargs)
-
-    @pytest.mark.slow
-    def test_bar_edge(self):
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-
-        self._check_bar_alignment(df, kind="bar", stacked=True, align="edge")
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=0.9, align="edge")
-        self._check_bar_alignment(df, kind="barh", stacked=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", stacked=True, width=0.9, align="edge"
-        )
-
-        self._check_bar_alignment(df, kind="bar", stacked=False, align="edge")
-        self._check_bar_alignment(
-            df, kind="bar", stacked=False, width=0.9, align="edge"
-        )
-        self._check_bar_alignment(df, kind="barh", stacked=False, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", stacked=False, width=0.9, align="edge"
-        )
-
-        self._check_bar_alignment(df, kind="bar", subplots=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="bar", subplots=True, width=0.9, align="edge"
-        )
-        self._check_bar_alignment(df, kind="barh", subplots=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", subplots=True, width=0.9, align="edge"
-        )
 
     @pytest.mark.slow
     def test_bar_log_no_subplots(self):
