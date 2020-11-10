@@ -84,6 +84,7 @@ class TestSeriesDropDuplicates:
         return tc1
 
     def _maybe_xfail_tc(self, tc, request):
+        warn = None
         if tc.cat.categories.dtype.kind == "M":
             if len(tc) == 4:
                 # This is tc1
@@ -101,53 +102,60 @@ class TestSeriesDropDuplicates:
                 )
                 request.node.add_marker(mark)
 
+                # Also warn about Timestamp vs date deprecation
+                warn = FutureWarning
+        return warn
+
     def test_drop_duplicates_categorical_non_bool(self, tc1, request):
-        self._maybe_xfail_tc(tc1, request)
+        warn = self._maybe_xfail_tc(tc1, request)
 
         expected = Series([False, False, False, True])
 
-        result = tc1.duplicated()
-        tm.assert_series_equal(result, expected)
+        with tm.assert_produces_warning(warn):
+            result = tc1.duplicated()
+            tm.assert_series_equal(result, expected)
 
-        result = tc1.drop_duplicates()
-        tm.assert_series_equal(result, tc1[~expected])
+            result = tc1.drop_duplicates()
+            tm.assert_series_equal(result, tc1[~expected])
 
-        sc = tc1.copy()
-        return_value = sc.drop_duplicates(inplace=True)
-        assert return_value is None
-        tm.assert_series_equal(sc, tc1[~expected])
+            sc = tc1.copy()
+            return_value = sc.drop_duplicates(inplace=True)
+            assert return_value is None
+            tm.assert_series_equal(sc, tc1[~expected])
 
     def test_drop_duplicates_categorical_non_bool_keeplast(self, tc1, request):
-        self._maybe_xfail_tc(tc1, request)
+        warn = self._maybe_xfail_tc(tc1, request)
 
         expected = Series([False, False, True, False])
 
-        result = tc1.duplicated(keep="last")
-        tm.assert_series_equal(result, expected)
+        with tm.assert_produces_warning(warn):
+            result = tc1.duplicated(keep="last")
+            tm.assert_series_equal(result, expected)
 
-        result = tc1.drop_duplicates(keep="last")
-        tm.assert_series_equal(result, tc1[~expected])
+            result = tc1.drop_duplicates(keep="last")
+            tm.assert_series_equal(result, tc1[~expected])
 
-        sc = tc1.copy()
-        return_value = sc.drop_duplicates(keep="last", inplace=True)
-        assert return_value is None
-        tm.assert_series_equal(sc, tc1[~expected])
+            sc = tc1.copy()
+            return_value = sc.drop_duplicates(keep="last", inplace=True)
+            assert return_value is None
+            tm.assert_series_equal(sc, tc1[~expected])
 
     def test_drop_duplicates_categorical_non_bool_keepfalse(self, tc1, request):
-        self._maybe_xfail_tc(tc1, request)
+        warn = self._maybe_xfail_tc(tc1, request)
 
         expected = Series([False, False, True, True])
 
-        result = tc1.duplicated(keep=False)
-        tm.assert_series_equal(result, expected)
+        with tm.assert_produces_warning(warn):
+            result = tc1.duplicated(keep=False)
+            tm.assert_series_equal(result, expected)
 
-        result = tc1.drop_duplicates(keep=False)
-        tm.assert_series_equal(result, tc1[~expected])
+            result = tc1.drop_duplicates(keep=False)
+            tm.assert_series_equal(result, tc1[~expected])
 
-        sc = tc1.copy()
-        return_value = sc.drop_duplicates(keep=False, inplace=True)
-        assert return_value is None
-        tm.assert_series_equal(sc, tc1[~expected])
+            sc = tc1.copy()
+            return_value = sc.drop_duplicates(keep=False, inplace=True)
+            assert return_value is None
+            tm.assert_series_equal(sc, tc1[~expected])
 
     @pytest.fixture
     def tc2(self, dtype, ordered):
@@ -160,52 +168,55 @@ class TestSeriesDropDuplicates:
 
     def test_drop_duplicates_categorical_non_bool2(self, tc2, request):
         # Test case 2; TODO: better name
-        self._maybe_xfail_tc(tc2, request)
+        warn = self._maybe_xfail_tc(tc2, request)
 
         expected = Series([False, False, False, False, True, True, False])
 
-        result = tc2.duplicated()
-        tm.assert_series_equal(result, expected)
+        with tm.assert_produces_warning(warn):
+            result = tc2.duplicated()
+            tm.assert_series_equal(result, expected)
 
-        result = tc2.drop_duplicates()
-        tm.assert_series_equal(result, tc2[~expected])
+            result = tc2.drop_duplicates()
+            tm.assert_series_equal(result, tc2[~expected])
 
-        sc = tc2.copy()
-        return_value = sc.drop_duplicates(inplace=True)
-        assert return_value is None
-        tm.assert_series_equal(sc, tc2[~expected])
+            sc = tc2.copy()
+            return_value = sc.drop_duplicates(inplace=True)
+            assert return_value is None
+            tm.assert_series_equal(sc, tc2[~expected])
 
     def test_drop_duplicates_categorical_non_bool2_keeplast(self, tc2, request):
-        self._maybe_xfail_tc(tc2, request)
+        warn = self._maybe_xfail_tc(tc2, request)
 
         expected = Series([False, True, True, False, False, False, False])
 
-        result = tc2.duplicated(keep="last")
-        tm.assert_series_equal(result, expected)
+        with tm.assert_produces_warning(warn):
+            result = tc2.duplicated(keep="last")
+            tm.assert_series_equal(result, expected)
 
-        result = tc2.drop_duplicates(keep="last")
-        tm.assert_series_equal(result, tc2[~expected])
+            result = tc2.drop_duplicates(keep="last")
+            tm.assert_series_equal(result, tc2[~expected])
 
-        sc = tc2.copy()
-        return_value = sc.drop_duplicates(keep="last", inplace=True)
-        assert return_value is None
-        tm.assert_series_equal(sc, tc2[~expected])
+            sc = tc2.copy()
+            return_value = sc.drop_duplicates(keep="last", inplace=True)
+            assert return_value is None
+            tm.assert_series_equal(sc, tc2[~expected])
 
     def test_drop_duplicates_categorical_non_bool2_keepfalse(self, tc2, request):
-        self._maybe_xfail_tc(tc2, request)
+        warn = self._maybe_xfail_tc(tc2, request)
 
         expected = Series([False, True, True, False, True, True, False])
 
-        result = tc2.duplicated(keep=False)
-        tm.assert_series_equal(result, expected)
+        with tm.assert_produces_warning(warn):
+            result = tc2.duplicated(keep=False)
+            tm.assert_series_equal(result, expected)
 
-        result = tc2.drop_duplicates(keep=False)
-        tm.assert_series_equal(result, tc2[~expected])
+            result = tc2.drop_duplicates(keep=False)
+            tm.assert_series_equal(result, tc2[~expected])
 
-        sc = tc2.copy()
-        return_value = sc.drop_duplicates(keep=False, inplace=True)
-        assert return_value is None
-        tm.assert_series_equal(sc, tc2[~expected])
+            sc = tc2.copy()
+            return_value = sc.drop_duplicates(keep=False, inplace=True)
+            assert return_value is None
+            tm.assert_series_equal(sc, tc2[~expected])
 
     def test_drop_duplicates_categorical_bool(self, ordered):
         tc = Series(
