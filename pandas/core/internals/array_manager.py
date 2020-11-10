@@ -466,9 +466,7 @@ class ArrayManager(DataManager):
         return False
 
     @property
-    def _is_single_block(self) -> bool:
-        # TODO should we avoid using it from outside the blockmanager since
-        # it is a private property? (eg use is_mixed_type instead?)
+    def is_single_block(self) -> bool:
         return False
 
     def get_bool_data(self, copy: bool = False) -> "ArrayManager":
