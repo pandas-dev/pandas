@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import DataFrame, MultiIndex, Series
 import pandas._testing as tm
 from pandas.core.groupby.groupby import get_groupby
 
@@ -131,7 +131,7 @@ class TestGrouperGrouping:
 
     def test_rolling_apply_mutability(self):
         # GH 14013
-        df = pd.DataFrame({"A": ["foo"] * 3 + ["bar"] * 3, "B": [1] * 6})
+        df = DataFrame({"A": ["foo"] * 3 + ["bar"] * 3, "B": [1] * 6})
         g = df.groupby("A")
 
         mi = pd.MultiIndex.from_tuples(
@@ -140,7 +140,7 @@ class TestGrouperGrouping:
 
         mi.names = ["A", None]
         # Grouped column should not be a part of the output
-        expected = pd.DataFrame([np.nan, 2.0, 2.0] * 2, columns=["B"], index=mi)
+        expected = DataFrame([np.nan, 2.0, 2.0] * 2, columns=["B"], index=mi)
 
         result = g.rolling(window=2).sum()
         tm.assert_frame_equal(result, expected)
@@ -221,7 +221,7 @@ class TestGrouperGrouping:
         def foo(x):
             return int(isinstance(x, np.ndarray))
 
-        df = pd.DataFrame({"id": [1, 1, 1], "value": [1, 2, 3]})
+        df = DataFrame({"id": [1, 1, 1], "value": [1, 2, 3]})
         result = df.groupby("id").value.rolling(1).apply(foo, raw=raw_value)
         expected = Series(
             [expected_value] * 3,
@@ -250,9 +250,9 @@ class TestGrouperGrouping:
         )
         tm.assert_series_equal(result, expected)
 
-        df = pd.DataFrame({"a": ["a"] * 5 + ["b"] * 6, "b": range(11)})
+        df = DataFrame({"a": ["a"] * 5 + ["b"] * 6, "b": range(11)})
         result = df.groupby("a").rolling(center=True, window=3).mean()
-        expected = pd.DataFrame(
+        expected = DataFrame(
             [np.nan, 1, 2, 3, np.nan, np.nan, 6, 7, 8, 9, np.nan],
             index=pd.MultiIndex.from_tuples(
                 (
@@ -274,9 +274,9 @@ class TestGrouperGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
-        df = pd.DataFrame({"a": ["a"] * 5 + ["b"] * 5, "b": range(10)})
+        df = DataFrame({"a": ["a"] * 5 + ["b"] * 5, "b": range(10)})
         result = df.groupby("a").rolling(center=True, window=3).mean()
-        expected = pd.DataFrame(
+        expected = DataFrame(
             [np.nan, 1, 2, 3, np.nan, np.nan, 6, 7, 8, np.nan],
             index=pd.MultiIndex.from_tuples(
                 (
@@ -297,10 +297,45 @@ class TestGrouperGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_rolling_center_on(self):
+        # GH 37141
+        df = DataFrame(
+            data={
+                "Date": pd.date_range("2020-01-01", "2020-01-10"),
+                "gb": ["group_1"] * 6 + ["group_2"] * 4,
+                "value": range(10),
+            }
+        )
+        result = (
+            df.groupby("gb")
+            .rolling(6, on="Date", center=True, min_periods=1)
+            .value.mean()
+        )
+        expected = Series(
+            [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 7.0, 7.5, 7.5, 7.5],
+            name="value",
+            index=pd.MultiIndex.from_tuples(
+                (
+                    ("group_1", pd.Timestamp("2020-01-01")),
+                    ("group_1", pd.Timestamp("2020-01-02")),
+                    ("group_1", pd.Timestamp("2020-01-03")),
+                    ("group_1", pd.Timestamp("2020-01-04")),
+                    ("group_1", pd.Timestamp("2020-01-05")),
+                    ("group_1", pd.Timestamp("2020-01-06")),
+                    ("group_2", pd.Timestamp("2020-01-07")),
+                    ("group_2", pd.Timestamp("2020-01-08")),
+                    ("group_2", pd.Timestamp("2020-01-09")),
+                    ("group_2", pd.Timestamp("2020-01-10")),
+                ),
+                names=["gb", "Date"],
+            ),
+        )
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("min_periods", [5, 4, 3])
     def test_groupby_rolling_center_min_periods(self, min_periods):
         # GH 36040
-        df = pd.DataFrame({"group": ["A"] * 10 + ["B"] * 10, "data": range(20)})
+        df = DataFrame({"group": ["A"] * 10 + ["B"] * 10, "data": range(20)})
 
         window_size = 5
         result = (
@@ -318,7 +353,7 @@ class TestGrouperGrouping:
         grp_A_expected = nans + grp_A_mean[num_nans : 10 - num_nans] + nans
         grp_B_expected = nans + grp_B_mean[num_nans : 10 - num_nans] + nans
 
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {"group": ["A"] * 10 + ["B"] * 10, "data": grp_A_expected + grp_B_expected}
         )
 
@@ -361,7 +396,7 @@ class TestGrouperGrouping:
                 start[start < 0] = min_periods
                 return start, end
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {"a": [1.0, 2.0, 3.0, 4.0, 5.0] * 3}, index=[0] * 5 + [1] * 5 + [2] * 5
         )
         result = (
@@ -374,7 +409,7 @@ class TestGrouperGrouping:
 
     def test_groupby_rolling_subset_with_closed(self):
         # GH 35549
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "column1": range(6),
                 "column2": range(6),
@@ -398,7 +433,7 @@ class TestGrouperGrouping:
 
     def test_groupby_subset_rolling_subset_with_closed(self):
         # GH 35549
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "column1": range(6),
                 "column2": range(6),
@@ -446,19 +481,19 @@ class TestGrouperGrouping:
 
     def test_groupby_rolling_empty_frame(self):
         # GH 36197
-        expected = pd.DataFrame({"s1": []})
+        expected = DataFrame({"s1": []})
         result = expected.groupby("s1").rolling(window=1).sum()
         expected.index = pd.MultiIndex.from_tuples([], names=["s1", None])
         tm.assert_frame_equal(result, expected)
 
-        expected = pd.DataFrame({"s1": [], "s2": []})
+        expected = DataFrame({"s1": [], "s2": []})
         result = expected.groupby(["s1", "s2"]).rolling(window=1).sum()
         expected.index = pd.MultiIndex.from_tuples([], names=["s1", "s2", None])
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_rolling_string_index(self):
         # GH: 36727
-        df = pd.DataFrame(
+        df = DataFrame(
             [
                 ["A", "group_1", pd.Timestamp(2019, 1, 1, 9)],
                 ["B", "group_1", pd.Timestamp(2019, 1, 2, 9)],
@@ -473,7 +508,7 @@ class TestGrouperGrouping:
         df["count_to_date"] = groups.cumcount()
         rolling_groups = groups.rolling("10d", on="eventTime")
         result = rolling_groups.apply(lambda df: df.shape[0])
-        expected = pd.DataFrame(
+        expected = DataFrame(
             [
                 ["A", "group_1", pd.Timestamp(2019, 1, 1, 9), 1.0],
                 ["B", "group_1", pd.Timestamp(2019, 1, 2, 9), 2.0],
@@ -488,12 +523,12 @@ class TestGrouperGrouping:
     def test_groupby_rolling_no_sort(self):
         # GH 36889
         result = (
-            pd.DataFrame({"foo": [2, 1], "bar": [2, 1]})
+            DataFrame({"foo": [2, 1], "bar": [2, 1]})
             .groupby("foo", sort=False)
             .rolling(1)
             .min()
         )
-        expected = pd.DataFrame(
+        expected = DataFrame(
             np.array([[2.0, 2.0], [1.0, 1.0]]),
             columns=["foo", "bar"],
             index=pd.MultiIndex.from_tuples([(2, 0), (1, 1)], names=["foo", None]),
@@ -502,7 +537,7 @@ class TestGrouperGrouping:
 
     def test_groupby_rolling_count_closed_on(self):
         # GH 35869
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "column1": range(6),
                 "column2": range(6),
@@ -515,7 +550,7 @@ class TestGrouperGrouping:
             .rolling("3d", on="date", closed="left")["column1"]
             .count()
         )
-        expected = pd.Series(
+        expected = Series(
             [np.nan, 1.0, 1.0, np.nan, 1.0, 1.0],
             name="column1",
             index=pd.MultiIndex.from_tuples(
@@ -538,11 +573,11 @@ class TestGrouperGrouping:
     )
     def test_groupby_rolling_sem(self, func, kwargs):
         # GH: 26476
-        df = pd.DataFrame(
+        df = DataFrame(
             [["a", 1], ["a", 2], ["b", 1], ["b", 2], ["b", 3]], columns=["a", "b"]
         )
         result = getattr(df.groupby("a"), func)(**kwargs).sem()
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {"a": [np.nan] * 5, "b": [np.nan, 0.70711, np.nan, 0.70711, 0.70711]},
             index=pd.MultiIndex.from_tuples(
                 [("a", 0), ("a", 1), ("b", 2), ("b", 3), ("b", 4)], names=["a", None]
@@ -555,7 +590,7 @@ class TestGrouperGrouping:
     )
     def test_groupby_rolling_nans_in_index(self, rollings, key):
         # GH: 34617
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "a": pd.to_datetime(["2020-06-01 12:00", "2020-06-01 14:00", np.nan]),
                 "b": [1, 2, 3],
@@ -566,3 +601,33 @@ class TestGrouperGrouping:
             df = df.set_index("a")
         with pytest.raises(ValueError, match=f"{key} must be monotonic"):
             df.groupby("c").rolling("60min", **rollings)
+
+    def test_groupby_rolling_group_keys(self):
+        # GH 37641
+        arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
+        index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
+
+        s = Series([1, 2, 3], index=index)
+        result = s.groupby(["idx1", "idx2"], group_keys=False).rolling(1).mean()
+        expected = Series(
+            [1.0, 2.0, 3.0],
+            index=MultiIndex.from_tuples(
+                [("val1", "val1"), ("val1", "val1"), ("val2", "val2")],
+                names=["idx1", "idx2"],
+            ),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_groupby_rolling_index_level_and_column_label(self):
+        arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
+        index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
+
+        df = DataFrame({"A": [1, 1, 2], "B": range(3)}, index=index)
+        result = df.groupby(["idx1", "A"]).rolling(1).mean()
+        expected = DataFrame(
+            {"B": [0.0, 1.0, 2.0]},
+            index=MultiIndex.from_tuples(
+                [("val1", 1), ("val1", 1), ("val2", 2)], names=["idx1", "A"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)

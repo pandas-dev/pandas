@@ -215,8 +215,8 @@ def test_append_with_timezones_pytz(setup_path):
 
 def test_roundtrip_tz_aware_index(setup_path):
     # GH 17618
-    time = pd.Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
-    df = pd.DataFrame(data=[0], index=[time])
+    time = Timestamp("2000-01-01 01:00:00", tz="US/Eastern")
+    df = DataFrame(data=[0], index=[time])
 
     with ensure_clean_store(setup_path) as store:
         store.put("frame", df, format="fixed")
@@ -227,8 +227,8 @@ def test_roundtrip_tz_aware_index(setup_path):
 
 def test_store_index_name_with_tz(setup_path):
     # GH 13884
-    df = pd.DataFrame({"A": [1, 2]})
-    df.index = pd.DatetimeIndex([1234567890123456787, 1234567890123456788])
+    df = DataFrame({"A": [1, 2]})
+    df.index = DatetimeIndex([1234567890123456787, 1234567890123456788])
     df.index = df.index.tz_localize("UTC")
     df.index.name = "foo"
 
@@ -299,14 +299,41 @@ def test_timezones_fixed_format_frame_non_empty(setup_path):
         tm.assert_frame_equal(result, df)
 
 
-@pytest.mark.parametrize("dtype", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"])
-def test_timezones_fixed_format_frame_empty(setup_path, dtype):
+def test_timezones_fixed_format_frame_empty(setup_path, tz_aware_fixture):
+    # GH 20594
+
+    dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
+
     with ensure_clean_store(setup_path) as store:
         s = Series(dtype=dtype)
         df = DataFrame({"A": s})
         store["df"] = df
         result = store["df"]
         tm.assert_frame_equal(result, df)
+
+
+def test_timezones_fixed_format_series_nonempty(setup_path, tz_aware_fixture):
+    # GH 20594
+
+    dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
+
+    with ensure_clean_store(setup_path) as store:
+        s = Series([0], dtype=dtype)
+        store["s"] = s
+        result = store["s"]
+        tm.assert_series_equal(result, s)
+
+
+def test_timezones_fixed_format_series_empty(setup_path, tz_aware_fixture):
+    # GH 20594
+
+    dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
+
+    with ensure_clean_store(setup_path) as store:
+        s = Series(dtype=dtype)
+        store["s"] = s
+        result = store["s"]
+        tm.assert_series_equal(result, s)
 
 
 def test_fixed_offset_tz(setup_path):
@@ -390,7 +417,7 @@ def test_read_with_where_tz_aware_index(setup_path):
     periods = 10
     dts = pd.date_range("20151201", periods=periods, freq="D", tz="UTC")
     mi = pd.MultiIndex.from_arrays([dts, range(periods)], names=["DATE", "NO"])
-    expected = pd.DataFrame({"MYCOL": 0}, index=mi)
+    expected = DataFrame({"MYCOL": 0}, index=mi)
 
     key = "mykey"
     with ensure_clean_path(setup_path) as path:
@@ -405,7 +432,7 @@ def test_py2_created_with_datetimez(datapath, setup_path):
     # Python 3.
     #
     # GH26443
-    index = [pd.Timestamp("2019-01-01T18:00").tz_localize("America/New_York")]
+    index = [Timestamp("2019-01-01T18:00").tz_localize("America/New_York")]
     expected = DataFrame({"data": 123}, index=index)
     with ensure_clean_store(
         datapath("io", "data", "legacy_hdf", "gh26443.h5"), mode="r"

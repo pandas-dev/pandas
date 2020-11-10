@@ -7,7 +7,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import PYPY
+from pandas.compat import IS64, PYPY
 
 from pandas import (
     CategoricalIndex,
@@ -49,6 +49,20 @@ def datetime_frame():
     [30 rows x 4 columns]
     """
     return DataFrame(tm.getTimeSeriesData())
+
+
+def test_info_empty():
+    df = DataFrame()
+    buf = StringIO()
+    df.info(buf=buf)
+    result = buf.getvalue()
+    expected = textwrap.dedent(
+        """\
+        <class 'pandas.core.frame.DataFrame'>
+        Index: 0 entries
+        Empty DataFrame"""
+    )
+    assert result == expected
 
 
 def test_info_categorical_column():
@@ -459,3 +473,26 @@ def test_info_categorical():
 
     buf = StringIO()
     df.info(buf=buf)
+
+
+@pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
+def test_info_int_columns():
+    # GH#37245
+    df = DataFrame({1: [1, 2], 2: [2, 3]}, index=["A", "B"])
+    buf = StringIO()
+    df.info(null_counts=True, buf=buf)
+    result = buf.getvalue()
+    expected = textwrap.dedent(
+        """\
+        <class 'pandas.core.frame.DataFrame'>
+        Index: 2 entries, A to B
+        Data columns (total 2 columns):
+         #   Column  Non-Null Count  Dtype
+        ---  ------  --------------  -----
+         0   1       2 non-null      int64
+         1   2       2 non-null      int64
+        dtypes: int64(2)
+        memory usage: 48.0+ bytes
+        """
+    )
+    assert result == expected

@@ -54,8 +54,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core.aggregation import (
+    agg_list_like,
     aggregate,
-    aggregate_multiple_funcs,
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
@@ -512,12 +512,9 @@ class SeriesGroupBy(GroupBy[Series]):
         elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
-        elif func in base.cythonized_kernels:
+        elif func in base.cythonized_kernels or func in base.transformation_kernels:
             # cythonized transform or canned "agg+broadcast"
             return getattr(self, func)(*args, **kwargs)
-        elif func in base.transformation_kernels:
-            return getattr(self, func)(*args, **kwargs)
-
         # If func is a reduction, we need to broadcast the
         # result to the whole group. Compute func result
         # and deal with possible broadcasting below.
@@ -714,7 +711,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # lab is a Categorical with categories an IntervalIndex
             lab = cut(Series(val), bins, include_lowest=True)
             lev = lab.cat.categories
-            lab = lev.take(lab.cat.codes)
+            lab = lev.take(lab.cat.codes, allow_fill=True, fill_value=lev._na_value)
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if is_interval_dtype(lab.dtype):
@@ -968,7 +965,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 # try to treat as if we are passing a list
                 try:
-                    result = aggregate_multiple_funcs(self, [func], _axis=self.axis)
+                    result = agg_list_like(self, [func], _axis=self.axis)
 
                     # select everything except for the last level, which is the one
                     # containing the name of the function(s), see GH 32040
@@ -1111,8 +1108,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # unwrap DataFrame to get array
                 result = result._mgr.blocks[0].values
 
-            res_values = cast_agg_result(result, bvalues, how)
-            return res_values
+            return cast_agg_result(result, bvalues, how)
 
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
@@ -1368,12 +1364,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
-        elif func in base.cythonized_kernels:
+        elif func in base.cythonized_kernels or func in base.transformation_kernels:
             # cythonized transformation or canned "reduction+broadcast"
             return getattr(self, func)(*args, **kwargs)
-        elif func in base.transformation_kernels:
-            return getattr(self, func)(*args, **kwargs)
-
         # GH 30918
         # Use _transform_fast only when we know func is an aggregation
         if func in base.reduction_kernels:
@@ -1401,9 +1394,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # by take operation
         ids, _, ngroup = self.grouper.group_info
         result = result.reindex(self.grouper.result_index, copy=False)
-        output = []
-        for i, _ in enumerate(result.columns):
-            output.append(algorithms.take_1d(result.iloc[:, i].values, ids))
+        output = [
+            algorithms.take_1d(result.iloc[:, i].values, ids)
+            for i, _ in enumerate(result.columns)
+        ]
 
         return self.obj._constructor._from_arrays(
             output, columns=result.columns, index=obj.index
@@ -1462,7 +1456,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             else:
                 inds.append(i)
 
-        if len(output) == 0:
+        if not output:
             raise TypeError("Transform function invalid for data types")
 
         columns = obj.columns
@@ -1645,8 +1639,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         DataFrame
         """
         indexed_output = {key.position: val for key, val in output.items()}
-        name = self._obj_with_exclusions._get_axis(1 - self.axis).name
-        columns = Index([key.label for key in output], name=name)
+        columns = Index([key.label for key in output])
+        columns._set_names(self._obj_with_exclusions._get_axis(1 - self.axis).names)
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns
