@@ -13,6 +13,7 @@ from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_array_like,
+    is_dtype_equal,
     is_hashable,
     is_integer,
     is_iterator,
@@ -21,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    is_dtype_equal,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import ABCDataFrame, ABCMultiIndex, ABCSeries
