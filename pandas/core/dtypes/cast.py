@@ -86,8 +86,6 @@ from pandas.core.dtypes.generic import (
     ABCPeriodArray,
     ABCPeriodIndex,
     ABCSeries,
-    ABCTimedeltaArray,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_list_like
 from pandas.core.dtypes.missing import (
@@ -1357,8 +1355,6 @@ def maybe_infer_to_datetimelike(
             ABCDatetimeIndex,
             ABCPeriodArray,
             ABCPeriodIndex,
-            ABCTimedeltaArray,
-            ABCTimedeltaIndex,
         ),
     ):
         return value
