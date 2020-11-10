@@ -615,7 +615,6 @@ class TestiLoc2:
         # UserWarnings from reindex of a boolean mask
         with catch_warnings(record=True):
             simplefilter("ignore", UserWarning)
-            result = dict()
             for idx in [None, "index", "locs"]:
                 mask = (df.nums > 2).values
                 if idx:
