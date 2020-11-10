@@ -1235,7 +1235,7 @@ class TestReadHtml:
             pass
         assert None is helper_thread1.err is helper_thread2.err
 
-    def test_parse_Path_object(self):
+    def test_parse_path_object(self):
         """
         read_html should be able to cope with Path
 
