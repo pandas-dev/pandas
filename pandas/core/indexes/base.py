@@ -3850,9 +3850,9 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             left_lev_indexer = ensure_int64(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
-
+            old_codes = left.codes[level]
             new_lev_codes = algos.take_nd(
-                rev_indexer, left.codes[level], allow_fill=False
+                rev_indexer, old_codes[old_codes != -1], allow_fill=False
             )
 
             new_codes = list(left.codes)

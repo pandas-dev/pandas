@@ -1982,18 +1982,17 @@ def _factorize_keys(
         rk, _ = rk._values_for_factorize()  # type: ignore[assignment, attr-defined]
 
     elif (
-        is_categorical_dtype(lk) and is_categorical_dtype(rk) and is_dtype_equal(lk, rk)
+        is_categorical_dtype(lk.dtype)
+        and is_categorical_dtype(rk.dtype)
+        and is_dtype_equal(lk.dtype, rk.dtype)
     ):
         assert isinstance(lk, Categorical)
         assert isinstance(rk, Categorical)
         # Cast rk to encoding so we can compare codes with lk
-
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "ExtensionArray")
-        rk = lk._validate_listlike(rk)  # type: ignore[assignment]
+        rk = lk._encode_with_my_categories(rk)
 
         lk = ensure_int64(lk.codes)
-        rk = ensure_int64(rk)
+        rk = ensure_int64(rk.codes)
 
     elif is_extension_array_dtype(lk.dtype) and is_dtype_equal(lk.dtype, rk.dtype):
         # pandas\core\reshape\merge.py:1967: error: Incompatible types in
@@ -2010,7 +2009,7 @@ def _factorize_keys(
         # error: "ndarray" has no attribute "_values_for_factorize"
         rk, _ = rk._values_for_factorize()  # type: ignore[attr-defined,assignment]
 
-    if is_integer_dtype(lk) and is_integer_dtype(rk):
+    if is_integer_dtype(lk.dtype) and is_integer_dtype(rk.dtype):
         # GH#23917 TODO: needs tests for case where lk is integer-dtype
         #  and rk is datetime-dtype
         klass = libhashtable.Int64Factorizer
