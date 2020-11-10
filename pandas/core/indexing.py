@@ -681,8 +681,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         self._has_valid_setitem_indexer(key)
 
         iloc = self if self.name == "iloc" else self.obj.iloc
-        iloc.name = self.name
-        iloc._setitem_with_indexer(indexer, value)
+        iloc._setitem_with_indexer(indexer, value, self.name)
 
     def _validate_key(self, key, axis: int):
         """
@@ -1526,7 +1525,7 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _setitem_with_indexer(self, indexer, value):
+    def _setitem_with_indexer(self, indexer, value, name):
         """
         _setitem_with_indexer is for setting values on a Series/DataFrame
         using positional indexers.
@@ -1602,7 +1601,7 @@ class _iLocIndexer(_LocationIndexer):
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
                         )
-                        self._setitem_with_indexer(new_indexer, value)
+                        self._setitem_with_indexer(new_indexer, value, name)
 
                         return
 
@@ -1627,17 +1626,17 @@ class _iLocIndexer(_LocationIndexer):
             indexer, missing = convert_missing_indexer(indexer)
 
             if missing:
-                self._setitem_with_indexer_missing(indexer, value)
+                self._setitem_with_indexer_missing(indexer, value, name)
                 return
 
         # align and set the values
         if take_split_path:
             # We have to operate column-wise
-            self._setitem_with_indexer_split_path(indexer, value)
+            self._setitem_with_indexer_split_path(indexer, value, name)
         else:
-            self._setitem_single_block(indexer, value)
+            self._setitem_single_block(indexer, value, name)
 
-    def _setitem_with_indexer_split_path(self, indexer, value):
+    def _setitem_with_indexer_split_path(self, indexer, value, name):
         """
         Setitem column-wise.
         """
@@ -1649,7 +1648,7 @@ class _iLocIndexer(_LocationIndexer):
         if len(indexer) > self.ndim:
             raise IndexError("too many indices for array")
 
-        if isinstance(value, ABCSeries) and self.name != "iloc":
+        if isinstance(value, ABCSeries) and name != "iloc":
             value = self._align_series(indexer, value)
 
         # Ensure we have something we can iterate over
@@ -1678,7 +1677,7 @@ class _iLocIndexer(_LocationIndexer):
 
             # we have an equal len Frame
             if isinstance(value, ABCDataFrame):
-                self._setitem_with_indexer_frame_value(indexer, value)
+                self._setitem_with_indexer_frame_value(indexer, value, name)
 
             # we have an equal len ndarray/convertible to our ilocs
             # hasattr first, to avoid coercing to ndarray without reason.
@@ -1737,7 +1736,7 @@ class _iLocIndexer(_LocationIndexer):
             # setting with a list, re-coerces
             self._setitem_single_column(loc, value[:, i].tolist(), plane_indexer)
 
-    def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame"):
+    def _setitem_with_indexer_frame_value(self, indexer, value: "DataFrame", name):
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         sub_indexer = list(indexer)
@@ -1747,7 +1746,12 @@ class _iLocIndexer(_LocationIndexer):
 
         unique_cols = value.columns.is_unique
 
-        if not unique_cols and value.columns.equals(self.obj.columns):
+        if name == "iloc":
+            for index, loc in zip(range(len(ilocs)), ilocs):
+                val = value.iloc[:, index]
+                self._setitem_single_column(loc, val, plane_indexer)
+
+        elif not unique_cols and value.columns.equals(self.obj.columns):
             # We assume we are already aligned, see
             # test_iloc_setitem_frame_duplicate_columns_multiple_blocks
             for loc in ilocs:
@@ -1768,20 +1772,15 @@ class _iLocIndexer(_LocationIndexer):
             raise ValueError("Setting with non-unique columns is not allowed.")
 
         else:
-            index = 0
             for loc in ilocs:
                 item = self.obj.columns[loc]
                 if item in value:
                     sub_indexer[1] = item
-                    if self.name == "loc":
-                        val = self._align_series(
-                            tuple(sub_indexer), value[item], multiindex_indexer
-                        )
-                    else:
-                        val = value.iloc[:, index]
+                    val = self._align_series(
+                        tuple(sub_indexer), value[item], multiindex_indexer
+                    )
                 else:
                     val = np.nan
-                index += 1
 
                 self._setitem_single_column(loc, val, plane_indexer)
 
@@ -1810,7 +1809,7 @@ class _iLocIndexer(_LocationIndexer):
         # reset the sliced object if unique
         self.obj._iset_item(loc, ser)
 
-    def _setitem_single_block(self, indexer, value):
+    def _setitem_single_block(self, indexer, value, name):
         """
         _setitem_with_indexer for the case when we have a single Block.
         """
@@ -1839,13 +1838,13 @@ class _iLocIndexer(_LocationIndexer):
 
             indexer = maybe_convert_ix(*indexer)
 
-        if isinstance(value, (ABCSeries, dict)) and self.name != "iloc":
+        if isinstance(value, (ABCSeries, dict)) and name != "iloc":
             # TODO(EA): ExtensionBlock.setitem this causes issues with
             # setting for extensionarrays that store dicts. Need to decide
             # if it's worth supporting that.
             value = self._align_series(indexer, Series(value))
 
-        elif isinstance(value, ABCDataFrame) and self.name != "iloc":
+        elif isinstance(value, ABCDataFrame) and name != "iloc":
             value = self._align_frame(indexer, value)
 
         # check for chained assignment
@@ -1856,7 +1855,7 @@ class _iLocIndexer(_LocationIndexer):
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
         self.obj._maybe_update_cacher(clear=True)
 
-    def _setitem_with_indexer_missing(self, indexer, value):
+    def _setitem_with_indexer_missing(self, indexer, value, name):
         """
         Insert new row(s) or column(s) into the Series or DataFrame.
         """
@@ -1877,7 +1876,7 @@ class _iLocIndexer(_LocationIndexer):
             if index.is_unique:
                 new_indexer = index.get_indexer([new_index[-1]])
                 if (new_indexer != -1).any():
-                    return self._setitem_with_indexer(new_indexer, value)
+                    return self._setitem_with_indexer(new_indexer, value, name)
 
             # this preserves dtype of the value
             new_values = Series([value])._values
