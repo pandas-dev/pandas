@@ -424,15 +424,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
             try:
-                astyped_categories = self.categories.astype(dtype=dtype, copy=copy)
+                astyped_cats = self.categories.astype(dtype=dtype, copy=copy)
             except (TypeError, ValueError):
                 raise ValueError(
                     f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 )
-            astyped_categories = extract_array(astyped_categories, extract_numpy=True)
-            result = take_1d(
-                astyped_categories, libalgos.ensure_platform_int(self._codes)
-            )
+
+            astyped_cats = extract_array(astyped_cats, extract_numpy=True)
+            result = take_1d(astyped_cats, libalgos.ensure_platform_int(self._codes))
 
         return result
 
