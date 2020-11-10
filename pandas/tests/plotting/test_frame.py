@@ -53,17 +53,25 @@ class TestDataFramePlots(TestPlotBase):
 
         df = self.tdf
         _check_plot_works(df.plot, grid=False)
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot, subplots=True)
+
+        # _check_plot_works adds an ax so use default_axes=True to avoid warning
+        axes = _check_plot_works(df.plot, default_axes=True, subplots=True)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot, subplots=True, layout=(-1, 2))
+        axes = _check_plot_works(
+            df.plot,
+            default_axes=True,
+            subplots=True,
+            layout=(-1, 2),
+        )
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot, subplots=True, use_index=False)
+        axes = _check_plot_works(
+            df.plot,
+            default_axes=True,
+            subplots=True,
+            use_index=False,
+        )
         self._check_ticks_props(axes, xrot=0)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
@@ -84,8 +92,7 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, xticks=[1, 5, 10])
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
 
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(df.plot, subplots=True, title="blah")
+        _check_plot_works(df.plot, default_axes=True, subplots=True, title="blah")
 
         # We have to redo it here because _check_plot_works does two plots,
         # once without an ax kwarg and once with an ax kwarg and the new sharex
@@ -190,11 +197,11 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame({"A": [1, 2, 3]})
         _check_plot_works(df.plot, color=["red"])
 
-    def test_rgb_tuple_color(self):
+    @pytest.mark.parametrize("color", [(1, 0, 0), (1, 0, 0, 0.5)])
+    def test_rgb_tuple_color(self, color):
         # GH 16695
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
-        _check_plot_works(df.plot, x="x", y="y", color=(1, 0, 0))
-        _check_plot_works(df.plot, x="x", y="y", color=(1, 0, 0, 0.5))
+        _check_plot_works(df.plot, x="x", y="y", color=color)
 
     def test_color_empty_string(self):
         df = DataFrame(np.random.randn(10, 2))
@@ -443,11 +450,21 @@ class TestDataFramePlots(TestPlotBase):
             for ax in axes:
                 assert ax.get_legend() is None
 
-    def test_groupby_boxplot_sharey(self):
+    @pytest.mark.parametrize(
+        "kwargs, expected",
+        [
+            # behavior without keyword
+            ({}, [True, False, True, False]),
+            # set sharey=True should be identical
+            ({"sharey": True}, [True, False, True, False]),
+            # sharey=False, all yticklabels should be visible
+            ({"sharey": False}, [True, True, True, True]),
+        ],
+    )
+    def test_groupby_boxplot_sharey(self, kwargs, expected):
         # https://github.com/pandas-dev/pandas/issues/20968
         # sharey can now be switched check whether the right
         # pair of axes is turned on or off
-
         df = DataFrame(
             {
                 "a": [-1.43, -0.15, -3.70, -1.43, -0.14],
@@ -456,27 +473,25 @@ class TestDataFramePlots(TestPlotBase):
             },
             index=[0, 1, 2, 3, 4],
         )
-
-        # behavior without keyword
-        axes = df.groupby("c").boxplot()
-        expected = [True, False, True, False]
+        axes = df.groupby("c").boxplot(**kwargs)
         self._assert_ytickslabels_visibility(axes, expected)
 
-        # set sharey=True should be identical
-        axes = df.groupby("c").boxplot(sharey=True)
-        expected = [True, False, True, False]
-        self._assert_ytickslabels_visibility(axes, expected)
-
-        # sharey=False, all yticklabels should be visible
-        axes = df.groupby("c").boxplot(sharey=False)
-        expected = [True, True, True, True]
-        self._assert_ytickslabels_visibility(axes, expected)
-
-    def test_groupby_boxplot_sharex(self):
+    @pytest.mark.parametrize(
+        "kwargs, expected",
+        [
+            # behavior without keyword
+            ({}, [True, True, True, True]),
+            # set sharex=False should be identical
+            ({"sharex": False}, [True, True, True, True]),
+            # sharex=True, xticklabels should be visible
+            # only for bottom plots
+            ({"sharex": True}, [False, False, True, True]),
+        ],
+    )
+    def test_groupby_boxplot_sharex(self, kwargs, expected):
         # https://github.com/pandas-dev/pandas/issues/20968
         # sharex can now be switched check whether the right
         # pair of axes is turned on or off
-
         df = DataFrame(
             {
                 "a": [-1.43, -0.15, -3.70, -1.43, -0.14],
@@ -485,21 +500,7 @@ class TestDataFramePlots(TestPlotBase):
             },
             index=[0, 1, 2, 3, 4],
         )
-
-        # behavior without keyword
-        axes = df.groupby("c").boxplot()
-        expected = [True, True, True, True]
-        self._assert_xtickslabels_visibility(axes, expected)
-
-        # set sharex=False should be identical
-        axes = df.groupby("c").boxplot(sharex=False)
-        expected = [True, True, True, True]
-        self._assert_xtickslabels_visibility(axes, expected)
-
-        # sharex=True, yticklabels should be visible
-        # only for bottom plots
-        axes = df.groupby("c").boxplot(sharex=True)
-        expected = [False, False, True, True]
+        axes = df.groupby("c").boxplot(**kwargs)
         self._assert_xtickslabels_visibility(axes, expected)
 
     @pytest.mark.slow
@@ -558,24 +559,12 @@ class TestDataFramePlots(TestPlotBase):
         }
         testdata = DataFrame(data)
 
-        ax_numeric = testdata.plot(y="numeric")
-        assert (
-            ax_numeric.get_lines()[0].get_data()[1] == testdata["numeric"].values
-        ).all()
-        ax_timedelta = testdata.plot(y="timedelta")
-        assert (
-            ax_timedelta.get_lines()[0].get_data()[1] == testdata["timedelta"].values
-        ).all()
-        ax_datetime_no_tz = testdata.plot(y="datetime_no_tz")
-        assert (
-            ax_datetime_no_tz.get_lines()[0].get_data()[1]
-            == testdata["datetime_no_tz"].values
-        ).all()
-        ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
-        assert (
-            ax_datetime_all_tz.get_lines()[0].get_data()[1]
-            == testdata["datetime_all_tz"].values
-        ).all()
+        y_cols = ["numeric", "timedelta", "datetime_no_tz", "datetime_all_tz"]
+        for col in y_cols:
+            ax = testdata.plot(y=col)
+            result = ax.get_lines()[0].get_data()[1]
+            expected = testdata[col].values
+            assert (result == expected).all()
 
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
@@ -633,7 +622,7 @@ class TestDataFramePlots(TestPlotBase):
         ).all()
 
     @pytest.mark.slow
-    def test_subplots_layout(self):
+    def test_subplots_layout_multi_column(self):
         # GH 6667
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
 
@@ -666,15 +655,26 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(subplots=True, layout=(-1, -1))
 
-        # single column
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "kwargs, expected_axes_num, expected_layout, expected_shape",
+        [
+            ({}, 1, (1, 1), (1,)),
+            ({"layout": (3, 3)}, 1, (3, 3), (3, 3)),
+        ],
+    )
+    def test_subplots_layout_single_column(
+        self, kwargs, expected_axes_num, expected_layout, expected_shape
+    ):
+        # GH 6667
         df = DataFrame(np.random.rand(10, 1), index=list(string.ascii_letters[:10]))
-        axes = df.plot(subplots=True)
-        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
-        assert axes.shape == (1,)
-
-        axes = df.plot(subplots=True, layout=(3, 3))
-        self._check_axes_shape(axes, axes_num=1, layout=(3, 3))
-        assert axes.shape == (3, 3)
+        axes = df.plot(subplots=True, **kwargs)
+        self._check_axes_shape(
+            axes,
+            axes_num=expected_axes_num,
+            layout=expected_layout,
+        )
+        assert axes.shape == expected_shape
 
     @pytest.mark.slow
     def test_subplots_warnings(self):
@@ -1066,24 +1066,20 @@ class TestDataFramePlots(TestPlotBase):
                 assert r.get_height() == width
 
     @pytest.mark.slow
-    def test_bar_barwidth_position(self):
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"kind": "bar", "stacked": False},
+            {"kind": "bar", "stacked": True},
+            {"kind": "barh", "stacked": False},
+            {"kind": "barh", "stacked": True},
+            {"kind": "bar", "subplots": True},
+            {"kind": "barh", "subplots": True},
+        ],
+    )
+    def test_bar_barwidth_position(self, kwargs):
         df = DataFrame(np.random.randn(5, 5))
-        self._check_bar_alignment(
-            df, kind="bar", stacked=False, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=0.9, position=0.2)
-        self._check_bar_alignment(
-            df, kind="barh", stacked=False, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(
-            df, kind="barh", stacked=True, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(
-            df, kind="bar", subplots=True, width=0.9, position=0.2
-        )
-        self._check_bar_alignment(
-            df, kind="barh", subplots=True, width=0.9, position=0.2
-        )
+        self._check_bar_alignment(df, width=0.9, position=0.2, **kwargs)
 
     @pytest.mark.slow
     def test_bar_barwidth_position_int(self):
@@ -1405,9 +1401,7 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot.bar)
         _check_plot_works(df.plot.bar, legend=False)
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(df.plot.bar, subplots=True)
+        _check_plot_works(df.plot.bar, default_axes=True, subplots=True)
         _check_plot_works(df.plot.bar, stacked=True)
 
         df = DataFrame(
@@ -1503,68 +1497,59 @@ class TestDataFramePlots(TestPlotBase):
         return axes
 
     @pytest.mark.slow
-    def test_bar_stacked_center(self):
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            # stacked center
+            dict(kind="bar", stacked=True),
+            dict(kind="bar", stacked=True, width=0.9),
+            dict(kind="barh", stacked=True),
+            dict(kind="barh", stacked=True, width=0.9),
+            # center
+            dict(kind="bar", stacked=False),
+            dict(kind="bar", stacked=False, width=0.9),
+            dict(kind="barh", stacked=False),
+            dict(kind="barh", stacked=False, width=0.9),
+            # subplots center
+            dict(kind="bar", subplots=True),
+            dict(kind="bar", subplots=True, width=0.9),
+            dict(kind="barh", subplots=True),
+            dict(kind="barh", subplots=True, width=0.9),
+            # align edge
+            dict(kind="bar", stacked=True, align="edge"),
+            dict(kind="bar", stacked=True, width=0.9, align="edge"),
+            dict(kind="barh", stacked=True, align="edge"),
+            dict(kind="barh", stacked=True, width=0.9, align="edge"),
+            dict(kind="bar", stacked=False, align="edge"),
+            dict(kind="bar", stacked=False, width=0.9, align="edge"),
+            dict(kind="barh", stacked=False, align="edge"),
+            dict(kind="barh", stacked=False, width=0.9, align="edge"),
+            dict(kind="bar", subplots=True, align="edge"),
+            dict(kind="bar", subplots=True, width=0.9, align="edge"),
+            dict(kind="barh", subplots=True, align="edge"),
+            dict(kind="barh", subplots=True, width=0.9, align="edge"),
+        ],
+    )
+    def test_bar_align_multiple_columns(self, kwargs):
         # GH2157
         df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-        self._check_bar_alignment(df, kind="bar", stacked=True)
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=0.9)
-        self._check_bar_alignment(df, kind="barh", stacked=True)
-        self._check_bar_alignment(df, kind="barh", stacked=True, width=0.9)
+        self._check_bar_alignment(df, **kwargs)
 
     @pytest.mark.slow
-    def test_bar_center(self):
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-        self._check_bar_alignment(df, kind="bar", stacked=False)
-        self._check_bar_alignment(df, kind="bar", stacked=False, width=0.9)
-        self._check_bar_alignment(df, kind="barh", stacked=False)
-        self._check_bar_alignment(df, kind="barh", stacked=False, width=0.9)
-
-    @pytest.mark.slow
-    def test_bar_subplots_center(self):
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-        self._check_bar_alignment(df, kind="bar", subplots=True)
-        self._check_bar_alignment(df, kind="bar", subplots=True, width=0.9)
-        self._check_bar_alignment(df, kind="barh", subplots=True)
-        self._check_bar_alignment(df, kind="barh", subplots=True, width=0.9)
-
-    @pytest.mark.slow
-    def test_bar_align_single_column(self):
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            dict(kind="bar", stacked=False),
+            dict(kind="bar", stacked=True),
+            dict(kind="barh", stacked=False),
+            dict(kind="barh", stacked=True),
+            dict(kind="bar", subplots=True),
+            dict(kind="barh", subplots=True),
+        ],
+    )
+    def test_bar_align_single_column(self, kwargs):
         df = DataFrame(np.random.randn(5))
-        self._check_bar_alignment(df, kind="bar", stacked=False)
-        self._check_bar_alignment(df, kind="bar", stacked=True)
-        self._check_bar_alignment(df, kind="barh", stacked=False)
-        self._check_bar_alignment(df, kind="barh", stacked=True)
-        self._check_bar_alignment(df, kind="bar", subplots=True)
-        self._check_bar_alignment(df, kind="barh", subplots=True)
-
-    @pytest.mark.slow
-    def test_bar_edge(self):
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
-
-        self._check_bar_alignment(df, kind="bar", stacked=True, align="edge")
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=0.9, align="edge")
-        self._check_bar_alignment(df, kind="barh", stacked=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", stacked=True, width=0.9, align="edge"
-        )
-
-        self._check_bar_alignment(df, kind="bar", stacked=False, align="edge")
-        self._check_bar_alignment(
-            df, kind="bar", stacked=False, width=0.9, align="edge"
-        )
-        self._check_bar_alignment(df, kind="barh", stacked=False, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", stacked=False, width=0.9, align="edge"
-        )
-
-        self._check_bar_alignment(df, kind="bar", subplots=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="bar", subplots=True, width=0.9, align="edge"
-        )
-        self._check_bar_alignment(df, kind="barh", subplots=True, align="edge")
-        self._check_bar_alignment(
-            df, kind="barh", subplots=True, width=0.9, align="edge"
-        )
+        self._check_bar_alignment(df, **kwargs)
 
     @pytest.mark.slow
     def test_bar_log_no_subplots(self):
@@ -1629,9 +1614,13 @@ class TestDataFramePlots(TestPlotBase):
         self._check_text_labels(ax.get_yticklabels(), labels)
         assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
 
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot.box, subplots=True, vert=False, logx=True)
+        axes = _check_plot_works(
+            df.plot.box,
+            default_axes=True,
+            subplots=True,
+            vert=False,
+            logx=True,
+        )
         self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
         self._check_ax_scales(axes, xaxis="log")
         for ax, label in zip(axes, labels):
@@ -1698,8 +1687,12 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind="kde", rot=20, fontsize=5)
         self._check_ticks_props(ax, xrot=20, xlabelsize=5, ylabelsize=5)
 
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot, kind="kde", subplots=True)
+        axes = _check_plot_works(
+            df.plot,
+            default_axes=True,
+            kind="kde",
+            subplots=True,
+        )
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         axes = df.plot(kind="kde", logy=True, subplots=True)
@@ -1723,8 +1716,12 @@ class TestDataFramePlots(TestPlotBase):
         expected = [pprint_thing(c) for c in df.columns]
         self._check_legend_labels(ax, labels=expected)
 
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot.hist, subplots=True, logy=True)
+        axes = _check_plot_works(
+            df.plot.hist,
+            default_axes=True,
+            subplots=True,
+            logy=True,
+        )
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
         self._check_ax_scales(axes, yaxis="log")
 
@@ -2624,9 +2621,11 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot.pie, y=2)
         self._check_text_labels(ax.texts, df.index)
 
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot.pie, subplots=True)
+        axes = _check_plot_works(
+            df.plot.pie,
+            default_axes=True,
+            subplots=True,
+        )
         assert len(axes) == len(df.columns)
         for ax in axes:
             self._check_text_labels(ax.texts, df.index)
@@ -2635,10 +2634,13 @@ class TestDataFramePlots(TestPlotBase):
 
         labels = ["A", "B", "C", "D", "E"]
         color_args = ["r", "g", "b", "c", "m"]
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(
-                df.plot.pie, subplots=True, labels=labels, colors=color_args
-            )
+        axes = _check_plot_works(
+            df.plot.pie,
+            default_axes=True,
+            subplots=True,
+            labels=labels,
+            colors=color_args,
+        )
         assert len(axes) == len(df.columns)
 
         for ax in axes:
@@ -2745,16 +2747,15 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot, xerr=0.2, yerr=0.2, kind=kind)
         self._check_has_errorbars(ax, xerr=2, yerr=2)
 
-        msg = (
-            "To output multiple subplots, "
-            "the figure containing the passed axes is being cleared"
+        axes = _check_plot_works(
+            df.plot,
+            default_axes=True,
+            yerr=df_err,
+            xerr=df_err,
+            subplots=True,
+            kind=kind,
         )
-        with tm.assert_produces_warning(UserWarning, match=msg):
-            # Similar warnings were observed in GH #13188
-            axes = _check_plot_works(
-                df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind
-            )
-            self._check_has_errorbars(axes, xerr=1, yerr=1)
+        self._check_has_errorbars(axes, xerr=1, yerr=1)
 
     @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
     @pytest.mark.slow
@@ -2826,14 +2827,14 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
         self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-        msg = (
-            "To output multiple subplots, "
-            "the figure containing the passed axes is being cleared"
+        axes = _check_plot_works(
+            tdf.plot,
+            default_axes=True,
+            kind=kind,
+            yerr=tdf_err,
+            subplots=True,
         )
-        with tm.assert_produces_warning(UserWarning, match=msg):
-            # Similar warnings were observed in GH #13188
-            axes = _check_plot_works(tdf.plot, kind=kind, yerr=tdf_err, subplots=True)
-            self._check_has_errorbars(axes, xerr=0, yerr=1)
+        self._check_has_errorbars(axes, xerr=0, yerr=1)
 
     def test_errorbar_asymmetrical(self):
         np.random.seed(0)
