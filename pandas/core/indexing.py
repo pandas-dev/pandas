@@ -681,6 +681,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         self._has_valid_setitem_indexer(key)
 
         iloc = self if self.name == "iloc" else self.obj.iloc
+        iloc.name = self.name
         iloc._setitem_with_indexer(indexer, value)
 
     def _validate_key(self, key, axis: int):
@@ -1648,7 +1649,7 @@ class _iLocIndexer(_LocationIndexer):
         if len(indexer) > self.ndim:
             raise IndexError("too many indices for array")
 
-        if isinstance(value, ABCSeries):
+        if isinstance(value, ABCSeries) and self.name != "iloc":
             value = self._align_series(indexer, value)
 
         # Ensure we have something we can iterate over
@@ -1767,15 +1768,20 @@ class _iLocIndexer(_LocationIndexer):
             raise ValueError("Setting with non-unique columns is not allowed.")
 
         else:
+            index = 0
             for loc in ilocs:
                 item = self.obj.columns[loc]
                 if item in value:
                     sub_indexer[1] = item
-                    val = self._align_series(
-                        tuple(sub_indexer), value[item], multiindex_indexer
-                    )
+                    if self.name == "loc":
+                        val = self._align_series(
+                            tuple(sub_indexer), value[item], multiindex_indexer
+                        )
+                    else:
+                        val = value.iloc[:, index]
                 else:
                     val = np.nan
+                index += 1
 
                 self._setitem_single_column(loc, val, plane_indexer)
 
@@ -1833,13 +1839,13 @@ class _iLocIndexer(_LocationIndexer):
 
             indexer = maybe_convert_ix(*indexer)
 
-        if isinstance(value, (ABCSeries, dict)):
+        if isinstance(value, (ABCSeries, dict)) and self.name != "iloc":
             # TODO(EA): ExtensionBlock.setitem this causes issues with
             # setting for extensionarrays that store dicts. Need to decide
             # if it's worth supporting that.
             value = self._align_series(indexer, Series(value))
 
-        elif isinstance(value, ABCDataFrame):
+        elif isinstance(value, ABCDataFrame) and self.name != "iloc":
             value = self._align_frame(indexer, value)
 
         # check for chained assignment

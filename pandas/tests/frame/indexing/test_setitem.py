@@ -298,6 +298,14 @@ class TestDataFrameSetItem:
         expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_iloc_pure_position_based(self):
+        # GH: 22046
+        df1 = DataFrame({"a2": [11, 12, 13], "b2": [14, 15, 16]})
+        df2 = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        df2.iloc[:, [1]] = df1.iloc[:, [0]]
+        expected = DataFrame({"a": [1, 2, 3], "b": [11, 12, 13], "c": [7, 8, 9]})
+        tm.assert_frame_equal(df2, expected)
+
 
 class TestDataFrameSetItemSlicing:
     def test_setitem_slice_position(self):
