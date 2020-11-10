@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, remove_na_arraylike
 
 from pandas.core import algorithms
 from pandas.core.accessor import DirNamesMixin
@@ -1081,11 +1081,8 @@ class IndexOpsMixin(OpsMixin):
         >>> s.nunique()
         4
         """
-        uniqs = self.unique()
-        n = len(uniqs)
-        if dropna and isna(uniqs).any():
-            n -= 1
-        return n
+        obj = remove_na_arraylike(self) if dropna else self
+        return len(obj.unique())
 
     @property
     def is_unique(self) -> bool:
