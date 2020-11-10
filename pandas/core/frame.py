@@ -2130,6 +2130,11 @@ class DataFrame(NDFrame, OpsMixin):
             support Unicode characters, and version 119 supports more than
             32,767 variables.
 
+            Version 119 should usually only be used when the number of
+            variables exceeds the capacity of dta format 118. Exporting
+            smaller datasets in format 119 may have unintended consequences,
+            and, as of November 2020, Stata SE cannot read version 119 files.
+
             .. versionchanged:: 1.0.0
 
                 Added support for formats 118 and 119.
@@ -3858,7 +3863,12 @@ class DataFrame(NDFrame, OpsMixin):
                     value, len(self.index), infer_dtype
                 )
             else:
-                value = cast_scalar_to_array(len(self.index), value)
+                # pandas\core\frame.py:3827: error: Argument 1 to
+                # "cast_scalar_to_array" has incompatible type "int"; expected
+                # "Tuple[Any, ...]"  [arg-type]
+                value = cast_scalar_to_array(
+                    len(self.index), value  # type: ignore[arg-type]
+                )
 
             value = maybe_cast_to_datetime(value, infer_dtype)
 
