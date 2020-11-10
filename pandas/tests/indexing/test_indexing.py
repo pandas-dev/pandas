@@ -731,7 +731,7 @@ class TestMisc:
 
         xs = np.arange(20).reshape(5, 4)
         cols = ["jim", "joe", "jolie", "joline"]
-        df = DataFrame(xs, columns=cols, index=list("abcde"))
+        df = DataFrame(xs, columns=cols, index=list("abcde"), dtype="int64")
 
         # right hand side; permute the indices and multiplpy by -2
         rhs = -2 * df.iloc[3:0:-1, 2:0:-1]
