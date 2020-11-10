@@ -429,7 +429,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 )
             astyped_categories = extract_array(astyped_categories, extract_numpy=True)
-            result = np.array(take_1d(astyped_categories, self._codes), copy=copy)
+            result = take_1d(astyped_categories, self._codes)
 
         return result
 
