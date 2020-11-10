@@ -658,17 +658,17 @@ and then running::
 
 from the root of the pandas repository. Now all of the styling checks will be
 run each time you commit changes without your needing to run each one manually.
-In addition, using this pre-commit hook will also allow you to more easily
+In addition, using ``pre-commit`` will also allow you to more easily
 remain up-to-date with our code checks as they change.
 
 Note that if needed, you can skip these checks with ``git commit --no-verify``.
 
 If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
-to run its checks by running::
+to run its checks with::
 
     pre-commit run --files <files you have modified>
 
-without having to have done ``pre-commit install`` beforehand.
+without needing to have done ``pre-commit install`` beforehand.
 
 .. note::
 
@@ -751,7 +751,7 @@ Python (PEP8 / black)
 pandas follows the `PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ standard
 and uses `Black <https://black.readthedocs.io/en/stable/>`_ and
 `Flake8 <http://flake8.pycqa.org/en/latest/>`_ to ensure a consistent code
-format throughout the project. We encourage you to use :ref:`pre-commits <contributing.pre-commit>`.
+format throughout the project. We encourage you to use :ref:`pre-commit <contributing.pre-commit>`.
 
 :ref:`Continuous Integration <contributing.ci>` will run those tools and
 report any stylistic errors in your code. Therefore, it is helpful before
