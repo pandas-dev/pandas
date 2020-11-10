@@ -1,6 +1,5 @@
 from datetime import datetime
 from io import StringIO
-from pandas.conftest import frame_or_series
 import re
 from typing import Dict, List, Union
 
