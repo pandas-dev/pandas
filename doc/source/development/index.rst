@@ -16,9 +16,9 @@ Development
     code_style
     maintaining
     internals
+    test_writing
     extending
     developer
     policies
     roadmap
     meeting
-    test_writing
