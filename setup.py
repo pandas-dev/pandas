@@ -7,6 +7,7 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 """
 
 import argparse
+from distutils.command.build import build
 from distutils.sysconfig import get_config_vars
 from distutils.version import LooseVersion
 import multiprocessing
@@ -17,9 +18,8 @@ import shutil
 import sys
 
 import pkg_resources
-from setuptools import Command, find_packages, setup
+from setuptools import Command, Extension, find_packages, setup
 
-# versioning
 import versioneer
 
 cmdclass = versioneer.get_cmdclass()
@@ -48,14 +48,9 @@ except ImportError:
     _CYTHON_INSTALLED = False
     cythonize = lambda x, *args, **kwargs: x  # dummy func
 
-# The import of Extension must be after the import of Cython, otherwise
-# we do not get the appropriately patched class.
-# See https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html # noqa
-from distutils.extension import Extension  # isort:skip
-from distutils.command.build import build  # isort:skip
-
 if _CYTHON_INSTALLED:
-    from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
+    # from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
+    from Cython.Distutils.build_ext import build_ext as _build_ext
 
     cython = True
     from Cython import Tempita as tempita
@@ -477,18 +472,10 @@ if linetrace:
     directives["linetrace"] = True
     macros = [("CYTHON_TRACE", "1"), ("CYTHON_TRACE_NOGIL", "1")]
 
-# in numpy>=1.16.0, silence build warnings about deprecated API usage
-#  we can't do anything about these warnings because they stem from
-#  cython+numpy version mismatches.
+# silence build warnings about deprecated API usage
+# we can't do anything about these warnings because they stem from
+# cython+numpy version mismatches.
 macros.append(("NPY_NO_DEPRECATED_API", "0"))
-if "-Werror" in extra_compile_args:
-    try:
-        import numpy as np
-    except ImportError:
-        pass
-    else:
-        if np.__version__ < LooseVersion("1.16.0"):
-            extra_compile_args.remove("-Werror")
 
 
 # ----------------------------------------------------------------------
