@@ -53,17 +53,25 @@ class TestDataFramePlots(TestPlotBase):
 
         df = self.tdf
         _check_plot_works(df.plot, grid=False)
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot, subplots=True)
+
+        # _check_plot_works adds an ax so use default_axes=True to avoid warning
+        axes = _check_plot_works(df.plot, default_axes=True, subplots=True)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot, subplots=True, layout=(-1, 2))
+        axes = _check_plot_works(
+            df.plot,
+            default_axes=True,
+            subplots=True,
+            layout=(-1, 2),
+        )
         self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot, subplots=True, use_index=False)
+        axes = _check_plot_works(
+            df.plot,
+            default_axes=True,
+            subplots=True,
+            use_index=False,
+        )
         self._check_ticks_props(axes, xrot=0)
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
@@ -84,8 +92,7 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot, xticks=[1, 5, 10])
         _check_plot_works(df.plot, ylim=(-100, 100), xlim=(-100, 100))
 
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(df.plot, subplots=True, title="blah")
+        _check_plot_works(df.plot, default_axes=True, subplots=True, title="blah")
 
         # We have to redo it here because _check_plot_works does two plots,
         # once without an ax kwarg and once with an ax kwarg and the new sharex
@@ -1405,9 +1412,7 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot.bar)
         _check_plot_works(df.plot.bar, legend=False)
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(df.plot.bar, subplots=True)
+        _check_plot_works(df.plot.bar, default_axes=True, subplots=True)
         _check_plot_works(df.plot.bar, stacked=True)
 
         df = DataFrame(
@@ -1629,9 +1634,13 @@ class TestDataFramePlots(TestPlotBase):
         self._check_text_labels(ax.get_yticklabels(), labels)
         assert len(ax.lines) == self.bp_n_objects * len(numeric_cols)
 
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot.box, subplots=True, vert=False, logx=True)
+        axes = _check_plot_works(
+            df.plot.box,
+            default_axes=True,
+            subplots=True,
+            vert=False,
+            logx=True,
+        )
         self._check_axes_shape(axes, axes_num=3, layout=(1, 3))
         self._check_ax_scales(axes, xaxis="log")
         for ax, label in zip(axes, labels):
@@ -1698,8 +1707,12 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind="kde", rot=20, fontsize=5)
         self._check_ticks_props(ax, xrot=20, xlabelsize=5, ylabelsize=5)
 
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot, kind="kde", subplots=True)
+        axes = _check_plot_works(
+            df.plot,
+            default_axes=True,
+            kind="kde",
+            subplots=True,
+        )
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         axes = df.plot(kind="kde", logy=True, subplots=True)
@@ -1723,8 +1736,12 @@ class TestDataFramePlots(TestPlotBase):
         expected = [pprint_thing(c) for c in df.columns]
         self._check_legend_labels(ax, labels=expected)
 
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot.hist, subplots=True, logy=True)
+        axes = _check_plot_works(
+            df.plot.hist,
+            default_axes=True,
+            subplots=True,
+            logy=True,
+        )
         self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
         self._check_ax_scales(axes, yaxis="log")
 
@@ -2624,9 +2641,11 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot.pie, y=2)
         self._check_text_labels(ax.texts, df.index)
 
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(df.plot.pie, subplots=True)
+        axes = _check_plot_works(
+            df.plot.pie,
+            default_axes=True,
+            subplots=True,
+        )
         assert len(axes) == len(df.columns)
         for ax in axes:
             self._check_text_labels(ax.texts, df.index)
@@ -2635,10 +2654,13 @@ class TestDataFramePlots(TestPlotBase):
 
         labels = ["A", "B", "C", "D", "E"]
         color_args = ["r", "g", "b", "c", "m"]
-        with tm.assert_produces_warning(UserWarning):
-            axes = _check_plot_works(
-                df.plot.pie, subplots=True, labels=labels, colors=color_args
-            )
+        axes = _check_plot_works(
+            df.plot.pie,
+            default_axes=True,
+            subplots=True,
+            labels=labels,
+            colors=color_args,
+        )
         assert len(axes) == len(df.columns)
 
         for ax in axes:
@@ -2745,16 +2767,15 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(df.plot, xerr=0.2, yerr=0.2, kind=kind)
         self._check_has_errorbars(ax, xerr=2, yerr=2)
 
-        msg = (
-            "To output multiple subplots, "
-            "the figure containing the passed axes is being cleared"
+        axes = _check_plot_works(
+            df.plot,
+            default_axes=True,
+            yerr=df_err,
+            xerr=df_err,
+            subplots=True,
+            kind=kind,
         )
-        with tm.assert_produces_warning(UserWarning, match=msg):
-            # Similar warnings were observed in GH #13188
-            axes = _check_plot_works(
-                df.plot, yerr=df_err, xerr=df_err, subplots=True, kind=kind
-            )
-            self._check_has_errorbars(axes, xerr=1, yerr=1)
+        self._check_has_errorbars(axes, xerr=1, yerr=1)
 
     @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
     @pytest.mark.slow
@@ -2826,14 +2847,14 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(tdf.plot, yerr=tdf_err, kind=kind)
         self._check_has_errorbars(ax, xerr=0, yerr=2)
 
-        msg = (
-            "To output multiple subplots, "
-            "the figure containing the passed axes is being cleared"
+        axes = _check_plot_works(
+            tdf.plot,
+            default_axes=True,
+            kind=kind,
+            yerr=tdf_err,
+            subplots=True,
         )
-        with tm.assert_produces_warning(UserWarning, match=msg):
-            # Similar warnings were observed in GH #13188
-            axes = _check_plot_works(tdf.plot, kind=kind, yerr=tdf_err, subplots=True)
-            self._check_has_errorbars(axes, xerr=0, yerr=1)
+        self._check_has_errorbars(axes, xerr=0, yerr=1)
 
     def test_errorbar_asymmetrical(self):
         np.random.seed(0)
