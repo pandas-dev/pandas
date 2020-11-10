@@ -552,24 +552,12 @@ class TestDataFramePlots(TestPlotBase):
         }
         testdata = DataFrame(data)
 
-        ax_numeric = testdata.plot(y="numeric")
-        assert (
-            ax_numeric.get_lines()[0].get_data()[1] == testdata["numeric"].values
-        ).all()
-        ax_timedelta = testdata.plot(y="timedelta")
-        assert (
-            ax_timedelta.get_lines()[0].get_data()[1] == testdata["timedelta"].values
-        ).all()
-        ax_datetime_no_tz = testdata.plot(y="datetime_no_tz")
-        assert (
-            ax_datetime_no_tz.get_lines()[0].get_data()[1]
-            == testdata["datetime_no_tz"].values
-        ).all()
-        ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
-        assert (
-            ax_datetime_all_tz.get_lines()[0].get_data()[1]
-            == testdata["datetime_all_tz"].values
-        ).all()
+        y_cols = ["numeric", "timedelta", "datetime_no_tz", "datetime_all_tz"]
+        for col in y_cols:
+            ax = testdata.plot(y=col)
+            result = ax.get_lines()[0].get_data()[1]
+            expected = testdata[col].values
+            assert (result == expected).all()
 
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
