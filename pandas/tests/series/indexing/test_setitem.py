@@ -213,8 +213,8 @@ class TestSetitemCasting:
     def test_setitem_assigning_different_dtype(self):
         # GH: 20635
         ser = Series(["3", "4"], name="A")
-        ser.loc[:] = ser.loc[:].astype("int")
-        expected = Series([3, 4], name="A")
+        ser.loc[:] = ser.loc[:].astype("int64")
+        expected = Series([3, 4], name="A", dtype="int64")
         tm.assert_series_equal(ser, expected)
 
 

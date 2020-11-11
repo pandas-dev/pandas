@@ -302,8 +302,8 @@ class TestDataFrameSetItem:
     def test_setitem_complete_columns_different_dtypes(self):
         # GH: 20635
         df = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": ["3", "4"]})
-        df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype("int")
-        expected = DataFrame({"A": ["a", "b"], "B": [1, 2], "C": [3, 4]})
+        df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype("int64")
+        expected = DataFrame({"A": ["a", "b"], "B": [1, 2], "C": [3, 4]}, dtype="int64")
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_conversion_to_datetime(self):
