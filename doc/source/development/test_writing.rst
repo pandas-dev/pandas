@@ -89,18 +89,19 @@ This test likely belongs in one of:
     If many cases such a test may test multiple similar methods, e.g.
 
     .. code-block:: python
-        import pandas as pd
-        import pandas._testing as tm
 
-        def test_getitem_listlike_of_ints():
-            ser = pd.Series(range(5))
+         import pandas as pd
+         import pandas._testing as tm
 
-            result = ser[[3, 4]]
-            expected = pd.Series([2, 3])
-            tm.assert_series_equal(result, expected)
+         def test_getitem_listlike_of_ints():
+             ser = pd.Series(range(5))
 
-            result = ser.loc[[3, 4]]
-            tm.assert_series_equal(result, expected)
+             result = ser[[3, 4]]
+             expected = pd.Series([2, 3])
+             tm.assert_series_equal(result, expected)
+
+             result = ser.loc[[3, 4]]
+             tm.assert_series_equal(result, expected)
 
     In cases like this, the test location should be based on the *underlying* method being tested.  Or in the case of a test for a bugfix, the location of the actual bug.  So in this example, we know that ``Series.__getitem__`` calls ``Series.loc.__getitem__``, so this is *really* a test for ``loc.__getitem__``.  So this test belongs in ``tests.indexing.test_loc``
 
