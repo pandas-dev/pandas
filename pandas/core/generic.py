@@ -8597,7 +8597,7 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
 
         return ranker(data)
 
-    @Appender(_shared_docs["compare"] % _shared_doc_kwargs)
+    @doc(_shared_docs["compare"], klass=_shared_doc_kwargs["klass"])
     def compare(
         self,
         other,
