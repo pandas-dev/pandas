@@ -2083,16 +2083,15 @@ def test_groupby_repr():
 
 
 @td.skip_if_no("lxml")
-def test_groupby_repr_truncated_group():
+@pytest.mark.parametrize("n_groups,n_rows,check_n_rows", [(4, 400, 7)])
+def test_groupby_repr_truncated_group(n_groups, n_rows, check_n_rows):
     # GH 34926 - In the groups not all rows are shown in html output.
-    n_groups = 10
-    length = n_groups * 20
 
     df = DataFrame(
         {
-            "A": range(length),
-            "B": range(0, length * 2, 2),
-            "C": list(range(n_groups)) * (length // n_groups),
+            "A": range(n_rows),
+            "B": range(0, n_rows * 2, 2),
+            "C": list(range(n_groups)) * (n_rows // n_groups),
         }
     )
 
@@ -2100,22 +2099,21 @@ def test_groupby_repr_truncated_group():
     html_groupby = df_groupby._repr_html_()
 
     dfs_from_html = pd.read_html(StringIO(html_groupby), index_col=0)
+    # Filter out row with dots dots displaying hidden DataFrames
+    dfs_from_html = [
+        df_from_html[df_from_html.index != "..."] for df_from_html in dfs_from_html
+    ]
+    for k in range(len(dfs_from_html)):
+        # Convert to int (orginal dtype)
+        dfs_from_html[k] = dfs_from_html[k].astype(int)
+        dfs_from_html[k].index = dfs_from_html[k].index.astype(int)
 
-    # For each group only test first and last row
-    # Those rows will always be shown. No logic is needed to calculate how many
-    # rows are tested (which would mirror the implementation).
-    # Setting a fixed number would make the test very specific for the given
-    # number of groups and DataFrame length.
-    # Correctness of output is tested in test_groupby_repr
     for k, (group_name, df_group) in enumerate(df_groupby):
-        dtype = df_group.iloc[0].dtype
-        tm.assert_series_equal(
-            dfs_from_html[k].iloc[0].astype(dtype), df_group.iloc[0], check_names=False
+        tm.assert_frame_equal(
+            dfs_from_html[k].iloc[:check_n_rows], df_group.iloc[:check_n_rows],
         )
-        tm.assert_series_equal(
-            dfs_from_html[k].iloc[-1].astype(dtype),
-            df_group.iloc[-1],
-            check_names=False,
+        tm.assert_frame_equal(
+            dfs_from_html[k].iloc[-check_n_rows:], df_group.iloc[-check_n_rows:],
         )
 
 
