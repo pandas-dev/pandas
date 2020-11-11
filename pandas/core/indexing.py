@@ -1107,6 +1107,8 @@ class _LocIndexer(_LocationIndexer):
             # nested tuple slicing
             if is_nested_tuple(key, labels):
                 locs = labels.get_locs(key)
+                if not len(locs):
+                    raise KeyError(key)
                 indexer = [slice(None)] * self.ndim
                 indexer[axis] = locs
                 return self.obj.iloc[tuple(indexer)]
