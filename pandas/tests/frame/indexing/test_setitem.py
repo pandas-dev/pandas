@@ -16,6 +16,7 @@ from pandas import (
     date_range,
     notna,
     period_range,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
@@ -303,6 +304,22 @@ class TestDataFrameSetItem:
         df = DataFrame({"A": ["a", "b"], "B": ["1", "2"], "C": ["3", "4"]})
         df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype("int")
         expected = DataFrame({"A": ["a", "b"], "B": [1, 2], "C": [3, 4]})
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_conversion_to_datetime(self):
+        # GH: 20511
+        df = DataFrame(
+            [["2015-01-01", "2016-01-01"], ["2016-01-01", "2015-01-01"]]
+        ).add_prefix("date")
+        df.iloc[:, [0]] = df.iloc[:, [0]].apply(
+            lambda x: to_datetime(x, errors="coerce")
+        )
+        expected = DataFrame(
+            {
+                "date0": [to_datetime("2015-01-01"), to_datetime("2016-01-01")],
+                "date1": ["2016-01-01", "2015-01-01"],
+            }
+        )
         tm.assert_frame_equal(df, expected)
 
 
