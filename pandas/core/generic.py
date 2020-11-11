@@ -3708,7 +3708,9 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             return result
 
         if axis == 1:
-            return self[key]
+            if drop_level:
+                return self[key]
+            return self[[key]]
 
         index = self.index
         if isinstance(index, MultiIndex):
