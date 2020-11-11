@@ -10,4 +10,3 @@ elif [[ -n ${!TRAVIS_IV_ENV} ]]; then
     export GBQ_PROJECT_ID='pandas-gbq-tests';
     echo 'Successfully decrypted gbq credentials'
 fi
-

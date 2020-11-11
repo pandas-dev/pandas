@@ -8,7 +8,7 @@ from typing import Callable
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas.compat.numpy import _np_version_under1p17
+from pandas.compat.numpy import np_version_under1p17
 
 from pandas.core.nanops import check_below_min_count
 
@@ -17,6 +17,7 @@ def _sumprod(
     func: Callable,
     values: np.ndarray,
     mask: np.ndarray,
+    *,
     skipna: bool = True,
     min_count: int = 0,
 ):
@@ -46,25 +47,31 @@ def _sumprod(
         if check_below_min_count(values.shape, mask, min_count):
             return libmissing.NA
 
-        if _np_version_under1p17:
+        if np_version_under1p17:
             return func(values[~mask])
         else:
             return func(values, where=~mask)
 
 
-def sum(values: np.ndarray, mask: np.ndarray, skipna: bool = True, min_count: int = 0):
+def sum(
+    values: np.ndarray, mask: np.ndarray, *, skipna: bool = True, min_count: int = 0
+):
     return _sumprod(
         np.sum, values=values, mask=mask, skipna=skipna, min_count=min_count
     )
 
 
-def prod(values: np.ndarray, mask: np.ndarray, skipna: bool = True, min_count: int = 0):
+def prod(
+    values: np.ndarray, mask: np.ndarray, *, skipna: bool = True, min_count: int = 0
+):
     return _sumprod(
         np.prod, values=values, mask=mask, skipna=skipna, min_count=min_count
     )
 
 
-def _minmax(func: Callable, values: np.ndarray, mask: np.ndarray, skipna: bool = True):
+def _minmax(
+    func: Callable, values: np.ndarray, mask: np.ndarray, *, skipna: bool = True
+):
     """
     Reduction for 1D masked array.
 
@@ -94,9 +101,9 @@ def _minmax(func: Callable, values: np.ndarray, mask: np.ndarray, skipna: bool =
             return libmissing.NA
 
 
-def min(values: np.ndarray, mask: np.ndarray, skipna: bool = True):
+def min(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
     return _minmax(np.min, values=values, mask=mask, skipna=skipna)
 
 
-def max(values: np.ndarray, mask: np.ndarray, skipna: bool = True):
+def max(values: np.ndarray, mask: np.ndarray, *, skipna: bool = True):
     return _minmax(np.max, values=values, mask=mask, skipna=skipna)

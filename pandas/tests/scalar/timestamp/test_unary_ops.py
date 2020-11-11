@@ -397,6 +397,12 @@ class TestTimestampUnaryOps:
         expected = Timestamp("2013-11-30", tz=tz)
         assert result == expected
 
+    def test_normalize_pre_epoch_dates(self):
+        # GH: 36294
+        result = Timestamp("1969-01-01 09:00:00").normalize()
+        expected = Timestamp("1969-01-01 00:00:00")
+        assert result == expected
+
     # --------------------------------------------------------------
 
     @td.skip_if_windows
@@ -418,3 +424,14 @@ class TestTimestampUnaryOps:
             # should agree with datetime.timestamp method
             dt = ts.to_pydatetime()
             assert dt.timestamp() == ts.timestamp()
+
+
+@pytest.mark.parametrize("fold", [0, 1])
+def test_replace_preserves_fold(fold):
+    # GH 37610. Check that replace preserves Timestamp fold property
+    tz = gettz("Europe/Moscow")
+
+    ts = Timestamp(year=2009, month=10, day=25, hour=2, minute=30, fold=fold, tzinfo=tz)
+    ts_replaced = ts.replace(second=1)
+
+    assert ts_replaced.fold == fold

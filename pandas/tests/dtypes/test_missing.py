@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import datetime
 from decimal import Decimal
 
@@ -89,8 +90,8 @@ class TestIsNA:
         assert not isna_f(-np.inf)
 
         # type
-        assert not isna_f(type(pd.Series(dtype=object)))
-        assert not isna_f(type(pd.Series(dtype=np.float64)))
+        assert not isna_f(type(Series(dtype=object)))
+        assert not isna_f(type(Series(dtype=np.float64)))
         assert not isna_f(type(pd.DataFrame()))
 
         # series
@@ -224,7 +225,7 @@ class TestIsNA:
             tm.assert_numpy_array_equal(result, expected)
 
     def test_datetime_other_units(self):
-        idx = pd.DatetimeIndex(["2011-01-01", "NaT", "2011-01-02"])
+        idx = DatetimeIndex(["2011-01-01", "NaT", "2011-01-02"])
         exp = np.array([False, True, False])
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
@@ -246,16 +247,16 @@ class TestIsNA:
             tm.assert_numpy_array_equal(isna(values), exp)
             tm.assert_numpy_array_equal(notna(values), ~exp)
 
-            exp = pd.Series([False, True, False])
-            s = pd.Series(values)
+            exp = Series([False, True, False])
+            s = Series(values)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
-            s = pd.Series(values, dtype=object)
+            s = Series(values, dtype=object)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
 
     def test_timedelta_other_units(self):
-        idx = pd.TimedeltaIndex(["1 days", "NaT", "2 days"])
+        idx = TimedeltaIndex(["1 days", "NaT", "2 days"])
         exp = np.array([False, True, False])
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
@@ -277,11 +278,11 @@ class TestIsNA:
             tm.assert_numpy_array_equal(isna(values), exp)
             tm.assert_numpy_array_equal(notna(values), ~exp)
 
-            exp = pd.Series([False, True, False])
-            s = pd.Series(values)
+            exp = Series([False, True, False])
+            s = Series(values)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
-            s = pd.Series(values, dtype=object)
+            s = Series(values, dtype=object)
             tm.assert_series_equal(isna(s), exp)
             tm.assert_series_equal(notna(s), ~exp)
 
@@ -291,11 +292,11 @@ class TestIsNA:
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
 
-        exp = pd.Series([False, True, False])
-        s = pd.Series(idx)
+        exp = Series([False, True, False])
+        s = Series(idx)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
-        s = pd.Series(idx, dtype=object)
+        s = Series(idx, dtype=object)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
 
@@ -373,7 +374,7 @@ def test_array_equivalent(dtype_equal):
     )
     # The rest are not dtype_equal
     assert not array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern"),
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan], tz="US/Eastern")
     )
     assert not array_equivalent(
         DatetimeIndex([0, np.nan], tz="CET"),
@@ -381,6 +382,20 @@ def test_array_equivalent(dtype_equal):
     )
 
     assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
+
+
+@pytest.mark.parametrize(
+    "val", [1, 1.1, 1 + 1j, True, "abc", [1, 2], (1, 2), {1, 2}, {"a": 1}, None]
+)
+def test_array_equivalent_series(val):
+    arr = np.array([1, 2])
+    cm = (
+        tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+        if isinstance(val, str)
+        else nullcontext()
+    )
+    with cm:
+        assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
 
 
 def test_array_equivalent_different_dtype_but_equal():

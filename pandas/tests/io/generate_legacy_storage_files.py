@@ -6,10 +6,10 @@ generate pickles, say its for 0.20.3, with your pandas clone
 in ~/pandas
 
 . activate pandas_0.20.3
-cd ~/
+cd ~/pandas/pandas
 
-$ python pandas/pandas/tests/io/generate_legacy_storage_files.py \
-    pandas/pandas/tests/io/data/legacy_pickle/0.20.3/ pickle
+$ python -m tests.io.generate_legacy_storage_files \
+    tests/io/data/legacy_pickle/0.20.3/ pickle
 
 This script generates a storage file for the current arch, system,
 and python version
@@ -328,7 +328,7 @@ def write_legacy_pickles(output_dir):
     pth = f"{platform_name()}.pickle"
 
     fh = open(os.path.join(output_dir, pth), "wb")
-    pickle.dump(create_pickle_data(), fh, pickle.HIGHEST_PROTOCOL)
+    pickle.dump(create_pickle_data(), fh, pickle.DEFAULT_PROTOCOL)
     fh.close()
 
     print(f"created pickle file: {pth}")

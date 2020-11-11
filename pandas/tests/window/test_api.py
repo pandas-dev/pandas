@@ -1,12 +1,10 @@
-from collections import OrderedDict
-
 import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, compat, concat
+from pandas import DataFrame, Index, Series, Timestamp, concat
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
@@ -277,7 +275,7 @@ def test_preserve_metadata():
 @pytest.mark.parametrize(
     "func,window_size,expected_vals",
     [
-        pytest.param(
+        (
             "rolling",
             2,
             [
@@ -289,7 +287,6 @@ def test_preserve_metadata():
                 [35.0, 40.0, 60.0, 40.0],
                 [60.0, 80.0, 85.0, 80],
             ],
-            marks=pytest.mark.xfail(not compat.IS64, reason="GH-35294"),
         ),
         (
             "expanding",
@@ -308,7 +305,7 @@ def test_preserve_metadata():
 )
 def test_multiple_agg_funcs(func, window_size, expected_vals):
     # GH 15072
-    df = pd.DataFrame(
+    df = DataFrame(
         [
             ["A", 10, 20],
             ["A", 20, 30],
@@ -334,10 +331,8 @@ def test_multiple_agg_funcs(func, window_size, expected_vals):
     columns = pd.MultiIndex.from_tuples(
         [("low", "mean"), ("low", "max"), ("high", "mean"), ("high", "min")]
     )
-    expected = pd.DataFrame(expected_vals, index=index, columns=columns)
+    expected = DataFrame(expected_vals, index=index, columns=columns)
 
-    result = window.agg(
-        OrderedDict((("low", ["mean", "max"]), ("high", ["mean", "min"])))
-    )
+    result = window.agg(dict((("low", ["mean", "max"]), ("high", ["mean", "min"]))))
 
     tm.assert_frame_equal(result, expected)

@@ -22,10 +22,6 @@ Attributes
    :toctree: api/
 
    Series.index
-
-.. autosummary::
-   :toctree: api/
-
    Series.array
    Series.values
    Series.dtype
@@ -39,6 +35,8 @@ Attributes
    Series.empty
    Series.dtypes
    Series.name
+   Series.flags
+   Series.set_flags
 
 Conversion
 ----------
@@ -278,7 +276,7 @@ Time Series-related
 Accessors
 ---------
 
-Pandas provides dtype-specific methods under various accessors.
+pandas provides dtype-specific methods under various accessors.
 These are separate namespaces within :class:`Series` that only apply
 to specific data types.
 
@@ -321,8 +319,10 @@ Datetime properties
    Series.dt.week
    Series.dt.weekofyear
    Series.dt.dayofweek
+   Series.dt.day_of_week
    Series.dt.weekday
    Series.dt.dayofyear
+   Series.dt.day_of_year
    Series.dt.quarter
    Series.dt.is_month_start
    Series.dt.is_month_end
@@ -522,10 +522,24 @@ Sparse-dtype specific methods and attributes are provided under the
 
 .. autosummary::
    :toctree: api/
+   :template: autosummary/accessor_method.rst
 
    Series.sparse.from_coo
    Series.sparse.to_coo
 
+.. _api.series.flags:
+
+Flags
+~~~~~
+
+Flags refer to attributes of the pandas object. Properties of the dataset (like
+the date is was recorded, the URL it was accessed from, etc.) should be stored
+in :attr:`Series.attrs`.
+
+.. autosummary::
+   :toctree: api/
+
+   Flags
 
 .. _api.series.metadata:
 

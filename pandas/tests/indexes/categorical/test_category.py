@@ -42,7 +42,7 @@ class TestCategoricalIndex(Base):
     def test_disallow_addsub_ops(self, func, op_name):
         # GH 10039
         # set ops (+/-) raise TypeError
-        idx = pd.Index(pd.Categorical(["a", "b"]))
+        idx = Index(Categorical(["a", "b"]))
         cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
         msg = "|".join(
             [
@@ -171,11 +171,8 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid
-        msg = (
-            "cannot insert an item into a CategoricalIndex that is not "
-            "already an existing category"
-        )
-        with pytest.raises(TypeError, match=msg):
+        msg = "'fill_value=d' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
             ci.insert(0, "d")
 
         # GH 18295 (test missing)
@@ -183,6 +180,12 @@ class TestCategoricalIndex(Base):
         for na in (np.nan, pd.NaT, None):
             result = CategoricalIndex(list("aabcb")).insert(1, na)
             tm.assert_index_equal(result, expected)
+
+    def test_insert_na_mismatched_dtype(self):
+        ci = CategoricalIndex([0, 1, 1])
+        msg = "'fill_value=NaT' is not present in this Categorical's categories"
+        with pytest.raises(ValueError, match=msg):
+            ci.insert(0, pd.NaT)
 
     def test_delete(self):
 
@@ -402,15 +405,7 @@ class TestCategoricalIndex(Base):
         with pytest.raises(ValueError, match="Lengths must match"):
             ci1 == Index(["a", "b", "c"])
 
-        msg = (
-            "categorical index comparisons must have the same categories "
-            "and ordered attributes"
-            "|"
-            "Categoricals can only be compared if 'categories' are the same. "
-            "Categories are different lengths"
-            "|"
-            "Categoricals can only be compared if 'ordered' is the same"
-        )
+        msg = "Categoricals can only be compared if 'categories' are the same"
         with pytest.raises(TypeError, match=msg):
             ci1 == ci2
         with pytest.raises(TypeError, match=msg):
@@ -442,15 +437,23 @@ class TestCategoricalIndex(Base):
 
     def test_equals_categorical_unordered(self):
         # https://github.com/pandas-dev/pandas/issues/16603
-        a = pd.CategoricalIndex(["A"], categories=["A", "B"])
-        b = pd.CategoricalIndex(["A"], categories=["B", "A"])
-        c = pd.CategoricalIndex(["C"], categories=["B", "A"])
+        a = CategoricalIndex(["A"], categories=["A", "B"])
+        b = CategoricalIndex(["A"], categories=["B", "A"])
+        c = CategoricalIndex(["C"], categories=["B", "A"])
         assert a.equals(b)
         assert not a.equals(c)
         assert not b.equals(c)
 
+    def test_equals_non_category(self):
+        # GH#37667 Case where other contains a value not among ci's
+        #  categories ("D") and also contains np.nan
+        ci = CategoricalIndex(["A", "B", np.nan, np.nan])
+        other = Index(["A", "B", "D", np.nan])
+
+        assert not ci.equals(other)
+
     def test_frame_repr(self):
-        df = pd.DataFrame({"A": [1, 2, 3]}, index=pd.CategoricalIndex(["a", "b", "c"]))
+        df = pd.DataFrame({"A": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
         result = repr(df)
         expected = "   A\na  1\nb  2\nc  3"
         assert result == expected
@@ -469,11 +472,11 @@ class TestCategoricalIndex(Base):
             # num. of uniques required to push CategoricalIndex.codes to a
             # dtype (128 categories required for .codes dtype to be int16 etc.)
             num_uniques = {np.int8: 1, np.int16: 128, np.int32: 32768}[dtype]
-            ci = pd.CategoricalIndex(range(num_uniques))
+            ci = CategoricalIndex(range(num_uniques))
         else:
             # having 2**32 - 2**31 categories would be very memory-intensive,
             # so we cheat a bit with the dtype
-            ci = pd.CategoricalIndex(range(32768))  # == 2**16 - 2**(16 - 1)
+            ci = CategoricalIndex(range(32768))  # == 2**16 - 2**(16 - 1)
             ci.values._codes = ci.values._codes.astype("int64")
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)

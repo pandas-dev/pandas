@@ -9,8 +9,8 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
-from pandas._libs.tslibs import NaT, iNaT
-from pandas._typing import DtypeObj
+from pandas._libs.tslibs import NaT, Period, iNaT
+from pandas._typing import ArrayLike, DtypeObj
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -42,6 +42,9 @@ from pandas.core.dtypes.inference import is_list_like
 
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
+
+nan_checker = np.isnan
+INF_AS_NA = False
 
 
 def isna(obj):
@@ -188,6 +191,12 @@ def _use_inf_as_na(key):
     """
     inf_as_na = get_option(key)
     globals()["_isna"] = partial(_isna, inf_as_na=inf_as_na)
+    if inf_as_na:
+        globals()["nan_checker"] = lambda x: ~np.isfinite(x)
+        globals()["INF_AS_NA"] = True
+    else:
+        globals()["nan_checker"] = np.isnan
+        globals()["INF_AS_NA"] = False
 
 
 def _isna_ndarraylike(obj, inf_as_na: bool = False):
@@ -338,7 +347,7 @@ def notna(obj):
 notnull = notna
 
 
-def _isna_compat(arr, fill_value=np.nan) -> bool:
+def isna_compat(arr, fill_value=np.nan) -> bool:
     """
     Parameters
     ----------
@@ -484,7 +493,19 @@ def _array_equivalent_object(left, right, strict_nan):
     return True
 
 
-def _infer_fill_value(val):
+def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
+    """
+    ExtensionArray-compatible implementation of array_equivalent.
+    """
+    if not is_dtype_equal(left.dtype, right.dtype):
+        return False
+    elif isinstance(left, ABCExtensionArray):
+        return left.equals(right)
+    else:
+        return array_equivalent(left, right, dtype_equal=True)
+
+
+def infer_fill_value(val):
     """
     infer the fill value for the nan/NaT from the provided
     scalar/ndarray/list-like if we are a NaT, return the correct dtyped
@@ -504,11 +525,11 @@ def _infer_fill_value(val):
     return np.nan
 
 
-def _maybe_fill(arr, fill_value=np.nan):
+def maybe_fill(arr, fill_value=np.nan):
     """
     if we have a compatible fill_value and arr dtype, then fill
     """
-    if _isna_compat(arr, fill_value):
+    if isna_compat(arr, fill_value):
         arr.fill(fill_value)
     return arr
 
@@ -587,6 +608,37 @@ def is_valid_nat_for_dtype(obj, dtype: DtypeObj) -> bool:
         return not isinstance(obj, np.timedelta64)
     if dtype.kind == "m":
         return not isinstance(obj, np.datetime64)
+    if dtype.kind in ["i", "u", "f", "c"]:
+        # Numeric
+        return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
 
     # must be PeriodDType
     return not isinstance(obj, (np.datetime64, np.timedelta64))
+
+
+def isna_all(arr: ArrayLike) -> bool:
+    """
+    Optimized equivalent to isna(arr).all()
+    """
+    total_len = len(arr)
+
+    # Usually it's enough to check but a small fraction of values to see if
+    #  a block is NOT null, chunks should help in such cases.
+    #  parameters 1000 and 40 were chosen arbitrarily
+    chunk_len = max(total_len // 40, 1000)
+
+    dtype = arr.dtype
+    if dtype.kind == "f":
+        checker = nan_checker
+
+    elif dtype.kind in ["m", "M"] or dtype.type is Period:
+        checker = lambda x: np.asarray(x.view("i8")) == iNaT
+
+    else:
+        checker = lambda x: _isna_ndarraylike(x, inf_as_na=INF_AS_NA)
+
+    for i in range(0, total_len, chunk_len):
+        if not checker(arr[i : i + chunk_len]).all():
+            return False
+
+    return True
