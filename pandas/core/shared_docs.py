@@ -47,16 +47,16 @@ A passed user-defined-function will be passed a Series for evaluation.
 _shared_docs[
     "compare"
 ] = """
-Compare to another %(klass)s and show the differences.
+Compare to another {klass} and show the differences.
 
 .. versionadded:: 1.1.0
 
 Parameters
 ----------
-other : %(klass)s
+other : {klass}
     Object to compare with.
 
-align_axis : {0 or 'index', 1 or 'columns'}, default 1
+align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
     Determine which axis to align the comparison on.
 
     * 0, or 'index' : Resulting differences are stacked vertically
